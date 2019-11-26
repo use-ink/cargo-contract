@@ -16,18 +16,9 @@
 
 use std::path::PathBuf;
 
+use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
-use parity_wasm::elements::{
-    External,
-    MemoryType,
-    Module,
-    Section,
-};
-
-use crate::cmd::{
-    CommandError as Error,
-    Result,
-};
+use parity_wasm::elements::{External, MemoryType, Module, Section};
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -56,7 +47,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     let root_package_id = metadata
         .resolve
         .and_then(|resolve| resolve.root)
-        .ok_or_else(|| Error::Other("Cannot infer the root project id".to_string()))?;
+        .context("Cannot infer the root project id")?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
     // package is not found in the list.
@@ -107,39 +98,27 @@ fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
 ///
 /// Iterates over the import section, finds the memory import entry if any and adjusts the maximum
 /// limit.
-fn ensure_maximum_memory_pages(
-    module: &mut Module,
-    maximum_allowed_pages: u32,
-) -> Result<()> {
+fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) -> Result<()> {
     let mem_ty = module
         .import_section_mut()
         .and_then(|section| {
-            section.entries_mut()
+            section
+                .entries_mut()
                 .iter_mut()
-                .find_map(|entry| {
-                    match entry.external_mut() {
-                        External::Memory(ref mut mem_ty) => Some(mem_ty),
-                        _ => None,
-                    }
+                .find_map(|entry| match entry.external_mut() {
+                    External::Memory(ref mut mem_ty) => Some(mem_ty),
+                    _ => None,
                 })
         })
-        .ok_or_else(||
-            Error::Other(
-                "Memory import is not found. Is --import-memory specified in the linker args".to_string()
-            )
-        )?;
+        .context("Memory import is not found. Is --import-memory specified in the linker args")?;
 
     if let Some(requested_maximum) = mem_ty.limits().maximum() {
         // The module already has maximum, check if it is within the limit bail out.
         if requested_maximum > maximum_allowed_pages {
-            return Err(
-                Error::Other(
-                    format!(
-                        "The wasm module requires {} pages. The maximum allowed number of pages is {}",
-                        requested_maximum,
-                        maximum_allowed_pages,
-                    )
-                )
+            anyhow::bail!(
+                "The wasm module requires {} pages. The maximum allowed number of pages is {}",
+                requested_maximum,
+                maximum_allowed_pages,
             );
         }
     } else {
@@ -154,13 +133,11 @@ fn ensure_maximum_memory_pages(
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        match section {
-            Section::Custom(_) => false,
-            Section::Name(_) => false,
-            Section::Reloc(_) => false,
-            _ => true,
-        }
+    module.sections_mut().retain(|section| match section {
+        Section::Custom(_) => false,
+        Section::Name(_) => false,
+        Section::Reloc(_) => false,
+        _ => true,
     });
 }
 
@@ -173,7 +150,9 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     //
     // In practice only tree-shaking is performed, i.e transitively removing all symbols that are
     // NOT used by the specified entrypoints.
-    pwasm_utils::optimize(&mut module, ["call", "deploy"].to_vec())?;
+    if pwasm_utils::optimize(&mut module, ["call", "deploy"].to_vec()).is_err() {
+        anyhow::bail!("Optimizer failed");
+    }
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
@@ -198,17 +177,14 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
     ))
 }
 
+#[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd::{
-            execute_new,
-            tests::with_tmp_dir,
-        },
+        cmd::{execute_new, tests::with_tmp_dir},
         AbstractionLayer,
     };
 
-    #[cfg(feature = "test-ci-only")]
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {

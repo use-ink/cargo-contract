@@ -16,9 +16,8 @@
 
 use std::path::PathBuf;
 
+use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
-
-use crate::cmd::Result;
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
@@ -38,7 +37,9 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
         dir,
     )?;
 
-    let cargo_metadata = MetadataCommand::new().exec()?;
+    let cargo_metadata = MetadataCommand::new()
+        .exec()
+        .context("Error invoking `cargo metadata`")?;
     let mut out_path = cargo_metadata.target_directory;
     out_path.push("metadata.json");
 
@@ -48,26 +49,21 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     ))
 }
 
+#[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd::{
-            execute_generate_metadata,
-            execute_new,
-            tests::with_tmp_dir,
-        },
+        cmd::{execute_generate_metadata, execute_new, tests::with_tmp_dir},
         AbstractionLayer,
     };
 
-    #[cfg(feature = "test-ci-only")]
     #[test]
     fn generate_metadata() {
         with_tmp_dir(|path| {
             execute_new(AbstractionLayer::Lang, "new_project", Some(path))
                 .expect("new project creation failed");
             let working_dir = path.join("new_project");
-            execute_generate_metadata(Some(&working_dir))
-                .expect("generate metadata failed");
+            execute_generate_metadata(Some(&working_dir)).expect("generate metadata failed");
 
             let mut abi_file = working_dir;
             abi_file.push("target");

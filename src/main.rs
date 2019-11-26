@@ -16,11 +16,10 @@
 
 mod cmd;
 
-use structopt::{
-    clap,
-    StructOpt,
-};
-use url::Url;
+use std::{path::PathBuf, result::Result as StdResult};
+
+use anyhow::Result;
+use structopt::{clap, StructOpt};
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -45,11 +44,6 @@ pub(crate) enum AbstractionLayer {
     Model,
     Lang,
 }
-
-use std::{
-    path::PathBuf,
-    result::Result as StdResult,
-};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct InvalidAbstractionLayer;
@@ -106,7 +100,7 @@ enum Command {
             parse(try_from_str),
             default_value = "ws://localhost:9944"
         )]
-        url: Url,
+        url: url::Url,
         /// Secret key URI for the account deploying the contract.
         #[structopt(name = "suri", long, short)]
         suri: String,
@@ -118,7 +112,7 @@ enum Command {
         gas: u64,
         /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
         #[structopt(parse(from_os_str))]
-        wasm_path: Option<std::path::PathBuf>,
+        wasm_path: Option<PathBuf>,
     },
 }
 
@@ -132,8 +126,7 @@ fn main() {
     }
 }
 
-fn exec(cmd: Command) -> cmd::Result<String> {
-    use crate::cmd::CommandError;
+fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New {
             layer,
@@ -142,21 +135,19 @@ fn exec(cmd: Command) -> cmd::Result<String> {
         } => cmd::execute_new(*layer, name, target_dir.as_ref()),
         Command::Build {} => cmd::execute_build(None),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
-        Command::Test {} => Err(CommandError::UnimplementedCommand),
+        Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         Command::Deploy {
             url,
             suri,
             password,
             gas,
             wasm_path,
-        } => {
-            cmd::execute_deploy(
-                url.clone(),
-                suri,
-                password.as_ref().map(String::as_ref),
-                *gas,
-                wasm_path.as_ref(),
-            )
-        }
+        } => cmd::execute_deploy(
+            url.clone(),
+            suri,
+            password.as_ref().map(String::as_ref),
+            *gas,
+            wasm_path.as_ref(),
+        ),
     }
 }

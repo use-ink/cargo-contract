@@ -15,37 +15,25 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    env,
-    fs,
-    io::{
-        Cursor,
-        Read,
-        Seek,
-        SeekFrom,
-        Write,
-    },
+    env, fs,
+    io::{Cursor, Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
 
+use anyhow::Result;
 use heck::CamelCase as _;
 
-use crate::{
-    cmd::{
-        CommandError,
-        Result,
-    },
-    AbstractionLayer,
-};
+use crate::AbstractionLayer;
 
 /// Initializes a project structure for the `lang` abstraction layer.
 fn initialize_for_lang(name: &str, target_dir: Option<&PathBuf>) -> Result<String> {
     if name.contains('-') {
-        return Err("Contract names cannot contain hyphens".into())
+        anyhow::bail!("Contract names cannot contain hyphens");
     }
 
     let out_dir = target_dir.unwrap_or(&env::current_dir()?).join(name);
     if out_dir.join("Cargo.toml").exists() {
-        return Err(format!("A Cargo package already exists in {}", name).into())
+        anyhow::bail!("A Cargo package already exists in {}", name);
     }
     if !out_dir.exists() {
         fs::create_dir(&out_dir)?;
@@ -83,12 +71,12 @@ fn initialize_for_lang(name: &str, target_dir: Option<&PathBuf>) -> Result<Strin
                 .open(outpath.clone())
                 .map_err(|e| {
                     if e.kind() == std::io::ErrorKind::AlreadyExists {
-                        CommandError::from(format!(
+                        anyhow::anyhow!(
                             "New contract file {} already exists",
                             file.sanitized_name().display()
-                        ))
+                        )
                     } else {
-                        CommandError::from(e)
+                        anyhow::anyhow!(e)
                     }
                 })?;
 
@@ -115,8 +103,8 @@ pub(crate) fn execute_new(
     dir: Option<&PathBuf>,
 ) -> Result<String> {
     match layer {
-        AbstractionLayer::Core => Err(CommandError::UnimplementedAbstractionLayer),
-        AbstractionLayer::Model => Err(CommandError::UnimplementedAbstractionLayer),
+        AbstractionLayer::Core => Err(anyhow::anyhow!("Abstraction layer unimplemented")),
+        AbstractionLayer::Model => Err(anyhow::anyhow!("Abstraction layer unimplemented")),
         AbstractionLayer::Lang => initialize_for_lang(name, dir),
     }
 }
@@ -125,10 +113,7 @@ pub(crate) fn execute_new(
 mod tests {
     use super::*;
     use crate::{
-        cmd::{
-            execute_new,
-            tests::with_tmp_dir,
-        },
+        cmd::{execute_new, tests::with_tmp_dir},
         AbstractionLayer,
     };
 
@@ -142,7 +127,7 @@ mod tests {
             );
             assert_eq!(
                 format!("{:?}", result),
-                r#"Err(Other("Contract names cannot contain hyphens"))"#
+                r#"Err(Contract names cannot contain hyphens)"#
             )
         });
     }
@@ -155,7 +140,7 @@ mod tests {
             let result = execute_new(AbstractionLayer::Lang, name, Some(path));
             assert_eq!(
                 format!("{:?}", result),
-                r#"Err(Other("A Cargo package already exists in test_contract_cargo_project_already_exists"))"#
+                r#"Err(A Cargo package already exists in test_contract_cargo_project_already_exists)"#
             )
         });
     }
@@ -170,7 +155,7 @@ mod tests {
             let result = execute_new(AbstractionLayer::Lang, name, Some(path));
             assert_eq!(
                 format!("{:?}", result),
-                r#"Err(Other("New contract file .gitignore already exists"))"#
+                r#"Err(New contract file .gitignore already exists)"#
             )
         });
     }
