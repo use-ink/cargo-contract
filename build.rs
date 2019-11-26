@@ -15,27 +15,15 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    error::Error,
     fs::File,
-    io::{
-        prelude::*,
-        Write,
-    },
+    io::{prelude::*, Write},
     iter::Iterator,
-    path::{
-        Path,
-        PathBuf,
-    },
-    result::Result,
+    path::{Path, PathBuf},
 };
 
+use anyhow::Result;
 use walkdir::WalkDir;
-use zip::{
-    result::ZipError,
-    write::FileOptions,
-    CompressionMethod,
-    ZipWriter,
-};
+use zip::{result::ZipError, write::FileOptions, CompressionMethod, ZipWriter};
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
 
@@ -45,24 +33,18 @@ fn main() {
     let dst_file = Path::new(&out_dir).join("template.zip");
 
     match zip_dir(&src_dir, &dst_file, CompressionMethod::Stored) {
-        Ok(_) => {
-            println!(
-                "done: {} written to {}",
-                src_dir.display(),
-                dst_file.display()
-            )
-        }
+        Ok(_) => println!(
+            "done: {} written to {}",
+            src_dir.display(),
+            dst_file.display()
+        ),
         Err(e) => eprintln!("Error: {:?}", e),
     };
 }
 
-fn zip_dir(
-    src_dir: &PathBuf,
-    dst_file: &PathBuf,
-    method: CompressionMethod,
-) -> Result<(), Box<dyn Error>> {
+fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> Result<()> {
     if !src_dir.is_dir() {
-        return Err(ZipError::FileNotFound.into())
+        return Err(ZipError::FileNotFound.into());
     }
 
     let file = File::create(dst_file)?;

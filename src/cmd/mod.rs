@@ -15,36 +15,24 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    io::{
-        self,
-        Write,
-    },
+    io::{self, Write},
     path::PathBuf,
     process::Command,
 };
 
+use anyhow::Result;
+
 mod build;
 mod deploy;
-mod error;
 mod metadata;
 mod new;
 
 pub(crate) use self::{
-    build::execute_build,
-    deploy::execute_deploy,
-    error::{
-        CommandError,
-        Result,
-    },
-    metadata::execute_generate_metadata,
+    build::execute_build, deploy::execute_deploy, metadata::execute_generate_metadata,
     new::execute_new,
 };
 
-fn exec_cargo(
-    command: &str,
-    args: &[&'static str],
-    working_dir: Option<&PathBuf>,
-) -> Result<()> {
+fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf>) -> Result<()> {
     let mut cmd = Command::new("cargo");
     let mut is_nightly_cmd = Command::new("cargo");
     if let Some(dir) = working_dir {
@@ -70,7 +58,7 @@ fn exec_cargo(
         // Dump the output streams produced by cargo into the stdout/stderr.
         io::stdout().write_all(&output.stdout)?;
         io::stderr().write_all(&output.stderr)?;
-        return Err(error::CommandError::BuildFailed)
+        anyhow::bail!("Build failed");
     }
 
     Ok(())
