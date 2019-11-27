@@ -23,13 +23,15 @@ use std::{
 use anyhow::Result;
 
 mod build;
+#[cfg(feature = "deploy")]
 mod deploy;
 mod metadata;
 mod new;
 
+#[cfg(feature = "deploy")]
+pub(crate) use self::deploy::execute_deploy;
 pub(crate) use self::{
-    build::execute_build, deploy::execute_deploy, metadata::execute_generate_metadata,
-    new::execute_new,
+    build::execute_build, metadata::execute_generate_metadata, new::execute_new,
 };
 
 fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf>) -> Result<()> {

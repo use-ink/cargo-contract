@@ -24,11 +24,12 @@ zip = { version = "0.5", default-features = false }
 pwasm-utils = "0.12"
 parity-wasm = "0.41"
 cargo_metadata = "0.9"
-substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "substrate-primitives" }
-subxt = { git = "https://github.com/paritytech/substrate-subxt/", branch = "v0.3", package = "substrate-subxt" }
-tokio = "0.1"
-futures = "0.1"
-url = "1.7"
+
+substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "substrate-primitives", optional = true }
+subxt = { git = "https://github.com/paritytech/substrate-subxt/", branch = "v0.3", package = "substrate-subxt", optional = true }
+tokio = { version = "0.1", optional = true }
+futures = { version = "0.1", optional = true }
+url = { version = "1.7", optional = true }
 
 [build-dependencies]
 anyhow = "1.0"
@@ -42,4 +43,5 @@ wabt = "0.9"
 
 [features]
 default = []
+deploy = ["substrate-primitives", "subxt", "tokio", "futures", "url"]
 test-ci-only = []
