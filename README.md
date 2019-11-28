@@ -32,6 +32,14 @@ SUBCOMMANDS:
     help                 Prints this message or the help of the given subcommand(s)
 ```
 
+## Feature
+
+The `deploy` subcommand is **disabled by default**, since it's not working properly at the moment and increases the build time.
+
+If you want to try it, you need to enable the `deploy` feature.
+
+Once it is working properly and the compilation time is acceptable, we will consider removing the `deploy` feature.
+
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE). Please [contact us](https://www.parity.io/contact/) if you have questions about the licensing of our products.

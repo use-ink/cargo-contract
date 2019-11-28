@@ -91,6 +91,7 @@ enum Command {
     #[structopt(name = "test")]
     Test {},
     /// Deploy the smart contract on-chain. (Also for testing purposes.)
+    #[cfg(feature = "deploy")]
     #[structopt(name = "deploy")]
     Deploy {
         /// Websockets url of a substrate node
@@ -136,6 +137,7 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {} => cmd::execute_build(None),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
+        #[cfg(feature = "deploy")]
         Command::Deploy {
             url,
             suri,

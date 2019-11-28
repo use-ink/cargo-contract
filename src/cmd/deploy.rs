@@ -27,7 +27,7 @@ use crate::cmd::build::{self, CrateMetadata};
 ///
 /// Defaults to the target contract wasm in the current project, inferred via the crate metadata.
 fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
-    let default_wasm_path = build::collect_crate_metadata(path).map(CrateMetadata::dest_wasm)?;
+    let default_wasm_path = build::collect_crate_metadata(path)?.dest_wasm;
     let contract_wasm_path = path.unwrap_or(&default_wasm_path);
 
     let mut data = Vec::new();
