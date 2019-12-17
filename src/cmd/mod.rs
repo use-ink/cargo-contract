@@ -25,11 +25,15 @@ use anyhow::Result;
 mod build;
 #[cfg(feature = "deploy")]
 mod deploy;
+#[cfg(feature = "deploy")]
+mod instantiate;
 mod metadata;
 mod new;
 
 #[cfg(feature = "deploy")]
 pub(crate) use self::deploy::execute_deploy;
+#[cfg(feature = "deploy")]
+pub(crate) use self::instantiate::execute_instantiate;
 pub(crate) use self::{
     build::execute_build, metadata::execute_generate_metadata, new::execute_new,
 };

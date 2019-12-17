@@ -18,10 +18,10 @@ use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
 use futures::future::Future;
-use substrate_primitives::{crypto::Pair, sr25519, H256};
+use sp_core::H256;
 use subxt::{contracts, system::System, DefaultNodeRuntime};
 
-use crate::cmd::build::{self, CrateMetadata};
+use crate::{ExtrinsicOpts, cmd::build};
 
 /// Load the wasm blob from the specified path.
 ///
@@ -60,24 +60,19 @@ fn extract_code_hash<T: System>(extrinsic_result: subxt::ExtrinsicSuccess<T>) ->
 /// Creates an extrinsic with the `Contracts::put_code` Call, submits via RPC, then waits for
 /// the `ContractsEvent::CodeStored` event.
 pub(crate) fn execute_deploy(
-    url: url::Url,
-    suri: &str,
-    password: Option<&str>,
-    gas: u64,
+    extrinsic_opts: &ExtrinsicOpts,
     contract_wasm_path: Option<&PathBuf>,
 ) -> Result<String> {
-    let signer = match sr25519::Pair::from_string(suri, password) {
-        Ok(signer) => signer,
-        Err(_) => anyhow::bail!("Secret string error"),
-    };
+    let signer = extrinsic_opts.signer()?;
+    let gas_limit = extrinsic_opts.gas_limit.clone();
 
     let code = load_contract_code(contract_wasm_path)?;
 
     let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-        .set_url(url)
+        .set_url(extrinsic_opts.url.clone())
         .build()
         .and_then(|cli| cli.xt(signer, None))
-        .and_then(move |xt| xt.submit_and_watch(contracts::put_code(gas, code)));
+        .and_then(move |xt| xt.submit_and_watch(contracts::put_code(gas_limit, code)));
 
     let mut rt = tokio::runtime::Runtime::new()?;
     if let Ok(extrinsic_success) = rt.block_on(fut) {
@@ -95,6 +90,7 @@ mod tests {
     use std::{fs, io::Write, path};
 
     use assert_matches::assert_matches;
+    use crate::ExtrinsicOpts;
 
     #[test]
     #[ignore] // depends on a local substrate node running
@@ -117,7 +113,14 @@ mod tests {
         let _ = file.write_all(&wasm);
 
         let url = url::Url::parse("ws://localhost:9944").unwrap();
-        let result = super::execute_deploy(url, "//Alice", None, 500_000, Some(&wasm_path));
+//        let extrinsic_opts = ExtrinsicOpts::new(url, "//Alice".into(), None, 500_000);
+        let extrinsic_opts = ExtrinsicOpts {
+            url,
+            suri: "//Alice".into(),
+            password: None,
+            gas_limit: 500_000
+        };
+        let result = super::execute_deploy(&extrinsic_opts, Some(&wasm_path));
 
         assert_matches!(result, Ok(_));
     }
