@@ -112,28 +112,28 @@ impl ExtrinsicOpts {
 
 #[derive(Debug, StructOpt)]
 enum Command {
-    /// Setup and create a new smart contract.
+    /// Setup and create a new smart contract project
     #[structopt(name = "new")]
     New {
         /// The abstraction layer to use: `core`, `model` or `lang`
         #[structopt(short = "l", long = "layer", default_value = "lang")]
         layer: AbstractionLayer,
-        /// The name of the newly created smart contract.
+        /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Builds the smart contract.
+    /// Compiles the smart contract
     #[structopt(name = "build")]
     Build {},
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
-    /// Test the smart contract off-chain.
+    /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
-    /// Deploy the smart contract on-chain. (Also for testing purposes.)
+    /// Upload the smart contract code to the chain
     #[cfg(feature = "deploy")]
     #[structopt(name = "deploy")]
     Deploy {
@@ -143,6 +143,7 @@ enum Command {
         #[structopt(parse(from_os_str))]
         wasm_path: Option<PathBuf>,
     },
+    /// Instantiate a deployed smart contract
     #[cfg(feature = "deploy")]
     #[structopt(name = "instantiate")]
     Instantiate {
