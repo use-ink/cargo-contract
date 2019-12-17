@@ -97,7 +97,7 @@ pub(crate) struct ExtrinsicOpts {
     #[structopt(name = "password", long, short)]
     password: Option<String>,
     /// Maximum amount of gas to be used for this command
-    #[structopt(name = "gas", long, default_value = "500_000")]
+    #[structopt(name = "gas", long, default_value = "500000")]
     gas_limit: u64,
 }
 
