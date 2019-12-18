@@ -21,7 +21,7 @@ use futures::future::Future;
 use sp_core::H256;
 use subxt::{contracts, system::System, DefaultNodeRuntime};
 
-use crate::{ExtrinsicOpts, cmd::build};
+use crate::{cmd::build, ExtrinsicOpts};
 
 /// Load the wasm blob from the specified path.
 ///
@@ -89,8 +89,8 @@ pub(crate) fn execute_deploy(
 mod tests {
     use std::{fs, io::Write, path};
 
-    use assert_matches::assert_matches;
     use crate::ExtrinsicOpts;
+    use assert_matches::assert_matches;
 
     #[test]
     #[ignore] // depends on a local substrate node running
@@ -113,12 +113,11 @@ mod tests {
         let _ = file.write_all(&wasm);
 
         let url = url::Url::parse("ws://localhost:9944").unwrap();
-//        let extrinsic_opts = ExtrinsicOpts::new(url, "//Alice".into(), None, 500_000);
         let extrinsic_opts = ExtrinsicOpts {
             url,
             suri: "//Alice".into(),
             password: None,
-            gas_limit: 500_000
+            gas_limit: 500_000,
         };
         let result = super::execute_deploy(&extrinsic_opts, Some(&wasm_path));
 

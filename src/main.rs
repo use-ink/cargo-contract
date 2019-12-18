@@ -16,9 +16,9 @@
 
 mod cmd;
 
-use std::{path::PathBuf, result::Result as StdResult, str::FromStr};
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
+use std::{path::PathBuf, result::Result as StdResult, str::FromStr};
 
 use anyhow::Result;
 use structopt::{clap, StructOpt};
@@ -107,10 +107,8 @@ pub(crate) struct ExtrinsicOpts {
 #[cfg(feature = "extrinsics")]
 impl ExtrinsicOpts {
     pub fn signer(&self) -> Result<sr25519::Pair> {
-        sr25519::Pair::from_string(
-            &self.suri,
-            self.password.as_ref().map(String::as_ref)
-        ).map_err(|_| anyhow::anyhow!("Secret string error"))
+        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+            .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
 }
 
@@ -200,21 +198,13 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Deploy {
             extrinsic_opts,
             wasm_path,
-        } => cmd::execute_deploy(
-            extrinsic_opts,
-            wasm_path.as_ref(),
-        ),
+        } => cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref()),
         #[cfg(feature = "extrinsics")]
         Command::Instantiate {
             extrinsic_opts,
             endowment,
             code_hash,
             data,
-        } => cmd::execute_instantiate(
-            extrinsic_opts,
-            *endowment,
-            *code_hash,
-            data.clone()
-        )
+        } => cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone()),
     }
 }

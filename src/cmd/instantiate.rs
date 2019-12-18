@@ -23,14 +23,19 @@ use crate::{ExtrinsicOpts, HexData};
 /// Attempt to extract the contract account from the extrinsic result.
 ///
 /// Returns an Error if the `Contracts::Instantiated` is not found or cannot be decoded.
-fn extract_contract_account<T: System>(extrinsic_result: subxt::ExtrinsicSuccess<T>) -> Result<T::AccountId> {
-	match extrinsic_result.find_event::<(T::AccountId, T::AccountId)>("Contracts", "Instantiated") {
-		Some(Ok((_src_acct, dest_acct))) => Ok(dest_acct),
-		Some(Err(err)) => Err(anyhow::anyhow!("Failed to decode contract source and destination accounts: {}", err)),
-		None => Err(anyhow::anyhow!(
+fn extract_contract_account<T: System>(
+    extrinsic_result: subxt::ExtrinsicSuccess<T>,
+) -> Result<T::AccountId> {
+    match extrinsic_result.find_event::<(T::AccountId, T::AccountId)>("Contracts", "Instantiated") {
+        Some(Ok((_src_acct, dest_acct))) => Ok(dest_acct),
+        Some(Err(err)) => Err(anyhow::anyhow!(
+            "Failed to decode contract source and destination accounts: {}",
+            err
+        )),
+        None => Err(anyhow::anyhow!(
             "Failed to find Contracts::Instantiated Event"
         )),
-	}
+    }
 }
 
 /// Instantiate a contract stored at the supplied code hash.
@@ -39,29 +44,33 @@ fn extract_contract_account<T: System>(extrinsic_result: subxt::ExtrinsicSuccess
 /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
 /// the `ContractsEvent::Instantiated` event.
 pub(crate) fn execute_instantiate(
-	extrinsic_opts: &ExtrinsicOpts,
-	endowment: <DefaultNodeRuntime as Balances>::Balance,
-	code_hash: <DefaultNodeRuntime as System>::Hash,
-	data: HexData,
+    extrinsic_opts: &ExtrinsicOpts,
+    endowment: <DefaultNodeRuntime as Balances>::Balance,
+    code_hash: <DefaultNodeRuntime as System>::Hash,
+    data: HexData,
 ) -> Result<String> {
-	let signer = extrinsic_opts.signer()?;
-	let gas_limit = extrinsic_opts.gas_limit.clone();
+    let signer = extrinsic_opts.signer()?;
+    let gas_limit = extrinsic_opts.gas_limit.clone();
 
-	let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-		.set_url(extrinsic_opts.url.clone())
-		.build()
-		.and_then(|cli| cli.xt(signer, None))
-		.and_then(move |xt| xt.submit_and_watch(contracts::instantiate::<DefaultNodeRuntime>(endowment, gas_limit, code_hash, data.0)));
+    let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
+        .set_url(extrinsic_opts.url.clone())
+        .build()
+        .and_then(|cli| cli.xt(signer, None))
+        .and_then(move |xt| {
+            xt.submit_and_watch(contracts::instantiate::<DefaultNodeRuntime>(
+                endowment, gas_limit, code_hash, data.0,
+            ))
+        });
 
-	let mut rt = tokio::runtime::Runtime::new()?;
-	if let Ok(extrinsic_success) = rt.block_on(fut) {
-		log::debug!("Instantiate success: {:?}", extrinsic_success);
+    let mut rt = tokio::runtime::Runtime::new()?;
+    if let Ok(extrinsic_success) = rt.block_on(fut) {
+        log::debug!("Instantiate success: {:?}", extrinsic_success);
 
-		let contract_account = extract_contract_account(extrinsic_success)?;
-		Ok(format!("Contract account: {:?}", contract_account))
-	} else {
-		Err(anyhow::anyhow!("Deploy error"))
-	}
+        let contract_account = extract_contract_account(extrinsic_success)?;
+        Ok(format!("Contract account: {:?}", contract_account))
+    } else {
+        Err(anyhow::anyhow!("Deploy error"))
+    }
 }
 
 //#[cfg(test)]
