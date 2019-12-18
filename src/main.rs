@@ -17,7 +17,6 @@
 mod cmd;
 
 use std::{path::PathBuf, result::Result as StdResult, str::FromStr};
-use sp_core::{crypto::Pair, sr25519, H256};
 
 use anyhow::Result;
 use structopt::{clap, StructOpt};
@@ -80,34 +79,40 @@ impl FromStr for HexData {
 }
 
 /// Arguments required for creating and sending an extrinsic to a substrate node
-#[derive(Debug, StructOpt)]
-pub(crate) struct ExtrinsicOpts {
-    /// Websockets url of a substrate node
-    #[structopt(
+#[cfg(feature = "deploy")]
+mod xt {
+    use sp_core::{crypto::Pair, sr25519, H256};
+
+    #[derive(Debug, StructOpt)]
+    pub(crate) struct ExtrinsicOpts {
+        /// Websockets url of a substrate node
+        #[structopt(
         name = "url",
         long,
         parse(try_from_str),
         default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
-    /// Secret key URI for the account deploying the contract.
-    #[structopt(name = "suri", long, short)]
-    suri: String,
-    /// Password for the secret key
-    #[structopt(name = "password", long, short)]
-    password: Option<String>,
-    /// Maximum amount of gas to be used for this command
-    #[structopt(name = "gas", long, default_value = "500000")]
-    gas_limit: u64,
-}
-
-impl ExtrinsicOpts {
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        sr25519::Pair::from_string(
-            &self.suri,
-            self.password.as_ref().map(String::as_ref)
-        ).map_err(|_| anyhow::anyhow!("Secret string error"))
+        )]
+        url: url::Url,
+        /// Secret key URI for the account deploying the contract.
+        #[structopt(name = "suri", long, short)]
+        suri: String,
+        /// Password for the secret key
+        #[structopt(name = "password", long, short)]
+        password: Option<String>,
+        /// Maximum amount of gas to be used for this command
+        #[structopt(name = "gas", long, default_value = "500000")]
+        gas_limit: u64,
     }
+
+    impl ExtrinsicOpts {
+        pub fn signer(&self) -> Result<sr25519::Pair> {
+            sr25519::Pair::from_string(
+                &self.suri,
+                self.password.as_ref().map(String::as_ref)
+            ).map_err(|_| anyhow::anyhow!("Secret string error"))
+        }
+    }
+
 }
 
 #[derive(Debug, StructOpt)]
@@ -138,7 +143,7 @@ enum Command {
     #[structopt(name = "deploy")]
     Deploy {
         #[structopt(flatten)]
-        extrinsic_opts: ExtrinsicOpts,
+        extrinsic_opts: xt::ExtrinsicOpts,
         /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
         #[structopt(parse(from_os_str))]
         wasm_path: Option<PathBuf>,
@@ -148,7 +153,7 @@ enum Command {
     #[structopt(name = "instantiate")]
     Instantiate {
         #[structopt(flatten)]
-        extrinsic_opts: ExtrinsicOpts,
+        extrinsic_opts: xt::ExtrinsicOpts,
         /// Transfers an initial balance to the instantiated contract
         #[structopt(name = "endowment", long, default_value = "0")]
         endowment: u128,
