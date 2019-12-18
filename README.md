@@ -13,7 +13,7 @@ Use the --force to ensure you are updated to the most recent cargo-contract vers
 ## Usage
 
 ```
-cargo-contract 0.2.0
+cargo-contract 0.3.0
 Utilities to develop Wasm smart contracts.
 
 USAGE:
@@ -24,19 +24,22 @@ OPTIONS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    new                  Setup and create a new smart contract.
-    build                Builds the smart contract.
+    new                  Setup and create a new smart contract project
+    build                Compiles the smart contract
     generate-metadata    Generate contract metadata artifacts
-    test                 Test the smart contract off-chain.
-    deploy               Deploy the smart contract on-chain. (Also for testing purposes.)
+    test                 Test the smart contract off-chain
+    deploy               Upload the smart contract code to the chain
+    instantiate          Instantiate a deployed smart contract
     help                 Prints this message or the help of the given subcommand(s)
 ```
 
-## Feature
+## Features
 
 The `deploy` and `instantiate` subcommands are **disabled by default**, since they are not fully stable yet and increase the build time.
 
-If you want to try them, you need to enable the `extrinsics` feature.
+If you want to try them, you need to enable the `extrinsics` feature:
+
+`cargo install --git https://github.com/paritytech/cargo-contract cargo-contract --features extrinsics --force`
 
 Once they are stable and the compilation time is acceptable, we will consider removing the `extrinsics` feature.
 
