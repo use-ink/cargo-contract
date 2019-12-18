@@ -23,16 +23,16 @@ use std::{
 use anyhow::Result;
 
 mod build;
-#[cfg(feature = "deploy")]
+#[cfg(feature = "extrinsics")]
 mod deploy;
-#[cfg(feature = "deploy")]
+#[cfg(feature = "extrinsics")]
 mod instantiate;
 mod metadata;
 mod new;
 
-#[cfg(feature = "deploy")]
+#[cfg(feature = "extrinsics")]
 pub(crate) use self::deploy::execute_deploy;
-#[cfg(feature = "deploy")]
+#[cfg(feature = "extrinsics")]
 pub(crate) use self::instantiate::execute_instantiate;
 pub(crate) use self::{
     build::execute_build, metadata::execute_generate_metadata, new::execute_new,

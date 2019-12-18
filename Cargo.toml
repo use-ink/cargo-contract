@@ -44,5 +44,5 @@ wabt = "0.9"
 
 [features]
 default = []
-deploy = ["sp-core", "subxt", "tokio", "futures", "url", "hex"]
+extrinsics = ["sp-core", "subxt", "tokio", "futures", "url", "hex"]
 test-ci-only = []

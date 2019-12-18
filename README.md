@@ -34,11 +34,11 @@ SUBCOMMANDS:
 
 ## Feature
 
-The `deploy` subcommand is **disabled by default**, since it's not working properly at the moment and increases the build time.
+The `deploy` and `instantiate` subcommands are **disabled by default**, since they are not fully stable yet and increase the build time.
 
-If you want to try it, you need to enable the `deploy` feature.
+If you want to try them, you need to enable the `extrinsics` feature.
 
-Once it is working properly and the compilation time is acceptable, we will consider removing the `deploy` feature.
+Once they are stable and the compilation time is acceptable, we will consider removing the `extrinsics` feature.
 
 ## License
 
