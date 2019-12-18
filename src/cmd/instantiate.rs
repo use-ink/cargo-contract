@@ -48,7 +48,7 @@ pub(crate) fn execute_instantiate(
     endowment: <DefaultNodeRuntime as Balances>::Balance,
     code_hash: <DefaultNodeRuntime as System>::Hash,
     data: HexData,
-) -> Result<String> {
+) -> Result<<DefaultNodeRuntime as System>::AccountId> {
     let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
 
@@ -66,42 +66,49 @@ pub(crate) fn execute_instantiate(
     if let Ok(extrinsic_success) = rt.block_on(fut) {
         log::debug!("Instantiate success: {:?}", extrinsic_success);
 
-        let contract_account = extract_contract_account(extrinsic_success)?;
-        Ok(format!("Contract account: {:?}", contract_account))
+        extract_contract_account(extrinsic_success)
     } else {
         Err(anyhow::anyhow!("Deploy error"))
     }
 }
 
-//#[cfg(test)]
-//mod tests {
-//	use std::{fs, io::Write, path};
-//
-//	use assert_matches::assert_matches;
-//
-//	#[test]
-//	#[ignore] // depends on a local substrate node running
-//	fn deploy_contract() {
-//		const CONTRACT: &str = r#"
-//(module
-//    (func (export "call"))
-//    (func (export "deploy"))
-//)
-//"#;
-//		let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
-//
-//		let out_dir = path::Path::new(env!("OUT_DIR"));
-//
-//		let target_dir = path::Path::new("./target");
-//		let _ = fs::create_dir(target_dir);
-//
-//		let wasm_path = out_dir.join("flipper-pruned.wasm");
-//		let mut file = fs::File::create(&wasm_path).unwrap();
-//		let _ = file.write_all(&wasm);
-//
-//		let url = url::Url::parse("ws://localhost:9944").unwrap();
-//		let result = super::execute_deploy(url, "//Alice", None, 500_000, Some(&wasm_path));
-//
-//		assert_matches!(result, Ok(_));
-//	}
-//}
+#[cfg(test)]
+mod tests {
+	use std::{fs, io::Write};
+
+	use crate::{cmd::{deploy::execute_deploy, tests::with_tmp_dir}, ExtrinsicOpts, HexData};
+	use assert_matches::assert_matches;
+
+	const CONTRACT: &str = r#"
+(module
+    (func (export "call"))
+    (func (export "deploy"))
+)
+"#;
+
+	#[test]
+	#[ignore] // depends on a local substrate node running
+	fn instantiate_contract() {
+		with_tmp_dir(|path| {
+			let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
+
+			let wasm_path = path.join("test.wasm");
+			let mut file = fs::File::create(&wasm_path).unwrap();
+			let _ = file.write_all(&wasm);
+
+			let url = url::Url::parse("ws://localhost:9944").unwrap();
+			let extrinsic_opts = ExtrinsicOpts {
+				url,
+				suri: "//Alice".into(),
+				password: None,
+				gas_limit: 500_000,
+			};
+			let code_hash = execute_deploy(&extrinsic_opts, Some(&wasm_path))
+				.expect("Deploy should succeed");
+
+			let result = super::execute_instantiate(&extrinsic_opts, 100000000000000, code_hash, HexData::default());
+
+			assert_matches!(result, Ok(_));
+		});
+	}
+}

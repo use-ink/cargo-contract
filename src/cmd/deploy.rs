@@ -64,7 +64,7 @@ fn extract_code_hash<T: System>(extrinsic_result: subxt::ExtrinsicSuccess<T>) ->
 pub(crate) fn execute_deploy(
     extrinsic_opts: &ExtrinsicOpts,
     contract_wasm_path: Option<&PathBuf>,
-) -> Result<String> {
+) -> Result<H256> {
     let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
 
@@ -79,9 +79,7 @@ pub(crate) fn execute_deploy(
     let mut rt = tokio::runtime::Runtime::new()?;
     if let Ok(extrinsic_success) = rt.block_on(fut) {
         log::debug!("Deploy success: {:?}", extrinsic_success);
-
-        let code_hash = extract_code_hash(extrinsic_success)?;
-        Ok(format!("Code hash: {:?}", code_hash))
+        extract_code_hash(extrinsic_success)
     } else {
         Err(anyhow::anyhow!("Deploy error"))
     }

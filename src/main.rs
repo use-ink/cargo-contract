@@ -69,7 +69,7 @@ impl FromStr for AbstractionLayer {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct HexData(pub Vec<u8>);
 
 #[cfg(feature = "extrinsics")]
@@ -198,13 +198,19 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Deploy {
             extrinsic_opts,
             wasm_path,
-        } => cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref()),
+        } => {
+            let code_hash = cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref())?;
+            Ok(format!("Code hash: {:?}", code_hash))
+        },
         #[cfg(feature = "extrinsics")]
         Command::Instantiate {
             extrinsic_opts,
             endowment,
             code_hash,
             data,
-        } => cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone()),
+        } => {
+            let contract_account = cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone())?;
+            Ok(format!("Contract account: {:?}", contract_account))
+        },
     }
 }
