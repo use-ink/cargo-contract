@@ -27,9 +27,11 @@ use crate::{cmd::build, ExtrinsicOpts};
 ///
 /// Defaults to the target contract wasm in the current project, inferred via the crate metadata.
 fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
-    let default_wasm_path = build::collect_crate_metadata(path)?.dest_wasm;
-    let contract_wasm_path = path.unwrap_or(&default_wasm_path);
-
+    let contract_wasm_path = match path {
+        Some(path) => path.clone(),
+        None => build::collect_crate_metadata(path)?.dest_wasm
+    };
+    log::info!("Contract code path: {}", contract_wasm_path.display());
     let mut data = Vec::new();
     let mut file = fs::File::open(&contract_wasm_path)
         .context(format!("Failed to open {}", contract_wasm_path.display()))?;
@@ -87,40 +89,41 @@ pub(crate) fn execute_deploy(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, io::Write, path};
+    use std::{fs, io::Write};
 
-    use crate::ExtrinsicOpts;
+    use crate::{
+        cmd::{deploy::execute_deploy, tests::with_tmp_dir},
+        ExtrinsicOpts,
+    };
     use assert_matches::assert_matches;
 
-    #[test]
-    #[ignore] // depends on a local substrate node running
-    fn deploy_contract() {
-        const CONTRACT: &str = r#"
+    const CONTRACT: &str = r#"
 (module
     (func (export "call"))
     (func (export "deploy"))
 )
 "#;
-        let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
 
-        let out_dir = path::Path::new(env!("OUT_DIR"));
+    #[test]
+    #[ignore] // depends on a local substrate node running
+    fn deploy_contract() {
+        with_tmp_dir(|path| {
+            let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
 
-        let target_dir = path::Path::new("./target");
-        let _ = fs::create_dir(target_dir);
+            let wasm_path = path.join("test.wasm");
+            let mut file = fs::File::create(&wasm_path).unwrap();
+            let _ = file.write_all(&wasm);
 
-        let wasm_path = out_dir.join("flipper-pruned.wasm");
-        let mut file = fs::File::create(&wasm_path).unwrap();
-        let _ = file.write_all(&wasm);
+            let url = url::Url::parse("ws://localhost:9944").unwrap();
+            let extrinsic_opts = ExtrinsicOpts {
+                url,
+                suri: "//Alice".into(),
+                password: None,
+                gas_limit: 500_000,
+            };
+            let result = execute_deploy(&extrinsic_opts, Some(&wasm_path));
 
-        let url = url::Url::parse("ws://localhost:9944").unwrap();
-        let extrinsic_opts = ExtrinsicOpts {
-            url,
-            suri: "//Alice".into(),
-            password: None,
-            gas_limit: 500_000,
-        };
-        let result = super::execute_deploy(&extrinsic_opts, Some(&wasm_path));
-
-        assert_matches!(result, Ok(_));
+            assert_matches!(result, Ok(_));
+        });
     }
 }
