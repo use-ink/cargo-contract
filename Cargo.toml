@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2018"
@@ -25,11 +25,12 @@ pwasm-utils = "0.12"
 parity-wasm = "0.41"
 cargo_metadata = "0.9"
 
-substrate-primitives = { git = "https://github.com/paritytech/substrate/", package = "substrate-primitives", optional = true }
-subxt = { git = "https://github.com/paritytech/substrate-subxt/", branch = "v0.3", package = "substrate-subxt", optional = true }
+sp-core = { git = "https://github.com/paritytech/substrate/", package = "sp-core", optional = true }
+subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "a9df35c570afdf7f5b081acb09dcf06fc3e5ad42", package = "substrate-subxt", optional = true }
 tokio = { version = "0.1", optional = true }
 futures = { version = "0.1", optional = true }
 url = { version = "1.7", optional = true }
+hex = { version = "0.4.0", optional = true }
 
 [build-dependencies]
 anyhow = "1.0"
@@ -43,5 +44,5 @@ wabt = "0.9"
 
 [features]
 default = []
-deploy = ["substrate-primitives", "subxt", "tokio", "futures", "url"]
+extrinsics = ["sp-core", "subxt", "tokio", "futures", "url", "hex"]
 test-ci-only = []

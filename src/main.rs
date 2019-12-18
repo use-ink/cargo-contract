@@ -16,7 +16,9 @@
 
 mod cmd;
 
-use std::{path::PathBuf, result::Result as StdResult};
+#[cfg(feature = "extrinsics")]
+use sp_core::{crypto::Pair, sr25519, H256};
+use std::{path::PathBuf, result::Result as StdResult, str::FromStr};
 
 use anyhow::Result;
 use structopt::{clap, StructOpt};
@@ -54,7 +56,7 @@ impl std::fmt::Display for InvalidAbstractionLayer {
     }
 }
 
-impl std::str::FromStr for AbstractionLayer {
+impl FromStr for AbstractionLayer {
     type Err = InvalidAbstractionLayer;
 
     fn from_str(input: &str) -> StdResult<Self, Self::Err> {
@@ -67,54 +69,109 @@ impl std::str::FromStr for AbstractionLayer {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct HexData(pub Vec<u8>);
+
+#[cfg(feature = "extrinsics")]
+impl FromStr for HexData {
+    type Err = hex::FromHexError;
+
+    fn from_str(input: &str) -> StdResult<Self, Self::Err> {
+        hex::decode(input).map(HexData)
+    }
+}
+
+/// Arguments required for creating and sending an extrinsic to a substrate node
+#[cfg(feature = "extrinsics")]
+#[derive(Debug, StructOpt)]
+pub(crate) struct ExtrinsicOpts {
+    /// Websockets url of a substrate node
+    #[structopt(
+        name = "url",
+        long,
+        parse(try_from_str),
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// Secret key URI for the account deploying the contract.
+    #[structopt(name = "suri", long, short)]
+    suri: String,
+    /// Password for the secret key
+    #[structopt(name = "password", long, short)]
+    password: Option<String>,
+    /// Maximum amount of gas to be used for this command
+    #[structopt(name = "gas", long, default_value = "500000")]
+    gas_limit: u64,
+}
+
+#[cfg(feature = "extrinsics")]
+impl ExtrinsicOpts {
+    pub fn signer(&self) -> Result<sr25519::Pair> {
+        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    }
+}
+
 #[derive(Debug, StructOpt)]
 enum Command {
-    /// Setup and create a new smart contract.
+    /// Setup and create a new smart contract project
     #[structopt(name = "new")]
     New {
         /// The abstraction layer to use: `core`, `model` or `lang`
         #[structopt(short = "l", long = "layer", default_value = "lang")]
         layer: AbstractionLayer,
-        /// The name of the newly created smart contract.
+        /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Builds the smart contract.
+    /// Compiles the smart contract
     #[structopt(name = "build")]
     Build {},
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
-    /// Test the smart contract off-chain.
+    /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
-    /// Deploy the smart contract on-chain. (Also for testing purposes.)
-    #[cfg(feature = "deploy")]
+    /// Upload the smart contract code to the chain
+    #[cfg(feature = "extrinsics")]
     #[structopt(name = "deploy")]
     Deploy {
-        /// Websockets url of a substrate node
-        #[structopt(
-            name = "url",
-            long,
-            parse(try_from_str),
-            default_value = "ws://localhost:9944"
-        )]
-        url: url::Url,
-        /// Secret key URI for the account deploying the contract.
-        #[structopt(name = "suri", long, short)]
-        suri: String,
-        /// Password for the secret key
-        #[structopt(name = "password", long, short)]
-        password: Option<String>,
-        #[structopt(name = "gas", long, default_value = "500000")]
-        /// Maximum amount of gas to be used in this deployment
-        gas: u64,
+        #[structopt(flatten)]
+        extrinsic_opts: ExtrinsicOpts,
         /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
         #[structopt(parse(from_os_str))]
         wasm_path: Option<PathBuf>,
     },
+    /// Instantiate a deployed smart contract
+    #[cfg(feature = "extrinsics")]
+    #[structopt(name = "instantiate")]
+    Instantiate {
+        #[structopt(flatten)]
+        extrinsic_opts: ExtrinsicOpts,
+        /// Transfers an initial balance to the instantiated contract
+        #[structopt(name = "endowment", long, default_value = "0")]
+        endowment: u128,
+        /// The hash of the smart contract code already uploaded to the chain
+        #[structopt(long, parse(try_from_str = parse_code_hash))]
+        code_hash: H256,
+        /// Hex encoded data to call a contract constructor
+        #[structopt(long)]
+        data: HexData,
+    },
+}
+
+#[cfg(feature = "extrinsics")]
+fn parse_code_hash(input: &str) -> Result<H256> {
+    let bytes = hex::decode(input)?;
+    if bytes.len() != 32 {
+        anyhow::bail!("Code hash should be 32 bytes in length")
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(H256(arr))
 }
 
 fn main() {
@@ -137,19 +194,23 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {} => cmd::execute_build(None),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
-        #[cfg(feature = "deploy")]
+        #[cfg(feature = "extrinsics")]
         Command::Deploy {
-            url,
-            suri,
-            password,
-            gas,
+            extrinsic_opts,
             wasm_path,
-        } => cmd::execute_deploy(
-            url.clone(),
-            suri,
-            password.as_ref().map(String::as_ref),
-            *gas,
-            wasm_path.as_ref(),
-        ),
+        } => {
+            let code_hash = cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref())?;
+            Ok(format!("Code hash: {:?}", code_hash))
+        },
+        #[cfg(feature = "extrinsics")]
+        Command::Instantiate {
+            extrinsic_opts,
+            endowment,
+            code_hash,
+            data,
+        } => {
+            let contract_account = cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone())?;
+            Ok(format!("Contract account: {:?}", contract_account))
+        },
     }
 }
