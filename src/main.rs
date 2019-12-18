@@ -156,7 +156,7 @@ enum Command {
         #[structopt(long, parse(try_from_str = parse_code_hash))]
         code_hash: H256,
         /// Hex encoded data to call a contract constructor
-        #[structopt(long, default_value = "0x")]
+        #[structopt(long)]
         data: HexData,
     },
 }
