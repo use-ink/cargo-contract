@@ -175,13 +175,12 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
 mod tests {
     use crate::{
         cmd::{execute_new, tests::with_tmp_dir},
-        AbstractionLayer,
     };
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
-            execute_new(AbstractionLayer::Lang, "new_project", Some(path))
+            execute_new("new_project", Some(path))
                 .expect("new project creation failed");
             super::execute_build(Some(&path.join("new_project"))).expect("build failed");
         });

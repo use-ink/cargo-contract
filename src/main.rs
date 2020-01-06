@@ -40,35 +40,6 @@ pub(crate) struct ContractArgs {
     cmd: Command,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum AbstractionLayer {
-    Core,
-    Model,
-    Lang,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct InvalidAbstractionLayer;
-
-impl std::fmt::Display for InvalidAbstractionLayer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "expected `core`, `model` or `lang`")
-    }
-}
-
-impl FromStr for AbstractionLayer {
-    type Err = InvalidAbstractionLayer;
-
-    fn from_str(input: &str) -> StdResult<Self, Self::Err> {
-        match input {
-            "core" => Ok(AbstractionLayer::Core),
-            "model" => Ok(AbstractionLayer::Model),
-            "lang" => Ok(AbstractionLayer::Lang),
-            _ => Err(InvalidAbstractionLayer),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct HexData(pub Vec<u8>);
 
@@ -117,9 +88,6 @@ enum Command {
     /// Setup and create a new smart contract project
     #[structopt(name = "new")]
     New {
-        /// The abstraction layer to use: `core`, `model` or `lang`
-        #[structopt(short = "l", long = "layer", default_value = "lang")]
-        layer: AbstractionLayer,
         /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
@@ -187,10 +155,9 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New {
-            layer,
             name,
             target_dir,
-        } => cmd::execute_new(*layer, name, target_dir.as_ref()),
+        } => cmd::execute_new( name, target_dir.as_ref()),
         Command::Build {} => cmd::execute_build(None),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
