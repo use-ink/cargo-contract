@@ -173,15 +173,12 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cmd::{execute_new, tests::with_tmp_dir},
-    };
+    use crate::cmd::{execute_new, tests::with_tmp_dir};
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
-            execute_new("new_project", Some(path))
-                .expect("new project creation failed");
+            execute_new("new_project", Some(path)).expect("new project creation failed");
             super::execute_build(Some(&path.join("new_project"))).expect("build failed");
         });
     }

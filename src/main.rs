@@ -154,10 +154,7 @@ fn main() {
 
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
-        Command::New {
-            name,
-            target_dir,
-        } => cmd::execute_new( name, target_dir.as_ref()),
+        Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
         Command::Build {} => cmd::execute_build(None),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
@@ -168,7 +165,7 @@ fn exec(cmd: Command) -> Result<String> {
         } => {
             let code_hash = cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref())?;
             Ok(format!("Code hash: {:?}", code_hash))
-        },
+        }
         #[cfg(feature = "extrinsics")]
         Command::Instantiate {
             extrinsic_opts,
@@ -176,8 +173,9 @@ fn exec(cmd: Command) -> Result<String> {
             code_hash,
             data,
         } => {
-            let contract_account = cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone())?;
+            let contract_account =
+                cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone())?;
             Ok(format!("Contract account: {:?}", contract_account))
-        },
+        }
     }
 }

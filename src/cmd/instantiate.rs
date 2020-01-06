@@ -74,41 +74,49 @@ pub(crate) fn execute_instantiate(
 
 #[cfg(test)]
 mod tests {
-	use std::{fs, io::Write};
+    use std::{fs, io::Write};
 
-	use crate::{cmd::{deploy::execute_deploy, tests::with_tmp_dir}, ExtrinsicOpts, HexData};
-	use assert_matches::assert_matches;
+    use crate::{
+        cmd::{deploy::execute_deploy, tests::with_tmp_dir},
+        ExtrinsicOpts, HexData,
+    };
+    use assert_matches::assert_matches;
 
-	const CONTRACT: &str = r#"
+    const CONTRACT: &str = r#"
 (module
     (func (export "call"))
     (func (export "deploy"))
 )
 "#;
 
-	#[test]
-	#[ignore] // depends on a local substrate node running
-	fn instantiate_contract() {
-		with_tmp_dir(|path| {
-			let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
+    #[test]
+    #[ignore] // depends on a local substrate node running
+    fn instantiate_contract() {
+        with_tmp_dir(|path| {
+            let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
 
-			let wasm_path = path.join("test.wasm");
-			let mut file = fs::File::create(&wasm_path).unwrap();
-			let _ = file.write_all(&wasm);
+            let wasm_path = path.join("test.wasm");
+            let mut file = fs::File::create(&wasm_path).unwrap();
+            let _ = file.write_all(&wasm);
 
-			let url = url::Url::parse("ws://localhost:9944").unwrap();
-			let extrinsic_opts = ExtrinsicOpts {
-				url,
-				suri: "//Alice".into(),
-				password: None,
-				gas_limit: 500_000,
-			};
-			let code_hash = execute_deploy(&extrinsic_opts, Some(&wasm_path))
-				.expect("Deploy should succeed");
+            let url = url::Url::parse("ws://localhost:9944").unwrap();
+            let extrinsic_opts = ExtrinsicOpts {
+                url,
+                suri: "//Alice".into(),
+                password: None,
+                gas_limit: 500_000,
+            };
+            let code_hash =
+                execute_deploy(&extrinsic_opts, Some(&wasm_path)).expect("Deploy should succeed");
 
-			let result = super::execute_instantiate(&extrinsic_opts, 100000000000000, code_hash, HexData::default());
+            let result = super::execute_instantiate(
+                &extrinsic_opts,
+                100000000000000,
+                code_hash,
+                HexData::default(),
+            );
 
-			assert_matches!(result, Ok(_));
-		});
-	}
+            assert_matches!(result, Ok(_));
+        });
+    }
 }

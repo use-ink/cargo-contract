@@ -23,10 +23,7 @@ use std::{
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute_new(
-    name: &str,
-    dir: Option<&PathBuf>,
-) -> Result<String> {
+pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
@@ -85,13 +82,13 @@ pub(crate) fn execute_new(
 
         // Get and set permissions
         #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
+        {
+            use std::os::unix::fs::PermissionsExt;
 
-                if let Some(mode) = file.unix_mode() {
-                    fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
-                }
+            if let Some(mode) = file.unix_mode() {
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
             }
+        }
     }
 
     Ok(format!("Created contract {}", name))
@@ -100,17 +97,12 @@ pub(crate) fn execute_new(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        cmd::{execute_new, tests::with_tmp_dir},
-    };
+    use crate::cmd::{execute_new, tests::with_tmp_dir};
 
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = execute_new(
-                "rejects-hyphenated-name",
-                Some(path),
-            );
+            let result = execute_new("rejects-hyphenated-name", Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(Contract names cannot contain hyphens)"#
