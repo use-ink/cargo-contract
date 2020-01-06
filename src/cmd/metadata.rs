@@ -52,16 +52,12 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cmd::{execute_generate_metadata, execute_new, tests::with_tmp_dir},
-        AbstractionLayer,
-    };
+    use crate::cmd::{execute_generate_metadata, execute_new, tests::with_tmp_dir};
 
     #[test]
     fn generate_metadata() {
         with_tmp_dir(|path| {
-            execute_new(AbstractionLayer::Lang, "new_project", Some(path))
-                .expect("new project creation failed");
+            execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             execute_generate_metadata(Some(&working_dir)).expect("generate metadata failed");
 

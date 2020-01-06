@@ -23,15 +23,12 @@ use std::{
 use anyhow::Result;
 use heck::CamelCase as _;
 
-use crate::AbstractionLayer;
-
-/// Initializes a project structure for the `lang` abstraction layer.
-fn initialize_for_lang(name: &str, target_dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
 
-    let out_dir = target_dir.unwrap_or(&env::current_dir()?).join(name);
+    let out_dir = dir.unwrap_or(&env::current_dir()?).join(name);
     if out_dir.join("Cargo.toml").exists() {
         anyhow::bail!("A Cargo package already exists in {}", name);
     }
@@ -97,34 +94,15 @@ fn initialize_for_lang(name: &str, target_dir: Option<&PathBuf>) -> Result<Strin
     Ok(format!("Created contract {}", name))
 }
 
-pub(crate) fn execute_new(
-    layer: AbstractionLayer,
-    name: &str,
-    dir: Option<&PathBuf>,
-) -> Result<String> {
-    match layer {
-        AbstractionLayer::Core => Err(anyhow::anyhow!("Abstraction layer unimplemented")),
-        AbstractionLayer::Model => Err(anyhow::anyhow!("Abstraction layer unimplemented")),
-        AbstractionLayer::Lang => initialize_for_lang(name, dir),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        cmd::{execute_new, tests::with_tmp_dir},
-        AbstractionLayer,
-    };
+    use crate::cmd::{execute_new, tests::with_tmp_dir};
 
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = execute_new(
-                AbstractionLayer::Lang,
-                "rejects-hyphenated-name",
-                Some(path),
-            );
+            let result = execute_new("rejects-hyphenated-name", Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(Contract names cannot contain hyphens)"#
@@ -136,8 +114,8 @@ mod tests {
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = execute_new(AbstractionLayer::Lang, name, Some(path));
-            let result = execute_new(AbstractionLayer::Lang, name, Some(path));
+            let _ = execute_new(name, Some(path));
+            let result = execute_new(name, Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(A Cargo package already exists in test_contract_cargo_project_already_exists)"#
@@ -152,7 +130,7 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = execute_new(AbstractionLayer::Lang, name, Some(path));
+            let result = execute_new(name, Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(New contract file .gitignore already exists)"#
