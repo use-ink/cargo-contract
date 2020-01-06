@@ -26,7 +26,7 @@ parity-wasm = "0.41"
 cargo_metadata = "0.9"
 
 sp-core = { git = "https://github.com/paritytech/substrate/", package = "sp-core", optional = true }
-subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "3aa3598114fa545734514f548893377284c3faf2", package = "substrate-subxt", optional = true }
+subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "80663ec6e351d6969029f0348c3219eb8b0fce1f", package = "substrate-subxt", optional = true }
 tokio = { version = "0.1", optional = true }
 futures = { version = "0.1", optional = true }
 url = { version = "1.7", optional = true }
