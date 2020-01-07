@@ -57,7 +57,7 @@ pub(crate) fn execute_instantiate(
         .build()
         .and_then(|cli| cli.xt(signer, None))
         .and_then(move |xt| {
-            xt.submit_and_watch(contracts::instantiate::<DefaultNodeRuntime>(
+            xt.watch().submit(contracts::instantiate::<DefaultNodeRuntime>(
                 endowment, gas_limit, code_hash, data.0,
             ))
         });

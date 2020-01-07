@@ -74,7 +74,7 @@ pub(crate) fn execute_deploy(
         .set_url(extrinsic_opts.url.clone())
         .build()
         .and_then(|cli| cli.xt(signer, None))
-        .and_then(move |xt| xt.submit_and_watch(contracts::put_code(gas_limit, code)));
+        .and_then(move |xt| xt.watch().submit(contracts::put_code(gas_limit, code)));
 
     let mut rt = tokio::runtime::Runtime::new()?;
     if let Ok(extrinsic_success) = rt.block_on(fut) {

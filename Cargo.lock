@@ -209,7 +209,7 @@ dependencies = [
  "pwasm-utils 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-core 2.0.0 (git+https://github.com/paritytech/substrate/)",
  "structopt 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "substrate-subxt 0.4.0 (git+https://github.com/paritytech/substrate-subxt/?rev=80663ec6e351d6969029f0348c3219eb8b0fce1f)",
+ "substrate-subxt 0.4.0 (git+https://github.com/paritytech/substrate-subxt/?rev=b159d0dae1100dffcaa9f6f1eae57c62d1c31470)",
  "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2239,7 +2239,7 @@ dependencies = [
 [[package]]
 name = "substrate-subxt"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/substrate-subxt/?rev=80663ec6e351d6969029f0348c3219eb8b0fce1f#80663ec6e351d6969029f0348c3219eb8b0fce1f"
+source = "git+https://github.com/paritytech/substrate-subxt/?rev=b159d0dae1100dffcaa9f6f1eae57c62d1c31470#b159d0dae1100dffcaa9f6f1eae57c62d1c31470"
 dependencies = [
  "frame-metadata 2.0.0 (git+https://github.com/paritytech/substrate/)",
  "frame-support 2.0.0 (git+https://github.com/paritytech/substrate/)",
@@ -3150,7 +3150,7 @@ dependencies = [
 "checksum strum 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6138f8f88a16d90134763314e3fc76fa3ed6a7db4725d6acf9a3ef95a3188d22"
 "checksum strum_macros 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0054a7df764039a6cd8592b9de84be4bec368ff081d203a7d5371cbfa8e65c81"
 "checksum substrate-bip39 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3be511be555a3633e71739a79e4ddff6a6aaa6579fa6114182a51d72c3eb93c5"
-"checksum substrate-subxt 0.4.0 (git+https://github.com/paritytech/substrate-subxt/?rev=80663ec6e351d6969029f0348c3219eb8b0fce1f)" = "<none>"
+"checksum substrate-subxt 0.4.0 (git+https://github.com/paritytech/substrate-subxt/?rev=b159d0dae1100dffcaa9f6f1eae57c62d1c31470)" = "<none>"
 "checksum subtle 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2d67a5a62ba6e01cb2192ff309324cb4875d0c451d55fe2319433abe7a05a8ee"
 "checksum subtle 2.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7c65d530b10ccaeac294f349038a597e435b18fb456aadd0840a623f83b9e941"
 "checksum syn 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "1e4ff033220a41d1a57d8125eab57bf5263783dfdcc18688b1dacc6ce9651ef8"
