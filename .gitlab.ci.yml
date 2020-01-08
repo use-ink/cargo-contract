@@ -1,0 +1,81 @@
+# .gitlab-ci.yml
+#
+# cargo-contract
+#
+# pipelines can be triggered manually in the web
+
+
+stages:
+  - check
+  - test
+  - build
+
+variables:
+  GIT_STRATEGY:                    fetch
+  GIT_DEPTH:                       "3"
+  CARGO_HOME:                      "/ci-cache/${CI_PROJECT_NAME}/cargo/${CI_JOB_NAME}"
+  CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
+  CI_SERVER_NAME:                  "GitLab CI"
+  REGISTRY:                        registry.parity.io/parity/infrastructure/scripts
+
+.collect-artifacts:                &collect-artifacts
+  artifacts:
+    name:                          "${CI_JOB_NAME}_${CI_COMMIT_REF_NAME}"
+    when:                          on_success
+    expire_in:                     7 days
+    paths:
+      - artifacts/
+
+.docker-env:                       &docker-env
+  image:                           ${REGISTRY}/ink-ci-linux:latest
+  before_script:
+    - cargo -vV
+    - rustc -vV
+    - rustup show
+    - bash --version
+    - mkdir -p ${CARGO_HOME}; touch ${CARGO_HOME}/config
+    - mkdir -p ${CARGO_TARGET_DIR}
+    # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
+    - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' | tee ${CARGO_HOME}/config
+    - sccache -s
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+    - schedules
+    - web
+    - /^[0-9]+$/                   # PRs
+  dependencies:                    []
+  interruptible:                   true
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - unknown_failure
+      - api_failure
+  tags:
+    - linux-docker
+
+
+#### stage:                        check
+
+fmt:
+  stage:                           check
+  <<:                              *docker-env
+  script:
+    - cargo fmt --verbose --all -- --check
+
+#### stage:                        test
+
+test:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo test --verbose --all-features --release
+
+#### stage:                        build        
+            
+build:
+  stage:                           build
+  <<:                              *docker-env
+  script:
+    - cargo build --verbose --all-features --release
