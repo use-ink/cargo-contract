@@ -57,9 +57,10 @@ pub(crate) fn execute_instantiate(
         .build()
         .and_then(|cli| cli.xt(signer, None))
         .and_then(move |xt| {
-            xt.watch().submit(contracts::instantiate::<DefaultNodeRuntime>(
-                endowment, gas_limit, code_hash, data.0,
-            ))
+            xt.watch()
+                .submit(contracts::instantiate::<DefaultNodeRuntime>(
+                    endowment, gas_limit, code_hash, data.0,
+                ))
         });
 
     let mut rt = tokio::runtime::Runtime::new()?;
