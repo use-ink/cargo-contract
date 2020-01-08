@@ -57,6 +57,7 @@ variables:
 
 
 #### stage:                        check
+# be aware that the used image has cargo-remote installed
 
 fmt:
   stage:                           check
@@ -77,8 +78,10 @@ test:
 build:
   stage:                           build
   <<:                              *docker-env
+  <<:                              *collect-artifacts
   only:
     - schedules
     - master
   script:
     - cargo build --verbose --all-features --release
+    - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/.
