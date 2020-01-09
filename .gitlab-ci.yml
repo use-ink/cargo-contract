@@ -27,7 +27,7 @@ variables:
       - artifacts/
 
 .docker-env:                       &docker-env
-  image:                           ${REGISTRY}/ink-ci-linux:latest
+  image:                           ${REGISTRY}/rust-builder:latest
   before_script:
     - cargo -vV
     - rustc -vV
@@ -72,8 +72,8 @@ test:
   script:
     - cargo test --verbose --all-features --release
 
-#### stage:                        build        
-            
+#### stage:                        build
+
 build:
   stage:                           build
   <<:                              *docker-env
