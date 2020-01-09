@@ -27,7 +27,7 @@ variables:
       - artifacts/
 
 .docker-env:                       &docker-env
-  image:                           ${REGISTRY}/rust-builder:latest
+  image:                          parity/rust-builder:latest
   before_script:
     - cargo -vV
     - rustc -vV
