@@ -1,6 +1,6 @@
-# cargo-contract &middot; [![GitHub license](https://img.shields.io/github/license/paritytech/cargo-contract)](LICENSE) [![GitLab Status](https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg)](https://gitlab.parity.io/parity/cargo-contract/pipelines)
+# Cargo plugin for [`ink!`](https://github.com/paritytech/ink) contracts
 
-**Cargo plugin for [`ink!`](https://github.com/paritytech/ink) contracts**
+[![GitHub license](https://img.shields.io/github/license/paritytech/cargo-contract)](LICENSE) [![GitLab Status](https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg)](https://gitlab.parity.io/parity/cargo-contract/pipelines)
 
 **IMPORTANT NOTE:** WORK IN PROGRESS! Do not expect this to be working. 
 
