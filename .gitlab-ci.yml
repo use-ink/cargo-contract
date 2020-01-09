@@ -62,6 +62,7 @@ fmt:
   stage:                           check
   <<:                              *docker-env
   script:
+    - rustup component add rustfmt
     - cargo fmt --verbose --all -- --check
 
 #### stage:                        test
