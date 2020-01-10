@@ -1,5 +1,7 @@
 # Cargo plugin for [`ink!`](https://github.com/paritytech/ink) contracts
 
+[![GitHub license](https://img.shields.io/github/license/paritytech/cargo-contract)](LICENSE) [![GitLab Status](https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg)](https://gitlab.parity.io/parity/cargo-contract/pipelines)
+
 **IMPORTANT NOTE:** WORK IN PROGRESS! Do not expect this to be working. 
 
 A small CLI tool for helping setting up and managing WebAssembly smart contracts written with ink!.
