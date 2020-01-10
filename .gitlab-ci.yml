@@ -38,6 +38,9 @@ variables:
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' | tee ${CARGO_HOME}/config
     - sccache -s
+    - git config --global user.email "devops-team@parity.io"
+    - git config --global user.name "Devops Team Parity"
+    - git config remote.origin.url "https://${GITHUB_TOKEN}@github.com/paritytech/cargo-contract.git"
     - git rebase origin/master
   only:
     - master
