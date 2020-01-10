@@ -40,7 +40,6 @@ variables:
     - sccache -s
     - git config --global user.email "devops-team@parity.io"
     - git config --global user.name "Devops Team Parity"
-    - git config remote.origin.url "https://${GITHUB_TOKEN}@github.com/paritytech/cargo-contract.git"
     - git rebase origin/master
   only:
     - master
