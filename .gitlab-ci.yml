@@ -27,7 +27,7 @@ variables:
       - artifacts/
 
 .docker-env:                       &docker-env
-  image:                          parity/rust-builder:latest
+  image:                          ${REGISTRY}/contracts-ci-linux:latest
   before_script:
     - cargo -vV
     - rustc -vV
@@ -62,7 +62,6 @@ fmt:
   stage:                           check
   <<:                              *docker-env
   script:
-    - rustup component add rustfmt
     - cargo fmt --verbose --all -- --check
 
 #### stage:                        test
