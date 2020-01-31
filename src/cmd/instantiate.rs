@@ -31,9 +31,8 @@ pub(crate) fn execute_instantiate(
     data: HexData,
 ) -> Result<<DefaultNodeRuntime as System>::AccountId> {
     let gas_limit = extrinsic_opts.gas_limit.clone();
-    let instantiate = contracts::instantiate::<DefaultNodeRuntime>(
-        endowment, gas_limit, code_hash, data.0,
-    );
+    let instantiate =
+        contracts::instantiate::<DefaultNodeRuntime>(endowment, gas_limit, code_hash, data.0);
     super::submit_extrinsic(extrinsic_opts, instantiate, "Contracts", "Instantiated")
 }
 
