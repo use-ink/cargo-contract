@@ -17,9 +17,8 @@
 use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
-use futures::future::Future;
 use sp_core::H256;
-use subxt::{contracts, system::System, DefaultNodeRuntime};
+use subxt::{contracts, system::System, DefaultNodeRuntime, ExtrinsicSuccess};
 
 use crate::{cmd::build, ExtrinsicOpts};
 
@@ -43,7 +42,7 @@ fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
 /// Attempt to extract the code hash from the extrinsic result.
 ///
 /// Returns an Error if the `Contracts::CodeStored` is not found or cannot be decoded.
-fn extract_code_hash<T: System>(extrinsic_result: subxt::ExtrinsicSuccess<T>) -> Result<H256> {
+fn extract_code_hash<T: System>(extrinsic_result: ExtrinsicSuccess<T>) -> Result<H256> {
     match extrinsic_result.find_event::<H256>("Contracts", "CodeStored") {
         Some(Ok(hash)) => Ok(hash),
         Some(Err(err)) => Err(anyhow::anyhow!("Failed to decode code hash: {}", err)),
@@ -70,14 +69,16 @@ pub(crate) fn execute_deploy(
 
     let code = load_contract_code(contract_wasm_path)?;
 
-    let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-        .set_url(extrinsic_opts.url.clone())
-        .build()
-        .and_then(|cli| cli.xt(signer, None))
-        .and_then(move |xt| xt.watch().submit(contracts::put_code(gas_limit, code)));
+    let result: Result<ExtrinsicSuccess<DefaultNodeRuntime>> = async_std::task::block_on(async move {
+        let cli = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
+            .set_url(&extrinsic_opts.url.to_string())
+            .build().await?;
+        let xt = cli.xt(signer, None).await?;
+        let success = xt.watch().submit(contracts::put_code(gas_limit, code)).await?;
+        Ok(success)
+    });
 
-    let mut rt = tokio::runtime::Runtime::new()?;
-    if let Ok(extrinsic_success) = rt.block_on(fut) {
+    if let Ok(extrinsic_success) = result {
         log::debug!("Deploy success: {:?}", extrinsic_success);
         extract_code_hash(extrinsic_success)
     } else {

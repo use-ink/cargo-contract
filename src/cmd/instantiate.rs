@@ -15,8 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use futures::future::Future;
-use subxt::{balances::Balances, contracts, system::System, DefaultNodeRuntime};
+use subxt::{balances::Balances, contracts, system::System, DefaultNodeRuntime, ExtrinsicSuccess};
 
 use crate::{ExtrinsicOpts, HexData};
 
@@ -52,19 +51,18 @@ pub(crate) fn execute_instantiate(
     let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
 
-    let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-        .set_url(extrinsic_opts.url.clone())
-        .build()
-        .and_then(|cli| cli.xt(signer, None))
-        .and_then(move |xt| {
-            xt.watch()
-                .submit(contracts::instantiate::<DefaultNodeRuntime>(
-                    endowment, gas_limit, code_hash, data.0,
-                ))
-        });
+    let result: Result<ExtrinsicSuccess<DefaultNodeRuntime>> = async_std::task::block_on(async move {
+        let cli = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
+            .set_url(&extrinsic_opts.url.to_string())
+            .build().await?;
+        let xt = cli.xt(signer, None).await?;
+        let success = xt.watch().submit(contracts::instantiate::<DefaultNodeRuntime>(
+            endowment, gas_limit, code_hash, data.0,
+        )).await?;
+        Ok(success)
+    });
 
-    let mut rt = tokio::runtime::Runtime::new()?;
-    if let Ok(extrinsic_success) = rt.block_on(fut) {
+    if let Ok(extrinsic_success) = result {
         log::debug!("Instantiate success: {:?}", extrinsic_success);
 
         extract_contract_account(extrinsic_success)
