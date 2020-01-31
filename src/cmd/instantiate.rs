@@ -15,27 +15,9 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use subxt::{balances::Balances, contracts, system::System, DefaultNodeRuntime, ExtrinsicSuccess};
+use subxt::{balances::Balances, contracts, system::System, DefaultNodeRuntime};
 
 use crate::{ExtrinsicOpts, HexData};
-
-/// Attempt to extract the contract account from the extrinsic result.
-///
-/// Returns an Error if the `Contracts::Instantiated` is not found or cannot be decoded.
-fn extract_contract_account<T: System>(
-    extrinsic_result: subxt::ExtrinsicSuccess<T>,
-) -> Result<T::AccountId> {
-    match extrinsic_result.find_event::<(T::AccountId, T::AccountId)>("Contracts", "Instantiated") {
-        Some(Ok((_src_acct, dest_acct))) => Ok(dest_acct),
-        Some(Err(err)) => Err(anyhow::anyhow!(
-            "Failed to decode contract source and destination accounts: {}",
-            err
-        )),
-        None => Err(anyhow::anyhow!(
-            "Failed to find Contracts::Instantiated Event"
-        )),
-    }
-}
 
 /// Instantiate a contract stored at the supplied code hash.
 /// Returns the account id of the instantiated contract if successful.
@@ -48,27 +30,11 @@ pub(crate) fn execute_instantiate(
     code_hash: <DefaultNodeRuntime as System>::Hash,
     data: HexData,
 ) -> Result<<DefaultNodeRuntime as System>::AccountId> {
-    let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
-
-    let result: Result<ExtrinsicSuccess<DefaultNodeRuntime>> = async_std::task::block_on(async move {
-        let cli = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-            .set_url(&extrinsic_opts.url.to_string())
-            .build().await?;
-        let xt = cli.xt(signer, None).await?;
-        let success = xt.watch().submit(contracts::instantiate::<DefaultNodeRuntime>(
-            endowment, gas_limit, code_hash, data.0,
-        )).await?;
-        Ok(success)
-    });
-
-    if let Ok(extrinsic_success) = result {
-        log::debug!("Instantiate success: {:?}", extrinsic_success);
-
-        extract_contract_account(extrinsic_success)
-    } else {
-        Err(anyhow::anyhow!("Deploy error"))
-    }
+    let instantiate = contracts::instantiate::<DefaultNodeRuntime>(
+        endowment, gas_limit, code_hash, data.0,
+    );
+    super::submit_extrinsic(extrinsic_opts, instantiate, "Contracts", "Instantiated")
 }
 
 #[cfg(test)]

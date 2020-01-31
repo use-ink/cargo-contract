@@ -18,7 +18,7 @@ use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
 use sp_core::H256;
-use subxt::{contracts, system::System, DefaultNodeRuntime, ExtrinsicSuccess};
+use subxt::contracts;
 
 use crate::{cmd::build, ExtrinsicOpts};
 
@@ -39,19 +39,6 @@ fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     Ok(data)
 }
 
-/// Attempt to extract the code hash from the extrinsic result.
-///
-/// Returns an Error if the `Contracts::CodeStored` is not found or cannot be decoded.
-fn extract_code_hash<T: System>(extrinsic_result: ExtrinsicSuccess<T>) -> Result<H256> {
-    match extrinsic_result.find_event::<H256>("Contracts", "CodeStored") {
-        Some(Ok(hash)) => Ok(hash),
-        Some(Err(err)) => Err(anyhow::anyhow!("Failed to decode code hash: {}", err)),
-        None => Err(anyhow::anyhow!(
-            "Failed to find Contracts::CodeStored Event"
-        )),
-    }
-}
-
 /// Put contract code to a smart contract enabled substrate chain.
 /// Returns the code hash of the deployed contract if successful.
 ///
@@ -64,26 +51,10 @@ pub(crate) fn execute_deploy(
     extrinsic_opts: &ExtrinsicOpts,
     contract_wasm_path: Option<&PathBuf>,
 ) -> Result<H256> {
-    let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
-
     let code = load_contract_code(contract_wasm_path)?;
-
-    let result: Result<ExtrinsicSuccess<DefaultNodeRuntime>> = async_std::task::block_on(async move {
-        let cli = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-            .set_url(&extrinsic_opts.url.to_string())
-            .build().await?;
-        let xt = cli.xt(signer, None).await?;
-        let success = xt.watch().submit(contracts::put_code(gas_limit, code)).await?;
-        Ok(success)
-    });
-
-    if let Ok(extrinsic_success) = result {
-        log::debug!("Deploy success: {:?}", extrinsic_success);
-        extract_code_hash(extrinsic_success)
-    } else {
-        Err(anyhow::anyhow!("Deploy error"))
-    }
+    let put_code = contracts::put_code(gas_limit, code);
+    super::submit_extrinsic(extrinsic_opts, put_code, "Contracts", "CodeStored")
 }
 
 #[cfg(test)]

@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::ExtrinsicOpts;
+use anyhow::Result;
 use std::{
     io::{self, Write},
     path::PathBuf,
     process::Command,
 };
-
-use anyhow::Result;
+use subxt::{ClientBuilder, DefaultNodeRuntime, ExtrinsicSuccess};
 
 mod build;
 #[cfg(feature = "extrinsics")]
@@ -68,6 +69,45 @@ fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf
     }
 
     Ok(())
+}
+
+/// Submits an extrinsic to a substrate node, waits for it to succeed and returns an event expected
+/// to have been triggered by the extrinsic.
+fn submit_extrinsic<C, E>(
+    extrinsic_opts: &ExtrinsicOpts,
+    call: subxt::Call<C>,
+    event_mod: &str,
+    event_name: &str,
+) -> Result<E>
+where
+    C: codec::Encode,
+    E: codec::Decode,
+{
+    let result: Result<ExtrinsicSuccess<_>> = async_std::task::block_on(async move {
+        let cli = ClientBuilder::<DefaultNodeRuntime>::new()
+            .set_url(&extrinsic_opts.url.to_string())
+            .build()
+            .await?;
+        let signer = extrinsic_opts.signer()?;
+        let xt = cli.xt(signer, None).await?;
+        let success = xt.watch().submit(call).await?;
+        Ok(success)
+    });
+
+    match result?.find_event::<E>(event_mod, event_name) {
+        Some(Ok(hash)) => Ok(hash),
+        Some(Err(err)) => Err(anyhow::anyhow!(
+            "Failed to decode event '{} {}': {}",
+            event_mod,
+            event_name,
+            err
+        )),
+        None => Err(anyhow::anyhow!(
+            "Failed to find '{} {}' Event",
+            event_mod,
+            event_name
+        )),
+    }
 }
 
 #[cfg(test)]
