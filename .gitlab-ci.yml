@@ -8,7 +8,8 @@
 stages:
   - check
   - test
-  - build
+  - build-df
+  - build-af
 
 variables:
   GIT_STRATEGY:                    fetch
@@ -72,10 +73,21 @@ test:
   script:
     - cargo test --verbose --all-features --release
 
-#### stage:                        build
+#### stage:                        build (default features)
 
 build:
-  stage:                           build
+  stage:                           build-df
+  <<:                              *docker-env
+  only:
+    - schedules
+    - master
+  script:
+    - cargo build --verbose --release
+
+#### stage:                        build (all features)
+
+build-af:
+  stage:                           build-af
   <<:                              *docker-env
   only:
     - schedules
