@@ -21,7 +21,7 @@ use crate::ExtrinsicOpts;
 
 /// Submits an extrinsic to a substrate node, waits for it to succeed and returns an event expected
 /// to have been triggered by the extrinsic.
-pub fn submit_extrinsic<C, E>(
+pub(crate) fn submit_extrinsic<C, E>(
 	extrinsic_opts: &ExtrinsicOpts,
 	call: subxt::Call<C>,
 	event_mod: &str,
