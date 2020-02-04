@@ -16,6 +16,7 @@
 
 use std::{
     io::{self, Write},
+    fs::metadata,
     path::PathBuf,
     process::Command,
 };
@@ -169,7 +170,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// succeed, and the user will be encouraged to install it for further optimizations.
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // check `wasm-opt` installed
-    if which::which("bwasm-opt").is_err() {
+    if which::which("wasm-opt").is_err() {
         println!("{}", "wasm-opt is not installed. Install this tool on your system in order to \n\
                         reduce the size of your contract's wasm binary. \n\
                         See https://github.com/WebAssembly/binaryen#tools".bright_yellow());
@@ -192,6 +193,10 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
         io::stderr().write_all(&output.stderr)?;
         anyhow::bail!("wasm-opt optimization failed");
     }
+
+    let original_size = metadata(&crate_metadata.dest_wasm)?.len() / 1000;
+    let optimized_size = metadata(&optimized)?.len() / 1000;
+    println!(" Original wasm size: {}K, Optimized: {}K", original_size, optimized_size);
 
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
