@@ -15,16 +15,16 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    io::{self, Write},
     fs::metadata,
+    io::{self, Write},
     path::PathBuf,
     process::Command,
 };
 
 use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
-use parity_wasm::elements::{External, MemoryType, Module, Section};
 use colored::Colorize;
+use parity_wasm::elements::{External, MemoryType, Module, Section};
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -171,10 +171,14 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // check `wasm-opt` installed
     if which::which("wasm-opt").is_err() {
-        println!("{}", "wasm-opt is not installed. Install this tool on your system in order to \n\
-                        reduce the size of your contract's wasm binary. \n\
-                        See https://github.com/WebAssembly/binaryen#tools".bright_yellow());
-        return Ok(())
+        println!(
+            "{}",
+            "wasm-opt is not installed. Install this tool on your system in order to \n\
+             reduce the size of your contract's wasm binary. \n\
+             See https://github.com/WebAssembly/binaryen#tools"
+                .bright_yellow()
+        );
+        return Ok(());
     }
 
     let mut optimized = crate_metadata.dest_wasm.clone();
@@ -196,7 +200,10 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() / 1000;
     let optimized_size = metadata(&optimized)?.len() / 1000;
-    println!(" Original wasm size: {}K, Optimized: {}K", original_size, optimized_size);
+    println!(
+        " Original wasm size: {}K, Optimized: {}K",
+        original_size, optimized_size
+    );
 
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
@@ -207,13 +214,29 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
-    println!(" {} {}", "[1/4]".bold(), "Collecting crate metadata".bright_green().bold());
+    println!(
+        " {} {}",
+        "[1/4]".bold(),
+        "Collecting crate metadata".bright_green().bold()
+    );
     let crate_metadata = collect_crate_metadata(working_dir)?;
-    println!(" {} {}", "[2/4]".bold(), "Building cargo project".bright_green().bold());
+    println!(
+        " {} {}",
+        "[2/4]".bold(),
+        "Building cargo project".bright_green().bold()
+    );
     build_cargo_project(working_dir)?;
-    println!(" {} {}", "[3/4]".bold(), "Post processing wasm file".bright_green().bold());
+    println!(
+        " {} {}",
+        "[3/4]".bold(),
+        "Post processing wasm file".bright_green().bold()
+    );
     post_process_wasm(&crate_metadata)?;
-    println!(" {} {}", "[4/4]".bold(), "Optimizing wasm file".bright_green().bold());
+    println!(
+        " {} {}",
+        "[4/4]".bold(),
+        "Optimizing wasm file".bright_green().bold()
+    );
     optimize_wasm(&crate_metadata)?;
 
     Ok(format!(
