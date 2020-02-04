@@ -174,7 +174,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
         println!(
             "{}",
             "wasm-opt is not installed. Install this tool on your system in order to \n\
-             reduce the size of your contract's wasm binary. \n\
+             reduce the size of your contract's Wasm binary. \n\
              See https://github.com/WebAssembly/binaryen#tools"
                 .bright_yellow()
         );
