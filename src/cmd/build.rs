@@ -164,7 +164,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// Attempts to perform optional wasm optimization using `wasm-opt`.
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
-/// optimizations (or bugs?) between Rust and wasm.
+/// optimizations (or bugs?) between Rust and Wasm.
 ///
 /// This step depends on the `wasm-opt` tool being installed. If it is not the build will still
 /// succeed, and the user will be encouraged to install it for further optimizations.
