@@ -23,6 +23,7 @@ use std::{
 use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use colored::Colorize;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -168,8 +169,10 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// succeed, and the user will be encouraged to install it for further optimizations.
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // check `wasm-opt` installed
-    if which::which("wasm-opt").is_err() {
-        println!("  wasm-opt is not installed TODO: explain benefits - link to installation");
+    if which::which("bwasm-opt").is_err() {
+        println!("{}", "wasm-opt is not installed. Install this tool on your system in order to \n\
+                        reduce the size of your contract's wasm binary. \n\
+                        See https://github.com/WebAssembly/binaryen#tools".bright_yellow());
         return Ok(())
     }
 
@@ -184,7 +187,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
         .output()?;
 
     if !output.status.success() {
-        // Dump the output streams produced by cargo into the stdout/stderr.
+        // Dump the output streams produced by wasm-opt into the stdout/stderr.
         io::stdout().write_all(&output.stdout)?;
         io::stderr().write_all(&output.stderr)?;
         anyhow::bail!("wasm-opt optimization failed");
@@ -199,18 +202,18 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
-    println!(" [1/4] Collecting crate metadata");
+    println!(" {} {}", "[1/4]".bold(), "Collecting crate metadata".bright_green().bold());
     let crate_metadata = collect_crate_metadata(working_dir)?;
-    println!(" [2/4] Building cargo project");
+    println!(" {} {}", "[2/4]".bold(), "Building cargo project".bright_green().bold());
     build_cargo_project(working_dir)?;
-    println!(" [3/4] Post processing wasm file");
+    println!(" {} {}", "[3/4]".bold(), "Post processing wasm file".bright_green().bold());
     post_process_wasm(&crate_metadata)?;
-    println!(" [4/4] Optimizing wasm file");
+    println!(" {} {}", "[4/4]".bold(), "Optimizing wasm file".bright_green().bold());
     optimize_wasm(&crate_metadata)?;
 
     Ok(format!(
-        "Your contract is ready.\nYou can find it here:\n{}",
-        crate_metadata.dest_wasm.display()
+        "\nYour contract is ready. You can find it here:\n{}",
+        crate_metadata.dest_wasm.display().to_string().bold()
     ))
 }
 
