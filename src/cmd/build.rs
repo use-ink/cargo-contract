@@ -15,7 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    fs::metadata,
+    fs::{self, metadata},
     io::{self, Write},
     path::PathBuf,
     process::Command,
@@ -25,6 +25,7 @@ use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use crate::cmd::tests::with_tmp_dir;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -79,20 +80,51 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     })
 }
 
-/// Invokes `cargo build` in the specified directory, defaults to the current directory.
+/// Builds the project in the specified directory, defaults to the current directory.
 ///
-/// Currently it assumes that user wants to use `+nightly`.
+/// Attempts to build using [`xargo`](https://github.com/japaric/xargo) for maximum optimization of
+/// the resulting Wasm binary.
+///
+/// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
 fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
-    super::exec_cargo(
-        "build",
-        &[
-            "--no-default-features",
-            "--release",
-            "--target=wasm32-unknown-unknown",
-            "--verbose",
-        ],
-        working_dir,
-    )
+    let args = [
+        "--no-default-features",
+        "--release",
+        "--target=wasm32-unknown-unknown",
+        "--verbose",
+    ];
+    if which::which("xargo").is_err() {
+        super::exec_cargo(
+            "build",
+            &args,
+            working_dir,
+        )?;
+        println!("TODO: tell the user nicely to install xargo");
+        return Ok(())
+    }
+    let working_dir = working_dir.unwrap_or(&PathBuf::from("."));
+    let manifest_path = working_dir.join("Cargo.toml");
+    let xargo_config_path = working_dir.join("Xargo.toml");
+
+    let xargo_config = r#"
+[target.wasm32-unknown-unknown.dependencies]
+core = {default-features=false, features=["panic_immediate_abort"]}
+std = {default-features=false, features=["panic_immediate_abort"]}
+alloc = {}
+"#;
+
+    // todo: [AJ] what to do if Xargo.toml already exists?
+    fs::write(xargo_config_path, xargo_config)?;
+
+    // todo: [AJ] check rlib not enabled and warn if it is
+//    let toml = fs::read_to_string(&manifest_path)?;
+//    let toml = toml::from_str(&toml)?;
+//    toml
+
+    // todo: [AJ] check if nightly enabled, if not then `rustup run nightly xargo`, or even just run that anyway...
+    // need to figure out what cargo does
+
+    Ok(())
 }
 
 /// Ensures the wasm memory import of a given module has the maximum number of pages.

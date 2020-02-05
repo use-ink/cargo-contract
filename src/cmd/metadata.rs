@@ -25,6 +25,13 @@ use cargo_metadata::MetadataCommand;
 pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String> {
     println!("  Generating metadata");
 
+    // check for existing .Cargo.toml.bk?
+    // todo: [AJ] check for rlib enabled, add if not
+    // - copy Cargo.toml to .Cargo.toml.bk or whatever (and ignore in gitignore)
+    // - add rlib crate type
+    // - exec build
+    // - rename backup to original
+
     super::exec_cargo(
         "run",
         &[

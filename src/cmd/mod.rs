@@ -22,6 +22,7 @@ use std::{
 };
 
 mod build;
+mod cargo;
 #[cfg(feature = "extrinsics")]
 mod deploy;
 #[cfg(feature = "extrinsics")]
@@ -32,44 +33,12 @@ mod metadata;
 mod new;
 
 pub(crate) use self::{
-    build::execute_build, metadata::execute_generate_metadata, new::execute_new,
+    build::execute_build, cargo::exec_cargo, cargo::is_nightly, metadata::execute_generate_metadata, new::execute_new,
 };
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::{
     deploy::execute_deploy, extrinsics::submit_extrinsic, instantiate::execute_instantiate,
 };
-
-fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf>) -> Result<()> {
-    let mut cmd = Command::new("cargo");
-    let mut is_nightly_cmd = Command::new("cargo");
-    if let Some(dir) = working_dir {
-        cmd.current_dir(dir);
-        is_nightly_cmd.current_dir(dir);
-    }
-
-    let is_nightly_default = is_nightly_cmd
-        .arg("--version")
-        .output()
-        .map_err(|_| ())
-        .and_then(|o| String::from_utf8(o.stdout).map_err(|_| ()))
-        .unwrap_or_default()
-        .contains("-nightly");
-
-    if !is_nightly_default {
-        cmd.arg("+nightly");
-    }
-
-    let output = cmd.arg(command).args(args).output()?;
-
-    if !output.status.success() {
-        // Dump the output streams produced by cargo into the stdout/stderr.
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
-        anyhow::bail!("Build failed");
-    }
-
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
