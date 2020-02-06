@@ -21,6 +21,7 @@ use sp_core::{crypto::Pair, sr25519, H256};
 use std::path::PathBuf;
 
 use anyhow::Result;
+use colored::Colorize;
 use structopt::{clap, StructOpt};
 
 #[derive(Debug, StructOpt)]
@@ -148,7 +149,7 @@ fn main() {
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
         Ok(msg) => println!("\t{}", msg),
-        Err(err) => eprintln!("error: {}", err),
+        Err(err) => eprintln!("{} {}", "ERROR:".red().bold(), format!("{}", err).red())
     }
 }
 
