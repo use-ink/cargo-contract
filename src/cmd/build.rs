@@ -25,15 +25,27 @@ use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use toml::value;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Relevant metadata obtained from Cargo.toml.
 pub struct CrateMetadata {
+    working_dir: PathBuf,
     package_name: String,
+    crate_types: Vec<String>,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
+}
+
+impl CrateMetadata {
+//    fn manifest_path(&self) -> PathBuf {
+//        self.working_dir.join("Cargo.toml")
+//    }
+    fn has_rlib_crate_type(&self) -> bool {
+        self.crate_types.contains(&"rlib".to_string())
+    }
 }
 
 /// Parses the contract manifest and returns relevant metadata.
@@ -72,8 +84,23 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.push(package_name.clone());
     dest_wasm.set_extension("wasm");
 
+    let current_dir = PathBuf::from(".");
+    let working_dir = working_dir.unwrap_or(&current_dir);
+    let manifest_path = working_dir.join("Cargo.toml");
+
+    let toml = fs::read_to_string(&manifest_path)?;
+    let mut toml: value::Table = toml::from_str(&toml)?;
+    let crate_types = toml.remove("lib")
+        .and_then(|v| v.try_into::<value::Table>().ok())
+        .and_then(|mut t| t.remove("crate-type"))
+        .and_then(|v| v.try_into::<value::Array>().ok())
+        .map(|vs| vs.iter().filter_map(|v| v.as_str()).map(|s| s.to_owned()).collect())
+        .unwrap_or_else(Vec::new);
+
     Ok(CrateMetadata {
+        working_dir: working_dir.clone(),
         package_name,
+        crate_types,
         original_wasm,
         dest_wasm,
     })
@@ -85,7 +112,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 /// the resulting Wasm binary.
 ///
 /// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
-fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
+fn build_cargo_project(crate_metadata: &CrateMetadata, working_dir: Option<&PathBuf>) -> Result<()> {
     let build_args = [
         "--no-default-features",
         "--release",
@@ -98,10 +125,7 @@ fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
         return Ok(());
     }
 
-    let current_dir = PathBuf::from(".");
-    let dir = working_dir.unwrap_or(&current_dir);
-    let manifest_path = dir.join("Cargo.toml");
-    let xargo_config_path = dir.join("Xargo.toml");
+    let xargo_config_path = crate_metadata.working_dir.join("Xargo.toml");
 
     let xargo_config = r#"
 [target.wasm32-unknown-unknown.dependencies]
@@ -113,13 +137,15 @@ alloc = {}
     // todo: [AJ] what to do if Xargo.toml already exists?
     fs::write(xargo_config_path, xargo_config)?;
 
-    // todo: [AJ] check rlib not enabled and warn if it is
-    //    let toml = fs::read_to_string(&manifest_path)?;
-    //    let toml = toml::from_str(&toml)?;
-    //    toml
-
-    // todo: [AJ] check if nightly enabled, if not then `rustup run nightly xargo`, or even just run that anyway...
-    // need to figure out what cargo does
+    if crate_metadata.has_rlib_crate_type() {
+        println!(
+            "{} {}",
+            "WARNING:".bright_yellow().bold(),
+            "Remove 'rlib' from the '[lib] crate-types' section in your contract's Cargo.toml. \
+             This is not required to build the Wasm binary, and significantly increases the size."
+                .bright_yellow()
+        )
+    }
 
     super::rustup_run("xargo", "build", &build_args, working_dir)?;
 
@@ -256,7 +282,7 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(working_dir)?;
+    build_cargo_project(&crate_metadata, working_dir)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
