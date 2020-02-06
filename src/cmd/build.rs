@@ -86,22 +86,22 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 ///
 /// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
 fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
-    let args = [
+    let build_args = [
         "--no-default-features",
         "--release",
         "--target=wasm32-unknown-unknown",
         "--verbose",
     ];
     if which::which("xargo").is_err() {
-        super::exec_cargo("build", &args, working_dir)?;
+        super::rustup_run("cargo", "build", &build_args, working_dir)?;
         println!("TODO: tell the user nicely to install xargo");
         return Ok(());
     }
 
     let current_dir = PathBuf::from(".");
-    let working_dir = working_dir.unwrap_or(&current_dir);
-    let manifest_path = working_dir.join("Cargo.toml");
-    let xargo_config_path = working_dir.join("Xargo.toml");
+    let dir = working_dir.unwrap_or(&current_dir);
+    let manifest_path = dir.join("Cargo.toml");
+    let xargo_config_path = dir.join("Xargo.toml");
 
     let xargo_config = r#"
 [target.wasm32-unknown-unknown.dependencies]
@@ -120,6 +120,8 @@ alloc = {}
 
     // todo: [AJ] check if nightly enabled, if not then `rustup run nightly xargo`, or even just run that anyway...
     // need to figure out what cargo does
+
+    super::rustup_run("xargo", "build", &build_args, working_dir)?;
 
     Ok(())
 }

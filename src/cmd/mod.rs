@@ -22,7 +22,6 @@ use std::{
 };
 
 mod build;
-mod cargo;
 #[cfg(feature = "extrinsics")]
 mod deploy;
 #[cfg(feature = "extrinsics")]
@@ -33,13 +32,52 @@ mod metadata;
 mod new;
 
 pub(crate) use self::{
-    build::execute_build, cargo::exec_cargo, cargo::is_nightly,
-    metadata::execute_generate_metadata, new::execute_new,
+    build::execute_build, metadata::execute_generate_metadata, new::execute_new,
 };
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::{
     deploy::execute_deploy, extrinsics::submit_extrinsic, instantiate::execute_instantiate,
 };
+
+/// Run the given command in the rustup nightly environment
+pub(crate) fn rustup_run(
+    command: &str,
+    subcommand: &str,
+    args: &[&'static str],
+    working_dir: Option<&PathBuf>,
+) -> Result<()> {
+    if which::which("rustup").is_err() {
+        anyhow::bail!(
+            "The 'rustup' tool not was not found. \
+             See: https://github.com/rust-lang/rustup#installation"
+        )
+    }
+
+    // todo: [AJ] check nightly toolchain installed
+
+    let mut cmd = Command::new("rustup");
+
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
+
+    let output = cmd
+        .arg("run")
+        .arg("nightly")
+        .arg(command)
+        .arg(subcommand)
+        .args(args)
+        .output()?;
+
+    if !output.status.success() {
+        // Dump the output streams produced by cargo into the stdout/stderr.
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        anyhow::bail!("{} {} failed", command, subcommand);
+    }
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {

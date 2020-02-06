@@ -32,7 +32,8 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     // - exec build
     // - rename backup to original
 
-    super::exec_cargo(
+    super::rustup_run(
+        "cargo",
         "run",
         &[
             "--package",
