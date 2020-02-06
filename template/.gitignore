@@ -7,3 +7,7 @@
 # Remove Cargo.lock when creating an executable, leave it for libraries
 # More information here http://doc.crates.io/guide.html#cargotoml-vs-cargolock
 Cargo.lock
+
+# This file is generated when compiling the contract wasm with `xargo` for optimal size
+# It should not be changed by the user and is always overwritten by the build tool
+Xargo.toml
