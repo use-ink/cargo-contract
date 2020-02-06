@@ -106,6 +106,58 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     })
 }
 
+/// Generate a Xargo.config file for optimized wasm build.
+/// If the file does not exist it will be generated and cleaned up afterwards.
+/// If the file does exist and is of the required configuration then it will be left as is.
+///
+/// # Errors
+///
+/// - If there is an existing Xargo.config without the required configuration
+fn with_xargo_config<F: FnOnce() -> Result<()>>(crate_metadata: &CrateMetadata, f: F) -> Result<()> {
+    let xargo_config_path = crate_metadata.working_dir.join("Xargo.toml");
+
+    let xargo_config = r#"
+[target.wasm32-unknown-unknown.dependencies]
+core = {default-features=false, features=["panic_immediate_abort"]}
+std = {default-features=false, features=["panic_immediate_abort"]}
+alloc = {}
+"#;
+
+    // If there is an existing Xargo.toml which is different to the config above, instead of
+    // overwriting it fail the build instead.
+    let open_result = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(xargo_config_path.clone());
+
+    match open_result {
+        Ok(mut outfile) => {
+            // No existing Xargo.toml
+            outfile.write_all(xargo_config.as_bytes())?;
+            let res = f();
+            // clean up the auto generated Xargo.config: the user should not be editing this file
+            let _ = fs::remove_file(xargo_config_path);
+            res
+        }
+        Err(e) => {
+            if e.kind() == std::io::ErrorKind::AlreadyExists {
+                let existing = fs::read_to_string(xargo_config_path)
+                    .expect("File exists");
+                if existing != xargo_config {
+                    anyhow::bail!(
+                        "A Xargo.config already exists which is different to the recommended \
+                         configuration. Please remove/rename it and run again",
+                    )
+                }
+                // Xargo.config file already exists with correct content so just use it
+                Ok(())
+            } else {
+                anyhow::bail!(e)
+            }
+        }
+    }
+}
+
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
 /// Attempts to build using [`xargo`](https://github.com/japaric/xargo) for maximum optimization of
@@ -125,18 +177,6 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, working_dir: Option<&Path
         return Ok(());
     }
 
-    let xargo_config_path = crate_metadata.working_dir.join("Xargo.toml");
-
-    let xargo_config = r#"
-[target.wasm32-unknown-unknown.dependencies]
-core = {default-features=false, features=["panic_immediate_abort"]}
-std = {default-features=false, features=["panic_immediate_abort"]}
-alloc = {}
-"#;
-
-    // todo: [AJ] what to do if Xargo.toml already exists?
-    fs::write(xargo_config_path, xargo_config)?;
-
     if crate_metadata.has_rlib_crate_type() {
         println!(
             "{} {}",
@@ -147,9 +187,9 @@ alloc = {}
         )
     }
 
-    super::rustup_run("xargo", "build", &build_args, working_dir)?;
-
-    Ok(())
+    with_xargo_config(crate_metadata, || {
+        super::rustup_run("xargo", "build", &build_args, working_dir)
+    })
 }
 
 /// Ensures the wasm memory import of a given module has the maximum number of pages.
