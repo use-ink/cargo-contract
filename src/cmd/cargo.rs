@@ -16,39 +16,43 @@
 
 use anyhow::Result;
 use std::{
-	io::{self, Write},
-	path::PathBuf,
-	process::Command,
+    io::{self, Write},
+    path::PathBuf,
+    process::Command,
 };
 
-pub(crate) fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf>) -> Result<()> {
-	let mut cmd = Command::new("cargo");
-	if let Some(dir) = working_dir {
-		cmd.current_dir(dir);
-	}
+pub(crate) fn exec_cargo(
+    command: &str,
+    args: &[&'static str],
+    working_dir: Option<&PathBuf>,
+) -> Result<()> {
+    let mut cmd = Command::new("cargo");
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
 
-	if !is_nightly(working_dir)? {
-		cmd.arg("+nightly");
-	}
+    if !is_nightly(working_dir)? {
+        cmd.arg("+nightly");
+    }
 
-	let output = cmd.arg(command).args(args).output()?;
+    let output = cmd.arg(command).args(args).output()?;
 
-	if !output.status.success() {
-		// Dump the output streams produced by cargo into the stdout/stderr.
-		io::stdout().write_all(&output.stdout)?;
-		io::stderr().write_all(&output.stderr)?;
-		anyhow::bail!("Build failed");
-	}
+    if !output.status.success() {
+        // Dump the output streams produced by cargo into the stdout/stderr.
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        anyhow::bail!("Build failed");
+    }
 
-	Ok(())
+    Ok(())
 }
 
 pub(crate) fn is_nightly(working_dir: Option<&PathBuf>) -> Result<bool> {
-	let mut cmd = Command::new("cargo");
-	if let Some(dir) = working_dir {
-		cmd.current_dir(dir);
-	}
-	let output = cmd.arg("--version").output()?;
-	let decoded = String::from_utf8(output.stdout).unwrap_or_default();
-	Ok(decoded.contains("-nightly"))
+    let mut cmd = Command::new("cargo");
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
+    let output = cmd.arg("--version").output()?;
+    let decoded = String::from_utf8(output.stdout).unwrap_or_default();
+    Ok(decoded.contains("-nightly"))
 }

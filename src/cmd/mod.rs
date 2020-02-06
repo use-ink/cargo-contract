@@ -33,7 +33,8 @@ mod metadata;
 mod new;
 
 pub(crate) use self::{
-    build::execute_build, cargo::exec_cargo, cargo::is_nightly, metadata::execute_generate_metadata, new::execute_new,
+    build::execute_build, cargo::exec_cargo, cargo::is_nightly,
+    metadata::execute_generate_metadata, new::execute_new,
 };
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::{

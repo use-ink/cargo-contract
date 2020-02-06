@@ -93,13 +93,9 @@ fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
         "--verbose",
     ];
     if which::which("xargo").is_err() {
-        super::exec_cargo(
-            "build",
-            &args,
-            working_dir,
-        )?;
+        super::exec_cargo("build", &args, working_dir)?;
         println!("TODO: tell the user nicely to install xargo");
-        return Ok(())
+        return Ok(());
     }
 
     let current_dir = PathBuf::from(".");
@@ -118,9 +114,9 @@ alloc = {}
     fs::write(xargo_config_path, xargo_config)?;
 
     // todo: [AJ] check rlib not enabled and warn if it is
-//    let toml = fs::read_to_string(&manifest_path)?;
-//    let toml = toml::from_str(&toml)?;
-//    toml
+    //    let toml = fs::read_to_string(&manifest_path)?;
+    //    let toml = toml::from_str(&toml)?;
+    //    toml
 
     // todo: [AJ] check if nightly enabled, if not then `rustup run nightly xargo`, or even just run that anyway...
     // need to figure out what cargo does
