@@ -27,7 +27,7 @@ pub(crate) fn exec_cargo(command: &str, args: &[&'static str], working_dir: Opti
 		cmd.current_dir(dir);
 	}
 
-	if !is_nightly(working_dir) {
+	if !is_nightly(working_dir)? {
 		cmd.arg("+nightly");
 	}
 
@@ -49,6 +49,6 @@ pub(crate) fn is_nightly(working_dir: Option<&PathBuf>) -> Result<bool> {
 		cmd.current_dir(dir);
 	}
 	let output = cmd.arg("--version").output()?;
-	let decoded = String::from_utf8(o.stdout).unwrap_or_default();
+	let decoded = String::from_utf8(output.stdout).unwrap_or_default();
 	Ok(decoded.contains("-nightly"))
 }

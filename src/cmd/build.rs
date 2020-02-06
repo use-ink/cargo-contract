@@ -25,7 +25,6 @@ use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
-use crate::cmd::tests::with_tmp_dir;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -102,7 +101,9 @@ fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
         println!("TODO: tell the user nicely to install xargo");
         return Ok(())
     }
-    let working_dir = working_dir.unwrap_or(&PathBuf::from("."));
+
+    let current_dir = PathBuf::from(".");
+    let working_dir = working_dir.unwrap_or(&current_dir);
     let manifest_path = working_dir.join("Cargo.toml");
     let xargo_config_path = working_dir.join("Xargo.toml");
 
