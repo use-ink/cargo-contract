@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
-
+use std::{
+    fs,
+    path::PathBuf,
+};
 use anyhow::{Context, Result};
-use cargo_metadata::MetadataCommand;
+use toml::value;
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
@@ -32,22 +34,23 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     // - exec build
     // - rename backup to original
 
-    super::rustup_run(
-        "cargo",
-        "run",
-        &[
-            "--package",
-            "abi-gen",
-            "--release",
-            // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
-            "--verbose",
-        ],
-        dir,
-    )?;
+    let cargo_metadata = super::get_cargo_metadata(dir)?;
 
-    let cargo_metadata = MetadataCommand::new()
-        .exec()
-        .context("Error invoking `cargo metadata`")?;
+    with_contract_rust_lib(&cargo_metadata, || {
+        super::rustup_run(
+            "cargo",
+            "run",
+            &[
+                "--package",
+                "abi-gen",
+                "--release",
+                // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
+                "--verbose",
+            ],
+            dir,
+        )
+    });
+
     let mut out_path = cargo_metadata.target_directory;
     out_path.push("metadata.json");
 
@@ -55,6 +58,42 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
         "Your metadata file is ready.\nYou can find it here:\n{}",
         out_path.display()
     ))
+}
+
+/// Adds the 'rlib' crate_type to the Cargo.toml if not present.
+/// Makes a backup of the existing Cargo.toml which is restored once complete.
+fn with_contract_rust_lib<F: FnOnce() -> Result<()>>(cargo_meta: &cargo_metadata::Metadata, f: F) -> Result<()> {
+    let cargo_toml = cargo_meta.workspace_root.join("Cargo.toml");
+    let backup = cargo_meta.workspace_root.join(".Cargo.toml.bk");
+
+    // todo: acquire workspace lock here before doing all this
+
+    let toml = fs::read_to_string(&cargo_toml)?;
+    let mut toml: value::Table = toml::from_str(&toml)?;
+    let mut crate_types = toml.get_mut("lib")
+        .and_then(|v| v.try_into::<value::Table>().ok())
+        .and_then(|mut t| t.get_mut("crate-type"))
+        .and_then(|v| v.try_into::<value::Array>().ok())
+        .ok_or(anyhow::anyhow!("No [lib] crate-type section found"))?;
+
+    if crate_types.iter().any(|v| v.as_str().map_or(false, |s| s == "rlib")) {
+        log::debug!("rlib crate-type already specified in Cargo.toml");
+        return f()
+    }
+
+    fs::copy(&cargo_toml, &backup).context("Creating a backup for Cargo.toml")?;
+
+    // add rlib to crate-types and write updated Cargo.toml
+    crate_types.push(value::Value::String("rlib".into()));
+
+    let updated_toml = toml::to_string(&toml)?;
+    fs::write(&cargo_toml, updated_toml).context("Writing updated Cargo.toml")?;
+
+    // Now run the function with a modified Cargo.toml in place
+    let result = f();
+
+    fs::rename(&backup, &cargo_toml).context("Restoring the backup of Cargo.toml")?;
+    result
 }
 
 #[cfg(feature = "test-ci-only")]

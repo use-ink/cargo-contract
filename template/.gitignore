@@ -11,3 +11,6 @@ Cargo.lock
 # This file is generated when compiling the contract wasm with `xargo` for optimal size
 # It should not be changed by the user and is always overwritten by the build tool
 Xargo.toml
+
+# The backup file created by `cargo contract` when modiying the Cargo.toml for the build
+.Cargo.toml.bk

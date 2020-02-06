@@ -22,7 +22,6 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 use toml::value;
@@ -40,9 +39,6 @@ pub struct CrateMetadata {
 }
 
 impl CrateMetadata {
-//    fn manifest_path(&self) -> PathBuf {
-//        self.working_dir.join("Cargo.toml")
-//    }
     fn has_rlib_crate_type(&self) -> bool {
         self.crate_types.contains(&"rlib".to_string())
     }
@@ -50,11 +46,7 @@ impl CrateMetadata {
 
 /// Parses the contract manifest and returns relevant metadata.
 pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let mut cmd = MetadataCommand::new();
-    if let Some(dir) = working_dir {
-        cmd.current_dir(dir);
-    }
-    let metadata = cmd.exec()?;
+    let metadata = super::get_cargo_metadata(working_dir)?;
 
     let root_package_id = metadata
         .resolve

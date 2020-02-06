@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use cargo_metadata::{MetadataCommand, Metadata as CargoMetadata};
 use std::{
     io::{self, Write},
     path::PathBuf,
@@ -38,6 +39,15 @@ pub(crate) use self::{
 pub(crate) use self::{
     deploy::execute_deploy, extrinsics::submit_extrinsic, instantiate::execute_instantiate,
 };
+
+/// Get the result of `cargo metadata`
+pub(crate) fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<CargoMetadata> {
+    let mut cmd = MetadataCommand::new();
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
+    cmd.exec().context("Error invoking `cargo metadata`")
+}
 
 /// Run the given command in the rustup nightly environment
 pub(crate) fn rustup_run(
