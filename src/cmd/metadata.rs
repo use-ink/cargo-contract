@@ -26,7 +26,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 
     let cargo_metadata = super::get_cargo_metadata(dir)?;
     let manifest_path = cargo_metadata.workspace_root.join("Cargo.toml");
-    let manifest = CargoToml::load(&manifest_path)?;
+    let manifest = CargoToml::new(&manifest_path)?;
 
     manifest.with_added_crate_type("rlib", || {
         super::rustup_run(

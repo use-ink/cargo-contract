@@ -146,7 +146,7 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         "--target=wasm32-unknown-unknown",
         "--verbose",
     ];
-    let manifest = CargoToml::load(&crate_metadata.manifest_path)?;
+    let manifest = CargoToml::new(&crate_metadata.manifest_path)?;
     let working_dir = Some(&crate_metadata.workspace_root);
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size

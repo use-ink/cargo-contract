@@ -18,26 +18,24 @@ use anyhow::{Context, Result};
 use std::{fs, path::PathBuf};
 use toml::value;
 
-// todo [AJ] add docs
+/// Load and temporarily modify the manifest file (Cargo.toml).
 pub struct CargoToml {
     path: PathBuf,
-    table: value::Table,
 }
 
 impl CargoToml {
-    pub fn load(path: &PathBuf) -> Result<CargoToml> {
+    /// Create new CargoToml for the given manifest path.
+    ///
+    /// The path *must* be to a `Cargo.toml`.
+    pub fn new(path: &PathBuf) -> Result<CargoToml> {
         if let Some(file_name) = path.file_name() {
             if file_name != "Cargo.toml" {
                 anyhow::bail!("Manifest file must be a Cargo.toml")
             }
         }
 
-        let toml = fs::read_to_string(&path)?;
-        let table: value::Table = toml::from_str(&toml)?;
-
         Ok(CargoToml {
             path: path.clone(),
-            table,
         })
     }
 
@@ -55,7 +53,7 @@ impl CargoToml {
     /// `Cargo.toml`. If the manifest does not need to modified, should return false.
     /// - `f`: Function to be executed while the temporary amended `Cargo.toml` is in place. e.g.
     /// running a `cargo` command which will pick up the manifest.
-    pub fn with_amended_manifest<A, F>(mut self, amend: A, f: F) -> Result<()>
+    pub fn with_amended_manifest<A, F>(&self, amend: A, f: F) -> Result<()>
     where
         A: FnOnce(&mut value::Table) -> Result<bool>,
         F: FnOnce() -> Result<()>,
@@ -64,10 +62,12 @@ impl CargoToml {
         backup_path.set_file_name(".Cargo.toml.bk");
 
         // todo: [AJ] check for existing backup and ask user if they want to restore it
-        // todo: [AJ] acquire workspace lock here before doing all this
+
+        let toml = fs::read_to_string(&self.path)?;
+        let mut table: value::Table = toml::from_str(&toml)?;
 
         // run supplied amend function
-        let should_amend = amend(&mut self.table)?;
+        let should_amend = amend(&mut table)?;
 
         if !should_amend {
             log::debug!("amend function returned false, so update not required");
@@ -77,7 +77,7 @@ impl CargoToml {
 
         fs::copy(&self.path, &backup_path).context("Creating a backup for Cargo.toml")?;
 
-        let updated_toml = toml::to_string(&self.table)?;
+        let updated_toml = toml::to_string(&table)?;
         fs::write(&self.path, updated_toml).context("Writing updated Cargo.toml")?;
 
         // Now run the function with a modified Cargo.toml in place
@@ -87,7 +87,8 @@ impl CargoToml {
         result
     }
 
-    fn with_amended_crate_types<A, F>(self, amend: A, f: F) -> Result<()>
+    /// Amend the `[lib] crate-types = []` section
+    fn with_amended_crate_types<A, F>(&self, amend: A, f: F) -> Result<()>
     where
         A: FnOnce(&mut value::Array) -> bool,
         F: FnOnce() -> Result<()>,
@@ -111,7 +112,10 @@ impl CargoToml {
         )
     }
 
-    pub fn with_added_crate_type<F>(self, crate_type: &str, f: F) -> Result<()>
+    /// Add an value to the `[lib] crate-types = []` section
+    ///
+    /// If the value already exists, does nothing.
+    pub fn with_added_crate_type<F>(&self, crate_type: &str, f: F) -> Result<()>
     where
         F: FnOnce() -> Result<()>,
     {
@@ -128,7 +132,10 @@ impl CargoToml {
         )
     }
 
-    pub fn with_removed_crate_type<F>(self, crate_type: &str, f: F) -> Result<()>
+    /// Remove a value from the `[lib] crate-types = []` section
+    ///
+    /// If the value does not exist, does nothing.
+    pub fn with_removed_crate_type<F>(&self, crate_type: &str, f: F) -> Result<()>
     where
         F: FnOnce() -> Result<()>,
     {
