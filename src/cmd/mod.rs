@@ -15,7 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
-use cargo_metadata::{MetadataCommand, Metadata as CargoMetadata};
+use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand};
 use std::{
     io::{self, Write},
     path::PathBuf,

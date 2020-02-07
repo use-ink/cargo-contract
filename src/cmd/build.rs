@@ -21,10 +21,10 @@ use std::{
     process::Command,
 };
 
+use crate::manifest::CargoToml;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
-use crate::manifest::CargoToml;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -88,7 +88,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 /// - If there is an existing Xargo.config without the required configuration
 fn with_xargo_config<F>(crate_metadata: &CrateMetadata, f: F) -> Result<()>
 where
-    F: FnOnce() -> Result<()>
+    F: FnOnce() -> Result<()>,
 {
     let xargo_config_path = crate_metadata.workspace_root.join("Xargo.toml");
 
@@ -117,8 +117,7 @@ alloc = {}
         }
         Err(e) => {
             if e.kind() == std::io::ErrorKind::AlreadyExists {
-                let existing = fs::read_to_string(xargo_config_path)
-                    .expect("File exists");
+                let existing = fs::read_to_string(xargo_config_path).expect("File exists");
                 if existing != xargo_config {
                     anyhow::bail!(
                         "A Xargo.config already exists which is different to the recommended \

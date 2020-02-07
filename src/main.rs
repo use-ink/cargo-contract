@@ -150,7 +150,7 @@ fn main() {
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
         Ok(msg) => println!("\t{}", msg),
-        Err(err) => eprintln!("{} {}", "ERROR:".red().bold(), format!("{}", err).red())
+        Err(err) => eprintln!("{} {}", "ERROR:".red().bold(), format!("{}", err).red()),
     }
 }
 

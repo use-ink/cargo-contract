@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
-use anyhow::Result;
 use crate::manifest::CargoToml;
+use anyhow::Result;
+use std::path::PathBuf;
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
