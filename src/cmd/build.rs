@@ -24,24 +24,18 @@ use std::{
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
-use toml::value;
+use crate::manifest::CargoToml;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Relevant metadata obtained from Cargo.toml.
 pub struct CrateMetadata {
-    working_dir: PathBuf,
+    workspace_root: PathBuf,
+    manifest_path: PathBuf,
     package_name: String,
-    crate_types: Vec<String>,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
-}
-
-impl CrateMetadata {
-    fn has_rlib_crate_type(&self) -> bool {
-        self.crate_types.contains(&"rlib".to_string())
-    }
 }
 
 /// Parses the contract manifest and returns relevant metadata.
@@ -76,23 +70,10 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.push(package_name.clone());
     dest_wasm.set_extension("wasm");
 
-    let current_dir = PathBuf::from(".");
-    let working_dir = working_dir.unwrap_or(&current_dir);
-    let manifest_path = working_dir.join("Cargo.toml");
-
-    let toml = fs::read_to_string(&manifest_path)?;
-    let mut toml: value::Table = toml::from_str(&toml)?;
-    let crate_types = toml.remove("lib")
-        .and_then(|v| v.try_into::<value::Table>().ok())
-        .and_then(|mut t| t.remove("crate-type"))
-        .and_then(|v| v.try_into::<value::Array>().ok())
-        .map(|vs| vs.iter().filter_map(|v| v.as_str()).map(|s| s.to_owned()).collect())
-        .unwrap_or_else(Vec::new);
-
     Ok(CrateMetadata {
-        working_dir: working_dir.clone(),
+        workspace_root: metadata.workspace_root.clone(),
+        manifest_path: metadata.workspace_root.join("Cargo.toml"),
         package_name,
-        crate_types,
         original_wasm,
         dest_wasm,
     })
@@ -105,8 +86,11 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 /// # Errors
 ///
 /// - If there is an existing Xargo.config without the required configuration
-fn with_xargo_config<F: FnOnce() -> Result<()>>(crate_metadata: &CrateMetadata, f: F) -> Result<()> {
-    let xargo_config_path = crate_metadata.working_dir.join("Xargo.toml");
+fn with_xargo_config<F>(crate_metadata: &CrateMetadata, f: F) -> Result<()>
+where
+    F: FnOnce() -> Result<()>
+{
+    let xargo_config_path = crate_metadata.workspace_root.join("Xargo.toml");
 
     let xargo_config = r#"
 [target.wasm32-unknown-unknown.dependencies]
@@ -156,31 +140,27 @@ alloc = {}
 /// the resulting Wasm binary.
 ///
 /// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
-fn build_cargo_project(crate_metadata: &CrateMetadata, working_dir: Option<&PathBuf>) -> Result<()> {
+fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     let build_args = [
         "--no-default-features",
         "--release",
         "--target=wasm32-unknown-unknown",
         "--verbose",
     ];
-    if which::which("xargo").is_err() {
-        super::rustup_run("cargo", "build", &build_args, working_dir)?;
-        println!("TODO: tell the user nicely to install xargo");
-        return Ok(());
-    }
+    let manifest = CargoToml::load(&crate_metadata.manifest_path)?;
+    let working_dir = Some(&crate_metadata.workspace_root);
 
-    if crate_metadata.has_rlib_crate_type() {
-        println!(
-            "{} {}",
-            "WARNING:".bright_yellow().bold(),
-            "Remove 'rlib' from the '[lib] crate-types' section in your contract's Cargo.toml. \
-             This is not required to build the Wasm binary, and significantly increases the size."
-                .bright_yellow()
-        )
-    }
-
-    with_xargo_config(crate_metadata, || {
-        super::rustup_run("xargo", "build", &build_args, working_dir)
+    // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
+    manifest.with_removed_crate_type("rlib", || {
+        // prefer building with xargo for optimal size, but fall back to cargo
+        if which::which("xargo").is_err() {
+            println!("TODO: tell the user nicely to install xargo");
+            super::rustup_run("cargo", "build", &build_args, working_dir)
+        } else {
+            with_xargo_config(crate_metadata, || {
+                super::rustup_run("xargo", "build", &build_args, working_dir)
+            })
+        }
     })
 }
 
@@ -314,7 +294,7 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, working_dir)?;
+    build_cargo_project(&crate_metadata)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
