@@ -71,7 +71,8 @@ impl CargoToml {
 
         if !should_amend {
             log::debug!("amend function returned false, so update not required");
-            return Ok(());
+            // Now run the function without a modified Cargo.toml
+            return f()
         }
 
         fs::copy(&self.path, &backup_path).context("Creating a backup for Cargo.toml")?;
