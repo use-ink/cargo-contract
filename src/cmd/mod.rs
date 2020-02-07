@@ -63,8 +63,6 @@ pub(crate) fn rustup_run(
         )
     }
 
-    // todo: [AJ] check nightly toolchain installed
-
     let mut cmd = Command::new("rustup");
 
     if let Some(dir) = working_dir {
