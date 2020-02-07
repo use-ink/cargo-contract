@@ -15,7 +15,12 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
-use std::{fs, path::PathBuf};
+use colored::Colorize;
+use std::{
+    fs,
+    io::{self, Write},
+    path::PathBuf,
+};
 use toml::value;
 
 /// Load and temporarily modify the manifest file (Cargo.toml).
@@ -34,9 +39,7 @@ impl CargoToml {
             }
         }
 
-        Ok(CargoToml {
-            path: path.clone(),
-        })
+        Ok(CargoToml { path: path.clone() })
     }
 
     /// Amend the Cargo.toml and run the supplied function.
@@ -61,7 +64,7 @@ impl CargoToml {
         let mut backup_path = self.path.clone();
         backup_path.set_file_name(".Cargo.toml.bk");
 
-        // todo: [AJ] check for existing backup and ask user if they want to restore it
+        cleanup_existing_backup(&backup_path, &self.path)?;
 
         let toml = fs::read_to_string(&self.path)?;
         let mut table: value::Table = toml::from_str(&toml)?;
@@ -72,7 +75,7 @@ impl CargoToml {
         if !should_amend {
             log::debug!("amend function returned false, so update not required");
             // Now run the function without a modified Cargo.toml
-            return f()
+            return f();
         }
 
         fs::copy(&self.path, &backup_path).context("Creating a backup for Cargo.toml")?;
@@ -150,6 +153,38 @@ impl CargoToml {
             },
             f,
         )
+    }
+}
+
+/// Handle the case where a previous build was terminated leaving the modified Cargo.toml
+/// and its backup in place.
+///
+/// Asks the user whether to restore the backup.
+fn cleanup_existing_backup(backup_path: &PathBuf, manifest_path: &PathBuf) -> Result<()> {
+    if backup_path.exists() {
+        print!(
+            "A backup of the original 'Cargo.toml' exists from a previous build which may have \
+             terminated prematurely. The current 'Cargo.toml' is likely to be a temporary \
+             modified copy created by this build process. Would you like to restore from the \
+             backup and overwrite the current 'Cargo.toml'? {}",
+            "[Y/n]".bold()
+        );
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let input = input.trim();
+
+        match input.chars().nth(0) {
+            Some('n') | Some('N') => Ok(()),
+            _ => {
+                fs::rename(&backup_path, &manifest_path)
+                    .context("Creating a backup for Cargo.toml")?;
+                Ok(())
+            }
+        }
+    } else {
+        Ok(())
     }
 }
 
