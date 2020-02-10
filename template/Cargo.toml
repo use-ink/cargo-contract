@@ -19,8 +19,10 @@ path = "lib.rs"
 crate-type = [
 	# Used for normal contract Wasm blobs.
 	"cdylib",
-	# Used for ABI generation.
-	"rlib",
+	# Required for ABI generation.
+	# If using `cargo contract generate-metadata`, will automatically be enabled.
+	# If using plain `cargo run`, must be enabled manually.
+#	"rlib",
 ]
 
 [features]
