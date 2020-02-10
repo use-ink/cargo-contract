@@ -213,7 +213,11 @@ fn strip_custom_sections(module: &mut Module) {
 /// Performs required post-processing steps on the wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // Deserialize wasm module from a file.
-    let mut module = parity_wasm::deserialize_file(&crate_metadata.original_wasm)?;
+    let mut module =
+        parity_wasm::deserialize_file(&crate_metadata.original_wasm).context(format!(
+            "Loading original wasm file '{}'",
+            crate_metadata.original_wasm.display()
+        ))?;
 
     // Perform optimization.
     //

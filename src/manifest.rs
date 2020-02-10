@@ -66,7 +66,7 @@ impl CargoToml {
 
         cleanup_existing_backup(&backup_path, &self.path)?;
 
-        let toml = fs::read_to_string(&self.path)?;
+        let toml = fs::read_to_string(&self.path).context("Loading Cargo.toml")?;
         let mut table: value::Table = toml::from_str(&toml)?;
 
         // run supplied amend function

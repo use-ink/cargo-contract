@@ -153,7 +153,7 @@ fn main() {
         Err(err) => eprintln!(
             "{} {}",
             "ERROR:".bright_red().bold(),
-            format!("{}", err).bright_red()
+            format!("{:?}", err).bright_red()
         ),
     }
 }
