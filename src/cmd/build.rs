@@ -30,6 +30,7 @@ use parity_wasm::elements::{External, MemoryType, Module, Section};
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Relevant metadata obtained from Cargo.toml.
+#[derive(Debug)]
 pub struct CrateMetadata {
     workspace_root: PathBuf,
     manifest_path: PathBuf,
@@ -70,13 +71,15 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.push(package_name.clone());
     dest_wasm.set_extension("wasm");
 
-    Ok(CrateMetadata {
+    let crate_metadata = CrateMetadata {
         workspace_root: metadata.workspace_root.clone(),
         manifest_path: metadata.workspace_root.join("Cargo.toml"),
         package_name,
         original_wasm,
         dest_wasm,
-    })
+    };
+    log::debug!("{:#?}", crate_metadata);
+    Ok(crate_metadata)
 }
 
 /// Generate a Xargo.config file for optimized wasm build.
