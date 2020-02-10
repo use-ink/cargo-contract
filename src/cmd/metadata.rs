@@ -25,8 +25,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     println!("  Generating metadata");
 
     let cargo_metadata = super::get_cargo_metadata(dir)?;
-    let manifest_path = cargo_metadata.workspace_root.join("Cargo.toml");
-    let manifest = CargoToml::new(&manifest_path)?;
+    let manifest = CargoToml::from_working_dir(dir)?;
 
     manifest.with_added_crate_type("rlib", || {
         super::rustup_run(
@@ -39,7 +38,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
                 "--verbose",
             ],
-            Some(&cargo_metadata.workspace_root),
+            dir,
         )
     })?;
 

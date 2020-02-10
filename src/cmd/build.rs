@@ -32,8 +32,8 @@ const MAX_MEMORY_PAGES: u32 = 16;
 /// Relevant metadata obtained from Cargo.toml.
 #[derive(Debug)]
 pub struct CrateMetadata {
+    working_dir: Option<PathBuf>,
     workspace_root: PathBuf,
-    manifest_path: PathBuf,
     package_name: String,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
@@ -72,8 +72,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.set_extension("wasm");
 
     let crate_metadata = CrateMetadata {
+        working_dir: working_dir.cloned(),
         workspace_root: metadata.workspace_root.clone(),
-        manifest_path: metadata.workspace_root.join("Cargo.toml"),
         package_name,
         original_wasm,
         dest_wasm,
@@ -93,7 +93,8 @@ fn with_xargo_config<F>(crate_metadata: &CrateMetadata, f: F) -> Result<()>
 where
     F: FnOnce() -> Result<()>,
 {
-    let xargo_config_path = crate_metadata.workspace_root.join("Xargo.toml");
+    let xargo_config_path = crate_metadata.working_dir.as_ref()
+        .map_or("Xargo.toml".into(), |dir| dir.join("Xargo.toml"));
 
     let xargo_config = r#"
 [target.wasm32-unknown-unknown.dependencies]
@@ -149,8 +150,8 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         "--target=wasm32-unknown-unknown",
         "--verbose",
     ];
-    let manifest = CargoToml::new(&crate_metadata.manifest_path)?;
-    let working_dir = Some(&crate_metadata.workspace_root);
+    let manifest = CargoToml::from_working_dir(crate_metadata.working_dir.as_ref())?;
+    let working_dir = crate_metadata.working_dir.as_ref();
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
     manifest.with_removed_crate_type("rlib", || {

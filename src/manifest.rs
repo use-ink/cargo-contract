@@ -23,6 +23,8 @@ use std::{
 };
 use toml::value;
 
+const MANIFEST_FILE: &str = "Cargo.toml";
+
 /// Load and temporarily modify the manifest file (Cargo.toml).
 pub struct CargoToml {
     path: PathBuf,
@@ -34,12 +36,20 @@ impl CargoToml {
     /// The path *must* be to a `Cargo.toml`.
     pub fn new(path: &PathBuf) -> Result<CargoToml> {
         if let Some(file_name) = path.file_name() {
-            if file_name != "Cargo.toml" {
+            if file_name != MANIFEST_FILE {
                 anyhow::bail!("Manifest file must be a Cargo.toml")
             }
         }
 
         Ok(CargoToml { path: path.clone() })
+    }
+
+    /// Create a new CargoToml from the given directory path.
+    ///
+    /// Passing `None` will assume the current directory so just `Cargo.toml`
+    pub fn from_working_dir(path: Option<&PathBuf>) -> Result<CargoToml> {
+        let file_path = path.map_or(MANIFEST_FILE.into(), |d| d.join(MANIFEST_FILE));
+        Self::new(&file_path)
     }
 
     /// Amend the Cargo.toml and run the supplied function.
