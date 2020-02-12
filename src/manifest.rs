@@ -19,7 +19,7 @@ use colored::Colorize;
 use std::{
     fs,
     io::{self, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use toml::value;
 
@@ -50,6 +50,11 @@ impl CargoToml {
     pub fn from_working_dir(path: Option<&PathBuf>) -> Result<CargoToml> {
         let file_path = path.map_or(MANIFEST_FILE.into(), |d| d.join(MANIFEST_FILE));
         Self::new(&file_path)
+    }
+
+    /// The path to the Cargo.toml
+    pub fn manifest_path(&self) -> &Path {
+        self.path.as_path()
     }
 
     /// Amend the Cargo.toml and run the supplied function.

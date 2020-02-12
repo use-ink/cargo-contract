@@ -15,7 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    fs::{self, metadata},
+    fs::metadata,
     io::{self, Write},
     path::PathBuf,
     process::Command,
@@ -82,61 +82,6 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     Ok(crate_metadata)
 }
 
-/// Generate a Xargo.config file for optimized wasm build.
-/// If the file does not exist it will be generated and cleaned up afterwards.
-/// If the file does exist and is of the required configuration then it will be left as is.
-///
-/// # Errors
-///
-/// - If there is an existing Xargo.config without the required configuration
-fn with_xargo_config<F>(crate_metadata: &CrateMetadata, f: F) -> Result<()>
-where
-    F: FnOnce() -> Result<()>,
-{
-    let xargo_config_path = crate_metadata.working_dir.as_ref()
-        .map_or("Xargo.toml".into(), |dir| dir.join("Xargo.toml"));
-
-    let xargo_config = r#"
-[target.wasm32-unknown-unknown.dependencies]
-core = {default-features=false, features=["panic_immediate_abort"]}
-std = {default-features=false, features=["panic_immediate_abort"]}
-alloc = {}
-"#;
-
-    // If there is an existing Xargo.toml which is different to the config above, instead of
-    // overwriting it fail the build instead.
-    let open_result = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(xargo_config_path.clone());
-
-    match open_result {
-        Ok(mut outfile) => {
-            // No existing Xargo.toml
-            outfile.write_all(xargo_config.as_bytes())?;
-            let res = f();
-            // clean up the auto generated Xargo.config: the user should not be editing this file
-            let _ = fs::remove_file(xargo_config_path);
-            res
-        }
-        Err(e) => {
-            if e.kind() == std::io::ErrorKind::AlreadyExists {
-                let existing = fs::read_to_string(xargo_config_path).expect("File exists");
-                if existing != xargo_config {
-                    anyhow::bail!(
-                        "A Xargo.config already exists which is different to the recommended \
-                         configuration. Please remove/rename it and run again",
-                    )
-                }
-                // Xargo.config file already exists with correct content so just use it
-                Ok(())
-            } else {
-                anyhow::bail!(e)
-            }
-        }
-    }
-}
-
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
 /// Attempts to build using [`xargo`](https://github.com/japaric/xargo) for maximum optimization of
@@ -144,26 +89,25 @@ alloc = {}
 ///
 /// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
+    let target = "wasm32-unknown-unknown";
     let build_args = [
         "--no-default-features",
         "--release",
-        "--target=wasm32-unknown-unknown",
-        "--verbose",
+        &format!("--target={}", target),
+//        "--verbose",
     ];
     let manifest = CargoToml::from_working_dir(crate_metadata.working_dir.as_ref())?;
-    let working_dir = crate_metadata.working_dir.as_ref();
+
+    // todo: check for xbuild config section `root_package.metadata.get("cargo-xbuild");`
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
     manifest.with_removed_crate_type("rlib", || {
-        // prefer building with xargo for optimal size, but fall back to cargo
-        if which::which("xargo").is_err() {
-            println!("TODO: tell the user nicely to install xargo");
-            super::rustup_run("cargo", "build", &build_args, working_dir)
-        } else {
-            with_xargo_config(crate_metadata, || {
-                super::rustup_run("xargo", "build", &build_args, working_dir)
-            })
-        }
+        let manifest_path = Some(manifest.manifest_path());
+        let exit_status = xargo_lib::build(xargo_lib::Args::new(&build_args, Some(target), manifest_path), "build")
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Building with xbuild")?;
+        log::debug!("xargo exit status: {:?}", exit_status);
+        Ok(())
     })
 }
 

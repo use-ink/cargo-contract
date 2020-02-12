@@ -28,6 +28,8 @@ codec = { package = "parity-scale-codec", version = "1.1" }
 which = "3.1.0"
 colored = "1.9"
 toml = "0.5.4"
+cargo-xbuild = { git = "https://github.com/ascjones/cargo-xbuild", branch = "pub-build-fn" }
+#cargo-xbuild = "0.5.23"
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.5.0", optional = true }
