@@ -21,7 +21,7 @@ use std::{
     process::Command,
 };
 
-use crate::manifest::CargoToml;
+use crate::{manifest::CargoToml, util};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
@@ -41,7 +41,7 @@ pub struct CrateMetadata {
 
 /// Parses the contract manifest and returns relevant metadata.
 pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let metadata = super::get_cargo_metadata(working_dir)?;
+    let metadata = crate::util::get_cargo_metadata(working_dir)?;
 
     let root_package_id = metadata
         .resolve
@@ -89,6 +89,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 ///
 /// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
+    util::assert_channel()?;
+
     let target = "wasm32-unknown-unknown";
     let build_args = [
         "--no-default-features",

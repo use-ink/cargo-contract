@@ -29,6 +29,7 @@ which = "3.1.0"
 colored = "1.9"
 toml = "0.5.4"
 cargo-xbuild = { git = "https://github.com/ascjones/cargo-xbuild", branch = "pub-build-fn" }
+rustc_version = "0.2.3"
 #cargo-xbuild = "0.5.23"
 
 # dependencies for optional extrinsics feature

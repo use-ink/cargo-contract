@@ -15,6 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 mod cmd;
+mod util;
 mod manifest;
 
 #[cfg(feature = "extrinsics")]
