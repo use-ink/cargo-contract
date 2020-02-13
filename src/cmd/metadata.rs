@@ -53,7 +53,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::cmd::{execute_generate_metadata, execute_new, tests::with_tmp_dir};
+    use crate::cmd::{execute_generate_metadata, execute_new, util::tests::with_tmp_dir};
 
     #[test]
     fn generate_metadata() {
