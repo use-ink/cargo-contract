@@ -110,23 +110,17 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
             .get("panic_immediate_abort")
             .map_or(false, |v| *v == Value::Bool(true));
         if !panic_immediate_abort_enabled {
-            println!(
-                "{}: {}",
-                "WARNING".bold().bright_yellow(),
+            anyhow::bail!(
                 "For optimal binary size please set `panic_immediate_abort = true` in the \
                 `[package.metadata.cargo-xbuild]` section of `Cargo.toml`. \
                 See https://github.com/rust-osdev/cargo-xbuild#configuration"
-                    .bold(),
             )
         }
     } else {
-        println!(
-            "{}: {}",
-            "WARNING".bold().bright_yellow(),
+        anyhow::bail!(
             "For optimal binary size please add a `[package.metadata.cargo-xbuild]` section to \
             `Cargo.toml` with `panic_immediate_abort = true` \
             See https://github.com/rust-osdev/cargo-xbuild#configuration"
-                .bold(),
         )
     }
 
