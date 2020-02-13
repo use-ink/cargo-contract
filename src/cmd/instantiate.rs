@@ -41,7 +41,8 @@ mod tests {
     use std::{fs, io::Write};
 
     use crate::{
-        cmd::{deploy::execute_deploy, util::tests::with_tmp_dir},
+        cmd::deploy::execute_deploy,
+        util::tests::with_tmp_dir,
         ExtrinsicOpts, HexData,
     };
     use assert_matches::assert_matches;
