@@ -22,14 +22,14 @@ use std::path::PathBuf;
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String> {
+    util::assert_channel()?;
     println!("  Generating metadata");
 
     let cargo_metadata = crate::util::get_cargo_metadata(dir)?;
     let manifest = CargoToml::from_working_dir(dir)?;
 
     manifest.with_added_crate_type("rlib", || {
-        super::rustup_run(
-            "cargo",
+        util::invoke_cargo(
             "run",
             &[
                 "--package",

@@ -17,7 +17,11 @@
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand};
 use rustc_version::Channel;
-use std::path::PathBuf;
+use std::{
+    ffi::OsStr,
+    path::PathBuf,
+    process::Command,
+};
 
 /// Get the result of `cargo metadata`
 pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<CargoMetadata> {
@@ -40,5 +44,44 @@ pub fn assert_channel() -> Result<()> {
                 format!("{:?}", meta.channel).to_lowercase(),
             );
         }
+    }
+}
+
+/// Run cargo with the supplied args
+pub(crate) fn invoke_cargo<I, S>(
+    command: &str,
+    args: I,
+    working_dir: Option<&PathBuf>,
+) -> Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let mut cmd = Command::new(cargo);
+    if let Some(working_dir) = working_dir {
+        cmd.current_dir(working_dir);
+    }
+    cmd.arg(command);
+    cmd.args(args);
+
+    let status = cmd.status()?; //.context("Error executing `cargo {}` with args `{}`", command, args)?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!("`{:?}` failed with exit code: {:?}", cmd, status.code());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    pub fn with_tmp_dir<F: FnOnce(&PathBuf)>(f: F) {
+        let tmp_dir = TempDir::new().expect("temporary directory creation failed");
+
+        f(&tmp_dir.into_path());
     }
 }
