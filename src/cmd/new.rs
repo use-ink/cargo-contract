@@ -97,7 +97,10 @@ pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cmd::{execute_new, util::tests::with_tmp_dir};
+    use crate::{
+        cmd::execute_new,
+        util::tests::with_tmp_dir,
+    };
 
     #[test]
     fn rejects_hyphenated_name() {
