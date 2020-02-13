@@ -17,11 +17,7 @@
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand};
 use rustc_version::Channel;
-use std::{
-    ffi::OsStr,
-    path::PathBuf,
-    process::Command,
-};
+use std::{ffi::OsStr, path::PathBuf, process::Command};
 
 /// Get the result of `cargo metadata`
 pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<CargoMetadata> {
