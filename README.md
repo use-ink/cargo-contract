@@ -45,7 +45,7 @@ configuration section to be added to your contract's `Cargo.toml`:
 panic_immediate_abort = true
 ```
 
-This will perform a custom build of Rust's `libcore` without panic strings and formatting code, which significantly 
+This will perform a custom build of Rust's `libcore` [without panic strings and formatting code](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort), which significantly 
 reduces the final binary size.
 
 ## Features

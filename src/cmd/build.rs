@@ -88,10 +88,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
-/// Attempts to build using [`xargo`](https://github.com/japaric/xargo) for maximum optimization of
+/// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
 /// the resulting Wasm binary.
-///
-/// If `xargo` is not installed then the user will be warned and it will fall back to `cargo`.
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
@@ -113,14 +111,14 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
             anyhow::bail!(
                 "For optimal binary size please set `panic_immediate_abort = true` in the \
                 `[package.metadata.cargo-xbuild]` section of `Cargo.toml`. \
-                See https://github.com/rust-osdev/cargo-xbuild#configuration"
+                See https://github.com/paritytech/cargo-contract#contract-build-config"
             )
         }
     } else {
         anyhow::bail!(
             "For optimal binary size please add a `[package.metadata.cargo-xbuild]` section to \
             `Cargo.toml` with `panic_immediate_abort = true` \
-            See https://github.com/rust-osdev/cargo-xbuild#configuration"
+            See https://github.com/paritytech/cargo-contract#contract-build-config"
         )
     }
 
