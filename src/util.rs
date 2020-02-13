@@ -50,7 +50,7 @@ pub(crate) fn invoke_cargo<I, S>(
     working_dir: Option<&PathBuf>,
 ) -> Result<()>
 where
-    I: IntoIterator<Item = S>,
+    I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
 {
     let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
@@ -61,7 +61,9 @@ where
     cmd.arg(command);
     cmd.args(args);
 
-    let status = cmd.status()?; //.context("Error executing `cargo {}` with args `{}`", command, args)?;
+    let status = cmd
+        .status()
+        .context(format!("Error executing `{:?}`", cmd))?;
 
     if status.success() {
         Ok(())
