@@ -106,7 +106,8 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     // check `cargo-xbuild` config section exists and has `panic_immediate_abort` enabled
     let xbuild_metadata = crate_metadata.root_package.metadata.get("cargo-xbuild");
     if let Some(xbuild_metadata) = xbuild_metadata {
-        let panic_immediate_abort_enabled = xbuild_metadata.get("panic_immediate_abort")
+        let panic_immediate_abort_enabled = xbuild_metadata
+            .get("panic_immediate_abort")
             .map_or(false, |v| *v == Value::Bool(true));
         if !panic_immediate_abort_enabled {
             println!(
@@ -114,7 +115,8 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
                 "WARNING".bold().bright_yellow(),
                 "For optimal binary size please set `panic_immediate_abort = true` in the \
                 `[package.metadata.cargo-xbuild]` section of `Cargo.toml`. \
-                See https://github.com/rust-osdev/cargo-xbuild#configuration".bold(),
+                See https://github.com/rust-osdev/cargo-xbuild#configuration"
+                    .bold(),
             )
         }
     } else {
@@ -123,16 +125,20 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
             "WARNING".bold().bright_yellow(),
             "For optimal binary size please add a `[package.metadata.cargo-xbuild]` section to \
             `Cargo.toml` with `panic_immediate_abort = true` \
-            See https://github.com/rust-osdev/cargo-xbuild#configuration".bold(),
+            See https://github.com/rust-osdev/cargo-xbuild#configuration"
+                .bold(),
         )
     }
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
     manifest.with_removed_crate_type("rlib", || {
         let manifest_path = Some(manifest.manifest_path());
-        let exit_status = xargo_lib::build(xargo_lib::Args::new(&build_args, Some(target), manifest_path), "build")
-            .map_err(|e| anyhow::anyhow!("{}", e))
-            .context("Building with xbuild")?;
+        let exit_status = xargo_lib::build(
+            xargo_lib::Args::new(&build_args, Some(target), manifest_path),
+            "build",
+        )
+        .map_err(|e| anyhow::anyhow!("{}", e))
+        .context("Building with xbuild")?;
         log::debug!("xargo exit status: {:?}", exit_status);
         Ok(())
     })

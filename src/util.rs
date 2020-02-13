@@ -21,24 +21,24 @@ use std::path::PathBuf;
 
 /// Get the result of `cargo metadata`
 pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<CargoMetadata> {
-	let mut cmd = MetadataCommand::new();
-	if let Some(dir) = working_dir {
-		cmd.current_dir(dir);
-	}
-	cmd.exec().context("Error invoking `cargo metadata`")
+    let mut cmd = MetadataCommand::new();
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
+    cmd.exec().context("Error invoking `cargo metadata`")
 }
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
 pub fn assert_channel() -> Result<()> {
-	let meta = rustc_version::version_meta()?;
-	match meta.channel {
-		Channel::Dev | Channel::Nightly => Ok(()),
-		Channel::Stable | Channel::Beta => {
-			anyhow::bail!(
-				"cargo-contract cannot build using the {:?} channel. \
+    let meta = rustc_version::version_meta()?;
+    match meta.channel {
+        Channel::Dev | Channel::Nightly => Ok(()),
+        Channel::Stable | Channel::Beta => {
+            anyhow::bail!(
+                "cargo-contract cannot build using the {:?} channel. \
 				 Switch to nightly.",
-				format!("{:?}", meta.channel).to_lowercase(),
-			);
-		}
-	 }
+                format!("{:?}", meta.channel).to_lowercase(),
+            );
+        }
+    }
 }
