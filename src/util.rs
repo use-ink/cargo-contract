@@ -37,7 +37,7 @@ pub fn assert_channel() -> Result<()> {
 			anyhow::bail!(
 				"cargo-contract cannot build using the {:?} channel. \
 				 Switch to nightly.",
-				meta.channel
+				format!("{:?}", meta.channel).to_lowercase(),
 			);
 		}
 	 }

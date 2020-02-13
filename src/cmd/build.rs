@@ -23,6 +23,7 @@ use std::{
 
 use crate::{manifest::CargoToml, util};
 use anyhow::{Context, Result};
+use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 
@@ -35,6 +36,7 @@ pub struct CrateMetadata {
     working_dir: Option<PathBuf>,
     workspace_root: PathBuf,
     package_name: String,
+    root_package: Package,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
 }
@@ -74,6 +76,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     let crate_metadata = CrateMetadata {
         working_dir: working_dir.cloned(),
         workspace_root: metadata.workspace_root.clone(),
+        root_package: root_package.clone(),
         package_name,
         original_wasm,
         dest_wasm,
@@ -96,11 +99,32 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         "--no-default-features",
         "--release",
         &format!("--target={}", target),
-//        "--verbose",
     ];
     let manifest = CargoToml::from_working_dir(crate_metadata.working_dir.as_ref())?;
 
-    // todo: check for xbuild config section `root_package.metadata.get("cargo-xbuild");`
+    // check `cargo-xbuild` config section exists and has `panic_immediate_abort` enabled
+    let xbuild_metadata = crate_metadata.root_package.metadata.get("cargo-xbuild");
+    if let Some(xbuild_metadata) = xbuild_metadata {
+        let panic_immediate_abort_enabled = xbuild_metadata.get("panic_immediate_abort")
+            .map_or(false, |v| v == "true");
+        if !panic_immediate_abort_enabled {
+            println!(
+                "{}: {}",
+                "WARNING".bold().bright_yellow(),
+                "For optimal binary size please set `panic_immediate_abort = true` in the \
+                `[package.metadata.cargo-xbuild]` section of `Cargo.toml`. \
+                See https://github.com/rust-osdev/cargo-xbuild#configuration".bold(),
+            )
+        }
+    } else {
+        println!(
+            "{}: {}",
+            "WARNING".bold().bright_yellow(),
+            "For optimal binary size please add a `[package.metadata.cargo-xbuild]` section to \
+            `Cargo.toml` with `panic_immediate_abort = true` \
+            See https://github.com/rust-osdev/cargo-xbuild#configuration".bold(),
+        )
+    }
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
     manifest.with_removed_crate_type("rlib", || {
