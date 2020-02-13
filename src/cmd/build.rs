@@ -26,6 +26,7 @@ use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use serde_json::Value;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -106,7 +107,7 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     let xbuild_metadata = crate_metadata.root_package.metadata.get("cargo-xbuild");
     if let Some(xbuild_metadata) = xbuild_metadata {
         let panic_immediate_abort_enabled = xbuild_metadata.get("panic_immediate_abort")
-            .map_or(false, |v| v == "true");
+            .map_or(false, |v| *v == Value::Bool(true));
         if !panic_immediate_abort_enabled {
             println!(
                 "{}: {}",
