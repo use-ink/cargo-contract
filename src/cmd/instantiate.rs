@@ -40,11 +40,7 @@ pub(crate) fn execute_instantiate(
 mod tests {
     use std::{fs, io::Write};
 
-    use crate::{
-        cmd::deploy::execute_deploy,
-        util::tests::with_tmp_dir,
-        ExtrinsicOpts, HexData,
-    };
+    use crate::{cmd::deploy::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts, HexData};
     use assert_matches::assert_matches;
 
     const CONTRACT: &str = r#"
