@@ -36,7 +36,6 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
                 "abi-gen",
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
-                "--verbose",
             ],
             dir,
         )
