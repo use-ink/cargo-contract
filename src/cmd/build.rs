@@ -93,12 +93,6 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
-    let target = "wasm32-unknown-unknown";
-    let build_args = [
-        "--no-default-features",
-        "--release",
-        &format!("--target={}", target),
-    ];
     let manifest = CargoToml::from_working_dir(crate_metadata.working_dir.as_ref())?;
 
     // check `cargo-xbuild` config section exists and has `panic_immediate_abort` enabled
@@ -124,13 +118,18 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
 
     // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
     manifest.with_removed_crate_type("rlib", || {
+        let target = "wasm32-unknown-unknown";
+        let build_args = [
+            "--no-default-features",
+            "--release",
+            &format!("--target={}", target),
+            "--verbose",
+        ];
         let manifest_path = Some(manifest.manifest_path());
-        let exit_status = xargo_lib::build(
-            xargo_lib::Args::new(&build_args, Some(target), manifest_path),
-            "build",
-        )
-        .map_err(|e| anyhow::anyhow!("{}", e))
-        .context("Building with xbuild")?;
+        let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
+        let exit_status = xargo_lib::build(args, "build")
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Building with xbuild")?;
         log::debug!("xargo exit status: {:?}", exit_status);
         Ok(())
     })
