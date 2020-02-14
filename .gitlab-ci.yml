@@ -18,7 +18,6 @@ variables:
   CI_SERVER_NAME:                  "GitLab CI"
   REGISTRY:                        registry.parity.io/parity/infrastructure/scripts
   RUSTUP_TOOLCHAIN:                nightly
-  RUST_LIB_BACKTRACE:              0
 
 .collect-artifacts:                &collect-artifacts
   artifacts:

@@ -116,10 +116,12 @@ mod tests {
             let name = "test_contract_cargo_project_already_exists";
             let _ = execute_new(name, Some(path));
             let result = execute_new(name, Some(path));
+
+            assert!(result.is_err(), "Should fail");
             assert_eq!(
-                format!("{:?}", result),
-                r#"Err(A Cargo package already exists in test_contract_cargo_project_already_exists)"#
-            )
+                result.err().unwrap().to_string(),
+                "A Cargo package already exists in test_contract_cargo_project_already_exists"
+            );
         });
     }
 
@@ -131,10 +133,12 @@ mod tests {
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
             let result = execute_new(name, Some(path));
+
+            assert!(result.is_err(), "Should fail");
             assert_eq!(
-                format!("{:?}", result),
-                r#"Err(New contract file .gitignore already exists)"#
-            )
+                result.err().unwrap().to_string(),
+                "New contract file .gitignore already exists"
+            );
         });
     }
 }
