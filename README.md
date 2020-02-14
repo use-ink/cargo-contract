@@ -35,12 +35,12 @@ SUBCOMMANDS:
     help                 Prints this message or the help of the given subcommand(s)
 ```
 
-## `build` Requires the `nightly` toolchain
+## `build` requires the `nightly` toolchain
 
 `cargo contract build` must be run using the `nightly` toolchain. If you have 
 [`rustup`](https://github.com/rust-lang/rustup) installed, the simplest way to do so is `cargo +nightly contract build`.
 To avoid having to add `+nightly` you can also create a `rust-toolchain` file in your local directory containing 
-`nightly`.
+`nightly`. Read more about how to [specify the rustup toolchain](https://github.com/rust-lang/rustup#override-precedence).
 
 ## Contract build config
 
