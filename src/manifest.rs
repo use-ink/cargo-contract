@@ -17,7 +17,6 @@
 use anyhow::{Context, Result};
 use std::{
     fs,
-    marker::PhantomData,
     path::{Path, PathBuf},
 };
 use toml::value;
@@ -25,26 +24,19 @@ use tempfile::TempDir;
 
 const MANIFEST_FILE: &str = "Cargo.toml";
 
-/// Create an amended copy of `Cargo.toml` in a temporary directory.
+/// Create an amended copy of `Cargo.toml`.
 ///
 /// Relative paths are rewritten to absolute paths.
-pub struct TmpManifest<S = Preparing> {
+pub struct Manifest {
     path: PathBuf,
     toml: value::Table,
-    tmp_path: PathBuf,
-    marker: PhantomData<fn() -> S>,
 }
 
-/// The temp manifest has not been written and can be amended
-pub enum Preparing {}
-/// The temp manifest has already been written and can no longer be amended
-pub enum Committed {}
-
-impl TmpManifest {
+impl Manifest {
     /// Create new CargoToml for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
-    pub fn new(path: &PathBuf) -> Result<TmpManifest> {
+    pub fn new(path: &PathBuf) -> Result<Manifest> {
         if let Some(file_name) = path.file_name() {
             if file_name != MANIFEST_FILE {
                 anyhow::bail!("Manifest file must be a Cargo.toml")
@@ -54,22 +46,17 @@ impl TmpManifest {
         let toml = fs::read_to_string(&path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
-        let tmp_dir = TempDir::new()?;
-        let tmp_path = tmp_dir.path().join(MANIFEST_FILE);
-
-        Ok(TmpManifest { path: path.clone(), toml, tmp_path, marker: Default::default() })
+        Ok(Manifest { path: path.clone(), toml })
     }
 
     /// Create a new CargoToml from the given directory path.
     ///
     /// Passing `None` will assume the current directory so just `Cargo.toml`
-    pub fn from_working_dir(path: Option<&PathBuf>) -> Result<TmpManifest> {
-        let file_path = path.map_or(MANIFEST_FILE.into(), |d| d.join(MANIFEST_FILE));
+    pub fn from_working_dir<P: AsRef<Path>>(path: Option<P>) -> Result<Manifest> {
+        let file_path = path.map_or(MANIFEST_FILE.into(), |d| d.as_ref().join(MANIFEST_FILE));
         Self::new(&file_path)
     }
-}
 
-impl TmpManifest<Preparing> {
     /// Get mutable reference to `[lib] crate-types = []` section
     fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
         let lib = self.toml
@@ -106,7 +93,7 @@ impl TmpManifest<Preparing> {
         Ok(self)
     }
 
-    fn rewrite_relative_paths(&mut self) -> Result<()> {
+    pub fn rewrite_relative_paths(&mut self) -> Result<&mut Self> {
         let abs_path = self.path.canonicalize()?;
         let abs_dir = abs_path.parent()
             .expect("The manifest path is a file path so has a parent; qed");
@@ -164,30 +151,33 @@ impl TmpManifest<Preparing> {
             }
         }
 
-        Ok(())
+        Ok(self)
     }
 
-    /// Writes the amended manifest to the temporary directory.
-    ///
-    /// Before saving relative paths are rewritten to absolute paths.
-    pub fn write(&mut self) -> Result<TmpManifest<Committed>> {
-        self.rewrite_relative_paths()?;
+    /// Writes the amended manifest to the given directory.
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
+        let dir = path.as_ref();
+        if !dir.is_dir() {
+            anyhow::bail!("{} should be a directory", dir.display())
+        }
+        let manifest_path = dir.join(MANIFEST_FILE);
 
         let updated_toml = toml::to_string(&self.toml)?;
-        fs::write(&self.tmp_path, updated_toml)
-            .context(format!("Writing updated Cargo.toml to {}", self.tmp_path.display()))?;
-        Ok(TmpManifest {
-            path: self.path.clone(),
-            toml: self.toml.clone(),
-            tmp_path: self.tmp_path.clone(),
-            marker: Default::default()
-        })
+        fs::write(&manifest_path, updated_toml)
+            .context(format!("Writing updated Cargo.toml to {}", manifest_path.display()))?;
+        Ok(manifest_path)
     }
-}
 
-impl TmpManifest<Committed> {
-    /// The path to the temporary Cargo.toml
-    pub fn path(&self) -> &Path { self.tmp_path.as_path() }
+    /// Create the amended manifest in a temporary directory, executing the supplied function
+    /// before the temporary file is cleaned up.
+    pub fn using_temp<F>(&self, f: F) -> Result<()>
+    where
+        F: FnOnce(&Path) -> Result<()>,
+    {
+        let tmp_dir = TempDir::new()?;
+        let path = self.write(&tmp_dir)?;
+        f(path.as_path())
+    }
 }
 
 fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {

@@ -21,7 +21,7 @@ use std::{
     process::Command,
 };
 
-use crate::{tmp_manifest::TmpManifest, util};
+use crate::{manifest::Manifest, util};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
@@ -116,29 +116,35 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         )
     }
 
-    // remove the 'rlib' crate type in our temp manifest
-    let tmp_manifest = TmpManifest::from_working_dir(crate_metadata.working_dir.as_ref())?
+    let mut manifest = Manifest::from_working_dir(crate_metadata.working_dir.as_ref())?;
+
+    // remove the 'rlib' crate type in a temp manifest
+    manifest
         .with_removed_crate_type("rlib")?
-        .write()?;
+        .rewrite_relative_paths()?;
 
-    // build xbuild args
-    let abs_target_dir = crate_metadata.cargo_meta.target_directory.canonicalize()?;
-    let target = "wasm32-unknown-unknown";
-    let build_args = [
-        "--no-default-features",
-        "--release",
-        &format!("--target={}", target),
-        &format!("--target-dir={}", abs_target_dir.to_string_lossy()),
-        "--verbose",
-    ];
-    // point to our temporary manifest
-    let manifest_path = Some(tmp_manifest.path());
-    let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
+    manifest.using_temp(|tmp_manifest_path| {
+        // build xbuild args
+        let abs_target_dir = crate_metadata.cargo_meta.target_directory.canonicalize()?;
+        let target = "wasm32-unknown-unknown";
+        let build_args = [
+            "--no-default-features",
+            "--release",
+            &format!("--target={}", target),
+            &format!("--target-dir={}", abs_target_dir.to_string_lossy()),
+            "--verbose",
+        ];
+        // point to our temporary manifest
+        let manifest_path = Some(tmp_manifest_path);
+        let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
 
-    let exit_status = xargo_lib::build(args, "build")
-        .map_err(|e| anyhow::anyhow!("{}", e))
-        .context("Building with xbuild")?;
-    log::debug!("xargo exit status: {:?}", exit_status);
+        let exit_status = xargo_lib::build(args, "build")
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Building with xbuild")?;
+        log::debug!("xargo exit status: {:?}", exit_status);
+        Ok(())
+    })?;
+
     Ok(())
 }
 
