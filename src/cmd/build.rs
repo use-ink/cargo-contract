@@ -21,7 +21,7 @@ use std::{
     process::Command,
 };
 
-use crate::{manifest::CargoToml, util};
+use crate::{tmp_manifest::TmpManifest, util};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
@@ -35,7 +35,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 #[derive(Debug)]
 pub struct CrateMetadata {
     working_dir: Option<PathBuf>,
-    workspace_root: PathBuf,
+    cargo_meta: cargo_metadata::Metadata,
     package_name: String,
     root_package: Package,
     original_wasm: PathBuf,
@@ -48,7 +48,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 
     let root_package_id = metadata
         .resolve
-        .and_then(|resolve| resolve.root)
+        .as_ref()
+        .and_then(|resolve| resolve.root.as_ref())
         .context("Cannot infer the root project id")?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
@@ -56,8 +57,9 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     let root_package = metadata
         .packages
         .iter()
-        .find(|package| package.id == root_package_id)
-        .expect("The package is not found in the `cargo metadata` output");
+        .find(|package| package.id == *root_package_id)
+        .expect("The package is not found in the `cargo metadata` output")
+        .clone();
 
     // Normalize the package name.
     let package_name = root_package.name.replace("-", "_");
@@ -76,7 +78,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 
     let crate_metadata = CrateMetadata {
         working_dir: working_dir.cloned(),
-        workspace_root: metadata.workspace_root.clone(),
+        cargo_meta: metadata,
         root_package: root_package.clone(),
         package_name,
         original_wasm,
@@ -92,8 +94,6 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 /// the resulting Wasm binary.
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
-
-    let manifest = CargoToml::from_working_dir(crate_metadata.working_dir.as_ref())?;
 
     // check `cargo-xbuild` config section exists and has `panic_immediate_abort` enabled
     let xbuild_metadata = crate_metadata.root_package.metadata.get("cargo-xbuild");
@@ -116,23 +116,30 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         )
     }
 
-    // temporarily remove the 'rlib' crate-type to build wasm blob for optimal size
-    manifest.with_removed_crate_type("rlib", || {
-        let target = "wasm32-unknown-unknown";
-        let build_args = [
-            "--no-default-features",
-            "--release",
-            &format!("--target={}", target),
-            "--verbose",
-        ];
-        let manifest_path = Some(manifest.manifest_path());
-        let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
-        let exit_status = xargo_lib::build(args, "build")
-            .map_err(|e| anyhow::anyhow!("{}", e))
-            .context("Building with xbuild")?;
-        log::debug!("xargo exit status: {:?}", exit_status);
-        Ok(())
-    })
+    // remove the 'rlib' crate type in our temp manifest
+    let tmp_manifest = TmpManifest::from_working_dir(crate_metadata.working_dir.as_ref())?
+        .with_removed_crate_type("rlib")?
+        .write()?;
+
+    // build xbuild args
+    let abs_target_dir = crate_metadata.cargo_meta.target_directory.canonicalize()?;
+    let target = "wasm32-unknown-unknown";
+    let build_args = [
+        "--no-default-features",
+        "--release",
+        &format!("--target={}", target),
+        &format!("--target-dir={}", abs_target_dir.to_string_lossy()),
+        "--verbose",
+    ];
+    // point to our temporary manifest
+    let manifest_path = Some(tmp_manifest.path());
+    let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
+
+    let exit_status = xargo_lib::build(args, "build")
+        .map_err(|e| anyhow::anyhow!("{}", e))
+        .context("Building with xbuild")?;
+    log::debug!("xargo exit status: {:?}", exit_status);
+    Ok(())
 }
 
 /// Ensures the wasm memory import of a given module has the maximum number of pages.

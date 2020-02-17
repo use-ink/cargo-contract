@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{manifest::CargoToml, util};
+use crate::{tmp_manifest::TmpManifest, util};
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -26,20 +26,21 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     println!("  Generating metadata");
 
     let cargo_metadata = crate::util::get_cargo_metadata(dir)?;
-    let manifest = CargoToml::from_working_dir(dir)?;
+    // todo: use tmp manifest in invocation
+    let _tmp_manifest = TmpManifest::from_working_dir(dir)?
+        .with_added_crate_type("rlib")?
+        .write()?;
 
-    manifest.with_added_crate_type("rlib", || {
-        util::invoke_cargo(
-            "run",
-            &[
-                "--package",
-                "abi-gen",
-                "--release",
-                // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
-            ],
-            dir,
-        )
-    })?;
+    util::invoke_cargo(
+        "run",
+        &[
+            "--package",
+            "abi-gen",
+            "--release",
+            // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
+        ],
+        dir,
+    )?;
 
     let mut out_path = cargo_metadata.target_directory;
     out_path.push("metadata.json");
