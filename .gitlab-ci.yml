@@ -64,7 +64,7 @@ fmt:
   script:
     - cargo fmt --verbose --all -- --check
 
-#### stage:                        test
+#### stage:                        test (all features)
 
 test:
   stage:                           test
@@ -72,7 +72,7 @@ test:
   script:
     - cargo test --verbose --all-features --release
 
-#### stage:                        build
+#### stage:                        build (default features)
 
 build:
   stage:                           build
@@ -81,4 +81,4 @@ build:
     - schedules
     - master
   script:
-    - cargo build --verbose --all-features --release
+    - cargo build --verbose --release

@@ -18,7 +18,7 @@ mod cmd;
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::{path::PathBuf, result::Result as StdResult, str::FromStr};
+use std::path::PathBuf;
 
 use anyhow::Result;
 use structopt::{clap, StructOpt};
@@ -44,10 +44,10 @@ pub(crate) struct ContractArgs {
 pub(crate) struct HexData(pub Vec<u8>);
 
 #[cfg(feature = "extrinsics")]
-impl FromStr for HexData {
+impl std::str::FromStr for HexData {
     type Err = hex::FromHexError;
 
-    fn from_str(input: &str) -> StdResult<Self, Self::Err> {
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
         hex::decode(input).map(HexData)
     }
 }

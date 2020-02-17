@@ -14,28 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
+use anyhow::Result;
 use std::{
     io::{self, Write},
     path::PathBuf,
     process::Command,
 };
 
-use anyhow::Result;
-
 mod build;
 #[cfg(feature = "extrinsics")]
 mod deploy;
+#[cfg(feature = "extrinsics")]
+mod extrinsics;
 #[cfg(feature = "extrinsics")]
 mod instantiate;
 mod metadata;
 mod new;
 
-#[cfg(feature = "extrinsics")]
-pub(crate) use self::deploy::execute_deploy;
-#[cfg(feature = "extrinsics")]
-pub(crate) use self::instantiate::execute_instantiate;
 pub(crate) use self::{
     build::execute_build, metadata::execute_generate_metadata, new::execute_new,
+};
+#[cfg(feature = "extrinsics")]
+pub(crate) use self::{
+    deploy::execute_deploy, extrinsics::submit_extrinsic, instantiate::execute_instantiate,
 };
 
 fn exec_cargo(command: &str, args: &[&'static str], working_dir: Option<&PathBuf>) -> Result<()> {

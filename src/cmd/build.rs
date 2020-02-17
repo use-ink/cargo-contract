@@ -14,10 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
+use std::{
+    fs::metadata,
+    io::{self, Write},
+    path::PathBuf,
+    process::Command,
+};
 
 use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
+use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 
 /// This is the maximum number of pages available for a contract to allocate.
@@ -25,6 +31,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Relevant metadata obtained from Cargo.toml.
 pub struct CrateMetadata {
+    package_name: String,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
 }
@@ -62,10 +69,11 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 
     // {target_dir}/{package_name}.wasm
     let mut dest_wasm = metadata.target_directory.clone();
-    dest_wasm.push(package_name);
+    dest_wasm.push(package_name.clone());
     dest_wasm.set_extension("wasm");
 
     Ok(CrateMetadata {
+        package_name,
         original_wasm,
         dest_wasm,
     })
@@ -153,20 +161,87 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
+/// Attempts to perform optional wasm optimization using `wasm-opt`.
+///
+/// The intention is to reduce the size of bloated wasm binaries as a result of missing
+/// optimizations (or bugs?) between Rust and Wasm.
+///
+/// This step depends on the `wasm-opt` tool being installed. If it is not the build will still
+/// succeed, and the user will be encouraged to install it for further optimizations.
+fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
+    // check `wasm-opt` installed
+    if which::which("wasm-opt").is_err() {
+        println!(
+            "{}",
+            "wasm-opt is not installed. Install this tool on your system in order to \n\
+             reduce the size of your contract's Wasm binary. \n\
+             See https://github.com/WebAssembly/binaryen#tools"
+                .bright_yellow()
+        );
+        return Ok(());
+    }
+
+    let mut optimized = crate_metadata.dest_wasm.clone();
+    optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
+
+    let output = Command::new("wasm-opt")
+        .arg(crate_metadata.dest_wasm.as_os_str())
+        .arg("-O3") // execute -O3 optimization passes (spends potentially a lot of time optimizing)
+        .arg("-o")
+        .arg(optimized.as_os_str())
+        .output()?;
+
+    if !output.status.success() {
+        // Dump the output streams produced by wasm-opt into the stdout/stderr.
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        anyhow::bail!("wasm-opt optimization failed");
+    }
+
+    let original_size = metadata(&crate_metadata.dest_wasm)?.len() / 1000;
+    let optimized_size = metadata(&optimized)?.len() / 1000;
+    println!(
+        " Original wasm size: {}K, Optimized: {}K",
+        original_size, optimized_size
+    );
+
+    // overwrite existing destination wasm file with the optimised version
+    std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
+    Ok(())
+}
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
-    println!(" [1/3] Collecting crate metadata");
+    println!(
+        " {} {}",
+        "[1/4]".bold(),
+        "Collecting crate metadata".bright_green().bold()
+    );
     let crate_metadata = collect_crate_metadata(working_dir)?;
-    println!(" [2/3] Building cargo project");
+    println!(
+        " {} {}",
+        "[2/4]".bold(),
+        "Building cargo project".bright_green().bold()
+    );
     build_cargo_project(working_dir)?;
-    println!(" [3/3] Post processing wasm file");
+    println!(
+        " {} {}",
+        "[3/4]".bold(),
+        "Post processing wasm file".bright_green().bold()
+    );
     post_process_wasm(&crate_metadata)?;
+    println!(
+        " {} {}",
+        "[4/4]".bold(),
+        "Optimizing wasm file".bright_green().bold()
+    );
+    optimize_wasm(&crate_metadata)?;
 
     Ok(format!(
-        "Your contract is ready.\nYou can find it here:\n{}",
-        crate_metadata.dest_wasm.display()
+        "\nYour contract is ready. You can find it here:\n{}",
+        crate_metadata.dest_wasm.display().to_string().bold()
     ))
 }
 
