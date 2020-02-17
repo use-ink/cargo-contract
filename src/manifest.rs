@@ -176,6 +176,7 @@ impl Manifest {
     {
         let tmp_dir = TempDir::new()?;
         let path = self.write(&tmp_dir)?;
+        log::debug!("Using temp manifest '{}'", path.display());
         f(path.as_path())
     }
 }

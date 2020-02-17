@@ -17,7 +17,7 @@
 use std::{
     fs::metadata,
     io::{self, Write},
-    path::PathBuf,
+    path::{PathBuf, Path},
     process::Command,
 };
 
@@ -40,6 +40,12 @@ pub struct CrateMetadata {
     root_package: Package,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
+}
+
+impl CrateMetadata {
+    pub fn target_dir(&self) -> &Path {
+        self.cargo_meta.target_directory.as_path()
+    }
 }
 
 /// Parses the contract manifest and returns relevant metadata.
@@ -84,7 +90,6 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
         original_wasm,
         dest_wasm,
     };
-    log::debug!("{:#?}", crate_metadata);
     Ok(crate_metadata)
 }
 
@@ -125,13 +130,12 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
 
     manifest.using_temp(|tmp_manifest_path| {
         // build xbuild args
-        let abs_target_dir = crate_metadata.cargo_meta.target_directory.canonicalize()?;
         let target = "wasm32-unknown-unknown";
         let build_args = [
             "--no-default-features",
             "--release",
             &format!("--target={}", target),
-            &format!("--target-dir={}", abs_target_dir.to_string_lossy()),
+            &format!("--target-dir={}", crate_metadata.target_dir().to_string_lossy()),
             "--verbose",
         ];
         // point to our temporary manifest
