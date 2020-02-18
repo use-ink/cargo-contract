@@ -99,9 +99,7 @@ impl Manifest {
     /// # Rewrites
     ///
     /// - `[lib]/path`
-    /// - `[lib]/dependencies`
-    /// - `[workspace]/members`
-    /// - `[workspace]/exclude`
+    /// - `[dependencies]`
     fn rewrite_relative_paths(&mut self) -> Result<&mut Self> {
         let abs_path = self.path.canonicalize()?;
         let abs_dir = abs_path.parent()
@@ -144,7 +142,7 @@ impl Manifest {
         }
 
         // Rewrite any dependency relative paths
-        if let Some(dependencies) = lib.get_mut("dependencies") {
+        if let Some(dependencies) = self.toml.get_mut("dependencies") {
             let table = dependencies.as_table_mut()
                 .ok_or(anyhow::anyhow!("dependencies should be a table"))?;
             for (name, value) in table {
