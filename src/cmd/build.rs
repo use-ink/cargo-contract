@@ -129,20 +129,27 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         .rewrite_relative_paths()?;
 
     manifest.using_temp(|tmp_manifest_path| {
-        // build xbuild args
-        let target = "wasm32-unknown-unknown";
-        let build_args = [
-            "--no-default-features",
-            "--release",
-            &format!("--target={}", target),
-            &format!("--target-dir={}", crate_metadata.target_dir().to_string_lossy()),
-            "--verbose",
-        ];
         // point to our temporary manifest
         let manifest_path = Some(tmp_manifest_path);
-        let args = xargo_lib::Args::new(&build_args, Some(target), manifest_path);
+        let target = Some("wasm32-unknown-unknown");
+        let verbosity = Some(xargo_lib::Verbosity::Verbose);
+        let target_dir = crate_metadata.target_dir();
+        let other_args = [
+            "--no-default-features",
+            "--release",
+            &format!("--target-dir={}", target_dir.to_string_lossy()),
+        ];
+        let args = xargo_lib::Args::new(target, manifest_path, verbosity, &other_args)
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Creating xargo args")?;
 
-        let exit_status = xargo_lib::build(args, "build")
+        let config = xargo_lib::Config {
+            sysroot_path: target_dir.join("sysroot"),
+            memcpy: false,
+            panic_immediate_abort: true,
+        };
+
+        let exit_status = xargo_lib::build(args, "build", Some(config))
             .map_err(|e| anyhow::anyhow!("{}", e))
             .context("Building with xbuild")?;
         log::debug!("xargo exit status: {:?}", exit_status);
