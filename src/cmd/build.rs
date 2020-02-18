@@ -26,7 +26,6 @@ use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
-use serde_json::Value;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -100,14 +99,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
-    let mut manifest = Manifest::from_working_dir(crate_metadata.working_dir.as_ref())?;
-
-    // remove the 'rlib' crate type in a temp manifest
-    manifest
-        .with_removed_crate_type("rlib")?
-        .rewrite_relative_paths()?;
-
-    manifest.using_temp(|tmp_manifest_path| {
+    let xbuild = |tmp_manifest_path: &Path| {
         // point to our temporary manifest
         let manifest_path = Some(tmp_manifest_path);
         let target = Some("wasm32-unknown-unknown");
@@ -133,7 +125,12 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
             .context("Building with xbuild")?;
         log::debug!("xargo exit status: {:?}", exit_status);
         Ok(())
-    })?;
+    };
+
+    // remove the 'rlib' crate type in a temp manifest
+    Manifest::from_working_dir(crate_metadata.working_dir.as_ref())?
+        .with_removed_crate_type("rlib")?
+        .using_temp(xbuild)?;
 
     Ok(())
 }

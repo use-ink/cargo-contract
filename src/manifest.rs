@@ -92,7 +92,17 @@ impl Manifest {
         Ok(self)
     }
 
-    pub fn rewrite_relative_paths(&mut self) -> Result<&mut Self> {
+    /// Replace relative paths with absolute paths with the working directory.
+    ///
+    /// Enables the use of a temporary amended copy of the manifest.
+    ///
+    /// # Rewrites
+    ///
+    /// - `[lib]/path`
+    /// - `[lib]/dependencies`
+    /// - `[workspace]/members`
+    /// - `[workspace]/exclude`
+    fn rewrite_relative_paths(&mut self) -> Result<&mut Self> {
         let abs_path = self.path.canonicalize()?;
         let abs_dir = abs_path.parent()
             .expect("The manifest path is a file path so has a parent; qed");
@@ -103,17 +113,20 @@ impl Manifest {
             .get_mut("lib")
             .ok_or(anyhow::anyhow!("lib section not found"))?;
 
-        match lib.get_mut("path") {
-            Some(existing_path) => {
-                let path_str = existing_path.as_str()
-                    .ok_or(anyhow::anyhow!("[lib]/path should be a string"))?;
-                let path = PathBuf::from(path_str);
-                if path.is_relative() {
-                    let lib_abs = abs_dir.join(path);
-                    log::debug!("Rewriting lib/path to '{}'", lib_abs.display());
-                    *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
-                }
+        let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
+            let path_str = existing_path.as_str()
+                .ok_or(anyhow::anyhow!("{} should be a string", value_id))?;
+            let path = PathBuf::from(path_str);
+            if path.is_relative() {
+                let lib_abs = abs_dir.join(path);
+                log::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
+                *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
             }
+            Ok(())
+        };
+
+        match lib.get_mut("path") {
+            Some(existing_path) => to_absolute("lib/path".into(), existing_path)?,
             None => {
                 let lib_table = lib
                     .as_table_mut()
@@ -137,14 +150,7 @@ impl Manifest {
             for (name, value) in table {
                 if let Some(dependency) = value.as_table_mut() {
                     if let Some(dep_path) = dependency.get_mut("path") {
-                        let path_str = dep_path.as_str()
-                            .ok_or(anyhow::anyhow!("dependency path should be a string"))?;
-                        let path = PathBuf::from(path_str);
-                        if path.is_relative() {
-                            let dep_abs = abs_dir.join(path);
-                            log::debug!("Rewriting dependency {} to '{}'", name, dep_abs.display());
-                            *dep_path = value::Value::String(dep_abs.to_string_lossy().into())
-                        }
+                        to_absolute(format!("dependency {}", name), dep_path)?;
                     }
                 }
             }
@@ -169,13 +175,16 @@ impl Manifest {
 
     /// Create the amended manifest in a temporary directory, executing the supplied function
     /// before the temporary file is cleaned up.
-    pub fn using_temp<F>(&self, f: F) -> Result<()>
+    pub fn using_temp<F>(&mut self, f: F) -> Result<()>
     where
         F: FnOnce(&Path) -> Result<()>,
     {
+        self.rewrite_relative_paths()?;
+
         let tmp_dir = tempfile::Builder::new().prefix(".cargo-contract_").tempdir()?;
         let path = self.write(&tmp_dir)?;
         log::debug!("Using temp manifest '{}'", path.display());
+
         f(path.as_path())
     }
 }

@@ -29,7 +29,6 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 
     Manifest::from_working_dir(dir)?
         .with_added_crate_type("rlib")?
-        .rewrite_relative_paths()?
         .using_temp(|tmp_manifest_path| {
             // todo: use tmp manifest in invocation
             util::invoke_cargo(
