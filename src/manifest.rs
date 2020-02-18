@@ -20,7 +20,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use toml::value;
-use tempfile::TempDir;
 
 const MANIFEST_FILE: &str = "Cargo.toml";
 
@@ -174,7 +173,7 @@ impl Manifest {
     where
         F: FnOnce(&Path) -> Result<()>,
     {
-        let tmp_dir = TempDir::new()?;
+        let tmp_dir = tempfile::Builder::new().prefix(".cargo-contract_").tempdir()?;
         let path = self.write(&tmp_dir)?;
         log::debug!("Using temp manifest '{}'", path.display());
         f(path.as_path())
