@@ -42,19 +42,6 @@ SUBCOMMANDS:
 To avoid having to add `+nightly` you can also create a `rust-toolchain` file in your local directory containing 
 `nightly`. Read more about how to [specify the rustup toolchain](https://github.com/rust-lang/rustup#override-precedence).
 
-## Contract build config
-
-Building the contract uses `cargo-xbuild` under the hood for optimum Wasm binary size. This requires the following
-configuration section to be added to your contract's `Cargo.toml`:
-
-```
-[package.metadata.cargo-xbuild]
-panic_immediate_abort = true
-```
-
-This will perform a custom build of Rust's `libcore` [without panic strings and formatting code](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort), which significantly 
-reduces the final binary size.
-
 ## Features
 
 The `deploy` and `instantiate` subcommands are **disabled by default**, since they are not fully stable yet and increase the build time.

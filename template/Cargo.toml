@@ -59,9 +59,3 @@ members = [
 exclude = [
 	".ink"
 ]
-
-# Configuration for `cargo-xbuild`, used by [`cargo-contract`](https://github.com/paritytech/cargo-contract)
-[package.metadata.cargo-xbuild]
-# Prevents panic strings and formatting code from `core` being included in final binary
-# See https://github.com/paritytech/cargo-contract#contract-build-config
-panic_immediate_abort = true

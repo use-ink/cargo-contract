@@ -100,27 +100,6 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
-    // check `cargo-xbuild` config section exists and has `panic_immediate_abort` enabled
-    let xbuild_metadata = crate_metadata.root_package.metadata.get("cargo-xbuild");
-    if let Some(xbuild_metadata) = xbuild_metadata {
-        let panic_immediate_abort_enabled = xbuild_metadata
-            .get("panic_immediate_abort")
-            .map_or(false, |v| *v == Value::Bool(true));
-        if !panic_immediate_abort_enabled {
-            anyhow::bail!(
-                "For optimal binary size please set `panic_immediate_abort = true` in the \
-                `[package.metadata.cargo-xbuild]` section of `Cargo.toml`. \
-                See https://github.com/paritytech/cargo-contract#contract-build-config"
-            )
-        }
-    } else {
-        anyhow::bail!(
-            "For optimal binary size please add a `[package.metadata.cargo-xbuild]` section to \
-            `Cargo.toml` with `panic_immediate_abort = true` \
-            See https://github.com/paritytech/cargo-contract#contract-build-config"
-        )
-    }
-
     let mut manifest = Manifest::from_working_dir(crate_metadata.working_dir.as_ref())?;
 
     // remove the 'rlib' crate type in a temp manifest
