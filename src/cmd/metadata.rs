@@ -27,7 +27,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 
     let cargo_metadata = crate::util::get_cargo_metadata(dir)?;
 
-    Manifest::from_working_dir(dir)?
+    Manifest::from_dir(dir)?
         .with_added_crate_type("rlib")?
         .using_temp(|tmp_manifest_path| {
             // todo: use tmp manifest in invocation

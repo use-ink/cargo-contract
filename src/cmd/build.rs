@@ -128,7 +128,7 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     };
 
     // remove the 'rlib' crate type in a temp manifest
-    Manifest::from_working_dir(crate_metadata.working_dir.as_ref())?
+    Manifest::from_dir(crate_metadata.working_dir.as_ref())?
         .with_removed_crate_type("rlib")?
         .using_temp(xbuild)?;
 

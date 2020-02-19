@@ -15,7 +15,12 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
+use cargo_metadata::{
+    Metadata as CargoMetadata,
+    PackageId,
+};
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
@@ -48,12 +53,19 @@ impl Manifest {
         Ok(Manifest { path: path.clone(), toml })
     }
 
-    /// Create a new CargoToml from the given directory path.
+    /// Create a new Manifest from the given directory path.
     ///
     /// Passing `None` will assume the current directory so just `Cargo.toml`
-    pub fn from_working_dir<P: AsRef<Path>>(path: Option<P>) -> Result<Manifest> {
-        let file_path = path.map_or(MANIFEST_FILE.into(), |d| d.as_ref().join(MANIFEST_FILE));
-        Self::new(&file_path)
+    pub fn from_dir<P: AsRef<Path>>(path: Option<P>) -> Result<Manifest> {
+        if let Some(path) = path {
+            let path = path.as_ref();
+            if !path.is_dir() {
+                anyhow::bail!("{} is not a directory", path.display())
+            }
+            Self::new(&path.join(MANIFEST_FILE))
+        } else {
+            Self::new(&PathBuf::from(MANIFEST_FILE))
+        }
     }
 
     /// Get mutable reference to `[lib] crate-types = []` section
@@ -191,4 +203,39 @@ fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+}
+
+struct Workspace {
+    root: Manifest,
+    members: HashMap<PathBuf, Manifest>,
+}
+
+impl Workspace {
+    pub fn new(metadata: CargoMetadata) -> Result<Self> {
+        let member_manifest = |package_id: &PackageId| -> Result<(PathBuf, Manifest)> {
+            // package id e.g. "abi-gen 0.1.0 (path+file:///home/code/test/.ink/abi_gen)"
+            let open_bracket = package_id.repr.find('(')
+                .ok_or(anyhow::anyhow!("Package id should contain opening bracket for url"))?;
+            let close_bracket = package_id.repr.find(')')
+                .ok_or(anyhow::anyhow!("Package id should contain closing bracket for url"))?;
+            let raw_url = &package_id.repr[open_bracket..close_bracket];
+            let url = url::Url::parse(raw_url)?;
+            if url.scheme() != "path+file" {
+                anyhow::bail!("Workspace member package should be a file path")
+            }
+            let path = PathBuf::from(url.path());
+            let manifest = Manifest::from_dir(Some(&path))?;
+            Ok((path, manifest))
+        };
+
+        let root = Manifest::from_dir(Some(metadata.workspace_root))?;
+        let members = metadata.workspace_members
+            .iter()
+            .map(member_manifest)
+            .collect::<Result<HashMap<_,_>>>()?;
+
+        Ok(Workspace { root, members })
+    }
+
+//    pub fn cop
 }
