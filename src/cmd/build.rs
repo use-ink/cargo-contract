@@ -17,7 +17,7 @@
 use std::{
     fs::metadata,
     io::{self, Write},
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -49,7 +49,7 @@ impl CrateMetadata {
 
 /// Parses the contract manifest and returns relevant metadata.
 pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let (metadata,root_package_id) = crate::util::get_cargo_metadata(working_dir)?;
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(working_dir)?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
     // package is not found in the list.
@@ -120,7 +120,8 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         Ok(())
     };
 
-    let mut workspace = Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?;
+    let mut workspace =
+        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?;
     workspace
         .root_package_manifest_mut()
         .with_removed_crate_type("rlib")?;

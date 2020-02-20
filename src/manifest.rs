@@ -15,12 +15,9 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, PackageId, Package};
+use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
 use std::{
-    collections::{
-        HashMap,
-        HashSet,
-    },
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -50,12 +47,16 @@ impl Manifest {
         let toml = fs::read_to_string(&path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
-        Ok(Manifest { path: path.clone(), toml })
+        Ok(Manifest {
+            path: path.clone(),
+            toml,
+        })
     }
 
     /// Get mutable reference to `[lib] crate-types = []` section
     fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
-        let lib = self.toml
+        let lib = self
+            .toml
             .get_mut("lib")
             .ok_or(anyhow::anyhow!("lib section not found"))?;
         let crate_types = lib
@@ -105,17 +106,20 @@ impl Manifest {
         S: AsRef<str>,
     {
         let abs_path = self.path.canonicalize()?;
-        let abs_dir = abs_path.parent()
+        let abs_dir = abs_path
+            .parent()
             .expect("The manifest path is a file path so has a parent; qed");
 
         // Rewrite `[lib] path =` value to an absolute path.
         // Defaults to src/lib.rs if not specified
-        let lib = self.toml
+        let lib = self
+            .toml
             .get_mut("lib")
             .ok_or(anyhow::anyhow!("lib section not found"))?;
 
         let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
-            let path_str = existing_path.as_str()
+            let path_str = existing_path
+                .as_str()
                 .ok_or(anyhow::anyhow!("{} should be a string", value_id))?;
             let path = PathBuf::from(path_str);
             if path.is_relative() {
@@ -150,7 +154,8 @@ impl Manifest {
                 .into_iter()
                 .map(|s| s.as_ref().to_string())
                 .collect::<HashSet<_>>();
-            let table = dependencies.as_table_mut()
+            let table = dependencies
+                .as_table_mut()
                 .ok_or(anyhow::anyhow!("dependencies should be a table"))?;
             for (name, value) in table {
                 if !exclude.contains(name) {
@@ -175,8 +180,10 @@ impl Manifest {
         let manifest_path = dir.join(MANIFEST_FILE);
 
         let updated_toml = toml::to_string(&self.toml)?;
-        fs::write(&manifest_path, updated_toml)
-            .context(format!("Writing updated Cargo.toml to {}", manifest_path.display()))?;
+        fs::write(&manifest_path, updated_toml).context(format!(
+            "Writing updated Cargo.toml to {}",
+            manifest_path.display()
+        ))?;
         Ok(manifest_path)
     }
 }
@@ -197,18 +204,23 @@ impl Workspace {
     /// Create a new Workspace from the supplied cargo metadata.
     pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
         let member_manifest = |package_id: &PackageId| -> Result<(PackageId, (Package, Manifest))> {
-            let package = metadata.packages
+            let package = metadata
+                .packages
                 .iter()
                 .find(|p| p.id == *package_id)
-                .expect(&format!("Package '{}' is a member and should be in the packages list", package_id));
+                .expect(&format!(
+                    "Package '{}' is a member and should be in the packages list",
+                    package_id
+                ));
             let manifest = Manifest::new(&package.manifest_path)?;
             Ok((package_id.clone(), (package.clone(), manifest)))
         };
 
-        let members = metadata.workspace_members
+        let members = metadata
+            .workspace_members
             .iter()
             .map(member_manifest)
-            .collect::<Result<HashMap<_,_>>>()?;
+            .collect::<Result<HashMap<_, _>>>()?;
 
         if !members.contains_key(root_package) {
             anyhow::bail!("The root package should be a workspace member")
@@ -217,7 +229,7 @@ impl Workspace {
         Ok(Workspace {
             workspace_root: metadata.workspace_root.clone(),
             root_package: root_package.clone(),
-            members
+            members,
         })
     }
 
@@ -230,7 +242,7 @@ impl Workspace {
     pub fn root_package_manifest_mut(&mut self) -> &mut Manifest {
         self.members
             .get_mut(&self.root_package)
-            .map(|(_,m)| m)
+            .map(|(_, m)| m)
             .expect("The root package should be a workspace member")
     }
 
@@ -242,9 +254,10 @@ impl Workspace {
     ///
     /// Returns the paths of the new manifests.
     pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<Vec<(PackageId, PathBuf)>> {
-        let exclude_member_package_names = self.members
+        let exclude_member_package_names = self
+            .members
             .iter()
-            .map(|(_, (p,_))| p.name.clone())
+            .map(|(_, (p, _))| p.name.clone())
             .collect::<Vec<_>>();
         let mut new_manifest_paths = Vec::new();
         for (package_id, (package, manifest)) in self.members.iter_mut() {
@@ -263,15 +276,17 @@ impl Workspace {
     /// Copy the workspace with amended manifest files to a temporary directory, executing the
     /// supplied function with the root manifest path before the directory is cleaned up.
     pub fn using_temp<F>(&mut self, f: F) -> Result<()>
-        where
-            F: FnOnce(&Path) -> Result<()>,
+    where
+        F: FnOnce(&Path) -> Result<()>,
     {
-        let tmp_dir = tempfile::Builder::new().prefix(".cargo-contract_").tempdir()?;
+        let tmp_dir = tempfile::Builder::new()
+            .prefix(".cargo-contract_")
+            .tempdir()?;
         log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
         let new_paths = self.write(&tmp_dir)?;
         let root_manifest_path = new_paths
             .iter()
-            .find_map(|(pid,path)| {
+            .find_map(|(pid, path)| {
                 if *pid == self.root_package {
                     Some(path)
                 } else {

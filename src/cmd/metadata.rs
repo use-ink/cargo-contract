@@ -25,7 +25,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     util::assert_channel()?;
     println!("  Generating metadata");
 
-    let (metadata,root_package_id) = crate::util::get_cargo_metadata(dir)?;
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(dir)?;
 
     let mut workspace = Workspace::new(&metadata, &root_package_id)?;
     workspace
