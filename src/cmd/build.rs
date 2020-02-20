@@ -21,7 +21,7 @@ use std::{
     process::Command,
 };
 
-use crate::{manifest::Manifest, util};
+use crate::{manifest::Workspace, util};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
@@ -49,20 +49,14 @@ impl CrateMetadata {
 
 /// Parses the contract manifest and returns relevant metadata.
 pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let metadata = crate::util::get_cargo_metadata(working_dir)?;
-
-    let root_package_id = metadata
-        .resolve
-        .as_ref()
-        .and_then(|resolve| resolve.root.as_ref())
-        .context("Cannot infer the root project id")?;
+    let (metadata,root_package_id) = crate::util::get_cargo_metadata(working_dir)?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
     // package is not found in the list.
     let root_package = metadata
         .packages
         .iter()
-        .find(|package| package.id == *root_package_id)
+        .find(|package| package.id == root_package_id)
         .expect("The package is not found in the `cargo metadata` output")
         .clone();
 
@@ -99,9 +93,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
-    let xbuild = |tmp_manifest_path: &Path| {
-        // point to our temporary manifest
-        let manifest_path = Some(tmp_manifest_path);
+    let xbuild = |manifest_path: &Path| {
+        let manifest_path = Some(manifest_path);
         let target = Some("wasm32-unknown-unknown");
         let verbosity = Some(xargo_lib::Verbosity::Verbose);
         let target_dir = crate_metadata.target_dir();
@@ -127,10 +120,11 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         Ok(())
     };
 
-    // remove the 'rlib' crate type in a temp manifest
-    Manifest::from_dir(crate_metadata.working_dir.as_ref())?
-        .with_removed_crate_type("rlib")?
-        .using_temp(xbuild)?;
+    let mut workspace = Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?;
+    workspace
+        .root_package_manifest_mut()
+        .with_removed_crate_type("rlib")?;
+    workspace.using_temp(xbuild)?;
 
     Ok(())
 }

@@ -15,17 +15,24 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand};
+use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
 use std::{ffi::OsStr, path::PathBuf, process::Command};
 
-/// Get the result of `cargo metadata`
-pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<CargoMetadata> {
+/// Get the result of `cargo metadata`, together with the root package id.
+pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<(CargoMetadata, PackageId)> {
     let mut cmd = MetadataCommand::new();
     if let Some(dir) = working_dir {
         cmd.current_dir(dir);
     }
-    cmd.exec().context("Error invoking `cargo metadata`")
+    let metadata = cmd.exec().context("Error invoking `cargo metadata`")?;
+    let root_package_id = metadata
+        .resolve
+        .as_ref()
+        .and_then(|resolve| resolve.root.as_ref())
+        .context("Cannot infer the root project id")?
+        .clone();
+    Ok((metadata, root_package_id))
 }
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.

@@ -20,7 +20,10 @@ use cargo_metadata::{
     PackageId,
 };
 use std::{
-    collections::HashMap,
+    collections::{
+        HashMap,
+        HashSet,
+    },
     fs,
     path::{Path, PathBuf},
 };
@@ -112,7 +115,13 @@ impl Manifest {
     ///
     /// - `[lib]/path`
     /// - `[dependencies]`
-    fn rewrite_relative_paths(&mut self) -> Result<&mut Self> {
+    ///
+    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
+    fn rewrite_relative_paths<I, S>(&mut self, exclude_deps: I) -> Result<&mut Self>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         let abs_path = self.path.canonicalize()?;
         let abs_dir = abs_path.parent()
             .expect("The manifest path is a file path so has a parent; qed");
@@ -155,12 +164,18 @@ impl Manifest {
 
         // Rewrite any dependency relative paths
         if let Some(dependencies) = self.toml.get_mut("dependencies") {
+            let exclude = exclude_deps
+                .into_iter()
+                .map(|s| s.as_ref().to_string())
+                .collect::<HashSet<_>>();
             let table = dependencies.as_table_mut()
                 .ok_or(anyhow::anyhow!("dependencies should be a table"))?;
             for (name, value) in table {
-                if let Some(dependency) = value.as_table_mut() {
-                    if let Some(dep_path) = dependency.get_mut("path") {
-                        to_absolute(format!("dependency {}", name), dep_path)?;
+                if !exclude.contains(name) {
+                    if let Some(dependency) = value.as_table_mut() {
+                        if let Some(dep_path) = dependency.get_mut("path") {
+                            to_absolute(format!("dependency {}", name), dep_path)?;
+                        }
                     }
                 }
             }
@@ -182,21 +197,6 @@ impl Manifest {
             .context(format!("Writing updated Cargo.toml to {}", manifest_path.display()))?;
         Ok(manifest_path)
     }
-
-    /// Create the amended manifest in a temporary directory, executing the supplied function
-    /// before the temporary file is cleaned up.
-    pub fn using_temp<F>(&mut self, f: F) -> Result<()>
-    where
-        F: FnOnce(&Path) -> Result<()>,
-    {
-        self.rewrite_relative_paths()?;
-
-        let tmp_dir = tempfile::Builder::new().prefix(".cargo-contract_").tempdir()?;
-        let path = self.write(&tmp_dir)?;
-        log::debug!("Using temp manifest '{}'", path.display());
-
-        f(path.as_path())
-    }
 }
 
 fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
@@ -205,15 +205,22 @@ fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
 }
 
-struct Workspace {
-    root: Manifest,
-    members: HashMap<PathBuf, Manifest>,
+pub struct Workspace {
+    workspace_root: PathBuf,
+    root_package: PackageId,
+    members: HashMap<PackageId, (PathBuf, Manifest)>,
+}
+
+pub struct Member {
+    package_id: PackageId,
+    package_name
 }
 
 impl Workspace {
-    pub fn new(metadata: CargoMetadata) -> Result<Self> {
-        let member_manifest = |package_id: &PackageId| -> Result<(PathBuf, Manifest)> {
-            // package id e.g. "abi-gen 0.1.0 (path+file:///home/code/test/.ink/abi_gen)"
+    /// Create a new Workspace from the supplied cargo metadata.
+    pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
+        let member_manifest = |package_id: &PackageId| -> Result<(PackageId, (PathBuf, Manifest))> {
+            // package id e.g. "foo 0.1.0 (path+file:///path/to/foo)"
             let open_bracket = package_id.repr.find('(')
                 .ok_or(anyhow::anyhow!("Package id should contain opening bracket for url"))?;
             let close_bracket = package_id.repr.find(')')
@@ -225,17 +232,92 @@ impl Workspace {
             }
             let path = PathBuf::from(url.path());
             let manifest = Manifest::from_dir(Some(&path))?;
-            Ok((path, manifest))
+            Ok((package_id.clone(), (path, manifest)))
         };
 
-        let root = Manifest::from_dir(Some(metadata.workspace_root))?;
         let members = metadata.workspace_members
             .iter()
             .map(member_manifest)
             .collect::<Result<HashMap<_,_>>>()?;
 
-        Ok(Workspace { root, members })
+        if !members.contains_key(root_package) {
+            anyhow::bail!("The root package should be a workspace member")
+        }
+
+        Ok(Workspace {
+            workspace_root: metadata.workspace_root.clone(),
+            root_package: root_package.clone(),
+            members
+        })
     }
 
+    /// Get a mutable reference to the root package's manifest.
+    ///
+    /// # Note
+    ///
+    /// The root package is the current workspace package being built, not to be confused with
+    /// the workspace root (where the top level workspace Cargo.toml is defined).
+    pub fn root_package_manifest_mut(&mut self) -> &mut Manifest {
+        self.members
+            .get_mut(&self.root_package)
+            .map(|(_,m)| m)
+            .expect("The root package should be a workspace member")
+    }
+
+    pub fn root_package_manifest(&self) -> &Manifest {
+        self.members
+            .get(&self.root_package)
+            .map(|(_,m)| m)
+            .expect("The root package should be a workspace member")
+    }
+
+    /// Get a mutable reference to the manifest at the given path
+    // pub fn get_manifest_mut(&self, package_id: &PackageId) -> Option<&mut Manifest> {
+    //     // self.members.
+    //     None
+    // }
+
+    /// Writes the amended manifests to the `target` directory, retaining the workspace directory
+    /// structure, but only with the `Cargo.toml` files.
+    ///
+    /// Relative paths will be rewritten to absolute paths from the original workspace root, except
+    /// intra-workspace relative dependency paths which will be preserved.
+    ///
+    /// Returns the paths of the new manifests.
+    pub fn write<P: AsRef<Path>>(&self, target: P) -> Result<Vec<(PackageId, PathBuf)>> {
+        let mut new_manifest_paths = Vec::new();
+        for (package_id, (path, mut manifest)) in self.members {
+            let new_path = path.strip_prefix(&self.workspace_root)?;
+            manifest.rewrite_relative_paths()?;
+            manifest.write(&new_path)?;
+            new_manifest_paths.push((package_id, new_path.into()));
+        }
+        Ok(new_manifest_paths)
+    }
+
+    // in the end we want to replace the workspace root with our temp dir
+    // so strip out workspace root and replace it with specified root
 //    pub fn cop
+
+    /// Copy the workspace with amended manifest files to a temporary directory, executing the
+    /// supplied function with the root manifest path before the directory is cleaned up.
+    pub fn using_temp<F>(&mut self, f: F) -> Result<()>
+        where
+            F: FnOnce(&Path) -> Result<()>,
+    {
+        let tmp_dir = tempfile::Builder::new().prefix(".cargo-contract_").tempdir()?;
+        log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
+        let new_paths = self.write(&tmp_dir)?;
+        let root_manifest_path = new_paths
+            .iter()
+            .find_map(|(pid,path)| {
+                if *pid == self.root_package {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .expect("root package should be a member of the temp workspace");
+        f(root_manifest_path)
+    }
 }

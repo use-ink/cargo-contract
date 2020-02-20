@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{manifest::Manifest, util};
+use crate::{manifest::Workspace, util};
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -25,25 +25,27 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
     util::assert_channel()?;
     println!("  Generating metadata");
 
-    let cargo_metadata = crate::util::get_cargo_metadata(dir)?;
+    let (metadata,root_package_id) = crate::util::get_cargo_metadata(dir)?;
 
-    Manifest::from_dir(dir)?
-        .with_added_crate_type("rlib")?
-        .using_temp(|tmp_manifest_path| {
-            // todo: use tmp manifest in invocation
-            util::invoke_cargo(
-                "run",
-                &[
-                    "--package",
-                    "abi-gen",
-                    "--release",
-                    // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
-                ],
-                dir,
-            )
-        })?;
+    let mut workspace = Workspace::new(&metadata, &root_package_id)?;
+    workspace
+        .root_package_manifest_mut()
+        .with_added_crate_type("rlib")?;
+    workspace.using_temp(|root_manifest_path| {
+        // todo: use tmp manifest in invocation
+        util::invoke_cargo(
+            "run",
+            &[
+                "--package",
+                "abi-gen",
+                "--release",
+                // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
+            ],
+            dir,
+        )
+    })?;
 
-    let mut out_path = cargo_metadata.target_directory;
+    let mut out_path = metadata.target_directory;
     out_path.push("metadata.json");
 
     Ok(format!(
