@@ -125,12 +125,15 @@ impl Manifest {
         };
 
         let rewrite_path = |table_value: &mut value::Value, table_section: &str, default: &str| {
-            let table = table_value
-                .as_table_mut()
-                .ok_or(anyhow::anyhow!("'[{}]' section should be a table", table_section))?;
+            let table = table_value.as_table_mut().ok_or(anyhow::anyhow!(
+                "'[{}]' section should be a table",
+                table_section
+            ))?;
 
             match table.get_mut("path") {
-                Some(existing_path) => to_absolute(format!("[{}]/path", table_section), existing_path),
+                Some(existing_path) => {
+                    to_absolute(format!("[{}]/path", table_section), existing_path)
+                }
                 None => {
                     let default_path = PathBuf::from(default);
                     if !default_path.exists() {
@@ -176,9 +179,7 @@ impl Manifest {
             for (name, value) in table {
                 let package_name = {
                     let package = value.get("package");
-                    let package_name = package
-                        .and_then(|p| p.as_str())
-                        .unwrap_or(name);
+                    let package_name = package.and_then(|p| p.as_str()).unwrap_or(name);
                     package_name.to_string()
                 };
 
@@ -203,14 +204,14 @@ impl Manifest {
     pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
         let manifest_path = path.as_ref();
         if manifest_path.file_name() != Some(OsStr::new(MANIFEST_FILE)) {
-            anyhow::bail!("{} should be a Cargo.toml file path", manifest_path.display())
+            anyhow::bail!(
+                "{} should be a Cargo.toml file path",
+                manifest_path.display()
+            )
         }
 
         if let Some(dir) = manifest_path.parent() {
-            fs::create_dir_all(&dir).context(format!(
-                "Creating directory '{}'",
-                dir.display()
-            ))?;
+            fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
