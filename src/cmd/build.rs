@@ -93,6 +93,12 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
 fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
     util::assert_channel()?;
 
+    // set RUSTFLAGS, read from environment var by cargo-xbuild
+    std::env::set_var(
+        "RUSTFLAGS",
+        "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory"
+    );
+
     let xbuild = |manifest_path: &Path| {
         let manifest_path = Some(manifest_path);
         let target = Some("wasm32-unknown-unknown");
