@@ -174,10 +174,18 @@ impl Manifest {
                 .as_table_mut()
                 .ok_or(anyhow::anyhow!("dependencies should be a table"))?;
             for (name, value) in table {
-                if !exclude.contains(name) {
+                let package_name = {
+                    let package = value.get("package");
+                    let package_name = package
+                        .and_then(|p| p.as_str())
+                        .unwrap_or(name);
+                    package_name.to_string()
+                };
+
+                if !exclude.contains(&package_name) {
                     if let Some(dependency) = value.as_table_mut() {
                         if let Some(dep_path) = dependency.get_mut("path") {
-                            to_absolute(format!("dependency {}", name), dep_path)?;
+                            to_absolute(format!("dependency {}", package_name), dep_path)?;
                         }
                     }
                 }
