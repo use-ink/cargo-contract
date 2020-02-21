@@ -18,6 +18,7 @@ use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
 use std::{
     collections::{HashMap, HashSet},
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -110,13 +111,6 @@ impl Manifest {
             .parent()
             .expect("The manifest path is a file path so has a parent; qed");
 
-        // Rewrite `[lib] path =` value to an absolute path.
-        // Defaults to src/lib.rs if not specified
-        let lib = self
-            .toml
-            .get_mut("lib")
-            .ok_or(anyhow::anyhow!("lib section not found"))?;
-
         let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
             let path_str = existing_path
                 .as_str()
@@ -130,21 +124,43 @@ impl Manifest {
             Ok(())
         };
 
-        match lib.get_mut("path") {
-            Some(existing_path) => to_absolute("lib/path".into(), existing_path)?,
-            None => {
-                let lib_table = lib
-                    .as_table_mut()
-                    .ok_or(anyhow::anyhow!("lib section should be a table"))?;
-                let inferred_lib_path = abs_dir.join("src").join("lib.rs");
-                if !inferred_lib_path.exists() {
-                    anyhow::bail!(
-                        "No `[lib] path =` specified, and the default `src/lib.rs` was not found"
-                    )
+        let rewrite_path = |table_value: &mut value::Value, table_section: &str, default: &str| {
+            let table = table_value
+                .as_table_mut()
+                .ok_or(anyhow::anyhow!("'[{}]' section should be a table", table_section))?;
+
+            match table.get_mut("path") {
+                Some(existing_path) => to_absolute(format!("[{}]/path", table_section), existing_path),
+                None => {
+                    let default_path = PathBuf::from(default);
+                    if !default_path.exists() {
+                        anyhow::bail!(
+                            "No path specified, and the default `{}` was not found",
+                            default
+                        )
+                    }
+                    let path = default_path.to_string_lossy();
+                    log::debug!("Adding default path '{}'", path);
+                    table.insert("path".into(), value::Value::String(path.into()));
+                    Ok(())
                 }
-                let path = inferred_lib_path.to_string_lossy();
-                log::debug!("Adding inferred path '{}'", path);
-                lib_table.insert("path".into(), value::Value::String(path.into()));
+            }
+        };
+
+        // Rewrite `[lib] path = /path/to/lib.rs`
+        if let Some(lib) = self.toml.get_mut("lib") {
+            rewrite_path(lib, "lib", "src/lib.rs")?;
+        }
+
+        // Rewrite `[[bin]] path = /path/to/main.rs`
+        if let Some(bin) = self.toml.get_mut("bin") {
+            let bins = bin
+                .as_array_mut()
+                .ok_or(anyhow::anyhow!("'[[bin]]' section should be a table array"))?;
+
+            // Rewrite `[[bin]] path =` value to an absolute path.
+            for bin in bins {
+                rewrite_path(bin, "[bin]", "src/main.rs")?;
             }
         }
 
@@ -171,20 +187,30 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Writes the amended manifest to the given directory.
+    /// Writes the amended manifest to the given path.
+    ///
+    /// # Errors
+    ///
+    /// If the path is not for a `Cargo.toml` file
     pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
-        let dir = path.as_ref();
-        if !dir.is_dir() {
-            anyhow::bail!("{} should be a directory", dir.display())
+        let manifest_path = path.as_ref();
+        if manifest_path.file_name() != Some(OsStr::new(MANIFEST_FILE)) {
+            anyhow::bail!("{} should be a Cargo.toml file path", manifest_path.display())
         }
-        let manifest_path = dir.join(MANIFEST_FILE);
+
+        if let Some(dir) = manifest_path.parent() {
+            fs::create_dir_all(&dir).context(format!(
+                "Creating directory '{}'",
+                dir.display()
+            ))?;
+        }
 
         let updated_toml = toml::to_string(&self.toml)?;
         fs::write(&manifest_path, updated_toml).context(format!(
-            "Writing updated Cargo.toml to {}",
+            "Writing updated manifest to '{}'",
             manifest_path.display()
         ))?;
-        Ok(manifest_path)
+        Ok(manifest_path.into())
     }
 }
 
