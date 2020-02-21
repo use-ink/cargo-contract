@@ -142,9 +142,12 @@ impl Manifest {
                             default
                         )
                     }
-                    let path = default_path.to_string_lossy();
-                    log::debug!("Adding default path '{}'", path);
-                    table.insert("path".into(), value::Value::String(path.into()));
+                    let path = abs_dir.join(default_path);
+                    log::debug!("Adding default path '{}'", path.display());
+                    table.insert(
+                        "path".into(),
+                        value::Value::String(path.to_string_lossy().into()),
+                    );
                     Ok(())
                 }
             }
