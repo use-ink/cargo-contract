@@ -22,7 +22,7 @@ use std::{
 };
 
 use crate::{
-    manifest::{ManifestPath, Workspace},
+    workspace::{ManifestPath, Workspace},
     util,
 };
 use anyhow::{Context, Result};

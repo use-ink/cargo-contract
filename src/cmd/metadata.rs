@@ -15,7 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    manifest::{ManifestPath, Workspace},
+    workspace::{ManifestPath, Workspace},
     util,
 };
 use anyhow::Result;
@@ -65,7 +65,7 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
 mod tests {
     use crate::{
         cmd::{execute_generate_metadata, execute_new},
-        manifest::ManifestPath,
+        workspace::ManifestPath,
         util::tests::with_tmp_dir,
     };
 
