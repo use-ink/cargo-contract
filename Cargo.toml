@@ -31,7 +31,7 @@ colored = "1.9"
 # dependencies for optional extrinsics feature
 async-std = { version = "1.5.0", optional = true }
 sp-core = { git = "https://github.com/paritytech/substrate/", package = "sp-core", optional = true }
-subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "399ac68cb1547ba4879e389c28d72aa7a2bae139", package = "substrate-subxt", optional = true }
+subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "b7565ff435b9499ca1ff4dad519009e94a13111c", package = "substrate-subxt", optional = true }
 futures = { version = "0.3.2", optional = true }
 url = { version = "2.1.1", optional = true }
 hex = { version = "0.4.0", optional = true }
