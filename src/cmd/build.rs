@@ -243,10 +243,10 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
         anyhow::bail!("wasm-opt optimization failed");
     }
 
-    let original_size = metadata(&crate_metadata.dest_wasm)?.len() / 1000;
-    let optimized_size = metadata(&optimized)?.len() / 1000;
+    let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
+    let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
     println!(
-        " Original wasm size: {}K, Optimized: {}K",
+        " Original wasm size: {:.1}K, Optimized: {:.1}K",
         original_size, optimized_size
     );
 
