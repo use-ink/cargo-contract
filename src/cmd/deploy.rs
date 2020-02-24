@@ -28,7 +28,7 @@ use crate::{cmd::build, ExtrinsicOpts};
 fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     let contract_wasm_path = match path {
         Some(path) => path.clone(),
-        None => build::collect_crate_metadata(path)?.dest_wasm,
+        None => build::collect_crate_metadata(&Default::default())?.dest_wasm,
     };
     log::info!("Contract code path: {}", contract_wasm_path.display());
     let mut data = Vec::new();
