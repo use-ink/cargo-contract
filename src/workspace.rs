@@ -305,17 +305,23 @@ impl Workspace {
         })
     }
 
-    /// Get a mutable reference to the root package's manifest.
+    /// Amend the root package manifest using the supplied function.
     ///
     /// # Note
     ///
     /// The root package is the current workspace package being built, not to be confused with
     /// the workspace root (where the top level workspace Cargo.toml is defined).
-    pub fn root_package_manifest_mut(&mut self) -> &mut Manifest {
-        self.members
+    pub fn with_root_package_manifest<F>(&mut self, f: F) -> Result<&mut Self>
+    where
+        F: FnOnce(&mut Manifest) -> Result<()>,
+    {
+        let root_package_manifest = self
+            .members
             .get_mut(&self.root_package)
             .map(|(_, m)| m)
-            .expect("The root package should be a workspace member")
+            .expect("The root package should be a workspace member");
+        f(root_package_manifest)?;
+        Ok(self)
     }
 
     /// Writes the amended manifests to the `target` directory, retaining the workspace directory

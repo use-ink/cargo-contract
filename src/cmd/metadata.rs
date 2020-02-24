@@ -29,11 +29,7 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
 
     let (metadata, root_package_id) = crate::util::get_cargo_metadata(&manifest_path)?;
 
-    let mut workspace = Workspace::new(&metadata, &root_package_id)?;
-    workspace
-        .root_package_manifest_mut()
-        .with_added_crate_type("rlib")?;
-    workspace.using_temp(|root_manifest_path| {
+    let generate_metadata = |manifest_path: &ManifestPath| {
         let target_dir = format!(
             "--target-dir={}",
             metadata.target_directory.to_string_lossy()
@@ -43,13 +39,20 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
             &[
                 "--package",
                 "abi-gen",
-                &root_manifest_path.cargo_arg(),
+                &manifest_path.cargo_arg(),
                 &target_dir,
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
         )
-    })?;
+    };
+
+    Workspace::new(&metadata, &root_package_id)?
+        .with_root_package_manifest(|manifest| {
+            manifest.with_added_crate_type("rlib")?;
+            Ok(())
+        })?
+        .using_temp(generate_metadata)?;
 
     let mut out_path = metadata.target_directory;
     out_path.push("metadata.json");

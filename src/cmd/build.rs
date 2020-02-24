@@ -129,12 +129,12 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         Ok(())
     };
 
-    let mut workspace =
-        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?;
-    workspace
-        .root_package_manifest_mut()
-        .with_removed_crate_type("rlib")?;
-    workspace.using_temp(xbuild)?;
+    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+        .with_root_package_manifest(|manifest| {
+            manifest.with_removed_crate_type("rlib")?;
+            Ok(())
+        })?
+        .using_temp(xbuild)?;
 
     Ok(())
 }
