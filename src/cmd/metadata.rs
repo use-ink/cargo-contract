@@ -82,13 +82,17 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let message = execute_generate_metadata(manifest_path).expect("generate metadata failed");
+            let message =
+                execute_generate_metadata(manifest_path).expect("generate metadata failed");
             println!("{}", message);
 
             let mut abi_file = working_dir;
             abi_file.push("target");
             abi_file.push("metadata.json");
-            assert!(abi_file.exists(), format!("Missing metadata file '{}'", abi_file.display()))
+            assert!(
+                abi_file.exists(),
+                format!("Missing metadata file '{}'", abi_file.display())
+            )
         });
     }
 }

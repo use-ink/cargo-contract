@@ -53,7 +53,9 @@ impl ManifestPath {
 
     /// The directory path of the manifest path
     pub fn directory(&self) -> &Path {
-        self.path.parent().expect("Manifest path is a file so has a parent directory")
+        self.path
+            .parent()
+            .expect("Manifest path is a file so has a parent directory")
     }
 }
 
