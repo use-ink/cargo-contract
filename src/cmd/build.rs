@@ -21,12 +21,14 @@ use std::{
     process::Command,
 };
 
-use crate::{manifest::Workspace, util};
+use crate::{
+    manifest::{ManifestPath, Workspace},
+    util,
+};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
-use crate::manifest::ManifestPath;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;

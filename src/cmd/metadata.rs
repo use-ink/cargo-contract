@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{manifest::{ManifestPath, Workspace}, util};
+use crate::{
+    manifest::{ManifestPath, Workspace},
+    util,
+};
 use anyhow::Result;
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -31,7 +34,10 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
         .root_package_manifest_mut()
         .with_added_crate_type("rlib")?;
     workspace.using_temp(|root_manifest_path| {
-        let target_dir = format!("--target-dir={}", metadata.target_directory.to_string_lossy());
+        let target_dir = format!(
+            "--target-dir={}",
+            metadata.target_directory.to_string_lossy()
+        );
         util::invoke_cargo(
             "run",
             &[

@@ -16,13 +16,13 @@
 
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
+use std::convert::{TryFrom, TryInto};
 use std::{
     collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
 use toml::value;
-use std::convert::{TryFrom, TryInto};
 
 const MANIFEST_FILE: &str = "Cargo.toml";
 
@@ -41,7 +41,9 @@ impl ManifestPath {
                 anyhow::bail!("Manifest file must be a Cargo.toml")
             }
         }
-        Ok(ManifestPath { path: manifest.into() })
+        Ok(ManifestPath {
+            path: manifest.into(),
+        })
     }
 
     /// Create an arg `--manifest-path=` for `cargo` command
@@ -84,7 +86,7 @@ impl Manifest {
     /// The path *must* be to a `Cargo.toml`.
     pub fn new<P>(path: P) -> Result<Manifest>
     where
-        P: TryInto<ManifestPath, Error = anyhow::Error>
+        P: TryInto<ManifestPath, Error = anyhow::Error>,
     {
         let manifest_path = path.try_into()?;
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
