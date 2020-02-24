@@ -31,6 +31,7 @@ variables:
 .docker-env:                       &docker-env
   image:                          ${REGISTRY}/contracts-ci-linux:latest
   before_script:
+    - rustup component add rust-src rustfmt --toolchain nightly
     - cargo -vV
     - rustc -vV
     - rustup show
