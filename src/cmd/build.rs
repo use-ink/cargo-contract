@@ -22,8 +22,8 @@ use std::{
 };
 
 use crate::{
-    workspace::{ManifestPath, Workspace},
     util,
+    workspace::{ManifestPath, Workspace},
 };
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
@@ -296,13 +296,15 @@ pub(crate) fn execute_build(manifest_path: ManifestPath) -> Result<String> {
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir};
+    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath};
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
             execute_new("new_project", Some(path)).expect("new project creation failed");
-            super::execute_build(Some(&path.join("new_project"))).expect("build failed");
+            let manifest_path =
+                ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
+            super::execute_build(manifest_path).expect("build failed");
         });
     }
 }

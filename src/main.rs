@@ -15,8 +15,8 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 mod cmd;
-mod workspace;
 mod util;
+mod workspace;
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
