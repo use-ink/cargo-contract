@@ -45,7 +45,7 @@ pub fn assert_channel() -> Result<()> {
             anyhow::bail!(
                 "cargo-contract cannot build using the {:?} channel. \
 				 Switch to nightly. \
-				 See https://github.com/paritytech/cargo-contract/tree/aj-xargo#build-requires-the-nightly-toolchain",
+				 See https://github.com/paritytech/cargo-contract#build-requires-the-nightly-toolchain",
                 format!("{:?}", meta.channel).to_lowercase(),
             );
         }
