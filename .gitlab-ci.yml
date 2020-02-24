@@ -34,7 +34,8 @@ variables:
     - cargo -vV
     - rustc -vV
     - rustup show
-    - rustup component list
+    - rustup show active-toolchain
+    - rustup component list | grep rust-src
     - bash --version
     - mkdir -p ${CARGO_HOME}; touch ${CARGO_HOME}/config
     - mkdir -p ${CARGO_TARGET_DIR}
