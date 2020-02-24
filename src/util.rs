@@ -17,15 +17,15 @@
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
-use std::{ffi::OsStr, path::PathBuf, process::Command};
+use std::{ffi::OsStr, process::Command};
+use crate::manifest::ManifestPath;
 
 /// Get the result of `cargo metadata`, together with the root package id.
-pub fn get_cargo_metadata(working_dir: Option<&PathBuf>) -> Result<(CargoMetadata, PackageId)> {
+pub fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, PackageId)> {
     let mut cmd = MetadataCommand::new();
-    if let Some(dir) = working_dir {
-        cmd.current_dir(dir);
-    }
-    let metadata = cmd.exec().context("Error invoking `cargo metadata`")?;
+    let metadata = cmd
+        .manifest_path(manifest_path)
+        .exec().context("Error invoking `cargo metadata`")?;
     let root_package_id = metadata
         .resolve
         .as_ref()
@@ -55,7 +55,6 @@ pub fn assert_channel() -> Result<()> {
 pub(crate) fn invoke_cargo<I, S>(
     command: &str,
     args: I,
-    working_dir: Option<&PathBuf>,
 ) -> Result<()>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
@@ -63,9 +62,6 @@ where
 {
     let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
     let mut cmd = Command::new(cargo);
-    if let Some(working_dir) = working_dir {
-        cmd.current_dir(working_dir);
-    }
     cmd.arg(command);
     cmd.args(args);
 

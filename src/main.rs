@@ -162,8 +162,8 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
-        Command::Build {} => cmd::execute_build(None),
-        Command::GenerateMetadata {} => cmd::execute_generate_metadata(None),
+        Command::Build {} => cmd::execute_build(Default::default()),
+        Command::GenerateMetadata {} => cmd::execute_generate_metadata(Default::default()),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {

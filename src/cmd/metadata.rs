@@ -14,34 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{manifest::Workspace, util};
+use crate::{manifest::{ManifestPath, Workspace}, util};
 use anyhow::Result;
-use std::path::PathBuf;
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<String> {
     util::assert_channel()?;
     println!("  Generating metadata");
 
-    let (metadata, root_package_id) = crate::util::get_cargo_metadata(dir)?;
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(&manifest_path)?;
 
     let mut workspace = Workspace::new(&metadata, &root_package_id)?;
     workspace
         .root_package_manifest_mut()
         .with_added_crate_type("rlib")?;
     workspace.using_temp(|root_manifest_path| {
-        // todo: use tmp manifest in invocation
+        let target_dir = format!("--target-dir={}", metadata.target_directory.to_string_lossy());
         util::invoke_cargo(
             "run",
             &[
                 "--package",
                 "abi-gen",
+                &root_manifest_path.cargo_arg(),
+                &target_dir,
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            dir,
         )
     })?;
 
@@ -59,6 +59,7 @@ pub(crate) fn execute_generate_metadata(dir: Option<&PathBuf>) -> Result<String>
 mod tests {
     use crate::{
         cmd::{execute_generate_metadata, execute_new},
+        manifest::ManifestPath,
         util::tests::with_tmp_dir,
     };
 
@@ -67,7 +68,8 @@ mod tests {
         with_tmp_dir(|path| {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
-            execute_generate_metadata(Some(&working_dir)).expect("generate metadata failed");
+            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
+            execute_generate_metadata(manifest_path).expect("generate metadata failed");
 
             let mut abi_file = working_dir;
             abi_file.push("target");

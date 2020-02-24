@@ -18,19 +18,63 @@ use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
 use std::{
     collections::{HashMap, HashSet},
-    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
 use toml::value;
+use std::convert::{TryFrom, TryInto};
 
 const MANIFEST_FILE: &str = "Cargo.toml";
+
+/// Path to a Cargo.toml file
+#[derive(Clone, Debug)]
+pub struct ManifestPath {
+    path: PathBuf,
+}
+
+impl ManifestPath {
+    /// Create a new ManifestPath, errors if not path to `Cargo.toml`
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let manifest = path.as_ref();
+        if let Some(file_name) = manifest.file_name() {
+            if file_name != MANIFEST_FILE {
+                anyhow::bail!("Manifest file must be a Cargo.toml")
+            }
+        }
+        Ok(ManifestPath { path: manifest.into() })
+    }
+
+    /// Create an arg `--manifest-path=` for `cargo` command
+    pub fn cargo_arg(&self) -> String {
+        format!("--manifest-path={}", self.path.to_string_lossy())
+    }
+}
+
+impl TryFrom<&PathBuf> for ManifestPath {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
+        ManifestPath::new(value)
+    }
+}
+
+impl Default for ManifestPath {
+    fn default() -> ManifestPath {
+        ManifestPath::new(MANIFEST_FILE).expect("it's a valid manifest file")
+    }
+}
+
+impl AsRef<Path> for ManifestPath {
+    fn as_ref(&self) -> &Path {
+        self.path.as_ref()
+    }
+}
 
 /// Create an amended copy of `Cargo.toml`.
 ///
 /// Relative paths are rewritten to absolute paths.
 pub struct Manifest {
-    path: PathBuf,
+    path: ManifestPath,
     toml: value::Table,
 }
 
@@ -38,18 +82,16 @@ impl Manifest {
     /// Create new CargoToml for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
-    pub fn new(path: &PathBuf) -> Result<Manifest> {
-        if let Some(file_name) = path.file_name() {
-            if file_name != MANIFEST_FILE {
-                anyhow::bail!("Manifest file must be a Cargo.toml")
-            }
-        }
-
-        let toml = fs::read_to_string(&path).context("Loading Cargo.toml")?;
+    pub fn new<P>(path: P) -> Result<Manifest>
+    where
+        P: TryInto<ManifestPath, Error = anyhow::Error>
+    {
+        let manifest_path = path.try_into()?;
+        let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
         Ok(Manifest {
-            path: path.clone(),
+            path: manifest_path,
             toml,
         })
     }
@@ -106,7 +148,7 @@ impl Manifest {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let abs_path = self.path.canonicalize()?;
+        let abs_path = self.path.as_ref().canonicalize()?;
         let abs_dir = abs_path
             .parent()
             .expect("The manifest path is a file path so has a parent; qed");
@@ -200,18 +242,8 @@ impl Manifest {
     }
 
     /// Writes the amended manifest to the given path.
-    ///
-    /// # Errors
-    ///
-    /// If the path is not for a `Cargo.toml` file
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
+    pub fn write(&self, path: &ManifestPath) -> Result<()> {
         let manifest_path = path.as_ref();
-        if manifest_path.file_name() != Some(OsStr::new(MANIFEST_FILE)) {
-            anyhow::bail!(
-                "{} should be a Cargo.toml file path",
-                manifest_path.display()
-            )
-        }
 
         if let Some(dir) = manifest_path.parent() {
             fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
@@ -222,7 +254,7 @@ impl Manifest {
             "Writing updated manifest to '{}'",
             manifest_path.display()
         ))?;
-        Ok(manifest_path.into())
+        Ok(())
     }
 }
 
@@ -291,7 +323,7 @@ impl Workspace {
     /// intra-workspace relative dependency paths which will be preserved.
     ///
     /// Returns the paths of the new manifests.
-    pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<Vec<(PackageId, PathBuf)>> {
+    pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<Vec<(PackageId, ManifestPath)>> {
         let exclude_member_package_names = self
             .members
             .iter()
@@ -302,11 +334,12 @@ impl Workspace {
             // replace the original workspace root with the temporary directory
             let mut new_path: PathBuf = target.as_ref().into();
             new_path.push(package.manifest_path.strip_prefix(&self.workspace_root)?);
+            let new_manifest = ManifestPath::new(new_path)?;
 
             manifest.rewrite_relative_paths(&exclude_member_package_names)?;
-            manifest.write(&new_path)?;
+            manifest.write(&new_manifest)?;
 
-            new_manifest_paths.push((package_id.clone(), new_path.into()));
+            new_manifest_paths.push((package_id.clone(), new_manifest));
         }
         Ok(new_manifest_paths)
     }
@@ -315,7 +348,7 @@ impl Workspace {
     /// supplied function with the root manifest path before the directory is cleaned up.
     pub fn using_temp<F>(&mut self, f: F) -> Result<()>
     where
-        F: FnOnce(&Path) -> Result<()>,
+        F: FnOnce(&ManifestPath) -> Result<()>,
     {
         let tmp_dir = tempfile::Builder::new()
             .prefix(".cargo-contract_")

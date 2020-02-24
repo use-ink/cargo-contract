@@ -26,6 +26,7 @@ use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use crate::manifest::ManifestPath;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -33,7 +34,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 /// Relevant metadata obtained from Cargo.toml.
 #[derive(Debug)]
 pub struct CrateMetadata {
-    working_dir: Option<PathBuf>,
+    manifest_path: ManifestPath,
     cargo_meta: cargo_metadata::Metadata,
     package_name: String,
     root_package: Package,
@@ -48,8 +49,8 @@ impl CrateMetadata {
 }
 
 /// Parses the contract manifest and returns relevant metadata.
-pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let (metadata, root_package_id) = crate::util::get_cargo_metadata(working_dir)?;
+pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetadata> {
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(manifest_path)?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
     // package is not found in the list.
@@ -76,7 +77,7 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.set_extension("wasm");
 
     let crate_metadata = CrateMetadata {
-        working_dir: working_dir.cloned(),
+        manifest_path: manifest_path.clone(),
         cargo_meta: metadata,
         root_package: root_package.clone(),
         package_name,
@@ -99,7 +100,7 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
     );
 
-    let xbuild = |manifest_path: &Path| {
+    let xbuild = |manifest_path: &ManifestPath| {
         let manifest_path = Some(manifest_path);
         let target = Some("wasm32-unknown-unknown");
         let verbosity = Some(xargo_lib::Verbosity::Verbose);
@@ -258,13 +259,13 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute_build(manifest_path: ManifestPath) -> Result<String> {
     println!(
         " {} {}",
         "[1/4]".bold(),
         "Collecting crate metadata".bright_green().bold()
     );
-    let crate_metadata = collect_crate_metadata(working_dir)?;
+    let crate_metadata = collect_crate_metadata(&manifest_path)?;
     println!(
         " {} {}",
         "[2/4]".bold(),
