@@ -50,6 +50,11 @@ impl ManifestPath {
     pub fn cargo_arg(&self) -> String {
         format!("--manifest-path={}", self.path.to_string_lossy())
     }
+
+    /// The directory path of the manifest path
+    pub fn directory(&self) -> &Path {
+        self.path.parent().expect("Manifest path is a file so has a parent directory")
+    }
 }
 
 impl TryFrom<&PathBuf> for ManifestPath {

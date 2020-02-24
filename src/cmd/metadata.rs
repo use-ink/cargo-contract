@@ -20,6 +20,8 @@ use crate::{
 };
 use anyhow::Result;
 
+const METADATA_FILE: &str = "metadata.json";
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
@@ -29,21 +31,25 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
 
     let (metadata, root_package_id) = crate::util::get_cargo_metadata(&manifest_path)?;
 
-    let generate_metadata = |manifest_path: &ManifestPath| {
-        let target_dir = format!(
-            "--target-dir={}",
-            metadata.target_directory.to_string_lossy()
-        );
+    let out_path = metadata.target_directory.join(METADATA_FILE);
+    let out_path_display = format!("{}", out_path.display());
+
+    let target_dir = metadata.target_directory.clone();
+    let working_dir = Some(manifest_path.directory());
+
+    let generate_metadata = move |tmp_manifest_path: &ManifestPath| -> Result<()> {
+        let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
         util::invoke_cargo(
             "run",
             &[
                 "--package",
                 "abi-gen",
-                &manifest_path.cargo_arg(),
-                &target_dir,
+                &tmp_manifest_path.cargo_arg(),
+                &target_dir_arg,
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
+            working_dir,
         )
     };
 
@@ -54,12 +60,9 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
         })?
         .using_temp(generate_metadata)?;
 
-    let mut out_path = metadata.target_directory;
-    out_path.push("metadata.json");
-
     Ok(format!(
         "Your metadata file is ready.\nYou can find it here:\n{}",
-        out_path.display()
+        out_path_display
     ))
 }
 
@@ -74,16 +77,18 @@ mod tests {
 
     #[test]
     fn generate_metadata() {
+        env_logger::try_init().ok();
         with_tmp_dir(|path| {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            execute_generate_metadata(manifest_path).expect("generate metadata failed");
+            let message = execute_generate_metadata(manifest_path).expect("generate metadata failed");
+            println!("{}", message);
 
             let mut abi_file = working_dir;
             abi_file.push("target");
             abi_file.push("metadata.json");
-            assert!(abi_file.exists())
+            assert!(abi_file.exists(), format!("Missing metadata file '{}'", abi_file.display()))
         });
     }
 }
