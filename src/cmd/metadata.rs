@@ -17,6 +17,7 @@
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
+    Verbosity,
 };
 use anyhow::Result;
 
@@ -25,7 +26,7 @@ const METADATA_FILE: &str = "metadata.json";
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<String> {
+pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath, verbosity: Option<Verbosity>) -> Result<String> {
     util::assert_channel()?;
     println!("  Generating metadata");
 
@@ -50,6 +51,7 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath) -> Result<S
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
             working_dir,
+            verbosity,
         )
     };
 

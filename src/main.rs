@@ -134,7 +134,10 @@ enum Command {
     },
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
-    GenerateMetadata {},
+    GenerateMetadata {
+        #[structopt(flatten)]
+        verbosity: VerbosityFlags
+    },
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
@@ -195,7 +198,7 @@ fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
         Command::Build { verbosity} => cmd::execute_build(Default::default(), verbosity.try_into()?),
-        Command::GenerateMetadata {} => cmd::execute_generate_metadata(Default::default()),
+        Command::GenerateMetadata { verbosity } => cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
