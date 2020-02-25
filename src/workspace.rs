@@ -51,11 +51,16 @@ impl ManifestPath {
         format!("--manifest-path={}", self.path.to_string_lossy())
     }
 
-    /// The directory path of the manifest path
-    pub fn directory(&self) -> &Path {
-        self.path
-            .parent()
-            .expect("Manifest path is a file so has a parent directory")
+    /// The directory path of the manifest path.
+    ///
+    /// Returns `None` if the path is just the plain file name `Cargo.toml`
+    pub fn directory(&self) -> Option<&Path> {
+        let just_a_file_name = self.path.iter().collect::<Vec<_>>() == vec![Path::new(MANIFEST_FILE)];
+        if !just_a_file_name {
+            self.path.parent()
+        } else {
+            None
+        }
     }
 }
 
@@ -257,10 +262,8 @@ impl Manifest {
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
-        fs::write(&manifest_path, updated_toml).context(format!(
-            "Writing updated manifest to '{}'",
-            manifest_path.display()
-        ))?;
+        log::debug!("Writing updated manifest to '{}'", manifest_path.display());
+        fs::write(&manifest_path, updated_toml)?;
         Ok(())
     }
 }

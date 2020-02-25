@@ -36,7 +36,6 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath, verbosity: 
     let out_path_display = format!("{}", out_path.display());
 
     let target_dir = metadata.target_directory.clone();
-    let working_dir = Some(manifest_path.directory());
 
     let generate_metadata = move |tmp_manifest_path: &ManifestPath| -> Result<()> {
         let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -50,7 +49,7 @@ pub(crate) fn execute_generate_metadata(manifest_path: ManifestPath, verbosity: 
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            working_dir,
+            manifest_path.directory(),
             verbosity,
         )
     };
