@@ -20,9 +20,12 @@ mod workspace;
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::path::PathBuf;
+use std::{
+    convert::{TryFrom, TryInto},
+    path::PathBuf
+};
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
@@ -87,6 +90,32 @@ impl ExtrinsicOpts {
 }
 
 #[derive(Debug, StructOpt)]
+struct VerbosityFlags {
+    #[structopt(long)]
+    quiet: bool,
+    #[structopt(long)]
+    verbose: bool,
+}
+
+enum Verbosity {
+    Quiet,
+    Verbose,
+}
+
+impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
+    type Error = Error;
+
+    fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
+        match (value.quiet, value.verbose) {
+            (false, false) => Ok(None),
+            (true, false) => Ok(Some(Verbosity::Quiet)),
+            (false, true) => Ok(Some(Verbosity::Verbose)),
+            (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags")
+        }
+    }
+}
+
+#[derive(Debug, StructOpt)]
 enum Command {
     /// Setup and create a new smart contract project
     #[structopt(name = "new")]
@@ -99,7 +128,10 @@ enum Command {
     },
     /// Compiles the smart contract
     #[structopt(name = "build")]
-    Build {},
+    Build {
+        #[structopt(flatten)]
+        verbosity: VerbosityFlags
+    },
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
@@ -162,7 +194,7 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
-        Command::Build {} => cmd::execute_build(Default::default()),
+        Command::Build { verbosity} => cmd::execute_build(Default::default(), verbosity.try_into()?),
         Command::GenerateMetadata {} => cmd::execute_generate_metadata(Default::default()),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]

@@ -24,6 +24,7 @@ use std::{
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
+    Verbosity,
 };
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
@@ -93,7 +94,7 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 ///
 /// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
 /// the resulting Wasm binary.
-fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
+fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>) -> Result<()> {
     util::assert_channel()?;
 
     // set RUSTFLAGS, read from environment var by cargo-xbuild
@@ -102,10 +103,16 @@ fn build_cargo_project(crate_metadata: &CrateMetadata) -> Result<()> {
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
     );
 
+    let verbosity = verbosity.map(|v| {
+        match v {
+            Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
+            Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
+        }
+    });
+
     let xbuild = |manifest_path: &ManifestPath| {
         let manifest_path = Some(manifest_path);
         let target = Some("wasm32-unknown-unknown");
-        let verbosity = Some(xargo_lib::Verbosity::Verbose);
         let target_dir = crate_metadata.target_dir();
         let other_args = [
             "--no-default-features",
@@ -261,7 +268,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(manifest_path: ManifestPath) -> Result<String> {
+pub(crate) fn execute_build(manifest_path: ManifestPath, verbosity: Option<Verbosity>) -> Result<String> {
     println!(
         " {} {}",
         "[1/4]".bold(),
@@ -273,7 +280,7 @@ pub(crate) fn execute_build(manifest_path: ManifestPath) -> Result<String> {
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata)?;
+    build_cargo_project(&crate_metadata, verbosity)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
