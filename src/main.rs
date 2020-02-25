@@ -22,7 +22,7 @@ mod workspace;
 use sp_core::{crypto::Pair, sr25519, H256};
 use std::{
     convert::{TryFrom, TryInto},
-    path::PathBuf
+    path::PathBuf,
 };
 
 use anyhow::{Error, Result};
@@ -110,7 +110,7 @@ impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
             (false, false) => Ok(None),
             (true, false) => Ok(Some(Verbosity::Quiet)),
             (false, true) => Ok(Some(Verbosity::Verbose)),
-            (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags")
+            (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
         }
     }
 }
@@ -130,13 +130,13 @@ enum Command {
     #[structopt(name = "build")]
     Build {
         #[structopt(flatten)]
-        verbosity: VerbosityFlags
+        verbosity: VerbosityFlags,
     },
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
         #[structopt(flatten)]
-        verbosity: VerbosityFlags
+        verbosity: VerbosityFlags,
     },
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
@@ -197,8 +197,12 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
-        Command::Build { verbosity} => cmd::execute_build(Default::default(), verbosity.try_into()?),
-        Command::GenerateMetadata { verbosity } => cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?),
+        Command::Build { verbosity } => {
+            cmd::execute_build(Default::default(), verbosity.try_into()?)
+        }
+        Command::GenerateMetadata { verbosity } => {
+            cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?)
+        }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {

@@ -14,10 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    workspace::ManifestPath,
-    Verbosity,
-};
+use crate::{workspace::ManifestPath, Verbosity};
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
@@ -56,7 +53,12 @@ pub fn assert_channel() -> Result<()> {
 }
 
 /// Run cargo with the supplied args
-pub(crate) fn invoke_cargo<I, S, P>(command: &str, args: I, working_dir: Option<P>, verbosity: Option<Verbosity>) -> Result<()>
+pub(crate) fn invoke_cargo<I, S, P>(
+    command: &str,
+    args: I,
+    working_dir: Option<P>,
+    verbosity: Option<Verbosity>,
+) -> Result<()>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
@@ -74,7 +76,7 @@ where
     match verbosity {
         Some(Verbosity::Quiet) => cmd.arg("--quiet"),
         Some(Verbosity::Verbose) => cmd.arg("--verbose"),
-        None => { &mut cmd },
+        None => &mut cmd,
     };
 
     let status = cmd

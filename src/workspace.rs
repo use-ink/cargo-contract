@@ -55,7 +55,8 @@ impl ManifestPath {
     ///
     /// Returns `None` if the path is just the plain file name `Cargo.toml`
     pub fn directory(&self) -> Option<&Path> {
-        let just_a_file_name = self.path.iter().collect::<Vec<_>>() == vec![Path::new(MANIFEST_FILE)];
+        let just_a_file_name =
+            self.path.iter().collect::<Vec<_>>() == vec![Path::new(MANIFEST_FILE)];
         if !just_a_file_name {
             self.path.parent()
         } else {

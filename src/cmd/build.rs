@@ -103,11 +103,9 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosi
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
     );
 
-    let verbosity = verbosity.map(|v| {
-        match v {
-            Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
-            Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
-        }
+    let verbosity = verbosity.map(|v| match v {
+        Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
+        Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
     });
 
     let xbuild = |manifest_path: &ManifestPath| {
@@ -268,7 +266,10 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(manifest_path: ManifestPath, verbosity: Option<Verbosity>) -> Result<String> {
+pub(crate) fn execute_build(
+    manifest_path: ManifestPath,
+    verbosity: Option<Verbosity>,
+) -> Result<String> {
     println!(
         " {} {}",
         "[1/4]".bold(),
