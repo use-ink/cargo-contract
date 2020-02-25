@@ -79,9 +79,7 @@ impl AsRef<Path> for ManifestPath {
     }
 }
 
-/// Create an amended copy of `Cargo.toml`.
-///
-/// Relative paths are rewritten to absolute paths.
+/// Create, amend and save a copy of the specified `Cargo.toml`.
 pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
@@ -273,6 +271,12 @@ fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
 }
 
+/// Make a copy of a cargo workspace, maintaing only with the directory structure and manifest
+/// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
+/// paths to the original locations.
+///
+/// This allows custom amendments to be made to the manifest files without editing the originals
+/// directly.
 pub struct Workspace {
     workspace_root: PathBuf,
     root_package: PackageId,
