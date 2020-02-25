@@ -32,7 +32,6 @@ cargo-xbuild = "0.5.26"
 rustc_version = "0.2.3"
 serde_json = "1.0"
 tempfile = "3.1.0"
-url = "2.1.1"
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.5.0", optional = true }
@@ -40,6 +39,7 @@ sp-core = { git = "https://github.com/paritytech/substrate/", package = "sp-core
 subxt = { git = "https://github.com/paritytech/substrate-subxt/", rev = "b7565ff435b9499ca1ff4dad519009e94a13111c", package = "substrate-subxt", optional = true }
 futures = { version = "0.3.2", optional = true }
 hex = { version = "0.4.0", optional = true }
+url = { version = "2.1.1", optional = true }
 
 [build-dependencies]
 anyhow = "1.0.26"
@@ -52,5 +52,5 @@ wabt = "0.9.2"
 
 [features]
 default = []
-extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex"]
+extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex", "url"]
 test-ci-only = []
