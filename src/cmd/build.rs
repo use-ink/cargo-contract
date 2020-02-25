@@ -311,7 +311,7 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path).expect("build failed");
+            super::execute_build(manifest_path, None).expect("build failed");
         });
     }
 }
