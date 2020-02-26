@@ -28,7 +28,7 @@ use crate::{cmd::build, ExtrinsicOpts};
 fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     let contract_wasm_path = match path {
         Some(path) => path.clone(),
-        None => build::collect_crate_metadata(path)?.dest_wasm,
+        None => build::collect_crate_metadata(&Default::default())?.dest_wasm,
     };
     log::info!("Contract code path: {}", contract_wasm_path.display());
     let mut data = Vec::new();
@@ -61,10 +61,7 @@ pub(crate) fn execute_deploy(
 mod tests {
     use std::{fs, io::Write};
 
-    use crate::{
-        cmd::{deploy::execute_deploy, tests::with_tmp_dir},
-        ExtrinsicOpts,
-    };
+    use crate::{cmd::deploy::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
     use assert_matches::assert_matches;
 
     const CONTRACT: &str = r#"
