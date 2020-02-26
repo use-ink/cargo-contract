@@ -130,7 +130,10 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosi
         let exit_status = xargo_lib::build(args, "build", Some(config))
             .map_err(|e| anyhow::anyhow!("{}", e))
             .context("Building with xbuild")?;
-        log::debug!("xargo exit status: {:?}", exit_status);
+        log::debug!("xbuild exit status: {}", exit_status);
+        if !exit_status.success() {
+            anyhow::bail!("xbuild failed with status {}", exit_status)
+        }
         Ok(())
     };
 
