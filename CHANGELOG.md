@@ -1,3 +1,7 @@
+# Version 0.4.1 (2020-02-26)
+
+- Fix: fail the whole build process if the contract build fails.
+
 # Version 0.4.0 (2020-02-26)
 
 - Minimize contract wasm binary size:
