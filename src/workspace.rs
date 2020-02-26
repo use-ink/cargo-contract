@@ -275,7 +275,7 @@ fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
 }
 
-/// Make a copy of a cargo workspace, maintaing only with the directory structure and manifest
+/// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
 /// paths to the original locations.
 ///
