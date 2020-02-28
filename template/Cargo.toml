@@ -6,8 +6,9 @@ edition = "2018"
 
 [dependencies]
 ink_abi = { git = "https://github.com/paritytech/ink", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
+ink_primitives = { git = "https://github.com/paritytech/ink", package = "ink_primitives", default-features = false }
 ink_core = { git = "https://github.com/paritytech/ink", package = "ink_core", default-features = false }
-ink_lang2 = { git = "https://github.com/paritytech/ink", package = "ink_lang2", default-features = false }
+ink_lang = { git = "https://github.com/paritytech/ink", package = "ink_lang", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "1.1", default-features = false, features = ["derive"] }
 type-metadata = { git = "https://github.com/type-metadata/type-metadata.git", default-features = false, features = ["derive"], optional = true }
@@ -18,7 +19,8 @@ path = "lib.rs"
 crate-type = [
 	# Used for normal contract Wasm blobs.
 	"cdylib",
-	# Used for ABI generation.
+	# Required for ABI generation, and using this contract as a dependency.
+	# If using `cargo contract build`, it will be automatically disabled to produce a smaller Wasm binary
 	"rlib",
 ]
 
@@ -27,20 +29,20 @@ default = ["test-env"]
 std = [
     "ink_abi/std",
     "ink_core/std",
+    "ink_primitives/std",
     "scale/std",
     "type-metadata/std",
 ]
 test-env = [
     "std",
-    "ink_core/test-env",
-    "ink_lang2/test-env",
+    "ink_lang/test-env",
 ]
 ink-generate-abi = [
     "std",
     "ink_abi",
     "type-metadata",
     "ink_core/ink-generate-abi",
-    "ink_lang2/ink-generate-abi",
+    "ink_lang/ink-generate-abi",
 ]
 ink-as-dependency = []
 

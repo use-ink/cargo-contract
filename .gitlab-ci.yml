@@ -17,6 +17,8 @@ variables:
   CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   CI_SERVER_NAME:                  "GitLab CI"
   REGISTRY:                        registry.parity.io/parity/infrastructure/scripts
+  RUSTUP_TOOLCHAIN:                nightly
+  RUST_LIB_BACKTRACE:              0
 
 .collect-artifacts:                &collect-artifacts
   artifacts:
@@ -58,7 +60,7 @@ variables:
 
 
 #### stage:                        check
-# be aware that the used image has cargo-remote installed
+# be aware that the used image has cargo-contract installed
 
 fmt:
   stage:                           check
@@ -66,7 +68,7 @@ fmt:
   script:
     - cargo fmt --verbose --all -- --check
 
-#### stage:                        test
+#### stage:                        test (all features)
 
 test:
   stage:                           test
@@ -74,7 +76,7 @@ test:
   script:
     - cargo test --verbose --all-features --release
 
-#### stage:                        build
+#### stage:                        build (default features)
 
 build:
   stage:                           build
@@ -84,5 +86,5 @@ build:
     - schedules
     - master
   script:
-    - cargo build --verbose --all-features --release
+    - cargo build --verbose --release
     - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/.

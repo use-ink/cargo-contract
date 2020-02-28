@@ -17,9 +17,8 @@
 use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
-use futures::future::Future;
 use sp_core::H256;
-use subxt::{contracts, system::System, DefaultNodeRuntime};
+use subxt::contracts;
 
 use crate::{cmd::build, ExtrinsicOpts};
 
@@ -29,7 +28,7 @@ use crate::{cmd::build, ExtrinsicOpts};
 fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     let contract_wasm_path = match path {
         Some(path) => path.clone(),
-        None => build::collect_crate_metadata(path)?.dest_wasm,
+        None => build::collect_crate_metadata(&Default::default())?.dest_wasm,
     };
     log::info!("Contract code path: {}", contract_wasm_path.display());
     let mut data = Vec::new();
@@ -38,19 +37,6 @@ fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     file.read_to_end(&mut data)?;
 
     Ok(data)
-}
-
-/// Attempt to extract the code hash from the extrinsic result.
-///
-/// Returns an Error if the `Contracts::CodeStored` is not found or cannot be decoded.
-fn extract_code_hash<T: System>(extrinsic_result: subxt::ExtrinsicSuccess<T>) -> Result<H256> {
-    match extrinsic_result.find_event::<H256>("Contracts", "CodeStored") {
-        Some(Ok(hash)) => Ok(hash),
-        Some(Err(err)) => Err(anyhow::anyhow!("Failed to decode code hash: {}", err)),
-        None => Err(anyhow::anyhow!(
-            "Failed to find Contracts::CodeStored Event"
-        )),
-    }
 }
 
 /// Put contract code to a smart contract enabled substrate chain.
@@ -65,34 +51,17 @@ pub(crate) fn execute_deploy(
     extrinsic_opts: &ExtrinsicOpts,
     contract_wasm_path: Option<&PathBuf>,
 ) -> Result<H256> {
-    let signer = extrinsic_opts.signer()?;
     let gas_limit = extrinsic_opts.gas_limit.clone();
-
     let code = load_contract_code(contract_wasm_path)?;
-
-    let fut = subxt::ClientBuilder::<DefaultNodeRuntime>::new()
-        .set_url(extrinsic_opts.url.clone())
-        .build()
-        .and_then(|cli| cli.xt(signer, None))
-        .and_then(move |xt| xt.watch().submit(contracts::put_code(gas_limit, code)));
-
-    let mut rt = tokio::runtime::Runtime::new()?;
-    if let Ok(extrinsic_success) = rt.block_on(fut) {
-        log::debug!("Deploy success: {:?}", extrinsic_success);
-        extract_code_hash(extrinsic_success)
-    } else {
-        Err(anyhow::anyhow!("Deploy error"))
-    }
+    let put_code = contracts::put_code(gas_limit, code);
+    super::submit_extrinsic(extrinsic_opts, put_code, "Contracts", "CodeStored")
 }
 
 #[cfg(test)]
 mod tests {
     use std::{fs, io::Write};
 
-    use crate::{
-        cmd::{deploy::execute_deploy, tests::with_tmp_dir},
-        ExtrinsicOpts,
-    };
+    use crate::{cmd::deploy::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
     use assert_matches::assert_matches;
 
     const CONTRACT: &str = r#"
