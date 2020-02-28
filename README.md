@@ -8,6 +8,11 @@ A small CLI tool for helping setting up and managing WebAssembly smart contracts
 
 ## Installation
 
+### Prerequisites
+
+- **rust-src**: `rustup component add rust-src`
+- **wasm-opt**: https://github.com/WebAssembly/binaryen#tools
+
 `cargo install --git https://github.com/paritytech/cargo-contract cargo-contract --force`
 
 Use the --force to ensure you are updated to the most recent cargo-contract version.
@@ -34,6 +39,13 @@ SUBCOMMANDS:
     instantiate          Instantiate a deployed smart contract
     help                 Prints this message or the help of the given subcommand(s)
 ```
+
+## `build` requires the `nightly` toolchain
+
+`cargo contract build` must be run using the `nightly` toolchain. If you have 
+[`rustup`](https://github.com/rust-lang/rustup) installed, the simplest way to do so is `cargo +nightly contract build`.
+To avoid having to add `+nightly` you can also create a `rust-toolchain` file in your local directory containing 
+`nightly`. Read more about how to [specify the rustup toolchain](https://github.com/rust-lang/rustup#override-precedence).
 
 ## Features
 

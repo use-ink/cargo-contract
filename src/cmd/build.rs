@@ -17,12 +17,17 @@
 use std::{
     fs::metadata,
     io::{self, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
 };
 
+use crate::{
+    util,
+    workspace::{ManifestPath, Workspace},
+    Verbosity,
+};
 use anyhow::{Context, Result};
-use cargo_metadata::MetadataCommand;
+use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 
@@ -30,24 +35,25 @@ use parity_wasm::elements::{External, MemoryType, Module, Section};
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Relevant metadata obtained from Cargo.toml.
+#[derive(Debug)]
 pub struct CrateMetadata {
+    manifest_path: ManifestPath,
+    cargo_meta: cargo_metadata::Metadata,
     package_name: String,
+    root_package: Package,
     original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
 }
 
-/// Parses the contract manifest and returns relevant metadata.
-pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMetadata> {
-    let mut cmd = MetadataCommand::new();
-    if let Some(dir) = working_dir {
-        cmd.current_dir(dir);
+impl CrateMetadata {
+    pub fn target_dir(&self) -> &Path {
+        self.cargo_meta.target_directory.as_path()
     }
-    let metadata = cmd.exec()?;
+}
 
-    let root_package_id = metadata
-        .resolve
-        .and_then(|resolve| resolve.root)
-        .context("Cannot infer the root project id")?;
+/// Parses the contract manifest and returns relevant metadata.
+pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetadata> {
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(manifest_path)?;
 
     // Find the root package by id in the list of packages. It is logical error if the root
     // package is not found in the list.
@@ -55,7 +61,8 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
         .packages
         .iter()
         .find(|package| package.id == root_package_id)
-        .expect("The package is not found in the `cargo metadata` output");
+        .expect("The package is not found in the `cargo metadata` output")
+        .clone();
 
     // Normalize the package name.
     let package_name = root_package.name.replace("-", "_");
@@ -72,27 +79,71 @@ pub fn collect_crate_metadata(working_dir: Option<&PathBuf>) -> Result<CrateMeta
     dest_wasm.push(package_name.clone());
     dest_wasm.set_extension("wasm");
 
-    Ok(CrateMetadata {
+    let crate_metadata = CrateMetadata {
+        manifest_path: manifest_path.clone(),
+        cargo_meta: metadata,
+        root_package: root_package.clone(),
         package_name,
         original_wasm,
         dest_wasm,
-    })
+    };
+    Ok(crate_metadata)
 }
 
-/// Invokes `cargo build` in the specified directory, defaults to the current directory.
+/// Builds the project in the specified directory, defaults to the current directory.
 ///
-/// Currently it assumes that user wants to use `+nightly`.
-fn build_cargo_project(working_dir: Option<&PathBuf>) -> Result<()> {
-    super::exec_cargo(
-        "build",
-        &[
+/// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
+/// the resulting Wasm binary.
+fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>) -> Result<()> {
+    util::assert_channel()?;
+
+    // set RUSTFLAGS, read from environment var by cargo-xbuild
+    std::env::set_var(
+        "RUSTFLAGS",
+        "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
+    );
+
+    let verbosity = verbosity.map(|v| match v {
+        Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
+        Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
+    });
+
+    let xbuild = |manifest_path: &ManifestPath| {
+        let manifest_path = Some(manifest_path);
+        let target = Some("wasm32-unknown-unknown");
+        let target_dir = crate_metadata.target_dir();
+        let other_args = [
             "--no-default-features",
             "--release",
-            "--target=wasm32-unknown-unknown",
-            "--verbose",
-        ],
-        working_dir,
-    )
+            &format!("--target-dir={}", target_dir.to_string_lossy()),
+        ];
+        let args = xargo_lib::Args::new(target, manifest_path, verbosity, &other_args)
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Creating xargo args")?;
+
+        let config = xargo_lib::Config {
+            sysroot_path: target_dir.join("sysroot"),
+            memcpy: false,
+            panic_immediate_abort: true,
+        };
+
+        let exit_status = xargo_lib::build(args, "build", Some(config))
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .context("Building with xbuild")?;
+        if !exit_status.success() {
+            anyhow::bail!("xbuild failed with status {}", exit_status)
+        }
+        Ok(())
+    };
+
+    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+        .with_root_package_manifest(|manifest| {
+            manifest.with_removed_crate_type("rlib")?;
+            Ok(())
+        })?
+        .using_temp(xbuild)?;
+
+    Ok(())
 }
 
 /// Ensures the wasm memory import of a given module has the maximum number of pages.
@@ -145,7 +196,11 @@ fn strip_custom_sections(module: &mut Module) {
 /// Performs required post-processing steps on the wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // Deserialize wasm module from a file.
-    let mut module = parity_wasm::deserialize_file(&crate_metadata.original_wasm)?;
+    let mut module =
+        parity_wasm::deserialize_file(&crate_metadata.original_wasm).context(format!(
+            "Loading original wasm file '{}'",
+            crate_metadata.original_wasm.display()
+        ))?;
 
     // Perform optimization.
     //
@@ -198,10 +253,10 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
         anyhow::bail!("wasm-opt optimization failed");
     }
 
-    let original_size = metadata(&crate_metadata.dest_wasm)?.len() / 1000;
-    let optimized_size = metadata(&optimized)?.len() / 1000;
+    let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
+    let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
     println!(
-        " Original wasm size: {}K, Optimized: {}K",
+        " Original wasm size: {:.1}K, Optimized: {:.1}K",
         original_size, optimized_size
     );
 
@@ -213,19 +268,22 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute_build(
+    manifest_path: ManifestPath,
+    verbosity: Option<Verbosity>,
+) -> Result<String> {
     println!(
         " {} {}",
         "[1/4]".bold(),
         "Collecting crate metadata".bright_green().bold()
     );
-    let crate_metadata = collect_crate_metadata(working_dir)?;
+    let crate_metadata = collect_crate_metadata(&manifest_path)?;
     println!(
         " {} {}",
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(working_dir)?;
+    build_cargo_project(&crate_metadata, verbosity)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
@@ -248,13 +306,15 @@ pub(crate) fn execute_build(working_dir: Option<&PathBuf>) -> Result<String> {
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::cmd::{execute_new, tests::with_tmp_dir};
+    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath};
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
             execute_new("new_project", Some(path)).expect("new project creation failed");
-            super::execute_build(Some(&path.join("new_project"))).expect("build failed");
+            let manifest_path =
+                ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
+            super::execute_build(manifest_path, None).expect("build failed");
         });
     }
 }
