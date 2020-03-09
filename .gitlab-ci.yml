@@ -87,4 +87,6 @@ build:
     - master
   script:
     - cargo build --verbose --release
-    - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/.
+  after_script:
+    - mkdir -p ./artifacts/cargo-contract/
+    - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/
