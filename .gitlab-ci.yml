@@ -82,9 +82,9 @@ build:
   stage:                           build
   <<:                              *docker-env
   <<:                              *collect-artifacts
-  # only:
-  #   - schedules
-  #   - master
+  only:
+    - schedules
+    - master
   script:
     - cargo build --verbose --release
   after_script:
