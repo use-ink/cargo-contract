@@ -12,7 +12,7 @@ stages:
 
 variables:
   GIT_STRATEGY:                    fetch
-  GIT_DEPTH:                       "3"
+  GIT_DEPTH:                       3
   CARGO_HOME:                      "/ci-cache/${CI_PROJECT_NAME}/cargo/${CI_JOB_NAME}"
   CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   CI_SERVER_NAME:                  "GitLab CI"
@@ -40,6 +40,7 @@ variables:
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' | tee ${CARGO_HOME}/config
     - sccache -s
+    - git show
   only:
     - master
     - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
@@ -59,6 +60,7 @@ variables:
 
 
 #### stage:                        check
+# be aware that the used image has cargo-contract installed
 
 fmt:
   stage:                           check
@@ -72,15 +74,17 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - cargo test --verbose --all-features --release
+    - cargo test --verbose --all-features
 
 #### stage:                        build (default features)
 
 build:
   stage:                           build
   <<:                              *docker-env
+  <<:                              *collect-artifacts
   only:
     - schedules
     - master
   script:
     - cargo build --verbose --release
+    - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/.
