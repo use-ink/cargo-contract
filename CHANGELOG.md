@@ -1,3 +1,8 @@
+# Version 0.5.0 (2020-03-18)
+
+- Upgrades dependencies [#45](https://github.com/paritytech/cargo-contract/pull/45)
+- Update template to ink! 2.0 dependencies [#47](https://github.com/paritytech/cargo-contract/pull/47)
+
 # Version 0.4.1 (2020-02-26)
 
 - Fix: fail the whole build process if the contract build fails.
