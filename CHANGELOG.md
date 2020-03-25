@@ -1,3 +1,7 @@
+# Version 0.6.0 (2020-03-25)
+
+- Use `subxt` release from [crates.io](https://crates.io/crates/substrate-subxt)
+
 # Version 0.5.0 (2020-03-18)
 
 - Upgrades dependencies [#45](https://github.com/paritytech/cargo-contract/pull/45)
