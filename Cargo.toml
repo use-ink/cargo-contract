@@ -12,7 +12,7 @@ documentation = "https://substrate.dev/substrate-contracts-workshop/#/"
 homepage = "https://www.parity.io/"
 description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-categories = ["cli", "tool"]
+categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "template"]
 
 [dependencies]
