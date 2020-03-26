@@ -15,36 +15,58 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    env,
     fs::File,
     io::{prelude::*, Write},
     iter::Iterator,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use anyhow::Result;
 use walkdir::WalkDir;
-use zip::{result::ZipError, write::FileOptions, CompressionMethod, ZipWriter};
+use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
 
 fn main() {
-    let src_dir = PathBuf::from("./template");
-    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR should be set by cargo");
-    let dst_file = Path::new(&out_dir).join("template.zip");
+    let manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR should be set by cargo")
+        .into();
+    let template_dir = manifest_dir.join("template");
+    let out_dir: PathBuf = env::var("OUT_DIR")
+        .expect("OUT_DIR should be set by cargo")
+        .into();
+    let dst_file = out_dir.join("template.zip");
+    println!(
+        "Creating template zip: template_dir '{}', destination archive '{}'",
+        template_dir.display(),
+        dst_file.display()
+    );
 
-    match zip_dir(&src_dir, &dst_file, CompressionMethod::Stored) {
-        Ok(_) => println!(
-            "done: {} written to {}",
-            src_dir.display(),
-            dst_file.display()
-        ),
-        Err(e) => eprintln!("Error: {:?}", e),
-    };
+    std::process::exit(
+        match zip_dir(&template_dir, &dst_file, CompressionMethod::Stored) {
+            Ok(_) => {
+                println!(
+                    "done: {} written to {}",
+                    template_dir.display(),
+                    dst_file.display()
+                );
+                0
+            }
+            Err(e) => {
+                eprintln!("Error: {:?}", e);
+                1
+            }
+        },
+    );
 }
 
 fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> Result<()> {
+    if !src_dir.exists() {
+        anyhow::bail!("src_dir '{}' does not exist", src_dir.display());
+    }
     if !src_dir.is_dir() {
-        return Err(ZipError::FileNotFound.into());
+        anyhow::bail!("src_dir '{}' is not a directory", src_dir.display());
     }
 
     let file = File::create(dst_file)?;
