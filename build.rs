@@ -15,36 +15,61 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    env,
+    ffi::OsStr,
     fs::File,
     io::{prelude::*, Write},
     iter::Iterator,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use anyhow::Result;
 use walkdir::WalkDir;
-use zip::{result::ZipError, write::FileOptions, CompressionMethod, ZipWriter};
+use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
 
 fn main() {
-    let src_dir = PathBuf::from("./template");
-    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR should be set by cargo");
-    let dst_file = Path::new(&out_dir).join("template.zip");
+    let manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR should be set by cargo")
+        .into();
+    let out_dir: PathBuf = env::var("OUT_DIR")
+        .expect("OUT_DIR should be set by cargo")
+        .into();
 
-    match zip_dir(&src_dir, &dst_file, CompressionMethod::Stored) {
-        Ok(_) => println!(
-            "done: {} written to {}",
-            src_dir.display(),
-            dst_file.display()
-        ),
-        Err(e) => eprintln!("Error: {:?}", e),
-    };
+    let template_dir = manifest_dir.join("template");
+    let dst_file = out_dir.join("template.zip");
+
+    println!(
+        "Creating template zip: template_dir '{}', destination archive '{}'",
+        template_dir.display(),
+        dst_file.display()
+    );
+
+    std::process::exit(
+        match zip_dir(&template_dir, &dst_file, CompressionMethod::Stored) {
+            Ok(_) => {
+                println!(
+                    "done: {} written to {}",
+                    template_dir.display(),
+                    dst_file.display()
+                );
+                0
+            }
+            Err(e) => {
+                eprintln!("Error: {:?}", e);
+                1
+            }
+        },
+    );
 }
 
 fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> Result<()> {
+    if !src_dir.exists() {
+        anyhow::bail!("src_dir '{}' does not exist", src_dir.display());
+    }
     if !src_dir.is_dir() {
-        return Err(ZipError::FileNotFound.into());
+        anyhow::bail!("src_dir '{}' is not a directory", src_dir.display());
     }
 
     let file = File::create(dst_file)?;
@@ -60,17 +85,22 @@ fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> 
     let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
-        let name = path.strip_prefix(&src_dir)?;
+        let mut name = path.strip_prefix(&src_dir)?.to_path_buf();
+
+        // Cargo.toml files cause the folder to excluded from `cargo package` so need to be renamed
+        if name.file_name() == Some(OsStr::new("_Cargo.toml")) {
+            name.set_file_name("Cargo.toml");
+        }
 
         if path.is_file() {
-            zip.start_file_from_path(name, options)?;
+            zip.start_file_from_path(name.as_path(), options)?;
             let mut f = File::open(path)?;
 
             f.read_to_end(&mut buffer)?;
             zip.write_all(&*buffer)?;
             buffer.clear();
         } else if name.as_os_str().len() != 0 {
-            zip.add_directory_from_path(name, options)?;
+            zip.add_directory_from_path(name.as_path(), options)?;
         }
     }
     zip.finish()?;
