@@ -33,11 +33,13 @@ fn main() {
     let manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR")
         .expect("CARGO_MANIFEST_DIR should be set by cargo")
         .into();
-    let template_dir = manifest_dir.join("template");
     let out_dir: PathBuf = env::var("OUT_DIR")
         .expect("OUT_DIR should be set by cargo")
         .into();
+
+    let template_dir = manifest_dir.join("template");
     let dst_file = out_dir.join("template.zip");
+
     println!(
         "Creating template zip: template_dir '{}', destination archive '{}'",
         template_dir.display(),
