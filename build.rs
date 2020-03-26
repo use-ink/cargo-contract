@@ -16,6 +16,7 @@
 
 use std::{
     env,
+    ffi::OsStr,
     fs::File,
     io::{prelude::*, Write},
     iter::Iterator,
@@ -82,17 +83,22 @@ fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> 
     let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
-        let name = path.strip_prefix(&src_dir)?;
+        let mut name = path.strip_prefix(&src_dir)?.to_path_buf();
+
+        // Cargo.toml files cause the folder to excluded from `cargo package` so need to be renamed
+        if name.file_name() == Some(OsStr::new("_Cargo.toml")) {
+            name.set_file_name("Cargo.toml");
+        }
 
         if path.is_file() {
-            zip.start_file_from_path(name, options)?;
+            zip.start_file_from_path(name.as_path(), options)?;
             let mut f = File::open(path)?;
 
             f.read_to_end(&mut buffer)?;
             zip.write_all(&*buffer)?;
             buffer.clear();
         } else if name.as_os_str().len() != 0 {
-            zip.add_directory_from_path(name, options)?;
+            zip.add_directory_from_path(name.as_path(), options)?;
         }
     }
     zip.finish()?;

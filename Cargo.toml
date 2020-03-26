@@ -13,6 +13,7 @@ homepage = "https://www.parity.io/"
 description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["cli", "tool"]
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "template"]
 
 [dependencies]
 env_logger = "0.7.1"
@@ -42,7 +43,7 @@ hex = { version = "0.4.0", optional = true }
 url = { version = "2.1.1", optional = true }
 
 [build-dependencies]
-anyhow = "1.0.26"
+anyhow = "1.0"
 zip = { version = "0.5.4", default-features = false }
 walkdir = "2.3.1"
 
