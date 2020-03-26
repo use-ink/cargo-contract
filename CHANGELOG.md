@@ -1,5 +1,6 @@
 # Version 0.6.0 (2020-03-25)
 
+- First release to crates.io
 - Use `subxt` release from [crates.io](https://crates.io/crates/substrate-subxt)
 
 # Version 0.5.0 (2020-03-18)
