@@ -94,7 +94,14 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 ///
 /// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
 /// the resulting Wasm binary.
-fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>) -> Result<()> {
+///
+/// # Cargo.toml optimizations
+///
+/// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
+/// the final Wasm binary size.
+///
+/// To disable this and use the `Cargo.toml` as is then set `original_manifest` to true.
+fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>, original_manifest: bool) -> Result<()> {
     util::assert_channel()?;
 
     // set RUSTFLAGS, read from environment var by cargo-xbuild
@@ -136,12 +143,16 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosi
         Ok(())
     };
 
-    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
-        .with_root_package_manifest(|manifest| {
-            manifest.with_removed_crate_type("rlib")?;
-            Ok(())
-        })?
-        .using_temp(xbuild)?;
+    if original_manifest {
+        xbuild(&crate_metadata.manifest_path)?;
+    } else {
+        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+            .with_root_package_manifest(|manifest| {
+                manifest.with_removed_crate_type("rlib")?;
+                Ok(())
+            })?
+            .using_temp(xbuild)?;
+    }
 
     Ok(())
 }
@@ -271,6 +282,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 pub(crate) fn execute_build(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
+    original_manifest: bool,
 ) -> Result<String> {
     println!(
         " {} {}",
@@ -283,7 +295,7 @@ pub(crate) fn execute_build(
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity)?;
+    build_cargo_project(&crate_metadata, verbosity, original_manifest)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
@@ -314,7 +326,7 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None).expect("build failed");
+            super::execute_build(manifest_path, None, false).expect("build failed");
         });
     }
 }
