@@ -101,7 +101,11 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 /// the final Wasm binary size.
 ///
 /// To disable this and use the `Cargo.toml` as is then set `original_manifest` to true.
-fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>, original_manifest: bool) -> Result<()> {
+fn build_cargo_project(
+    crate_metadata: &CrateMetadata,
+    verbosity: Option<Verbosity>,
+    original_manifest: bool,
+) -> Result<()> {
     util::assert_channel()?;
 
     // set RUSTFLAGS, read from environment var by cargo-xbuild

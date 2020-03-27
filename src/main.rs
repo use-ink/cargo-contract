@@ -200,9 +200,14 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
-        Command::Build { verbosity, original_manifest } => {
-            cmd::execute_build(Default::default(), verbosity.try_into()?, *original_manifest)
-        }
+        Command::Build {
+            verbosity,
+            original_manifest,
+        } => cmd::execute_build(
+            Default::default(),
+            verbosity.try_into()?,
+            *original_manifest,
+        ),
         Command::GenerateMetadata { verbosity } => {
             cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?)
         }
