@@ -137,7 +137,9 @@ impl Manifest {
 
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
-        let profile = self.toml.entry("profile")
+        let profile = self
+            .toml
+            .entry("profile")
             .or_insert(value::Value::Table(Default::default()));
         let release = profile
             .as_table_mut()
