@@ -320,9 +320,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-xbuild"
-version = "0.5.28"
+version = "0.5.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8cf1fcfab5ef1b3aeacb5bc16c248ecc4ef9e3e81ed96087e3801b81b305ca0"
+checksum = "c6c11ec6bf11f95578c3698b9dab2d605df796e32886d65431b87a434691b8c5"
 dependencies = [
  "cargo_metadata",
  "error-chain",
