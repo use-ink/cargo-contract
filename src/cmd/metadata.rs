@@ -59,7 +59,9 @@ pub(crate) fn execute_generate_metadata(
 
     Workspace::new(&metadata, &root_package_id)?
         .with_root_package_manifest(|manifest| {
-            manifest.with_added_crate_type("rlib")?;
+            manifest
+                .with_added_crate_type("rlib")?
+                .with_profile_release_lto(false)?;
             Ok(())
         })?
         .using_temp(generate_metadata)?;

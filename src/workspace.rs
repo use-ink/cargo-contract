@@ -135,6 +135,24 @@ impl Manifest {
         Ok(self)
     }
 
+    /// Set `[profile.release]` lto flag
+    pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
+        let profile = self.toml.entry("profile")
+            .or_insert(value::Value::Table(Default::default()));
+        let release = profile
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("profile should be a table"))?
+            .entry("release")
+            .or_insert(value::Value::Table(Default::default()));
+        let lto = release
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("release should be a table"))?
+            .entry("lto")
+            .or_insert(enabled.into());
+        *lto = enabled.into();
+        Ok(self)
+    }
+
     /// Remove a value from the `[lib] crate-types = []` section
     ///
     /// If the value does not exist, does nothing.
