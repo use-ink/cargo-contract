@@ -138,7 +138,9 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosi
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {
-            manifest.with_removed_crate_type("rlib")?;
+            manifest
+                .with_removed_crate_type("rlib")?
+                .with_profile_release_lto(true)?;
             Ok(())
         })?
         .using_temp(xbuild)?;

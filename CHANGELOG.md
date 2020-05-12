@@ -1,3 +1,7 @@
+# Version 0.6.1 (2020-05-12)
+
+- Fix LTO regressions in nightly toolchain [#52](https://github.com/paritytech/cargo-contract/pull/52)
+
 # Version 0.6.0 (2020-03-25)
 
 - First release to crates.io
