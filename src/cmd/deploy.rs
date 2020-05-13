@@ -18,7 +18,7 @@ use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
 use sp_core::H256;
-use subxt::{contracts::*, DefaultNodeRuntime, ClientBuilder};
+use subxt::{contracts::*, ClientBuilder, DefaultNodeRuntime};
 
 use crate::{cmd::build, ExtrinsicOpts};
 

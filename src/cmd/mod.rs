@@ -26,6 +26,4 @@ pub(crate) use self::{
     build::execute_build, metadata::execute_generate_metadata, new::execute_new,
 };
 #[cfg(feature = "extrinsics")]
-pub(crate) use self::{
-    deploy::execute_deploy, instantiate::execute_instantiate,
-};
+pub(crate) use self::{deploy::execute_deploy, instantiate::execute_instantiate};

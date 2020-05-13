@@ -41,7 +41,8 @@ pub(crate) fn execute_instantiate(
 
         let events = xt
             .watch()
-            .instantiate(endowment, gas_limit, &code_hash, &data.0).await?;
+            .instantiate(endowment, gas_limit, &code_hash, &data.0)
+            .await?;
         let instantiated = events
             .instantiated()?
             .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;

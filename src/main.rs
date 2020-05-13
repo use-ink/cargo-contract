@@ -220,8 +220,13 @@ fn exec(cmd: Command) -> Result<String> {
             gas_limit,
             data,
         } => {
-            let contract_account =
-                cmd::execute_instantiate(extrinsic_opts, *endowment, *gas_limit, *code_hash, data.clone())?;
+            let contract_account = cmd::execute_instantiate(
+                extrinsic_opts,
+                *endowment,
+                *gas_limit,
+                *code_hash,
+                data.clone(),
+            )?;
             Ok(format!("Contract account: {:?}", contract_account))
         }
     }
