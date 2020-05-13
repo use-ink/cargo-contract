@@ -18,7 +18,7 @@ use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
 use sp_core::H256;
-use subxt::contracts;
+use subxt::{contracts::*, ClientBuilder, DefaultNodeRuntime};
 
 use crate::{cmd::build, ExtrinsicOpts};
 
@@ -51,10 +51,23 @@ pub(crate) fn execute_deploy(
     extrinsic_opts: &ExtrinsicOpts,
     contract_wasm_path: Option<&PathBuf>,
 ) -> Result<H256> {
-    let gas_limit = extrinsic_opts.gas_limit.clone();
     let code = load_contract_code(contract_wasm_path)?;
-    let put_code = contracts::put_code(gas_limit, code);
-    super::submit_extrinsic(extrinsic_opts, put_code, "Contracts", "CodeStored")
+
+    async_std::task::block_on(async move {
+        let cli = ClientBuilder::<DefaultNodeRuntime>::new()
+            .set_url(&extrinsic_opts.url.to_string())
+            .build()
+            .await?;
+        let signer = extrinsic_opts.signer()?;
+        let xt = cli.xt(signer, None).await?;
+
+        let events = xt.watch().put_code(&code).await?;
+        let code_stored = events
+            .code_stored()?
+            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+
+        Ok(code_stored.code_hash)
+    })
 }
 
 #[cfg(test)]
@@ -86,7 +99,6 @@ mod tests {
                 url,
                 suri: "//Alice".into(),
                 password: None,
-                gas_limit: 500_000,
             };
             let result = execute_deploy(&extrinsic_opts, Some(&wasm_path));
 

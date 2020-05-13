@@ -76,9 +76,6 @@ pub(crate) struct ExtrinsicOpts {
     /// Password for the secret key
     #[structopt(name = "password", long, short)]
     password: Option<String>,
-    /// Maximum amount of gas to be used for this command
-    #[structopt(name = "gas", long, default_value = "500000")]
-    gas_limit: u64,
 }
 
 #[cfg(feature = "extrinsics")]
@@ -160,6 +157,9 @@ enum Command {
         /// Transfers an initial balance to the instantiated contract
         #[structopt(name = "endowment", long, default_value = "0")]
         endowment: u128,
+        /// Maximum amount of gas to be used for this command
+        #[structopt(name = "gas", long, default_value = "500000000")]
+        gas_limit: u64,
         /// The hash of the smart contract code already uploaded to the chain
         #[structopt(long, parse(try_from_str = parse_code_hash))]
         code_hash: H256,
@@ -217,10 +217,16 @@ fn exec(cmd: Command) -> Result<String> {
             extrinsic_opts,
             endowment,
             code_hash,
+            gas_limit,
             data,
         } => {
-            let contract_account =
-                cmd::execute_instantiate(extrinsic_opts, *endowment, *code_hash, data.clone())?;
+            let contract_account = cmd::execute_instantiate(
+                extrinsic_opts,
+                *endowment,
+                *gas_limit,
+                *code_hash,
+                data.clone(),
+            )?;
             Ok(format!("Contract account: {:?}", contract_account))
         }
     }

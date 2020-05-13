@@ -15,7 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use subxt::{balances::Balances, contracts, system::System, DefaultNodeRuntime};
+use subxt::{balances::Balances, contracts::*, system::System, ClientBuilder, DefaultNodeRuntime};
 
 use crate::{ExtrinsicOpts, HexData};
 
@@ -27,13 +27,28 @@ use crate::{ExtrinsicOpts, HexData};
 pub(crate) fn execute_instantiate(
     extrinsic_opts: &ExtrinsicOpts,
     endowment: <DefaultNodeRuntime as Balances>::Balance,
+    gas_limit: u64,
     code_hash: <DefaultNodeRuntime as System>::Hash,
     data: HexData,
 ) -> Result<<DefaultNodeRuntime as System>::AccountId> {
-    let gas_limit = extrinsic_opts.gas_limit.clone();
-    let instantiate =
-        contracts::instantiate::<DefaultNodeRuntime>(endowment, gas_limit, code_hash, data.0);
-    super::submit_extrinsic(extrinsic_opts, instantiate, "Contracts", "Instantiated")
+    async_std::task::block_on(async move {
+        let cli = ClientBuilder::<DefaultNodeRuntime>::new()
+            .set_url(&extrinsic_opts.url.to_string())
+            .build()
+            .await?;
+        let signer = extrinsic_opts.signer()?;
+        let xt = cli.xt(signer, None).await?;
+
+        let events = xt
+            .watch()
+            .instantiate(endowment, gas_limit, &code_hash, &data.0)
+            .await?;
+        let instantiated = events
+            .instantiated()?
+            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+
+        Ok(instantiated.contract)
+    })
 }
 
 #[cfg(test)]
@@ -65,14 +80,15 @@ mod tests {
                 url,
                 suri: "//Alice".into(),
                 password: None,
-                gas_limit: 500_000,
             };
             let code_hash =
                 execute_deploy(&extrinsic_opts, Some(&wasm_path)).expect("Deploy should succeed");
 
+            let gas_limit = 500_000_000;
             let result = super::execute_instantiate(
                 &extrinsic_opts,
                 100000000000000,
+                gas_limit,
                 code_hash,
                 HexData::default(),
             );
