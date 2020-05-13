@@ -18,8 +18,6 @@ mod build;
 #[cfg(feature = "extrinsics")]
 mod deploy;
 #[cfg(feature = "extrinsics")]
-mod extrinsics;
-#[cfg(feature = "extrinsics")]
 mod instantiate;
 mod metadata;
 mod new;
@@ -29,5 +27,5 @@ pub(crate) use self::{
 };
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::{
-    deploy::execute_deploy, extrinsics::submit_extrinsic, instantiate::execute_instantiate,
+    deploy::execute_deploy, instantiate::execute_instantiate,
 };
