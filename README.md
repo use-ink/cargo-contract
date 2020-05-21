@@ -8,14 +8,13 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
 
 ## Installation
 
-### Prerequisites
+- **Prerequisites**
 
-- **rust-src**: `rustup component add rust-src`
-- **wasm-opt**: https://github.com/WebAssembly/binaryen#tools
+  - **rust-src**: `rustup component add rust-src`
+  - **wasm-opt**: https://github.com/WebAssembly/binaryen#tools
 
-`cargo install --git https://github.com/paritytech/cargo-contract cargo-contract --force`
-
-Use the --force to ensure you are updated to the most recent cargo-contract version.
+- **Install latest version from [crates.io](https://crates.io/crates/cargo-contract)**
+  - `cargo install cargo-contract`
 
 ## Usage
 
