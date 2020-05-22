@@ -24,7 +24,7 @@ use std::{
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
-    Verbosity,
+    UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
@@ -94,7 +94,18 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 ///
 /// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
 /// the resulting Wasm binary.
-fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosity>) -> Result<()> {
+///
+/// # Cargo.toml optimizations
+///
+/// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
+/// the final Wasm binary size.
+///
+/// To disable this and use the `Cargo.toml` as is then pass the `-Z original_manifest` flag.
+fn build_cargo_project(
+    crate_metadata: &CrateMetadata,
+    verbosity: Option<Verbosity>,
+    unstable_options: UnstableFlags,
+) -> Result<()> {
     util::assert_channel()?;
 
     // set RUSTFLAGS, read from environment var by cargo-xbuild
@@ -136,14 +147,24 @@ fn build_cargo_project(crate_metadata: &CrateMetadata, verbosity: Option<Verbosi
         Ok(())
     };
 
-    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
-        .with_root_package_manifest(|manifest| {
-            manifest
-                .with_removed_crate_type("rlib")?
-                .with_profile_release_lto(true)?;
-            Ok(())
-        })?
-        .using_temp(xbuild)?;
+    if unstable_options.original_manifest {
+        println!(
+            "{} {}",
+            "warning:".yellow().bold(),
+            "with 'original-manifest' enabled, the contract binary may not be of optimal size."
+                .bold()
+        );
+        xbuild(&crate_metadata.manifest_path)?;
+    } else {
+        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_removed_crate_type("rlib")?
+                    .with_profile_release_lto(true)?;
+                Ok(())
+            })?
+            .using_temp(xbuild)?;
+    }
 
     Ok(())
 }
@@ -273,6 +294,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 pub(crate) fn execute_build(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
+    unstable_options: UnstableFlags,
 ) -> Result<String> {
     println!(
         " {} {}",
@@ -285,7 +307,7 @@ pub(crate) fn execute_build(
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity)?;
+    build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
@@ -308,7 +330,9 @@ pub(crate) fn execute_build(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath};
+    use crate::{
+        cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
+    };
 
     #[test]
     fn build_template() {
@@ -316,7 +340,8 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None).expect("build failed");
+            super::execute_build(manifest_path, None, UnstableFlags::default())
+                .expect("build failed");
         });
     }
 }

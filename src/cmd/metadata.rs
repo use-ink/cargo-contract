@@ -17,7 +17,7 @@
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
-    Verbosity,
+    UnstableFlags, Verbosity,
 };
 use anyhow::Result;
 
@@ -27,44 +27,49 @@ const METADATA_FILE: &str = "metadata.json";
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_generate_metadata(
-    manifest_path: ManifestPath,
+    original_manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
+    unstable_options: UnstableFlags,
 ) -> Result<String> {
     util::assert_channel()?;
     println!("  Generating metadata");
 
-    let (metadata, root_package_id) = crate::util::get_cargo_metadata(&manifest_path)?;
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(&original_manifest_path)?;
 
     let out_path = metadata.target_directory.join(METADATA_FILE);
     let out_path_display = format!("{}", out_path.display());
 
     let target_dir = metadata.target_directory.clone();
 
-    let generate_metadata = move |tmp_manifest_path: &ManifestPath| -> Result<()> {
+    let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
         util::invoke_cargo(
             "run",
             &[
                 "--package",
                 "abi-gen",
-                &tmp_manifest_path.cargo_arg(),
+                &manifest_path.cargo_arg(),
                 &target_dir_arg,
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            manifest_path.directory(),
+            original_manifest_path.directory(),
             verbosity,
         )
     };
 
-    Workspace::new(&metadata, &root_package_id)?
-        .with_root_package_manifest(|manifest| {
-            manifest
-                .with_added_crate_type("rlib")?
-                .with_profile_release_lto(false)?;
-            Ok(())
-        })?
-        .using_temp(generate_metadata)?;
+    if unstable_options.original_manifest {
+        generate_metadata(&original_manifest_path)?;
+    } else {
+        Workspace::new(&metadata, &root_package_id)?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_added_crate_type("rlib")?
+                    .with_profile_release_lto(false)?;
+                Ok(())
+            })?
+            .using_temp(generate_metadata)?;
+    }
 
     Ok(format!(
         "Your metadata file is ready.\nYou can find it here:\n{}",
@@ -79,6 +84,7 @@ mod tests {
         cmd::{execute_generate_metadata, execute_new},
         util::tests::with_tmp_dir,
         workspace::ManifestPath,
+        UnstableFlags,
     };
 
     #[test]
@@ -88,8 +94,8 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let message =
-                execute_generate_metadata(manifest_path, None).expect("generate metadata failed");
+            let message = execute_generate_metadata(manifest_path, None, UnstableFlags::default())
+                .expect("generate metadata failed");
             println!("{}", message);
 
             let mut abi_file = working_dir;
