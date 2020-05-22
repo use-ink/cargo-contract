@@ -27,21 +27,21 @@ const METADATA_FILE: &str = "metadata.json";
 ///
 /// It does so by invoking build by cargo and then post processing the final binary.
 pub(crate) fn execute_generate_metadata(
-    manifest_path: ManifestPath,
+    original_manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
 ) -> Result<String> {
     util::assert_channel()?;
     println!("  Generating metadata");
 
-    let (metadata, root_package_id) = crate::util::get_cargo_metadata(&manifest_path)?;
+    let (metadata, root_package_id) = crate::util::get_cargo_metadata(&original_manifest_path)?;
 
     let out_path = metadata.target_directory.join(METADATA_FILE);
     let out_path_display = format!("{}", out_path.display());
 
     let target_dir = metadata.target_directory.clone();
 
-    let generate_metadata = move |manifest_path: &ManifestPath| -> Result<()> {
+    let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
         util::invoke_cargo(
             "run",
@@ -53,13 +53,13 @@ pub(crate) fn execute_generate_metadata(
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            manifest_path.directory(),
+            original_manifest_path.directory(),
             verbosity,
         )
     };
 
     if unstable_options.original_manifest {
-        generate_metadata(&manifest_path)?;
+        generate_metadata(&original_manifest_path)?;
     } else {
         Workspace::new(&metadata, &root_package_id)?
             .with_root_package_manifest(|manifest| {
