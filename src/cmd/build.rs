@@ -151,7 +151,8 @@ fn build_cargo_project(
         println!(
             "{} {}",
             "warning:".yellow().bold(),
-            "with 'original-manifest' enabled, the contract binary may not be of optimal size.".bold()
+            "with 'original-manifest' enabled, the contract binary may not be of optimal size."
+                .bold()
         );
         xbuild(&crate_metadata.manifest_path)?;
     } else {
