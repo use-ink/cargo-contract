@@ -113,6 +113,36 @@ impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
 }
 
 #[derive(Debug, StructOpt)]
+struct UnstableOptions {
+    /// Use the original manifest (Cargo.toml), do not modify for build optimizations
+    #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
+    options: Vec<String>,
+}
+
+#[derive(Default)]
+struct UnstableFlags {
+    original_manifest: bool,
+}
+
+impl TryFrom<&UnstableOptions> for UnstableFlags {
+    type Error = Error;
+
+    fn try_from(value: &UnstableOptions) -> Result<Self, Self::Error> {
+        let valid_flags = ["original-manifest"];
+        let invalid_flags = value.options
+            .iter()
+            .filter(|o| !valid_flags.contains(&o.as_str()))
+            .collect::<Vec<_>>();
+        if !invalid_flags.is_empty() {
+            anyhow::bail!("Unknown unstable-options flag(s): {:?}", invalid_flags)
+        }
+        Ok(UnstableFlags {
+            original_manifest: value.options.contains(&"original-manifest".to_owned())
+        })
+    }
+}
+
+#[derive(Debug, StructOpt)]
 enum Command {
     /// Setup and create a new smart contract project
     #[structopt(name = "new")]
@@ -128,15 +158,16 @@ enum Command {
     Build {
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
-        /// Use the original manifest (Cargo.toml), do not modify for build optimizations
-        #[structopt(long)]
-        original_manifest: bool,
+        #[structopt(flatten)]
+        unstable_options: UnstableOptions,
     },
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
+        #[structopt(flatten)]
+        unstable_options: UnstableOptions,
     },
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
@@ -202,14 +233,14 @@ fn exec(cmd: Command) -> Result<String> {
         Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
         Command::Build {
             verbosity,
-            original_manifest,
+            unstable_options,
         } => cmd::execute_build(
             Default::default(),
             verbosity.try_into()?,
-            *original_manifest,
+            unstable_options.try_into()?,
         ),
-        Command::GenerateMetadata { verbosity } => {
-            cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?)
+        Command::GenerateMetadata { verbosity, unstable_options } => {
+            cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?, unstable_options.try_into()?)
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]

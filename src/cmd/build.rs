@@ -21,11 +21,7 @@ use std::{
     process::Command,
 };
 
-use crate::{
-    util,
-    workspace::{ManifestPath, Workspace},
-    Verbosity,
-};
+use crate::{util, workspace::{ManifestPath, Workspace}, Verbosity, UnstableFlags};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
@@ -104,7 +100,7 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
-    original_manifest: bool,
+    unstable_options: UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
 
@@ -147,7 +143,7 @@ fn build_cargo_project(
         Ok(())
     };
 
-    if original_manifest {
+    if unstable_options.original_manifest {
         xbuild(&crate_metadata.manifest_path)?;
     } else {
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
@@ -288,7 +284,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 pub(crate) fn execute_build(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
-    original_manifest: bool,
+    unstable_options: UnstableFlags,
 ) -> Result<String> {
     println!(
         " {} {}",
@@ -301,7 +297,7 @@ pub(crate) fn execute_build(
         "[2/4]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity, original_manifest)?;
+    build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
     println!(
         " {} {}",
         "[3/4]".bold(),
@@ -324,7 +320,7 @@ pub(crate) fn execute_build(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath};
+    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
@@ -332,7 +328,7 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None, false).expect("build failed");
+            super::execute_build(manifest_path, None, UnstableFlags::default()).expect("build failed");
         });
     }
 }
