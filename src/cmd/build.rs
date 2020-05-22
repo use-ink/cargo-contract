@@ -148,6 +148,11 @@ fn build_cargo_project(
     };
 
     if unstable_options.original_manifest {
+        println!(
+            "{} {}",
+            "warning:".yellow().bold(),
+            "with 'original-manifest' enabled, the contract binary may not be of optimal size.".bold()
+        );
         xbuild(&crate_metadata.manifest_path)?;
     } else {
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?

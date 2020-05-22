@@ -135,7 +135,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
             .filter(|o| !valid_flags.contains(&o.as_str()))
             .collect::<Vec<_>>();
         if !invalid_flags.is_empty() {
-            anyhow::bail!("Unknown unstable-options flag(s): {:?}", invalid_flags)
+            anyhow::bail!("Unknown unstable-options {:?}", invalid_flags)
         }
         Ok(UnstableFlags {
             original_manifest: value.options.contains(&"original-manifest".to_owned()),
