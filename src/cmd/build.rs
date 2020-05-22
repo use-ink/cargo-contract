@@ -21,7 +21,11 @@ use std::{
     process::Command,
 };
 
-use crate::{util, workspace::{ManifestPath, Workspace}, Verbosity, UnstableFlags};
+use crate::{
+    util,
+    workspace::{ManifestPath, Workspace},
+    UnstableFlags, Verbosity,
+};
 use anyhow::{Context, Result};
 use cargo_metadata::Package;
 use colored::Colorize;
@@ -320,7 +324,9 @@ pub(crate) fn execute_build(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
+    use crate::{
+        cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
+    };
 
     #[test]
     fn build_template() {
@@ -328,7 +334,8 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None, UnstableFlags::default()).expect("build failed");
+            super::execute_build(manifest_path, None, UnstableFlags::default())
+                .expect("build failed");
         });
     }
 }

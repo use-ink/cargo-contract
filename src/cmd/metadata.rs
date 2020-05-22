@@ -17,8 +17,7 @@
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
-    Verbosity,
-    UnstableFlags,
+    UnstableFlags, Verbosity,
 };
 use anyhow::Result;
 
@@ -95,8 +94,8 @@ mod tests {
             execute_new("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let message =
-                execute_generate_metadata(manifest_path, None, UnstableFlags::default()).expect("generate metadata failed");
+            let message = execute_generate_metadata(manifest_path, None, UnstableFlags::default())
+                .expect("generate metadata failed");
             println!("{}", message);
 
             let mut abi_file = working_dir;

@@ -129,7 +129,8 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 
     fn try_from(value: &UnstableOptions) -> Result<Self, Self::Error> {
         let valid_flags = ["original-manifest"];
-        let invalid_flags = value.options
+        let invalid_flags = value
+            .options
             .iter()
             .filter(|o| !valid_flags.contains(&o.as_str()))
             .collect::<Vec<_>>();
@@ -137,7 +138,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
             anyhow::bail!("Unknown unstable-options flag(s): {:?}", invalid_flags)
         }
         Ok(UnstableFlags {
-            original_manifest: value.options.contains(&"original-manifest".to_owned())
+            original_manifest: value.options.contains(&"original-manifest".to_owned()),
         })
     }
 }
@@ -239,9 +240,14 @@ fn exec(cmd: Command) -> Result<String> {
             verbosity.try_into()?,
             unstable_options.try_into()?,
         ),
-        Command::GenerateMetadata { verbosity, unstable_options } => {
-            cmd::execute_generate_metadata(Default::default(), verbosity.try_into()?, unstable_options.try_into()?)
-        }
+        Command::GenerateMetadata {
+            verbosity,
+            unstable_options,
+        } => cmd::execute_generate_metadata(
+            Default::default(),
+            verbosity.try_into()?,
+            unstable_options.try_into()?,
+        ),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
