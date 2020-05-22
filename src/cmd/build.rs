@@ -100,7 +100,7 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 /// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
 /// the final Wasm binary size.
 ///
-/// To disable this and use the `Cargo.toml` as is then set `original_manifest` to true.
+/// To disable this and use the `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
