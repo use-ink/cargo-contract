@@ -92,7 +92,7 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    /// Create new CargoToml for the given manifest path.
+    /// Create new Manifest for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
     pub fn new<P>(path: P) -> Result<Manifest>
@@ -137,6 +137,27 @@ impl Manifest {
 
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
+        let lto = self.get_profile_release_table_mut()?
+            .entry("lto")
+            .or_insert(enabled.into());
+        *lto = enabled.into();
+        Ok(self)
+    }
+
+    /// Set preferred defaults for the `[profile.release]` section
+    ///
+    /// # Note
+    ///
+    /// Existing user defined settings for this section are preserved. Only if a setting is not
+    /// defined is the preferred default set.
+    pub fn with_profile_release_defaults(&mut self, defaults: Profile) -> Result<&mut Self> {
+        let profile_release = self.get_profile_release_table_mut()?;
+        defaults.merge(profile_release);
+        Ok(self)
+    }
+
+    /// Get mutable reference to `[profile.release]` section
+    fn get_profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
         let profile = self
             .toml
             .entry("profile")
@@ -146,13 +167,9 @@ impl Manifest {
             .ok_or(anyhow::anyhow!("profile should be a table"))?
             .entry("release")
             .or_insert(value::Value::Table(Default::default()));
-        let lto = release
+        release
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("release should be a table"))?
-            .entry("lto")
-            .or_insert(enabled.into());
-        *lto = enabled.into();
-        Ok(self)
+            .ok_or(anyhow::anyhow!("release should be a table"))
     }
 
     /// Remove a value from the `[lib] crate-types = []` section
@@ -409,5 +426,172 @@ impl Workspace {
             })
             .expect("root package should be a member of the temp workspace");
         f(root_manifest_path)
+    }
+}
+
+/// Subset of cargo profile settings to configure defaults for building contracts
+pub struct Profile {
+    opt_level: OptLevel,
+    lto: Lto,
+    // `None` means use rustc default.
+    codegen_units: Option<u32>,
+    overflow_checks: bool,
+    panic: PanicStrategy,
+}
+
+impl Default for Profile {
+    fn default() -> Profile {
+        Profile {
+            opt_level: OptLevel::One,
+            lto: Lto::Bool(false),
+            codegen_units: None,
+            overflow_checks: false,
+            panic: PanicStrategy::Unwind,
+        }
+    }
+}
+
+impl Profile {
+    /// The preferred set of defaults for compiling a release build of a contract
+    fn default_contract_build_release() -> Profile {
+        Profile {
+            opt_level: OptLevel::Z,
+            lto: Lto::Bool(true),
+            codegen_units: Some(1),
+            overflow_checks: true,
+            panic: PanicStrategy::Abort,
+        }
+    }
+
+    /// Set any unset profile settings from the config.
+    ///
+    /// Therefore:
+    ///   - If the user has explicitly defined a profile setting, it will not be overwritten.
+    ///   - If a profile setting is not defined, the value from this profile instance will be added
+    fn merge(&self, profile: &mut value::Table) {
+        let mut set_value_if_vacant = |key: &'static str, value: value::Value| {
+            if !profile.contains_key(key) {
+                profile.insert(key.into(), value);
+            }
+        };
+        set_value_if_vacant("opt-level", self.opt_level.to_toml_value());
+        set_value_if_vacant("lto", self.lto.to_toml_value());
+        if let Some(codegen_units) = self.codegen_units {
+            set_value_if_vacant("codegen-units", codegen_units.into());
+        }
+        set_value_if_vacant("overflow-checks", self.overflow_checks.into());
+        set_value_if_vacant("panic", self.panic.to_toml_value());
+    }
+}
+
+/// The [`opt-level`](https://doc.rust-lang.org/cargo/reference/profiles.html#opt-level) setting
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[allow(unused)]
+pub enum OptLevel {
+    Zero,
+    One,
+    Two,
+    Three,
+    S,
+    Z,
+}
+
+impl OptLevel {
+    fn to_toml_value(&self) -> value::Value {
+        match self {
+            OptLevel::Zero => 0.into(),
+            OptLevel::One => 1.into(),
+            OptLevel::Two => 2.into(),
+            OptLevel::Three => 3.into(),
+            OptLevel::S => "s".into(),
+            OptLevel::Z => "z".into(),
+        }
+    }
+}
+
+/// The [`link-time-optimization`](https://doc.rust-lang.org/cargo/reference/profiles.html#lto) setting.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+pub enum Lto {
+    /// False = no LTO
+    /// True = "Fat" LTO
+    Bool(bool),
+    /// Named LTO settings like "thin".
+    #[allow(unused)]
+    Named(&'static str),
+}
+
+impl Lto {
+    fn to_toml_value(&self) -> value::Value {
+        match self {
+            Lto::Bool(b) => value::Value::Boolean(*b),
+            Lto::Named(n) => value::Value::String(n.to_string()),
+        }
+    }
+}
+
+/// The `panic` setting.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+pub enum PanicStrategy {
+    Unwind,
+    Abort,
+}
+
+impl PanicStrategy {
+    fn to_toml_value(&self) -> value::Value {
+        match self {
+            PanicStrategy::Unwind => "unwind".into(),
+            PanicStrategy::Abort => "abort".into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn merge_profile_inserts_preferred_defaults() {
+        let profile = Profile::default_contract_build_release();
+
+        // no `[profile.release]` section specified
+        let manifest_toml = "";
+        let mut expected = toml::value::Table::new();
+        expected.insert("opt-level".into(), value::Value::String("z".into()));
+        expected.insert("lto".into(), value::Value::Boolean(true));
+        expected.insert("codegen-units".into(), value::Value::Integer(1));
+        expected.insert("overflow-checks".into(), value::Value::Boolean(true));
+        expected.insert("panic".into(), value::Value::String("abort".into()));
+
+        let mut manifest_profile = toml::from_str(manifest_toml).unwrap();
+
+        profile.merge(&mut manifest_profile);
+
+        assert_eq!(expected, manifest_profile)
+    }
+
+    #[test]
+    fn merge_profile_preserves_user_defined_settings() {
+        let profile = Profile::default_contract_build_release();
+
+        let manifest_toml = r#"
+panic = "unwind"
+lto = false
+opt-level = 3
+overflow-checks = false
+codegen-units = 256
+        "#;
+        let mut expected = toml::value::Table::new();
+        expected.insert("opt-level".into(), value::Value::Integer(3));
+        expected.insert("lto".into(), value::Value::Boolean(false));
+        expected.insert("codegen-units".into(), value::Value::Integer(256));
+        expected.insert("overflow-checks".into(), value::Value::Boolean(false));
+        expected.insert("panic".into(), value::Value::String("unwind".into()));
+
+        let mut manifest_profile = toml::from_str(manifest_toml).unwrap();
+
+        profile.merge(&mut manifest_profile);
+
+        assert_eq!(expected, manifest_profile)
     }
 }
