@@ -23,7 +23,7 @@ use std::{
 
 use crate::{
     util,
-    workspace::{ManifestPath, Workspace, Profile},
+    workspace::{ManifestPath, Profile, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
@@ -100,7 +100,10 @@ pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetad
 /// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
 /// the final Wasm binary size.
 ///
-/// To disable this and use the `Cargo.toml` as is then pass the `-Z original_manifest` flag.
+/// Preferred default `[profile.release]` settings will be added if they are missing, existing
+/// user-defined settings will be preserved.
+///
+/// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
