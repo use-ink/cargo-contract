@@ -11,13 +11,7 @@ ink_core = { version = "2", git = "https://github.com/paritytech/ink", tag = "la
 ink_lang = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_lang", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "1.2", default-features = false, features = ["derive"] }
-
-[dependencies.type-metadata]
-git = "https://github.com/type-metadata/type-metadata.git"
-rev = "02eae9f35c40c943b56af5b60616219f2b72b47d"
-default-features = false
-features = ["derive"]
-optional = true
+scale-info = { version = "0.1", default-features = false, features = ["derive"], optional = true }
 
 [lib]
 name = "{{name}}"
@@ -51,12 +45,6 @@ ink-generate-abi = [
     "ink_lang/ink-generate-abi",
 ]
 ink-as-dependency = []
-
-[profile.release]
-panic = "abort"
-lto = true
-opt-level = "z"
-overflow-checks = true
 
 [workspace]
 members = [
