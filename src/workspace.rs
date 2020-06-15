@@ -445,7 +445,7 @@ impl Profile {
     pub fn default_contract_release() -> Profile {
         Profile {
             opt_level: Some(OptLevel::Z),
-            lto: Lto::Bool(true),
+            lto: Lto::Fat,
             codegen_units: Some(1),
             overflow_checks: true,
             panic: PanicStrategy::Abort,
@@ -499,21 +499,26 @@ impl OptLevel {
 }
 
 /// The [`link-time-optimization`](https://doc.rust-lang.org/cargo/reference/profiles.html#lto) setting.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy)]
+#[allow(unused)]
 pub enum Lto {
-    /// False = no LTO
-    /// True = "Fat" LTO
-    Bool(bool),
-    /// Named LTO settings like "thin".
-    #[allow(unused)]
-    Named(&'static str),
+    /// Sets `lto = false`
+    ThinLocal,
+    /// Sets `lto = "fat"`, the equivalent of `lto = true`
+    Fat,
+    /// Sets `lto = "thin"`
+    Thin,
+    /// Sets `lto = "off"`
+    Off,
 }
 
 impl Lto {
     fn to_toml_value(&self) -> value::Value {
         match self {
-            Lto::Bool(b) => value::Value::Boolean(*b),
-            Lto::Named(n) => value::Value::String(n.to_string()),
+            Lto::ThinLocal => value::Value::Boolean(false),
+            Lto::Fat => value::Value::String("fat".into()),
+            Lto::Thin => value::Value::String("thin".into()),
+            Lto::Off => value::Value::String("off".into()),
         }
     }
 }
@@ -548,7 +553,7 @@ mod tests {
         let manifest_toml = "";
         let mut expected = toml::value::Table::new();
         expected.insert("opt-level".into(), value::Value::String("z".into()));
-        expected.insert("lto".into(), value::Value::Boolean(true));
+        expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
         expected.insert("overflow-checks".into(), value::Value::Boolean(true));
         expected.insert("panic".into(), value::Value::String("abort".into()));
