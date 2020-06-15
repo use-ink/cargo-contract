@@ -432,7 +432,7 @@ impl Workspace {
 
 /// Subset of cargo profile settings to configure defaults for building contracts
 pub struct Profile {
-    opt_level: Option<OptLevel>,
+    opt_level: OptLevel,
     lto: Lto,
     // `None` means use rustc default.
     codegen_units: Option<u32>,
@@ -444,7 +444,7 @@ impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
     pub fn default_contract_release() -> Profile {
         Profile {
-            opt_level: Some(OptLevel::Z),
+            opt_level: OptLevel::Z,
             lto: Lto::Fat,
             codegen_units: Some(1),
             overflow_checks: true,
@@ -463,9 +463,7 @@ impl Profile {
                 profile.insert(key.into(), value);
             }
         };
-        if let Some(opt_level) = self.opt_level {
-            set_value_if_vacant("opt-level", opt_level.to_toml_value());
-        }
+        set_value_if_vacant("opt-level", self.opt_level.to_toml_value());
         set_value_if_vacant("lto", self.lto.to_toml_value());
         if let Some(codegen_units) = self.codegen_units {
             set_value_if_vacant("codegen-units", codegen_units.into());
@@ -479,6 +477,7 @@ impl Profile {
 #[allow(unused)]
 #[derive(Clone, Copy)]
 pub enum OptLevel {
+    NoOptimizations,
     O1,
     O2,
     O3,
@@ -489,6 +488,7 @@ pub enum OptLevel {
 impl OptLevel {
     fn to_toml_value(&self) -> value::Value {
         match self {
+            OptLevel::NoOptimizations => 0.into(),
             OptLevel::O1 => 1.into(),
             OptLevel::O2 => 2.into(),
             OptLevel::O3 => 3.into(),
