@@ -565,11 +565,11 @@ mod tests {
         let profile = Profile::default_contract_release();
 
         let manifest_toml = r#"
-panic = "unwind"
-lto = false
-opt-level = 3
-overflow-checks = false
-codegen-units = 256
+            panic = "unwind"
+            lto = false
+            opt-level = 3
+            overflow-checks = false
+            codegen-units = 256
         "#;
         let mut expected = toml::value::Table::new();
         expected.insert("opt-level".into(), value::Value::Integer(3));
