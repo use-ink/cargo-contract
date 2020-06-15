@@ -23,7 +23,7 @@ use std::{
 
 use crate::{
     util,
-    workspace::{ManifestPath, Workspace},
+    workspace::{ManifestPath, Workspace, Profile},
     UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
@@ -160,7 +160,7 @@ fn build_cargo_project(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_removed_crate_type("rlib")?
-                    .with_profile_release_lto(true)?;
+                    .with_profile_release_defaults(Profile::default_contract_release())?;
                 Ok(())
             })?
             .using_temp(xbuild)?;

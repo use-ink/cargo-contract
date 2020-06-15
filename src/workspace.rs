@@ -453,7 +453,7 @@ impl Default for Profile {
 
 impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
-    fn default_contract_build_release() -> Profile {
+    pub fn default_contract_release() -> Profile {
         Profile {
             opt_level: OptLevel::Z,
             lto: Lto::Bool(true),
@@ -552,7 +552,7 @@ mod tests {
 
     #[test]
     fn merge_profile_inserts_preferred_defaults() {
-        let profile = Profile::default_contract_build_release();
+        let profile = Profile::default_contract_release();
 
         // no `[profile.release]` section specified
         let manifest_toml = "";
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn merge_profile_preserves_user_defined_settings() {
-        let profile = Profile::default_contract_build_release();
+        let profile = Profile::default_contract_release();
 
         let manifest_toml = r#"
 panic = "unwind"
