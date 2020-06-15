@@ -440,18 +440,6 @@ pub struct Profile {
     panic: PanicStrategy,
 }
 
-impl Default for Profile {
-    fn default() -> Profile {
-        Profile {
-            opt_level: OptLevel::One,
-            lto: Lto::Bool(false),
-            codegen_units: None,
-            overflow_checks: false,
-            panic: PanicStrategy::Unwind,
-        }
-    }
-}
-
 impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
     pub fn default_contract_release() -> Profile {
@@ -532,6 +520,7 @@ impl Lto {
 
 /// The `panic` setting.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[allow(unused)]
 pub enum PanicStrategy {
     Unwind,
     Abort,
