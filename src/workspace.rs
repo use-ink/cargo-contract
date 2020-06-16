@@ -515,10 +515,10 @@ pub enum Lto {
 impl Lto {
     fn to_toml_value(&self) -> value::Value {
         match self {
-            Lto::ThinLocal => value::Value::Boolean(false),
-            Lto::Fat => value::Value::String("fat".into()),
-            Lto::Thin => value::Value::String("thin".into()),
-            Lto::Off => value::Value::String("off".into()),
+            Lto::ThinLocal => false.into(),
+            Lto::Fat => "fat".into(),
+            Lto::Thin => "thin".into(),
+            Lto::Off => "off".into(),
         }
     }
 }
