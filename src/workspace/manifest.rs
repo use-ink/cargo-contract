@@ -1,5 +1,5 @@
-// Copyright 2018-2019 Parity Technologies (UK) Ltd.
-// This file is part of ink!.
+// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// This file is part of cargo-contract.
 //
 // ink! is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
