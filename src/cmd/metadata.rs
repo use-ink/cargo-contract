@@ -23,9 +23,9 @@ use anyhow::Result;
 
 const METADATA_FILE: &str = "metadata.json";
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Generates a file with metadata describing the ABI of the smart-contract.
 ///
-/// It does so by invoking build by cargo and then post processing the final binary.
+/// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute_generate_metadata(
     original_manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
@@ -65,7 +65,8 @@ pub(crate) fn execute_generate_metadata(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?;
+                    .with_profile_release_lto(false)?
+                    .with_metadata_package()?;
                 Ok(())
             })?
             .using_temp(generate_metadata)?;
