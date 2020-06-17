@@ -15,10 +15,10 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
+
 use std::convert::{TryFrom, TryInto};
 use std::{
-	collections::{HashMap, HashSet},
+	collections::HashSet,
 	fs,
 	path::{Path, PathBuf},
 };

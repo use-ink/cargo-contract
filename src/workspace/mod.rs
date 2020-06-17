@@ -23,15 +23,14 @@ pub use self::{
     manifest::{Manifest, ManifestPath},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Result};
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
-use std::convert::{TryFrom, TryInto};
+
 use std::{
-    collections::{HashMap, HashSet},
-    fs,
+    collections::HashMap,
     path::{Path, PathBuf},
 };
-use toml::value;
+
 
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute

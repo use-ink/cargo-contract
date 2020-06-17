@@ -14,14 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
-use std::convert::{TryFrom, TryInto};
-use std::{
-	collections::{HashMap, HashSet},
-	fs,
-	path::{Path, PathBuf},
-};
+
+
+
+
 use toml::value;
 
 /// Subset of cargo profile settings to configure defaults for building contracts
