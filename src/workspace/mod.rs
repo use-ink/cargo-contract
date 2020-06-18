@@ -15,13 +15,13 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 mod abi;
-mod profile;
 mod manifest;
+mod profile;
 
 #[doc(inline)]
 pub use self::{
-    profile::Profile,
     manifest::{Manifest, ManifestPath},
+    profile::Profile,
 };
 
 use anyhow::Result;
@@ -98,8 +98,8 @@ impl Workspace {
 
     /// Amend the workspace manifest using the supplied function.
     pub fn with_workspace_manifest<F>(&mut self, f: F) -> Result<&mut Self>
-        where
-            F: FnOnce(&mut Manifest) -> Result<()>,
+    where
+        F: FnOnce(&mut Manifest) -> Result<()>,
     {
         let workspace_root = self.workspace_root.clone();
         let workspace_manifest = self
@@ -112,7 +112,9 @@ impl Workspace {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!("The workspace root package should be a workspace member"))?;
+            .ok_or(anyhow::anyhow!(
+                "The workspace root package should be a workspace member"
+            ))?;
         f(workspace_manifest)?;
         Ok(self)
     }

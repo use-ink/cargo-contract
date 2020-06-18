@@ -15,11 +15,8 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use std::{
-	fs,
-	path::Path,
-};
 use heck::CamelCase as _;
+use std::{fs, path::Path};
 use toml::value;
 
 const CARGO_TOML: &str = r#"
@@ -50,28 +47,31 @@ fn main() -> Result<(), std::io::Error> {
 }
 "#;
 
-pub(super) fn generate_package<P: AsRef<Path>>(dir: P, name: &str, ink_lang: value::Table) -> Result<()> {
-	let dir = dir.as_ref();
-	log::debug!("Generating abi package for {} in {}", name, dir.display());
-	// replace template placeholders
-	let cargo_toml = CARGO_TOML.replace("{{name}}", name);
-	let main_rs = MAIN_RS
-		.replace("{{name}}", name)
-		// todo: [AJ] can the contract struct name be accurately inferred and passed in?
-		.replace("{{camel_name}}", &name.to_string().to_camel_case());
+pub(super) fn generate_package<P: AsRef<Path>>(
+    dir: P,
+    name: &str,
+    ink_lang: value::Table,
+) -> Result<()> {
+    let dir = dir.as_ref();
+    log::debug!("Generating abi package for {} in {}", name, dir.display());
+    // replace template placeholders
+    let cargo_toml = CARGO_TOML.replace("{{name}}", name);
+    let main_rs = MAIN_RS
+        .replace("{{name}}", name)
+        // todo: [AJ] can the contract struct name be accurately inferred and passed in?
+        .replace("{{camel_name}}", &name.to_string().to_camel_case());
 
-	// add ink_lang dependency
-	let mut cargo_toml: value::Table = toml::from_str(&cargo_toml)?;
-	let deps =
-		cargo_toml
-			.get_mut("dependencies")
-			.expect("[dependencies] section specified in the template")
-			.as_table_mut()
-			.expect("[dependencies] is a table specified in the template");
-	deps.insert("ink_lang".into(), ink_lang.into());
-	let cargo_toml = toml::to_string(&cargo_toml)?;
+    // add ink_lang dependency
+    let mut cargo_toml: value::Table = toml::from_str(&cargo_toml)?;
+    let deps = cargo_toml
+        .get_mut("dependencies")
+        .expect("[dependencies] section specified in the template")
+        .as_table_mut()
+        .expect("[dependencies] is a table specified in the template");
+    deps.insert("ink_lang".into(), ink_lang.into());
+    let cargo_toml = toml::to_string(&cargo_toml)?;
 
-	fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-	fs::write(dir.join("main.rs"), main_rs)?;
-	Ok(())
+    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
+    fs::write(dir.join("main.rs"), main_rs)?;
+    Ok(())
 }
