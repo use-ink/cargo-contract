@@ -65,8 +65,7 @@ pub(crate) fn execute_generate_metadata(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?
-                    .with_metadata_package()?;
+                    .with_profile_release_lto(false)?;
                 Ok(())
             })?
             .using_temp(generate_metadata)?;

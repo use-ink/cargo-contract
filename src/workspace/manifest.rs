@@ -185,11 +185,6 @@ impl Manifest {
         Ok(self)
     }
 
-    ///
-    pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
-        todo!()
-    }
-
     /// Replace relative paths with absolute paths with the working directory.
     ///
     /// Enables the use of a temporary amended copy of the manifest.
