@@ -14,23 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-mod profile;
 mod manifest;
+mod profile;
 
 #[doc(inline)]
 pub use self::{
-    profile::Profile,
     manifest::{Manifest, ManifestPath},
+    profile::Profile,
 };
 
-use anyhow::{Result};
+use anyhow::Result;
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
 
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-
 
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
