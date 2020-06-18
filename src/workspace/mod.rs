@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
+mod abi;
 mod profile;
 mod manifest;
 
@@ -23,14 +24,13 @@ pub use self::{
     manifest::{Manifest, ManifestPath},
 };
 
-use anyhow::{Result};
+use anyhow::Result;
 use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
 
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-
 
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
@@ -94,6 +94,35 @@ impl Workspace {
             .expect("The root package should be a workspace member");
         f(root_package_manifest)?;
         Ok(self)
+    }
+
+    /// Amend the workspace manifest using the supplied function.
+    pub fn with_workspace_manifest<F>(&mut self, f: F) -> Result<&mut Self>
+        where
+            F: FnOnce(&mut Manifest) -> Result<()>,
+    {
+        let workspace_root = self.workspace_root.clone();
+        let workspace_manifest = self
+            .members
+            .iter_mut()
+            .find_map(|(_, (_, manifest))| {
+                if manifest.path().directory() == workspace_root {
+                    Some(manifest)
+                } else {
+                    None
+                }
+            })
+            .ok_or(anyhow::anyhow!("The workspace root package should be a workspace member"))?;
+        f(workspace_manifest)?;
+        Ok(self)
+    }
+
+    /// Generates a package to invoke for generating contract metadata
+    pub(super) fn with_abi_gen_package(&mut self) -> Result<&mut Self> {
+        self.with_workspace_manifest(|manifest| {
+            manifest.with_abi_package()?;
+            Ok(())
+        })
     }
 
     /// Writes the amended manifests to the `target` directory, retaining the workspace directory

@@ -53,7 +53,7 @@ pub(crate) fn execute_generate_metadata(
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            original_manifest_path.directory(),
+            Some(original_manifest_path.directory()),
             verbosity,
         )
     };
@@ -65,10 +65,10 @@ pub(crate) fn execute_generate_metadata(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?
-                    .with_metadata_package()?;
+                    .with_profile_release_lto(false)?;
                 Ok(())
             })?
+            .with_abi_gen_package()?
             .using_temp(generate_metadata)?;
     }
 

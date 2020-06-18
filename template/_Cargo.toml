@@ -25,9 +25,6 @@ path = "lib.rs"
 crate-type = [
 	# Used for normal contract Wasm blobs.
 	"cdylib",
-	# Required for ABI generation, and using this contract as a dependency.
-	# If using `cargo contract build`, it will be automatically disabled to produce a smaller Wasm binary
-	"rlib",
 ]
 
 [features]
@@ -51,11 +48,3 @@ ink-generate-abi = [
     "ink_lang/ink-generate-abi",
 ]
 ink-as-dependency = []
-
-[workspace]
-members = [
-	".ink/abi_gen"
-]
-exclude = [
-	".ink"
-]

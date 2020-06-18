@@ -23,14 +23,16 @@ use std::{
 	path::{Path, PathBuf},
 };
 use toml::value;
-use super::Profile;
+use super::{abi, Profile};
 
 const MANIFEST_FILE: &str = "Cargo.toml";
+const ABI_PACKAGE_PATH: &str = ".ink/abi_gen";
 
 /// Path to a Cargo.toml file
 #[derive(Clone, Debug)]
 pub struct ManifestPath {
 	path: PathBuf,
+	dir: PathBuf,
 }
 
 impl ManifestPath {
@@ -42,8 +44,11 @@ impl ManifestPath {
 				anyhow::bail!("Manifest file must be a Cargo.toml")
 			}
 		}
+		let path = manifest.canonicalize()?;
+		let dir = path.parent().expect("Canonicalized path has a parent").to_owned();
 		Ok(ManifestPath {
-			path: manifest.into(),
+			path,
+			dir,
 		})
 	}
 
@@ -53,16 +58,8 @@ impl ManifestPath {
 	}
 
 	/// The directory path of the manifest path.
-	///
-	/// Returns `None` if the path is just the plain file name `Cargo.toml`
-	pub fn directory(&self) -> Option<&Path> {
-		let just_a_file_name =
-			self.path.iter().collect::<Vec<_>>() == vec![Path::new(MANIFEST_FILE)];
-		if !just_a_file_name {
-			self.path.parent()
-		} else {
-			None
-		}
+	pub fn directory(&self) -> &Path {
+		&self.dir
 	}
 }
 
@@ -90,6 +87,8 @@ impl AsRef<Path> for ManifestPath {
 pub struct Manifest {
 	path: ManifestPath,
 	toml: value::Table,
+	/// True if an abi package should be generated for this manifest
+	abi_package: bool,
 }
 
 impl Manifest {
@@ -107,7 +106,13 @@ impl Manifest {
 		Ok(Manifest {
 			path: manifest_path,
 			toml,
+			abi_package: false,
 		})
+	}
+
+	/// Get the path of the manifest file
+	pub(super) fn path(&self) -> &ManifestPath {
+		&self.path
 	}
 
 	/// Get mutable reference to `[lib] crate-types = []` section
@@ -185,9 +190,23 @@ impl Manifest {
 		Ok(self)
 	}
 
-	///
-	pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
-		todo!()
+	/// Adds an abi package to the manifest workspace for generating metadata
+	pub fn with_abi_package(&mut self) -> Result<&mut Self> {
+		let workspace = self
+			.toml
+			.entry("workspace")
+			.or_insert(value::Value::Table(Default::default()));
+		let members = workspace
+			.as_table_mut()
+			.ok_or(anyhow::anyhow!("workspace should be a table"))?
+			.entry("members")
+			.or_insert(value::Value::Table(Default::default()));
+		members
+			.as_array_mut()
+			.ok_or(anyhow::anyhow!("members should be an array"))?
+			.push(ABI_PACKAGE_PATH.into());
+		self.abi_package = true;
+		Ok(self)
 	}
 
 	/// Replace relative paths with absolute paths with the working directory.
@@ -299,16 +318,24 @@ impl Manifest {
 	}
 
 	/// Writes the amended manifest to the given path.
-	pub fn write(&self, path: &ManifestPath) -> Result<()> {
-		let manifest_path = path.as_ref();
+	pub fn write(&self, manifest_path: &ManifestPath) -> Result<()> {
+		fs::create_dir_all(manifest_path.directory())
+			.context(format!("Creating directory '{}'", manifest_path.directory().display()))?;
 
-		if let Some(dir) = manifest_path.parent() {
-			fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
+		if self.abi_package {
+			let dir = manifest_path.directory()
+				.to_owned()
+				.join(ABI_PACKAGE_PATH);
+
+			fs::create_dir_all(&dir)
+				.context(format!("Creating directory '{}'", dir.display()))?;
+
+			abi::generate_package(dir)?; // todo: [AJ] pass name
 		}
 
 		let updated_toml = toml::to_string(&self.toml)?;
-		log::debug!("Writing updated manifest to '{}'", manifest_path.display());
-		fs::write(&manifest_path, updated_toml)?;
+		log::debug!("Writing updated manifest to '{}'", manifest_path.as_ref().display());
+		fs::write(manifest_path, updated_toml)?;
 		Ok(())
 	}
 }
