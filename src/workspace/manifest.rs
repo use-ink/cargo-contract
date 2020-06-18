@@ -330,7 +330,15 @@ impl Manifest {
 			fs::create_dir_all(&dir)
 				.context(format!("Creating directory '{}'", dir.display()))?;
 
-			abi::generate_package(dir)?; // todo: [AJ] pass name
+			let name = self.toml
+				.get("lib")
+				.ok_or(anyhow::anyhow!("lib section not found"))?
+				.get("name")
+				.ok_or(anyhow::anyhow!("[lib] name field not found"))?
+				.as_str()
+				.ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
+
+			abi::generate_package(dir, name)?; // todo: [AJ] pass name
 		}
 
 		let updated_toml = toml::to_string(&self.toml)?;
