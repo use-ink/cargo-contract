@@ -32,7 +32,6 @@ const ABI_PACKAGE_PATH: &str = ".ink/abi_gen";
 #[derive(Clone, Debug)]
 pub struct ManifestPath {
 	path: PathBuf,
-	dir: PathBuf,
 }
 
 impl ManifestPath {
@@ -44,11 +43,8 @@ impl ManifestPath {
 				anyhow::bail!("Manifest file must be a Cargo.toml")
 			}
 		}
-		let path = manifest.canonicalize()?;
-		let dir = path.parent().expect("Canonicalized path has a parent").to_owned();
 		Ok(ManifestPath {
-			path,
-			dir,
+			path: manifest.into(),
 		})
 	}
 
@@ -58,8 +54,16 @@ impl ManifestPath {
 	}
 
 	/// The directory path of the manifest path.
-	pub fn directory(&self) -> &Path {
-		&self.dir
+	///
+	/// Returns `None` if the path is just the plain file name `Cargo.toml`
+	pub fn directory(&self) -> Option<&Path> {
+		let just_a_file_name =
+			self.path.iter().collect::<Vec<_>>() == vec![Path::new(MANIFEST_FILE)];
+		if !just_a_file_name {
+			self.path.parent()
+		} else {
+			None
+		}
 	}
 }
 
@@ -200,7 +204,7 @@ impl Manifest {
 			.as_table_mut()
 			.ok_or(anyhow::anyhow!("workspace should be a table"))?
 			.entry("members")
-			.or_insert(value::Value::Table(Default::default()));
+			.or_insert(value::Value::Array(Default::default()));
 		members
 			.as_array_mut()
 			.ok_or(anyhow::anyhow!("members should be an array"))?
@@ -319,13 +323,17 @@ impl Manifest {
 
 	/// Writes the amended manifest to the given path.
 	pub fn write(&self, manifest_path: &ManifestPath) -> Result<()> {
-		fs::create_dir_all(manifest_path.directory())
-			.context(format!("Creating directory '{}'", manifest_path.directory().display()))?;
+		if let Some(dir) = manifest_path.directory() {
+			fs::create_dir_all(dir)
+				.context(format!("Creating directory '{}'", dir.display()))?;
+		}
 
 		if self.abi_package {
-			let dir = manifest_path.directory()
-				.to_owned()
-				.join(ABI_PACKAGE_PATH);
+			let dir = if let Some(manifest_dir) = manifest_path.directory() {
+				manifest_dir.join(ABI_PACKAGE_PATH)
+			} else {
+				ABI_PACKAGE_PATH.into()
+			};
 
 			fs::create_dir_all(&dir)
 				.context(format!("Creating directory '{}'", dir.display()))?;

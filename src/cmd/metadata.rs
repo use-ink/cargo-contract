@@ -53,7 +53,7 @@ pub(crate) fn execute_generate_metadata(
                 "--release",
                 // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
             ],
-            Some(original_manifest_path.directory()),
+            original_manifest_path.directory(),
             verbosity,
         )
     };

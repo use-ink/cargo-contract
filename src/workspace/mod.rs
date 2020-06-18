@@ -106,7 +106,7 @@ impl Workspace {
             .members
             .iter_mut()
             .find_map(|(_, (_, manifest))| {
-                if manifest.path().directory() == workspace_root {
+                if manifest.path().directory() == Some(&workspace_root) {
                     Some(manifest)
                 } else {
                     None
