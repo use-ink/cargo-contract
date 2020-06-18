@@ -346,7 +346,15 @@ impl Manifest {
 				.as_str()
 				.ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
 
-			abi::generate_package(dir, name)?; // todo: [AJ] pass name
+			let ink_lang = self.toml
+				.get("dependencies")
+				.ok_or(anyhow::anyhow!("[dependencies] section not found"))?
+				.get("ink_lang")
+				.ok_or(anyhow::anyhow!("ink_lang dependency not found"))?
+				.as_table()
+				.ok_or(anyhow::anyhow!("ink_lang dependency should be a table"))?;
+
+			abi::generate_package(dir, name, ink_lang.clone())?; // todo: [AJ] pass name
 		}
 
 		let updated_toml = toml::to_string(&self.toml)?;

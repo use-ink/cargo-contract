@@ -20,6 +20,7 @@ use std::{
 	path::Path,
 };
 use heck::CamelCase as _;
+use toml::value;
 
 const CARGO_TOML: &str = r#"
 [package]
@@ -34,8 +35,7 @@ name = "abi-gen"
 path = "main.rs"
 
 [dependencies]
-contract = { path = "../..", package = "{{name}}", default-features = false, features = ["ink-generate-abi"] }
-ink_lang = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_lang", default-features = false, features = ["ink-generate-abi"] }
+contract = { path = "../..", package = "{{name}}" }
 serde = "1.0"
 serde_json = "1.0"
 "#;
@@ -50,7 +50,7 @@ fn main() -> Result<(), std::io::Error> {
 }
 "#;
 
-pub(super) fn generate_package<P: AsRef<Path>>(dir: P, name: &str) -> Result<()> {
+pub(super) fn generate_package<P: AsRef<Path>>(dir: P, name: &str, ink_lang: value::Table) -> Result<()> {
 	let dir = dir.as_ref();
 	log::debug!("Generating abi package for {} in {}", name, dir.display());
 	// replace template placeholders
@@ -59,6 +59,18 @@ pub(super) fn generate_package<P: AsRef<Path>>(dir: P, name: &str) -> Result<()>
 		.replace("{{name}}", name)
 		// todo: [AJ] can the contract struct name be accurately inferred and passed in?
 		.replace("{{camel_name}}", &name.to_string().to_camel_case());
+
+	// add ink_lang dependency
+	let mut cargo_toml: value::Table = toml::from_str(&cargo_toml)?;
+	let deps =
+		cargo_toml
+			.get_mut("dependencies")
+			.expect("[dependencies] section specified in the template")
+			.as_table_mut()
+			.expect("[dependencies] is a table specified in the template");
+	deps.insert("ink_lang".into(), ink_lang.into());
+	let cargo_toml = toml::to_string(&cargo_toml)?;
+
 	fs::write(dir.join("Cargo.toml"), cargo_toml)?;
 	fs::write(dir.join("main.rs"), main_rs)?;
 	Ok(())
