@@ -1,5 +1,5 @@
-// Copyright 2018-2019 Parity Technologies (UK) Ltd.
-// This file is part of ink!.
+// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// This file is part of cargo-contract.
 //
 // ink! is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@ use anyhow::Result;
 
 const METADATA_FILE: &str = "metadata.json";
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Generates a file with metadata describing the ABI of the smart-contract.
 ///
-/// It does so by invoking build by cargo and then post processing the final binary.
+/// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute_generate_metadata(
     original_manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
