@@ -15,7 +15,6 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use heck::CamelCase as _;
 use std::{fs, path::Path};
 use toml::value;
 
@@ -38,9 +37,15 @@ serde_json = "1.0"
 "#;
 
 const MAIN_RS: &str = r#"
+extern crate contract;
+
+extern "Rust" {
+    fn __ink_generate_metadata() -> ink_abi::InkProject;
+}
+
 fn main() -> Result<(), std::io::Error> {
-    let abi = <::contract::{{camel_name}} as ::ink_lang::GenerateAbi>::generate_abi();
-    let contents = serde_json::to_string_pretty(&abi)?;
+    let ink_project = unsafe { __ink_generate_metadata() };
+    let contents = serde_json::to_string_pretty(&ink_project)?;
     std::fs::create_dir("target").ok();
     std::fs::write("target/metadata.json", contents)?;
     Ok(())
@@ -51,6 +56,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     dir: P,
     name: &str,
     ink_lang: value::Table,
+    mut ink_abi: value::Table,
 ) -> Result<()> {
     let dir = dir.as_ref();
     log::debug!("Generating abi package for {} in {}", name, dir.display());
@@ -76,17 +82,17 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         contract.insert("features".into(), vec!["ink-generate-abi"].into());
     }
 
-    // add ink_lang dependency
+    // make ink_abi dependency use default features
+    ink_abi.remove("default-features");
+    ink_abi.remove("features");
+    ink_abi.remove("optional");
+
+    // add ink dependencies copied from contract manifest
     deps.insert("ink_lang".into(), ink_lang.into());
+    deps.insert("ink_abi".into(), ink_abi.into());
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
-    // replace main.rs template placeholders
-    let main_rs = MAIN_RS
-        .replace("{{name}}", name)
-        // todo: [AJ] can the contract struct name be accurately inferred and passed in?
-        .replace("{{camel_name}}", &name.to_string().to_camel_case());
-
     fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-    fs::write(dir.join("main.rs"), main_rs)?;
+    fs::write(dir.join("main.rs"), MAIN_RS)?;
     Ok(())
 }
