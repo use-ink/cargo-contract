@@ -204,11 +204,23 @@ impl Manifest {
             .as_table_mut()
             .ok_or(anyhow::anyhow!("workspace should be a table"))?
             .entry("members")
-            .or_insert(value::Value::Array(Default::default()));
-        members
+            .or_insert(value::Value::Array(Default::default()))
             .as_array_mut()
-            .ok_or(anyhow::anyhow!("members should be an array"))?
-            .push(ABI_PACKAGE_PATH.into());
+            .ok_or(anyhow::anyhow!("members should be an array"))?;
+
+        if members.contains(&ABI_PACKAGE_PATH.into()) {
+            // warn user if they have legacy abi_gen artifacts
+            use colored::Colorize;
+            println!(
+                "{}",
+                "Please remove `.ink/abi_gen` from the `[workspace]` section in the `Cargo.toml`, \
+                and delete that directory. These are now auto-generated."
+                    .bright_yellow()
+            );
+        } else {
+            members.push(ABI_PACKAGE_PATH.into());
+        }
+
         self.abi_package = true;
         Ok(self)
     }
@@ -328,23 +340,6 @@ impl Manifest {
         }
 
         if self.abi_package {
-            // warn user if they have legacy abi_gen artifacts
-            let abi_package_exists = self
-                .toml
-                .get("workspace")
-                .and_then(|workspace| workspace.get("members"))
-                .and_then(|members| members.as_array())
-                .map_or(false, |members| members.contains(&".ink/abi_gen".into()));
-            if abi_package_exists {
-                use colored::Colorize;
-                println!(
-                    "{}",
-                    "Please remove `.ink/abi_gen` from the `[workspace]` section in the `Cargo.toml`, \
-                    and delete that directory. These are now auto-generated."
-                        .bright_yellow()
-                );
-            }
-
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
                 manifest_dir.join(ABI_PACKAGE_PATH)
             } else {
