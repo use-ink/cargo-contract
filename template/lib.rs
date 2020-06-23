@@ -4,7 +4,6 @@ use ink_lang as ink;
 
 #[ink::contract(version = "0.1.0")]
 mod {{name}} {
-    use ink_core::storage;
 
     /// Defines the storage of your contract.
     /// Add new fields to the below struct in order
@@ -19,7 +18,7 @@ mod {{name}} {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         fn new(init_value: bool) -> Self {
-            self.value.set(init_value);
+            Self { value: init_value }
         }
 
         /// Constructor that initializes the `bool` value to `false`.
