@@ -18,7 +18,7 @@ mod {{name}} {
     impl {{camel_name}} {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        fn new(init_value: bool) {
+        fn new(init_value: bool) -> Self {
             self.value.set(init_value);
         }
 
@@ -26,7 +26,7 @@ mod {{name}} {
         ///
         /// Constructors can delegate to other constructors.
         #[ink(constructor)]
-        fn default() {
+        fn default() -> Self {
             Self::new(Default::default())
         }
 
