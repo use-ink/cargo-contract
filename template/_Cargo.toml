@@ -10,8 +10,8 @@ ink_primitives = { git = "https://github.com/paritytech/ink", branch = "master",
 ink_core = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_core", default-features = false }
 ink_lang = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_lang", default-features = false }
 
-scale-info = { version = "0.2", default-features = false, features = ["derive"], optional = true }
 scale = { package = "parity-scale-codec", version = "1.2", default-features = false, features = ["derive"] }
+scale-info = { version = "0.2", default-features = false, features = ["derive"], optional = true }
 
 [lib]
 name = "{{name}}"
@@ -22,23 +22,12 @@ crate-type = [
 ]
 
 [features]
-default = ["test-env"]
+default = ["std"]
 std = [
     "ink_abi/std",
     "ink_core/std",
     "ink_primitives/std",
     "scale/std",
-    "type-metadata/std",
-]
-test-env = [
-    "std",
-    "ink_lang/test-env",
-]
-ink-generate-abi = [
-    "std",
-    "ink_abi",
-    "type-metadata",
-    "ink_core/ink-generate-abi",
-    "ink_lang/ink-generate-abi",
+    "scale-info/std",
 ]
 ink-as-dependency = []
