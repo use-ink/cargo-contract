@@ -26,7 +26,7 @@ mod {{name}} {
         ///
         /// Constructors can delegate to other constructors.
         #[ink(constructor)]
-        fn default( {
+        fn default() {
             Self::new(Default::default())
         }
 
