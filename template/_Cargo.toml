@@ -5,11 +5,12 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
 [dependencies]
-ink_abi = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
-ink_primitives = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_primitives", default-features = false }
-ink_core = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_core", default-features = false }
-ink_lang = { version = "2", git = "https://github.com/paritytech/ink", tag = "latest-v2", package = "ink_lang", default-features = false }
+ink_abi = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
+ink_primitives = { git = "https://github.com/paritytech/ink", branch = "master", default-features = false }
+ink_core = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_core", default-features = false }
+ink_lang = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_lang", default-features = false }
 
+scale-info = { version = "0.2", default-features = false, features = ["derive"], optional = true }
 scale = { package = "parity-scale-codec", version = "1.2", default-features = false, features = ["derive"] }
 
 [dependencies.type-metadata]

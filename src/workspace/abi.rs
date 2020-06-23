@@ -76,12 +76,6 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         .expect("contract dependency is a table specified in the template");
     contract.insert("package".into(), name.into());
 
-    // ink v2 compat
-    if ink_lang.get("version") == Some(&value::Value::String("2".into())) {
-        contract.insert("default-features".into(), false.into());
-        contract.insert("features".into(), vec!["ink-generate-abi"].into());
-    }
-
     // make ink_abi dependency use default features
     ink_abi.remove("default-features");
     ink_abi.remove("features");
