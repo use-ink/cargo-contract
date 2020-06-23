@@ -12,13 +12,13 @@ mod {{name}} {
     #[ink(storage)]
     struct {{camel_name}} {
         /// Stores a single `bool` value on the storage.
-        value: storage::Value<bool>,
+        value: bool,
     }
 
     impl {{camel_name}} {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        fn new(&mut self, init_value: bool) {
+        fn new(init_value: bool) {
             self.value.set(init_value);
         }
 
@@ -26,8 +26,8 @@ mod {{name}} {
         ///
         /// Constructors can delegate to other constructors.
         #[ink(constructor)]
-        fn default(&mut self) {
-            self.new(false)
+        fn default( {
+            Self::new(Default::default())
         }
 
         /// A message that can be called on instantiated contracts.
@@ -35,13 +35,13 @@ mod {{name}} {
         /// to `false` and vice versa.
         #[ink(message)]
         fn flip(&mut self) {
-            *self.value = !self.get();
+            self.value = !self.value;
         }
 
         /// Simply returns the current value of our `bool`.
         #[ink(message)]
         fn get(&self) -> bool {
-            *self.value
+            self.value
         }
     }
 
@@ -56,10 +56,6 @@ mod {{name}} {
         /// We test if the default constructor does its job.
         #[test]
         fn default_works() {
-            // Note that even though we defined our `#[ink(constructor)]`
-            // above as `&mut self` functions that return nothing we can call
-            // them in test code as if they were normal Rust constructors
-            // that take no `self` argument but return `Self`.
             let {{name}} = {{camel_name}}::default();
             assert_eq!({{name}}.get(), false);
         }
