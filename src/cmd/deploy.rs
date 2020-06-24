@@ -59,9 +59,8 @@ pub(crate) fn execute_deploy(
             .build()
             .await?;
         let signer = extrinsic_opts.signer()?;
-        let xt = cli.xt(signer, None).await?;
 
-        let events = xt.watch().put_code(&code).await?;
+        let events = cli.put_code_and_watch(&signer, &code).await?;
         let code_stored = events
             .code_stored()?
             .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
