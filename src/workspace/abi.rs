@@ -18,40 +18,6 @@ use anyhow::Result;
 use std::{fs, path::Path};
 use toml::value;
 
-const CARGO_TOML: &str = r#"
-[package]
-name = "abi-gen"
-version = "0.1.0"
-authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2018"
-publish = false
-
-[[bin]]
-name = "abi-gen"
-path = "main.rs"
-
-[dependencies]
-contract = { path = "../.." }
-serde = "1.0"
-serde_json = "1.0"
-"#;
-
-const MAIN_RS: &str = r#"
-extern crate contract;
-
-extern "Rust" {
-    fn __ink_generate_metadata() -> ink_abi::InkProject;
-}
-
-fn main() -> Result<(), std::io::Error> {
-    let ink_project = unsafe { __ink_generate_metadata() };
-    let contents = serde_json::to_string_pretty(&ink_project)?;
-    std::fs::create_dir("target").ok();
-    std::fs::write("target/metadata.json", contents)?;
-    Ok(())
-}
-"#;
-
 pub(super) fn generate_package<P: AsRef<Path>>(
     dir: P,
     name: &str,
@@ -61,7 +27,10 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     let dir = dir.as_ref();
     log::debug!("Generating abi package for {} in {}", name, dir.display());
 
-    let mut cargo_toml: value::Table = toml::from_str(CARGO_TOML)?;
+    let cargo_toml = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
+    let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
+
+    let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
     let deps = cargo_toml
         .get_mut("dependencies")
         .expect("[dependencies] section specified in the template")
@@ -87,6 +56,6 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
     fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-    fs::write(dir.join("main.rs"), MAIN_RS)?;
+    fs::write(dir.join("main.rs"), main_rs)?;
     Ok(())
 }
