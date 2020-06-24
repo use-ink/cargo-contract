@@ -218,7 +218,8 @@ impl Manifest {
                 "please remove".bold(),
                 LEGACY_METADATA_PACKAGE_PATH.bold(),
                 "from the `[workspace]` section in the `Cargo.toml`, \
-                and delete that directory. These are now auto-generated.".bold()
+                and delete that directory. These are now auto-generated."
+                    .bold()
             );
         } else {
             members.push(METADATA_PACKAGE_PATH.into());

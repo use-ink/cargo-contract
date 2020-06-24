@@ -31,7 +31,11 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     mut ink_abi_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
-    log::debug!("Generating metadata package for {} in {}", contract_package_name, dir.display());
+    log::debug!(
+        "Generating metadata package for {} in {}",
+        contract_package_name,
+        dir.display()
+    );
 
     let cargo_toml = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
     let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
