@@ -47,7 +47,7 @@ pub(crate) fn execute_generate_metadata(
             "run",
             &[
                 "--package",
-                "abi-gen",
+                "metadata-gen",
                 &manifest_path.cargo_arg(),
                 &target_dir_arg,
                 "--release",

@@ -1,12 +1,12 @@
 [package]
-name = "abi-gen"
+name = "metadata-gen"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 publish = false
 
 [[bin]]
-name = "abi-gen"
+name = "metadata-gen"
 path = "main.rs"
 
 [dependencies]
