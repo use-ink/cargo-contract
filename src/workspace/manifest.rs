@@ -26,7 +26,8 @@ use std::{
 use toml::value;
 
 const MANIFEST_FILE: &str = "Cargo.toml";
-const ABI_PACKAGE_PATH: &str = ".ink/abi_gen";
+const LEGACY_METADATA_PACKAGE_PATH: &str = ".ink/abi_gen";
+const METADATA_PACKAGE_PATH: &str = ".ink/metadata_gen";
 
 /// Path to a Cargo.toml file
 #[derive(Clone, Debug)]
@@ -208,17 +209,19 @@ impl Manifest {
             .as_array_mut()
             .ok_or(anyhow::anyhow!("members should be an array"))?;
 
-        if members.contains(&ABI_PACKAGE_PATH.into()) {
+        if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
             // warn user if they have legacy abi_gen artifacts
             use colored::Colorize;
             println!(
-                "{}",
-                "Please remove `.ink/abi_gen` from the `[workspace]` section in the `Cargo.toml`, \
-                and delete that directory. These are now auto-generated."
-                    .bright_yellow()
+                "{} {} {} {}",
+                "warning:".yellow().bold(),
+                "please remove".bold(),
+                LEGACY_METADATA_PACKAGE_PATH.bold(),
+                "from the `[workspace]` section in the `Cargo.toml`, \
+                and delete that directory. These are now auto-generated.".bold()
             );
         } else {
-            members.push(ABI_PACKAGE_PATH.into());
+            members.push(METADATA_PACKAGE_PATH.into());
         }
 
         self.abi_package = true;
@@ -341,9 +344,9 @@ impl Manifest {
 
         if self.abi_package {
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
-                manifest_dir.join(ABI_PACKAGE_PATH)
+                manifest_dir.join(METADATA_PACKAGE_PATH)
             } else {
-                ABI_PACKAGE_PATH.into()
+                METADATA_PACKAGE_PATH.into()
             };
 
             fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
