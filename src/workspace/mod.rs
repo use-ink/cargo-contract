@@ -120,9 +120,9 @@ impl Workspace {
     }
 
     /// Generates a package to invoke for generating contract metadata
-    pub(super) fn with_abi_gen_package(&mut self) -> Result<&mut Self> {
+    pub(super) fn with_metadata_gen_package(&mut self) -> Result<&mut Self> {
         self.with_workspace_manifest(|manifest| {
-            manifest.with_abi_package()?;
+            manifest.with_metadata_package()?;
             Ok(())
         })
     }

@@ -92,8 +92,8 @@ impl AsRef<Path> for ManifestPath {
 pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
-    /// True if an abi package should be generated for this manifest
-    abi_package: bool,
+    /// True if a metadata package should be generated for this manifest
+    metadata_package: bool,
 }
 
 impl Manifest {
@@ -111,7 +111,7 @@ impl Manifest {
         Ok(Manifest {
             path: manifest_path,
             toml,
-            abi_package: false,
+            metadata_package: false,
         })
     }
 
@@ -195,8 +195,8 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Adds an abi package to the manifest workspace for generating metadata
-    pub fn with_abi_package(&mut self) -> Result<&mut Self> {
+    /// Adds a metadata package to the manifest workspace for generating metadata
+    pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
         let workspace = self
             .toml
             .entry("workspace")
@@ -210,7 +210,7 @@ impl Manifest {
             .ok_or(anyhow::anyhow!("members should be an array"))?;
 
         if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
-            // warn user if they have legacy abi_gen artifacts
+            // warn user if they have legacy metadata generation artifacts
             use colored::Colorize;
             println!(
                 "{} {} {} {}",
@@ -224,7 +224,7 @@ impl Manifest {
             members.push(METADATA_PACKAGE_PATH.into());
         }
 
-        self.abi_package = true;
+        self.metadata_package = true;
         Ok(self)
     }
 
@@ -342,7 +342,7 @@ impl Manifest {
             fs::create_dir_all(dir).context(format!("Creating directory '{}'", dir.display()))?;
         }
 
-        if self.abi_package {
+        if self.metadata_package {
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
                 manifest_dir.join(METADATA_PACKAGE_PATH)
             } else {
