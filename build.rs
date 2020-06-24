@@ -37,7 +37,7 @@ fn main() {
         .expect("OUT_DIR should be set by cargo")
         .into();
 
-    let template_dir = manifest_dir.join("template");
+    let template_dir = manifest_dir.join("templates").join("new");
     let dst_file = out_dir.join("template.zip");
 
     println!(

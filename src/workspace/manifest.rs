@@ -16,7 +16,7 @@
 
 use anyhow::{Context, Result};
 
-use super::Profile;
+use super::{metadata, Profile};
 use std::convert::{TryFrom, TryInto};
 use std::{
     collections::HashSet,
@@ -26,6 +26,8 @@ use std::{
 use toml::value;
 
 const MANIFEST_FILE: &str = "Cargo.toml";
+const LEGACY_METADATA_PACKAGE_PATH: &str = ".ink/abi_gen";
+const METADATA_PACKAGE_PATH: &str = ".ink/metadata_gen";
 
 /// Path to a Cargo.toml file
 #[derive(Clone, Debug)]
@@ -90,6 +92,8 @@ impl AsRef<Path> for ManifestPath {
 pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
+    /// True if a metadata package should be generated for this manifest
+    metadata_package: bool,
 }
 
 impl Manifest {
@@ -107,7 +111,13 @@ impl Manifest {
         Ok(Manifest {
             path: manifest_path,
             toml,
+            metadata_package: false,
         })
+    }
+
+    /// Get the path of the manifest file
+    pub(super) fn path(&self) -> &ManifestPath {
+        &self.path
     }
 
     /// Get mutable reference to `[lib] crate-types = []` section
@@ -182,6 +192,40 @@ impl Manifest {
         if crate_type_exists(crate_type, crate_types) {
             crate_types.retain(|v| v.as_str().map_or(true, |s| s != crate_type));
         }
+        Ok(self)
+    }
+
+    /// Adds a metadata package to the manifest workspace for generating metadata
+    pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
+        let workspace = self
+            .toml
+            .entry("workspace")
+            .or_insert(value::Value::Table(Default::default()));
+        let members = workspace
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("workspace should be a table"))?
+            .entry("members")
+            .or_insert(value::Value::Array(Default::default()))
+            .as_array_mut()
+            .ok_or(anyhow::anyhow!("members should be an array"))?;
+
+        if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
+            // warn user if they have legacy metadata generation artifacts
+            use colored::Colorize;
+            println!(
+                "{} {} {} {}",
+                "warning:".yellow().bold(),
+                "please remove".bold(),
+                LEGACY_METADATA_PACKAGE_PATH.bold(),
+                "from the `[workspace]` section in the `Cargo.toml`, \
+                and delete that directory. These are now auto-generated."
+                    .bold()
+            );
+        } else {
+            members.push(METADATA_PACKAGE_PATH.into());
+        }
+
+        self.metadata_package = true;
         Ok(self)
     }
 
@@ -294,16 +338,51 @@ impl Manifest {
     }
 
     /// Writes the amended manifest to the given path.
-    pub fn write(&self, path: &ManifestPath) -> Result<()> {
-        let manifest_path = path.as_ref();
+    pub fn write(&self, manifest_path: &ManifestPath) -> Result<()> {
+        if let Some(dir) = manifest_path.directory() {
+            fs::create_dir_all(dir).context(format!("Creating directory '{}'", dir.display()))?;
+        }
 
-        if let Some(dir) = manifest_path.parent() {
+        if self.metadata_package {
+            let dir = if let Some(manifest_dir) = manifest_path.directory() {
+                manifest_dir.join(METADATA_PACKAGE_PATH)
+            } else {
+                METADATA_PACKAGE_PATH.into()
+            };
+
             fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
+
+            let name = self
+                .toml
+                .get("lib")
+                .ok_or(anyhow::anyhow!("lib section not found"))?
+                .get("name")
+                .ok_or(anyhow::anyhow!("[lib] name field not found"))?
+                .as_str()
+                .ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
+
+            let get_dependency = |name| -> Result<&value::Table> {
+                self.toml
+                    .get("dependencies")
+                    .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
+                    .get(name)
+                    .ok_or(anyhow::anyhow!("{} dependency not found", name))?
+                    .as_table()
+                    .ok_or(anyhow::anyhow!("{} dependency should be a table", name))
+            };
+
+            let ink_lang = get_dependency("ink_lang")?;
+            let ink_abi = get_dependency("ink_abi")?;
+
+            metadata::generate_package(dir, name, ink_lang.clone(), ink_abi.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
-        log::debug!("Writing updated manifest to '{}'", manifest_path.display());
-        fs::write(&manifest_path, updated_toml)?;
+        log::debug!(
+            "Writing updated manifest to '{}'",
+            manifest_path.as_ref().display()
+        );
+        fs::write(manifest_path, updated_toml)?;
         Ok(())
     }
 }

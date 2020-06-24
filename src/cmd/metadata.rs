@@ -47,7 +47,7 @@ pub(crate) fn execute_generate_metadata(
             "run",
             &[
                 "--package",
-                "abi-gen",
+                "metadata-gen",
                 &manifest_path.cargo_arg(),
                 &target_dir_arg,
                 "--release",
@@ -68,6 +68,7 @@ pub(crate) fn execute_generate_metadata(
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
+            .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
 
@@ -98,12 +99,12 @@ mod tests {
                 .expect("generate metadata failed");
             println!("{}", message);
 
-            let mut abi_file = working_dir;
-            abi_file.push("target");
-            abi_file.push("metadata.json");
+            let mut metadata_file = working_dir;
+            metadata_file.push("target");
+            metadata_file.push("metadata.json");
             assert!(
-                abi_file.exists(),
-                format!("Missing metadata file '{}'", abi_file.display())
+                metadata_file.exists(),
+                format!("Missing metadata file '{}'", metadata_file.display())
             )
         });
     }

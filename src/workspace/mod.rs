@@ -15,6 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 mod manifest;
+mod metadata;
 mod profile;
 
 #[doc(inline)]
@@ -93,6 +94,37 @@ impl Workspace {
             .expect("The root package should be a workspace member");
         f(root_package_manifest)?;
         Ok(self)
+    }
+
+    /// Amend the workspace manifest using the supplied function.
+    pub fn with_workspace_manifest<F>(&mut self, f: F) -> Result<&mut Self>
+    where
+        F: FnOnce(&mut Manifest) -> Result<()>,
+    {
+        let workspace_root = self.workspace_root.clone();
+        let workspace_manifest = self
+            .members
+            .iter_mut()
+            .find_map(|(_, (_, manifest))| {
+                if manifest.path().directory() == Some(&workspace_root) {
+                    Some(manifest)
+                } else {
+                    None
+                }
+            })
+            .ok_or(anyhow::anyhow!(
+                "The workspace root package should be a workspace member"
+            ))?;
+        f(workspace_manifest)?;
+        Ok(self)
+    }
+
+    /// Generates a package to invoke for generating contract metadata
+    pub(super) fn with_metadata_gen_package(&mut self) -> Result<&mut Self> {
+        self.with_workspace_manifest(|manifest| {
+            manifest.with_metadata_package()?;
+            Ok(())
+        })
     }
 
     /// Writes the amended manifests to the `target` directory, retaining the workspace directory
