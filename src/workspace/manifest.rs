@@ -16,7 +16,7 @@
 
 use anyhow::{Context, Result};
 
-use super::{abi, Profile};
+use super::{metadata, Profile};
 use std::convert::{TryFrom, TryInto};
 use std::{
     collections::HashSet,
@@ -370,7 +370,7 @@ impl Manifest {
             let ink_lang = get_dependency("ink_lang")?;
             let ink_abi = get_dependency("ink_abi")?;
 
-            abi::generate_package(dir, name, ink_lang.clone(), ink_abi.clone())?;
+            metadata::generate_package(dir, name, ink_lang.clone(), ink_abi.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
