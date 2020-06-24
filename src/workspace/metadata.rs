@@ -18,14 +18,20 @@ use anyhow::Result;
 use std::{fs, path::Path};
 use toml::value;
 
+/// Generates a cargo workspace package which will be invoked to generate contract metadata.
+///
+/// # Note
+///
+/// `ink!` dependencies are copied from the containing contract workspace to ensure the same
+/// versions are utilized.
 pub(super) fn generate_package<P: AsRef<Path>>(
-    dir: P,
-    name: &str,
-    ink_lang: value::Table,
-    mut ink_abi: value::Table,
+    target_dir: P,
+    contract_package_name: &str,
+    ink_lang_dependency: value::Table,
+    mut ink_abi_dependency: value::Table,
 ) -> Result<()> {
-    let dir = dir.as_ref();
-    log::debug!("Generating metadata package for {} in {}", name, dir.display());
+    let dir = target_dir.as_ref();
+    log::debug!("Generating metadata package for {} in {}", contract_package_name, dir.display());
 
     let cargo_toml = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
     let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
@@ -43,16 +49,16 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         .expect("contract dependency specified in the template")
         .as_table_mut()
         .expect("contract dependency is a table specified in the template");
-    contract.insert("package".into(), name.into());
+    contract.insert("package".into(), contract_package_name.into());
 
     // make ink_abi dependency use default features
-    ink_abi.remove("default-features");
-    ink_abi.remove("features");
-    ink_abi.remove("optional");
+    ink_abi_dependency.remove("default-features");
+    ink_abi_dependency.remove("features");
+    ink_abi_dependency.remove("optional");
 
     // add ink dependencies copied from contract manifest
-    deps.insert("ink_lang".into(), ink_lang.into());
-    deps.insert("ink_abi".into(), ink_abi.into());
+    deps.insert("ink_lang".into(), ink_lang_dependency.into());
+    deps.insert("ink_abi".into(), ink_abi_dependency.into());
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
     fs::write(dir.join("Cargo.toml"), cargo_toml)?;
