@@ -37,11 +37,9 @@ pub(crate) fn execute_instantiate(
             .build()
             .await?;
         let signer = extrinsic_opts.signer()?;
-        let xt = cli.xt(signer, None).await?;
 
-        let events = xt
-            .watch()
-            .instantiate(endowment, gas_limit, &code_hash, &data.0)
+        let events = cli
+            .instantiate_and_watch(&signer, endowment, gas_limit, &code_hash, &data.0)
             .await?;
         let instantiated = events
             .instantiated()?

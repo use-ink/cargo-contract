@@ -24,6 +24,8 @@ use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,
 };
+#[cfg(feature = "extrinsics")]
+use subxt::PairSigner;
 
 use anyhow::{Error, Result};
 use colored::Colorize;
@@ -80,9 +82,11 @@ pub(crate) struct ExtrinsicOpts {
 
 #[cfg(feature = "extrinsics")]
 impl ExtrinsicOpts {
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    pub fn signer(&self) -> Result<PairSigner<subxt::DefaultNodeRuntime, sr25519::Pair>> {
+        let pair =
+            sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+                .map_err(|_| anyhow::anyhow!("Secret string error"))?;
+        Ok(PairSigner::new(pair))
     }
 }
 
