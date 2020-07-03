@@ -94,16 +94,54 @@ fn generate_main() -> String {
             ) -> ::ink_metadata::InkProject;
         }
 
+        use ::ink_metadata::{
+            Compiler,
+            CompilerInfo,
+            InkProjectContract,
+            InkProjectExtension,
+            InkProjectSource,
+            InkProjectUser,
+            Language,
+            SourceCompiler,
+            SourceLanguage,
+            Version,
+            Url,
+        };
+
         fn main() -> Result<(), std::io::Error> {
-            let extension =
-                InkProjectContract::build()
-                    .name("testing")
-                    .version(::ink_metadata::Version::new(0, 1, 0))
-                    .authors(vec!["author@example.com"])
-                    .documentation(::ink_metadata::Url::parse("http://example.com").unwrap())
-                    .done();
+            // todo: pass in the following as args to generate_main()
+            let wasm_hash = [0u8; 32];
+            let ink_version = Version::new(2, 1, 0);
+            let rustc_version = Version::new(1, 46, 0);
+
+            let extension = {
+                let language = SourceLanguage::new(Language::Ink, ink_version.clone());
+                let compiler = SourceCompiler::new(
+                    CompilerInfo::new(Compiler::Ink, ink_version),
+                    CompilerInfo::new(Compiler::RustC, rustc_version),
+                );
+                let source = InkProjectSource::new(
+                    wasm_hash,
+                    language,
+                    compiler,
+                );
+
+                let contract =
+                    InkProjectContract::build()
+                        .name("testing")
+                        .version(Version::new(0, 1, 0))
+                        .authors(vec!["author@example.com"])
+                        .documentation(Url::parse("http://example.com").unwrap())
+                        .done();
+
+                // todo: pass in user args
+                let user: Option<InkProjectUser> = None;
+
+                InkProjectExtension::new(source, contract, user)
+            };
 
             let ink_project = unsafe { __ink_generate_metadata(extension) };
+
             let contents = serde_json::to_string_pretty(&ink_project)?;
             std::fs::create_dir("target").ok();
             std::fs::write("target/metadata.json", contents)?;
