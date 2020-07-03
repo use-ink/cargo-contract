@@ -18,7 +18,8 @@ use anyhow::Result;
 use std::{fs, path::Path};
 use toml::value;
 
-/// Generates a cargo workspace package which will be invoked to generate contract metadata.
+/// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to
+/// generate contract metadata.
 ///
 /// # Note
 ///
@@ -28,7 +29,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
     contract_package_name: &str,
     ink_lang_dependency: value::Table,
-    mut ink_abi_dependency: value::Table,
+    ink_abi_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
     log::debug!(
@@ -37,17 +38,31 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         dir.display()
     );
 
-    let cargo_toml = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
-    let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
+    let main_rs = generate_main();
+    let cargo_toml = generate_cargo_toml(contract_package_name, ink_lang_dependency, ink_abi_dependency)?;
 
-    let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
+    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
+    fs::write(dir.join("main.rs"), main_rs)?;
+    Ok(())
+}
+
+/// Generates the `Cargo.toml` file for the `metadata-gen` package
+fn generate_cargo_toml(
+    contract_package_name: &str,
+    ink_lang_dependency: value::Table,
+    mut ink_abi_dependency: value::Table
+) -> Result<String> {
+    let template = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
+    let mut cargo_toml: value::Table = toml::from_str(template)?;
+
+    // get a mutable reference to the dependencies section
     let deps = cargo_toml
         .get_mut("dependencies")
         .expect("[dependencies] section specified in the template")
         .as_table_mut()
         .expect("[dependencies] is a table specified in the template");
 
-    // initialize contract dependency
+    // initialize the contract dependency
     let contract = deps
         .get_mut("contract")
         .expect("contract dependency specified in the template")
@@ -63,9 +78,36 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     // add ink dependencies copied from contract manifest
     deps.insert("ink_lang".into(), ink_lang_dependency.into());
     deps.insert("ink_abi".into(), ink_abi_dependency.into());
-    let cargo_toml = toml::to_string(&cargo_toml)?;
 
-    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-    fs::write(dir.join("main.rs"), main_rs)?;
-    Ok(())
+    let cargo_toml = toml::to_string(&cargo_toml)?;
+    Ok(cargo_toml)
+}
+
+/// Generate a `main.rs` to invoke `__ink_generate_metadata`
+fn generate_main() -> String {
+    quote::quote! (
+        extern crate contract;
+
+        extern "Rust" {
+            fn __ink_generate_metadata(
+                extension: ::ink_metadata::InkProjectExtension
+            ) -> ::ink_metadata::InkProject;
+        }
+
+        fn main() -> Result<(), std::io::Error> {
+            let extension =
+                InkProjectContract::build()
+                    .name("testing")
+                    .version(::ink_metadata::Version::new(0, 1, 0))
+                    .authors(vec!["author@example.com"])
+                    .documentation(::ink_metadata::Url::parse("http://example.com").unwrap())
+                    .done();
+
+            let ink_project = unsafe { __ink_generate_metadata(extension) };
+            let contents = serde_json::to_string_pretty(&ink_project)?;
+            std::fs::create_dir("target").ok();
+            std::fs::write("target/metadata.json", contents)?;
+            Ok(())
+        }
+    ).to_string()
 }

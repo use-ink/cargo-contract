@@ -33,6 +33,7 @@ cargo-xbuild = "0.5.32"
 rustc_version = "0.2.3"
 serde_json = "1.0"
 tempfile = "3.1.0"
+quote = "1.0"
 
 # dependencies for optional extrinsics feature
 async-std = { version = "=1.5.0", optional = true }
