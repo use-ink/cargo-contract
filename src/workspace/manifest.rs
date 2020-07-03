@@ -372,9 +372,9 @@ impl Manifest {
             };
 
             let ink_lang = get_dependency("ink_lang")?;
-            let ink_abi = get_dependency("ink_abi")?;
+            let ink_metadata = get_dependency("ink_metadata")?;
 
-            metadata::generate_package(dir, name, ink_lang.clone(), ink_abi.clone())?;
+            metadata::generate_package(dir, name, ink_lang.clone(), ink_metadata.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

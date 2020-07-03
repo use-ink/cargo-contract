@@ -5,7 +5,7 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
 [dependencies]
-ink_abi = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
+ink_metadata = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_metadata", default-features = false, features = ["derive"], optional = true }
 ink_primitives = { git = "https://github.com/paritytech/ink", branch = "master", default-features = false }
 ink_core = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_core", default-features = false }
 ink_lang = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_lang", default-features = false }
@@ -24,7 +24,7 @@ crate-type = [
 [features]
 default = ["std"]
 std = [
-    "ink_abi/std",
+    "ink_metadata/std",
     "ink_core/std",
     "ink_primitives/std",
     "scale/std",
