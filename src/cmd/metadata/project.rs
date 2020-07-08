@@ -192,7 +192,7 @@ impl InkProjectContract {
 		InkProjectContractBuilder {
 			contract: Self {
 				name: Default::default(),
-				version: Default::default(),
+				version: Version::new(0, 0, 0),
 				authors: vec![],
 				description: None,
 				documentation: None,
@@ -302,10 +302,7 @@ impl<V, A> InkProjectContractBuilder<Missing<state::Name>, V, A> {
 
 impl<N, A> InkProjectContractBuilder<N, Missing<state::Version>, A> {
 	/// Set the contract version (required)
-	pub fn version<V>(self, version: V) -> InkProjectContractBuilder<N, state::Version, A>
-		where
-			V: Into<Version>,
-	{
+	pub fn version(self, version: Version) -> InkProjectContractBuilder<N, state::Version, A> {
 		InkProjectContractBuilder {
 			contract: InkProjectContract {
 				version,

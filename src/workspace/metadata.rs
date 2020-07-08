@@ -29,7 +29,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
     contract_package_name: &str,
     ink_lang_dependency: value::Table,
-    mut ink_abi_dependency: value::Table,
+    mut ink_metadata_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
     log::debug!(
@@ -57,9 +57,9 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     contract.insert("package".into(), contract_package_name.into());
 
     // make ink_abi dependency use default features
-    ink_abi_dependency.remove("default-features");
-    ink_abi_dependency.remove("features");
-    ink_abi_dependency.remove("optional");
+    ink_metadata_dependency.remove("default-features");
+    ink_metadata_dependency.remove("features");
+    ink_metadata_dependency.remove("optional");
 
     // add ink dependencies copied from contract manifest
     deps.insert("ink_lang".into(), ink_lang_dependency.into());
