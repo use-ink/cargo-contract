@@ -16,13 +16,27 @@
 
 mod contract;
 
+use contract::{
+    Compiler,
+    ContractMetadata,
+    Source,
+    SourceCompiler,
+    SourceLanguage,
+    Language,
+    License,
+    Contract,
+    ContractBuilder,
+    User,
+};
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
+use serde_json::{Map, Value};
 use std::fs;
+use semver::Version;
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -84,6 +98,55 @@ pub(crate) fn execute_generate_metadata(
         "Your metadata file is ready.\nYou can find it here:\n{}",
         out_path_display
     ))
+}
+
+fn construct_metadata(ink_metadata: Map<String, Value>) -> Result<ContractMetadata> {
+    // todo: generate these params
+    let hash = [0u8; 32];
+    let ink_version = Version::new(2, 1, 0);
+    let rust_version = Version::new(1, 41, 0);
+    let contract_name = "test";
+    let contract_version = Version::new(0, 0, 0);
+    let contract_authors = vec!["author@example.com"];
+    // optional
+    let description: Option<&str> = None;
+    let documentation = None;
+    let repository = None;
+    let homepage = None;
+    let license = None;
+
+    let source = {
+        let lang = SourceLanguage::new(Language::Ink, ink_version);
+        let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
+        Source::new(hash, lang, compiler)
+    };
+
+    // Required contract fields
+    let contract = Contract::build()
+        .name(contract_name)
+        .version(contract_version)
+        .authors(contract_authors);
+
+    // Optional fields
+    if let Some(description) = description {
+        contract.description(description);
+    }
+    if let Some(documentation) = documentation {
+        contract.documentation(documentation);
+    }
+    if let Some(repository) = repository {
+        contract.repository(repository);
+    }
+    if let Some(homepage) = homepage {
+        contract.homepage(homepage);
+    }
+    if let Some(license) = license {
+        contract.license(license);
+    }
+
+    let user: Option<User> = None;
+
+    Ok(ContractMetadata::new(source, contract.done(), user, ink_metadata))
 }
 
 #[cfg(feature = "test-ci-only")]
