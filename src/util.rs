@@ -84,7 +84,7 @@ where
     log::info!("invoking cargo: {:?}", cmd);
 
     let child = cmd
-        // capture the stdout for the metadata JSON result
+        // capture the stdout to return from this function as bytes
         .stdout(std::process::Stdio::piped())
         .spawn()
         .context(format!("Error executing `{:?}`", cmd))?;
