@@ -93,7 +93,11 @@ where
     if output.status.success() {
         Ok(output.stdout)
     } else {
-        anyhow::bail!("`{:?}` failed with exit code: {:?}", cmd, output.status.code());
+        anyhow::bail!(
+            "`{:?}` failed with exit code: {:?}",
+            cmd,
+            output.status.code()
+        );
     }
 }
 

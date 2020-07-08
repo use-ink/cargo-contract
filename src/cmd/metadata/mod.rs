@@ -16,27 +16,19 @@
 
 mod contract;
 
-use contract::{
-    Compiler,
-    ContractMetadata,
-    Source,
-    SourceCompiler,
-    SourceLanguage,
-    Language,
-    License,
-    Contract,
-    ContractBuilder,
-    User,
-};
 use crate::{
     util,
     workspace::{ManifestPath, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
+use contract::{
+    Compiler, Contract, ContractMetadata, Language, License, Source, SourceCompiler,
+    SourceLanguage, User,
+};
+use semver::Version;
 use serde_json::{Map, Value};
 use std::fs;
-use semver::Version;
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -74,8 +66,10 @@ pub(crate) fn execute_generate_metadata(
             verbosity,
         )?;
 
-        let metadata_json: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
-        let contents = serde_json::to_string_pretty(&metadata_json)?;
+        let ink_metadata: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_slice(&stdout)?;
+        let metadata = construct_metadata(ink_metadata)?;
+        let contents = serde_json::to_string_pretty(&metadata)?;
         fs::write(&out_path, contents)?;
         Ok(())
     };
@@ -105,15 +99,15 @@ fn construct_metadata(ink_metadata: Map<String, Value>) -> Result<ContractMetada
     let hash = [0u8; 32];
     let ink_version = Version::new(2, 1, 0);
     let rust_version = Version::new(1, 41, 0);
-    let contract_name = "test";
+    let contract_name = "test".to_string();
     let contract_version = Version::new(0, 0, 0);
-    let contract_authors = vec!["author@example.com"];
+    let contract_authors = vec!["author@example.com".to_string()];
     // optional
-    let description: Option<&str> = None;
+    let description: Option<String> = None;
     let documentation = None;
     let repository = None;
     let homepage = None;
-    let license = None;
+    let license: Option<License> = None;
 
     let source = {
         let lang = SourceLanguage::new(Language::Ink, ink_version);
@@ -122,31 +116,20 @@ fn construct_metadata(ink_metadata: Map<String, Value>) -> Result<ContractMetada
     };
 
     // Required contract fields
-    let contract = Contract::build()
-        .name(contract_name)
-        .version(contract_version)
-        .authors(contract_authors);
-
-    // Optional fields
-    if let Some(description) = description {
-        contract.description(description);
-    }
-    if let Some(documentation) = documentation {
-        contract.documentation(documentation);
-    }
-    if let Some(repository) = repository {
-        contract.repository(repository);
-    }
-    if let Some(homepage) = homepage {
-        contract.homepage(homepage);
-    }
-    if let Some(license) = license {
-        contract.license(license);
-    }
+    let contract = Contract::new(
+        contract_name,
+        contract_version,
+        contract_authors,
+        description,
+        documentation,
+        repository,
+        homepage,
+        license,
+    );
 
     let user: Option<User> = None;
 
-    Ok(ContractMetadata::new(source, contract.done(), user, ink_metadata))
+    Ok(ContractMetadata::new(source, contract, user, ink_metadata))
 }
 
 #[cfg(feature = "test-ci-only")]

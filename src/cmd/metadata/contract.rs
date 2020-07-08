@@ -14,10 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{
-    fmt::{Display, Formatter, Result as DisplayResult, Write},
-    marker::PhantomData,
-};
+use core::fmt::{Display, Formatter, Result as DisplayResult, Write};
 use semver::Version;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -180,24 +177,26 @@ pub struct Contract {
 }
 
 impl Contract {
-    /// Constructs a new InkProjectContractBuilder.
-    pub fn build() -> ContractBuilder<
-        Missing<state::Name>,
-        Missing<state::Version>,
-        Missing<state::Authors>,
-    > {
-        ContractBuilder {
-            contract: Self {
-                name: Default::default(),
-                version: Version::new(0, 0, 0),
-                authors: vec![],
-                description: None,
-                documentation: None,
-                repository: None,
-                homepage: None,
-                license: None,
-            },
-            marker: Default::default(),
+    /// Constructs a new Contract.
+    pub fn new(
+        name: String,
+        version: Version,
+        authors: Vec<String>,
+        description: Option<String>,
+        documentation: Option<Url>,
+        repository: Option<Url>,
+        homepage: Option<Url>,
+        license: Option<License>,
+    ) -> Self {
+        Contract {
+            name,
+            version,
+            authors,
+            description,
+            documentation,
+            repository,
+            homepage,
+            license,
         }
     }
 }
@@ -226,145 +225,6 @@ impl User {
 
     pub fn from_str(json: &str) -> serde_json::Result<Self> {
         serde_json::from_str(json.as_ref()).map(Self::new)
-    }
-}
-
-/// Type state for builders to tell that some mandatory state has not yet been set
-/// yet or to fail upon setting the same state multiple times.
-pub struct Missing<S>(PhantomData<fn() -> S>);
-
-mod state {
-    //! Type states that tell what state of the project metadata has not
-    //! yet been set properly for a valid construction.
-
-    /// Type state for the name of the project.
-    pub struct Name;
-
-    /// Type state for the version of the project.
-    pub struct Version;
-
-    /// Type state for the authors of the project.
-    pub struct Authors;
-}
-
-/// Build an [`InkProjectContract`], ensuring required fields are supplied
-///
-/// # Example
-///
-/// ```
-/// # use crate::ink_metadata::InkProjectContract;
-/// # use semver::Version;
-/// # use url::Url;
-/// // contract metadata with the minimum set of required fields
-/// let metadata1: InkProjectContract =
-///     InkProjectContract::build()
-///         .name("example")
-///         .version(Version::new(0, 1, 0))
-///         .authors(vec!["author@example.com"])
-///         .done();
-///
-/// // contract metadata with optional fields
-/// let metadata2: InkProjectContract =
-///     InkProjectContract::build()
-///         .name("example")
-///         .version(Version::new(0, 1, 0))
-///         .authors(vec!["author@example.com"])
-///         .description("description")
-///         .documentation(Url::parse("http://example.com").unwrap())
-///         .repository(Url::parse("http://example.com").unwrap())
-///         .homepage(Url::parse("http://example.com").unwrap())
-///         .done();
-/// ```
-#[allow(clippy::type_complexity)]
-pub struct ContractBuilder<Name, Version, Authors> {
-    contract: Contract,
-    marker: PhantomData<fn() -> (Name, Version, Authors)>,
-}
-
-impl<V, A> ContractBuilder<Missing<state::Name>, V, A> {
-    /// Set the contract name (required)
-    pub fn name<S>(self, name: S) -> ContractBuilder<state::Name, V, A>
-    where
-        S: AsRef<str>,
-    {
-        ContractBuilder {
-            contract: Contract {
-                name: name.as_ref().to_owned(),
-                ..self.contract
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<N, A> ContractBuilder<N, Missing<state::Version>, A> {
-    /// Set the contract version (required)
-    pub fn version(self, version: Version) -> ContractBuilder<N, state::Version, A> {
-        ContractBuilder {
-            contract: Contract {
-                version,
-                ..self.contract
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<N, V> ContractBuilder<N, V, Missing<state::Authors>> {
-    /// Set the contract authors (required)
-    pub fn authors<I, S>(self, authors: I) -> ContractBuilder<N, V, state::Authors>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
-    {
-        ContractBuilder {
-            contract: Contract {
-                authors: authors.into_iter().map(|s| s.as_ref().into()).collect(),
-                ..self.contract
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<N, V, A> ContractBuilder<N, V, A> {
-    /// Set the contract description (optional)
-    pub fn description<S>(mut self, description: S) -> Self
-    where
-        S: AsRef<str>,
-    {
-        self.contract.description = Some(description.as_ref().to_owned());
-        self
-    }
-
-    /// Set the contract documentation url (optional)
-    pub fn documentation(mut self, documentation: Url) -> Self {
-        self.contract.documentation = Some(documentation);
-        self
-    }
-
-    /// Set the contract documentation url (optional)
-    pub fn repository(mut self, repository: Url) -> Self {
-        self.contract.repository = Some(repository);
-        self
-    }
-
-    /// Set the contract homepage url (optional)
-    pub fn homepage(mut self, homepage: Url) -> Self {
-        self.contract.homepage = Some(homepage.into());
-        self
-    }
-
-    /// Set the contract license (optional)
-    pub fn license(mut self, license: License) -> Self {
-        self.contract.license = Some(license);
-        self
-    }
-}
-
-impl ContractBuilder<state::Name, state::Version, state::Authors> {
-    pub fn done(self) -> Contract {
-        self.contract
     }
 }
 
