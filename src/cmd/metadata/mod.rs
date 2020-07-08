@@ -22,6 +22,7 @@ use crate::{
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
+use std::fs;
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -45,7 +46,7 @@ pub(crate) fn execute_generate_metadata(
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
-        util::invoke_cargo(
+        let stdout = util::invoke_cargo(
             "run",
             &[
                 "--package",
@@ -57,7 +58,12 @@ pub(crate) fn execute_generate_metadata(
             ],
             original_manifest_path.directory(),
             verbosity,
-        )
+        )?;
+
+        let metadata_json: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
+        let contents = serde_json::to_string_pretty(&metadata_json)?;
+        fs::write(&out_path, contents)?;
+        Ok(())
     };
 
     if unstable_options.original_manifest {

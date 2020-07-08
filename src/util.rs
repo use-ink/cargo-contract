@@ -53,12 +53,14 @@ pub fn assert_channel() -> Result<()> {
 }
 
 /// Run cargo with the supplied args
+///
+/// If successful, returns the stdout bytes
 pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
     verbosity: Option<Verbosity>,
-) -> Result<()>
+) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
@@ -79,14 +81,19 @@ where
         None => &mut cmd,
     };
 
-    let status = cmd
-        .status()
-        .context(format!("Error executing `{:?}`", cmd))?;
+    log::info!("invoking cargo: {:?}", cmd);
 
-    if status.success() {
-        Ok(())
+    let child = cmd
+        // capture the stdout for the metadata JSON result
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .context(format!("Error executing `{:?}`", cmd))?;
+    let output = child.wait_with_output()?;
+
+    if output.status.success() {
+        Ok(output.stdout)
     } else {
-        anyhow::bail!("`{:?}` failed with exit code: {:?}", cmd, status.code());
+        anyhow::bail!("`{:?}` failed with exit code: {:?}", cmd, output.status.code());
     }
 }
 
