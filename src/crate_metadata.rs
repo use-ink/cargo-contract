@@ -17,7 +17,6 @@
 use crate::{workspace::ManifestPath, Verbosity};
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package, PackageId};
-use rustc_version::Channel;
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
