@@ -18,6 +18,8 @@ mod contract;
 
 use cargo_metadata::Metadata;
 use crate::{
+    crate_metadata::CrateMetadata,
+    cmd::build,
     util,
     workspace::{ManifestPath, Workspace},
     UnstableFlags, Verbosity,
@@ -28,13 +30,16 @@ use contract::{
     SourceLanguage, User,
 };
 use semver::Version;
-use std::fs;
+use std::{
+    fs,
+    path::Path,
+};
 
 const METADATA_FILE: &str = "metadata.json";
 
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
-    manifest_path: ManifestPath,
+    crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
 }
@@ -44,7 +49,8 @@ impl GenerateMetadataCommand {
         util::assert_channel()?;
         println!("  Generating metadata");
 
-        let (cargo_meta, root_package_id) = crate::util::get_cargo_metadata(&self.manifest_path)?;
+        super::execute_build(&self.crate_metadata, self.verbosity, self.unstable_options.clone())?;
+        let cargo_meta = &self.crate_metadata.cargo_meta;
 
         let out_path = cargo_meta.target_directory.join(METADATA_FILE);
         let out_path_display = format!("{}", out_path.display());
@@ -52,7 +58,7 @@ impl GenerateMetadataCommand {
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
-        let (source_meta, contract_meta, user_meta) = self.extended_metadata(&cargo_meta)?;
+        let (source_meta, contract_meta, user_meta) = self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -66,7 +72,7 @@ impl GenerateMetadataCommand {
                     "--release",
                     // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
                 ],
-                self.manifest_path.directory(),
+                self.crate_metadata.manifest_path.directory(),
                 self.verbosity,
             )?;
 
@@ -79,9 +85,9 @@ impl GenerateMetadataCommand {
         };
 
         if self.unstable_options.original_manifest {
-            generate_metadata(&self.manifest_path)?;
+            generate_metadata(&self.crate_metadata.manifest_path)?;
         } else {
-            Workspace::new(&cargo_meta, &root_package_id)?
+            Workspace::new(&cargo_meta, &self.crate_metadata.root_package.id)?
                 .with_root_package_manifest(|manifest| {
                     manifest
                         .with_added_crate_type("rlib")?
@@ -99,11 +105,11 @@ impl GenerateMetadataCommand {
     }
 
     /// Generate the extended contract project metadata
-    fn extended_metadata(&self, cargo_meta: &Metadata) -> Result<(Source, Contract, Option<User>)> {
+    fn extended_metadata(&self) -> Result<(Source, Contract, Option<User>)> {
         // todo: generate these params
         let ink_version = Version::new(2, 1, 0);
         let rust_version = Version::new(1, 41, 0);
-        let contract_name = "test".to_string();
+        let contract_name = self.crate_metadata.package_name.clone();
         let contract_version = Version::new(0, 0, 0);
         let contract_authors = vec!["author@example.com".to_string()];
         // optional
@@ -140,8 +146,7 @@ impl GenerateMetadataCommand {
 
     /// Compile the contract and then hash the resulting wasm
     fn wasm_hash(&self) -> Result<[u8; 32]> {
-        let wasm_path = super::execute_build(self.manifest_path.clone(), self.verbosity, self.unstable_options.clone())?;
-        let wasm = fs::read(wasm_path)?;
+        let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
 
         use ::blake2::digest::{
             Update as _,
@@ -163,8 +168,9 @@ pub(crate) fn execute_generate_metadata(
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
 ) -> Result<String> {
+    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     GenerateMetadataCommand {
-        manifest_path,
+        crate_metadata,
         verbosity,
         unstable_options,
     }.exec()

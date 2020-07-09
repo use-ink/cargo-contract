@@ -20,22 +20,6 @@ use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
 use std::{ffi::OsStr, path::Path, process::Command};
 
-/// Get the result of `cargo metadata`, together with the root package id.
-pub fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, PackageId)> {
-    let mut cmd = MetadataCommand::new();
-    let metadata = cmd
-        .manifest_path(manifest_path)
-        .exec()
-        .context("Error invoking `cargo metadata`")?;
-    let root_package_id = metadata
-        .resolve
-        .as_ref()
-        .and_then(|resolve| resolve.root.as_ref())
-        .context("Cannot infer the root project id")?
-        .clone();
-    Ok((metadata, root_package_id))
-}
-
 /// Check whether the current rust channel is valid: `nightly` is recommended.
 pub fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;

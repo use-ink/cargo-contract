@@ -15,6 +15,7 @@
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
 mod cmd;
+mod crate_metadata;
 mod util;
 mod workspace;
 
@@ -241,14 +242,15 @@ fn exec(cmd: Command) -> Result<String> {
             verbosity,
             unstable_options,
         } => {
-            let dest_wasm = cmd::execute_build(
-                Default::default(),
+            let crate_metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
+            cmd::execute_build(
+                &crate_metadata,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
                 "\nYour contract is ready. You can find it here:\n{}",
-                dest_wasm.display().to_string().bold()
+                crate_metadata.dest_wasm.display().to_string().bold()
             ))
         },
         Command::GenerateMetadata {
