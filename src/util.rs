@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{workspace::ManifestPath, Verbosity};
+use crate::Verbosity;
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
 use std::{ffi::OsStr, path::Path, process::Command};
 

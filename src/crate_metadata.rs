@@ -14,14 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{workspace::ManifestPath, Verbosity};
+use crate::workspace::ManifestPath;
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package, PackageId};
-use std::{
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::PathBuf;
+use url::Url;
 
 /// Relevant metadata obtained from Cargo.toml.
 #[derive(Debug)]
@@ -32,6 +29,8 @@ pub struct CrateMetadata {
     pub root_package: Package,
     pub original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
+    pub documentation: Option<Url>,
+    pub homepage: Option<Url>,
 }
 
 impl CrateMetadata {
@@ -63,6 +62,10 @@ impl CrateMetadata {
         dest_wasm.push(package_name.clone());
         dest_wasm.set_extension("wasm");
 
+        // todo: read directly from Cargo.toml
+        let documentation = None;
+        let homepage = None;
+
         let crate_metadata = CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
@@ -70,6 +73,8 @@ impl CrateMetadata {
             package_name,
             original_wasm,
             dest_wasm,
+            documentation,
+            homepage,
         };
         Ok(crate_metadata)
     }

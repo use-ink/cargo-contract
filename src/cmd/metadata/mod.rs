@@ -17,20 +17,18 @@
 mod contract;
 
 use crate::{
-    cmd::build,
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
-use cargo_metadata::Metadata;
 use contract::{
     Compiler, Contract, ContractMetadata, Language, License, Source, SourceCompiler,
     SourceLanguage, User,
 };
 use semver::Version;
-use std::{fs, path::Path};
+use std::fs;
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -108,18 +106,23 @@ impl GenerateMetadataCommand {
     /// Generate the extended contract project metadata
     fn extended_metadata(&self) -> Result<(Source, Contract, Option<User>)> {
         // todo: generate these params
+        let contract_package = &self.crate_metadata.root_package;
         let ink_version = Version::new(2, 1, 0);
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
-        let contract_name = self.crate_metadata.package_name.clone();
+        let contract_name = contract_package.name.clone();
         let contract_version =
-            Version::parse(&self.crate_metadata.root_package.version.to_string())?;
+            Version::parse(&contract_package.version.to_string())?;
         let contract_authors = vec!["author@example.com".to_string()];
         // optional
-        let description: Option<String> = None;
-        let documentation = None;
-        let repository = None;
-        let homepage = None;
-        let license: Option<License> = None;
+        let description = contract_package.description.clone();
+        let documentation = self.crate_metadata.documentation.clone();
+        let repository = contract_package.repository.clone();
+        let homepage = self.crate_metadata.homepage.clone();
+        let license = contract_package.license
+            .map(|license| Some(License::SpdxId(license)))
+            .unwrap_or_else(|| {
+                contract_package.license_file.map(|f| License::Link(url::Url::from_file_path(f)?))
+            });
 
         let hash = self.wasm_hash()?;
 

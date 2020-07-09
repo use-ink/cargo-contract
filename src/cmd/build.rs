@@ -17,7 +17,6 @@
 use std::{
     fs::metadata,
     io::{self, Write},
-    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -28,7 +27,6 @@ use crate::{
     UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
-use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 

@@ -20,7 +20,7 @@ use anyhow::{Context, Result};
 use sp_core::H256;
 use subxt::{contracts::*, ClientBuilder, DefaultNodeRuntime};
 
-use crate::{cmd::build, crate_metadata, ExtrinsicOpts};
+use crate::{crate_metadata, ExtrinsicOpts};
 
 /// Load the wasm blob from the specified path.
 ///
