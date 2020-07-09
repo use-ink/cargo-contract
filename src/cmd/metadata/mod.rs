@@ -1,39 +1,36 @@
 // Copyright 2018-2020 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
-// ink! is free software: you can redistribute it and/or modify
+// cargo-contract is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// ink! is distributed in the hope that it will be useful,
+// cargo-contract is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with ink!.  If not, see <http://www.gnu.org/licenses/>.
+// along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod contract;
 
-use cargo_metadata::Metadata;
 use crate::{
-    crate_metadata::CrateMetadata,
     cmd::build,
+    crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
+use cargo_metadata::Metadata;
 use contract::{
     Compiler, Contract, ContractMetadata, Language, License, Source, SourceCompiler,
     SourceLanguage, User,
 };
 use semver::Version;
-use std::{
-    fs,
-    path::Path,
-};
+use std::{fs, path::Path};
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -45,11 +42,15 @@ struct GenerateMetadataCommand {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self)-> Result<String> {
+    pub fn exec(&self) -> Result<String> {
         util::assert_channel()?;
         println!("  Generating metadata");
 
-        super::execute_build(&self.crate_metadata, self.verbosity, self.unstable_options.clone())?;
+        super::execute_build(
+            &self.crate_metadata,
+            self.verbosity,
+            self.unstable_options.clone(),
+        )?;
         let cargo_meta = &self.crate_metadata.cargo_meta;
 
         let out_path = cargo_meta.target_directory.join(METADATA_FILE);
@@ -148,10 +149,7 @@ impl GenerateMetadataCommand {
     fn wasm_hash(&self) -> Result<[u8; 32]> {
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
 
-        use ::blake2::digest::{
-            Update as _,
-            VariableOutput as _,
-        };
+        use ::blake2::digest::{Update as _, VariableOutput as _};
         let mut output = [0u8; 32];
         let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
         blake2.update(wasm);
@@ -173,7 +171,8 @@ pub(crate) fn execute_generate_metadata(
         crate_metadata,
         verbosity,
         unstable_options,
-    }.exec()
+    }
+    .exec()
 }
 
 #[cfg(feature = "test-ci-only")]

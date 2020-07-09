@@ -252,7 +252,7 @@ fn exec(cmd: Command) -> Result<String> {
                 "\nYour contract is ready. You can find it here:\n{}",
                 crate_metadata.dest_wasm.display().to_string().bold()
             ))
-        },
+        }
         Command::GenerateMetadata {
             verbosity,
             unstable_options,

@@ -20,7 +20,7 @@ use anyhow::{Context, Result};
 use sp_core::H256;
 use subxt::{contracts::*, ClientBuilder, DefaultNodeRuntime};
 
-use crate::{cmd::build, ExtrinsicOpts, crate_metadata};
+use crate::{cmd::build, crate_metadata, ExtrinsicOpts};
 
 /// Load the wasm blob from the specified path.
 ///
@@ -31,7 +31,7 @@ fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
         None => {
             let metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
             metadata.dest_wasm
-        },
+        }
     };
     log::info!("Contract code path: {}", contract_wasm_path.display());
     let mut data = Vec::new();
