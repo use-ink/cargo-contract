@@ -111,7 +111,8 @@ impl GenerateMetadataCommand {
         let ink_version = Version::new(2, 1, 0);
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
         let contract_name = self.crate_metadata.package_name.clone();
-        let contract_version = Version::new(0, 0, 0);
+        let contract_version =
+            Version::parse(&self.crate_metadata.root_package.version.to_string())?;
         let contract_authors = vec!["author@example.com".to_string()];
         // optional
         let description: Option<String> = None;
