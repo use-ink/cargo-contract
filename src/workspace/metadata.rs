@@ -56,7 +56,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         .expect("contract dependency is a table specified in the template");
     contract.insert("package".into(), contract_package_name.into());
 
-    // make ink_abi dependency use default features
+    // make ink_metadata dependency use default features
     ink_metadata_dependency.remove("default-features");
     ink_metadata_dependency.remove("features");
     ink_metadata_dependency.remove("optional");
@@ -64,7 +64,6 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     // add ink dependencies copied from contract manifest
     deps.insert("ink_lang".into(), ink_lang_dependency.into());
     deps.insert("ink_metadata".into(), ink_metadata_dependency.into());
-
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
     fs::write(dir.join("Cargo.toml"), cargo_toml)?;
