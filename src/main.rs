@@ -98,6 +98,7 @@ struct VerbosityFlags {
     verbose: bool,
 }
 
+#[derive(Clone, Copy)]
 enum Verbosity {
     Quiet,
     Verbose,
@@ -123,7 +124,7 @@ struct UnstableOptions {
     options: Vec<String>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct UnstableFlags {
     original_manifest: bool,
 }
@@ -239,11 +240,17 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {
             verbosity,
             unstable_options,
-        } => cmd::execute_build(
-            Default::default(),
-            verbosity.try_into()?,
-            unstable_options.try_into()?,
-        ),
+        } => {
+            let dest_wasm = cmd::execute_build(
+                Default::default(),
+                verbosity.try_into()?,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "\nYour contract is ready. You can find it here:\n{}",
+                dest_wasm.display().to_string().bold()
+            ))
+        },
         Command::GenerateMetadata {
             verbosity,
             unstable_options,

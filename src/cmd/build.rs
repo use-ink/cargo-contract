@@ -169,6 +169,9 @@ fn build_cargo_project(
             .using_temp(xbuild)?;
     }
 
+    // clear RUSTFLAGS
+    std::env::remove_var("RUSTFLAGS");
+
     Ok(())
 }
 
@@ -298,7 +301,7 @@ pub(crate) fn execute_build(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
-) -> Result<String> {
+) -> Result<PathBuf> {
     println!(
         " {} {}",
         "[1/4]".bold(),
@@ -324,10 +327,7 @@ pub(crate) fn execute_build(
     );
     optimize_wasm(&crate_metadata)?;
 
-    Ok(format!(
-        "\nYour contract is ready. You can find it here:\n{}",
-        crate_metadata.dest_wasm.display().to_string().bold()
-    ))
+    Ok(crate_metadata.dest_wasm)
 }
 
 #[cfg(feature = "test-ci-only")]
