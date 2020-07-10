@@ -17,7 +17,12 @@
 use crate::workspace::ManifestPath;
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package, PackageId};
-use std::path::PathBuf;
+use serde_json::{Map, Value};
+use std::{
+    fs,
+    path::PathBuf,
+};
+use toml::value;
 use url::Url;
 
 /// Relevant metadata obtained from Cargo.toml.
@@ -31,6 +36,7 @@ pub struct CrateMetadata {
     pub dest_wasm: PathBuf,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
+    pub user: Option<Map<String, Value>>,
 }
 
 impl CrateMetadata {
@@ -62,9 +68,7 @@ impl CrateMetadata {
         dest_wasm.push(package_name.clone());
         dest_wasm.set_extension("wasm");
 
-        // todo: read directly from Cargo.toml
-        let documentation = None;
-        let homepage = None;
+        let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
 
         let crate_metadata = CrateMetadata {
             manifest_path: manifest_path.clone(),
@@ -75,6 +79,7 @@ impl CrateMetadata {
             dest_wasm,
             documentation,
             homepage,
+            user,
         };
         Ok(crate_metadata)
     }
@@ -94,4 +99,29 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
         .context("Cannot infer the root project id")?
         .clone();
     Ok((metadata, root_package_id))
+}
+
+/// Read extra metadata not available via `cargo metadata` directly from `Cargo.toml`
+fn get_cargo_toml_metadata(
+    manifest_path: &ManifestPath
+) -> Result<(Option<Url>, Option<Url>, Option<Map<String, Value>>)> {
+    let toml = fs::read_to_string(manifest_path)?;
+    let toml: value::Table = toml::from_str(&toml)?;
+
+    let get_url = |field_name| -> Result<Option<Url>> {
+        toml
+            .get("package")
+            .ok_or(anyhow::anyhow!("package section not found"))?
+            .get(field_name)
+            .and_then(|v| v.as_str())
+            .map(Url::parse)
+            .transpose()
+            .context(format!("{} should be a valid URL", field_name))
+            .map_err(Into::into)
+    };
+
+    let documentation = get_url("documentation")?;
+    let homepage = get_url("homepage")?;
+
+    Ok((documentation, homepage, None))
 }

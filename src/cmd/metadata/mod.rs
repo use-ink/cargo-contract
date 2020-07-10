@@ -138,7 +138,8 @@ impl GenerateMetadataCommand {
             license,
         );
 
-        let user: Option<User> = None;
+        // user defined metadata
+        let user = self.crate_metadata.user.clone().map(User::new);
 
         Ok((source, contract, user))
     }
