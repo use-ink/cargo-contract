@@ -104,7 +104,6 @@ pub enum Language {
     Ink,
     Solidity,
     AssemblyScript,
-    Other(&'static str),
 }
 
 impl Display for Language {
@@ -113,7 +112,6 @@ impl Display for Language {
             Self::Ink => write!(f, "ink!"),
             Self::Solidity => write!(f, "Solidity"),
             Self::AssemblyScript => write!(f, "AssemblyScript"),
-            Self::Other(lang) => write!(f, "{}", lang),
         }
     }
 }
@@ -145,7 +143,6 @@ impl SourceCompiler {
 pub enum Compiler {
     RustC,
     Solang,
-    Other(&'static str),
 }
 
 impl Display for Compiler {
@@ -153,7 +150,6 @@ impl Display for Compiler {
         match self {
             Self::RustC => write!(f, "rustc"),
             Self::Solang => write!(f, "solang"),
-            Self::Other(other) => write!(f, "{}", other),
         }
     }
 }
@@ -212,10 +208,6 @@ impl User {
     /// Constructs a new InkProjectUser
     pub fn new(json: Map<String, Value>) -> Self {
         User { json }
-    }
-
-    pub fn from_str(json: &str) -> serde_json::Result<Self> {
-        serde_json::from_str(json.as_ref()).map(Self::new)
     }
 }
 
