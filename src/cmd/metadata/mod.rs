@@ -29,6 +29,7 @@ use contract::{
 };
 use semver::Version;
 use std::fs;
+use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
 
@@ -44,11 +45,6 @@ impl GenerateMetadataCommand {
         util::assert_channel()?;
         println!("  Generating metadata");
 
-        super::execute_build(
-            &self.crate_metadata,
-            self.verbosity,
-            self.unstable_options.clone(),
-        )?;
         let cargo_meta = &self.crate_metadata.cargo_meta;
 
         let out_path = cargo_meta.target_directory.join(METADATA_FILE);
@@ -112,18 +108,21 @@ impl GenerateMetadataCommand {
         let contract_name = contract_package.name.clone();
         let contract_version =
             Version::parse(&contract_package.version.to_string())?;
-        let contract_authors = vec!["author@example.com".to_string()];
+        let contract_authors = contract_package.authors.clone();
         // optional
         let description = contract_package.description.clone();
         let documentation = self.crate_metadata.documentation.clone();
-        let repository = contract_package.repository.clone();
+        let repository = contract_package.repository
+            .as_ref()
+            .map(|repo| Url::parse(&repo))
+            .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license
-            .map(|license| Some(License::SpdxId(license)))
-            .unwrap_or_else(|| {
-                contract_package.license_file.map(|f| License::Link(url::Url::from_file_path(f)?))
-            });
-
+            .as_ref()
+            .map(|license| License::SpdxId(license.clone()));
+            // .map_or_else(|| {
+            //     contract_package.license_file.map(|f| url::Url::from_file_path(f).unwrap())
+            // }, Ok)?
         let hash = self.wasm_hash()?;
 
         let source = {
@@ -151,6 +150,12 @@ impl GenerateMetadataCommand {
 
     /// Compile the contract and then hash the resulting wasm
     fn wasm_hash(&self) -> Result<[u8; 32]> {
+        super::execute_build(
+            &self.crate_metadata,
+            self.verbosity,
+            self.unstable_options.clone(),
+        )?;
+
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
 
         use ::blake2::digest::{Update as _, VariableOutput as _};
