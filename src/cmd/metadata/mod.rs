@@ -145,7 +145,7 @@ impl GenerateMetadataCommand {
 
     /// Compile the contract and then hash the resulting wasm
     fn wasm_hash(&self) -> Result<[u8; 32]> {
-        super::execute_build(
+        super::build::execute_with_metadata(
             &self.crate_metadata,
             self.verbosity,
             self.unstable_options.clone(),
@@ -165,7 +165,7 @@ impl GenerateMetadataCommand {
 /// Generates a file with metadata describing the ABI of the smart-contract.
 ///
 /// It does so by generating and invoking a temporary workspace member.
-pub(crate) fn execute_generate_metadata(
+pub(crate) fn execute(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
@@ -183,7 +183,7 @@ pub(crate) fn execute_generate_metadata(
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd::{execute_generate_metadata, execute_new},
+        cmd,
         util::tests::with_tmp_dir,
         workspace::ManifestPath,
         UnstableFlags,
@@ -193,10 +193,10 @@ mod tests {
     fn generate_metadata() {
         env_logger::try_init().ok();
         with_tmp_dir(|path| {
-            execute_new("new_project", Some(path)).expect("new project creation failed");
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let message = execute_generate_metadata(manifest_path, None, UnstableFlags::default())
+            let message = cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
                 .expect("generate metadata failed");
             println!("{}", message);
 

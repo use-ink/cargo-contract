@@ -237,26 +237,26 @@ fn main() {
 
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
-        Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
+        Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build {
             verbosity,
             unstable_options,
         } => {
-            let crate_metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
-            cmd::execute_build(
-                &crate_metadata,
+            let manifest_path = Default::default();
+            let dest_wasm = cmd::build::execute(
+                &manifest_path,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
                 "\nYour contract is ready. You can find it here:\n{}",
-                crate_metadata.dest_wasm.display().to_string().bold()
+                dest_wasm.display().to_string().bold()
             ))
         }
         Command::GenerateMetadata {
             verbosity,
             unstable_options,
-        } => cmd::execute_generate_metadata(
+        } => cmd::metadata::execute(
             Default::default(),
             verbosity.try_into()?,
             unstable_options.try_into()?,

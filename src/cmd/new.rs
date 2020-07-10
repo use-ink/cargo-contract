@@ -23,7 +23,7 @@ use std::{
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute(name: &str, dir: Option<&PathBuf>) -> Result<String> {
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
@@ -97,12 +97,12 @@ pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir};
+    use crate::{cmd, util::tests::with_tmp_dir};
 
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = execute_new("rejects-hyphenated-name", Some(path));
+            let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(Contract names cannot contain hyphens)"#
@@ -114,8 +114,8 @@ mod tests {
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = execute_new(name, Some(path));
-            let result = execute_new(name, Some(path));
+            let _ = execute(name, Some(path));
+            let result = cmd::new::execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
@@ -132,7 +132,7 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = execute_new(name, Some(path));
+            let result = cmd::new::execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(

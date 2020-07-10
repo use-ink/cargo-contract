@@ -17,6 +17,7 @@
 use std::{
     fs::metadata,
     io::{self, Write},
+    path::PathBuf,
     process::Command,
 };
 
@@ -239,12 +240,33 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
-/// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(
+/// It does so by invoking `cargo build` and then post processing the final binary.
+///
+/// # Note
+///
+/// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
+/// [`execute_build_with_metadata`] if an instance is already available.
+pub(crate) fn execute(
+    manifest_path: &ManifestPath,
+    verbosity: Option<Verbosity>,
+    unstable_options: UnstableFlags,
+) -> Result<PathBuf> {
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    execute_with_metadata(&crate_metadata, verbosity, unstable_options)
+}
+
+/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+///
+/// It does so by invoking `cargo build` and then post processing the final binary.
+///
+/// # Note
+///
+/// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
+pub(crate) fn execute_with_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
-) -> Result<()> {
+) -> Result<PathBuf> {
     println!(
         " {} {}",
         "[1/3]".bold(),
@@ -263,23 +285,23 @@ pub(crate) fn execute_build(
         "Optimizing wasm file".bright_green().bold()
     );
     optimize_wasm(&crate_metadata)?;
-    Ok(())
+    Ok(crate_metadata.dest_wasm.clone())
 }
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
+        cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
     };
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
-            execute_new("new_project", Some(path)).expect("new project creation failed");
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None, UnstableFlags::default())
+            super::execute(&manifest_path, None, UnstableFlags::default())
                 .expect("build failed");
         });
     }
