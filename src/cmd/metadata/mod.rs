@@ -182,12 +182,7 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cmd,
-        util::tests::with_tmp_dir,
-        workspace::ManifestPath,
-        UnstableFlags,
-    };
+    use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
 
     #[test]
     fn generate_metadata() {

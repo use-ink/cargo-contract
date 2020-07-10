@@ -291,9 +291,7 @@ pub(crate) fn execute_with_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
-    };
+    use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
@@ -301,8 +299,7 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(&manifest_path, None, UnstableFlags::default())
-                .expect("build failed");
+            super::execute(&manifest_path, None, UnstableFlags::default()).expect("build failed");
         });
     }
 }
