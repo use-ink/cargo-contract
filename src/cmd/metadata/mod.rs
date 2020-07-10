@@ -24,7 +24,7 @@ use crate::{
 };
 use anyhow::Result;
 use contract::{
-    Compiler, Contract, ContractMetadata, Language, License, Source, SourceCompiler,
+    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
     SourceLanguage, User,
 };
 use semver::Version;
@@ -117,12 +117,7 @@ impl GenerateMetadataCommand {
             .map(|repo| Url::parse(&repo))
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
-        let license = contract_package.license
-            .as_ref()
-            .map(|license| License::SpdxId(license.clone()));
-            // .map_or_else(|| {
-            //     contract_package.license_file.map(|f| url::Url::from_file_path(f).unwrap())
-            // }, Ok)?
+        let license = contract_package.license.clone();
         let hash = self.wasm_hash()?;
 
         let source = {

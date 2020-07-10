@@ -173,7 +173,7 @@ pub struct Contract {
     #[serde(skip_serializing_if = "Option::is_none")]
     homepage: Option<Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    license: Option<License>,
+    license: Option<String>,
 }
 
 impl Contract {
@@ -186,7 +186,7 @@ impl Contract {
         documentation: Option<Url>,
         repository: Option<Url>,
         homepage: Option<Url>,
-        license: Option<License>,
+        license: Option<String>,
     ) -> Self {
         Contract {
             name,
@@ -199,15 +199,6 @@ impl Contract {
             license,
         }
     }
-}
-
-/// The license of a smart contract
-#[derive(Debug, Serialize)]
-pub enum License {
-    /// An [SPDX identifier](https://spdx.org/licenses/)
-    SpdxId(String),
-    /// A URL to a custom license
-    Link(Url),
 }
 
 /// Additional user defined metadata, can be any valid json.
