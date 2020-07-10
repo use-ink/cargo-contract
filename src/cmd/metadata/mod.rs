@@ -24,8 +24,7 @@ use crate::{
 };
 use anyhow::Result;
 use contract::{
-    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
-    SourceLanguage, User,
+    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
 };
 use semver::Version;
 use std::fs;
@@ -106,13 +105,13 @@ impl GenerateMetadataCommand {
         let ink_version = Version::new(2, 1, 0);
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
         let contract_name = contract_package.name.clone();
-        let contract_version =
-            Version::parse(&contract_package.version.to_string())?;
+        let contract_version = Version::parse(&contract_package.version.to_string())?;
         let contract_authors = contract_package.authors.clone();
         // optional
         let description = contract_package.description.clone();
         let documentation = self.crate_metadata.documentation.clone();
-        let repository = contract_package.repository
+        let repository = contract_package
+            .repository
             .as_ref()
             .map(|repo| Url::parse(&repo))
             .transpose()?;

@@ -18,10 +18,7 @@ use crate::workspace::ManifestPath;
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package, PackageId};
 use serde_json::{Map, Value};
-use std::{
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 use toml::value;
 use url::Url;
 
@@ -103,14 +100,13 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
 
 /// Read extra metadata not available via `cargo metadata` directly from `Cargo.toml`
 fn get_cargo_toml_metadata(
-    manifest_path: &ManifestPath
+    manifest_path: &ManifestPath,
 ) -> Result<(Option<Url>, Option<Url>, Option<Map<String, Value>>)> {
     let toml = fs::read_to_string(manifest_path)?;
     let toml: value::Table = toml::from_str(&toml)?;
 
     let get_url = |field_name| -> Result<Option<Url>> {
-        toml
-            .get("package")
+        toml.get("package")
             .ok_or(anyhow::anyhow!("package section not found"))?
             .get(field_name)
             .and_then(|v| v.as_str())
@@ -131,8 +127,7 @@ fn get_cargo_toml_metadata(
         .and_then(|v| v.as_table())
         .map(|v| {
             // convert user defined section from toml to json
-            serde_json::to_string(v)
-                .and_then(|json| serde_json::from_str(&json))
+            serde_json::to_string(v).and_then(|json| serde_json::from_str(&json))
         })
         .transpose()?;
 
