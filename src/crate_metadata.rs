@@ -123,5 +123,18 @@ fn get_cargo_toml_metadata(
     let documentation = get_url("documentation")?;
     let homepage = get_url("homepage")?;
 
-    Ok((documentation, homepage, None))
+    let user = toml
+        .get("package")
+        .and_then(|v| v.get("metadata"))
+        .and_then(|v| v.get("contract"))
+        .and_then(|v| v.get("user"))
+        .and_then(|v| v.as_table())
+        .map(|v| {
+            // convert user defined section from toml to json
+            serde_json::to_string(v)
+                .and_then(|json| serde_json::from_str(&json))
+        })
+        .transpose()?;
+
+    Ok((documentation, homepage, user))
 }
