@@ -361,7 +361,8 @@ impl Manifest {
                 .as_str()
                 .ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
 
-            let ink_metadata = self.toml
+            let ink_metadata = self
+                .toml
                 .get("dependencies")
                 .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
                 .get("ink_metadata")
