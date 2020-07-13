@@ -176,9 +176,12 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
-    use std::fs;
+    use crate::{
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath,
+        UnstableFlags,
+    };
     use serde_json::{Map, Value};
+    use std::fs;
 
     #[test]
     fn generate_metadata() {
@@ -191,7 +194,8 @@ mod tests {
             let metadata_file =
                 cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
                     .expect("generate metadata failed");
-            let metadata_json: Map<String, Value> = serde_json::from_slice(&fs::read(&metadata_file)?)?;
+            let metadata_json: Map<String, Value> =
+                serde_json::from_slice(&fs::read(&metadata_file)?)?;
 
             assert!(
                 metadata_file.exists(),
