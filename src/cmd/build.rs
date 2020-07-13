@@ -300,6 +300,7 @@ mod tests {
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
             super::execute(&manifest_path, None, UnstableFlags::default()).expect("build failed");
+            Ok(())
         });
     }
 }

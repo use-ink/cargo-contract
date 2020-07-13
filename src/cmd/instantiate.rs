@@ -92,6 +92,7 @@ mod tests {
             );
 
             assert_matches!(result, Ok(_));
+            Ok(())
         });
     }
 }

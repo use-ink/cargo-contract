@@ -105,6 +105,7 @@ mod tests {
             let result = execute_deploy(&extrinsic_opts, Some(&wasm_path));
 
             assert_matches!(result, Ok(_));
+            Ok(())
         });
     }
 }

@@ -176,7 +176,9 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
+    use crate::{cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
+    use std::fs;
+    use serde_json::{Map, Value};
 
     #[test]
     fn generate_metadata() {
@@ -184,15 +186,38 @@ mod tests {
         with_tmp_dir(|path| {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
-            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
+            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
+            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
             let metadata_file =
                 cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
                     .expect("generate metadata failed");
+            let metadata_json: Map<String, Value> = serde_json::from_slice(&fs::read(&metadata_file)?)?;
 
             assert!(
                 metadata_file.exists(),
                 format!("Missing metadata file '{}'", metadata_file.display())
-            )
+            );
+
+            let source = metadata_json.get("source").expect("source not found");
+            let hash = source.get("hash").expect("source.hash not found");
+
+            // calculate wasm hash
+            let wasm = fs::read(&crate_metadata.dest_wasm)?;
+            use ::blake2::digest::{Update as _, VariableOutput as _};
+            let mut output = [0u8; 32];
+            let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
+            blake2.update(wasm);
+            blake2.finalize_variable(|result| output.copy_from_slice(result));
+
+            use core::fmt::Write;
+            let mut expected_hash = String::new();
+            write!(expected_hash, "0x").expect("failed writing to string");
+            for byte in &output {
+                write!(expected_hash, "{:02x}", byte).expect("failed writing to string");
+            }
+
+            assert_eq!(expected_hash, hash.as_str().unwrap());
+            Ok(())
         });
     }
 }

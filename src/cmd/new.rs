@@ -106,7 +106,8 @@ mod tests {
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(Contract names cannot contain hyphens)"#
-            )
+            );
+            Ok(())
         });
     }
 
@@ -122,6 +123,7 @@ mod tests {
                 result.err().unwrap().to_string(),
                 "A Cargo package already exists in test_contract_cargo_project_already_exists"
             );
+            Ok(())
         });
     }
 
@@ -139,6 +141,7 @@ mod tests {
                 result.err().unwrap().to_string(),
                 "New contract file .gitignore already exists"
             );
+            Ok(())
         });
     }
 }
