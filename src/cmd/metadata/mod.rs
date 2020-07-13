@@ -27,10 +27,7 @@ use contract::{
     Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
 };
 use semver::Version;
-use std::{
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
@@ -188,8 +185,9 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let metadata_file = cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
-                .expect("generate metadata failed");
+            let metadata_file =
+                cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
+                    .expect("generate metadata failed");
 
             assert!(
                 metadata_file.exists(),

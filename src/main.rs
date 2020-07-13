@@ -266,7 +266,7 @@ fn exec(cmd: Command) -> Result<String> {
                 "Your metadata file is ready.\nYou can find it here:\n{}",
                 metadata_file.display()
             ))
-        },
+        }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
