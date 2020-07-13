@@ -27,7 +27,10 @@ use contract::{
     Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
 };
 use semver::Version;
-use std::fs;
+use std::{
+    fs,
+    path::PathBuf,
+};
 use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
@@ -40,15 +43,12 @@ struct GenerateMetadataCommand {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<String> {
+    pub fn exec(&self) -> Result<PathBuf> {
         util::assert_channel()?;
         println!("  Generating metadata");
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
-
         let out_path = cargo_meta.target_directory.join(METADATA_FILE);
-        let out_path_display = format!("{}", out_path.display());
-
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
@@ -92,10 +92,7 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        Ok(format!(
-            "Your metadata file is ready.\nYou can find it here:\n{}",
-            out_path_display
-        ))
+        Ok(out_path)
     }
 
     /// Generate the extended contract project metadata
@@ -169,7 +166,7 @@ pub(crate) fn execute(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
-) -> Result<String> {
+) -> Result<PathBuf> {
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     GenerateMetadataCommand {
         crate_metadata,
@@ -191,13 +188,9 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml")).unwrap();
-            let message = cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
+            let metadata_file = cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
                 .expect("generate metadata failed");
-            println!("{}", message);
 
-            let mut metadata_file = working_dir;
-            metadata_file.push("target");
-            metadata_file.push("metadata.json");
             assert!(
                 metadata_file.exists(),
                 format!("Missing metadata file '{}'", metadata_file.display())

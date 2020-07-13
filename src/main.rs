@@ -256,11 +256,17 @@ fn exec(cmd: Command) -> Result<String> {
         Command::GenerateMetadata {
             verbosity,
             unstable_options,
-        } => cmd::metadata::execute(
-            Default::default(),
-            verbosity.try_into()?,
-            unstable_options.try_into()?,
-        ),
+        } => {
+            let metadata_file = cmd::metadata::execute(
+                Default::default(),
+                verbosity.try_into()?,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "Your metadata file is ready.\nYou can find it here:\n{}",
+                metadata_file.display()
+            ))
+        },
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
