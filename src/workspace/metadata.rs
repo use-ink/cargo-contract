@@ -28,7 +28,6 @@ use toml::value;
 pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
     contract_package_name: &str,
-    ink_lang_dependency: value::Table,
     mut ink_metadata_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
@@ -62,7 +61,6 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     ink_metadata_dependency.remove("optional");
 
     // add ink dependencies copied from contract manifest
-    deps.insert("ink_lang".into(), ink_lang_dependency.into());
     deps.insert("ink_metadata".into(), ink_metadata_dependency.into());
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
