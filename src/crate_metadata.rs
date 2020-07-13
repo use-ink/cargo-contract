@@ -16,7 +16,7 @@
 
 use crate::workspace::ManifestPath;
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package, PackageId};
+use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
 use serde_json::{Map, Value};
 use std::{fs, path::PathBuf};
 use toml::value;
@@ -39,16 +39,7 @@ pub struct CrateMetadata {
 impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
-        let (metadata, root_package_id) = get_cargo_metadata(manifest_path)?;
-
-        // Find the root package by id in the list of packages. It is logical error if the root
-        // package is not found in the list.
-        let root_package = metadata
-            .packages
-            .iter()
-            .find(|package| package.id == root_package_id)
-            .expect("The package is not found in the `cargo metadata` output")
-            .clone();
+        let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
@@ -70,7 +61,7 @@ impl CrateMetadata {
         let crate_metadata = CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
-            root_package: root_package.clone(),
+            root_package,
             package_name,
             original_wasm,
             dest_wasm,
@@ -83,7 +74,7 @@ impl CrateMetadata {
 }
 
 /// Get the result of `cargo metadata`, together with the root package id.
-fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, PackageId)> {
+fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Package)> {
     let mut cmd = MetadataCommand::new();
     let metadata = cmd
         .manifest_path(manifest_path)
@@ -95,7 +86,15 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
         .and_then(|resolve| resolve.root.as_ref())
         .context("Cannot infer the root project id")?
         .clone();
-    Ok((metadata, root_package_id))
+    // Find the root package by id in the list of packages. It is logical error if the root
+    // package is not found in the list.
+    let root_package = metadata
+        .packages
+        .iter()
+        .find(|package| package.id == root_package_id)
+        .expect("The package is not found in the `cargo metadata` output")
+        .clone();
+    Ok((metadata, root_package))
 }
 
 /// Read extra metadata not available via `cargo metadata` directly from `Cargo.toml`
