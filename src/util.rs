@@ -86,12 +86,37 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use std::path::PathBuf;
+    use std::{
+        panic,
+        path::Path
+    };
     use tempfile::TempDir;
 
-    pub fn with_tmp_dir<F: FnOnce(&PathBuf) -> anyhow::Result<()>>(f: F) {
+    pub fn with_tmp_dir<F>(f: F) -> anyhow::Result<()>
+    where
+        F: FnOnce(&Path) -> anyhow::Result<()> + panic::UnwindSafe
+    {
         let tmp_dir = TempDir::new().expect("temporary directory creation failed");
 
-        f(&tmp_dir.into_path()).unwrap()
+        // catch test panics in order to clean up temp dir which will be very large
+        let result = std::panic::catch_unwind(|| {
+            f(tmp_dir.path()).expect("Error executing test with tmp dir");
+
+            // explicitly clean up temp dir
+            tmp_dir.close().expect("Error cleaning up tmp dir")
+        });
+
+        if let Err(panic) = result {
+            match panic.downcast::<String>() {
+                Ok(panic_msg) => {
+                    anyhow::bail!("{}", panic_msg);
+                }
+                Err(_) => {
+                    anyhow::bail!("test panic happened: unknown type.");
+                }
+            }
+        }
+
+        Ok(())
     }
 }

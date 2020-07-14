@@ -17,18 +17,21 @@
 use std::{
     env, fs,
     io::{Cursor, Read, Seek, SeekFrom, Write},
-    path::PathBuf,
+    path::Path,
 };
 
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute(name: &str, dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<String>
+where
+    P: AsRef<Path>
+{
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
 
-    let out_dir = dir.unwrap_or(&env::current_dir()?).join(name);
+    let out_dir = dir.map_or(env::current_dir()?, |p| p.as_ref().to_path_buf()).join(name);
     if out_dir.join("Cargo.toml").exists() {
         anyhow::bail!("A Cargo package already exists in {}", name);
     }
@@ -100,7 +103,7 @@ mod tests {
     use crate::{cmd, util::tests::with_tmp_dir};
 
     #[test]
-    fn rejects_hyphenated_name() {
+    fn rejects_hyphenated_name() -> anyhow::Result<()> {
         with_tmp_dir(|path| {
             let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
             assert_eq!(
@@ -108,11 +111,11 @@ mod tests {
                 r#"Err(Contract names cannot contain hyphens)"#
             );
             Ok(())
-        });
+        })
     }
 
     #[test]
-    fn contract_cargo_project_already_exists() {
+    fn contract_cargo_project_already_exists() -> anyhow::Result<()> {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
             let _ = execute(name, Some(path));
@@ -124,11 +127,11 @@ mod tests {
                 "A Cargo package already exists in test_contract_cargo_project_already_exists"
             );
             Ok(())
-        });
+        })
     }
 
     #[test]
-    fn dont_overwrite_existing_files_not_in_cargo_project() {
+    fn dont_overwrite_existing_files_not_in_cargo_project() -> anyhow::Result<()> {
         with_tmp_dir(|path| {
             let name = "dont_overwrite_existing_files";
             let dir = path.join(name);
@@ -142,6 +145,6 @@ mod tests {
                 "New contract file .gitignore already exists"
             );
             Ok(())
-        });
+        })
     }
 }
