@@ -196,18 +196,51 @@ mod tests {
         fn new(manifest_path: ManifestPath) -> anyhow::Result<Self> {
             Ok(Self {
                 toml: toml::from_slice(&fs::read(&manifest_path)?)?,
-                manifest_path
+                manifest_path,
             })
         }
 
-        fn add_package_value(&mut self, key: &'static str, value: value::Value) -> anyhow::Result<()> {
-            self
-                .toml
+        fn package_mut(&mut self) -> anyhow::Result<&mut value::Table> {
+            self.toml
                 .get_mut("package")
                 .ok_or(anyhow::anyhow!("package section not found"))?
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!("package section should be a table"))?
+                .ok_or(anyhow::anyhow!("package section should be a table"))
+        }
+
+        /// Add a key/value to the `[package.metadata.contract.user]` section
+        fn add_user_metadata_value(
+            &mut self,
+            key: &'static str,
+            value: value::Value,
+        ) -> anyhow::Result<()> {
+            self.package_mut()?
+                .entry("metadata")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .ok_or(anyhow::anyhow!("metadata section should be a table"))?
+                .entry("contract")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .ok_or(anyhow::anyhow!(
+                    "metadata.contract section should be a table"
+                ))?
+                .entry("user")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .ok_or(anyhow::anyhow!(
+                    "metadata.contract.user section should be a table"
+                ))?
                 .insert(key.into(), value);
+            Ok(())
+        }
+
+        fn add_package_value(
+            &mut self,
+            key: &'static str,
+            value: value::Value,
+        ) -> anyhow::Result<()> {
+            self.package_mut()?.insert(key.into(), value);
             Ok(())
         }
 
@@ -228,6 +261,16 @@ mod tests {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;
             test_manifest.add_package_value("description", "contract description".into())?;
+            test_manifest.add_package_value("documentation", "http://documentation.com".into())?;
+            test_manifest.add_package_value("repository", "http://repository.com".into())?;
+            test_manifest.add_package_value("homepage", "http://homepage.com".into())?;
+            test_manifest.add_package_value("license", "Apache-2.0".into())?;
+            test_manifest
+                .add_user_metadata_value("some-user-provided-field", "and-its-value".into())?;
+            test_manifest.add_user_metadata_value(
+                "more-user-provided-fields",
+                vec!["and", "their", "values"].into(),
+            )?;
             test_manifest.write()?;
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
@@ -250,14 +293,29 @@ mod tests {
             let contract = metadata_json.get("contract").expect("contract not found");
             let name = contract.get("name").expect("contract.name not found");
             let version = contract.get("version").expect("contract.version not found");
-            let authors = contract.get("authors")
+            let authors = contract
+                .get("authors")
                 .expect("contract.authors not found")
                 .as_array()
                 .expect("contract.authors is an array")
                 .iter()
                 .map(|author| author.as_str().expect("author is a string"))
                 .collect::<Vec<_>>();
-            let description = contract.get("description").expect("contract.description not found");
+            let description = contract
+                .get("description")
+                .expect("contract.description not found");
+            let documentation = contract
+                .get("documentation")
+                .expect("contract.documentation not found");
+            let repository = contract
+                .get("repository")
+                .expect("contract.repository not found");
+            let homepage = contract
+                .get("homepage")
+                .expect("contract.homepage not found");
+            let license = contract.get("license").expect("contract.license not found");
+
+            let user = metadata_json.get("user").expect("user section not found");
 
             // calculate wasm hash
             let wasm = fs::read(&crate_metadata.dest_wasm)?;
@@ -277,14 +335,31 @@ mod tests {
                 semver::Version::parse(&rustc_version::version()?.to_string())?;
             let expected_compiler =
                 SourceCompiler::new(Compiler::RustC, expected_rustc_version).to_string();
+            let mut expected_user_metadata = serde_json::Map::new();
+            expected_user_metadata
+                .insert("some-user-provided-field".into(), "and-its-value".into());
+            expected_user_metadata.insert(
+                "more-user-provided-fields".into(),
+                serde_json::Value::Array(
+                    vec!["and".into(), "their".into(), "values".into()].into(),
+                ),
+            );
 
             assert_eq!(expected_hash, hash.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
             assert_eq!(crate_metadata.package_name, name.as_str().unwrap());
-            assert_eq!(crate_metadata.root_package.version.to_string(), version.as_str().unwrap());
+            assert_eq!(
+                crate_metadata.root_package.version.to_string(),
+                version.as_str().unwrap()
+            );
             assert_eq!(crate_metadata.root_package.authors, authors);
             assert_eq!("contract description", description.as_str().unwrap());
+            assert_eq!("http://documentation.com/", documentation.as_str().unwrap());
+            assert_eq!("http://repository.com/", repository.as_str().unwrap());
+            assert_eq!("http://homepage.com/", homepage.as_str().unwrap());
+            assert_eq!("Apache-2.0", license.as_str().unwrap());
+            assert_eq!(&expected_user_metadata, user.as_object().unwrap());
 
             Ok(())
         })
