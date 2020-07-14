@@ -94,7 +94,13 @@ impl Serialize for SourceLanguage {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{} {}", self.language, self.version))
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl Display for SourceLanguage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        write!(f, "{} {}", self.language, self.version)
     }
 }
 

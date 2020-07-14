@@ -17,6 +17,7 @@
 use crate::workspace::ManifestPath;
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
+use semver::Version;
 use serde_json::{Map, Value};
 use std::{fs, path::PathBuf};
 use toml::value;
@@ -31,6 +32,7 @@ pub struct CrateMetadata {
     pub root_package: Package,
     pub original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
+    pub ink_version: Version,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
@@ -56,6 +58,21 @@ impl CrateMetadata {
         dest_wasm.push(package_name.clone());
         dest_wasm.set_extension("wasm");
 
+        let ink_version = metadata
+            .packages
+            .iter()
+            .find_map(|package| {
+                if package.name == "ink_lang" {
+                    Some(
+                        Version::parse(&package.version.to_string())
+                            .expect("Invalid ink_lang version string"),
+                    )
+                } else {
+                    None
+                }
+            })
+            .ok_or(anyhow::anyhow!("No 'ink_lang' dependency found"))?;
+
         let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
 
         let crate_metadata = CrateMetadata {
@@ -65,6 +82,7 @@ impl CrateMetadata {
             package_name,
             original_wasm,
             dest_wasm,
+            ink_version,
             documentation,
             homepage,
             user,

@@ -94,9 +94,8 @@ impl GenerateMetadataCommand {
 
     /// Generate the extended contract project metadata
     fn extended_metadata(&self) -> Result<(Source, Contract, Option<User>)> {
-        // todo: generate these params
         let contract_package = &self.crate_metadata.root_package;
-        let ink_version = Version::new(2, 1, 0);
+        let ink_version = &self.crate_metadata.ink_version;
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
         let contract_name = contract_package.name.clone();
         let contract_version = Version::parse(&contract_package.version.to_string())?;
@@ -114,7 +113,7 @@ impl GenerateMetadataCommand {
         let hash = self.wasm_hash()?;
 
         let source = {
-            let lang = SourceLanguage::new(Language::Ink, ink_version);
+            let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
             Source::new(hash, lang, compiler)
         };
@@ -177,14 +176,18 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath,
+        cmd::{self, metadata::contract::*},
+        crate_metadata::CrateMetadata,
+        util::tests::with_tmp_dir,
+        workspace::ManifestPath,
         UnstableFlags,
     };
+    use blake2::digest::{Update as _, VariableOutput as _};
     use serde_json::{Map, Value};
-    use std::fs;
+    use std::{fmt::Write, fs};
 
     #[test]
-    fn generate_metadata() {
+    fn generate_metadata() -> anyhow::Result<()> {
         env_logger::try_init().ok();
         with_tmp_dir(|path| {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
@@ -204,24 +207,27 @@ mod tests {
 
             let source = metadata_json.get("source").expect("source not found");
             let hash = source.get("hash").expect("source.hash not found");
+            let language = source.get("language").expect("source.language not found");
 
             // calculate wasm hash
             let wasm = fs::read(&crate_metadata.dest_wasm)?;
-            use ::blake2::digest::{Update as _, VariableOutput as _};
             let mut output = [0u8; 32];
             let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
             blake2.update(wasm);
             blake2.finalize_variable(|result| output.copy_from_slice(result));
 
-            use core::fmt::Write;
             let mut expected_hash = String::new();
             write!(expected_hash, "0x").expect("failed writing to string");
             for byte in &output {
                 write!(expected_hash, "{:02x}", byte).expect("failed writing to string");
             }
+            let expected_language =
+                SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
 
             assert_eq!(expected_hash, hash.as_str().unwrap());
+            assert_eq!(expected_language, language.as_str().unwrap());
+
             Ok(())
-        });
+        })
     }
 }
