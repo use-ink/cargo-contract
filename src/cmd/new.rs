@@ -25,13 +25,15 @@ use heck::CamelCase as _;
 
 pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<String>
 where
-    P: AsRef<Path>
+    P: AsRef<Path>,
 {
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
 
-    let out_dir = dir.map_or(env::current_dir()?, |p| p.as_ref().to_path_buf()).join(name);
+    let out_dir = dir
+        .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
+        .join(name);
     if out_dir.join("Cargo.toml").exists() {
         anyhow::bail!("A Cargo package already exists in {}", name);
     }

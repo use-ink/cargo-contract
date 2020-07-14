@@ -86,15 +86,12 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use std::{
-        panic,
-        path::Path
-    };
+    use std::{panic, path::Path};
     use tempfile::TempDir;
 
     pub fn with_tmp_dir<F>(f: F) -> anyhow::Result<()>
     where
-        F: FnOnce(&Path) -> anyhow::Result<()> + panic::UnwindSafe
+        F: FnOnce(&Path) -> anyhow::Result<()> + panic::UnwindSafe,
     {
         let tmp_dir = TempDir::new().expect("temporary directory creation failed");
 
