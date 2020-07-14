@@ -129,12 +129,18 @@ pub struct SourceCompiler {
     version: Version,
 }
 
+impl Display for SourceCompiler {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        write!(f, "{} {}", self.compiler, self.version)
+    }
+}
+
 impl Serialize for SourceCompiler {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{} {}", self.compiler, self.version))
+        serializer.serialize_str(&self.to_string())
     }
 }
 

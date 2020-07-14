@@ -208,6 +208,11 @@ mod tests {
             let source = metadata_json.get("source").expect("source not found");
             let hash = source.get("hash").expect("source.hash not found");
             let language = source.get("language").expect("source.language not found");
+            let compiler = source.get("compiler").expect("source.compiler not found");
+
+            let contract = metadata_json.get("contract").expect("contract not found");
+            let name = contract.get("name").expect("contract.name not found");
+            let version = contract.get("version").expect("contract.version not found");
 
             // calculate wasm hash
             let wasm = fs::read(&crate_metadata.dest_wasm)?;
@@ -223,9 +228,16 @@ mod tests {
             }
             let expected_language =
                 SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
+            let expected_rustc_version =
+                semver::Version::parse(&rustc_version::version()?.to_string())?;
+            let expected_compiler =
+                SourceCompiler::new(Compiler::RustC, expected_rustc_version).to_string();
 
             assert_eq!(expected_hash, hash.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
+            assert_eq!(expected_compiler, compiler.as_str().unwrap());
+            assert_eq!(crate_metadata.package_name, name.as_str().unwrap());
+            assert_eq!(crate_metadata.root_package.version.to_string(), version.as_str().unwrap());
 
             Ok(())
         })
