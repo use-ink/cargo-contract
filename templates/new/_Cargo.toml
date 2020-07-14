@@ -5,10 +5,11 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
 [dependencies]
-ink_metadata = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_metadata", default-features = false, features = ["derive"], optional = true }
-ink_primitives = { git = "https://github.com/paritytech/ink", branch = "master", default-features = false }
-ink_core = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_core", default-features = false }
-ink_lang = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_lang", default-features = false }
+# todo: once https://github.com/paritytech/ink/pull/467 is merged change this back to master
+ink_metadata = { git = "https://github.com/paritytech/ink", branch = "aj-extra-metadata", package = "ink_metadata", default-features = false, features = ["derive"], optional = true }
+ink_primitives = { git = "https://github.com/paritytech/ink", branch = "aj-extra-metadata", default-features = false }
+ink_core = { git = "https://github.com/paritytech/ink", branch = "aj-extra-metadata", package = "ink_core", default-features = false }
+ink_lang = { git = "https://github.com/paritytech/ink", branch = "aj-extra-metadata", package = "ink_lang", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "1.3", default-features = false, features = ["derive"] }
 scale-info = { version = "0.3", default-features = false, features = ["derive"], optional = true }
