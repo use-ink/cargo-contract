@@ -185,6 +185,37 @@ mod tests {
     use blake2::digest::{Update as _, VariableOutput as _};
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
+    use toml::value;
+
+    struct TestContractManifest {
+        toml: value::Table,
+        manifest_path: ManifestPath,
+    }
+
+    impl TestContractManifest {
+        fn new(manifest_path: ManifestPath) -> anyhow::Result<Self> {
+            Ok(Self {
+                toml: toml::from_slice(&fs::read(&manifest_path)?)?,
+                manifest_path
+            })
+        }
+
+        fn add_package_value(&mut self, key: &'static str, value: value::Value) -> anyhow::Result<()> {
+            self
+                .toml
+                .get_mut("package")
+                .ok_or(anyhow::anyhow!("package section not found"))?
+                .as_table_mut()
+                .ok_or(anyhow::anyhow!("package section should be a table"))?
+                .insert(key.into(), value);
+            Ok(())
+        }
+
+        fn write(&self) -> anyhow::Result<()> {
+            let toml = toml::to_string(&self.toml)?;
+            fs::write(&self.manifest_path, toml).map_err(Into::into)
+        }
+    }
 
     #[test]
     fn generate_metadata() -> anyhow::Result<()> {
@@ -193,9 +224,15 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
-            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+
+            // add optional metadata fields
+            let mut test_manifest = TestContractManifest::new(manifest_path)?;
+            test_manifest.add_package_value("description", "contract description".into())?;
+            test_manifest.write()?;
+
+            let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let metadata_file =
-                cmd::metadata::execute(manifest_path, None, UnstableFlags::default())
+                cmd::metadata::execute(test_manifest.manifest_path, None, UnstableFlags::default())
                     .expect("generate metadata failed");
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;
@@ -213,6 +250,14 @@ mod tests {
             let contract = metadata_json.get("contract").expect("contract not found");
             let name = contract.get("name").expect("contract.name not found");
             let version = contract.get("version").expect("contract.version not found");
+            let authors = contract.get("authors")
+                .expect("contract.authors not found")
+                .as_array()
+                .expect("contract.authors is an array")
+                .iter()
+                .map(|author| author.as_str().expect("author is a string"))
+                .collect::<Vec<_>>();
+            let description = contract.get("description").expect("contract.description not found");
 
             // calculate wasm hash
             let wasm = fs::read(&crate_metadata.dest_wasm)?;
@@ -238,6 +283,8 @@ mod tests {
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
             assert_eq!(crate_metadata.package_name, name.as_str().unwrap());
             assert_eq!(crate_metadata.root_package.version.to_string(), version.as_str().unwrap());
+            assert_eq!(crate_metadata.root_package.authors, authors);
+            assert_eq!("contract description", description.as_str().unwrap());
 
             Ok(())
         })
