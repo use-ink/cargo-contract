@@ -86,11 +86,11 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use std::{panic, path::Path};
+    use std::path::Path;
 
     pub fn with_tmp_dir<F>(f: F)
     where
-        F: FnOnce(&Path) -> anyhow::Result<()> + panic::UnwindSafe,
+        F: FnOnce(&Path) -> anyhow::Result<()>,
     {
         let tmp_dir = tempfile::Builder::new()
             .prefix("cargo-contract.test.")
