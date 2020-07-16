@@ -105,7 +105,7 @@ mod tests {
     use crate::{cmd, util::tests::with_tmp_dir};
 
     #[test]
-    fn rejects_hyphenated_name() -> anyhow::Result<()> {
+    fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
             let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
             assert_eq!(
@@ -117,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn contract_cargo_project_already_exists() -> anyhow::Result<()> {
+    fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
             let _ = execute(name, Some(path));
@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn dont_overwrite_existing_files_not_in_cargo_project() -> anyhow::Result<()> {
+    fn dont_overwrite_existing_files_not_in_cargo_project() {
         with_tmp_dir(|path| {
             let name = "dont_overwrite_existing_files";
             let dir = path.join(name);

@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     #[ignore] // depends on a local substrate node running
-    fn deploy_contract() -> anyhow::Result<()> {
+    fn deploy_contract() {
         with_tmp_dir(|path| {
             let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
 

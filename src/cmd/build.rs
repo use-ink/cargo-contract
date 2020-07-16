@@ -294,7 +294,7 @@ mod tests {
     use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
 
     #[test]
-    fn build_template() -> anyhow::Result<()> {
+    fn build_template() {
         with_tmp_dir(|path| {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =

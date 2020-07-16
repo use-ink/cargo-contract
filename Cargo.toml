@@ -59,6 +59,3 @@ wabt = "0.9.2"
 default = []
 extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex"]
 test-ci-only = []
-
-[profile.dev]
-panic = "unwind"

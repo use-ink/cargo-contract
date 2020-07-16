@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn generate_metadata() -> anyhow::Result<()> {
+    fn generate_metadata() {
         env_logger::try_init().ok();
         with_tmp_dir(|path| {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
