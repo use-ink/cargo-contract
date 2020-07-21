@@ -61,7 +61,6 @@ impl GenerateMetadataCommand {
                     &manifest_path.cargo_arg(),
                     &target_dir_arg,
                     "--release",
-                    // "--no-default-features", // Breaks builds for MacOS (linker errors), we should investigate this issue asap!
                 ],
                 self.crate_metadata.manifest_path.directory(),
                 self.verbosity,
