@@ -46,7 +46,7 @@ impl ContractMetadata {
         let metadata_version = semver::Version::parse(METADATA_VERSION)
             .expect("METADATA_VERSION is a valid semver string");
 
-        ContractMetadata {
+        Self {
             metadata_version,
             source,
             contract,
