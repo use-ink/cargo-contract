@@ -36,7 +36,7 @@ pub struct ContractMetadata {
 }
 
 impl ContractMetadata {
-    /// Construct a new ContractMetadata
+    /// Construct new contract metadata
     pub fn new(
         source: Source,
         contract: Contract,
