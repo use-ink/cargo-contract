@@ -57,5 +57,13 @@ wabt = "0.9.2"
 
 [features]
 default = []
+
+# Enable this for (experimental) commands to deploy, instantiate and call contracts.
+#
+# Disabled by default
 extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex"]
+
+# Enable this to execute long running tests, which usually are only run on the CI server
+#
+# Disabled by default
 test-ci-only = []
