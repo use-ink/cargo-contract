@@ -17,18 +17,23 @@
 use std::{
     env, fs,
     io::{Cursor, Read, Seek, SeekFrom, Write},
-    path::PathBuf,
+    path::Path,
 };
 
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
+pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<String>
+where
+    P: AsRef<Path>,
+{
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
 
-    let out_dir = dir.unwrap_or(&env::current_dir()?).join(name);
+    let out_dir = dir
+        .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
+        .join(name);
     if out_dir.join("Cargo.toml").exists() {
         anyhow::bail!("A Cargo package already exists in {}", name);
     }
@@ -97,32 +102,34 @@ pub(crate) fn execute_new(name: &str, dir: Option<&PathBuf>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd::execute_new, util::tests::with_tmp_dir};
+    use crate::{cmd, util::tests::with_tmp_dir};
 
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = execute_new("rejects-hyphenated-name", Some(path));
+            let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
             assert_eq!(
                 format!("{:?}", result),
                 r#"Err(Contract names cannot contain hyphens)"#
-            )
-        });
+            );
+            Ok(())
+        })
     }
 
     #[test]
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = execute_new(name, Some(path));
-            let result = execute_new(name, Some(path));
+            let _ = execute(name, Some(path));
+            let result = cmd::new::execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
                 "A Cargo package already exists in test_contract_cargo_project_already_exists"
             );
-        });
+            Ok(())
+        })
     }
 
     #[test]
@@ -132,13 +139,14 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = execute_new(name, Some(path));
+            let result = cmd::new::execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
                 "New contract file .gitignore already exists"
             );
-        });
+            Ok(())
+        })
     }
 }

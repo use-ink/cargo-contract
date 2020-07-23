@@ -14,27 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{workspace::ManifestPath, Verbosity};
+use crate::Verbosity;
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, PackageId};
 use rustc_version::Channel;
 use std::{ffi::OsStr, path::Path, process::Command};
-
-/// Get the result of `cargo metadata`, together with the root package id.
-pub fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, PackageId)> {
-    let mut cmd = MetadataCommand::new();
-    let metadata = cmd
-        .manifest_path(manifest_path)
-        .exec()
-        .context("Error invoking `cargo metadata`")?;
-    let root_package_id = metadata
-        .resolve
-        .as_ref()
-        .and_then(|resolve| resolve.root.as_ref())
-        .context("Cannot infer the root project id")?
-        .clone();
-    Ok((metadata, root_package_id))
-}
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
 pub fn assert_channel() -> Result<()> {
@@ -53,12 +36,14 @@ pub fn assert_channel() -> Result<()> {
 }
 
 /// Run cargo with the supplied args
+///
+/// If successful, returns the stdout bytes
 pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
     verbosity: Option<Verbosity>,
-) -> Result<()>
+) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
@@ -79,25 +64,40 @@ where
         None => &mut cmd,
     };
 
-    let status = cmd
-        .status()
-        .context(format!("Error executing `{:?}`", cmd))?;
+    log::info!("invoking cargo: {:?}", cmd);
 
-    if status.success() {
-        Ok(())
+    let child = cmd
+        // capture the stdout to return from this function as bytes
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .context(format!("Error executing `{:?}`", cmd))?;
+    let output = child.wait_with_output()?;
+
+    if output.status.success() {
+        Ok(output.stdout)
     } else {
-        anyhow::bail!("`{:?}` failed with exit code: {:?}", cmd, status.code());
+        anyhow::bail!(
+            "`{:?}` failed with exit code: {:?}",
+            cmd,
+            output.status.code()
+        );
     }
 }
 
 #[cfg(test)]
 pub mod tests {
-    use std::path::PathBuf;
-    use tempfile::TempDir;
+    use std::path::Path;
 
-    pub fn with_tmp_dir<F: FnOnce(&PathBuf)>(f: F) {
-        let tmp_dir = TempDir::new().expect("temporary directory creation failed");
+    pub fn with_tmp_dir<F>(f: F)
+    where
+        F: FnOnce(&Path) -> anyhow::Result<()>,
+    {
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("cargo-contract.test.")
+            .tempdir()
+            .expect("temporary directory creation failed");
 
-        f(&tmp_dir.into_path());
+        // catch test panics in order to clean up temp dir which will be very large
+        f(tmp_dir.path()).expect("Error executing test with tmp dir")
     }
 }

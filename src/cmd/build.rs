@@ -17,78 +17,22 @@
 use std::{
     fs::metadata,
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
 };
 
 use crate::{
+    crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
     UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
-use cargo_metadata::Package;
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
-
-/// Relevant metadata obtained from Cargo.toml.
-#[derive(Debug)]
-pub struct CrateMetadata {
-    manifest_path: ManifestPath,
-    cargo_meta: cargo_metadata::Metadata,
-    package_name: String,
-    root_package: Package,
-    original_wasm: PathBuf,
-    pub dest_wasm: PathBuf,
-}
-
-impl CrateMetadata {
-    pub fn target_dir(&self) -> &Path {
-        self.cargo_meta.target_directory.as_path()
-    }
-}
-
-/// Parses the contract manifest and returns relevant metadata.
-pub fn collect_crate_metadata(manifest_path: &ManifestPath) -> Result<CrateMetadata> {
-    let (metadata, root_package_id) = crate::util::get_cargo_metadata(manifest_path)?;
-
-    // Find the root package by id in the list of packages. It is logical error if the root
-    // package is not found in the list.
-    let root_package = metadata
-        .packages
-        .iter()
-        .find(|package| package.id == root_package_id)
-        .expect("The package is not found in the `cargo metadata` output")
-        .clone();
-
-    // Normalize the package name.
-    let package_name = root_package.name.replace("-", "_");
-
-    // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
-    let mut original_wasm = metadata.target_directory.clone();
-    original_wasm.push("wasm32-unknown-unknown");
-    original_wasm.push("release");
-    original_wasm.push(package_name.clone());
-    original_wasm.set_extension("wasm");
-
-    // {target_dir}/{package_name}.wasm
-    let mut dest_wasm = metadata.target_directory.clone();
-    dest_wasm.push(package_name.clone());
-    dest_wasm.set_extension("wasm");
-
-    let crate_metadata = CrateMetadata {
-        manifest_path: manifest_path.clone(),
-        cargo_meta: metadata,
-        root_package: root_package.clone(),
-        package_name,
-        original_wasm,
-        dest_wasm,
-    };
-    Ok(crate_metadata)
-}
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
@@ -125,7 +69,7 @@ fn build_cargo_project(
     let xbuild = |manifest_path: &ManifestPath| {
         let manifest_path = Some(manifest_path);
         let target = Some("wasm32-unknown-unknown");
-        let target_dir = crate_metadata.target_dir();
+        let target_dir = &crate_metadata.cargo_meta.target_directory;
         let other_args = [
             "--no-default-features",
             "--release",
@@ -168,6 +112,9 @@ fn build_cargo_project(
             })?
             .using_temp(xbuild)?;
     }
+
+    // clear RUSTFLAGS
+    std::env::remove_var("RUSTFLAGS");
 
     Ok(())
 }
@@ -293,58 +240,67 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
-/// It does so by invoking build by cargo and then post processing the final binary.
-pub(crate) fn execute_build(
-    manifest_path: ManifestPath,
+/// It does so by invoking `cargo build` and then post processing the final binary.
+///
+/// # Note
+///
+/// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
+/// [`execute_build_with_metadata`] if an instance is already available.
+pub(crate) fn execute(
+    manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
-) -> Result<String> {
+) -> Result<PathBuf> {
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    execute_with_metadata(&crate_metadata, verbosity, unstable_options)
+}
+
+/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+///
+/// It does so by invoking `cargo build` and then post processing the final binary.
+///
+/// # Note
+///
+/// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
+pub(crate) fn execute_with_metadata(
+    crate_metadata: &CrateMetadata,
+    verbosity: Option<Verbosity>,
+    unstable_options: UnstableFlags,
+) -> Result<PathBuf> {
     println!(
         " {} {}",
-        "[1/4]".bold(),
-        "Collecting crate metadata".bright_green().bold()
-    );
-    let crate_metadata = collect_crate_metadata(&manifest_path)?;
-    println!(
-        " {} {}",
-        "[2/4]".bold(),
+        "[1/3]".bold(),
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
     println!(
         " {} {}",
-        "[3/4]".bold(),
+        "[2/3]".bold(),
         "Post processing wasm file".bright_green().bold()
     );
     post_process_wasm(&crate_metadata)?;
     println!(
         " {} {}",
-        "[4/4]".bold(),
+        "[3/3]".bold(),
         "Optimizing wasm file".bright_green().bold()
     );
     optimize_wasm(&crate_metadata)?;
-
-    Ok(format!(
-        "\nYour contract is ready. You can find it here:\n{}",
-        crate_metadata.dest_wasm.display().to_string().bold()
-    ))
+    Ok(crate_metadata.dest_wasm.clone())
 }
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cmd::execute_new, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags,
-    };
+    use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
         with_tmp_dir(|path| {
-            execute_new("new_project", Some(path)).expect("new project creation failed");
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute_build(manifest_path, None, UnstableFlags::default())
-                .expect("build failed");
-        });
+            super::execute(&manifest_path, None, UnstableFlags::default()).expect("build failed");
+            Ok(())
+        })
     }
 }

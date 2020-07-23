@@ -361,20 +361,16 @@ impl Manifest {
                 .as_str()
                 .ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
 
-            let get_dependency = |name| -> Result<&value::Table> {
-                self.toml
-                    .get("dependencies")
-                    .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
-                    .get(name)
-                    .ok_or(anyhow::anyhow!("{} dependency not found", name))?
-                    .as_table()
-                    .ok_or(anyhow::anyhow!("{} dependency should be a table", name))
-            };
+            let ink_metadata = self
+                .toml
+                .get("dependencies")
+                .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
+                .get("ink_metadata")
+                .ok_or(anyhow::anyhow!("{} dependency not found", name))?
+                .as_table()
+                .ok_or(anyhow::anyhow!("{} dependency should be a table", name))?;
 
-            let ink_lang = get_dependency("ink_lang")?;
-            let ink_metadata = get_dependency("ink_metadata")?;
-
-            metadata::generate_package(dir, name, ink_lang.clone(), ink_metadata.clone())?;
+            metadata::generate_package(dir, name, ink_metadata.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

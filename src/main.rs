@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod cmd;
+mod crate_metadata;
 mod util;
 mod workspace;
 
@@ -98,6 +99,7 @@ struct VerbosityFlags {
     verbose: bool,
 }
 
+#[derive(Clone, Copy)]
 enum Verbosity {
     Quiet,
     Verbose,
@@ -123,7 +125,7 @@ struct UnstableOptions {
     options: Vec<String>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct UnstableFlags {
     original_manifest: bool,
 }
@@ -235,23 +237,36 @@ fn main() {
 
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
-        Command::New { name, target_dir } => cmd::execute_new(name, target_dir.as_ref()),
+        Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build {
             verbosity,
             unstable_options,
-        } => cmd::execute_build(
-            Default::default(),
-            verbosity.try_into()?,
-            unstable_options.try_into()?,
-        ),
+        } => {
+            let manifest_path = Default::default();
+            let dest_wasm = cmd::build::execute(
+                &manifest_path,
+                verbosity.try_into()?,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "\nYour contract is ready. You can find it here:\n{}",
+                dest_wasm.display().to_string().bold()
+            ))
+        }
         Command::GenerateMetadata {
             verbosity,
             unstable_options,
-        } => cmd::execute_generate_metadata(
-            Default::default(),
-            verbosity.try_into()?,
-            unstable_options.try_into()?,
-        ),
+        } => {
+            let metadata_file = cmd::metadata::execute(
+                Default::default(),
+                verbosity.try_into()?,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "Your metadata file is ready.\nYou can find it here:\n{}",
+                metadata_file.display()
+            ))
+        }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
