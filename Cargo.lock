@@ -2526,6 +2526,7 @@ dependencies = [
 name = "seal-contract-metadata"
 version = "0.1.0"
 dependencies = [
+ "pretty_assertions",
  "semver 0.10.0",
  "serde",
  "serde_json",

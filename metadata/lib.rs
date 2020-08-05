@@ -30,7 +30,7 @@ pub struct ContractMetadata {
     contract: Contract,
     #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<User>,
-    /// Raw JSON of the contract abi metadata
+    /// Raw JSON of the contract abi metadata, generated during contract compilation.
     #[serde(flatten)]
     abi: Map<String, Value>,
 }
@@ -238,4 +238,86 @@ where
         write!(hex, "{:02x}", byte).expect("failed writing to string");
     }
     serializer.serialize_str(&hex)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
+    #[test]
+    fn json_with_optional_fields() {
+        let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
+        let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let source = Source::new([0u8; 32], language, compiler);
+        let contract = Contract::new(
+            "incrementer".to_string(),
+            Version::new(2, 1, 0),
+            vec!["Parity Technologies <admin@parity.io>".to_string()],
+            Some("increment a value".to_string()),
+            Some(Url::parse("http://docs.rs/").unwrap()),
+            Some(Url::parse("http://github.com/paritytech/ink/").unwrap()),
+            Some(Url::parse("http://example.com/").unwrap()),
+            Some("Apache-2.0".to_string()),
+        );
+        let user_json = json! {
+            {
+                "more-user-provided-fields": [
+                  "and",
+                  "their",
+                  "values"
+                ],
+                "some-user-provided-field": "and-its-value"
+            }
+        };
+        let user = User::new(user_json.as_object().unwrap().clone());
+        let abi_json = json! {
+            {
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        }.as_object().unwrap().clone();
+
+        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let json = serde_json::to_value(&metadata).unwrap();
+
+        let expected = json! {
+            {
+                "metadata_version": "0.1.0",
+                "source": {
+                    "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "language": "ink! 2.1.0",
+                    "compiler": "rustc 1.46.0-nightly"
+                },
+                "contract": {
+                    "name": "incrementer",
+                    "version": "2.1.0",
+                    "authors": [
+                      "Parity Technologies <admin@parity.io>"
+                    ],
+                    "description": "increment a value",
+                    "documentation": "http://docs.rs/",
+                    "repository": "http://github.com/paritytech/ink/",
+                    "homepage": "http://example.com/",
+                    "license": "Apache-2.0",
+                },
+                "user": {
+                    "more-user-provided-fields": [
+                      "and",
+                      "their",
+                      "values"
+                    ],
+                    "some-user-provided-field": "and-its-value"
+                },
+                // these fields are part of the flattened raw json for the contract ABI
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        };
+
+        assert_eq!(json, expected);
+    }
 }
