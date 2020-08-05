@@ -74,7 +74,7 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - cargo test --verbose --all-features
+    - cargo test --verbose --all --all-features
 
 #### stage:                        build (default features)
 

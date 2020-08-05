@@ -377,6 +377,7 @@ dependencies = [
  "pretty_assertions",
  "pwasm-utils",
  "rustc_version",
+ "seal-contract-metadata",
  "semver 0.10.0",
  "serde",
  "serde_json",
@@ -2519,6 +2520,16 @@ checksum = "e3042af939fca8c3453b7af0f1c66e533a15a86169e39de2657310ade8f98d3c"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "seal-contract-metadata"
+version = "0.1.0"
+dependencies = [
+ "semver 0.10.0",
+ "serde",
+ "serde_json",
+ "url 2.1.1",
 ]
 
 [[package]]
