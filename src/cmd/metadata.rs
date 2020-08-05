@@ -21,7 +21,7 @@ use crate::{
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
-use seal_contract_metadata::{
+use contract_metadata::{
     Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
 };
 use semver::Version;

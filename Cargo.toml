@@ -35,7 +35,7 @@ toml = "0.5.4"
 cargo-xbuild = "0.5.32"
 rustc_version = "0.2.3"
 blake2 = "0.9.0"
-seal-contract-metadata = { version = "0.1.0", path = "./metadata" }
+contract-metadata = { version = "0.1.0", path = "./metadata" }
 semver = { version = "0.10.0", features = ["serde"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
