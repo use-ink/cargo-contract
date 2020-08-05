@@ -320,4 +320,55 @@ mod tests {
 
         assert_eq!(json, expected);
     }
+
+    #[test]
+    fn json_excludes_optional_fields() {
+        let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
+        let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let source = Source::new([0u8; 32], language, compiler);
+        let contract = Contract::new(
+            "incrementer".to_string(),
+            Version::new(2, 1, 0),
+            vec!["Parity Technologies <admin@parity.io>".to_string()],
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let abi_json = json! {
+            {
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        }.as_object().unwrap().clone();
+
+        let metadata = ContractMetadata::new(source, contract, None, abi_json);
+        let json = serde_json::to_value(&metadata).unwrap();
+
+        let expected = json! {
+            {
+                "metadata_version": "0.1.0",
+                "source": {
+                    "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "language": "ink! 2.1.0",
+                    "compiler": "rustc 1.46.0-nightly"
+                },
+                "contract": {
+                    "name": "incrementer",
+                    "version": "2.1.0",
+                    "authors": [
+                      "Parity Technologies <admin@parity.io>"
+                    ],
+                },
+                // these fields are part of the flattened raw json for the contract ABI
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        };
+
+        assert_eq!(json, expected);
+    }
 }
