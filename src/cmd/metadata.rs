@@ -173,14 +173,11 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd,
-        crate_metadata::CrateMetadata,
-        util::tests::with_tmp_dir,
-        workspace::ManifestPath,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath,
         UnstableFlags,
     };
-    use contract_metadata::*;
     use blake2::digest::{Update as _, VariableOutput as _};
+    use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
     use toml::value;
