@@ -1,3 +1,7 @@
+# Version 0.6.2 (2020-08-17)
+
+- Upgrade to cargo-xbuild 0.6.0
+
 # Version 0.6.1 (2020-05-12)
 
 - Fix LTO regressions in nightly toolchain [#52](https://github.com/paritytech/cargo-contract/pull/52)
