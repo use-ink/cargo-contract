@@ -46,6 +46,11 @@ SUBCOMMANDS:
 To avoid having to add `+nightly` you can also create a `rust-toolchain` file in your local directory containing 
 `nightly`. Read more about how to [specify the rustup toolchain](https://github.com/rust-lang/rustup#override-precedence).
 
+### Note 
+
+The latest version of `cargo-contract` supports all nightlies after `2020-07-30`, because of a change in the directory
+structure of the `rust-src` component. 
+
 ## Features
 
 The `deploy` and `instantiate` subcommands are **disabled by default**, since they are not fully stable yet and increase the build time.

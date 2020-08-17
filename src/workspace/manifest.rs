@@ -88,6 +88,12 @@ impl AsRef<Path> for ManifestPath {
     }
 }
 
+impl From<ManifestPath> for PathBuf {
+    fn from(path: ManifestPath) -> Self {
+        path.path
+    }
+}
+
 /// Create, amend and save a copy of the specified `Cargo.toml`.
 pub struct Manifest {
     path: ManifestPath,
