@@ -285,7 +285,8 @@ mod tests {
     #[test]
     fn json_with_optional_fields() {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
-        let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let compiler =
+            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
         let source = Source::new([0u8; 32], language, compiler);
         let contract = Contract::new(
             "incrementer".to_string(),
@@ -314,7 +315,10 @@ mod tests {
                 "storage": {},
                 "types": []
             }
-        }.as_object().unwrap().clone();
+        }
+        .as_object()
+        .unwrap()
+        .clone();
 
         let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
@@ -360,7 +364,8 @@ mod tests {
     #[test]
     fn json_excludes_optional_fields() {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
-        let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let compiler =
+            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
         let source = Source::new([0u8; 32], language, compiler);
         let contract = Contract::new(
             "incrementer".to_string(),
@@ -378,7 +383,10 @@ mod tests {
                 "storage": {},
                 "types": []
             }
-        }.as_object().unwrap().clone();
+        }
+        .as_object()
+        .unwrap()
+        .clone();
 
         let metadata = ContractMetadata::new(source, contract, None, abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
