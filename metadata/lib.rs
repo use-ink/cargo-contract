@@ -258,7 +258,7 @@ impl ContractBuilder {
     /// Set the contract name (required)
     pub fn name<S>(&mut self, name: S) -> &mut Self
     where
-        S: AsRef<str>
+        S: AsRef<str>,
     {
         self.name = Some(name.as_ref().to_string());
         self
@@ -276,14 +276,19 @@ impl ContractBuilder {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        self.authors = Some(authors.into_iter().map(|s| s.as_ref().to_string()).collect());
+        self.authors = Some(
+            authors
+                .into_iter()
+                .map(|s| s.as_ref().to_string())
+                .collect(),
+        );
         self
     }
 
     /// Set the contract description (optional)
     pub fn description<S>(&mut self, description: Option<S>) -> &mut Self
     where
-        S: AsRef<str>
+        S: AsRef<str>,
     {
         self.description = description.map(|s| s.as_ref().to_string());
         self
@@ -302,16 +307,15 @@ impl ContractBuilder {
     }
 
     /// Set the contract homepage url (optional)
-    pub fn homepage(&mut self, homepage: Option<Url>) -> &mut Self
-    {
+    pub fn homepage(&mut self, homepage: Option<Url>) -> &mut Self {
         self.homepage = homepage;
         self
     }
 
     /// Set the contract license (optional)
     pub fn license<S>(&mut self, license: Option<S>) -> &mut Self
-        where
-            S: AsRef<str>
+    where
+        S: AsRef<str>,
     {
         self.license = license.map(|s| s.as_ref().to_string());
         self
@@ -323,7 +327,9 @@ impl ContractBuilder {
     pub fn build(&self) -> Result<Contract, String> {
         let mut required = Vec::new();
 
-        if let (Some(name), Some(version), Some(authors)) = (&self.name, &self.version, &self.authors) {
+        if let (Some(name), Some(version), Some(authors)) =
+            (&self.name, &self.version, &self.authors)
+        {
             Ok(Contract {
                 name: name.to_string(),
                 version: version.clone(),
@@ -344,7 +350,10 @@ impl ContractBuilder {
             if self.authors.is_none() {
                 required.push("authors")
             }
-            Err(format!("Missing required non-default fields: {}", required.join(", ")))
+            Err(format!(
+                "Missing required non-default fields: {}",
+                required.join(", ")
+            ))
         }
     }
 }
@@ -380,7 +389,10 @@ mod tests {
             .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
             .build();
 
-        assert_eq!(missing_name.unwrap_err(), "Missing required non-default fields: name");
+        assert_eq!(
+            missing_name.unwrap_err(),
+            "Missing required non-default fields: name"
+        );
 
         let missing_version = Contract::builder()
             .name("incrementer".to_string())
@@ -388,7 +400,10 @@ mod tests {
             .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
             .build();
 
-        assert_eq!(missing_version.unwrap_err(), "Missing required non-default fields: version");
+        assert_eq!(
+            missing_version.unwrap_err(),
+            "Missing required non-default fields: version"
+        );
 
         let missing_authors = Contract::builder()
             .name("incrementer".to_string())
@@ -396,7 +411,10 @@ mod tests {
             // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
             .build();
 
-        assert_eq!(missing_authors.unwrap_err(), "Missing required non-default fields: authors");
+        assert_eq!(
+            missing_authors.unwrap_err(),
+            "Missing required non-default fields: authors"
+        );
 
         let missing_all = Contract::builder()
             // .name("incrementer".to_string())
@@ -404,7 +422,10 @@ mod tests {
             // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
             .build();
 
-        assert_eq!(missing_all.unwrap_err(), "Missing required non-default fields: name, version, authors");
+        assert_eq!(
+            missing_all.unwrap_err(),
+            "Missing required non-default fields: name, version, authors"
+        );
     }
 
     #[test]
@@ -419,7 +440,9 @@ mod tests {
             .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
             .description(Some("increment a value".to_string()))
             .documentation(Some(Url::parse("http://docs.rs/").unwrap()))
-            .repository(Some(Url::parse("http://github.com/paritytech/ink/").unwrap()))
+            .repository(Some(
+                Url::parse("http://github.com/paritytech/ink/").unwrap(),
+            ))
             .homepage(Some(Url::parse("http://example.com/").unwrap()))
             .license(Some("Apache-2.0".to_string()))
             .build()
