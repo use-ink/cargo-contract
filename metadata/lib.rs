@@ -28,16 +28,17 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
 //! let source = Source::new([0u8; 32], language, compiler);
-//! let contract = Contract::new(
-//!     "incrementer".to_string(),
-//!     Version::new(2, 1, 0),
-//!     vec!["Parity Technologies <admin@parity.io>".to_string()],
-//!     Some("increment a value".to_string()),
-//!     Some(Url::parse("http://!docs.rs/").unwrap()),
-//!     Some(Url::parse("http://!github.com/paritytech/ink/").unwrap()),
-//!     Some(Url::parse("http://!example.com/").unwrap()),
-//!     Some("Apache-2.0".to_string()),
-//! );
+//! let contract = Contract::builder()
+//!     .name("incrementer".to_string())
+//!     .version(Version::new(2, 1, 0))
+//!     .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+//!     .description(Some("increment a value".to_string()))
+//!     .documentation(Some(Url::parse("http:docs.rs/").unwrap()))
+//!     .repository(Some(Url::parse("http:github.com/paritytech/ink/").unwrap()))
+//!     .homepage(Some(Url::parse("http:example.com/").unwrap()))
+//!     .license(Some("Apache-2.0".to_string()))
+//!     .build()
+//!     .unwrap();
 //! // user defined raw json
 //! let user_json: Map<String, Value> = Map::new();
 //! let user = User::new(user_json);
@@ -221,27 +222,8 @@ pub struct Contract {
 }
 
 impl Contract {
-    /// Constructs a new Contract.
-    pub fn new(
-        name: String,
-        version: Version,
-        authors: Vec<String>,
-        description: Option<String>,
-        documentation: Option<Url>,
-        repository: Option<Url>,
-        homepage: Option<Url>,
-        license: Option<String>,
-    ) -> Self {
-        Contract {
-            name,
-            version,
-            authors,
-            description,
-            documentation,
-            repository,
-            homepage,
-            license,
-        }
+    pub fn builder() -> ContractBuilder {
+        ContractBuilder::default()
     }
 }
 
@@ -256,6 +238,120 @@ impl User {
     /// Constructs new user metadata.
     pub fn new(json: Map<String, Value>) -> Self {
         User { json }
+    }
+}
+
+/// Builder for contract metadata
+#[derive(Default)]
+pub struct ContractBuilder {
+    name: Option<String>,
+    version: Option<Version>,
+    authors: Option<Vec<String>>,
+    description: Option<String>,
+    documentation: Option<Url>,
+    repository: Option<Url>,
+    homepage: Option<Url>,
+    license: Option<String>,
+}
+
+impl ContractBuilder {
+    /// Set the contract name (required)
+    ///
+    /// Supplying an empty string will result in an `Err` when calling `build()`
+    pub fn name<S>(&mut self, name: S) -> &mut Self
+    where
+        S: AsRef<str>
+    {
+        self.name = Some(name.as_ref().to_string());
+        self
+    }
+
+    /// Set the contract version (required)
+    ///
+    /// Supplying the default version `0.0.0` will result in an `Err` when calling `build()`
+    pub fn version(&mut self, version: Version) -> &mut Self {
+        self.version = Some(version);
+        self
+    }
+
+    /// Set the contract version (required)
+    ///
+    /// Supplying an empty list of authors will result in an `Err` when calling `build()`
+    pub fn authors<I, S>(&mut self, authors: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.authors = Some(authors.into_iter().map(|s| s.as_ref().to_string()).collect());
+        self
+    }
+
+    /// Set the contract description (optional)
+    pub fn description<S>(&mut self, description: Option<S>) -> &mut Self
+    where
+        S: AsRef<str>
+    {
+        self.description = description.map(|s| s.as_ref().to_string());
+        self
+    }
+
+    /// Set the contract documentation url (optional)
+    pub fn documentation(&mut self, documentation: Option<Url>) -> &mut Self {
+        self.documentation = documentation;
+        self
+    }
+
+    /// Set the contract repository url (optional)
+    pub fn repository(&mut self, repository: Option<Url>) -> &mut Self {
+        self.repository = repository;
+        self
+    }
+
+    /// Set the contract homepage url (optional)
+    pub fn homepage(&mut self, homepage: Option<Url>) -> &mut Self
+    {
+        self.homepage = homepage;
+        self
+    }
+
+    /// Set the contract license (optional)
+    pub fn license<S>(&mut self, license: Option<S>) -> &mut Self
+        where
+            S: AsRef<str>
+    {
+        self.license = license.map(|s| s.as_ref().to_string());
+        self
+    }
+
+    /// Finalize construction of the [`ContractMetadata`].
+    ///
+    /// Returns an `Err` if any required fields missing.
+    pub fn build(&self) -> Result<Contract, String> {
+        let mut required = Vec::new();
+
+        if let (Some(name), Some(version), Some(authors)) = (&self.name, &self.version, &self.authors) {
+            Ok(Contract {
+                name: name.to_string(),
+                version: version.clone(),
+                authors: authors.to_vec(),
+                description: self.description.clone(),
+                documentation: self.documentation.clone(),
+                repository: self.repository.clone(),
+                homepage: self.homepage.clone(),
+                license: self.license.clone(),
+            })
+        } else {
+            if self.name.is_none() {
+                required.push("name");
+            }
+            if self.version.is_none() {
+                required.push("version")
+            }
+            if self.authors.is_none() {
+                required.push("authors")
+            }
+            Err(format!("Missing required non-default fields: {:?}", required))
+        }
     }
 }
 
@@ -288,16 +384,18 @@ mod tests {
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
         let source = Source::new([0u8; 32], language, compiler);
-        let contract = Contract::new(
-            "incrementer".to_string(),
-            Version::new(2, 1, 0),
-            vec!["Parity Technologies <admin@parity.io>".to_string()],
-            Some("increment a value".to_string()),
-            Some(Url::parse("http://docs.rs/").unwrap()),
-            Some(Url::parse("http://github.com/paritytech/ink/").unwrap()),
-            Some(Url::parse("http://example.com/").unwrap()),
-            Some("Apache-2.0".to_string()),
-        );
+        let contract = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .description(Some("increment a value".to_string()))
+            .documentation(Some(Url::parse("http://docs.rs/").unwrap()))
+            .repository(Some(Url::parse("http://github.com/paritytech/ink/").unwrap()))
+            .homepage(Some(Url::parse("http://example.com/").unwrap()))
+            .license(Some("Apache-2.0".to_string()))
+            .build()
+            .unwrap();
+
         let user_json = json! {
             {
                 "more-user-provided-fields": [
@@ -367,16 +465,12 @@ mod tests {
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
         let source = Source::new([0u8; 32], language, compiler);
-        let contract = Contract::new(
-            "incrementer".to_string(),
-            Version::new(2, 1, 0),
-            vec!["Parity Technologies <admin@parity.io>".to_string()],
-            None,
-            None,
-            None,
-            None,
-            None,
-        );
+        let contract = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .build()
+            .unwrap();
         let abi_json = json! {
             {
                 "spec": {},

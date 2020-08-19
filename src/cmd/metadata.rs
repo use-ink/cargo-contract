@@ -116,16 +116,17 @@ impl GenerateMetadataCommand {
         };
 
         // Required contract fields
-        let contract = Contract::new(
-            contract_name,
-            contract_version,
-            contract_authors,
-            description,
-            documentation,
-            repository,
-            homepage,
-            license,
-        );
+        let contract = Contract::builder()
+            .name(contract_name)
+            .version(contract_version)
+            .authors(contract_authors)
+            .description(description)
+            .documentation(documentation)
+            .repository(repository)
+            .homepage(homepage)
+            .license(license)
+            .build()
+            .map_err(|err| anyhow::anyhow!("Invalid contract metadata builder state: {}", err))?;
 
         // user defined metadata
         let user = self.crate_metadata.user.clone().map(User::new);
