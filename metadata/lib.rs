@@ -256,8 +256,6 @@ pub struct ContractBuilder {
 
 impl ContractBuilder {
     /// Set the contract name (required)
-    ///
-    /// Supplying an empty string will result in an `Err` when calling `build()`
     pub fn name<S>(&mut self, name: S) -> &mut Self
     where
         S: AsRef<str>
@@ -267,16 +265,12 @@ impl ContractBuilder {
     }
 
     /// Set the contract version (required)
-    ///
-    /// Supplying the default version `0.0.0` will result in an `Err` when calling `build()`
     pub fn version(&mut self, version: Version) -> &mut Self {
         self.version = Some(version);
         self
     }
 
     /// Set the contract version (required)
-    ///
-    /// Supplying an empty list of authors will result in an `Err` when calling `build()`
     pub fn authors<I, S>(&mut self, authors: I) -> &mut Self
     where
         I: IntoIterator<Item = S>,
@@ -350,7 +344,7 @@ impl ContractBuilder {
             if self.authors.is_none() {
                 required.push("authors")
             }
-            Err(format!("Missing required non-default fields: {:?}", required))
+            Err(format!("Missing required non-default fields: {}", required.join(", ")))
         }
     }
 }
@@ -377,6 +371,41 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use serde_json::json;
+
+    #[test]
+    fn builder_fails_with_missing_required_fields() {
+        let missing_name = Contract::builder()
+            // .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .build();
+
+        assert_eq!(missing_name.unwrap_err(), "Missing required non-default fields: name");
+
+        let missing_version = Contract::builder()
+            .name("incrementer".to_string())
+            // .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .build();
+
+        assert_eq!(missing_version.unwrap_err(), "Missing required non-default fields: version");
+
+        let missing_authors = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .build();
+
+        assert_eq!(missing_authors.unwrap_err(), "Missing required non-default fields: authors");
+
+        let missing_all = Contract::builder()
+            // .name("incrementer".to_string())
+            // .version(Version::new(2, 1, 0))
+            // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .build();
+
+        assert_eq!(missing_all.unwrap_err(), "Missing required non-default fields: name, version, authors");
+    }
 
     #[test]
     fn json_with_optional_fields() {
