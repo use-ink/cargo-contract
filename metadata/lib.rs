@@ -62,6 +62,7 @@ const METADATA_VERSION: &str = "0.1.0";
 /// Smart contract metadata.
 #[derive(Debug, Serialize)]
 pub struct ContractMetadata {
+    #[serde(rename = "metadataVersion")]
     metadata_version: semver::Version,
     source: Source,
     contract: Contract,
@@ -475,7 +476,7 @@ mod tests {
 
         let expected = json! {
             {
-                "metadata_version": "0.1.0",
+                "metadataVersion": "0.1.0",
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
@@ -539,7 +540,7 @@ mod tests {
 
         let expected = json! {
             {
-                "metadata_version": "0.1.0",
+                "metadataVersion": "0.1.0",
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
