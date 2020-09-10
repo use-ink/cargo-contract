@@ -116,15 +116,32 @@ impl GenerateMetadataCommand {
         };
 
         // Required contract fields
-        let contract = Contract::builder()
+        let mut builder = Contract::builder()
             .name(contract_name)
             .version(contract_version)
-            .authors(contract_authors)
-            .description(description)
-            .documentation(documentation)
-            .repository(repository)
-            .homepage(homepage)
-            .license(license)
+            .authors(contract_authors);
+
+        if let Some(description) = description {
+            builder.description(description)
+        }
+
+        if let Some(documentation) = documentation {
+            builder.documentation(documentation)
+        }
+
+        if let Some(repository) = repository {
+            builder.repository(repository)
+        }
+
+        if let Some(homepage) = homepage {
+            builder.homepage(homepage)
+        }
+
+        if let Some(license) = license {
+            builder.license(license)
+        }
+
+        let contract = builder
             .build()
             .map_err(|err| anyhow::anyhow!("Invalid contract metadata builder state: {}", err))?;
 

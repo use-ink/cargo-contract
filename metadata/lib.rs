@@ -32,11 +32,11 @@
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
 //!     .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
-//!     .description(Some("increment a value".to_string()))
-//!     .documentation(Some(Url::parse("http:docs.rs/").unwrap()))
-//!     .repository(Some(Url::parse("http:github.com/paritytech/ink/").unwrap()))
-//!     .homepage(Some(Url::parse("http:example.com/").unwrap()))
-//!     .license(Some("Apache-2.0".to_string()))
+//!     .description("increment a value".to_string())
+//!     .documentation(Url::parse("http:docs.rs/").unwrap())
+//!     .repository(Url::parse("http:github.com/paritytech/ink/").unwrap())
+//!     .homepage(Url::parse("http:example.com/").unwrap())
+//!     .license("Apache-2.0".to_string())
 //!     .build()
 //!     .unwrap();
 //! // user defined raw json
@@ -287,38 +287,53 @@ impl ContractBuilder {
     }
 
     /// Set the contract description (optional)
-    pub fn description<S>(&mut self, description: Option<S>) -> &mut Self
+    pub fn description<S>(&mut self, description: S) -> &mut Self
     where
         S: AsRef<str>,
     {
-        self.description = description.map(|s| s.as_ref().to_string());
+        if self.description.is_some() {
+            panic!("description has already been set")
+        }
+        self.description = Some(description.as_ref().to_string());
         self
     }
 
     /// Set the contract documentation url (optional)
-    pub fn documentation(&mut self, documentation: Option<Url>) -> &mut Self {
-        self.documentation = documentation;
+    pub fn documentation(&mut self, documentation: Url) -> &mut Self {
+        if self.documentation.is_some() {
+            panic!("documentation is already set")
+        }
+        self.documentation = Some(documentation);
         self
     }
 
     /// Set the contract repository url (optional)
-    pub fn repository(&mut self, repository: Option<Url>) -> &mut Self {
-        self.repository = repository;
+    pub fn repository(&mut self, repository: Url) -> &mut Self {
+        if self.repository.is_some() {
+            panic!("repository is already set")
+        }
+        self.repository = Some(repository);
         self
     }
 
     /// Set the contract homepage url (optional)
-    pub fn homepage(&mut self, homepage: Option<Url>) -> &mut Self {
-        self.homepage = homepage;
+    pub fn homepage(&mut self, homepage: Url) -> &mut Self {
+        if self.homepage.is_some() {
+            panic!("homepage is already set")
+        }
+        self.homepage = Some(homepage);
         self
     }
 
     /// Set the contract license (optional)
-    pub fn license<S>(&mut self, license: Option<S>) -> &mut Self
+    pub fn license<S>(&mut self, license: S) -> &mut Self
     where
         S: AsRef<str>,
     {
-        self.license = license.map(|s| s.as_ref().to_string());
+        if self.license.is_some() {
+            panic!("license has already been set")
+        }
+        self.license = Some(license.as_ref().to_string());
         self
     }
 
@@ -439,13 +454,13 @@ mod tests {
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
             .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
-            .description(Some("increment a value".to_string()))
-            .documentation(Some(Url::parse("http://docs.rs/").unwrap()))
-            .repository(Some(
+            .description("increment a value".to_string())
+            .documentation(Url::parse("http://docs.rs/").unwrap())
+            .repository(
                 Url::parse("http://github.com/paritytech/ink/").unwrap(),
-            ))
-            .homepage(Some(Url::parse("http://example.com/").unwrap()))
-            .license(Some("Apache-2.0".to_string()))
+            )
+            .homepage(Url::parse("http://example.com/").unwrap())
+            .license("Apache-2.0".to_string())
             .build()
             .unwrap();
 
