@@ -286,15 +286,17 @@ impl ContractBuilder {
         if self.authors.is_some() {
             panic!("authors has already been set")
         }
-        if authors.into_iter().count() == 0 {
+
+        let authors = authors
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::<Vec<_>>();
+
+        if authors.len() == 0 {
             panic!("must have at least one author")
         }
-        self.authors = Some(
-            authors
-                .into_iter()
-                .map(|s| s.as_ref().to_string())
-                .collect(),
-        );
+
+        self.authors = Some(authors);
         self
     }
 
