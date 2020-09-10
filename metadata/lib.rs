@@ -261,12 +261,18 @@ impl ContractBuilder {
     where
         S: AsRef<str>,
     {
+        if self.name.is_some() {
+            panic!("name has already been set")
+        }
         self.name = Some(name.as_ref().to_string());
         self
     }
 
     /// Set the contract version (required)
     pub fn version(&mut self, version: Version) -> &mut Self {
+        if self.version.is_some() {
+            panic!("version has already been set")
+        }
         self.version = Some(version);
         self
     }
@@ -277,6 +283,9 @@ impl ContractBuilder {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
+        if self.authors.is_some() {
+            panic!("authors has already been set")
+        }
         self.authors = Some(
             authors
                 .into_iter()
