@@ -116,29 +116,30 @@ impl GenerateMetadataCommand {
         };
 
         // Required contract fields
-        let mut builder = Contract::builder()
+        let mut builder = Contract::builder();
+        builder
             .name(contract_name)
             .version(contract_version)
             .authors(contract_authors);
 
         if let Some(description) = description {
-            builder.description(description)
+            builder.description(description);
         }
 
         if let Some(documentation) = documentation {
-            builder.documentation(documentation)
+            builder.documentation(documentation);
         }
 
         if let Some(repository) = repository {
-            builder.repository(repository)
+            builder.repository(repository);
         }
 
         if let Some(homepage) = homepage {
-            builder.homepage(homepage)
+            builder.homepage(homepage);
         }
 
         if let Some(license) = license {
-            builder.license(license)
+            builder.license(license);
         }
 
         let contract = builder
