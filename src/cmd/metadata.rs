@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-mod contract;
-
 use crate::{
     crate_metadata::CrateMetadata,
     util,
@@ -23,7 +21,7 @@ use crate::{
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
-use contract::{
+use contract_metadata::{
     Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
 };
 use semver::Version;
@@ -118,16 +116,35 @@ impl GenerateMetadataCommand {
         };
 
         // Required contract fields
-        let contract = Contract::new(
-            contract_name,
-            contract_version,
-            contract_authors,
-            description,
-            documentation,
-            repository,
-            homepage,
-            license,
-        );
+        let mut builder = Contract::builder();
+        builder
+            .name(contract_name)
+            .version(contract_version)
+            .authors(contract_authors);
+
+        if let Some(description) = description {
+            builder.description(description);
+        }
+
+        if let Some(documentation) = documentation {
+            builder.documentation(documentation);
+        }
+
+        if let Some(repository) = repository {
+            builder.repository(repository);
+        }
+
+        if let Some(homepage) = homepage {
+            builder.homepage(homepage);
+        }
+
+        if let Some(license) = license {
+            builder.license(license);
+        }
+
+        let contract = builder
+            .build()
+            .map_err(|err| anyhow::anyhow!("Invalid contract metadata builder state: {}", err))?;
 
         // user defined metadata
         let user = self.crate_metadata.user.clone().map(User::new);
@@ -175,13 +192,11 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd::{self, metadata::contract::*},
-        crate_metadata::CrateMetadata,
-        util::tests::with_tmp_dir,
-        workspace::ManifestPath,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, workspace::ManifestPath,
         UnstableFlags,
     };
     use blake2::digest::{Update as _, VariableOutput as _};
+    use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
     use toml::value;

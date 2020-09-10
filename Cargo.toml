@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "metadata"]
+
 [package]
 name = "cargo-contract"
 version = "0.7.0"
@@ -32,6 +35,7 @@ toml = "0.5.6"
 cargo-xbuild = "0.6.0"
 rustc_version = "0.2.3"
 blake2 = "0.9.0"
+contract-metadata = { version = "0.1.0", path = "./metadata" }
 semver = { version = "0.10.0", features = ["serde"] }
 serde = { version = "1.0.115", default-features = false, features = ["derive"] }
 serde_json = "1.0.57"

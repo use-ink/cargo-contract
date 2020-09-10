@@ -1,0 +1,26 @@
+[package]
+name = "contract-metadata"
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-metadata"
+homepage = "https://www.substrate.io/"
+description = "Library defining metadata for smart contracts on substrate"
+keywords = ["parity", "blockchain"]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+semver = { version = "0.10.0", features = ["serde"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = "1.0"
+url = { version = "2.1.1", features = ["serde"] }
+
+[dev-dependencies]
+pretty_assertions = "0.6.1"

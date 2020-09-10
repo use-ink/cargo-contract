@@ -366,6 +366,7 @@ dependencies = [
  "cargo-xbuild",
  "cargo_metadata 0.11.1",
  "colored",
+ "contract-metadata",
  "env_logger",
  "futures 0.3.5",
  "heck",
@@ -523,6 +524,17 @@ name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
+
+[[package]]
+name = "contract-metadata"
+version = "0.1.0"
+dependencies = [
+ "pretty_assertions",
+ "semver 0.10.0",
+ "serde",
+ "serde_json",
+ "url 2.1.1",
+]
 
 [[package]]
 name = "crc32fast"
