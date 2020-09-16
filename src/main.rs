@@ -208,6 +208,11 @@ enum Command {
         #[structopt(long)]
         data: HexData,
     },
+    #[cfg(feature = "extrinsics")]
+    Call {
+        #[structopt(long, short = "ls")]
+        list: bool,
+    }
 }
 
 #[cfg(feature = "extrinsics")]
@@ -292,6 +297,18 @@ fn exec(cmd: Command) -> Result<String> {
                 data.clone(),
             )?;
             Ok(format!("Contract account: {:?}", contract_account))
+        },
+        #[cfg(feature = "extrinsics")]
+        Command::Call {
+            list
+        } => {
+            if *list {
+                // todo: add custom metadata_path arg
+                let calls = cmd::call::list::<PathBuf>(Default::default(), None)?;
+                Ok(format!("{:?}", calls))
+            } else {
+                Ok(format!("Only --list supported"))
+            }
         }
     }
 }

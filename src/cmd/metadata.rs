@@ -28,8 +28,6 @@ use semver::Version;
 use std::{fs, path::PathBuf};
 use url::Url;
 
-const METADATA_FILE: &str = "metadata.json";
-
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
@@ -43,7 +41,7 @@ impl GenerateMetadataCommand {
         println!("  Generating metadata");
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path = cargo_meta.target_directory.join(METADATA_FILE);
+        let out_path = self.crate_metadata.metadata_path();
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata

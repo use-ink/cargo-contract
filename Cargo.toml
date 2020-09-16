@@ -41,6 +41,7 @@ serde = { version = "1.0.115", default-features = false, features = ["derive"] }
 serde_json = "1.0.57"
 tempfile = "3.1.0"
 url = { version = "2.1.1", features = ["serde"] }
+ink_metadata = { path = "/home/andrew/code/paritytech/ink/metadata" }
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.2", optional = true }

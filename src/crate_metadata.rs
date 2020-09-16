@@ -23,6 +23,8 @@ use std::{fs, path::PathBuf};
 use toml::value;
 use url::Url;
 
+const METADATA_FILE: &str = "metadata.json";
+
 /// Relevant metadata obtained from Cargo.toml.
 #[derive(Debug)]
 pub struct CrateMetadata {
@@ -88,6 +90,11 @@ impl CrateMetadata {
             user,
         };
         Ok(crate_metadata)
+    }
+
+    /// Get the path of the contract metadata file
+    pub fn metadata_path(&self) -> PathBuf {
+        self.cargo_meta.target_directory.join(METADATA_FILE)
     }
 }
 

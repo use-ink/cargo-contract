@@ -16,6 +16,8 @@
 
 pub mod build;
 #[cfg(feature = "extrinsics")]
+pub mod call;
+#[cfg(feature = "extrinsics")]
 mod deploy;
 #[cfg(feature = "extrinsics")]
 mod instantiate;

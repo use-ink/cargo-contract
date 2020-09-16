@@ -371,6 +371,7 @@ dependencies = [
  "futures 0.3.5",
  "heck",
  "hex",
+ "ink_metadata",
  "log",
  "parity-scale-codec",
  "parity-wasm",
@@ -1295,6 +1296,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "076f042c5b7b98f31d205f1249267e12a6518c1481e9dae9764af19b707d2292"
 dependencies = [
  "autocfg 1.0.0",
+]
+
+[[package]]
+name = "ink_metadata"
+version = "2.1.0"
+dependencies = [
+ "derive_more",
+ "ink_prelude",
+ "ink_primitives",
+ "scale-info",
+ "serde",
+]
+
+[[package]]
+name = "ink_prelude"
+version = "2.1.0"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
+name = "ink_primitives"
+version = "2.1.0"
+dependencies = [
+ "ink_prelude",
+ "parity-scale-codec",
+ "tiny-keccak",
 ]
 
 [[package]]
@@ -2492,6 +2520,27 @@ dependencies = [
  "sp-runtime",
  "sp-transaction-pool",
  "sp-version",
+]
+
+[[package]]
+name = "scale-info"
+version = "0.3.0"
+source = "git+https://github.com/paritytech/scale-info?branch=aj-pub-types#735c7e5ea839d0240ae69e7dba0f55858efaded2"
+dependencies = [
+ "derive_more",
+ "parity-scale-codec",
+ "scale-info-derive",
+ "serde",
+]
+
+[[package]]
+name = "scale-info-derive"
+version = "0.2.0"
+source = "git+https://github.com/paritytech/scale-info?branch=aj-pub-types#735c7e5ea839d0240ae69e7dba0f55858efaded2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
