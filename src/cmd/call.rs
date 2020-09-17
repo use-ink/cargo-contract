@@ -68,7 +68,7 @@ impl CallCommand {
 				.find(|msg| msg.name == self.name)
 				.ok_or(anyhow::anyhow!("A contract call named '{}' was not found. Expected one of {:?}", self.name, calls))?;
 
-		let call_data = msg.encode_message(&self.args)?;
+		let call_data = encode_message(&metadata, msg,&self.args)?;
 
 		async_std::task::block_on(async move {
 			let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
@@ -90,17 +90,58 @@ impl CallCommand {
 	}
 }
 
+use codec::Encode as _;
 use ink_metadata::MessageSpec;
-use scale_info::form::CompactForm;
+use scale_info::{
+	form::CompactForm,
+	Type, TypeDef, TypeDefPrimitive, TypeDefArray, TypeDefSequence, TypeDefTuple, TypeDefComposite, TypeDefVariant,
+};
+use std::str::FromStr;
 
-pub trait EncodeMessage {
-	// todo: rename
-	fn encode_message(&self, args: &[String])-> Result<Vec<u8>>;
+fn encode_message<I, S>(ink_project: &InkProject, msg: &MessageSpec<CompactForm>, args: I) -> Result<Vec<u8>>
+where
+	I: IntoIterator<Item = S>,
+	S: AsRef<str>,
+{
+	let mut args = msg.args
+		.iter()
+		.zip(args)
+		.map(|(spec, arg)| {
+			let ty = ink_project.registry.resolve(spec.ty.id.id)
+				.ok_or(anyhow::anyhow!("Failed to resolve type for arg '{:?}' with id '{}'", spec.name, spec.ty.id.id))?;
+			ty.type_def.encode_arg(arg.as_ref())
+			})
+		.collect::<Result<Vec<_>>>()?
+		.concat();
+	let mut encoded = msg.selector.to_vec();
+	encoded.append(&mut args);
+	Ok(encoded)
 }
 
-impl EncodeMessage for MessageSpec<CompactForm> {
-	fn encode_message(&self, _args: &[String]) -> Result<Vec<u8>> {
-		Ok(self.selector.to_vec())
+pub trait EncodeContractArg {
+	// todo: rename
+	fn encode_arg(&self, arg: &str)-> Result<Vec<u8>>;
+}
+
+impl EncodeContractArg for TypeDef<CompactForm> {
+	fn encode_arg(&self, arg: &str)-> Result<Vec<u8>> {
+		match self {
+			TypeDef::Primitive(primitive) => {
+				primitive.encode_arg(arg)
+			},
+			_ => unimplemented!()
+		}
+	}
+}
+
+impl EncodeContractArg for TypeDefPrimitive {
+	fn encode_arg(&self, arg: &str)-> Result<Vec<u8>> {
+		match self {
+			TypeDefPrimitive::I32 => {
+				Ok(i32::encode(&i32::from_str(arg)?))
+			},
+			_ => unimplemented!()
+		}
 	}
 }
 
