@@ -14,18 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod build;
-pub mod metadata;
-pub mod new;
-
-#[cfg(feature = "extrinsics")]
-mod extrinsics;
-
-#[cfg(feature = "extrinsics")]
-pub(crate) use self::{
-	extrinsics::{
-		deploy::execute_deploy,
-		instantiate::execute_instantiate,
-		call::CallCommand,
-	}
-};
+pub mod deploy;
+pub mod instantiate;
+pub mod call;

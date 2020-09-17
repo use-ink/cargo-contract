@@ -28,7 +28,7 @@ use std::{
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
-use crate::cmd::call::CallCommand;
+use crate::cmd::CallCommand;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};

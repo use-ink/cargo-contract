@@ -76,7 +76,7 @@ pub(crate) fn execute_deploy(
 mod tests {
     use std::{fs, io::Write};
 
-    use crate::{cmd::deploy::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
+    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
     use assert_matches::assert_matches;
 
     const CONTRACT: &str = r#"
