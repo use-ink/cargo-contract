@@ -44,37 +44,9 @@ pub struct CallCommand {
 
 impl CallCommand {
     pub fn run(&self) -> Result<String> {
-        let manifest_path = ManifestPath::default();
-        // todo: add metadata path option
-        let metadata_path: Option<std::path::PathBuf> = None;
-        let path = match metadata_path {
-            Some(path) => path,
-            None => {
-                let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-                crate_metadata.metadata_path()
-            }
-        };
-        let metadata: InkProject = serde_json::from_reader(File::open(path)?)?;
-
-        let calls = metadata
-            .spec
-            .messages
-            .iter()
-            .map(|m| m.name.clone())
-            .collect::<Vec<_>>();
-
-        let msg = metadata
-            .spec
-            .messages
-            .iter()
-            .find(|msg| msg.name == self.name)
-            .ok_or(anyhow::anyhow!(
-                "A contract call named '{}' was not found. Expected one of {:?}",
-                self.name,
-                calls
-            ))?;
-
-        let call_data = super::encode_message(&metadata, msg, &self.args)?;
+        let metadata = super::load_metadata()?;
+        let msg_encoder = super::MessageEncoder::new(metadata);
+        let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::<ContractsTemplateRuntime>::new()

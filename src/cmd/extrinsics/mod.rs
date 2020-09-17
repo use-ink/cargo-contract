@@ -22,43 +22,92 @@ use anyhow::Result;
 use codec::Encode as _;
 use ink_metadata::{
 	InkProject,
+	ConstructorSpec,
 	MessageSpec,
+	MessageParamSpec,
+	Selector,
 };
 use scale_info::{
-	form::CompactForm, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+	form::{CompactForm, Form}, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
 	TypeDefSequence, TypeDefTuple, TypeDefVariant,
 };
-use std::str::FromStr;
+use std::{
+	fs::File,
+	str::FromStr,
+};
+use scale_info::form::MetaForm;
+use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 
-fn encode_message<I, S>(
-	ink_project: &InkProject,
-	msg: &MessageSpec<CompactForm>,
-	args: I,
-) -> Result<Vec<u8>>
+pub fn load_metadata() -> Result<InkProject> {
+	let manifest_path = ManifestPath::default();
+	// todo: add metadata path option
+	let metadata_path: Option<std::path::PathBuf> = None;
+	let path = match metadata_path {
+		Some(path) => path,
+		None => {
+			let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+			crate_metadata.metadata_path()
+		}
+	};
+	let metadata = serde_json::from_reader(File::open(path)?)?;
+	Ok(metadata)
+}
+
+struct MessageEncoder {
+	metadata: InkProject
+}
+
+impl MessageEncoder {
+	pub fn new(metadata: InkProject) -> Self {
+		Self {
+			metadata
+		}
+	}
+
+	fn encode_message<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
 	where
 		I: IntoIterator<Item = S>,
 		S: AsRef<str>,
-{
-	let mut args = msg
-		.args
-		.iter()
-		.zip(args)
-		.map(|(spec, arg)| {
-			let ty = ink_project
-				.registry
-				.resolve(spec.ty.id.id)
-				.ok_or(anyhow::anyhow!(
+	{
+		let calls = self.metadata
+			.spec
+			.messages
+			.iter()
+			.map(|m| m.name.clone())
+			.collect::<Vec<_>>();
+
+		let msg_spec = self
+			.metadata
+			.spec
+			.messages
+			.iter()
+			.find(|msg| msg.name == name)
+			.ok_or(anyhow::anyhow!(
+                "A contract call named '{}' was not found. Expected one of {:?}",
+                name,
+                calls
+            ))?;
+
+		let mut args = msg_spec.args
+			.iter()
+			.zip(args)
+			.map(|(spec, arg)| {
+				let ty = self.metadata
+					.registry
+					.resolve(spec.ty.id.id)
+					.ok_or(anyhow::anyhow!(
                     "Failed to resolve type for arg '{:?}' with id '{}'",
                     spec.name,
                     spec.ty.id.id
                 ))?;
-			ty.type_def.encode_arg(arg.as_ref())
-		})
-		.collect::<Result<Vec<_>>>()?
-		.concat();
-	let mut encoded = msg.selector.to_vec();
-	encoded.append(&mut args);
-	Ok(encoded)
+				ty.type_def.encode_arg(arg.as_ref())
+			})
+			.collect::<Result<Vec<_>>>()?
+			.concat();
+		let mut encoded = msg_spec.selector.to_vec();
+		encoded.append(&mut args);
+		Ok(encoded)
+	}
 }
 
 pub trait EncodeContractArg {
