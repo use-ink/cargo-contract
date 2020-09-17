@@ -22,8 +22,6 @@ use anyhow::Result;
 use codec::Encode as _;
 use ink_metadata::{
 	InkProject,
-	ConstructorSpec,
-	MessageSpec,
 	MessageParamSpec,
 	Selector,
 };

@@ -24,6 +24,10 @@ use subxt::{
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
 pub struct CallCommand {
+    /// The name of the contract message to call
+    name: String,
+    /// The call arguments, encoded as strings
+    args: Vec<String>,
     #[structopt(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Maximum amount of gas to be used for this command
@@ -31,12 +35,9 @@ pub struct CallCommand {
     gas_limit: u64,
     /// The value to be transferred as part of the call
     value: <ContractsTemplateRuntime as Balances>::Balance,
+    #[structopt(name = "contract", long)]
     /// The address of the the contract to call
     contract: <ContractsTemplateRuntime as System>::AccountId,
-    /// The name of the contract message to call
-    name: String,
-    /// The call arguments, encoded as strings
-    args: Vec<String>,
 }
 
 impl CallCommand {

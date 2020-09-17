@@ -18,45 +18,76 @@ use anyhow::Result;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
 };
-
+use structopt::StructOpt;
 use crate::{ExtrinsicOpts, HexData};
 
-/// Instantiate a contract stored at the supplied code hash.
-/// Returns the account id of the instantiated contract if successful.
-///
-/// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
-/// the `ContractsEvent::Instantiated` event.
-pub(crate) fn execute_instantiate(
-    extrinsic_opts: &ExtrinsicOpts,
+#[derive(Debug, StructOpt)]
+#[structopt(name = "instantiate", about = "Instantiate a contract")]
+pub struct InstantiateCommand {
+    /// The name of the contract constructor to call
+    name: String,
+    /// The constructor arguments, encoded as strings
+    args: Vec<String>,
+    #[structopt(flatten)]
+    extrinsic_opts: ExtrinsicOpts,
+    /// Transfers an initial balance to the instantiated contract
+    #[structopt(name = "endowment", long, default_value = "0")]
     endowment: <ContractsTemplateRuntime as Balances>::Balance,
+    /// Maximum amount of gas to be used for this command
+    #[structopt(name = "gas", long, default_value = "500000000")]
     gas_limit: u64,
+    /// The hash of the smart contract code already uploaded to the chain
+    #[structopt(long, parse(try_from_str = parse_code_hash))]
     code_hash: <ContractsTemplateRuntime as System>::Hash,
-    data: HexData,
-) -> Result<<ContractsTemplateRuntime as System>::AccountId> {
-    async_std::task::block_on(async move {
-        let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
-            .set_url(&extrinsic_opts.url.to_string())
-            .build()
-            .await?;
-        let signer = extrinsic_opts.signer()?;
+}
 
-        let events = cli
-            .instantiate_and_watch(&signer, endowment, gas_limit, &code_hash, &data.0)
-            .await?;
-        let instantiated = events
-            .instantiated()?
-            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+impl InstantiateCommand {
+    /// Instantiate a contract stored at the supplied code hash.
+    /// Returns the account id of the instantiated contract if successful.
+    ///
+    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
+    /// the `ContractsEvent::Instantiated` event.
+    pub fn run(&self) -> Result<<ContractsTemplateRuntime as System>::Address> {
+        let metadata = super::load_metadata()?;
+        let msg_encoder = super::MessageEncoder::new(metadata);
+        let data = msg_encoder.encode_constructor(&self.name, &self.args)?;
 
-        Ok(instantiated.contract)
-    })
+        async_std::task::block_on(async move {
+            let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+                .set_url(self.extrinsic_opts.url.to_string())
+                .build()
+                .await?;
+            let signer = self.extrinsic_opts.signer()?;
+
+            let events = cli
+                .instantiate_and_watch(&signer, self.endowment, self.gas_limit, &self.code_hash, &data)
+                .await?;
+            let instantiated = events
+                .instantiated()?
+                .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+
+            Ok(instantiated.contract)
+        })
+    }
+}
+
+#[cfg(feature = "extrinsics")]
+fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::Hash> {
+    let bytes = hex::decode(input)?;
+    if bytes.len() != 32 {
+        anyhow::bail!("Code hash should be 32 bytes in length")
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(arr.into())
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::{fs, io::Write};
-
-    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts, HexData};
     use assert_matches::assert_matches;
+    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts, HexData};
 
     const CONTRACT: &str = r#"
 (module
@@ -84,14 +115,15 @@ mod tests {
             let code_hash =
                 execute_deploy(&extrinsic_opts, Some(&wasm_path)).expect("Deploy should succeed");
 
-            let gas_limit = 500_000_000;
-            let result = super::execute_instantiate(
-                &extrinsic_opts,
-                100000000000000,
-                gas_limit,
+            let cmd = InstantiateCommand {
+                extrinsic_opts,
+                endowment: 100000000000000,
+                gas_limit: 500_000_000,
                 code_hash,
-                HexData::default(),
-            );
+                name: String::new(), // todo: does this invoke the default constructor?
+                args: Vec::new(),
+            };
+            let result = cmd.run();
 
             assert_matches!(result, Ok(_));
             Ok(())

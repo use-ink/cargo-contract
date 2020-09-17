@@ -28,10 +28,13 @@ use std::{
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
-use crate::cmd::CallCommand;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
+use crate::cmd::{
+    CallCommand,
+    InstantiateCommand,
+};
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -192,36 +195,9 @@ enum Command {
     },
     /// Instantiate a deployed smart contract
     #[cfg(feature = "extrinsics")]
-    #[structopt(name = "instantiate")]
-    Instantiate {
-        #[structopt(flatten)]
-        extrinsic_opts: ExtrinsicOpts,
-        /// Transfers an initial balance to the instantiated contract
-        #[structopt(name = "endowment", long, default_value = "0")]
-        endowment: u128,
-        /// Maximum amount of gas to be used for this command
-        #[structopt(name = "gas", long, default_value = "500000000")]
-        gas_limit: u64,
-        /// The hash of the smart contract code already uploaded to the chain
-        #[structopt(long, parse(try_from_str = parse_code_hash))]
-        code_hash: H256,
-        /// Hex encoded data to call a contract constructor
-        #[structopt(long)]
-        data: HexData,
-    },
+    Instantiate(InstantiateCommand),
     #[cfg(feature = "extrinsics")]
     Call(CallCommand),
-}
-
-#[cfg(feature = "extrinsics")]
-fn parse_code_hash(input: &str) -> Result<H256> {
-    let bytes = hex::decode(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(H256(arr))
 }
 
 fn main() {
@@ -280,23 +256,11 @@ fn exec(cmd: Command) -> Result<String> {
             Ok(format!("Code hash: {:?}", code_hash))
         }
         #[cfg(feature = "extrinsics")]
-        Command::Instantiate {
-            extrinsic_opts,
-            endowment,
-            code_hash,
-            gas_limit,
-            data,
-        } => {
-            let contract_account = cmd::execute_instantiate(
-                extrinsic_opts,
-                *endowment,
-                *gas_limit,
-                *code_hash,
-                data.clone(),
-            )?;
+        Command::Instantiate(instantiate) => {
+            let contract_account = instantiate.run()?;
             Ok(format!("Contract account: {:?}", contract_account))
         }
         #[cfg(feature = "extrinsics")]
-        Command::Call(cmd) => cmd.run(),
+        Command::Call(call) => call.run(),
     }
 }
