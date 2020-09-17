@@ -74,7 +74,7 @@ impl CallCommand {
                 calls
             ))?;
 
-        let call_data = encode_message(&metadata, msg, &self.args)?;
+        let call_data = super::encode_message(&metadata, msg, &self.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
@@ -99,67 +99,5 @@ impl CallCommand {
             // todo: decode executed data (events)
             Ok(hex::encode(executed.data))
         })
-    }
-}
-
-use codec::Encode as _;
-use ink_metadata::MessageSpec;
-use scale_info::{
-    form::CompactForm, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeDefVariant,
-};
-use std::str::FromStr;
-
-fn encode_message<I, S>(
-    ink_project: &InkProject,
-    msg: &MessageSpec<CompactForm>,
-    args: I,
-) -> Result<Vec<u8>>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
-{
-    let mut args = msg
-        .args
-        .iter()
-        .zip(args)
-        .map(|(spec, arg)| {
-            let ty = ink_project
-                .registry
-                .resolve(spec.ty.id.id)
-                .ok_or(anyhow::anyhow!(
-                    "Failed to resolve type for arg '{:?}' with id '{}'",
-                    spec.name,
-                    spec.ty.id.id
-                ))?;
-            ty.type_def.encode_arg(arg.as_ref())
-        })
-        .collect::<Result<Vec<_>>>()?
-        .concat();
-    let mut encoded = msg.selector.to_vec();
-    encoded.append(&mut args);
-    Ok(encoded)
-}
-
-pub trait EncodeContractArg {
-    // todo: rename
-    fn encode_arg(&self, arg: &str) -> Result<Vec<u8>>;
-}
-
-impl EncodeContractArg for TypeDef<CompactForm> {
-    fn encode_arg(&self, arg: &str) -> Result<Vec<u8>> {
-        match self {
-            TypeDef::Primitive(primitive) => primitive.encode_arg(arg),
-            _ => unimplemented!(),
-        }
-    }
-}
-
-impl EncodeContractArg for TypeDefPrimitive {
-    fn encode_arg(&self, arg: &str) -> Result<Vec<u8>> {
-        match self {
-            TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-            _ => unimplemented!(),
-        }
     }
 }
