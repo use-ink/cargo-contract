@@ -41,11 +41,11 @@ serde = { version = "1.0.115", default-features = false, features = ["derive"] }
 serde_json = "1.0.57"
 tempfile = "3.1.0"
 url = { version = "2.1.1", features = ["serde"] }
-ink_metadata = { path = "/home/andrew/code/paritytech/ink/metadata" }
-scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-pub-types", default-features = false, features = ["derive"], optional = true }
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.2", optional = true }
+ink_metadata = { path = "/home/andrew/code/paritytech/ink/metadata", optional = true }
+scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-pub-types", default-features = false, features = ["derive"], optional = true }
 sp-core = { version = "2.0.0-rc6", optional = true }
 #subxt = { version = "0.11.0", package = "substrate-subxt", optional = true }
 subxt = { package = "substrate-subxt", path = "/home/andrew/code/paritytech/substrate-subxt", optional = true }
@@ -68,7 +68,7 @@ default = []
 # Enable this for (experimental) commands to deploy, instantiate and call contracts.
 #
 # Disabled by default
-extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex"]
+extrinsics = ["ink_metadata", "scale-info", "sp-core", "subxt", "async-std", "futures", "hex"]
 
 # Enable this to execute long running tests, which usually are only run on the CI server
 #
