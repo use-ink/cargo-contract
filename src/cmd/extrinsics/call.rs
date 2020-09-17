@@ -14,11 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fs::File;
-
-use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath, ExtrinsicOpts};
+use crate::ExtrinsicOpts;
 use anyhow::Result;
-use ink_metadata::InkProject;
 use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,

@@ -35,7 +35,6 @@ use std::{
 	fs::File,
 	str::FromStr,
 };
-use scale_info::form::MetaForm;
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 
 pub fn load_metadata() -> Result<InkProject> {
@@ -64,6 +63,34 @@ impl MessageEncoder {
 		}
 	}
 
+	fn encode_constructor<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
+	where
+		I: IntoIterator<Item = S>,
+		S: AsRef<str>,
+	{
+		let constructors = self.metadata
+			.spec
+			.constructors
+			.iter()
+			.map(|m| m.name.clone())
+			.collect::<Vec<_>>();
+
+		let constructor_spec = self
+			.metadata
+			.spec
+			.constructors
+			.iter()
+			.find(|msg| msg.name == name)
+			.ok_or(anyhow::anyhow!(
+                "A contract call named '{}' was not found. Expected one of {:?}",
+                name,
+                constructors
+            ))?;
+
+		self.encode(&constructor_spec.selector, &constructor_spec.args, args)
+
+	}
+
 	fn encode_message<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
 	where
 		I: IntoIterator<Item = S>,
@@ -88,7 +115,15 @@ impl MessageEncoder {
                 calls
             ))?;
 
-		let mut args = msg_spec.args
+		self.encode(&msg_spec.selector, &msg_spec.args, args)
+	}
+
+	fn encode<I, S>(&self, spec_selector: &Selector, spec_args: &[MessageParamSpec<CompactForm>], args: I) -> Result<Vec<u8>>
+		where
+			I: IntoIterator<Item = S>,
+			S: AsRef<str>,
+	{
+		let mut args = spec_args
 			.iter()
 			.zip(args)
 			.map(|(spec, arg)| {
@@ -104,7 +139,7 @@ impl MessageEncoder {
 			})
 			.collect::<Result<Vec<_>>>()?
 			.concat();
-		let mut encoded = msg_spec.selector.to_vec();
+		let mut encoded = spec_selector.to_vec();
 		encoded.append(&mut args);
 		Ok(encoded)
 	}
