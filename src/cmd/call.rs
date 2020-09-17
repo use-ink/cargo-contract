@@ -16,70 +16,91 @@
 
 use std::{
 	fs::File,
-	path::Path,
 };
 
 use anyhow::Result;
 use ink_metadata::InkProject;
-// use subxt::{balances::Balances, contracts::*, system::System, ClientBuilder, DefaultNodeRuntime};
-// use crate::{ExtrinsicOpts, HexData};
+use structopt::StructOpt;
+use subxt::{balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime};
 use crate::{
+	ExtrinsicOpts,
 	crate_metadata::CrateMetadata,
 	workspace::ManifestPath,
 };
 
-pub(crate) fn list<P>(
-	manifest_path: ManifestPath,
-	metadata_path: Option<P>
-) -> Result<Vec<String>>
-where
-	P: AsRef<Path>
-{
-	let path = match metadata_path {
-		Some(path) => path.as_ref().to_path_buf(),
-		None => {
-			let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-			crate_metadata.metadata_path()
-		}
-	};
-
-	let metadata: InkProject = serde_json::from_reader(File::open(path)?)?;
-	let calls = metadata.spec.messages
-		.iter()
-		.map(|msg| {
-			msg.name.clone()
-		})
-		.collect();
-	Ok(calls)
+#[derive(Debug, StructOpt)]
+#[structopt(name = "call", about = "Call a contract")]
+pub struct CallCommand {
+	#[structopt(flatten)]
+	extrinsic_opts: ExtrinsicOpts,
+	/// Maximum amount of gas to be used for this command
+	#[structopt(name = "gas", long, default_value = "500000000")]
+	gas_limit: u64,
+	/// The value to be transferred as part of the call
+	value: <ContractsTemplateRuntime as Balances>::Balance,
+	/// The address of the the contract to call
+	contract: <ContractsTemplateRuntime as System>::AccountId,
+	/// The name of the contract message to call
+	name: String,
+	/// The call arguments, encoded as strings
+	args: Vec<String>,
 }
 
-// /// Instantiate a contract stored at the supplied code hash.
-// /// Returns the account id of the instantiated contract if successful.
-// ///
-// /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
-// /// the `ContractsEvent::Instantiated` event.
-// pub(crate) fn execute_call(
-// 	extrinsic_opts: &ExtrinsicOpts,
-// 	endowment: <DefaultNodeRuntime as Balances>::Balance,
-// 	gas_limit: u64,
-// 	code_hash: <DefaultNodeRuntime as System>::Hash,
-// 	data: HexData,
-// ) -> Result<<DefaultNodeRuntime as System>::AccountId> {
-// 	todo!()
-// 	// async_std::task::block_on(async move {
-// 	// 	let cli = ClientBuilder::<DefaultNodeRuntime>::new()
-// 	// 		.set_url(&extrinsic_opts.url.to_string())
-// 	// 		.build()
-// 	// 		.await?;
-// 	// 	let signer = extrinsic_opts.signer()?;
-// 	//
-// 	// 	let events = cli
-// 	// 		.instantiate_and_watch(&signer, endowment, gas_limit, &code_hash, &data.0)
-// 	// 		.await?;
-// 	// 	let instantiated = events
-// 	// 		.instantiated()?
-// 	// 		.ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
-// 	//
-// 	// 	Ok(instantiated.contract)
-// 	// })
-// }
+impl CallCommand {
+	pub fn run(&self) -> Result<String> {
+		let manifest_path = ManifestPath::default();
+		// todo: add metadata path option
+		let metadata_path: Option<std::path::PathBuf> = None;
+		let path = match metadata_path {
+			Some(path) => path,
+			None => {
+				let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+				crate_metadata.metadata_path()
+			}
+		};
+		let metadata: InkProject = serde_json::from_reader(File::open(path)?)?;
+
+		let calls = metadata.spec.messages.iter().map(|m| m.name.clone()).collect::<Vec<_>>();
+
+		let msg =
+			metadata.spec.messages
+				.iter()
+				.find(|msg| msg.name == self.name)
+				.ok_or(anyhow::anyhow!("A contract call named '{}' was not found. Expected one of {:?}", self.name, calls))?;
+
+		let call_data = msg.encode_message(&self.args)?;
+
+		async_std::task::block_on(async move {
+			let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+				.set_url(&self.extrinsic_opts.url.to_string())
+				.build()
+				.await?;
+			let signer = self.extrinsic_opts.signer()?;
+
+			let events = cli
+				.call_and_watch(&signer, &self.contract, self.value, self.gas_limit, &call_data)
+				.await?;
+			let executed = events
+				.contract_execution()?
+				.ok_or(anyhow::anyhow!("Failed to find ContractExecution event"))?;
+
+			// todo: decode executed data (events)
+			Ok(hex::encode(executed.data))
+		})
+	}
+}
+
+use ink_metadata::MessageSpec;
+use scale_info::form::CompactForm;
+
+pub trait EncodeMessage {
+	// todo: rename
+	fn encode_message(&self, args: &[String])-> Result<Vec<u8>>;
+}
+
+impl EncodeMessage for MessageSpec<CompactForm> {
+	fn encode_message(&self, _args: &[String]) -> Result<Vec<u8>> {
+		Ok(self.selector.to_vec())
+	}
+}
+

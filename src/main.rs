@@ -31,6 +31,7 @@ use subxt::PairSigner;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
+use crate::cmd::call::CallCommand;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -83,7 +84,7 @@ pub(crate) struct ExtrinsicOpts {
 
 #[cfg(feature = "extrinsics")]
 impl ExtrinsicOpts {
-    pub fn signer(&self) -> Result<PairSigner<subxt::DefaultNodeRuntime, sr25519::Pair>> {
+    pub fn signer(&self) -> Result<PairSigner<subxt::ContractsTemplateRuntime, sr25519::Pair>> {
         let pair =
             sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
                 .map_err(|_| anyhow::anyhow!("Secret string error"))?;
@@ -209,10 +210,7 @@ enum Command {
         data: HexData,
     },
     #[cfg(feature = "extrinsics")]
-    Call {
-        #[structopt(long, short = "ls")]
-        list: bool,
-    }
+    Call (CallCommand),
 }
 
 #[cfg(feature = "extrinsics")]
@@ -299,16 +297,6 @@ fn exec(cmd: Command) -> Result<String> {
             Ok(format!("Contract account: {:?}", contract_account))
         },
         #[cfg(feature = "extrinsics")]
-        Command::Call {
-            list
-        } => {
-            if *list {
-                // todo: add custom metadata_path arg
-                let calls = cmd::call::list::<PathBuf>(Default::default(), None)?;
-                Ok(format!("{:?}", calls))
-            } else {
-                Ok(format!("Only --list supported"))
-            }
-        }
+        Command::Call (cmd) => cmd.run()
     }
 }

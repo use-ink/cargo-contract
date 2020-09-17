@@ -18,7 +18,7 @@ use std::{fs, io::Read, path::PathBuf};
 
 use anyhow::{Context, Result};
 use sp_core::H256;
-use subxt::{contracts::*, ClientBuilder, DefaultNodeRuntime};
+use subxt::{contracts::*, ClientBuilder, ContractsTemplateRuntime};
 
 use crate::{crate_metadata, ExtrinsicOpts};
 
@@ -57,7 +57,7 @@ pub(crate) fn execute_deploy(
     let code = load_contract_code(contract_wasm_path)?;
 
     async_std::task::block_on(async move {
-        let cli = ClientBuilder::<DefaultNodeRuntime>::new()
+        let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
             .set_url(&extrinsic_opts.url.to_string())
             .build()
             .await?;
