@@ -28,10 +28,10 @@ use std::{
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
+use crate::cmd::call::CallCommand;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
-use crate::cmd::call::CallCommand;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -210,7 +210,7 @@ enum Command {
         data: HexData,
     },
     #[cfg(feature = "extrinsics")]
-    Call (CallCommand),
+    Call(CallCommand),
 }
 
 #[cfg(feature = "extrinsics")]
@@ -295,8 +295,8 @@ fn exec(cmd: Command) -> Result<String> {
                 data.clone(),
             )?;
             Ok(format!("Contract account: {:?}", contract_account))
-        },
+        }
         #[cfg(feature = "extrinsics")]
-        Command::Call (cmd) => cmd.run()
+        Command::Call(cmd) => cmd.run(),
     }
 }

@@ -15,7 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use subxt::{balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime};
+use subxt::{
+    balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
+};
 
 use crate::{ExtrinsicOpts, HexData};
 
