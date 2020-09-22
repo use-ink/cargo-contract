@@ -19,7 +19,9 @@ use anyhow::Result;
 use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
+    ExtrinsicSuccess,
 };
+use ink_metadata::InkProject;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -47,28 +49,26 @@ impl CallCommand {
         let msg_encoder = super::MessageEncoder::new(metadata);
         let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
-        async_std::task::block_on(async move {
-            let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
-                .set_url(&self.extrinsic_opts.url.to_string())
-                .build()
-                .await?;
-            let signer = self.extrinsic_opts.signer()?;
+        let _result = async_std::task::block_on(self.call(&call_data))?;
+        Ok("Contract call succeeded".to_string())
+    }
 
-            let events = cli
-                .call_and_watch(
-                    &signer,
-                    &self.contract,
-                    self.value,
-                    self.gas_limit,
-                    &call_data,
-                )
-                .await?;
-            let executed = events
-                .contract_execution()?
-                .ok_or(anyhow::anyhow!("Failed to find ContractExecution event"))?;
+    async fn call(&self, data: &[u8]) -> Result<ExtrinsicSuccess<ContractsTemplateRuntime>> {
+        let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+            .set_url(&self.extrinsic_opts.url.to_string())
+            .build()
+            .await?;
+        let signer = self.extrinsic_opts.signer()?;
 
-            // todo: decode executed data (events)
-            Ok(hex::encode(executed.data))
-        })
+        let extrinsic_success = cli
+            .call_and_watch(
+                &signer,
+                &self.contract,
+                self.value,
+                self.gas_limit,
+                &data,
+            )
+            .await?;
+        Ok(extrinsic_success)
     }
 }
