@@ -34,6 +34,7 @@ pub struct CallCommand {
     #[structopt(name = "gas", long, default_value = "500000000")]
     gas_limit: u64,
     /// The value to be transferred as part of the call
+    #[structopt(name = "value", long, default_value = "0")]
     value: <ContractsTemplateRuntime as Balances>::Balance,
     #[structopt(name = "contract", long)]
     /// The address of the the contract to call
