@@ -160,6 +160,7 @@ impl EncodeContractArg for TypeDef<CompactForm> {
 impl EncodeContractArg for TypeDefPrimitive {
 	fn encode_arg(&self, arg: &str) -> Result<Vec<u8>> {
 		match self {
+			TypeDefPrimitive::Bool => Ok(bool::encode(&bool::from_str(arg)?)),
 			TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
 			_ => unimplemented!(),
 		}
