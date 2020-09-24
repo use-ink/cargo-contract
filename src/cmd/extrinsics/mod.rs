@@ -145,22 +145,41 @@ impl MessageEncoder {
 
 pub trait EncodeContractArg {
 	// todo: rename
-	fn encode_arg(&self, arg: &str) -> Result<Vec<u8>>;
+	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>>;
 }
 
 impl EncodeContractArg for TypeDef<CompactForm> {
-	fn encode_arg(&self, arg: &str) -> Result<Vec<u8>> {
+	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
 		match self {
-			TypeDef::Primitive(primitive) => primitive.encode_arg(arg),
+			TypeDef::Array(array) => {
+				match registry.resolve(array.type_param.id) {
+					Some(Type { type_def: TypeDef::Primitive(TypeDefPrimitive::U8), .. }) => {
+						Ok(hex::decode(arg)?)
+					},
+					Some(_) => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
+					None => Err(anyhow::anyhow!("Array type with id `{}` not found", array.type_param.id))
+				}
+			},
+			TypeDef::Primitive(primitive) => primitive.encode_arg(registry, arg),
+			TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
 			_ => unimplemented!(),
 		}
 	}
 }
 
 impl EncodeContractArg for TypeDefPrimitive {
-	fn encode_arg(&self, arg: &str) -> Result<Vec<u8>> {
+	fn encode_arg(&self, _: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
 		match self {
 			TypeDefPrimitive::Bool => Ok(bool::encode(&bool::from_str(arg)?)),
+			TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
+			TypeDefPrimitive::Str => Ok(str::encode(arg)),
+			TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
+			TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
+			TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
+			TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
+			TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
+			TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
+			TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
 			TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
 			_ => unimplemented!(),
 		}
