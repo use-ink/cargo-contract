@@ -49,8 +49,14 @@ impl CallCommand {
         let msg_encoder = super::MessageEncoder::new(metadata);
         let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
-        let _result = async_std::task::block_on(self.call(&call_data))?;
-        Ok("Contract call succeeded".to_string())
+        let result = async_std::task::block_on(self.call(&call_data))?;
+
+        if let Some(execution_event) = result.contract_execution()? {
+            let events = msg_encoder.decode_events(&execution_event.data)?;
+            Ok(format!("{:?}", events))
+        } else {
+            Ok("Contract call succeeded".to_string())
+        }
     }
 
     async fn call(&self, data: &[u8]) -> Result<ExtrinsicSuccess<ContractsTemplateRuntime>> {
