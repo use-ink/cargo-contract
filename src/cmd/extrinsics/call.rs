@@ -16,10 +16,14 @@
 
 use crate::ExtrinsicOpts;
 use anyhow::Result;
+use jsonrpsee::common::{Params, to_value as to_json_value};
 use structopt::StructOpt;
+use serde::{Serialize, Deserialize};
+use sp_core::Bytes;
+use sp_rpc::number::NumberOrHex;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
-    ExtrinsicSuccess,
+    ExtrinsicSuccess, Signer,
 };
 
 #[derive(Debug, StructOpt)]
@@ -40,6 +44,8 @@ pub struct CallCommand {
     #[structopt(name = "contract", long)]
     /// The address of the the contract to call
     contract: <ContractsTemplateRuntime as System>::AccountId,
+    #[structopt(name = "rpc", long)]
+    rpc: bool,
 }
 
 impl CallCommand {
@@ -48,21 +54,44 @@ impl CallCommand {
         let msg_encoder = super::MessageEncoder::new(metadata);
         let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
-        let result = async_std::task::block_on(self.call(&call_data))?;
-
-        for event in &result.events {
-            println!("{}:{}", event.module, event.variant);
-        }
-
-        if let Some(execution_event) = result.contract_execution()? {
-            let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
-            Ok(format!("{:?}", events))
+        if self.rpc {
+            let result = async_std::task::block_on(self.call_rpc(call_data))?;
+            Ok(format!("{:?}", result))
         } else {
-            Ok("Contract call succeeded".to_string())
+            let result = async_std::task::block_on(self.call(call_data))?;
+
+            for event in &result.events {
+                println!("{}:{}", event.module, event.variant);
+            }
+
+            if let Some(execution_event) = result.contract_execution()? {
+                let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
+                Ok(format!("{:?}", events))
+            } else {
+                Ok("Contract call succeeded".to_string())
+            }
         }
     }
 
-    async fn call(&self, data: &[u8]) -> Result<ExtrinsicSuccess<ContractsTemplateRuntime>> {
+    async fn call_rpc(&self, data: Vec<u8>) -> Result<RpcContractExecResult> {
+        let url = self.extrinsic_opts.url.to_string();
+        let cli = jsonrpsee::ws_client(&url).await?;
+        let signer = self.extrinsic_opts.signer()?;
+        let call_request = RpcCallRequest {
+            origin: signer.account_id().clone(),
+            dest: self.contract.clone(),
+            value: self.value,
+            gas_limit: NumberOrHex::Number(self.gas_limit),
+            input_data: Bytes(data)
+        };
+        let params = Params::Array(vec![
+            to_json_value(call_request)?
+        ]);
+        let result: RpcContractExecResult = cli.request("contracts_call", params).await?;
+        Ok(result)
+    }
+
+    async fn call(&self, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsTemplateRuntime>> {
         let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
             .set_url(&self.extrinsic_opts.url.to_string())
             .build()
@@ -80,4 +109,33 @@ impl CallCommand {
             .await?;
         Ok(extrinsic_success)
     }
+}
+
+/// Call request type for serialization copied from pallet-contracts-rpc
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RpcCallRequest {
+    origin: <ContractsTemplateRuntime as System>::AccountId,
+    dest: <ContractsTemplateRuntime as System>::AccountId,
+    value: <ContractsTemplateRuntime as Balances>::Balance,
+    gas_limit: NumberOrHex,
+    input_data: Bytes,
+}
+
+/// Result of contract execution copied from pallet-contracts-rpc
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
+pub enum RpcContractExecResult {
+    /// Successful execution
+    Success {
+        /// The return flags
+        flags: u32,
+        /// Output data
+        data: Bytes,
+        /// How much gas was consumed by the call.
+        gas_consumed: u64,
+    },
+    /// Error execution
+    Error(()),
 }
