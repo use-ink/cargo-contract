@@ -21,7 +21,6 @@ use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess,
 };
-use ink_metadata::InkProject;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -51,8 +50,12 @@ impl CallCommand {
 
         let result = async_std::task::block_on(self.call(&call_data))?;
 
+        for event in &result.events {
+            println!("{}:{}", event.module, event.variant);
+        }
+
         if let Some(execution_event) = result.contract_execution()? {
-            let events = msg_encoder.decode_events(&execution_event.data)?;
+            let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
             Ok(format!("{:?}", events))
         } else {
             Ok("Contract call succeeded".to_string())

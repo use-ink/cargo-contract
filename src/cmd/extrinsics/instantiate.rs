@@ -19,7 +19,7 @@ use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
 };
 use structopt::StructOpt;
-use crate::{ExtrinsicOpts, HexData};
+use crate::ExtrinsicOpts;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "instantiate", about = "Instantiate a contract")]
@@ -62,6 +62,11 @@ impl InstantiateCommand {
             let events = cli
                 .instantiate_and_watch(&signer, self.endowment, self.gas_limit, &self.code_hash, &data)
                 .await?;
+
+            for event in &events.events {
+                println!("{}:{}", event.module, event.variant);
+            }
+
             let instantiated = events
                 .instantiated()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
@@ -87,7 +92,7 @@ mod tests {
     use super::*;
     use std::{fs, io::Write};
     use assert_matches::assert_matches;
-    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts, HexData};
+    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
 
     const CONTRACT: &str = r#"
 (module

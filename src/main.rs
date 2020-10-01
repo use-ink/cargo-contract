@@ -20,7 +20,7 @@ mod util;
 mod workspace;
 
 #[cfg(feature = "extrinsics")]
-use sp_core::{crypto::Pair, sr25519, H256};
+use sp_core::{crypto::Pair, sr25519};
 use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,

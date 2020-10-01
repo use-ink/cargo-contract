@@ -19,15 +19,14 @@ pub mod instantiate;
 pub mod call;
 
 use anyhow::Result;
-use codec::{Decode, Encode, Input};
-use ink_metadata::{InkProject, MessageParamSpec, Selector, EventSpec};
-use scale_info::{form::{CompactForm, Form}, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeDefVariant, RegistryReadOnly};
+use codec::{Encode, Input};
+use ink_metadata::{InkProject, MessageParamSpec, Selector};
+use scale_info::{form::CompactForm, Type, TypeDef, TypeDefComposite, TypeDefPrimitive, RegistryReadOnly};
 use std::{
 	fs::File,
 	str::FromStr,
 };
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
-use scale_info::interner::UntrackedSymbol;
 use sp_core::sp_std::num::NonZeroU32;
 
 pub fn load_metadata() -> Result<InkProject> {
@@ -137,13 +136,24 @@ impl MessageEncoder {
 		Ok(encoded)
 	}
 
-	fn decode_events(&self, data: &mut [u8]) -> Result<DecodedEvent> {
+	fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
+	where
+		I: Input,
+	{
 		let variant_index = data.read_byte()?;
-		let event_spec: &EventSpec = self.metadata.spec.events.get(variant_index)
+		let event_spec = self.metadata.spec.events.get(variant_index as usize)
 			.ok_or(anyhow::anyhow!("Event variant {} not found in contract metadata", variant_index))?;
+		let mut args = Vec::new();
+		for arg in &event_spec.args {
+			args.push(DecodedEventArg {
+				name: arg.name.to_string(),
+				value: "TODO".to_string(), // todo: resolve and decode type
+			})
+		}
+
 		Ok(DecodedEvent {
 			name: event_spec.name.to_string(),
-			fields: vec![]
+			args
 		})
 	}
 }
@@ -217,11 +227,11 @@ impl EncodeContractArg for TypeDefComposite<CompactForm> {
 #[derive(Debug)]
 pub struct DecodedEvent {
 	name: String,
-	fields: Vec<DecodedEventField>,
+	args: Vec<DecodedEventArg>,
 }
 
 #[derive(Debug)]
-pub struct DecodedEventField {
+pub struct DecodedEventArg {
 	name: String,
 	value: String,
 }
