@@ -16,7 +16,7 @@
 
 use crate::ExtrinsicOpts;
 use anyhow::Result;
-use jsonrpsee::common::{Params, to_value as to_json_value};
+use jsonrpsee::common::Params;
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 use sp_core::Bytes;
@@ -25,6 +25,7 @@ use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess, Signer,
 };
+use std::convert::TryInto;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -80,12 +81,12 @@ impl CallCommand {
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
-            value: self.value,
+            value: self.value.try_into()?, // value must be <= u64.max_value() for now
             gas_limit: NumberOrHex::Number(self.gas_limit),
             input_data: Bytes(data)
         };
         let params = Params::Array(vec![
-            to_json_value(call_request)?
+            serde_json::to_value(call_request)?
         ]);
         let result: RpcContractExecResult = cli.request("contracts_call", params).await?;
         Ok(result)
@@ -117,7 +118,7 @@ impl CallCommand {
 pub struct RpcCallRequest {
     origin: <ContractsTemplateRuntime as System>::AccountId,
     dest: <ContractsTemplateRuntime as System>::AccountId,
-    value: <ContractsTemplateRuntime as Balances>::Balance,
+    value: u64, // <ContractsTemplateRuntime as Balances>::Balance, // todo: u128 does not serialize by default with serde
     gas_limit: NumberOrHex,
     input_data: Bytes,
 }
