@@ -57,7 +57,7 @@ where
         let contents = contents.replace("{{name}}", name);
         let contents = contents.replace("{{camel_name}}", &name.to_camel_case());
 
-        let outpath = out_dir.join(file.name());
+        let outpath = out_dir.join(file.sanitized_name());
 
         if (&*file.name()).ends_with('/') {
             fs::create_dir_all(&outpath)?;
@@ -75,7 +75,7 @@ where
                     if e.kind() == std::io::ErrorKind::AlreadyExists {
                         anyhow::anyhow!(
                             "New contract file {} already exists",
-                            file.name().display()
+                            file.sanitized_name().display()
                         )
                     } else {
                         anyhow::anyhow!(e)
