@@ -73,10 +73,7 @@ where
                 .open(outpath.clone())
                 .map_err(|e| {
                     if e.kind() == std::io::ErrorKind::AlreadyExists {
-                        anyhow::anyhow!(
-                            "New contract file {} already exists",
-                            file.name()
-                        )
+                        anyhow::anyhow!("New contract file {} already exists", file.name())
                     } else {
                         anyhow::anyhow!(e)
                     }

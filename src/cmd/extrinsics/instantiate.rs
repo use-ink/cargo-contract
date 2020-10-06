@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::ExtrinsicOpts;
 use anyhow::Result;
+use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
 };
-use structopt::StructOpt;
-use crate::ExtrinsicOpts;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "instantiate", about = "Instantiate a contract")]
@@ -60,7 +60,13 @@ impl InstantiateCommand {
             let signer = self.extrinsic_opts.signer()?;
 
             let events = cli
-                .instantiate_and_watch(&signer, self.endowment, self.gas_limit, &self.code_hash, &data)
+                .instantiate_and_watch(
+                    &signer,
+                    self.endowment,
+                    self.gas_limit,
+                    &self.code_hash,
+                    &data,
+                )
                 .await?;
 
             for event in &events.events {
@@ -90,9 +96,9 @@ fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, io::Write};
-    use assert_matches::assert_matches;
     use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
+    use assert_matches::assert_matches;
+    use std::{fs, io::Write};
 
     const CONTRACT: &str = r#"
 (module

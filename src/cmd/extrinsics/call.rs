@@ -17,15 +17,15 @@
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use jsonrpsee::common::Params;
-use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
+use std::convert::TryInto;
+use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess, Signer,
 };
-use std::convert::TryInto;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -83,11 +83,9 @@ impl CallCommand {
             dest: self.contract.clone(),
             value: self.value.try_into()?, // value must be <= u64.max_value() for now
             gas_limit: NumberOrHex::Number(self.gas_limit),
-            input_data: Bytes(data)
+            input_data: Bytes(data),
         };
-        let params = Params::Array(vec![
-            serde_json::to_value(call_request)?
-        ]);
+        let params = Params::Array(vec![serde_json::to_value(call_request)?]);
         let result: RpcContractExecResult = cli.request("contracts_call", params).await?;
         Ok(result)
     }
@@ -100,13 +98,7 @@ impl CallCommand {
         let signer = self.extrinsic_opts.signer()?;
 
         let extrinsic_success = cli
-            .call_and_watch(
-                &signer,
-                &self.contract,
-                self.value,
-                self.gas_limit,
-                &data,
-            )
+            .call_and_watch(&signer, &self.contract, self.value, self.gas_limit, &data)
             .await?;
         Ok(extrinsic_success)
     }

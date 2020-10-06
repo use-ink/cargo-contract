@@ -29,14 +29,11 @@ use colored::Colorize;
 use structopt::{clap, StructOpt};
 
 #[cfg(feature = "extrinsics")]
+use crate::cmd::{CallCommand, InstantiateCommand};
+#[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519};
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
-#[cfg(feature = "extrinsics")]
-use crate::cmd::{
-    CallCommand,
-    InstantiateCommand,
-};
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
