@@ -92,15 +92,17 @@ fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> 
             name.set_file_name("Cargo.toml");
         }
 
+        let file_path = name.as_os_str().to_string_lossy();
+
         if path.is_file() {
-            zip.start_file_from_path(name.as_path(), options)?;
+            zip.start_file(file_path, options)?;
             let mut f = File::open(path)?;
 
             f.read_to_end(&mut buffer)?;
             zip.write_all(&*buffer)?;
             buffer.clear();
         } else if name.as_os_str().len() != 0 {
-            zip.add_directory_from_path(name.as_path(), options)?;
+            zip.add_directory(file_path, options)?;
         }
     }
     zip.finish()?;
