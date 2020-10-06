@@ -44,11 +44,10 @@ url = { version = "2.1.1", features = ["serde"] }
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.2", optional = true }
-ink_metadata = { path = "/home/andrew/code/paritytech/ink/metadata", optional = true }
-scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-pub-types", default-features = false, features = ["derive"], optional = true }
+ink_metadata = { path = "/home/andrew/code/paritytech/ink/crates/metadata", optional = true }
+scale-info = { version = "0.4", default-features = false, features = ["derive"], optional = true }
 sp-core = { version = "2.0.0-rc6", optional = true }
-#subxt = { version = "0.11.0", package = "substrate-subxt", optional = true }
-subxt = { package = "substrate-subxt", path = "/home/andrew/code/paritytech/substrate-subxt", optional = true }
+subxt = { version = "0.13.0", package = "substrate-subxt", optional = true }
 futures = { version = "0.3.5", optional = true }
 hex = { version = "0.4.2", optional = true }
 jsonrpsee = "0.1.0"

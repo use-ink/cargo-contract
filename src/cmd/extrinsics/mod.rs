@@ -20,8 +20,8 @@ pub mod call;
 
 use anyhow::Result;
 use codec::{Encode, Input};
-use ink_metadata::{InkProject, MessageParamSpec, Selector};
-use scale_info::{form::CompactForm, Type, TypeDef, TypeDefComposite, TypeDefPrimitive, RegistryReadOnly};
+use ink_metadata::{InkProject, MessageParamSpec, Selector, TypeSpec};
+use scale_info::{form::{CompactForm, Form}, Type, TypeDef, TypeDefComposite, TypeDefPrimitive, RegistryReadOnly};
 use std::{
 	fs::File,
 	str::FromStr,
@@ -61,16 +61,16 @@ impl MessageEncoder {
 		S: AsRef<str>,
 	{
 		let constructors = self.metadata
-			.spec
-			.constructors
+			.spec()
+			.constructors()
 			.iter()
 			.map(|m| m.name.clone())
 			.collect::<Vec<_>>();
 
 		let constructor_spec = self
 			.metadata
-			.spec
-			.constructors
+			.spec()
+			.constructors()
 			.iter()
 			.find(|msg| msg.name.contains(&name.to_string()))
 			.ok_or(anyhow::anyhow!(
@@ -89,25 +89,25 @@ impl MessageEncoder {
 		S: AsRef<str>,
 	{
 		let calls = self.metadata
-			.spec
-			.messages
+			.spec()
+			.messages()
 			.iter()
-			.map(|m| m.name.clone())
+			.map(|m| m.name().clone())
 			.collect::<Vec<_>>();
 
 		let msg_spec = self
 			.metadata
-			.spec
-			.messages
+			.spec()
+			.messages()
 			.iter()
-			.find(|msg| msg.name.contains(&name.to_string()))
+			.find(|msg| msg.name().contains(&name.to_string()))
 			.ok_or(anyhow::anyhow!(
                 "A contract call named '{}' was not found. Expected one of {:?}",
                 name,
                 calls
             ))?;
 
-		self.encode(&msg_spec.selector, &msg_spec.args, args)
+		self.encode(&msg_spec.selector(), &msg_spec.args(), args)
 	}
 
 	fn encode<I, S>(&self, spec_selector: &Selector, spec_args: &[MessageParamSpec<CompactForm>], args: I) -> Result<Vec<u8>>
@@ -119,19 +119,12 @@ impl MessageEncoder {
 			.iter()
 			.zip(args)
 			.map(|(spec, arg)| {
-				let ty = self.metadata
-					.registry
-					.resolve(spec.ty.id.id)
-					.ok_or(anyhow::anyhow!(
-						"Failed to resolve type for arg '{:?}' with id '{}'",
-						spec.name,
-						spec.ty.id.id
-					))?;
-				ty.type_def.encode_arg(&self.metadata.registry, arg.as_ref())
+				let ty = resolve_type(self.metadata.registry(),spec.ty().ty())?;
+				ty.type_def().encode_arg(&self.metadata.registry(), arg.as_ref())
 			})
 			.collect::<Result<Vec<_>>>()?
 			.concat();
-		let mut encoded = spec_selector.to_vec();
+		let mut encoded = spec_selector.to_bytes().to_vec();
 		encoded.append(&mut args);
 		Ok(encoded)
 	}
@@ -141,27 +134,27 @@ impl MessageEncoder {
 		I: Input,
 	{
 		let variant_index = data.read_byte()?;
-		let event_spec = self.metadata.spec.events.get(variant_index as usize)
+		let event_spec = self.metadata.spec().events().get(variant_index as usize)
 			.ok_or(anyhow::anyhow!("Event variant {} not found in contract metadata", variant_index))?;
 		let mut args = Vec::new();
-		for arg in &event_spec.args {
+		for arg in event_spec.args() {
 			args.push(DecodedEventArg {
-				name: arg.name.to_string(),
+				name: arg.name().to_string(),
 				value: "TODO".to_string(), // todo: resolve and decode type
 			})
 		}
 
 		Ok(DecodedEvent {
-			name: event_spec.name.to_string(),
+			name: event_spec.name().to_string(),
 			args
 		})
 	}
 }
 
-fn resolve_type(registry: &RegistryReadOnly, type_id: NonZeroU32) -> Result<Type<CompactForm>> {
-	let ty = registry.resolve(type_id).ok_or(anyhow::anyhow!(
+fn resolve_type(registry: &RegistryReadOnly, symbol: &<CompactForm as Form>::Type) -> Result<Type<CompactForm>> {
+	let ty = registry.resolve(symbol.id()).ok_or(anyhow::anyhow!(
 						"Failed to resolve type with id '{}'",
-						type_id
+						symbol.id()
 					))?;
 	Ok(ty.clone())
 }
@@ -175,8 +168,9 @@ impl EncodeContractArg for TypeDef<CompactForm> {
 	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
 		match self {
 			TypeDef::Array(array) => {
-				match resolve_type(registry, array.type_param.id)? {
-					Type { type_def: TypeDef::Primitive(TypeDefPrimitive::U8), .. } => {
+				let ty = resolve_type(registry, array.type_param())?;
+				match ty.type_def() {
+					TypeDef::Primitive(TypeDefPrimitive::U8) => {
 						Ok(hex::decode(arg)?)
 					},
 					_ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
@@ -211,13 +205,13 @@ impl EncodeContractArg for TypeDefPrimitive {
 
 impl EncodeContractArg for TypeDefComposite<CompactForm> {
 	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
-		if self.fields.len() != 1 {
+		if self.fields().len() != 1 {
 			panic!("Only single field structs currently supported")
 		}
-		let field = self.fields.iter().next().unwrap();
-		if field.name.is_none() {
-			let ty = resolve_type(registry, field.ty.id)?;
-			ty.type_def.encode_arg(registry, arg)
+		let field = self.fields().iter().next().unwrap();
+		if field.name().is_none() {
+			let ty = resolve_type(registry, field.ty())?;
+			ty.type_def().encode_arg(registry, arg)
 		} else {
 			panic!("Only tuple structs currently supported")
 		}
