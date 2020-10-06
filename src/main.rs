@@ -19,18 +19,20 @@ mod crate_metadata;
 mod util;
 mod workspace;
 
-#[cfg(feature = "extrinsics")]
-use sp_core::{crypto::Pair, sr25519};
 use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,
 };
-#[cfg(feature = "extrinsics")]
-use subxt::PairSigner;
 
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
+
+#[cfg(feature = "extrinsics")]
+use sp_core::{crypto::Pair, sr25519};
+#[cfg(feature = "extrinsics")]
+use subxt::PairSigner;
+#[cfg(feature = "extrinsics")]
 use crate::cmd::{
     CallCommand,
     InstantiateCommand,

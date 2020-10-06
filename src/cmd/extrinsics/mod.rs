@@ -20,14 +20,13 @@ pub mod call;
 
 use anyhow::Result;
 use codec::{Encode, Input};
-use ink_metadata::{InkProject, MessageParamSpec, Selector, TypeSpec};
+use ink_metadata::{InkProject, MessageParamSpec, Selector};
 use scale_info::{form::{CompactForm, Form}, Type, TypeDef, TypeDefComposite, TypeDefPrimitive, RegistryReadOnly};
 use std::{
 	fs::File,
 	str::FromStr,
 };
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
-use sp_core::sp_std::num::NonZeroU32;
 
 pub fn load_metadata() -> Result<InkProject> {
 	let manifest_path = ManifestPath::default();
