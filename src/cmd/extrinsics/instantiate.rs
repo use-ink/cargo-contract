@@ -34,7 +34,7 @@ pub struct InstantiateCommand {
     #[structopt(name = "endowment", long, default_value = "0")]
     endowment: <ContractsTemplateRuntime as Balances>::Balance,
     /// Maximum amount of gas to be used for this command
-    #[structopt(name = "gas", long, default_value = "500000000")]
+    #[structopt(name = "gas", long, default_value = "5000000000")]
     gas_limit: u64,
     /// The hash of the smart contract code already uploaded to the chain
     #[structopt(long, parse(try_from_str = parse_code_hash))]
