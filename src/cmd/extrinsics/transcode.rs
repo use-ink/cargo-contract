@@ -23,6 +23,8 @@ use scale_info::{
 };
 use std::str::FromStr;
 
+/// Encode strings to SCALE encoded smart contract calls.
+/// Decode SCALE encoded smart contract events and return values into `Value` objects.
 pub struct Transcoder {
     metadata: InkProject,
 }
@@ -133,7 +135,7 @@ impl Transcoder {
         })
     }
 
-    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<String> {
+    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<ron::Value> {
         let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
             "Faiedl to find message spec with name '{}'",
             name
@@ -141,9 +143,9 @@ impl Transcoder {
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
             let ty = resolve_type(&self.registry(), return_ty.ty())?;
             ty.type_def()
-                .decode_to_string(self.registry(), &mut &data[..])
+                .decode_value(self.registry(), &mut &data[..])
         } else {
-            Ok(String::new())
+            Ok(ron::Value::Unit)
         }
     }
 }
@@ -164,8 +166,8 @@ pub trait EncodeContractArg {
     fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>>;
 }
 
-pub trait DecodeToString {
-    fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>;
+pub trait DecodeValue {
+    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value>;
 }
 
 impl EncodeContractArg for TypeDef<CompactForm> {
@@ -220,19 +222,19 @@ impl EncodeContractArg for TypeDefComposite<CompactForm> {
     }
 }
 
-impl DecodeToString for TypeDef<CompactForm> {
-    fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
+impl DecodeValue for TypeDef<CompactForm> {
+    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
         match self {
-            TypeDef::Primitive(primitive) => primitive.decode_to_string(registry, input),
+            TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
             def => unimplemented!("{:?}", def),
         }
     }
 }
 
-impl DecodeToString for TypeDefPrimitive {
-    fn decode_to_string(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
+impl DecodeValue for TypeDefPrimitive {
+    fn decode_value(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
         match self {
-            TypeDefPrimitive::Bool => Ok(bool::decode(&mut &input[..])?.to_string()),
+            TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(&mut &input[..])?)),
             prim => unimplemented!("{:?}", prim),
             // TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
             // TypeDefPrimitive::Str => Ok(str::encode(arg)),
@@ -337,10 +339,20 @@ mod tests {
         let encoded = transcoder.encode("new", &["true"])?;
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
-        let expected = true.encode();
 
-        assert_eq!(expected, encoded_args);
+        assert_eq!(true.encode(), encoded_args);
+        Ok(())
+    }
 
+    #[test]
+    fn decode_bool_return() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = Transcoder::new(metadata);
+
+        let encoded = true.encode();
+        let decoded = transcoder.decode_return("get", encoded)?;
+
+        assert_eq!(ron::Value::Bool(true), decoded);
         Ok(())
     }
 }
