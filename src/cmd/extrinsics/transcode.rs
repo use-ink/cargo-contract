@@ -120,6 +120,16 @@ impl Transcoder {
 		Ok(encoded)
 	}
 
+	fn encode_ron(&self, ty: &TypeDef<CompactForm>, arg: &str) -> Result<Vec<u8>> {
+		let ron_value: ron::Value = ron::from_str(arg)?;
+		match (ty, ron_value) {
+			(TypeDef::Primitive(TypeDefPrimitive::Bool), ron::Value::Bool(b)) => {
+				Ok(b.encode())
+			},
+			_ => unimplemented!("encoded types")
+		}
+	}
+
 	pub fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
 		where
 			I: Input,
@@ -294,3 +304,65 @@ pub struct DecodedEventArg {
 // 		_ => unimplemented!(),
 // 	}
 // }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use ink_lang as ink;
+
+	#[ink::contract]
+	pub mod flipper {
+		#[ink(storage)]
+		pub struct Flipper {
+			value: bool,
+		}
+
+		impl Flipper {
+			/// Creates a new flipper smart contract initialized with the given value.
+			#[ink(constructor)]
+			pub fn new(init_value: bool) -> Self {
+				Self { value: init_value }
+			}
+
+			/// Creates a new flipper smart contract initialized to `false`.
+			#[ink(constructor)]
+			pub fn default() -> Self {
+				Self::new(Default::default())
+			}
+
+			/// Flips the current value of the Flipper's bool.
+			#[ink(message)]
+			pub fn flip(&mut self) {
+				self.value = !self.value;
+			}
+
+			/// Returns the current value of the Flipper's bool.
+			#[ink(message)]
+			pub fn get(&self) -> bool {
+				self.value
+			}
+		}
+	}
+
+	fn generate_metadata() -> ink_metadata::InkProject {
+		extern "Rust" {
+			fn __ink_generate_metadata() -> ink_metadata::InkProject;
+		}
+		unsafe { __ink_generate_metadata() }
+	}
+
+	#[test]
+	fn encode_bool_arg() -> Result<()> {
+		let metadata = generate_metadata();
+		let transcoder = Transcoder::new(metadata);
+
+		let encoded = transcoder.encode_constructor("new", &["true"])?;
+		// encoded args follow the 4 byte selector
+		let encoded_args = &encoded[4..];
+		let expected = true.encode();
+
+		assert_eq!(expected, encoded_args);
+
+		Ok(())
+	}
+}

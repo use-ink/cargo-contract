@@ -44,7 +44,7 @@ url = { version = "2.1.1", features = ["serde"] }
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.2", optional = true }
-ink_metadata = { path = "/home/andrew/code/paritytech/ink/crates/metadata", optional = true }
+ink_metadata = { version = "3.0.0", git = "https://github.com/paritytech/ink", branch = "aj-deserialize-metadata", optional = true }
 scale-info = { version = "0.4", default-features = false, features = ["derive"], optional = true }
 sp-core = { version = "2.0.0-rc6", optional = true }
 subxt = { version = "0.13.0", package = "substrate-subxt", optional = true }
@@ -52,6 +52,7 @@ futures = { version = "0.3.5", optional = true }
 hex = { version = "0.4.2", optional = true }
 jsonrpsee = "0.1.0"
 sp-rpc = "2.0.0"
+ron = "0.6.2"
 
 [build-dependencies]
 anyhow = "1.0.32"
@@ -62,9 +63,14 @@ walkdir = "2.3.1"
 assert_matches = "1.3.0"
 pretty_assertions = "0.6.1"
 wabt = "0.10.0"
+ink_primitives = { version = "3.0.0", git = "https://github.com/paritytech/ink", branch = "aj-deserialize-metadata", package = "ink_primitives" }
+ink_env = { version = "3.0.0", git = "https://github.com/paritytech/ink", branch = "aj-deserialize-metadata", package = "ink_env" }
+ink_storage = { version = "3.0.0", git = "https://github.com/paritytech/ink", branch = "aj-deserialize-metadata", package = "ink_storage" }
+ink_lang = { version = "3.0.0", git = "https://github.com/paritytech/ink", branch = "aj-deserialize-metadata", package = "ink_lang" }
 
 [features]
-default = []
+default = ["std"]
+std = []
 
 # Enable this for (experimental) commands to deploy, instantiate and call contracts.
 #

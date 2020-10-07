@@ -94,6 +94,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "array-init"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f30bbe2f5e3d117f55bd8c7a1f9191e4a5deba9f15f595bbea4f670c59c765db"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -322,6 +328,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
+name = "base64"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -451,7 +463,10 @@ version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31accafdb70df7871592c058eca3985b71104e15ac32f64706022c58867da931"
 dependencies = [
+ "lazy_static",
  "memchr",
+ "regex-automata",
+ "serde",
 ]
 
 [[package]]
@@ -506,13 +521,18 @@ dependencies = [
  "futures 0.3.5",
  "heck",
  "hex",
+ "ink_env",
+ "ink_lang",
  "ink_metadata",
+ "ink_primitives",
+ "ink_storage",
  "jsonrpsee",
  "log",
  "parity-scale-codec",
  "parity-wasm",
  "pretty_assertions",
  "pwasm-utils",
+ "ron",
  "rustc_version",
  "scale-info",
  "semver 0.10.0",
@@ -571,6 +591,15 @@ dependencies = [
  "semver 0.10.0",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "cast"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b9434b9a5aa1450faa3f9cb14ea0e8c53bb5d2b3c1bfd1ab4fc03e9f33fbfb0"
+dependencies = [
+ "rustc_version",
 ]
 
 [[package]]
@@ -713,6 +742,78 @@ dependencies = [
 ]
 
 [[package]]
+name = "criterion"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70daa7ceec6cf143990669a04c7df13391d55fb27bd4079d252fca774ba244d8"
+dependencies = [
+ "atty",
+ "cast",
+ "clap",
+ "criterion-plot",
+ "csv",
+ "itertools 0.9.0",
+ "lazy_static",
+ "num-traits",
+ "oorandom",
+ "plotters",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_cbor",
+ "serde_derive",
+ "serde_json",
+ "tinytemplate",
+ "walkdir",
+]
+
+[[package]]
+name = "criterion-plot"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e022feadec601fba1649cfa83586381a4ad31c6bf3a9ab7d408118b05dd9889d"
+dependencies = [
+ "cast",
+ "itertools 0.9.0",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
+dependencies = [
+ "crossbeam-utils",
+ "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f02af974daeee82218205558e51ec8768b48cf524bd01d550abe5573a608285"
+dependencies = [
+ "crossbeam-epoch",
+ "crossbeam-utils",
+ "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "058ed274caafc1f60c4997b5fc07bf7dc7cca454af7c6e81edffe5f33f70dace"
+dependencies = [
+ "autocfg 1.0.1",
+ "cfg-if",
+ "crossbeam-utils",
+ "lazy_static",
+ "maybe-uninit",
+ "memoffset",
+ "scopeguard",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -747,6 +848,28 @@ checksum = "b584a330336237c1eecd3e94266efb216c56ed91225d634cb2991c5f3fd1aeab"
 dependencies = [
  "generic-array 0.14.4",
  "subtle 2.3.0",
+]
+
+[[package]]
+name = "csv"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00affe7f6ab566df61b4be3ce8cf16bc2576bca0963ceb0955e45d514bf9a279"
+dependencies = [
+ "bstr",
+ "csv-core",
+ "itoa",
+ "ryu",
+ "serde",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -1002,7 +1125,7 @@ dependencies = [
  "frame-system",
  "linregress",
  "parity-scale-codec",
- "paste",
+ "paste 0.1.18",
  "sp-api",
  "sp-io",
  "sp-runtime",
@@ -1036,7 +1159,7 @@ dependencies = [
  "log",
  "once_cell",
  "parity-scale-codec",
- "paste",
+ "paste 0.1.18",
  "serde",
  "smallvec 1.4.2",
  "sp-arithmetic",
@@ -1342,6 +1465,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "half"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d36fab90f82edc3c747f9d438e06cf0a491055896f2a279638bb5beed6c40177"
+
+[[package]]
 name = "hash-db"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1565,8 +1694,100 @@ dependencies = [
 ]
 
 [[package]]
+name = "ink_alloc"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "wee_alloc",
+]
+
+[[package]]
+name = "ink_env"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "arrayref",
+ "blake2",
+ "cfg-if",
+ "derive_more",
+ "ink_alloc",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "num-traits",
+ "parity-scale-codec",
+ "paste 1.0.1",
+ "rand 0.7.3",
+ "scale-info",
+ "sha2 0.9.1",
+ "sha3",
+ "static_assertions",
+]
+
+[[package]]
+name = "ink_lang"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "derive_more",
+ "ink_env",
+ "ink_lang_macro",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "ink_storage",
+ "parity-scale-codec",
+ "static_assertions",
+]
+
+[[package]]
+name = "ink_lang_codegen"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "blake2",
+ "derive_more",
+ "either",
+ "heck",
+ "ink_lang_ir",
+ "itertools 0.9.0",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "ink_lang_ir"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "blake2",
+ "either",
+ "itertools 0.9.0",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "ink_lang_macro"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "ink_lang_codegen",
+ "ink_lang_ir",
+ "ink_primitives",
+ "parity-scale-codec",
+ "proc-macro2",
+ "syn",
+]
+
+[[package]]
 name = "ink_metadata"
 version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1579,6 +1800,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
 dependencies = [
  "cfg-if",
 ]
@@ -1586,10 +1808,42 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
+ "scale-info",
  "tiny-keccak",
+]
+
+[[package]]
+name = "ink_storage"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "array-init",
+ "cfg-if",
+ "criterion",
+ "derive_more",
+ "generic-array 0.14.4",
+ "ink_env",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "ink_storage_derive",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "ink_storage_derive"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "synstructure",
 ]
 
 [[package]]
@@ -1624,6 +1878,15 @@ name = "itertools"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
 dependencies = [
  "either",
 ]
@@ -1985,6 +2248,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
+name = "memoffset"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "043175f069eda7b85febe4a74abbaeff828d9f8b448515d3151a14a3542811aa"
+dependencies = [
+ "autocfg 1.0.1",
+]
+
+[[package]]
 name = "memory-db"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2000,6 +2272,12 @@ name = "memory_units"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71d96e3f3c0b6325d8ccd83c33b28acb183edcb6c67938ba104ec546854b0882"
+
+[[package]]
+name = "memory_units"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "merlin"
@@ -2210,6 +2488,12 @@ checksum = "260e51e7efe62b592207e9e13a68e43692a7a279171d6ba57abd208bf23645ad"
 dependencies = [
  "parking_lot 0.11.0",
 ]
+
+[[package]]
+name = "oorandom"
+version = "11.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a170cebd8021a008ea92e4db85a72f80b35df514ec664b296fdcbb654eac0b2c"
 
 [[package]]
 name = "opaque-debug"
@@ -2513,6 +2797,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0520af26d4cf99643dbbe093a61507922b57232d9978d8491fdc8f7b44573c8c"
+
+[[package]]
 name = "paste-impl"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2584,6 +2874,18 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "plotters"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d1685fbe7beba33de0330629da9d955ac75bd54f33d7b79f9a895590124f6bb"
+dependencies = [
+ "js-sys",
+ "num-traits",
+ "wasm-bindgen",
+ "web-sys",
+]
 
 [[package]]
 name = "polling"
@@ -2714,7 +3016,7 @@ checksum = "02b10678c913ecbd69350e8535c3aef91a8676c0773fc1d7b95cdd196d7f2f26"
 dependencies = [
  "bytes",
  "heck",
- "itertools",
+ "itertools 0.8.2",
  "log",
  "multimap",
  "petgraph",
@@ -2731,7 +3033,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "537aa19b95acde10a12fec4301466386f757403de4cd4e5b4fa78fb5ecb18f72"
 dependencies = [
  "anyhow",
- "itertools",
+ "itertools 0.8.2",
  "proc-macro2",
  "quote",
  "syn",
@@ -2956,6 +3258,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
+name = "rayon"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf6960dc9a5b4ee8d3e4c5787b4a112a8818e0290a42ff664ad60692fdf2032"
+dependencies = [
+ "autocfg 1.0.1",
+ "crossbeam-deque",
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8c4fec834fb6e6d2dd5eece3c7b432a52f0ba887cf40e595190c4107edc08bf"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-utils",
+ "lazy_static",
+ "num_cpus",
+]
+
+[[package]]
 name = "rdrand"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3040,6 +3367,17 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "ron"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8a58080b7bb83b2ea28c3b7a9a994fd5e310330b7c8ca5258d99b98128ecfe4"
+dependencies = [
+ "base64 0.12.3",
+ "bitflags",
+ "serde",
 ]
 
 [[package]]
@@ -3232,6 +3570,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96fe57af81d28386a513cbc6858332abc6117cfdb5999647c6444b8f43a370a5"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde_cbor"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e18acfa2f90e8b735b2836ab8d538de304cbb6729a7360729ea5a895d15a622"
+dependencies = [
+ "half",
+ "serde",
 ]
 
 [[package]]
@@ -3772,7 +4120,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parity-util-mem",
- "paste",
+ "paste 0.1.18",
  "rand 0.7.3",
  "serde",
  "sp-application-crypto",
@@ -4261,6 +4609,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinytemplate"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d3dc76004a03cec1c5932bca4cdc2e39aaa798e3f82363dd94f9adf6098c12f"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "tinyvec"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4690,7 +5048,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf617d864d25af3587aa745529f7aaa541066c876d57e050c0d0c85c61c92aff"
 dependencies = [
  "libc",
- "memory_units",
+ "memory_units 0.3.0",
  "num-rational",
  "num-traits",
  "parity-wasm",
@@ -4733,6 +5091,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a262ae37dd9d60f60dd473d1158f9fbebf110ba7b6a5051c8160460f6043718b"
 dependencies = [
  "webpki",
+]
+
+[[package]]
+name = "wee_alloc"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb3b5a6b2bb17cb6ad44a2e68a43e8d2722c997da10e928665c72ec6c0a0b8e"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "memory_units 0.4.0",
+ "winapi 0.3.9",
 ]
 
 [[package]]
