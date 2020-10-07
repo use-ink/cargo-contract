@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ExtrinsicOpts;
 use anyhow::Result;
 use jsonrpsee::common::Params;
 use serde::{Deserialize, Serialize};
@@ -26,6 +25,8 @@ use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess, Signer,
 };
+use crate::ExtrinsicOpts;
+use super::MessageEncoder;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -52,7 +53,7 @@ pub struct CallCommand {
 impl CallCommand {
     pub fn run(&self) -> Result<String> {
         let metadata = super::load_metadata()?;
-        let msg_encoder = super::MessageEncoder::new(metadata);
+        let msg_encoder = MessageEncoder::new(metadata);
         let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
         if self.rpc {
