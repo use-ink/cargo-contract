@@ -1696,7 +1696,7 @@ dependencies = [
 [[package]]
 name = "ink_alloc"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "wee_alloc",
 ]
@@ -1704,7 +1704,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1727,7 +1727,7 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -1743,7 +1743,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1760,7 +1760,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "blake2",
  "either",
@@ -1774,7 +1774,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
@@ -1787,7 +1787,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1800,7 +1800,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "cfg-if",
 ]
@@ -1808,7 +1808,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
@@ -1819,7 +1819,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -1838,7 +1838,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/ink?branch=aj-deserialize-metadata#618c2d2a4db108725c074ee1b1afc6b09986dbde"
+source = "git+https://github.com/paritytech/ink#d7a47f4a6f89ec7c4a7032315d981b6be2e813c6"
 dependencies = [
  "proc-macro2",
  "quote",
