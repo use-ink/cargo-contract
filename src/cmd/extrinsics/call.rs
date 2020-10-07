@@ -57,7 +57,10 @@ impl CallCommand {
 
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
-            Ok(format!("{:?}", result))
+            match result {
+                RpcContractExecResult::Success { data, ..} => msg_encoder.decode_return(&self.name, data.0),
+                RpcContractExecResult::Error(()) => Err(anyhow::anyhow!("Failed to execute call via rpc")),
+            }
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
 

@@ -20,8 +20,8 @@ pub mod instantiate;
 
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use anyhow::Result;
-use codec::{Encode, Input};
-use ink_metadata::{InkProject, MessageParamSpec, Selector};
+use codec::{Encode, Decode, Input};
+use ink_metadata::{InkProject, MessageParamSpec, Selector, MessageSpec};
 use scale_info::{
     form::{CompactForm, Form},
     RegistryReadOnly, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
@@ -51,6 +51,10 @@ impl MessageEncoder {
     pub fn new(metadata: InkProject) -> Self {
         Self { metadata }
     }
+
+	fn registry(&self) -> &RegistryReadOnly {
+		self.metadata.registry()
+	}
 
     fn encode_constructor<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
     where
@@ -85,28 +89,31 @@ impl MessageEncoder {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let calls = self
-            .metadata
-            .spec()
-            .messages()
-            .iter()
-            .map(|m| m.name().clone())
-            .collect::<Vec<_>>();
+        let msg_spec = self.find_message_spec(name)?;
+        self.encode(&msg_spec.selector(), &msg_spec.args(), args)
+    }
 
-        let msg_spec = self
-            .metadata
-            .spec()
-            .messages()
-            .iter()
-            .find(|msg| msg.name().contains(&name.to_string()))
-            .ok_or(anyhow::anyhow!(
+	fn find_message_spec(&self, name: &str) -> Result<&MessageSpec<CompactForm>> {
+		let calls = self
+			.metadata
+			.spec()
+			.messages()
+			.iter()
+			.map(|m| m.name().clone())
+			.collect::<Vec<_>>();
+
+		self
+			.metadata
+			.spec()
+			.messages()
+			.iter()
+			.find(|msg| msg.name().contains(&name.to_string()))
+			.ok_or(anyhow::anyhow!(
                 "A contract call named '{}' was not found. Expected one of {:?}",
                 name,
                 calls
-            ))?;
-
-        self.encode(&msg_spec.selector(), &msg_spec.args(), args)
-    }
+            ))
+	}
 
     fn encode<I, S>(
         &self,
@@ -122,9 +129,9 @@ impl MessageEncoder {
             .iter()
             .zip(args)
             .map(|(spec, arg)| {
-                let ty = resolve_type(self.metadata.registry(), spec.ty().ty())?;
+                let ty = resolve_type(self.registry(), spec.ty().ty())?;
                 ty.type_def()
-                    .encode_arg(&self.metadata.registry(), arg.as_ref())
+                    .encode_arg(&self.registry(), arg.as_ref())
             })
             .collect::<Result<Vec<_>>>()?
             .concat();
@@ -160,6 +167,16 @@ impl MessageEncoder {
             args,
         })
     }
+
+	fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<String> {
+		let msg_spec = self.find_message_spec(name)?;
+		if let Some(return_ty) = msg_spec.return_type().opt_type() {
+			let ty = resolve_type(&self.registry(), return_ty.ty())?;
+			ty.type_def().decode_to_string(self.registry(), &mut &data[..])
+		} else {
+			Ok(String::new())
+		}
+	}
 }
 
 fn resolve_type(
@@ -176,6 +193,10 @@ fn resolve_type(
 pub trait EncodeContractArg {
     // todo: rename
     fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>>;
+}
+
+pub trait DecodeToString {
+	fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>;
 }
 
 impl EncodeContractArg for TypeDef<CompactForm> {
@@ -230,6 +251,37 @@ impl EncodeContractArg for TypeDefComposite<CompactForm> {
     }
 }
 
+impl DecodeToString for TypeDef<CompactForm> {
+	fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
+		match self {
+			TypeDef::Primitive(primitive) => primitive.decode_to_string(registry, input),
+			def => unimplemented!("{:?}", def),
+		}
+	}
+}
+
+impl DecodeToString for TypeDefPrimitive {
+	fn decode_to_string(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>
+	{
+		match self {
+			TypeDefPrimitive::Bool => Ok(bool::decode(&mut &input[..])?.to_string()),
+			prim => unimplemented!("{:?}", prim),
+			// TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
+			// TypeDefPrimitive::Str => Ok(str::encode(arg)),
+			// TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
+			// TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
+			// TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
+			// TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
+			// TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
+			// TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
+			// TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
+			// TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
+			// TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
+			// TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
+		}
+	}
+}
+
 #[derive(Debug)]
 pub struct DecodedEvent {
     name: String,
@@ -261,8 +313,4 @@ pub struct DecodedEventArg {
 // 		TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
 // 		_ => unimplemented!(),
 // 	}
-// }
-
-// pub trait DecodeType {
-// 	fn decode_event(&self, registry: &RegistryReadOnly, input: &[u8]) -> Result<String>;
 // }
