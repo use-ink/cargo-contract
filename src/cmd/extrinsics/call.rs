@@ -54,7 +54,7 @@ impl CallCommand {
     pub fn run(&self) -> Result<String> {
         let metadata = super::load_metadata()?;
         let msg_encoder = Transcoder::new(metadata);
-        let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
+        let call_data = msg_encoder.encode(&self.name, &self.args)?;
 
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;

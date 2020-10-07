@@ -16,7 +16,7 @@
 
 use anyhow::Result;
 use scale::{Encode, Decode, Input};
-use ink_metadata::{InkProject, MessageParamSpec, Selector, MessageSpec};
+use ink_metadata::{InkProject, MessageSpec, ConstructorSpec};
 use scale_info::{
 	form::{CompactForm, Form},
 	RegistryReadOnly, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
@@ -36,76 +36,20 @@ impl Transcoder {
 		self.metadata.registry()
 	}
 
-	pub fn encode_constructor<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
+	pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
 		where
 			I: IntoIterator<Item = S>,
 			S: AsRef<str>,
 	{
-		let constructors = self
-			.metadata
-			.spec()
-			.constructors()
-			.iter()
-			.map(|m| m.name.clone())
-			.collect::<Vec<_>>();
+		let (selector, spec_args) =
+			match (self.find_constructor_spec(name), self.find_message_spec(name)) {
+				(Some(c), None) => (c.selector(), c.args()),
+				(None, Some(m)) => (m.selector(), m.args()),
+				(Some(_), Some(_)) => return Err(anyhow::anyhow!("Invalid metadata: both a constructor and message found with name '{}'", name)),
+				(None, None) => return Err(anyhow::anyhow!("No constructor or message with the name '{}' found", name)),
+			};
 
-		let constructor_spec = self
-			.metadata
-			.spec()
-			.constructors()
-			.iter()
-			.find(|msg| msg.name.contains(&name.to_string()))
-			.ok_or(anyhow::anyhow!(
-                "A contract call named '{}' was not found. Expected one of {:?}",
-                name,
-                constructors
-            ))?;
-
-		self.encode(&constructor_spec.selector, &constructor_spec.args, args)
-	}
-
-	pub fn encode_message<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
-		where
-			I: IntoIterator<Item = S>,
-			S: AsRef<str>,
-	{
-		let msg_spec = self.find_message_spec(name)?;
-		self.encode(&msg_spec.selector(), &msg_spec.args(), args)
-	}
-
-	fn find_message_spec(&self, name: &str) -> Result<&MessageSpec<CompactForm>> {
-		let calls = self
-			.metadata
-			.spec()
-			.messages()
-			.iter()
-			.map(|m| m.name().clone())
-			.collect::<Vec<_>>();
-
-		self
-			.metadata
-			.spec()
-			.messages()
-			.iter()
-			.find(|msg| msg.name().contains(&name.to_string()))
-			.ok_or(anyhow::anyhow!(
-                "A contract call named '{}' was not found. Expected one of {:?}",
-                name,
-                calls
-            ))
-	}
-
-	fn encode<I, S>(
-		&self,
-		spec_selector: &Selector,
-		spec_args: &[MessageParamSpec<CompactForm>],
-		args: I,
-	) -> Result<Vec<u8>>
-		where
-			I: IntoIterator<Item = S>,
-			S: AsRef<str>,
-	{
-		let mut args = spec_args
+		let mut encoded_args = spec_args
 			.iter()
 			.zip(args)
 			.map(|(spec, arg)| {
@@ -115,9 +59,29 @@ impl Transcoder {
 			})
 			.collect::<Result<Vec<_>>>()?
 			.concat();
-		let mut encoded = spec_selector.to_bytes().to_vec();
-		encoded.append(&mut args);
+		let mut encoded = selector.to_bytes().to_vec();
+		encoded.append(&mut encoded_args);
 		Ok(encoded)
+	}
+
+	fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<CompactForm>> {
+		self.metadata.spec().constructors().iter()
+	}
+
+	fn messages(&self) -> impl Iterator<Item = &MessageSpec<CompactForm>> {
+		self.metadata.spec().messages().iter()
+	}
+
+	fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<CompactForm>> {
+		self
+			.messages()
+			.find(|msg| msg.name().contains(&name.to_string()))
+	}
+
+	fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<CompactForm>> {
+		self
+			.constructors()
+			.find(|msg| msg.name().contains(&name.to_string()))
 	}
 
 	fn encode_ron(&self, ty: &TypeDef<CompactForm>, arg: &str) -> Result<Vec<u8>> {
@@ -159,7 +123,8 @@ impl Transcoder {
 	}
 
 	pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<String> {
-		let msg_spec = self.find_message_spec(name)?;
+		let msg_spec = self.find_message_spec(name)
+			.ok_or(anyhow::anyhow!("Faiedl to find message spec with name '{}'", name))?;
 		if let Some(return_ty) = msg_spec.return_type().opt_type() {
 			let ty = resolve_type(&self.registry(), return_ty.ty())?;
 			ty.type_def().decode_to_string(self.registry(), &mut &data[..])
@@ -356,7 +321,7 @@ mod tests {
 		let metadata = generate_metadata();
 		let transcoder = Transcoder::new(metadata);
 
-		let encoded = transcoder.encode_constructor("new", &["true"])?;
+		let encoded = transcoder.encode("new", &["true"])?;
 		// encoded args follow the 4 byte selector
 		let encoded_args = &encoded[4..];
 		let expected = true.encode();

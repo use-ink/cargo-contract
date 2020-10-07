@@ -49,8 +49,8 @@ impl InstantiateCommand {
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<<ContractsTemplateRuntime as System>::Address> {
         let metadata = super::load_metadata()?;
-        let msg_encoder = super::Transcoder::new(metadata);
-        let data = msg_encoder.encode_constructor(&self.name, &self.args)?;
+        let transcoder = super::Transcoder::new(metadata);
+        let data = transcoder.encode(&self.name, &self.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
