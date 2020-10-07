@@ -15,9 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod call;
-mod transcode;
 pub mod deploy;
 pub mod instantiate;
+mod transcode;
 
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use anyhow::Result;
@@ -39,5 +39,3 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let metadata = serde_json::from_reader(File::open(path)?)?;
     Ok(metadata)
 }
-
-

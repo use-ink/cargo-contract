@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::Transcoder;
+use crate::ExtrinsicOpts;
 use anyhow::Result;
 use jsonrpsee::common::Params;
 use serde::{Deserialize, Serialize};
@@ -25,8 +27,6 @@ use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess, Signer,
 };
-use crate::ExtrinsicOpts;
-use super::Transcoder;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -59,8 +59,12 @@ impl CallCommand {
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
             match result {
-                RpcContractExecResult::Success { data, ..} => msg_encoder.decode_return(&self.name, data.0),
-                RpcContractExecResult::Error(()) => Err(anyhow::anyhow!("Failed to execute call via rpc")),
+                RpcContractExecResult::Success { data, .. } => {
+                    msg_encoder.decode_return(&self.name, data.0)
+                }
+                RpcContractExecResult::Error(()) => {
+                    Err(anyhow::anyhow!("Failed to execute call via rpc"))
+                }
             }
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;

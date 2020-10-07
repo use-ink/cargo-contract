@@ -15,238 +15,251 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use scale::{Encode, Decode, Input};
-use ink_metadata::{InkProject, MessageSpec, ConstructorSpec};
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
+use scale::{Decode, Encode, Input};
 use scale_info::{
-	form::{CompactForm, Form},
-	RegistryReadOnly, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
+    form::{CompactForm, Form},
+    RegistryReadOnly, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
 };
 use std::str::FromStr;
 
 pub struct Transcoder {
-	metadata: InkProject,
+    metadata: InkProject,
 }
 
 impl Transcoder {
-	pub fn new(metadata: InkProject) -> Self {
-		Self { metadata }
-	}
+    pub fn new(metadata: InkProject) -> Self {
+        Self { metadata }
+    }
 
-	fn registry(&self) -> &RegistryReadOnly {
-		self.metadata.registry()
-	}
+    fn registry(&self) -> &RegistryReadOnly {
+        self.metadata.registry()
+    }
 
-	pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
-		where
-			I: IntoIterator<Item = S>,
-			S: AsRef<str>,
-	{
-		let (selector, spec_args) =
-			match (self.find_constructor_spec(name), self.find_message_spec(name)) {
-				(Some(c), None) => (c.selector(), c.args()),
-				(None, Some(m)) => (m.selector(), m.args()),
-				(Some(_), Some(_)) => return Err(anyhow::anyhow!("Invalid metadata: both a constructor and message found with name '{}'", name)),
-				(None, None) => return Err(anyhow::anyhow!("No constructor or message with the name '{}' found", name)),
-			};
+    pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let (selector, spec_args) = match (
+            self.find_constructor_spec(name),
+            self.find_message_spec(name),
+        ) {
+            (Some(c), None) => (c.selector(), c.args()),
+            (None, Some(m)) => (m.selector(), m.args()),
+            (Some(_), Some(_)) => {
+                return Err(anyhow::anyhow!(
+                    "Invalid metadata: both a constructor and message found with name '{}'",
+                    name
+                ))
+            }
+            (None, None) => {
+                return Err(anyhow::anyhow!(
+                    "No constructor or message with the name '{}' found",
+                    name
+                ))
+            }
+        };
 
-		let mut encoded_args = spec_args
-			.iter()
-			.zip(args)
-			.map(|(spec, arg)| {
-				let ty = resolve_type(self.registry(), spec.ty().ty())?;
-				ty.type_def()
-					.encode_arg(&self.registry(), arg.as_ref())
-			})
-			.collect::<Result<Vec<_>>>()?
-			.concat();
-		let mut encoded = selector.to_bytes().to_vec();
-		encoded.append(&mut encoded_args);
-		Ok(encoded)
-	}
+        let mut encoded_args = spec_args
+            .iter()
+            .zip(args)
+            .map(|(spec, arg)| {
+                let ty = resolve_type(self.registry(), spec.ty().ty())?;
+                self.encode_ron(ty.type_def(), arg)
+                // ty.type_def().encode_arg(&self.registry(), arg.as_ref())
+            })
+            .collect::<Result<Vec<_>>>()?
+            .concat();
+        let mut encoded = selector.to_bytes().to_vec();
+        encoded.append(&mut encoded_args);
+        Ok(encoded)
+    }
 
-	fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<CompactForm>> {
-		self.metadata.spec().constructors().iter()
-	}
+    fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<CompactForm>> {
+        self.metadata.spec().constructors().iter()
+    }
 
-	fn messages(&self) -> impl Iterator<Item = &MessageSpec<CompactForm>> {
-		self.metadata.spec().messages().iter()
-	}
+    fn messages(&self) -> impl Iterator<Item = &MessageSpec<CompactForm>> {
+        self.metadata.spec().messages().iter()
+    }
 
-	fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<CompactForm>> {
-		self
-			.messages()
-			.find(|msg| msg.name().contains(&name.to_string()))
-	}
+    fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<CompactForm>> {
+        self.messages()
+            .find(|msg| msg.name().contains(&name.to_string()))
+    }
 
-	fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<CompactForm>> {
-		self
-			.constructors()
-			.find(|msg| msg.name().contains(&name.to_string()))
-	}
+    fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<CompactForm>> {
+        self.constructors()
+            .find(|msg| msg.name().contains(&name.to_string()))
+    }
 
-	fn encode_ron(&self, ty: &TypeDef<CompactForm>, arg: &str) -> Result<Vec<u8>> {
-		let ron_value: ron::Value = ron::from_str(arg)?;
-		match (ty, ron_value) {
-			(TypeDef::Primitive(TypeDefPrimitive::Bool), ron::Value::Bool(b)) => {
-				Ok(b.encode())
-			},
-			_ => unimplemented!("encoded types")
-		}
-	}
+    fn encode_ron<S>(&self, ty: &TypeDef<CompactForm>, arg: S) -> Result<Vec<u8>>
+    where
+        S: AsRef<str>
+    {
+        let ron_value: ron::Value = ron::from_str(arg.as_ref())?;
+        match (ty, ron_value) {
+            (TypeDef::Primitive(TypeDefPrimitive::Bool), ron::Value::Bool(b)) => Ok(b.encode()),
+            _ => unimplemented!("encoded types"),
+        }
+    }
 
-	pub fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
-		where
-			I: Input,
-	{
-		let variant_index = data.read_byte()?;
-		let event_spec = self
-			.metadata
-			.spec()
-			.events()
-			.get(variant_index as usize)
-			.ok_or(anyhow::anyhow!(
+    pub fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
+    where
+        I: Input,
+    {
+        let variant_index = data.read_byte()?;
+        let event_spec = self
+            .metadata
+            .spec()
+            .events()
+            .get(variant_index as usize)
+            .ok_or(anyhow::anyhow!(
                 "Event variant {} not found in contract metadata",
                 variant_index
             ))?;
-		let mut args = Vec::new();
-		for arg in event_spec.args() {
-			args.push(DecodedEventArg {
-				name: arg.name().to_string(),
-				value: "TODO".to_string(), // todo: resolve and decode type
-			})
-		}
+        let mut args = Vec::new();
+        for arg in event_spec.args() {
+            args.push(DecodedEventArg {
+                name: arg.name().to_string(),
+                value: "TODO".to_string(), // todo: resolve and decode type
+            })
+        }
 
-		Ok(DecodedEvent {
-			name: event_spec.name().to_string(),
-			args,
-		})
-	}
+        Ok(DecodedEvent {
+            name: event_spec.name().to_string(),
+            args,
+        })
+    }
 
-	pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<String> {
-		let msg_spec = self.find_message_spec(name)
-			.ok_or(anyhow::anyhow!("Faiedl to find message spec with name '{}'", name))?;
-		if let Some(return_ty) = msg_spec.return_type().opt_type() {
-			let ty = resolve_type(&self.registry(), return_ty.ty())?;
-			ty.type_def().decode_to_string(self.registry(), &mut &data[..])
-		} else {
-			Ok(String::new())
-		}
-	}
+    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<String> {
+        let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
+            "Faiedl to find message spec with name '{}'",
+            name
+        ))?;
+        if let Some(return_ty) = msg_spec.return_type().opt_type() {
+            let ty = resolve_type(&self.registry(), return_ty.ty())?;
+            ty.type_def()
+                .decode_to_string(self.registry(), &mut &data[..])
+        } else {
+            Ok(String::new())
+        }
+    }
 }
 
 fn resolve_type(
-	registry: &RegistryReadOnly,
-	symbol: &<CompactForm as Form>::Type,
+    registry: &RegistryReadOnly,
+    symbol: &<CompactForm as Form>::Type,
 ) -> Result<Type<CompactForm>> {
-	let ty = registry.resolve(symbol.id()).ok_or(anyhow::anyhow!(
+    let ty = registry.resolve(symbol.id()).ok_or(anyhow::anyhow!(
         "Failed to resolve type with id '{}'",
         symbol.id()
     ))?;
-	Ok(ty.clone())
+    Ok(ty.clone())
 }
 
 pub trait EncodeContractArg {
-	// todo: rename
-	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>>;
+    // todo: rename
+    fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>>;
 }
 
 pub trait DecodeToString {
-	fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>;
+    fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>;
 }
 
 impl EncodeContractArg for TypeDef<CompactForm> {
-	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
-		match self {
-			TypeDef::Array(array) => {
-				let ty = resolve_type(registry, array.type_param())?;
-				match ty.type_def() {
-					TypeDef::Primitive(TypeDefPrimitive::U8) => Ok(hex::decode(arg)?),
-					_ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
-				}
-			}
-			TypeDef::Primitive(primitive) => primitive.encode_arg(registry, arg),
-			TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
-			_ => unimplemented!(),
-		}
-	}
+    fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
+        match self {
+            TypeDef::Array(array) => {
+                let ty = resolve_type(registry, array.type_param())?;
+                match ty.type_def() {
+                    TypeDef::Primitive(TypeDefPrimitive::U8) => Ok(hex::decode(arg)?),
+                    _ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
+                }
+            }
+            TypeDef::Primitive(primitive) => primitive.encode_arg(registry, arg),
+            TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl EncodeContractArg for TypeDefPrimitive {
-	fn encode_arg(&self, _: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
-		match self {
-			TypeDefPrimitive::Bool => Ok(bool::encode(&bool::from_str(arg)?)),
-			TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
-			TypeDefPrimitive::Str => Ok(str::encode(arg)),
-			TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
-			TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-			TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-			TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-			TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
-			TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-			TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-			TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-			TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-			TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
-		}
-	}
+    fn encode_arg(&self, _: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
+        match self {
+            TypeDefPrimitive::Bool => Ok(bool::encode(&bool::from_str(arg)?)),
+            TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
+            TypeDefPrimitive::Str => Ok(str::encode(arg)),
+            TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
+            TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
+            TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
+            TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
+            TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
+            TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
+            TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
+            TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
+            TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
+            TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
+        }
+    }
 }
 
 impl EncodeContractArg for TypeDefComposite<CompactForm> {
-	fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
-		if self.fields().len() != 1 {
-			panic!("Only single field structs currently supported")
-		}
-		let field = self.fields().iter().next().unwrap();
-		if field.name().is_none() {
-			let ty = resolve_type(registry, field.ty())?;
-			ty.type_def().encode_arg(registry, arg)
-		} else {
-			panic!("Only tuple structs currently supported")
-		}
-	}
+    fn encode_arg(&self, registry: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
+        if self.fields().len() != 1 {
+            panic!("Only single field structs currently supported")
+        }
+        let field = self.fields().iter().next().unwrap();
+        if field.name().is_none() {
+            let ty = resolve_type(registry, field.ty())?;
+            ty.type_def().encode_arg(registry, arg)
+        } else {
+            panic!("Only tuple structs currently supported")
+        }
+    }
 }
 
 impl DecodeToString for TypeDef<CompactForm> {
-	fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
-		match self {
-			TypeDef::Primitive(primitive) => primitive.decode_to_string(registry, input),
-			def => unimplemented!("{:?}", def),
-		}
-	}
+    fn decode_to_string(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
+        match self {
+            TypeDef::Primitive(primitive) => primitive.decode_to_string(registry, input),
+            def => unimplemented!("{:?}", def),
+        }
+    }
 }
 
 impl DecodeToString for TypeDefPrimitive {
-	fn decode_to_string(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<String>
-	{
-		match self {
-			TypeDefPrimitive::Bool => Ok(bool::decode(&mut &input[..])?.to_string()),
-			prim => unimplemented!("{:?}", prim),
-			// TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
-			// TypeDefPrimitive::Str => Ok(str::encode(arg)),
-			// TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
-			// TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-			// TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-			// TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-			// TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
-			// TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-			// TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-			// TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-			// TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-			// TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
-		}
-	}
+    fn decode_to_string(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<String> {
+        match self {
+            TypeDefPrimitive::Bool => Ok(bool::decode(&mut &input[..])?.to_string()),
+            prim => unimplemented!("{:?}", prim),
+            // TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
+            // TypeDefPrimitive::Str => Ok(str::encode(arg)),
+            // TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
+            // TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
+            // TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
+            // TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
+            // TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
+            // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
+            // TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
+            // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
+            // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
+            // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct DecodedEvent {
-	name: String,
-	args: Vec<DecodedEventArg>,
+    name: String,
+    args: Vec<DecodedEventArg>,
 }
 
 #[derive(Debug)]
 pub struct DecodedEventArg {
-	name: String,
-	value: String,
+    name: String,
+    value: String,
 }
 
 //
@@ -272,62 +285,62 @@ pub struct DecodedEventArg {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use ink_lang as ink;
+    use super::*;
+    use ink_lang as ink;
 
-	#[ink::contract]
-	pub mod flipper {
-		#[ink(storage)]
-		pub struct Flipper {
-			value: bool,
-		}
+    #[ink::contract]
+    pub mod flipper {
+        #[ink(storage)]
+        pub struct Flipper {
+            value: bool,
+        }
 
-		impl Flipper {
-			/// Creates a new flipper smart contract initialized with the given value.
-			#[ink(constructor)]
-			pub fn new(init_value: bool) -> Self {
-				Self { value: init_value }
-			}
+        impl Flipper {
+            /// Creates a new flipper smart contract initialized with the given value.
+            #[ink(constructor)]
+            pub fn new(init_value: bool) -> Self {
+                Self { value: init_value }
+            }
 
-			/// Creates a new flipper smart contract initialized to `false`.
-			#[ink(constructor)]
-			pub fn default() -> Self {
-				Self::new(Default::default())
-			}
+            /// Creates a new flipper smart contract initialized to `false`.
+            #[ink(constructor)]
+            pub fn default() -> Self {
+                Self::new(Default::default())
+            }
 
-			/// Flips the current value of the Flipper's bool.
-			#[ink(message)]
-			pub fn flip(&mut self) {
-				self.value = !self.value;
-			}
+            /// Flips the current value of the Flipper's bool.
+            #[ink(message)]
+            pub fn flip(&mut self) {
+                self.value = !self.value;
+            }
 
-			/// Returns the current value of the Flipper's bool.
-			#[ink(message)]
-			pub fn get(&self) -> bool {
-				self.value
-			}
-		}
-	}
+            /// Returns the current value of the Flipper's bool.
+            #[ink(message)]
+            pub fn get(&self) -> bool {
+                self.value
+            }
+        }
+    }
 
-	fn generate_metadata() -> ink_metadata::InkProject {
-		extern "Rust" {
-			fn __ink_generate_metadata() -> ink_metadata::InkProject;
-		}
-		unsafe { __ink_generate_metadata() }
-	}
+    fn generate_metadata() -> ink_metadata::InkProject {
+        extern "Rust" {
+            fn __ink_generate_metadata() -> ink_metadata::InkProject;
+        }
+        unsafe { __ink_generate_metadata() }
+    }
 
-	#[test]
-	fn encode_bool_arg() -> Result<()> {
-		let metadata = generate_metadata();
-		let transcoder = Transcoder::new(metadata);
+    #[test]
+    fn encode_bool_arg() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = Transcoder::new(metadata);
 
-		let encoded = transcoder.encode("new", &["true"])?;
-		// encoded args follow the 4 byte selector
-		let encoded_args = &encoded[4..];
-		let expected = true.encode();
+        let encoded = transcoder.encode("new", &["true"])?;
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+        let expected = true.encode();
 
-		assert_eq!(expected, encoded_args);
+        assert_eq!(expected, encoded_args);
 
-		Ok(())
-	}
+        Ok(())
+    }
 }
