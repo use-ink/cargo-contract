@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod call;
-mod codec;
+mod transcode;
 pub mod deploy;
 pub mod instantiate;
 
@@ -23,7 +23,7 @@ use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use anyhow::Result;
 use std::fs::File;
 
-use self::codec::Codec;
+use self::transcode::Transcoder;
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let manifest_path = ManifestPath::default();

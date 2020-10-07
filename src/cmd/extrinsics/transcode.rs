@@ -23,11 +23,11 @@ use scale_info::{
 };
 use std::str::FromStr;
 
-pub struct Codec {
+pub struct Transcoder {
 	metadata: InkProject,
 }
 
-impl Codec {
+impl Transcoder {
 	pub fn new(metadata: InkProject) -> Self {
 		Self { metadata }
 	}
