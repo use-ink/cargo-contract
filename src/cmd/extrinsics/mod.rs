@@ -23,7 +23,7 @@ use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use anyhow::Result;
 use std::fs::File;
 
-use self::codec::MessageEncoder;
+use self::codec::Codec;
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let manifest_path = ManifestPath::default();

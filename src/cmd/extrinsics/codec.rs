@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use codec::{Encode, Decode, Input};
+use scale::{Encode, Decode, Input};
 use ink_metadata::{InkProject, MessageParamSpec, Selector, MessageSpec};
 use scale_info::{
 	form::{CompactForm, Form},
@@ -23,11 +23,11 @@ use scale_info::{
 };
 use std::str::FromStr;
 
-pub struct MessageEncoder {
+pub struct Codec {
 	metadata: InkProject,
 }
 
-impl MessageEncoder {
+impl Codec {
 	pub fn new(metadata: InkProject) -> Self {
 		Self { metadata }
 	}

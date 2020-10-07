@@ -26,7 +26,7 @@ use subxt::{
     ExtrinsicSuccess, Signer,
 };
 use crate::ExtrinsicOpts;
-use super::MessageEncoder;
+use super::Codec;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -53,7 +53,7 @@ pub struct CallCommand {
 impl CallCommand {
     pub fn run(&self) -> Result<String> {
         let metadata = super::load_metadata()?;
-        let msg_encoder = MessageEncoder::new(metadata);
+        let msg_encoder = Codec::new(metadata);
         let call_data = msg_encoder.encode_message(&self.name, &self.args)?;
 
         if self.rpc {
