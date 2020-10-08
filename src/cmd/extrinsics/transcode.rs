@@ -191,7 +191,7 @@ impl EncodeContractArg for TypeDefPrimitive {
     fn encode_arg(&self, _: &RegistryReadOnly, arg: &str) -> Result<Vec<u8>> {
         match self {
             TypeDefPrimitive::Bool => Ok(bool::encode(&bool::from_str(arg)?)),
-            TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
+            TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => Ok(str::encode(arg)),
             TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
             TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
@@ -235,9 +235,8 @@ impl DecodeValue for TypeDefPrimitive {
     fn decode_value(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
         match self {
             TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(&mut &input[..])?)),
-            prim => unimplemented!("{:?}", prim),
-            // TypeDefPrimitive::Char => unimplemented!("scale codec not implemented for char"),
-            // TypeDefPrimitive::Str => Ok(str::encode(arg)),
+            TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
+            TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(&mut &input[..])?)),
             // TypeDefPrimitive::U8 => Ok(u8::encode(&u8::from_str(arg)?)),
             // TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
             // TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
@@ -248,6 +247,7 @@ impl DecodeValue for TypeDefPrimitive {
             // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
             // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
             // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
+            prim => unimplemented!("{:?}", prim),
         }
     }
 }
@@ -288,6 +288,12 @@ pub struct DecodedEventArg {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use scale_info::{Registry, MetaType};
+    use std::{
+        convert::TryFrom,
+        num::NonZeroU32,
+    };
+
     use ink_lang as ink;
 
     #[ink::contract]
@@ -332,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_bool_arg() -> Result<()> {
+    fn encode_single_primitive_arg() -> Result<()> {
         let metadata = generate_metadata();
         let transcoder = Transcoder::new(metadata);
 
@@ -345,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_bool_return() -> Result<()> {
+    fn decode_primitive_return() -> Result<()> {
         let metadata = generate_metadata();
         let transcoder = Transcoder::new(metadata);
 
@@ -354,5 +360,59 @@ mod tests {
 
         assert_eq!(ron::Value::Bool(true), decoded);
         Ok(())
+    }
+
+    // fn registry_with_type<T>() -> Result<(RegistryReadOnly, TypeDef<CompactForm>)> {
+    //     let mut registry = Registry::new();
+    //     registry.register_type(&MetaType::new::<bool>());
+    //     let registry: RegistryReadOnly = registry.into();
+    //
+    //     let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
+    //     let type_def = ty.type_def().clone();
+    //     Ok((registry, type_def))
+    // }
+
+    fn transcode_roundtrip<T>(input: &str, expected_output: ron::Value) -> Result<()>
+    where
+        T: scale_info::TypeInfo + 'static
+    {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<T>());
+        let registry: RegistryReadOnly = registry.into();
+
+        let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
+        let ty = ty.type_def();
+
+        let encoded = ty.encode_arg(&registry, input)?;
+        let decoded = ty.decode_value(&registry, &mut &encoded[..])?;
+        assert_eq!(expected_output, decoded);
+        Ok(())
+    }
+
+    #[test]
+    fn transcode_bool() -> Result<()> {
+        transcode_roundtrip::<bool>("true", ron::Value::Bool(true))?;
+        transcode_roundtrip::<bool>("false", ron::Value::Bool(false))
+    }
+
+    #[test]
+    fn transcode_char_unsupported() -> Result<()> {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<char>());
+        let registry: RegistryReadOnly = registry.into();
+
+        let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
+        let ty = ty.type_def();
+
+        let encoded = u32::from('c').encode();
+
+        assert!(ty.encode_arg(&registry, "'c'").is_err());
+        assert!(ty.decode_value(&registry, &mut &encoded[..]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn transcode_str() -> Result<()> {
+        transcode_roundtrip::<String>("ink!", ron::Value::String("ink!".to_string()))
     }
 }
