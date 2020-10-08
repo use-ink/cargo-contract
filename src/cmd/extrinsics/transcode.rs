@@ -362,17 +362,7 @@ mod tests {
         Ok(())
     }
 
-    // fn registry_with_type<T>() -> Result<(RegistryReadOnly, TypeDef<CompactForm>)> {
-    //     let mut registry = Registry::new();
-    //     registry.register_type(&MetaType::new::<bool>());
-    //     let registry: RegistryReadOnly = registry.into();
-    //
-    //     let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
-    //     let type_def = ty.type_def().clone();
-    //     Ok((registry, type_def))
-    // }
-
-    fn transcode_roundtrip<T>(input: &str, expected_output: ron::Value) -> Result<()>
+    fn registry_with_type<T>() -> Result<(RegistryReadOnly, TypeDef<CompactForm>)>
     where
         T: scale_info::TypeInfo + 'static
     {
@@ -381,7 +371,15 @@ mod tests {
         let registry: RegistryReadOnly = registry.into();
 
         let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
-        let ty = ty.type_def();
+        let type_def = ty.type_def().clone();
+        Ok((registry, type_def))
+    }
+
+    fn transcode_roundtrip<T>(input: &str, expected_output: ron::Value) -> Result<()>
+    where
+        T: scale_info::TypeInfo + 'static
+    {
+        let (registry, ty) = registry_with_type::<T>()?;
 
         let encoded = ty.encode_arg(&registry, input)?;
         let decoded = ty.decode_value(&registry, &mut &encoded[..])?;
@@ -397,12 +395,7 @@ mod tests {
 
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
-        let mut registry = Registry::new();
-        registry.register_type(&MetaType::new::<char>());
-        let registry: RegistryReadOnly = registry.into();
-
-        let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
-        let ty = ty.type_def();
+        let (registry, ty) = registry_with_type::<char>()?;
 
         let encoded = u32::from('c').encode();
 
