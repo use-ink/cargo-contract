@@ -119,7 +119,9 @@ impl CallCommand {
 pub struct RpcCallRequest {
     origin: <ContractsTemplateRuntime as System>::AccountId,
     dest: <ContractsTemplateRuntime as System>::AccountId,
-    value: u64, // <ContractsTemplateRuntime as Balances>::Balance, // todo: u128 does not serialize by default with serde
+    // Should be <ContractsTemplateRuntime as Balances>::Balance, which is u128.
+    // However the max unsigned integer supported by serde is `u64`
+    value: u64,
     gas_limit: NumberOrHex,
     input_data: Bytes,
 }
