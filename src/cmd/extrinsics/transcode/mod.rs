@@ -14,15 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod encode;
+mod decode;
+
+use self::{
+    decode::{
+        DecodeValue,
+        DecodedEvent,
+        DecodedEventArg,
+    },
+    encode::EncodeValue,
+};
+
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::{Decode, Encode, Input, Output};
+use scale::{Encode, Input};
 use scale_info::{
     form::{CompactForm, Form},
-    RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    RegistryReadOnly, Type, TypeDef,
 };
-use ron::Value;
-use std::convert::TryInto;
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
@@ -121,7 +131,7 @@ impl Transcoder {
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<ron::Value> {
         let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
-            "Faiedl to find message spec with name '{}'",
+            "Failed to find message spec with name '{}'",
             name
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
@@ -134,7 +144,7 @@ impl Transcoder {
     }
 }
 
-fn resolve_type(
+pub fn resolve_type(
     registry: &RegistryReadOnly,
     symbol: &<CompactForm as Form>::Type,
 ) -> Result<Type<CompactForm>> {
@@ -144,186 +154,6 @@ fn resolve_type(
     ))?;
     Ok(ty.clone())
 }
-
-pub trait EncodeValue {
-    // todo: rename
-    fn encode_value_to<O: Output>(&self, registry: &RegistryReadOnly, value: &ron::Value, output: &mut O) -> Result<()>;
-}
-
-pub trait DecodeValue {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value>;
-}
-
-impl EncodeValue for Type<CompactForm> {
-    fn encode_value_to<O: Output>(&self, registry: &RegistryReadOnly, value: &Value, output: &mut O) -> Result<()> {
-        self.type_def().encode_value_to(registry, value, output)
-    }
-}
-
-impl EncodeValue for TypeDef<CompactForm> {
-    fn encode_value_to<O: Output>(&self, registry: &RegistryReadOnly, value: &Value, output: &mut O) -> Result<()> {
-        match self {
-            TypeDef::Array(array) => array.encode_value_to(registry, value, output),
-            TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
-            TypeDef::Composite(composite) => composite.encode_value_to(registry, value, output),
-            _ => unimplemented!("TypeDef::encode_value"),
-        }
-        // let ron_value: ron::Value = ron::from_str(arg.as_ref())?;
-        // match (ty, ron_value) {
-        //     (TypeDef::Primitive(TypeDefPrimitive::Bool), ron::Value::Bool(b)) => Ok(b.encode()),
-        //     _ => unimplemented!("encoded types"),
-        // }
-        // match self {
-        //     TypeDef::Array(array) => {
-        //         let ty = resolve_type(registry, array.type_param())?;
-        //         match ty.type_def() {
-        //             TypeDef::Primitive(TypeDefPrimitive::U8) => Ok(hex::decode(arg)?),
-        //             _ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
-        //         }
-        //     }
-        //     TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, arg),
-        //     TypeDef::Composite(composite) => composite.encode_value_to(registry, arg),
-        //     _ => unimplemented!(),
-        // }
-    }
-}
-
-impl EncodeValue for TypeDefArray<CompactForm> {
-    fn encode_value_to<O: Output>(&self, _registry: &RegistryReadOnly, _value: &Value, _output: &mut O) -> Result<()> {
-        unimplemented!();
-    }
-}
-
-impl EncodeValue for TypeDefPrimitive {
-    fn encode_value_to<O: Output>(&self, _: &RegistryReadOnly, value: &Value, output: &mut O) -> Result<()> {
-        match self {
-            TypeDefPrimitive::Bool => {
-                if let ron::Value::Bool(b) = value {
-                    b.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a bool value"))
-                }
-            },
-            TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
-            TypeDefPrimitive::Str => {
-                if let ron::Value::String(s) = value {
-                    s.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a String value"))
-                }
-            },
-            TypeDefPrimitive::U8 => {
-                if let ron::Value::Number(ron::Number::Integer(i)) = value {
-                    let u: u8 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a u8 value"))
-                }
-            },
-            TypeDefPrimitive::U16 => {
-                if let ron::Value::Number(ron::Number::Integer(i)) = value {
-                    let u: u16 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a u16 value"))
-                }
-            }
-            _ => unimplemented!("TypeDefPrimitive::encode_value"),
-            // TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-            // TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-            // TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-            // TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
-            // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-            // TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-            // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-            // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-            // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
-        }
-    }
-}
-
-impl EncodeValue for TypeDefComposite<CompactForm> {
-    fn encode_value_to<O: Output>(&self, registry: &RegistryReadOnly, value: &Value, output: &mut O) -> Result<()> {
-        if self.fields().len() != 1 {
-            panic!("Only single field structs currently supported")
-        }
-        let field = self.fields().iter().next().unwrap();
-        if field.name().is_none() {
-            let ty = resolve_type(registry, field.ty())?;
-            ty.encode_value_to(registry, value, output)
-        } else {
-            panic!("Only tuple structs currently supported")
-        }
-    }
-}
-
-impl DecodeValue for TypeDef<CompactForm> {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
-        match self {
-            TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
-            def => unimplemented!("{:?}", def),
-        }
-    }
-}
-
-impl DecodeValue for TypeDefPrimitive {
-    fn decode_value(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
-        match self {
-            TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(&mut &input[..])?)),
-            TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
-            TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(&mut &input[..])?)),
-            TypeDefPrimitive::U8 => Ok(ron::Value::Number(ron::Number::Integer(u8::decode(&mut &input[..])?.into()))),
-            TypeDefPrimitive::U16 => Ok(ron::Value::Number(ron::Number::Integer(u16::decode(&mut &input[..])?.into()))),
-            // TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-            // TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-            // TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-            // TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
-            // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-            // TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-            // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-            // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-            // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
-            prim => unimplemented!("{:?}", prim),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct DecodedEvent {
-    name: String,
-    args: Vec<DecodedEventArg>,
-}
-
-#[derive(Debug)]
-pub struct DecodedEventArg {
-    name: String,
-    value: String,
-}
-
-//
-// fn decode_event(registry: &RegistryReadOnly, input: &[u8]) -> Result<DecodedEvent> {
-// 	match self {
-// 		TypeDef::Array(array) => {
-// 			match resolve_type(registry, array.type_param.id)? {
-// 				Type { type_def: TypeDef::Primitive(TypeDefPrimitive::U8), .. } => {
-// 					let len = <Compact<u32>>::decode(data)?;
-// 					let mut bytes = Vec::new();
-// 					for _ in 0..len.0 {
-// 						bytes.push(u8::decode(data)?)
-// 					}
-// 				},
-// 				_ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
-// 			}
-// 		},
-// 		TypeDef::Primitive(primitive) => primitive.encode_arg(registry, arg),
-// 		TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
-// 		_ => unimplemented!(),
-// 	}
-// }
 
 #[cfg(test)]
 mod tests {
