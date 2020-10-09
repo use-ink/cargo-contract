@@ -20,6 +20,7 @@ use scale_info::{
 	form::CompactForm,
 	RegistryReadOnly, TypeDef, TypeDefPrimitive,
 };
+use std::convert::TryInto;
 
 pub trait DecodeValue {
 	fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value>;
@@ -42,10 +43,21 @@ impl DecodeValue for TypeDefPrimitive {
 			TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(&mut &input[..])?)),
 			TypeDefPrimitive::U8 => Ok(ron::Value::Number(ron::Number::Integer(u8::decode(&mut &input[..])?.into()))),
 			TypeDefPrimitive::U16 => Ok(ron::Value::Number(ron::Number::Integer(u16::decode(&mut &input[..])?.into()))),
-			// TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-			// TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-			// TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-			// TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
+			TypeDefPrimitive::U32 => Ok(ron::Value::Number(ron::Number::Integer(u32::decode(&mut &input[..])?.into()))),
+			TypeDefPrimitive::U64 => {
+				let decoded = u64::decode(&mut &input[..])?;
+				match decoded.try_into() {
+					Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
+					Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
+				}
+			},
+			TypeDefPrimitive::U128 => {
+				let decoded = u128::decode(&mut &input[..])?;
+				match decoded.try_into() {
+					Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
+					Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
+				}
+			},
 			// TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
 			// TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
 			// TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),

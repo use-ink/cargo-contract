@@ -20,8 +20,11 @@ use scale_info::{
 	form::CompactForm,
 	RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
 };
-use ron::Value;
-use std::convert::TryInto;
+use ron::{Value, Number};
+use std::{
+	convert::TryInto,
+	str::FromStr,
+};
 
 use super::resolve_type;
 
@@ -106,12 +109,50 @@ impl EncodeValue for TypeDefPrimitive {
 				} else {
 					Err(anyhow::anyhow!("Expected a u16 value"))
 				}
+			},
+			TypeDefPrimitive::U32 => {
+				if let ron::Value::Number(ron::Number::Integer(i)) = value {
+					let u: u32 = (*i).try_into()?;
+					u.encode_to(output);
+					Ok(())
+				} else {
+					Err(anyhow::anyhow!("Expected a u16 value"))
+				}
+			},
+			TypeDefPrimitive::U64 => {
+				match value {
+					Value::Number(Number::Integer(i)) => {
+						let u: u64 = (*i).try_into()?;
+						u.encode_to(output);
+						Ok(())
+					},
+					Value::String(s) => {
+						let sanitized = s.replace(&['_', ','][..], "");
+						let u: u64 = u64::from_str(&sanitized)?;
+						u.encode_to(output);
+						Ok(())
+					}
+					_ => Err(anyhow::anyhow!("Expected a Number or a String value"))
+				}
+			},
+			TypeDefPrimitive::U128 => {
+				match value {
+					Value::Number(Number::Integer(i)) => {
+						let u: u128 = (*i).try_into()?;
+						u.encode_to(output);
+						Ok(())
+					},
+					Value::String(s) => {
+						let sanitized = s.replace(&['_', ','][..], "");
+						let u: u128 = u128::from_str(&sanitized)?;
+						u.encode_to(output);
+						Ok(())
+					}
+					_ => Err(anyhow::anyhow!("Expected a Number or a String value"))
+				}
 			}
+
 			_ => unimplemented!("TypeDefPrimitive::encode_value"),
-			// TypeDefPrimitive::U16 => Ok(u16::encode(&u16::from_str(arg)?)),
-			// TypeDefPrimitive::U32 => Ok(u32::encode(&u32::from_str(arg)?)),
-			// TypeDefPrimitive::U64 => Ok(u64::encode(&u64::from_str(arg)?)),
-			// TypeDefPrimitive::U128 => Ok(u128::encode(&u128::from_str(arg)?)),
 			// TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
 			// TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
 			// TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),

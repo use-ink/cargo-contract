@@ -288,6 +288,15 @@ mod tests {
         transcode_roundtrip::<u8>("255", ron::Value::Number(ron::Number::Integer(255)))?;
 
         transcode_roundtrip::<u16>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u16>("65535", ron::Value::Number(ron::Number::Integer(65535)))
+        transcode_roundtrip::<u16>("65535", ron::Value::Number(ron::Number::Integer(65535)))?;
+
+        transcode_roundtrip::<u32>("0", ron::Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u32>("4294967295", ron::Value::Number(ron::Number::Integer(4294967295)))?;
+
+        transcode_roundtrip::<u64>("0", ron::Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u64>("\"18_446_744_073_709_551_615\"", ron::Value::String("18446744073709551615".to_string()))?;
+
+        transcode_roundtrip::<u128>("0", ron::Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u128>("\"340_282_366_920_938_463_463_374_607_431_768_211_455\"", ron::Value::String("340282366920938463463374607431768211455".to_string()))
     }
 }
