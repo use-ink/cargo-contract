@@ -339,9 +339,22 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn transcode_seq() -> Result<()> {
-        todo!()
+        transcode_roundtrip::<Vec<u32>>(
+            "[1, 2, 3]",
+            Value::Seq(vec![
+                Value::Number(Number::Integer(1)),
+                Value::Number(Number::Integer(2)),
+                Value::Number(Number::Integer(3)),
+            ]),
+        )?;
+        transcode_roundtrip::<Vec<String>>(
+            "[\"hello\", \"world\"]",
+            Value::Seq(vec![
+                Value::String("hello".to_string()),
+                Value::String("world".to_string()),
+            ]),
+        )
     }
 
     #[test]

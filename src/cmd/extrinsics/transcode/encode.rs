@@ -16,11 +16,8 @@
 
 use anyhow::Result;
 use ron::{Number, Value};
-use scale::{Encode, Output};
-use scale_info::{
-    form::CompactForm, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite,
-    TypeDefPrimitive,
-};
+use scale::{Compact, Encode, Output};
+use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive, TypeDefSequence};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 
 use super::resolve_type;
@@ -53,11 +50,45 @@ impl EncodeValue for TypeDef<CompactForm> {
         output: &mut O,
     ) -> Result<()> {
         match self {
-            TypeDef::Array(array) => array.encode_value_to(registry, value, output),
-            TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
             TypeDef::Composite(composite) => composite.encode_value_to(registry, value, output),
+            TypeDef::Array(array) => array.encode_value_to(registry, value, output),
+            TypeDef::Sequence(sequence) => sequence.encode_value_to(registry, value, output),
+            TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
             def => unimplemented!("TypeDef::encode_value {:?}", def),
         }
+    }
+}
+
+impl EncodeValue for TypeDefComposite<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        if let Value::Map(map) = value {
+            for (field, value) in self.fields().iter().zip(map.values()) {
+                field.encode_value_to(registry, value, output)?;
+            }
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected a Value::Map for a struct, found {:?}",
+                value
+            ))
+        }
+    }
+}
+
+impl EncodeValue for Field<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        let ty = resolve_type(registry, self.ty())?;
+        ty.encode_value_to(registry, value, output)
     }
 }
 
@@ -68,29 +99,56 @@ impl EncodeValue for TypeDefArray<CompactForm> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        let ty = resolve_type(registry, self.type_param())?;
-        match value {
-            Value::String(s) => {
-                if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
-                    let decoded_byte_string = hex::decode(s.trim_start_matches("0x"))?;
-                    for byte in decoded_byte_string {
-                        byte.encode_to(output);
-                    }
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!(
-                        "Only byte (u8) arrays supported as strings"
-                    ))
+        encode_seq(self.type_param(), registry, value, false, output)
+    }
+}
+
+impl EncodeValue for TypeDefSequence<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        encode_seq(self.type_param(), registry, value, true, output)
+    }
+}
+
+fn encode_seq<O: Output + Debug>(
+    type_param: &<CompactForm as Form>::Type,
+    registry: &RegistryReadOnly,
+    value: &Value,
+    encode_len: bool,
+    output: &mut O,
+) -> Result<()> {
+    let ty = resolve_type(registry, type_param)?;
+    match value {
+        Value::String(s) => {
+            if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
+                if encode_len {
+                    Compact(s.len() as u32).encode_to(output);
                 }
-            }
-            Value::Seq(values) => {
-                for value in values {
-                    ty.encode_value_to(registry, value, output)?;
+                let decoded_byte_string = hex::decode(s.trim_start_matches("0x"))?;
+                for byte in decoded_byte_string {
+                    byte.encode_to(output);
                 }
                 Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                        "Only byte (u8) arrays supported as strings"
+                    ))
             }
-            value => Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
         }
+        Value::Seq(values) => {
+            if encode_len {
+                Compact(values.len() as u32).encode_to(output);
+            }
+            for value in values {
+                ty.encode_value_to(registry, value, output)?;
+            }
+            Ok(())
+        }
+        value => Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
     }
 }
 
@@ -182,38 +240,5 @@ impl EncodeValue for TypeDefPrimitive {
             // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
             // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
         }
-    }
-}
-
-impl EncodeValue for TypeDefComposite<CompactForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        if let Value::Map(map) = value {
-            for (field, value) in self.fields().iter().zip(map.values()) {
-                field.encode_value_to(registry, value, output)?;
-            }
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!(
-                "Expected a Value::Map for a struct, found {:?}",
-                value
-            ))
-        }
-    }
-}
-
-impl EncodeValue for Field<CompactForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        let ty = resolve_type(registry, self.ty())?;
-        ty.encode_value_to(registry, value, output)
     }
 }

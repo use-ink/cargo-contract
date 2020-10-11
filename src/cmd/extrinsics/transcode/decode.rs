@@ -16,11 +16,8 @@
 
 use crate::cmd::extrinsics::transcode::resolve_type;
 use anyhow::Result;
-use scale::{Decode, Input};
-use scale_info::{
-    form::CompactForm, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite,
-    TypeDefPrimitive,
-};
+use scale::{Decode, Input, Compact};
+use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive, TypeDefSequence};
 use std::{convert::TryInto, fmt::Debug};
 
 pub trait DecodeValue {
@@ -48,11 +45,78 @@ impl DecodeValue for TypeDef<CompactForm> {
         input: &mut I,
     ) -> Result<ron::Value> {
         match self {
-            TypeDef::Array(array) => array.decode_value(registry, input),
-            TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
             TypeDef::Composite(composite) => composite.decode_value(registry, input),
+            TypeDef::Array(array) => array.decode_value(registry, input),
+            TypeDef::Sequence(sequence) => sequence.decode_value(registry, input),
+            TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
             def => unimplemented!("{:?}", def),
         }
+    }
+}
+
+impl DecodeValue for TypeDefComposite<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        let mut map = Vec::new();
+        for field in self.fields() {
+            let value = field.decode_value(registry, input)?;
+            let name = field.name().expect("Struct fields always have a name");
+            map.push((ron::Value::String(name.to_string()), value));
+        }
+        Ok(ron::Value::Map(map.into_iter().collect()))
+    }
+}
+
+impl DecodeValue for Field<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        let ty = resolve_type(registry, self.ty())?;
+        ty.decode_value(registry, input)
+    }
+}
+
+impl DecodeValue for TypeDefArray<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        decode_seq(self.type_param(), self.len() as usize, registry, input)
+    }
+}
+
+impl DecodeValue for TypeDefSequence<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        let len = <Compact<u32>>::decode(input)?;
+        decode_seq(self.type_param(), len.0 as usize, registry, input)
+    }
+}
+
+fn decode_seq<I: Input + Debug>(ty: &<CompactForm as Form>::Type, len: usize, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+    let ty = resolve_type(registry, ty)?;
+    if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
+        // byte arrays represented as hex byte strings
+        let mut bytes = vec![0u8; len];
+        input.read(&mut bytes)?;
+        let byte_str = hex::encode(bytes);
+        Ok(ron::Value::String(byte_str))
+    } else {
+        let mut elems = Vec::new();
+        while elems.len() < len as usize {
+            let elem = ty.decode_value(registry, input)?;
+            elems.push(elem)
+        }
+        Ok(ron::Value::Seq(elems))
     }
 }
 
@@ -96,57 +160,6 @@ impl DecodeValue for TypeDefPrimitive {
             // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
             prim => unimplemented!("{:?}", prim),
         }
-    }
-}
-
-impl DecodeValue for TypeDefArray<CompactForm> {
-    fn decode_value<I: Input + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        input: &mut I,
-    ) -> Result<ron::Value> {
-        let ty = resolve_type(registry, self.type_param())?;
-        if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
-            // byte arrays represented as hex byte strings
-            let mut bytes = vec![0u8; self.len() as usize];
-            input.read(&mut bytes)?;
-            let byte_str = hex::encode(bytes);
-            Ok(ron::Value::String(byte_str))
-        } else {
-            let mut elems = Vec::new();
-            while elems.len() < self.len() as usize {
-                let elem = ty.decode_value(registry, input)?;
-                elems.push(elem)
-            }
-            Ok(ron::Value::Seq(elems))
-        }
-    }
-}
-
-impl DecodeValue for TypeDefComposite<CompactForm> {
-    fn decode_value<I: Input + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        input: &mut I,
-    ) -> Result<ron::Value> {
-        let mut map = Vec::new();
-        for field in self.fields() {
-            let value = field.decode_value(registry, input)?;
-            let name = field.name().expect("Struct fields always have a name");
-            map.push((ron::Value::String(name.to_string()), value));
-        }
-        Ok(ron::Value::Map(map.into_iter().collect()))
-    }
-}
-
-impl DecodeValue for Field<CompactForm> {
-    fn decode_value<I: Input + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        input: &mut I,
-    ) -> Result<ron::Value> {
-        let ty = resolve_type(registry, self.ty())?;
-        ty.decode_value(registry, input)
     }
 }
 
