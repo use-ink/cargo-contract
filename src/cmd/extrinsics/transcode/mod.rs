@@ -14,15 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-mod encode;
 mod decode;
+mod encode;
 
 use self::{
-    decode::{
-        DecodeValue,
-        DecodedEvent,
-        DecodedEventArg,
-    },
+    decode::{DecodeValue, DecodedEvent, DecodedEventArg},
     encode::EncodeValue,
 };
 
@@ -136,8 +132,7 @@ impl Transcoder {
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
             let ty = resolve_type(&self.registry(), return_ty.ty())?;
-            ty.type_def()
-                .decode_value(self.registry(), &mut &data[..])
+            ty.type_def().decode_value(self.registry(), &mut &data[..])
         } else {
             Ok(ron::Value::Unit)
         }
@@ -159,12 +154,10 @@ pub fn resolve_type(
 mod tests {
     use super::*;
     use anyhow::Context;
+    use ron::{Number, Value};
     use scale::Encode;
-    use scale_info::{Registry, MetaType, TypeDef};
-    use std::{
-        convert::TryFrom,
-        num::NonZeroU32,
-    };
+    use scale_info::{MetaType, Registry, TypeDef};
+    use std::{convert::TryFrom, num::NonZeroU32};
 
     use ink_lang as ink;
 
@@ -230,13 +223,13 @@ mod tests {
         let encoded = true.encode();
         let decoded = transcoder.decode_return("get", encoded)?;
 
-        assert_eq!(ron::Value::Bool(true), decoded);
+        assert_eq!(Value::Bool(true), decoded);
         Ok(())
     }
 
     fn registry_with_type<T>() -> Result<(RegistryReadOnly, TypeDef<CompactForm>)>
     where
-        T: scale_info::TypeInfo + 'static
+        T: scale_info::TypeInfo + 'static,
     {
         let mut registry = Registry::new();
         registry.register_type(&MetaType::new::<T>());
@@ -247,9 +240,9 @@ mod tests {
         Ok((registry, type_def))
     }
 
-    fn transcode_roundtrip<T>(input: &str, expected_output: ron::Value) -> Result<()>
+    fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
     where
-        T: scale_info::TypeInfo + 'static
+        T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
 
@@ -263,8 +256,8 @@ mod tests {
 
     #[test]
     fn transcode_bool() -> Result<()> {
-        transcode_roundtrip::<bool>("true", ron::Value::Bool(true))?;
-        transcode_roundtrip::<bool>("false", ron::Value::Bool(false))
+        transcode_roundtrip::<bool>("true", Value::Bool(true))?;
+        transcode_roundtrip::<bool>("false", Value::Bool(false))
     }
 
     #[test]
@@ -273,32 +266,43 @@ mod tests {
 
         let encoded = u32::from('c').encode();
 
-        assert!(ty.encode_value_to(&registry, &ron::Value::Char('c'), &mut Vec::new()).is_err());
+        assert!(ty
+            .encode_value_to(&registry, &Value::Char('c'), &mut Vec::new())
+            .is_err());
         assert!(ty.decode_value(&registry, &mut &encoded[..]).is_err());
         Ok(())
     }
 
     #[test]
     fn transcode_str() -> Result<()> {
-        transcode_roundtrip::<String>("\"ink!\"", ron::Value::String("ink!".to_string()))
+        transcode_roundtrip::<String>("\"ink!\"", Value::String("ink!".to_string()))
     }
 
     #[test]
     fn transcode_unsigned_integers() -> Result<()> {
-        transcode_roundtrip::<u8>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u8>("255", ron::Value::Number(ron::Number::Integer(255)))?;
+        transcode_roundtrip::<u8>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u8>("255", Value::Number(ron::Number::Integer(255)))?;
 
-        transcode_roundtrip::<u16>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u16>("65535", ron::Value::Number(ron::Number::Integer(65535)))?;
+        transcode_roundtrip::<u16>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u16>("65535", Value::Number(ron::Number::Integer(65535)))?;
 
-        transcode_roundtrip::<u32>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u32>("4294967295", ron::Value::Number(ron::Number::Integer(4294967295)))?;
+        transcode_roundtrip::<u32>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u32>(
+            "4294967295",
+            Value::Number(ron::Number::Integer(4294967295)),
+        )?;
 
-        transcode_roundtrip::<u64>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u64>("\"18_446_744_073_709_551_615\"", ron::Value::String("18446744073709551615".to_string()))?;
+        transcode_roundtrip::<u64>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u64>(
+            "\"18_446_744_073_709_551_615\"",
+            Value::String("18446744073709551615".to_string()),
+        )?;
 
-        transcode_roundtrip::<u128>("0", ron::Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u128>("\"340_282_366_920_938_463_463_374_607_431_768_211_455\"", ron::Value::String("340282366920938463463374607431768211455".to_string()))
+        transcode_roundtrip::<u128>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u128>(
+            "\"340_282_366_920_938_463_463_374_607_431_768_211_455\"",
+            Value::String("340282366920938463463374607431768211455".to_string()),
+        )
     }
 
     #[test]
@@ -309,6 +313,27 @@ mod tests {
 
     #[test]
     fn transcode_byte_array() -> Result<()> {
-        transcode_roundtrip::<[u8; 2]>("\"0000\"", ron::Value::String("0000".to_string()))
+        transcode_roundtrip::<[u8; 2]>("\"0000\"", Value::String("0000".to_string()))?;
+        transcode_roundtrip::<[u8; 4]>("\"0xDEADBEEF\"", Value::String("deadbeef".to_string()))?;
+        transcode_roundtrip::<[u8; 4]>("\"0xdeadbeef\"", Value::String("deadbeef".to_string()))
+    }
+
+    #[test]
+    fn transcode_array() -> Result<()> {
+        transcode_roundtrip::<[u32; 3]>(
+            "[1, 2, 3]",
+            Value::Seq(vec![
+                Value::Number(Number::Integer(1)),
+                Value::Number(Number::Integer(1)),
+                Value::Number(Number::Integer(3)),
+            ]),
+        )?;
+        transcode_roundtrip::<[String; 2]>(
+            "[\"hello\", \"world\"]",
+            Value::Seq(vec![
+                Value::String("hello".to_string()),
+                Value::String("World".to_string()),
+            ]),
+        )
     }
 }
