@@ -18,7 +18,7 @@ use anyhow::Result;
 use ron::{Number, Value};
 use scale::{Encode, Output};
 use scale_info::{
-    form::CompactForm, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite,
+    form::CompactForm, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite,
     TypeDefPrimitive,
 };
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
@@ -192,15 +192,28 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        if self.fields().len() != 1 {
-            panic!("Only single field structs currently supported")
-        }
-        let field = self.fields().iter().next().unwrap();
-        if field.name().is_none() {
-            let ty = resolve_type(registry, field.ty())?;
-            ty.encode_value_to(registry, value, output)
+        if let Value::Map(map) = value {
+            for (field, value) in self.fields().iter().zip(map.values()) {
+                field.encode_value_to(registry, value, output)?;
+            }
+            Ok(())
         } else {
-            panic!("Only tuple structs currently supported")
+            Err(anyhow::anyhow!(
+                "Expected a Value::Map for a struct, found {:?}",
+                value
+            ))
         }
+    }
+}
+
+impl EncodeValue for Field<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        let ty = resolve_type(registry, self.ty())?;
+        ty.encode_value_to(registry, value, output)
     }
 }

@@ -18,35 +18,50 @@ use crate::cmd::extrinsics::transcode::resolve_type;
 use anyhow::Result;
 use scale::{Decode, Input};
 use scale_info::{
-    form::CompactForm, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
+    form::CompactForm, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite,
+    TypeDefPrimitive,
 };
-use std::{
-    convert::TryInto,
-    fmt::Debug,
-};
+use std::{convert::TryInto, fmt::Debug};
 
 pub trait DecodeValue {
-    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value>;
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value>;
 }
 
 impl DecodeValue for Type<CompactForm> {
-    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
         self.type_def().decode_value(registry, input)
     }
 }
 
 impl DecodeValue for TypeDef<CompactForm> {
-    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
         match self {
             TypeDef::Array(array) => array.decode_value(registry, input),
             TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
+            TypeDef::Composite(composite) => composite.decode_value(registry, input),
             def => unimplemented!("{:?}", def),
         }
     }
 }
 
 impl DecodeValue for TypeDefPrimitive {
-    fn decode_value<I: Input + Debug>(&self, _: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        _: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
         match self {
             TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
@@ -85,7 +100,11 @@ impl DecodeValue for TypeDefPrimitive {
 }
 
 impl DecodeValue for TypeDefArray<CompactForm> {
-    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
         let ty = resolve_type(registry, self.type_param())?;
         if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
             // byte arrays represented as hex byte strings
@@ -101,6 +120,33 @@ impl DecodeValue for TypeDefArray<CompactForm> {
             }
             Ok(ron::Value::Seq(elems))
         }
+    }
+}
+
+impl DecodeValue for TypeDefComposite<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        let mut map = Vec::new();
+        for field in self.fields() {
+            let value = field.decode_value(registry, input)?;
+            let name = field.name().expect("Struct fields always have a name");
+            map.push((ron::Value::String(name.to_string()), value));
+        }
+        Ok(ron::Value::Map(map.into_iter().collect()))
+    }
+}
+
+impl DecodeValue for Field<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<ron::Value> {
+        let ty = resolve_type(registry, self.ty())?;
+        ty.decode_value(registry, input)
     }
 }
 

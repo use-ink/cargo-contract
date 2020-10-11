@@ -156,7 +156,7 @@ mod tests {
     use anyhow::Context;
     use ron::{Number, Value};
     use scale::Encode;
-    use scale_info::{MetaType, Registry, TypeInfo, TypeDef};
+    use scale_info::{MetaType, Registry, TypeDef, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
 
     use ink_lang as ink;
@@ -358,13 +358,30 @@ mod tests {
             a: u32,
             b: String,
             c: [u8; 4],
+            // d: Vec<S>,
         }
 
         transcode_roundtrip::<S>(
             r#"S(a: 1, b: "ink!", c: "0xDEADBEEF")"#,
-            Value::Map(vec![
-                (Value::String("a".to_string()), Value::String("ink!".to_string()))
-            ].into_iter().collect()),
+            Value::Map(
+                vec![
+                    (
+                        Value::String("a".to_string()),
+                        Value::Number(Number::Integer(1)),
+                    ),
+                    (
+                        Value::String("b".to_string()),
+                        Value::String("ink!".to_string()),
+                    ),
+                    (
+                        Value::String("c".to_string()),
+                        Value::String("deadbeef".to_string()),
+                    ),
+                    // (Value::String("d".to_string()), Value::Seq(Vec::new())),
+                ]
+                .into_iter()
+                .collect(),
+            ),
         )
     }
 
