@@ -16,8 +16,12 @@
 
 use crate::cmd::extrinsics::transcode::resolve_type;
 use anyhow::Result;
-use scale::{Decode, Input, Compact};
-use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive, TypeDefSequence};
+use scale::{Compact, Decode, Input};
+use scale_info::{
+    form::{CompactForm, Form},
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    TypeDefSequence,
+};
 use std::{convert::TryInto, fmt::Debug};
 
 pub trait DecodeValue {
@@ -102,7 +106,12 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
     }
 }
 
-fn decode_seq<I: Input + Debug>(ty: &<CompactForm as Form>::Type, len: usize, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
+fn decode_seq<I: Input + Debug>(
+    ty: &<CompactForm as Form>::Type,
+    len: usize,
+    registry: &RegistryReadOnly,
+    input: &mut I,
+) -> Result<ron::Value> {
     let ty = resolve_type(registry, ty)?;
     if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
         // byte arrays represented as hex byte strings

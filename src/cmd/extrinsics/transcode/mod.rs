@@ -371,11 +371,12 @@ mod tests {
             a: u32,
             b: String,
             c: [u8; 4],
-            // d: Vec<S>,
+            // nested struct
+            d: Vec<S>,
         }
 
         transcode_roundtrip::<S>(
-            r#"S(a: 1, b: "ink!", c: "0xDEADBEEF")"#,
+            r#"S(a: 1, b: "ink!", c: "0xDEADBEEF", d: [S(a: 2, b: "ink!", c: "0xDEADBEEF", d: [])])"#,
             Value::Map(
                 vec![
                     (
@@ -390,7 +391,31 @@ mod tests {
                         Value::String("c".to_string()),
                         Value::String("deadbeef".to_string()),
                     ),
-                    // (Value::String("d".to_string()), Value::Seq(Vec::new())),
+                    (
+                        Value::String("d".to_string()),
+                        Value::Seq(vec![Value::Map(
+                            vec![
+                                (
+                                    Value::String("a".to_string()),
+                                    Value::Number(Number::Integer(2)),
+                                ),
+                                (
+                                    Value::String("b".to_string()),
+                                    Value::String("ink!".to_string()),
+                                ),
+                                (
+                                    Value::String("c".to_string()),
+                                    Value::String("deadbeef".to_string()),
+                                ),
+                                (
+                                    Value::String("d".to_string()),
+                                    Value::Seq(Vec::new().into_iter().collect()),
+                                ),
+                            ]
+                            .into_iter()
+                            .collect(),
+                        )]),
+                    ),
                 ]
                 .into_iter()
                 .collect(),

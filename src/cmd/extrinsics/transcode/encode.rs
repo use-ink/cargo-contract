@@ -17,7 +17,11 @@
 use anyhow::Result;
 use ron::{Number, Value};
 use scale::{Compact, Encode, Output};
-use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive, TypeDefSequence};
+use scale_info::{
+    form::{CompactForm, Form},
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    TypeDefSequence,
+};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 
 use super::resolve_type;
@@ -135,8 +139,8 @@ fn encode_seq<O: Output + Debug>(
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                        "Only byte (u8) arrays supported as strings"
-                    ))
+                    "Only byte (u8) arrays supported as strings"
+                ))
             }
         }
         Value::Seq(values) => {
