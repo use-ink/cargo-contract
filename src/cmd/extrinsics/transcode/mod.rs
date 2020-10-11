@@ -156,7 +156,7 @@ mod tests {
     use anyhow::Context;
     use ron::{Number, Value};
     use scale::Encode;
-    use scale_info::{MetaType, Registry, TypeDef};
+    use scale_info::{MetaType, Registry, TypeInfo, TypeDef};
     use std::{convert::TryFrom, num::NonZeroU32};
 
     use ink_lang as ink;
@@ -249,6 +249,7 @@ mod tests {
         let value = ron::from_str(input).context("Invalid RON value")?;
         let mut output = Vec::new();
         ty.encode_value_to(&registry, &value, &mut output)?;
+        // println!("transcode_roundtrip: {:?}", output);
         let decoded = ty.decode_value(&registry, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
@@ -324,7 +325,7 @@ mod tests {
             "[1, 2, 3]",
             Value::Seq(vec![
                 Value::Number(Number::Integer(1)),
-                Value::Number(Number::Integer(1)),
+                Value::Number(Number::Integer(2)),
                 Value::Number(Number::Integer(3)),
             ]),
         )?;
@@ -332,8 +333,50 @@ mod tests {
             "[\"hello\", \"world\"]",
             Value::Seq(vec![
                 Value::String("hello".to_string()),
-                Value::String("World".to_string()),
+                Value::String("world".to_string()),
             ]),
         )
+    }
+
+    #[test]
+    #[ignore]
+    fn transcode_seq() -> Result<()> {
+        todo!()
+    }
+
+    #[test]
+    #[ignore]
+    fn transcode_tuple() -> Result<()> {
+        todo!()
+    }
+
+    #[test]
+    fn transcode_composite() -> Result<()> {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: u32,
+            b: String,
+            c: [u8; 4],
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S(a: 1, b: "ink!", c: "0xDEADBEEF")"#,
+            Value::Map(vec![
+                (Value::String("a".to_string()), Value::String("ink!".to_string()))
+            ].into_iter().collect()),
+        )
+    }
+
+    #[test]
+    #[ignore]
+    fn transcode_variant() -> Result<()> {
+        todo!()
+    }
+
+    #[test]
+    #[ignore]
+    fn transcode_option() -> Result<()> {
+        todo!()
     }
 }

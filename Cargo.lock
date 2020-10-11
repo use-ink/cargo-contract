@@ -1691,6 +1691,7 @@ checksum = "55e2e4c765aa53a0424761bf9f41aa7a6ac1efa87238f59560640e27fca028f2"
 dependencies = [
  "autocfg 1.0.1",
  "hashbrown 0.9.1",
+ "serde",
 ]
 
 [[package]]
@@ -3377,6 +3378,7 @@ checksum = "f8a58080b7bb83b2ea28c3b7a9a994fd5e310330b7c8ca5258d99b98128ecfe4"
 dependencies = [
  "base64 0.12.3",
  "bitflags",
+ "indexmap",
  "serde",
 ]
 

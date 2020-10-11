@@ -16,24 +16,27 @@
 
 use crate::cmd::extrinsics::transcode::resolve_type;
 use anyhow::Result;
-use scale::Decode;
+use scale::{Decode, Input};
 use scale_info::{
     form::CompactForm, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
 };
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    fmt::Debug,
+};
 
 pub trait DecodeValue {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value>;
+    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value>;
 }
 
 impl DecodeValue for Type<CompactForm> {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
         self.type_def().decode_value(registry, input)
     }
 }
 
 impl DecodeValue for TypeDef<CompactForm> {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
         match self {
             TypeDef::Array(array) => array.decode_value(registry, input),
             TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
@@ -43,29 +46,29 @@ impl DecodeValue for TypeDef<CompactForm> {
 }
 
 impl DecodeValue for TypeDefPrimitive {
-    fn decode_value(&self, _: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(&self, _: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
         match self {
-            TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(&mut &input[..])?)),
+            TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
-            TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(&mut &input[..])?)),
+            TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(input)?)),
             TypeDefPrimitive::U8 => Ok(ron::Value::Number(ron::Number::Integer(
-                u8::decode(&mut &input[..])?.into(),
+                u8::decode(input)?.into(),
             ))),
             TypeDefPrimitive::U16 => Ok(ron::Value::Number(ron::Number::Integer(
-                u16::decode(&mut &input[..])?.into(),
+                u16::decode(input)?.into(),
             ))),
             TypeDefPrimitive::U32 => Ok(ron::Value::Number(ron::Number::Integer(
-                u32::decode(&mut &input[..])?.into(),
+                u32::decode(input)?.into(),
             ))),
             TypeDefPrimitive::U64 => {
-                let decoded = u64::decode(&mut &input[..])?;
+                let decoded = u64::decode(input)?;
                 match decoded.try_into() {
                     Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
                     Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
                 }
             }
             TypeDefPrimitive::U128 => {
-                let decoded = u128::decode(&mut &input[..])?;
+                let decoded = u128::decode(input)?;
                 match decoded.try_into() {
                     Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
                     Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
@@ -82,11 +85,13 @@ impl DecodeValue for TypeDefPrimitive {
 }
 
 impl DecodeValue for TypeDefArray<CompactForm> {
-    fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+    fn decode_value<I: Input + Debug>(&self, registry: &RegistryReadOnly, input: &mut I) -> Result<ron::Value> {
         let ty = resolve_type(registry, self.type_param())?;
         if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
             // byte arrays represented as hex byte strings
-            let byte_str = hex::encode(&input[..self.len() as usize]);
+            let mut bytes = vec![0u8; self.len() as usize];
+            input.read(&mut bytes)?;
+            let byte_str = hex::encode(bytes);
             Ok(ron::Value::String(byte_str))
         } else {
             let mut elems = Vec::new();
