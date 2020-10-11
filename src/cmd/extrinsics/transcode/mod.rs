@@ -28,10 +28,10 @@ use self::{
 
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::{Encode, Input};
+use scale::Input;
 use scale_info::{
     form::{CompactForm, Form},
-    RegistryReadOnly, Type, TypeDef,
+    RegistryReadOnly, Type,
 };
 
 /// Encode strings to SCALE encoded smart contract calls.
@@ -159,7 +159,8 @@ pub fn resolve_type(
 mod tests {
     use super::*;
     use anyhow::Context;
-    use scale_info::{Registry, MetaType};
+    use scale::Encode;
+    use scale_info::{Registry, MetaType, TypeDef};
     use std::{
         convert::TryFrom,
         num::NonZeroU32,
@@ -298,5 +299,16 @@ mod tests {
 
         transcode_roundtrip::<u128>("0", ron::Value::Number(ron::Number::Integer(0)))?;
         transcode_roundtrip::<u128>("\"340_282_366_920_938_463_463_374_607_431_768_211_455\"", ron::Value::String("340282366920938463463374607431768211455".to_string()))
+    }
+
+    #[test]
+    #[ignore]
+    fn transcode_integers() -> Result<()> {
+        todo!()
+    }
+
+    #[test]
+    fn transcode_byte_array() -> Result<()> {
+        transcode_roundtrip::<[u8; 2]>("\"0000\"", ron::Value::String("0000".to_string()))
     }
 }

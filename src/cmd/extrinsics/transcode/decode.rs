@@ -16,19 +16,24 @@
 
 use anyhow::Result;
 use scale::Decode;
-use scale_info::{
-	form::CompactForm,
-	RegistryReadOnly, TypeDef, TypeDefPrimitive,
-};
+use scale_info::{form::CompactForm, RegistryReadOnly, Type, TypeDef, TypeDefPrimitive, TypeDefArray};
 use std::convert::TryInto;
+use crate::cmd::extrinsics::transcode::resolve_type;
 
 pub trait DecodeValue {
 	fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value>;
 }
 
+impl DecodeValue for Type<CompactForm> {
+	fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+		self.type_def().decode_value(registry, input)
+	}
+}
+
 impl DecodeValue for TypeDef<CompactForm> {
 	fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
 		match self {
+			TypeDef::Array(array) => array.decode_value(registry, input),
 			TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
 			def => unimplemented!("{:?}", def),
 		}
@@ -67,6 +72,26 @@ impl DecodeValue for TypeDefPrimitive {
 		}
 	}
 }
+
+impl DecodeValue for TypeDefArray<CompactForm> {
+	fn decode_value(&self, registry: &RegistryReadOnly, input: &mut &[u8]) -> Result<ron::Value> {
+		let ty = resolve_type(registry, self.type_param())?;
+		if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
+			// byte arrays represented as hex byte strings
+			let byte_str = hex::encode(&input[..self.len() as usize]);
+			Ok(ron::Value::String(byte_str))
+		} else {
+			let mut elems = Vec::new();
+			while elems.len() < self.len() as usize {
+				let elem = ty.decode_value(registry, input)?;
+				elems.push(elem)
+			}
+			Ok(ron::Value::Seq(elems))
+		}
+	}
+}
+
+
 
 // todo: replace with ron::Value, maybe an enum variant
 #[derive(Debug)]
