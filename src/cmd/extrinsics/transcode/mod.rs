@@ -16,6 +16,7 @@
 
 mod decode;
 mod encode;
+mod scaleron;
 
 use self::{
     decode::{DecodeValue, DecodedEvent, DecodedEventArg},
@@ -424,9 +425,31 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn transcode_variant() -> Result<()> {
-        todo!()
+        #[derive(TypeInfo)]
+        #[allow(dead_code)]
+        enum E {
+            A,
+            B(u32, String),
+            C { a: [u8; 4], b: Vec<E> },
+        }
+
+        let v: ron::Value = ron::from_str(r#"A(1, "two")"#)?;
+        assert_eq!(ron::Value::Unit, v);
+
+        Ok(())
+
+        // transcode_roundtrip::<E>(
+        //     r#"A()"#,
+        //     // the RON/serde data model does not support enum variants, so we have to make it a Map
+        //     // with the key being the variant name
+        //     Value::Map(vec![
+        //         (
+        //             Value::String("A".to_string()),
+        //             Value::Unit
+        //         )
+        //     ].into_iter().collect())
+        // )
     }
 
     #[test]

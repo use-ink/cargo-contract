@@ -19,7 +19,7 @@ use ron::{Number, Value};
 use scale::{Compact, Encode, Output};
 use scale_info::{
     form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive,
     TypeDefSequence,
 };
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
@@ -55,6 +55,7 @@ impl EncodeValue for TypeDef<CompactForm> {
     ) -> Result<()> {
         match self {
             TypeDef::Composite(composite) => composite.encode_value_to(registry, value, output),
+            TypeDef::Variant(variant) => variant.encode_value_to(registry, value, output),
             TypeDef::Array(array) => array.encode_value_to(registry, value, output),
             TypeDef::Sequence(sequence) => sequence.encode_value_to(registry, value, output),
             TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
@@ -81,6 +82,28 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
                 value
             ))
         }
+    }
+}
+
+impl EncodeValue for TypeDefVariant<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        _registry: &RegistryReadOnly,
+        _value: &Value,
+        _output: &mut O,
+    ) -> Result<()> {
+        todo!()
+        // if let Value::Map(map) = value {
+        //     for (field, value) in self.fields().iter().zip(map.values()) {
+        //         field.encode_value_to(registry, value, output)?;
+        //     }
+        //     Ok(())
+        // } else {
+        //     Err(anyhow::anyhow!(
+        //         "Expected a Value::Map for a struct, found {:?}",
+        //         value
+        //     ))
+        // }
     }
 }
 

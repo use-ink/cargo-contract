@@ -22,6 +22,8 @@ use scale_info::{
     Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
     TypeDefSequence,
 };
+use ron::Number;
+use serde::{Serialize, Serializer};
 use std::{convert::TryInto, fmt::Debug};
 
 pub trait DecodeValue {

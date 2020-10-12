@@ -53,6 +53,9 @@ hex = { version = "0.4.2", optional = true }
 jsonrpsee = "0.1.0"
 sp-rpc = "2.0.0"
 ron = { version = "0.6.2", features = ["indexmap"] }
+nom = "5.1.2"
+indexmap = "1.6.0"
+thiserror = "1.0.21"
 
 [build-dependencies]
 anyhow = "1.0.32"
