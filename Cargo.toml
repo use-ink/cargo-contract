@@ -56,6 +56,7 @@ ron = { version = "0.6.2", features = ["indexmap"] }
 nom = "5.1.2"
 indexmap = "1.6.0"
 thiserror = "1.0.21"
+escape8259 = "0.5.0"
 
 [build-dependencies]
 anyhow = "1.0.32"

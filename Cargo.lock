@@ -518,6 +518,7 @@ dependencies = [
  "colored",
  "contract-metadata",
  "env_logger",
+ "escape8259",
  "futures 0.3.5",
  "heck",
  "hex",
@@ -1041,6 +1042,12 @@ checksum = "2d2f06b9cac1506ece98fe3231e3cc9c4410ec3d5b1f24ae1c8946f0742cdefc"
 dependencies = [
  "version_check",
 ]
+
+[[package]]
+name = "escape8259"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2053b62abe274e70fec012bc7d91a2d9d59cd60f4733b51ec3818e0f34af9e1a"
 
 [[package]]
 name = "event-listener"
