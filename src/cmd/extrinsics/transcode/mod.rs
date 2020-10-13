@@ -16,7 +16,7 @@
 
 mod decode;
 mod encode;
-mod scaleron;
+mod ronext;
 
 use self::{
     decode::{DecodeValue, DecodedEvent, DecodedEventArg},
