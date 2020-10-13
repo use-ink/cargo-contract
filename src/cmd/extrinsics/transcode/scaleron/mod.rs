@@ -37,13 +37,6 @@ pub enum RonValue {
     Unit,
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum RonNumber {
-    Uint(u128),
-    Int(i128),
-    // Float(f64),
-}
-
 #[derive(Clone, Debug)]
 pub struct RonMap {
     ident: Option<String>,

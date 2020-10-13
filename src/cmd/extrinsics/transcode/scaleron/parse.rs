@@ -17,7 +17,7 @@
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_while1},
-    character::complete::{alphanumeric1 as alphanumeric, char, one_of},
+    character::complete::{one_of, digit0, digit1, multispace0},
     combinator::{all_consuming, map, opt, recognize, value},
     error::{context, convert_error, ErrorKind, ParseError, VerboseError},
     multi::{many0, separated_list},
@@ -26,7 +26,9 @@ use nom::{
     Err, IResult,
 };
 use escape8259::unescape;
-use super::RonValue;
+use super::{
+    RonValue,
+};
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum RonParseError {
@@ -121,6 +123,43 @@ fn ron_string(input: &str) -> IResult<&str, RonValue, RonParseError> {
     })(input)
 }
 
+fn digit1to9(input: &str) -> IResult<&str, char, RonParseError> {
+    one_of("123456789")
+        (input)
+}
+
+// unsigned_integer = zero / ( digit1-9 *DIGIT )
+fn uint(input: &str) -> IResult<&str, &str, RonParseError> {
+    alt((
+        tag("0"),
+        recognize(
+            pair(
+                digit1to9,
+                digit0
+            )
+        )
+    ))
+        (input)
+}
+
+fn integer_body(input: &str) -> IResult<&str, &str, RonParseError> {
+    recognize(
+        pair(
+            opt(tag("-")),
+            uint
+        )
+    )
+        (input)
+}
+
+fn ron_integer(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let (remain, raw_int) = integer_body(input)?;
+    match raw_int.parse::<i64>() {
+        Ok(i) => Ok((remain, RonValue::Number(ron::Number::Integer(i)))),
+        Err(_) => Err(nom::Err::Failure(RonParseError::BadInt)),
+    }
+}
+
 fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
     alt((
         value(RonValue::Bool(false), tag("false")),
@@ -138,6 +177,15 @@ mod tests {
         assert_eq!(ron_bool("false"), Ok(("", RonValue::Bool(false))));
         assert_eq!(ron_bool("true"), Ok(("", RonValue::Bool(true))));
         assert!(ron_bool("foo").is_err());
+    }
+
+    #[test]
+    fn test_integer() {
+        assert_eq!(ron_integer("42"), Ok(("", RonValue::Number(ron::Number::Integer(42)))));
+        assert_eq!(ron_integer("-123"), Ok(("", RonValue::Number(ron::Number::Integer(-123)))));
+        assert_eq!(ron_integer("0"), Ok(("", RonValue::Number(ron::Number::Integer(0)))));
+        assert_eq!(ron_integer("01"), Ok(("1", RonValue::Number(ron::Number::Integer(0)))));
+        assert_eq!(ron_integer("9999999999999999999"), Err(nom::Err::Failure(RonParseError::BadInt)));
     }
 
     #[test]
