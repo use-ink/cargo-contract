@@ -19,7 +19,7 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
 ## Usage
 
 ```
-cargo-contract 0.3.0
+cargo-contract 0.7.0
 Utilities to develop Wasm smart contracts.
 
 USAGE:

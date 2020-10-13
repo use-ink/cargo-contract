@@ -5,14 +5,14 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
 [dependencies]
-ink_metadata = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_metadata", default-features = false, features = ["derive"], optional = true }
-ink_primitives = { git = "https://github.com/paritytech/ink", branch = "master", default-features = false }
-ink_env = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_env", default-features = false }
-ink_storage = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_storage", default-features = false }
-ink_lang = { git = "https://github.com/paritytech/ink", branch = "master", package = "ink_lang", default-features = false }
+ink_primitives = { version = "3.0.0-rc1", default-features = false }
+ink_metadata = { version = "3.0.0-rc1", default-features = false, features = ["derive"], optional = true }
+ink_env = { version = "3.0.0-rc1", default-features = false }
+ink_storage = { version = "3.0.0-rc1", default-features = false }
+ink_lang = { version = "3.0.0-rc1", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "1.3", default-features = false, features = ["derive"] }
-scale-info = { version = "0.3", default-features = false, features = ["derive"], optional = true }
+scale-info = { version = "0.4", default-features = false, features = ["derive"], optional = true }
 
 [lib]
 name = "{{name}}"
