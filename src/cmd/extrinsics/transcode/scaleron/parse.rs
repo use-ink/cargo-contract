@@ -17,16 +17,17 @@
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_while1},
-    character::complete::{one_of, digit0, digit1, multispace0},
-    combinator::{all_consuming, map, opt, recognize, value},
+    character::complete::{alphanumeric0, alpha0, alpha1, anychar, alphanumeric1, one_of, digit0, digit1, multispace0, char},
+    combinator::{all_consuming, map, opt, recognize, value, verify},
     error::{context, convert_error, ErrorKind, ParseError, VerboseError},
-    multi::{many0, separated_list},
+    multi::{many0, many0_count, separated_list},
     number::complete::double,
-    sequence::{delimited, pair, separated_pair, tuple},
+    sequence::{delimited, pair, separated_pair, tuple, preceded},
     Err, IResult,
 };
 use escape8259::unescape;
 use super::{
+    RonMap,
     RonValue,
 };
 
@@ -53,22 +54,6 @@ impl<I> ParseError<I> for RonParseError {
 }
 
 fn ron_string(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    // A character that is:
-    // NOT a control character (0x00 - 0x1F)
-    // NOT a quote character (0x22)
-    // NOT a backslash character (0x5C)
-    // Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust char)
-    fn is_nonescaped_string_char(c: char) -> bool {
-        let cv = c as u32;
-        (cv >= 0x20) && (cv != 0x22) && (cv != 0x5C)
-    }
-
-    // One or more unescaped text characters
-    fn nonescaped_string(input: &str) -> IResult<&str, &str, RonParseError> {
-        take_while1(is_nonescaped_string_char)
-            (input)
-    }
-
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
@@ -123,6 +108,29 @@ fn ron_string(input: &str) -> IResult<&str, RonValue, RonParseError> {
     })(input)
 }
 
+// A character that is:
+// NOT a control character (0x00 - 0x1F)
+// NOT a quote character (0x22)
+// NOT a backslash character (0x5C)
+// Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust char)
+fn is_nonescaped_string_char(c: char) -> bool {
+    let cv = c as u32;
+    (cv >= 0x20) && (cv != 0x22) && (cv != 0x5C)
+}
+
+// One or more unescaped text characters
+fn nonescaped_string(input: &str) -> IResult<&str, &str, RonParseError> {
+    take_while1(is_nonescaped_string_char)
+        (input)
+}
+
+fn rust_ident(input: &str) -> IResult<&str, &str, RonParseError> {
+    recognize(pair(
+        verify(anychar, |&c| c.is_alphabetic() || c == '_'),
+        many0_count(preceded(opt(char('_')), alphanumeric1))
+    ))(input)
+}
+
 fn digit1to9(input: &str) -> IResult<&str, char, RonParseError> {
     one_of("123456789")
         (input)
@@ -169,9 +177,9 @@ fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
 
 fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let parser = delimited(
-        spacey(tag("[")),
-        separated_list(spacey(tag(",")), ron_value),
-        spacey(tag("]")),
+        ws(tag("[")),
+        separated_list(ws(tag(",")), ron_value),
+        ws(tag("]")),
     );
     map(parser, |v| {
         RonValue::Seq(v.into())
@@ -179,7 +187,32 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
         (input)
 }
 
-fn spacey<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
+fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let ident_key = map(rust_ident, |s| RonValue::String(s.into()));
+    // let ron_map_key = ws(alt((
+    //     ident_key,
+    //     ron_string,
+    //     ron_integer,
+    // )));
+
+    let opening = alt((tag("("), tag("{")));
+    let closing = alt((tag(")"), tag("}")));
+    let entry = separated_pair(ws(ident_key), tag(":"), ron_value);
+
+    let map_body = delimited(
+        ws(opening),
+        separated_list(ws(tag(",")), entry),
+        ws(closing),
+    );
+
+    let parser = tuple((opt(ws(rust_ident)), map_body));
+
+    map(parser, |(ident, v)| {
+        RonValue::Map(RonMap::new(ident, v.into_iter().collect()))
+    })(input)
+}
+
+fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
     where
         F: Fn(I) -> IResult<I, O, E>,
         I: nom::InputTakeAtPosition,
@@ -190,9 +223,9 @@ fn spacey<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 }
 
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    spacey(alt((
+    ws(alt((
         ron_seq,
-        // json_object,
+        ron_map,
         ron_string,
         // json_float,
         ron_integer,
@@ -204,7 +237,6 @@ fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
 
     #[test]
     fn test_bool() {
@@ -264,5 +296,45 @@ mod tests {
 
         let expected = RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1)), RonValue::String("x".into())].into());
         assert_eq!(ron_seq(r#" [ 1 , "x" ] "#), Ok(("", expected)));
+    }
+
+    #[test]
+    fn test_rust_ident() {
+        assert_eq!(rust_ident("a"), Ok(("", "a")));
+        assert_eq!(rust_ident("a:"), Ok((":", "a")));
+        assert_eq!(rust_ident("Ok"), Ok(("", "Ok")));
+        assert_eq!(rust_ident("_ok"), Ok(("", "_ok")));
+        assert!(rust_ident("1notok").is_err());
+    }
+
+    #[test]
+    fn test_map() {
+        // assert_eq!(ron_value("()"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
+        // assert_eq!(ron_value("{}"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
+        //
+        // assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        // assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        // assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        // assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+
+        assert_eq!(rust_ident("a:"), Ok((":", "a")));
+
+        assert_eq!(ron_value(r#"(a: 1)"#), Ok(("", RonValue::Map(RonMap::new(None, vec![
+            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+            (RonValue::String("b".into()), RonValue::String("bar".into())),
+        ].into_iter().collect())))));
+
+        assert_eq!(ron_value(r#"A (a: 1, b: "bar")"#), Ok(("", RonValue::Map(RonMap::new(Some("A"), vec![
+            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+            (RonValue::String("b".into()), RonValue::String("bar".into())),
+        ].into_iter().collect())))));
+
+        assert_eq!(ron_value(r#"B(a: 1)"#), Ok(("", RonValue::Map(RonMap::new(Some("B"), vec![
+            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+        ].into_iter().collect())))));
+
+        assert_eq!(ron_value(r#"B { a: 1 }"#), Ok(("", RonValue::Map(RonMap::new(Some("B"), vec![
+            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+        ].into_iter().collect())))));
     }
 }

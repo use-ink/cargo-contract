@@ -21,7 +21,6 @@ use indexmap::IndexMap;
 use std::{
     cmp::{Eq, Ordering},
     hash::{Hash, Hasher},
-    iter::FromIterator,
     ops::{Index, IndexMut},
 };
 
@@ -86,19 +85,11 @@ impl PartialOrd for RonMap {
 
 impl RonMap {
     /// Creates a new, empty `Map`.
-    pub fn new<S>(ident: Option<S>) -> RonMap
-    where
-        S: AsRef<str>
-    {
+    pub fn new(ident: Option<&str>, map: IndexMap<RonValue, RonValue>) -> RonMap {
         RonMap {
-            ident: ident.map(|s| s.as_ref().to_string()),
-            map: Default::default(),
+            ident: ident.map(|s| s.to_string()),
+            map,
         }
-    }
-
-    /// Returns the underlying RON values map
-    pub fn map(&self) -> &IndexMap<RonValue, RonValue> {
-        &self.map
     }
 
     /// Iterate all key-value pairs.
