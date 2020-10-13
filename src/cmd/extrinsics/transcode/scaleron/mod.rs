@@ -112,3 +112,12 @@ pub struct RonSeq {
     ident: Option<String>,
     values: Vec<RonValue>,
 }
+
+impl From<Vec<RonValue>> for RonSeq {
+    fn from(values: Vec<RonValue>) -> Self {
+        RonSeq {
+            ident: None,
+            values,
+        }
+    }
+}

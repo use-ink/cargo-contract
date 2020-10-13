@@ -167,6 +167,40 @@ fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ))(input)
 }
 
+fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let parser = delimited(
+        spacey(tag("[")),
+        separated_list(spacey(tag(",")), ron_value),
+        spacey(tag("]")),
+    );
+    map(parser, |v| {
+        RonValue::Seq(v.into())
+    })
+        (input)
+}
+
+fn spacey<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
+    where
+        F: Fn(I) -> IResult<I, O, E>,
+        I: nom::InputTakeAtPosition,
+        <I as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
+        E: nom::error::ParseError<I>,
+{
+    delimited(multispace0, f, multispace0)
+}
+
+fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    spacey(alt((
+        ron_seq,
+        // json_object,
+        ron_string,
+        // json_float,
+        ron_integer,
+        ron_bool,
+    )))
+        (input)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,5 +255,14 @@ mod tests {
 
         // Parses correctly but has escape errors due to incomplete surrogate pair.
         assert_eq!(ron_string(r#""\ud800""#), Err(nom::Err::Failure(RonParseError::BadEscape)));
+    }
+
+    #[test]
+    fn test_seq() {
+        assert_eq!(ron_seq("[ ]"), Ok(("", RonValue::Seq(vec![].into()))));
+        assert_eq!(ron_seq("[ 1 ]"), Ok(("", RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1))].into()))));
+
+        let expected = RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1)), RonValue::String("x".into())].into());
+        assert_eq!(ron_seq(r#" [ 1 , "x" ] "#), Ok(("", expected)));
     }
 }
