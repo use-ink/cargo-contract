@@ -2,14 +2,14 @@
 
 use ink_lang as ink;
 
-#[ink::contract(version = "0.1.0")]
+#[ink::contract]
 mod {{name}} {
 
     /// Defines the storage of your contract.
     /// Add new fields to the below struct in order
     /// to add new static storage fields to your contract.
     #[ink(storage)]
-    struct {{camel_name}} {
+    pub struct {{camel_name}} {
         /// Stores a single `bool` value on the storage.
         value: bool,
     }
@@ -17,7 +17,7 @@ mod {{name}} {
     impl {{camel_name}} {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        fn new(init_value: bool) -> Self {
+        pub fn new(init_value: bool) -> Self {
             Self { value: init_value }
         }
 
@@ -25,7 +25,7 @@ mod {{name}} {
         ///
         /// Constructors can delegate to other constructors.
         #[ink(constructor)]
-        fn default() -> Self {
+        pub fn default() -> Self {
             Self::new(Default::default())
         }
 
@@ -33,13 +33,13 @@ mod {{name}} {
         /// This one flips the value of the stored `bool` from `true`
         /// to `false` and vice versa.
         #[ink(message)]
-        fn flip(&mut self) {
+        pub fn flip(&mut self) {
             self.value = !self.value;
         }
 
         /// Simply returns the current value of our `bool`.
         #[ink(message)]
-        fn get(&self) -> bool {
+        pub fn get(&self) -> bool {
             self.value
         }
     }
