@@ -73,6 +73,9 @@ impl Ord for RonMap {
 /// Note: equality is only given if both values and order of values match
 impl PartialEq for RonMap {
     fn eq(&self, other: &RonMap) -> bool {
+        if self.map.len() != other.map.len() {
+            return false
+        }
         self.iter().zip(other.iter()).all(|(a, b)| a == b)
     }
 }

@@ -321,7 +321,6 @@ mod tests {
 
         assert_eq!(ron_value(r#"(a: 1)"#), Ok(("", RonValue::Map(RonMap::new(None, vec![
             (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
-            (RonValue::String("b".into()), RonValue::String("bar".into())),
         ].into_iter().collect())))));
 
         assert_eq!(ron_value(r#"A (a: 1, b: "bar")"#), Ok(("", RonValue::Map(RonMap::new(Some("A"), vec![
