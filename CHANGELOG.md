@@ -1,4 +1,4 @@
-# Version v0.7.0-rc1 (2020-10-13)
+# Version v0.7.0 (2020-10-13)
 
 * Fix deprecation warnings [#82](https://github.com/paritytech/cargo-contract/pull/82)
 * Use ink 3.0.0-rc1 [#82](https://github.com/paritytech/cargo-contract/pull/82)

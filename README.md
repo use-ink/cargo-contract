@@ -14,7 +14,7 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
   - **wasm-opt**: https://github.com/WebAssembly/binaryen#tools
 
 - **Install latest version from [crates.io](https://crates.io/crates/cargo-contract)**
-  - `cargo install cargo-contract --version 0.7.0-rc1`
+  - `cargo install cargo-contract`
 
 ## Usage
 
