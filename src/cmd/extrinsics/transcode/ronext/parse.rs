@@ -181,6 +181,11 @@ fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ))(input)
 }
 
+fn ron_char(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let parse_char = delimited(tag("'"), anychar, tag("'"));
+    map(parse_char, |c| RonValue::Char(c))(input)
+}
+
 fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
@@ -269,6 +274,7 @@ fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
         ron_string,
         ron_integer,
         ron_bool,
+        ron_char,
     )))
         (input)
 }
@@ -276,6 +282,10 @@ fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_ron_value(input: &str, expected: RonValue) {
+        assert_eq!(ron_value(input), Ok(("", expected)));
+    }
 
     #[test]
     fn test_unit() {
@@ -429,13 +439,14 @@ mod tests {
         assert_eq!(ron_value(nested), Ok(("", expected)));
     }
 
-    fn assert_ron_value(input: &str, expected: RonValue) {
-        assert_eq!(ron_value(input), Ok(("", expected)));
-    }
-
     #[test]
     fn test_option() {
         assert_ron_value(r#"Some("a")"#,  RonValue::Option(Some(RonValue::String("a".into()).into())));
         assert_ron_value(r#"None"#,  RonValue::Option(None));
+    }
+
+    #[test]
+    fn test_char() {
+        assert_ron_value(r#"'c'"#,  RonValue::Char('c'));
     }
 }
