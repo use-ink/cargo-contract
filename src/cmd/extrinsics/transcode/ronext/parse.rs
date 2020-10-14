@@ -177,10 +177,12 @@ fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
 }
 
 fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
+
     let parser = delimited(
         ws(tag("[")),
         separated_list(ws(tag(",")), ron_value),
-        ws(tag("]")),
+        opt_trailing_comma_close,
     );
     map(parser, |v| {
         RonValue::Seq(v.into())
@@ -308,11 +310,14 @@ mod tests {
 
     #[test]
     fn test_seq() {
-        assert_eq!(ron_seq("[ ]"), Ok(("", RonValue::Seq(vec![].into()))));
-        assert_eq!(ron_seq("[ 1 ]"), Ok(("", RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1))].into()))));
+        assert_eq!(ron_value("[ ]"), Ok(("", RonValue::Seq(vec![].into()))));
+        assert_eq!(ron_value("[ 1 ]"), Ok(("", RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1))].into()))));
 
         let expected = RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1)), RonValue::String("x".into())].into());
-        assert_eq!(ron_seq(r#" [ 1 , "x" ] "#), Ok(("", expected)));
+        assert_eq!(ron_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
+
+        let trailing = r#"["a", "b",]"#;
+        assert_eq!(ron_value(trailing), Ok(("", RonValue::Seq(vec![RonValue::String("a".into()), RonValue::String("b".into())]))));
     }
 
     #[test]
