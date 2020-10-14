@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use ron::{Number, Value};
 use scale::{Compact, Encode, Output};
 use scale_info::{
     form::{CompactForm, Form},
@@ -23,6 +22,7 @@ use scale_info::{
     TypeDefSequence,
 };
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
+use super::ronext::{Value, Map, Tuple};
 
 use super::resolve_type;
 
@@ -30,7 +30,7 @@ pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
         &self,
         registry: &RegistryReadOnly,
-        value: &ron::Value,
+        value: &Value,
         output: &mut O,
     ) -> Result<()>;
 }
@@ -188,7 +188,7 @@ impl EncodeValue for TypeDefPrimitive {
     ) -> Result<()> {
         match self {
             TypeDefPrimitive::Bool => {
-                if let ron::Value::Bool(b) = value {
+                if let Value::Bool(b) = value {
                     b.encode_to(output);
                     Ok(())
                 } else {
@@ -197,7 +197,7 @@ impl EncodeValue for TypeDefPrimitive {
             }
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => {
-                if let ron::Value::String(s) = value {
+                if let Value::String(s) = value {
                     s.encode_to(output);
                     Ok(())
                 } else {
@@ -205,7 +205,7 @@ impl EncodeValue for TypeDefPrimitive {
                 }
             }
             TypeDefPrimitive::U8 => {
-                if let ron::Value::Number(ron::Number::Integer(i)) = value {
+                if let Value::UInt(i) = value {
                     let u: u8 = (*i).try_into()?;
                     u.encode_to(output);
                     Ok(())
@@ -214,7 +214,7 @@ impl EncodeValue for TypeDefPrimitive {
                 }
             }
             TypeDefPrimitive::U16 => {
-                if let ron::Value::Number(ron::Number::Integer(i)) = value {
+                if let Value::UInt(i) = value {
                     let u: u16 = (*i).try_into()?;
                     u.encode_to(output);
                     Ok(())
@@ -223,7 +223,7 @@ impl EncodeValue for TypeDefPrimitive {
                 }
             }
             TypeDefPrimitive::U32 => {
-                if let ron::Value::Number(ron::Number::Integer(i)) = value {
+                if let Value::UInt(i) = value {
                     let u: u32 = (*i).try_into()?;
                     u.encode_to(output);
                     Ok(())
@@ -232,7 +232,7 @@ impl EncodeValue for TypeDefPrimitive {
                 }
             }
             TypeDefPrimitive::U64 => match value {
-                Value::Number(Number::Integer(i)) => {
+                Value::UInt(i) => {
                     let u: u64 = (*i).try_into()?;
                     u.encode_to(output);
                     Ok(())
@@ -246,7 +246,7 @@ impl EncodeValue for TypeDefPrimitive {
                 _ => Err(anyhow::anyhow!("Expected a Number or a String value")),
             },
             TypeDefPrimitive::U128 => match value {
-                Value::Number(Number::Integer(i)) => {
+                Value::UInt(i) => {
                     let u: u128 = (*i).try_into()?;
                     u.encode_to(output);
                     Ok(())

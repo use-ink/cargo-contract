@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cmd::extrinsics::transcode::resolve_type;
 use anyhow::Result;
 use scale::{Compact, Decode, Input};
 use scale_info::{
@@ -23,13 +22,17 @@ use scale_info::{
     TypeDefSequence,
 };
 use std::{convert::TryInto, fmt::Debug};
+use super::{
+    resolve_type,
+    ronext::Value,
+};
 
 pub trait DecodeValue {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value>;
+    ) -> Result<Value>;
 }
 
 impl DecodeValue for Type<CompactForm> {
@@ -37,7 +40,7 @@ impl DecodeValue for Type<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         self.type_def().decode_value(registry, input)
     }
 }
@@ -47,7 +50,7 @@ impl DecodeValue for TypeDef<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         match self {
             TypeDef::Composite(composite) => composite.decode_value(registry, input),
             TypeDef::Array(array) => array.decode_value(registry, input),
@@ -63,14 +66,14 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         let mut map = Vec::new();
         for field in self.fields() {
             let value = field.decode_value(registry, input)?;
             let name = field.name().expect("Struct fields always have a name");
-            map.push((ron::Value::String(name.to_string()), value));
+            map.push((Value::String(name.to_string()), value));
         }
-        Ok(ron::Value::Map(map.into_iter().collect()))
+        Ok(Value::Map(map.into_iter().collect()))
     }
 }
 
@@ -79,7 +82,7 @@ impl DecodeValue for Field<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         let ty = resolve_type(registry, self.ty())?;
         ty.decode_value(registry, input)
     }
@@ -90,7 +93,7 @@ impl DecodeValue for TypeDefArray<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         decode_seq(self.type_param(), self.len() as usize, registry, input)
     }
 }
@@ -100,7 +103,7 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
         &self,
         registry: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         let len = <Compact<u32>>::decode(input)?;
         decode_seq(self.type_param(), len.0 as usize, registry, input)
     }
@@ -111,21 +114,21 @@ fn decode_seq<I: Input + Debug>(
     len: usize,
     registry: &RegistryReadOnly,
     input: &mut I,
-) -> Result<ron::Value> {
+) -> Result<Value> {
     let ty = resolve_type(registry, ty)?;
     if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
         // byte arrays represented as hex byte strings
         let mut bytes = vec![0u8; len];
         input.read(&mut bytes)?;
         let byte_str = hex::encode(bytes);
-        Ok(ron::Value::String(byte_str))
+        Ok(Value::String(byte_str))
     } else {
         let mut elems = Vec::new();
         while elems.len() < len as usize {
             let elem = ty.decode_value(registry, input)?;
             elems.push(elem)
         }
-        Ok(ron::Value::Seq(elems))
+        Ok(Value::Seq(elems))
     }
 }
 
@@ -134,32 +137,32 @@ impl DecodeValue for TypeDefPrimitive {
         &self,
         _: &RegistryReadOnly,
         input: &mut I,
-    ) -> Result<ron::Value> {
+    ) -> Result<Value> {
         match self {
-            TypeDefPrimitive::Bool => Ok(ron::Value::Bool(bool::decode(input)?)),
+            TypeDefPrimitive::Bool => Ok(Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
-            TypeDefPrimitive::Str => Ok(ron::Value::String(String::decode(input)?)),
-            TypeDefPrimitive::U8 => Ok(ron::Value::Number(ron::Number::Integer(
+            TypeDefPrimitive::Str => Ok(Value::String(String::decode(input)?)),
+            TypeDefPrimitive::U8 => Ok(Value::UInt(
                 u8::decode(input)?.into(),
-            ))),
-            TypeDefPrimitive::U16 => Ok(ron::Value::Number(ron::Number::Integer(
+            )),
+            TypeDefPrimitive::U16 => Ok(Value::UInt(
                 u16::decode(input)?.into(),
-            ))),
-            TypeDefPrimitive::U32 => Ok(ron::Value::Number(ron::Number::Integer(
+            )),
+            TypeDefPrimitive::U32 => Ok(Value::UInt(
                 u32::decode(input)?.into(),
-            ))),
+            )),
             TypeDefPrimitive::U64 => {
                 let decoded = u64::decode(input)?;
                 match decoded.try_into() {
-                    Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
-                    Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
+                    Ok(i) => Ok(Value::UInt(i)),
+                    Err(_) => Ok(Value::String(format!("{}", decoded))),
                 }
             }
             TypeDefPrimitive::U128 => {
                 let decoded = u128::decode(input)?;
                 match decoded.try_into() {
-                    Ok(i) => Ok(ron::Value::Number(ron::Number::Integer(i))),
-                    Err(_) => Ok(ron::Value::String(format!("{}", decoded))),
+                    Ok(i) => Ok(Value::UInt(i)),
+                    Err(_) => Ok(Value::String(format!("{}", decoded))),
                 }
             }
             // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
@@ -172,7 +175,7 @@ impl DecodeValue for TypeDefPrimitive {
     }
 }
 
-// todo: replace with ron::Value, maybe an enum variant
+// todo: replace with Value, maybe an enum variant
 #[derive(Debug)]
 pub struct DecodedEvent {
     pub name: String,

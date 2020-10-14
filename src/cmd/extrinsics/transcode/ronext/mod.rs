@@ -21,60 +21,69 @@ use indexmap::IndexMap;
 use std::{
     cmp::{Eq, Ordering},
     hash::{Hash, Hasher},
+    iter::FromIterator,
     ops::{Index, IndexMut},
 };
 
+pub fn from_str<S>(s: S) -> Result<Value, nom::Err<parse::RonParseError>>
+where
+    S: AsRef<str>
+{
+    parse::parse_value(s.as_ref())
+}
+
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum RonValue {
+pub enum Value {
     Bool(bool),
     Char(char),
-    Map(RonMap),
-    Tuple(RonTuple),
-    Number(ron::Number),
-    Option(Option<Box<RonValue>>),
+    UInt(u128),
+    Int(i128),
+    Map(Map),
+    Tuple(Tuple),
+    Option(Option<Box<Value>>),
     String(String),
-    Seq(Vec<RonValue>),
-    Bytes(RonBytes),
+    Seq(Vec<Value>),
+    Bytes(Bytes),
     Unit,
 }
 
 #[derive(Clone, Debug)]
-pub struct RonMap {
+pub struct Map {
     ident: Option<String>,
-    map: IndexMap<RonValue, RonValue>,
+    map: IndexMap<Value, Value>,
 }
 
-impl Eq for RonMap {}
+impl Eq for Map {}
 
-impl Hash for RonMap {
+impl Hash for Map {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.iter().for_each(|x| x.hash(state));
     }
 }
 
-impl Index<&RonValue> for RonMap {
-    type Output = RonValue;
+impl Index<&Value> for Map {
+    type Output = Value;
 
-    fn index(&self, index: &RonValue) -> &Self::Output {
+    fn index(&self, index: &Value) -> &Self::Output {
         &self.map[index]
     }
 }
 
-impl IndexMut<&RonValue> for RonMap {
-    fn index_mut(&mut self, index: &RonValue) -> &mut Self::Output {
+impl IndexMut<&Value> for Map {
+    fn index_mut(&mut self, index: &Value) -> &mut Self::Output {
         self.map.get_mut(index).expect("no entry found for key")
     }
 }
 
-impl Ord for RonMap {
-    fn cmp(&self, other: &RonMap) -> Ordering {
+impl Ord for Map {
+    fn cmp(&self, other: &Map) -> Ordering {
         self.iter().cmp(other.iter())
     }
 }
 
 /// Note: equality is only given if both values and order of values match
-impl PartialEq for RonMap {
-    fn eq(&self, other: &RonMap) -> bool {
+impl PartialEq for Map {
+    fn eq(&self, other: &Map) -> bool {
         if self.map.len() != other.map.len() {
             return false
         }
@@ -82,60 +91,71 @@ impl PartialEq for RonMap {
     }
 }
 
-impl PartialOrd for RonMap {
-    fn partial_cmp(&self, other: &RonMap) -> Option<Ordering> {
+impl PartialOrd for Map {
+    fn partial_cmp(&self, other: &Map) -> Option<Ordering> {
         self.iter().partial_cmp(other.iter())
     }
 }
 
-impl RonMap {
+impl FromIterator<(Value, Value)> for Map {
+    fn from_iter<T: IntoIterator<Item = (Value, Value)>>(iter: T) -> Self {
+        Map::new(None, IndexMap::from_iter(iter))
+    }
+}
+
+impl Map {
     /// Creates a new, empty `Map`.
-    pub fn new(ident: Option<&str>, map: IndexMap<RonValue, RonValue>) -> RonMap {
-        RonMap {
+    pub fn new(ident: Option<&str>, map: IndexMap<Value, Value>) -> Map {
+        Map {
             ident: ident.map(|s| s.to_string()),
             map,
         }
     }
 
     /// Iterate all key-value pairs.
-    pub fn iter(&self) -> impl Iterator<Item = (&RonValue, &RonValue)> + DoubleEndedIterator {
+    pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + DoubleEndedIterator {
         self.map.iter()
+    }
+
+    /// Returns an iterator over the map's values
+    pub fn values(&self) -> impl Iterator<Item = &Value> {
+        self.map.values()
     }
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct RonTuple {
+pub struct Tuple {
     ident: Option<String>,
-    values: Vec<RonValue>,
+    values: Vec<Value>,
 }
 
-impl From<Vec<RonValue>> for RonTuple {
-    fn from(values: Vec<RonValue>) -> Self {
-        RonTuple {
+impl From<Vec<Value>> for Tuple {
+    fn from(values: Vec<Value>) -> Self {
+        Tuple {
             ident: None,
             values,
         }
     }
 }
 
-impl RonTuple {
-    pub fn new(ident: Option<&str>, values: Vec<RonValue>) -> Self {
-        RonTuple { ident: ident.map(|s| s.into()), values }
+impl Tuple {
+    pub fn new(ident: Option<&str>, values: Vec<Value>) -> Self {
+        Tuple { ident: ident.map(|s| s.into()), values }
     }
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct RonBytes {
+pub struct Bytes {
     bytes: Vec<u8>,
 }
 
-impl From<Vec<u8>> for RonBytes {
+impl From<Vec<u8>> for Bytes {
     fn from(bytes: Vec<u8>) -> Self {
         Self { bytes }
     }
 }
 
-impl RonBytes {
+impl Bytes {
     pub fn from_hex_string(s: &str) -> Result<Self, hex::FromHexError> {
         let bytes = hex::decode(s)?;
         Ok(Self { bytes })

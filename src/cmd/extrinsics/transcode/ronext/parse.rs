@@ -25,17 +25,19 @@ use nom::{
     IResult,
 };
 use escape8259::unescape;
+use std::num::ParseIntError;
 use super::{
-    RonBytes,
-    RonMap,
-    RonValue,
-    RonTuple,
+    Bytes,
+    Map,
+    Value,
+    Tuple,
 };
+use nom::combinator::map_res;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum RonParseError {
     #[error("bad integer")]
-    BadInt,
+    BadInt(#[from] ParseIntError),
     #[error("bad escape sequence")]
     BadEscape,
     #[error("hex string parse error")]
@@ -54,7 +56,7 @@ impl<I> ParseError<I> for RonParseError {
     }
 }
 
-fn ron_string(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_string(input: &str) -> IResult<&str, Value, RonParseError> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
@@ -105,7 +107,7 @@ fn ron_string(input: &str) -> IResult<&str, RonValue, RonParseError> {
     }
 
     map(string_literal, |s| {
-        RonValue::String(s)
+        Value::String(s)
     })(input)
 }
 
@@ -151,42 +153,36 @@ fn uint(input: &str) -> IResult<&str, &str, RonParseError> {
         (input)
 }
 
-fn integer_body(input: &str) -> IResult<&str, &str, RonParseError> {
-    recognize(
-        pair(
-            opt(tag("-")),
-            uint
-        )
-    )
-        (input)
-}
+fn ron_integer(input: &str) -> IResult<&str, Value, RonParseError> {
+    let signed = recognize(pair(
+        char('-'),
+        uint
+    ));
 
-fn ron_integer(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    let (remain, raw_int) = integer_body(input)?;
-    match raw_int.parse::<i64>() {
-        Ok(i) => Ok((remain, RonValue::Number(ron::Number::Integer(i)))),
-        Err(_) => Err(nom::Err::Failure(RonParseError::BadInt)),
-    }
-}
-
-fn ron_unit(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    let (i, _) = tag("()")(input)?;
-    Ok((i, RonValue::Unit))
-}
-
-fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
     alt((
-        value(RonValue::Bool(false), tag("false")),
-        value(RonValue::Bool(true), tag("true")),
+        map_res(signed, |s| s.parse::<i128>().map_err(RonParseError::BadInt).map(Value::Int)),
+        map_res(uint, |s| s.parse::<u128>().map_err(RonParseError::BadInt).map(Value::UInt))
+        ))(input)
+}
+
+fn ron_unit(input: &str) -> IResult<&str, Value, RonParseError> {
+    let (i, _) = tag("()")(input)?;
+    Ok((i, Value::Unit))
+}
+
+fn ron_bool(input: &str) -> IResult<&str, Value, RonParseError> {
+    alt((
+        value(Value::Bool(false), tag("false")),
+        value(Value::Bool(true), tag("true")),
     ))(input)
 }
 
-fn ron_char(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_char(input: &str) -> IResult<&str, Value, RonParseError> {
     let parse_char = delimited(tag("'"), anychar, tag("'"));
-    map(parse_char, |c| RonValue::Char(c))(input)
+    map(parse_char, |c| Value::Char(c))(input)
 }
 
-fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_seq(input: &str) -> IResult<&str, Value, RonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
     let parser = delimited(
@@ -195,14 +191,14 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
         opt_trailing_comma_close,
     );
     map(parser, |v| {
-        RonValue::Seq(v.into())
+        Value::Seq(v.into())
     })
         (input)
 }
 
-fn ron_option(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    let none = value(RonValue::Option(None), tag("None"));
-    let some_value = map(ron_value, |v| RonValue::Option(Some(v.into())));
+fn ron_option(input: &str) -> IResult<&str, Value, RonParseError> {
+    let none = value(Value::Option(None), tag("None"));
+    let some_value = map(ron_value, |v| Value::Option(Some(v.into())));
     let some = preceded(
         tag("Some"),
         delimited(
@@ -213,7 +209,7 @@ fn ron_option(input: &str) -> IResult<&str, RonValue, RonParseError> {
     alt((none, some))(input)
 }
 
-fn ron_tuple(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_tuple(input: &str) -> IResult<&str, Value, RonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
@@ -224,12 +220,12 @@ fn ron_tuple(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let parser = tuple((opt(ws(rust_ident)), tuple_body));
 
     map(parser, |(ident, v)| {
-        RonValue::Tuple(RonTuple::new(ident, v.into_iter().collect()))
+        Value::Tuple(Tuple::new(ident, v.into_iter().collect()))
     })(input)
 }
 
-fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
-    let ident_key = map(rust_ident, |s| RonValue::String(s.into()));
+fn ron_map(input: &str) -> IResult<&str, Value, RonParseError> {
+    let ident_key = map(rust_ident, |s| Value::String(s.into()));
     let ron_map_key = ws(alt((
         ident_key,
         ron_string,
@@ -250,15 +246,15 @@ fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let parser = tuple((opt(ws(rust_ident)), map_body));
 
     map(parser, |(ident, v)| {
-        RonValue::Map(RonMap::new(ident, v.into_iter().collect()))
+        Value::Map(Map::new(ident, v.into_iter().collect()))
     })(input)
 }
 
-fn ron_bytes(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_bytes(input: &str) -> IResult<&str, Value, RonParseError> {
     let (rest, byte_str) = preceded(tag("0x"), nom::character::complete::hex_digit1)(input)?;
-    let bytes = RonBytes::from_hex_string(byte_str)
+    let bytes = Bytes::from_hex_string(byte_str)
         .map_err(|e| nom::Err::Failure(e.into()))?;
-    Ok((rest, RonValue::Bytes(bytes)))
+    Ok((rest, Value::Bytes(bytes)))
 }
 
 fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
@@ -271,7 +267,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
     delimited(multispace0, f, multispace0)
 }
 
-fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_value(input: &str) -> IResult<&str, Value, RonParseError> {
     ws(alt((
         ron_unit,
         ron_bytes,
@@ -287,51 +283,60 @@ fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
         (input)
 }
 
+/// Attempt to parse a RON (extended) value
+pub fn parse_value(input: &str) -> Result<Value, nom::Err<RonParseError>> {
+    let (_, value) = ron_value(input)?;
+    Ok(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn assert_ron_value(input: &str, expected: RonValue) {
+    fn assert_ron_value(input: &str, expected: Value) {
         assert_eq!(ron_value(input), Ok(("", expected)));
     }
 
     #[test]
     fn test_unit() {
-        assert_eq!(ron_value("()"), Ok(("", RonValue::Unit)));
+        assert_eq!(ron_value("()"), Ok(("", Value::Unit)));
     }
 
     #[test]
     fn test_bool() {
-        assert_eq!(ron_bool("false"), Ok(("", RonValue::Bool(false))));
-        assert_eq!(ron_bool("true"), Ok(("", RonValue::Bool(true))));
+        assert_eq!(ron_bool("false"), Ok(("", Value::Bool(false))));
+        assert_eq!(ron_bool("true"), Ok(("", Value::Bool(true))));
         assert!(ron_bool("foo").is_err());
     }
 
     #[test]
     fn test_integer() {
-        assert_eq!(ron_integer("42"), Ok(("", RonValue::Number(ron::Number::Integer(42)))));
-        assert_eq!(ron_integer("-123"), Ok(("", RonValue::Number(ron::Number::Integer(-123)))));
-        assert_eq!(ron_integer("0"), Ok(("", RonValue::Number(ron::Number::Integer(0)))));
-        assert_eq!(ron_integer("01"), Ok(("1", RonValue::Number(ron::Number::Integer(0)))));
-        assert_eq!(ron_integer("9999999999999999999"), Err(nom::Err::Failure(RonParseError::BadInt)));
+        assert_eq!(ron_integer("42"), Ok(("", Value::UInt(42))));
+        assert_eq!(ron_integer("-123"), Ok(("", Value::Int(-123))));
+        assert_eq!(ron_integer("0"), Ok(("", Value::UInt(0))));
+        assert_eq!(ron_integer("01"), Ok(("1", Value::UInt(0))));
+        assert_eq!(ron_integer("340282366920938463463374607431768211455"), Ok(("", Value::UInt(340282366920938463463374607431768211455))));
+        // todo
+        // assert!(matches!(ron_integer("abc123"), Err(nom::Err::Failure(RonParseError::BadInt(_)))));
+        // // assert!(matches!(ron_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
     }
 
     #[test]
     fn test_string() {
         // Plain Unicode strings with no escaping
-        assert_eq!(ron_string(r#""""#), Ok(("", RonValue::String("".into()))));
-        assert_eq!(ron_string(r#""Hello""#), Ok(("", RonValue::String("Hello".into()))));
-        assert_eq!(ron_string(r#""の""#), Ok(("", RonValue::String("の".into()))));
-        assert_eq!(ron_string(r#""𝄞""#), Ok(("", RonValue::String("𝄞".into()))));
+        assert_eq!(ron_string(r#""""#), Ok(("", Value::String("".into()))));
+        assert_eq!(ron_string(r#""Hello""#), Ok(("", Value::String("Hello".into()))));
+        assert_eq!(ron_string(r#""の""#), Ok(("", Value::String("の".into()))));
+        assert_eq!(ron_string(r#""𝄞""#), Ok(("", Value::String("𝄞".into()))));
 
         // valid 2-character escapes
-        assert_eq!(ron_string(r#""  \\  ""#), Ok(("", RonValue::String("  \\  ".into()))));
-        assert_eq!(ron_string(r#""  \"  ""#), Ok(("", RonValue::String("  \"  ".into()))));
+        assert_eq!(ron_string(r#""  \\  ""#), Ok(("", Value::String("  \\  ".into()))));
+        assert_eq!(ron_string(r#""  \"  ""#), Ok(("", Value::String("  \"  ".into()))));
 
         // valid 6-character escapes
-        assert_eq!(ron_string(r#""\u0000""#), Ok(("", RonValue::String("\x00".into()))));
-        assert_eq!(ron_string(r#""\u00DF""#), Ok(("", RonValue::String("ß".into()))));
-        assert_eq!(ron_string(r#""\uD834\uDD1E""#), Ok(("", RonValue::String("𝄞".into()))));
+        assert_eq!(ron_string(r#""\u0000""#), Ok(("", Value::String("\x00".into()))));
+        assert_eq!(ron_string(r#""\u00DF""#), Ok(("", Value::String("ß".into()))));
+        assert_eq!(ron_string(r#""\uD834\uDD1E""#), Ok(("", Value::String("𝄞".into()))));
 
         // Invalid because surrogate characters must come in pairs
         assert!(ron_string(r#""\ud800""#).is_err());
@@ -353,14 +358,14 @@ mod tests {
 
     #[test]
     fn test_seq() {
-        assert_eq!(ron_value("[ ]"), Ok(("", RonValue::Seq(vec![].into()))));
-        assert_eq!(ron_value("[ 1 ]"), Ok(("", RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1))].into()))));
+        assert_eq!(ron_value("[ ]"), Ok(("", Value::Seq(vec![].into()))));
+        assert_eq!(ron_value("[ 1 ]"), Ok(("", Value::Seq(vec![Value::UInt(1)].into()))));
 
-        let expected = RonValue::Seq(vec![RonValue::Number(ron::Number::Integer(1)), RonValue::String("x".into())].into());
+        let expected = Value::Seq(vec![Value::UInt(1), Value::String("x".into())].into());
         assert_eq!(ron_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
 
         let trailing = r#"["a", "b",]"#;
-        assert_eq!(ron_value(trailing), Ok(("", RonValue::Seq(vec![RonValue::String("a".into()), RonValue::String("b".into())]))));
+        assert_eq!(ron_value(trailing), Ok(("", Value::Seq(vec![Value::String("a".into()), Value::String("b".into())]))));
     }
 
     #[test]
@@ -377,26 +382,26 @@ mod tests {
 
     #[test]
     fn test_map() {
-        assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
-        assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo {}"), Ok(("", Value::Map(Map::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo{}"), Ok(("", Value::Map(Map::new(Some("Foo"), Default::default())))));
 
         assert_eq!(rust_ident("a:"), Ok((":", "a")));
 
-        assert_eq!(ron_value(r#"(a: 1)"#), Ok(("", RonValue::Map(RonMap::new(None, vec![
-            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+        assert_eq!(ron_value(r#"(a: 1)"#), Ok(("", Value::Map(Map::new(None, vec![
+            (Value::String("a".into()), Value::UInt(1)),
         ].into_iter().collect())))));
 
-        assert_eq!(ron_value(r#"A (a: 1, b: "bar")"#), Ok(("", RonValue::Map(RonMap::new(Some("A"), vec![
-            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
-            (RonValue::String("b".into()), RonValue::String("bar".into())),
+        assert_eq!(ron_value(r#"A (a: 1, b: "bar")"#), Ok(("", Value::Map(Map::new(Some("A"), vec![
+            (Value::String("a".into()), Value::UInt(1)),
+            (Value::String("b".into()), Value::String("bar".into())),
         ].into_iter().collect())))));
 
-        assert_eq!(ron_value(r#"B(a: 1)"#), Ok(("", RonValue::Map(RonMap::new(Some("B"), vec![
-            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+        assert_eq!(ron_value(r#"B(a: 1)"#), Ok(("", Value::Map(Map::new(Some("B"), vec![
+            (Value::String("a".into()), Value::UInt(1)),
         ].into_iter().collect())))));
 
-        assert_eq!(ron_value(r#"Struct { a : 1 }"#), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
-            (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
+        assert_eq!(ron_value(r#"Struct { a : 1 }"#), Ok(("", Value::Map(Map::new(Some("Struct"), vec![
+            (Value::String("a".into()), Value::UInt(1)),
         ].into_iter().collect())))));
 
         let map = r#"Mixed {
@@ -405,42 +410,42 @@ mod tests {
             c: true,
         }"#;
 
-        assert_eq!(ron_value(map), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
-            (RonValue::Number(ron::Number::Integer(1)), RonValue::String("a".into())),
-            (RonValue::String("b".into()), RonValue::Number(ron::Number::Integer(2))),
-            (RonValue::String("c".into()), RonValue::Bool(true)),
+        assert_eq!(ron_value(map), Ok(("", Value::Map(Map::new(Some("Struct"), vec![
+            (Value::UInt(1), Value::String("a".into())),
+            (Value::String("b".into()), Value::UInt(2)),
+            (Value::String("c".into()), Value::Bool(true)),
         ].into_iter().collect())))));
     }
 
     #[test]
     fn test_tuple() {
-        assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Tuple(RonTuple::new(Some("Foo"), Default::default())))));
-        assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Tuple(RonTuple::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo ()"), Ok(("", Value::Tuple(Tuple::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo()"), Ok(("", Value::Tuple(Tuple::new(Some("Foo"), Default::default())))));
 
-        assert_eq!(ron_value(r#"B("a")"#), Ok(("", RonValue::Tuple(RonTuple::new(Some("B"), vec![
-            RonValue::String("a".into()),
+        assert_eq!(ron_value(r#"B("a")"#), Ok(("", Value::Tuple(Tuple::new(Some("B"), vec![
+            Value::String("a".into()),
         ])))));
 
-        assert_eq!(ron_value(r#"B("a", 10, true)"#), Ok(("", RonValue::Tuple(RonTuple::new(Some("B"), vec![
-            RonValue::String("a".into()),
-            RonValue::Number(ron::Number::Integer(10)),
-            RonValue::Bool(true),
+        assert_eq!(ron_value(r#"B("a", 10, true)"#), Ok(("", Value::Tuple(Tuple::new(Some("B"), vec![
+            Value::String("a".into()),
+            Value::UInt(10),
+            Value::Bool(true),
         ])))));
 
         let tuple = r#"Mixed ("a", 10, ["a", "b", "c"],)"#;
 
-        assert_eq!(ron_value(tuple), Ok(("", RonValue::Tuple(RonTuple::new(Some("Mixed"), vec![
-            RonValue::String("a".into()),
-            RonValue::Number(ron::Number::Integer(10)),
-            RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
+        assert_eq!(ron_value(tuple), Ok(("", Value::Tuple(Tuple::new(Some("Mixed"), vec![
+            Value::String("a".into()),
+            Value::UInt(10),
+            Value::Seq(vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())]),
         ])))));
 
         let nested = r#"(Nested("a", 10))"#;
 
-        let expected = RonValue::Tuple(RonTuple::new(None, vec![
-            RonValue::Tuple(RonTuple::new(Some("Nested"), vec![
-                RonValue::String("a".into()),
-                RonValue::Number(ron::Number::Integer(10)),
+        let expected = Value::Tuple(Tuple::new(None, vec![
+            Value::Tuple(Tuple::new(Some("Nested"), vec![
+                Value::String("a".into()),
+                Value::UInt(10),
             ]))
         ]));
 
@@ -449,17 +454,17 @@ mod tests {
 
     #[test]
     fn test_option() {
-        assert_ron_value(r#"Some("a")"#,  RonValue::Option(Some(RonValue::String("a".into()).into())));
-        assert_ron_value(r#"None"#,  RonValue::Option(None));
+        assert_ron_value(r#"Some("a")"#, Value::Option(Some(Value::String("a".into()).into())));
+        assert_ron_value(r#"None"#, Value::Option(None));
     }
 
     #[test]
     fn test_char() {
-        assert_ron_value(r#"'c'"#,  RonValue::Char('c'));
+        assert_ron_value(r#"'c'"#, Value::Char('c'));
     }
 
     #[test]
     fn test_bytes() {
-        assert_ron_value(r#"0x0000"#, RonValue::Bytes(vec![0u8; 2].into()));
+        assert_ron_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
     }
 }

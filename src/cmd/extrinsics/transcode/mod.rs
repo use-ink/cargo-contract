@@ -21,6 +21,7 @@ mod ronext;
 use self::{
     decode::{DecodeValue, DecodedEvent, DecodedEventArg},
     encode::EncodeValue,
+    ronext::{Value},
 };
 
 use anyhow::Result;
@@ -74,7 +75,7 @@ impl Transcoder {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let ty = resolve_type(self.registry(), spec.ty().ty())?;
-            let value = ron::from_str(arg.as_ref())?;
+            let value = ronext::from_str(arg.as_ref())?;
             ty.encode_value_to(&self.registry(), &value, &mut encoded)?;
         }
         Ok(encoded)
@@ -126,7 +127,7 @@ impl Transcoder {
         })
     }
 
-    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<ron::Value> {
+    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
             "Failed to find message spec with name '{}'",
             name
@@ -135,7 +136,7 @@ impl Transcoder {
             let ty = resolve_type(&self.registry(), return_ty.ty())?;
             ty.type_def().decode_value(self.registry(), &mut &data[..])
         } else {
-            Ok(ron::Value::Unit)
+            Ok(Value::Unit)
         }
     }
 }
@@ -155,7 +156,7 @@ pub fn resolve_type(
 mod tests {
     use super::*;
     use anyhow::Context;
-    use ron::{Number, Value};
+    use ronext::Value;
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeDef, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
@@ -247,7 +248,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
 
-        let value = ron::from_str(input).context("Invalid RON value")?;
+        let value = ronext::from_str(input).context("Invalid RON value")?;
         let mut output = Vec::new();
         ty.encode_value_to(&registry, &value, &mut output)?;
         // println!("transcode_roundtrip: {:?}", output);
@@ -282,25 +283,25 @@ mod tests {
 
     #[test]
     fn transcode_unsigned_integers() -> Result<()> {
-        transcode_roundtrip::<u8>("0", Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u8>("255", Value::Number(ron::Number::Integer(255)))?;
+        transcode_roundtrip::<u8>("0", Value::UInt(0))?;
+        transcode_roundtrip::<u8>("255", Value::UInt(255))?;
 
-        transcode_roundtrip::<u16>("0", Value::Number(ron::Number::Integer(0)))?;
-        transcode_roundtrip::<u16>("65535", Value::Number(ron::Number::Integer(65535)))?;
+        transcode_roundtrip::<u16>("0", Value::UInt(0))?;
+        transcode_roundtrip::<u16>("65535", Value::UInt(65535))?;
 
-        transcode_roundtrip::<u32>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u32>("0", Value::UInt(0))?;
         transcode_roundtrip::<u32>(
             "4294967295",
-            Value::Number(ron::Number::Integer(4294967295)),
+            Value::UInt(4294967295),
         )?;
 
-        transcode_roundtrip::<u64>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u64>("0", Value::UInt(0))?;
         transcode_roundtrip::<u64>(
             "\"18_446_744_073_709_551_615\"",
             Value::String("18446744073709551615".to_string()),
         )?;
 
-        transcode_roundtrip::<u128>("0", Value::Number(ron::Number::Integer(0)))?;
+        transcode_roundtrip::<u128>("0", Value::UInt(0))?;
         transcode_roundtrip::<u128>(
             "\"340_282_366_920_938_463_463_374_607_431_768_211_455\"",
             Value::String("340282366920938463463374607431768211455".to_string()),
@@ -325,9 +326,9 @@ mod tests {
         transcode_roundtrip::<[u32; 3]>(
             "[1, 2, 3]",
             Value::Seq(vec![
-                Value::Number(Number::Integer(1)),
-                Value::Number(Number::Integer(2)),
-                Value::Number(Number::Integer(3)),
+                Value::UInt(1),
+                Value::UInt(2),
+                Value::UInt(3),
             ]),
         )?;
         transcode_roundtrip::<[String; 2]>(
@@ -344,9 +345,9 @@ mod tests {
         transcode_roundtrip::<Vec<u32>>(
             "[1, 2, 3]",
             Value::Seq(vec![
-                Value::Number(Number::Integer(1)),
-                Value::Number(Number::Integer(2)),
-                Value::Number(Number::Integer(3)),
+                Value::UInt(1),
+                Value::UInt(2),
+                Value::UInt(3),
             ]),
         )?;
         transcode_roundtrip::<Vec<String>>(
@@ -382,7 +383,7 @@ mod tests {
                 vec![
                     (
                         Value::String("a".to_string()),
-                        Value::Number(Number::Integer(1)),
+                        Value::UInt(1),
                     ),
                     (
                         Value::String("b".to_string()),
@@ -398,7 +399,7 @@ mod tests {
                             vec![
                                 (
                                     Value::String("a".to_string()),
-                                    Value::Number(Number::Integer(2)),
+                                    Value::UInt(2),
                                 ),
                                 (
                                     Value::String("b".to_string()),
@@ -434,8 +435,8 @@ mod tests {
             C { a: [u8; 4], b: Vec<E> },
         }
 
-        let v: ron::Value = ron::from_str(r#"A(1, "two")"#)?;
-        assert_eq!(ron::Value::Unit, v);
+        let v: Value = ronext::from_str(r#"A(1, "two")"#)?;
+        assert_eq!(Value::Unit, v);
 
         Ok(())
 
