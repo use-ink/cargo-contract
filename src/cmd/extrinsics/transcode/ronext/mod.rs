@@ -29,10 +29,11 @@ pub enum RonValue {
     Bool(bool),
     Char(char),
     Map(RonMap),
+    Tuple(RonTuple),
     Number(ron::Number),
     Option(Option<Box<RonValue>>),
     String(String),
-    Seq(RonSeq),
+    Seq(Vec<RonValue>),
     Unit,
 }
 
@@ -102,16 +103,22 @@ impl RonMap {
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct RonSeq {
+pub struct RonTuple {
     ident: Option<String>,
     values: Vec<RonValue>,
 }
 
-impl From<Vec<RonValue>> for RonSeq {
+impl From<Vec<RonValue>> for RonTuple {
     fn from(values: Vec<RonValue>) -> Self {
-        RonSeq {
+        RonTuple {
             ident: None,
             values,
         }
+    }
+}
+
+impl RonTuple {
+    pub fn new(ident: Option<&str>, values: Vec<RonValue>) -> Self {
+        RonTuple { ident: ident.map(|s| s.into()), values }
     }
 }

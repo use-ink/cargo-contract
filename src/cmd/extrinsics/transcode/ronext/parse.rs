@@ -29,6 +29,7 @@ use escape8259::unescape;
 use super::{
     RonMap,
     RonValue,
+    RonTuple,
 };
 
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -187,6 +188,20 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
         (input)
 }
 
+fn ron_tuple(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let tuple_body = delimited(
+        ws(tag("(")),
+        separated_list(ws(tag(",")), ron_value),
+        ws(tag(")")),
+    );
+
+    let parser = tuple((opt(ws(rust_ident)), tuple_body));
+
+    map(parser, |(ident, v)| {
+        RonValue::Tuple(RonTuple::new(ident, v.into_iter().collect()))
+    })(input)
+}
+
 fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let ident_key = map(rust_ident, |s| RonValue::String(s.into()));
     let ron_map_key = ws(alt((
@@ -225,9 +240,9 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ws(alt((
         ron_seq,
+        ron_tuple,
         ron_map,
         ron_string,
-        // json_float,
         ron_integer,
         ron_bool,
     )))
@@ -315,8 +330,7 @@ mod tests {
         // assert_eq!(ron_value("()"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
         // assert_eq!(ron_value("{}"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
         //
-        assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
-        assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+
         assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
         assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
 
@@ -339,6 +353,12 @@ mod tests {
             (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
         ].into_iter().collect())))));
 
+        let map = r#"Mixed {
+            1: "a",
+            "b": 2,
+            c: true,
+        }"#;
+
         assert_eq!(ron_value(r#"Mixed { 1: "a", "b": 2, c: true }"#), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
             (RonValue::Number(ron::Number::Integer(1)), RonValue::String("a".into())),
             (RonValue::String("b".into()), RonValue::Number(ron::Number::Integer(2))),
@@ -346,4 +366,27 @@ mod tests {
         ].into_iter().collect())))));
     }
 
+    #[test]
+    fn test_tuple() {
+        assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Tuple(RonTuple::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Tuple(RonTuple::new(Some("Foo"), Default::default())))));
+
+        assert_eq!(ron_value(r#"B("a")"#), Ok(("", RonValue::Tuple(RonTuple::new(Some("B"), vec![
+            RonValue::String("a".into()),
+        ])))));
+
+        assert_eq!(ron_value(r#"B("a", 10, true)"#), Ok(("", RonValue::Tuple(RonTuple::new(Some("B"), vec![
+            RonValue::String("a".into()),
+            RonValue::Number(ron::Number::Integer(10)),
+            RonValue::Bool(true),
+        ])))));
+
+        // let tuple = r#"Mixed ("a", 10,  ["a", "b, "c"],)"#;
+        //
+        // assert_eq!(ron_value(tuple), Ok(("", RonValue::Tuple(RonTuple::new(Some("Mixed"), vec![
+        //     RonValue::String("a".into()),
+        //     RonValue::Number(ron::Number::Integer(10)),
+        //     RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
+        // ])))));
+    }
 }
