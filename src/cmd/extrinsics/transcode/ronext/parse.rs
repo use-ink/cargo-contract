@@ -395,12 +395,23 @@ mod tests {
             RonValue::Bool(true),
         ])))));
 
-        let tuple = r#"Mixed ("a", 10,)"#;
+        let tuple = r#"Mixed ("a", 10, ["a", "b", "c"],)"#;
 
         assert_eq!(ron_value(tuple), Ok(("", RonValue::Tuple(RonTuple::new(Some("Mixed"), vec![
             RonValue::String("a".into()),
             RonValue::Number(ron::Number::Integer(10)),
-            // RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
+            RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
         ])))));
+
+        let nested = r#"(Nested("a", 10))"#;
+
+        let expected = RonValue::Tuple(RonTuple::new(None, vec![
+            RonValue::Tuple(RonTuple::new(Some("Nested"), vec![
+                RonValue::String("a".into()),
+                RonValue::Number(ron::Number::Integer(10)),
+            ]))
+        ]));
+
+        assert_eq!(ron_value(nested), Ok(("", expected)));
     }
 }
