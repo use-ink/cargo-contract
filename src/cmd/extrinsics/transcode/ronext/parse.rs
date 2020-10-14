@@ -16,9 +16,9 @@
 
 use nom::{
     branch::alt,
-    bytes::complete::{escaped, tag, take_while, take_while1},
-    character::complete::{alphanumeric0, alpha0, alpha1, anychar, alphanumeric1, one_of, digit0, digit1, multispace0, char},
-    combinator::{all_consuming, map, opt, recognize, value, verify},
+    bytes::complete::{tag, take_while1},
+    character::complete::{anychar, alphanumeric1, one_of, digit0, digit1, multispace0, char},
+    combinator::{map, opt, recognize, value, verify},
     error::{context, convert_error, ErrorKind, ParseError, VerboseError},
     multi::{many0, many0_count, separated_list},
     number::complete::double,
@@ -195,7 +195,7 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
         (input)
 }
 
-fn ron_opt(input: &str) -> IResult<&str, RonValue, RonParseError> {
+fn ron_option(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let none = value(RonValue::Option(None), tag("None"));
     let some_value = map(ron_value, |v| RonValue::Option(Some(v.into())));
     let some = preceded(
@@ -262,7 +262,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ws(alt((
         ron_unit,
-        ron_opt,
+        ron_option,
         ron_seq,
         ron_tuple,
         ron_map,
@@ -436,5 +436,6 @@ mod tests {
     #[test]
     fn test_option() {
         assert_ron_value(r#"Some("a")"#,  RonValue::Option(Some(RonValue::String("a".into()).into())));
+        assert_ron_value(r#"None"#,  RonValue::Option(None));
     }
 }
