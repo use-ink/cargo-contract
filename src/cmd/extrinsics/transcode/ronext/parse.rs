@@ -169,6 +169,11 @@ fn ron_integer(input: &str) -> IResult<&str, RonValue, RonParseError> {
     }
 }
 
+fn ron_unit(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let (i, _) = tag("()")(input)?;
+    Ok((i, RonValue::Unit))
+}
+
 fn ron_bool(input: &str) -> IResult<&str, RonValue, RonParseError> {
     alt((
         value(RonValue::Bool(false), tag("false")),
@@ -243,6 +248,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ws(alt((
+        ron_unit,
         ron_seq,
         ron_tuple,
         ron_map,
@@ -256,6 +262,11 @@ fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_unit() {
+        assert_eq!(ron_value("()"), Ok(("", RonValue::Unit)));
+    }
 
     #[test]
     fn test_bool() {
@@ -334,10 +345,6 @@ mod tests {
 
     #[test]
     fn test_map() {
-        // assert_eq!(ron_value("()"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
-        // assert_eq!(ron_value("{}"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
-        //
-
         assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
         assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
 
