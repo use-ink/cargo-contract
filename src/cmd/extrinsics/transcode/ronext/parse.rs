@@ -195,6 +195,19 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
         (input)
 }
 
+fn ron_opt(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let none = value(RonValue::Option(None), tag("None"));
+    let some_value = map(ron_value, |v| RonValue::Option(Some(v.into())));
+    let some = preceded(
+        tag("Some"),
+        delimited(
+            ws(tag("(")),
+            some_value,
+             ws(tag(")"))
+    ));
+    alt((none, some))(input)
+}
+
 fn ron_tuple(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
@@ -249,6 +262,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ws(alt((
         ron_unit,
+        ron_opt,
         ron_seq,
         ron_tuple,
         ron_map,
@@ -413,5 +427,14 @@ mod tests {
         ]));
 
         assert_eq!(ron_value(nested), Ok(("", expected)));
+    }
+
+    fn assert_ron_value(input: &str, expected: RonValue) {
+        assert_eq!(ron_value(input), Ok(("", expected)));
+    }
+
+    #[test]
+    fn test_option() {
+        assert_ron_value(r#"Some("a")"#,  RonValue::Option(Some(RonValue::String("a".into()).into())));
     }
 }
