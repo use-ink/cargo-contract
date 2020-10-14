@@ -189,10 +189,11 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
 }
 
 fn ron_tuple(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
         separated_list(ws(tag(",")), ron_value),
-        ws(tag(")")),
+        opt_trailing_comma_close,
     );
 
     let parser = tuple((opt(ws(rust_ident)), tuple_body));
@@ -214,10 +215,11 @@ fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let closing = alt((tag(")"), tag("}")));
     let entry = separated_pair(ron_map_key, ws(tag(":")), ron_value);
 
+    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(closing));
     let map_body = delimited(
         ws(opening),
         separated_list(ws(tag(",")), entry),
-        ws(closing),
+        opt_trailing_comma_close,
     );
 
     let parser = tuple((opt(ws(rust_ident)), map_body));
@@ -359,7 +361,7 @@ mod tests {
             c: true,
         }"#;
 
-        assert_eq!(ron_value(r#"Mixed { 1: "a", "b": 2, c: true }"#), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
+        assert_eq!(ron_value(map), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
             (RonValue::Number(ron::Number::Integer(1)), RonValue::String("a".into())),
             (RonValue::String("b".into()), RonValue::Number(ron::Number::Integer(2))),
             (RonValue::String("c".into()), RonValue::Bool(true)),
@@ -381,12 +383,12 @@ mod tests {
             RonValue::Bool(true),
         ])))));
 
-        // let tuple = r#"Mixed ("a", 10,  ["a", "b, "c"],)"#;
-        //
-        // assert_eq!(ron_value(tuple), Ok(("", RonValue::Tuple(RonTuple::new(Some("Mixed"), vec![
-        //     RonValue::String("a".into()),
-        //     RonValue::Number(ron::Number::Integer(10)),
-        //     RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
-        // ])))));
+        let tuple = r#"Mixed ("a", 10,)"#;
+
+        assert_eq!(ron_value(tuple), Ok(("", RonValue::Tuple(RonTuple::new(Some("Mixed"), vec![
+            RonValue::String("a".into()),
+            RonValue::Number(ron::Number::Integer(10)),
+            // RonValue::Seq(vec![ RonValue::String("a".into()), RonValue::String("b".into()), RonValue::String("c".into())]),
+        ])))));
     }
 }
