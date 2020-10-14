@@ -17,16 +17,16 @@
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{anychar, alphanumeric1, one_of, digit0, digit1, multispace0, char},
+    character::complete::{anychar, alphanumeric1, one_of, digit0, multispace0, char},
     combinator::{map, opt, recognize, value, verify},
-    error::{context, convert_error, ErrorKind, ParseError, VerboseError},
+    error::{ErrorKind, ParseError},
     multi::{many0, many0_count, separated_list},
-    number::complete::double,
     sequence::{delimited, pair, separated_pair, tuple, preceded},
-    Err, IResult,
+    IResult,
 };
 use escape8259::unescape;
 use super::{
+    RonBytes,
     RonMap,
     RonValue,
     RonTuple,
@@ -36,10 +36,10 @@ use super::{
 pub enum RonParseError {
     #[error("bad integer")]
     BadInt,
-    #[error("bad float")]
-    BadFloat,
     #[error("bad escape sequence")]
     BadEscape,
+    #[error("hex string parse error")]
+    BadHex(#[from] hex::FromHexError),
     #[error("unknown parser error")]
     Unparseable,
 }
@@ -254,6 +254,13 @@ fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
     })(input)
 }
 
+fn ron_bytes(input: &str) -> IResult<&str, RonValue, RonParseError> {
+    let (rest, byte_str) = preceded(tag("0x"), nom::character::complete::hex_digit1)(input)?;
+    let bytes = RonBytes::from_hex_string(byte_str)
+        .map_err(|e| nom::Err::Failure(e.into()))?;
+    Ok((rest, RonValue::Bytes(bytes)))
+}
+
 fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
     where
         F: Fn(I) -> IResult<I, O, E>,
@@ -267,6 +274,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
 fn ron_value(input: &str) -> IResult<&str, RonValue, RonParseError> {
     ws(alt((
         ron_unit,
+        ron_bytes,
         ron_option,
         ron_seq,
         ron_tuple,
@@ -448,5 +456,10 @@ mod tests {
     #[test]
     fn test_char() {
         assert_ron_value(r#"'c'"#,  RonValue::Char('c'));
+    }
+
+    #[test]
+    fn test_bytes() {
+        assert_ron_value(r#"0x0000"#, RonValue::Bytes(vec![0u8; 2].into()));
     }
 }

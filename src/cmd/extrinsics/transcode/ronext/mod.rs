@@ -34,6 +34,7 @@ pub enum RonValue {
     Option(Option<Box<RonValue>>),
     String(String),
     Seq(Vec<RonValue>),
+    Bytes(RonBytes),
     Unit,
 }
 
@@ -120,5 +121,23 @@ impl From<Vec<RonValue>> for RonTuple {
 impl RonTuple {
     pub fn new(ident: Option<&str>, values: Vec<RonValue>) -> Self {
         RonTuple { ident: ident.map(|s| s.into()), values }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct RonBytes {
+    bytes: Vec<u8>,
+}
+
+impl From<Vec<u8>> for RonBytes {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+}
+
+impl RonBytes {
+    pub fn from_hex_string(s: &str) -> Result<Self, hex::FromHexError> {
+        let bytes = hex::decode(s)?;
+        Ok(Self { bytes })
     }
 }
