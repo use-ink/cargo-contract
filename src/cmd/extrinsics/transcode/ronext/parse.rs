@@ -189,15 +189,15 @@ fn ron_seq(input: &str) -> IResult<&str, RonValue, RonParseError> {
 
 fn ron_map(input: &str) -> IResult<&str, RonValue, RonParseError> {
     let ident_key = map(rust_ident, |s| RonValue::String(s.into()));
-    // let ron_map_key = ws(alt((
-    //     ident_key,
-    //     ron_string,
-    //     ron_integer,
-    // )));
+    let ron_map_key = ws(alt((
+        ident_key,
+        ron_string,
+        ron_integer,
+    )));
 
     let opening = alt((tag("("), tag("{")));
     let closing = alt((tag(")"), tag("}")));
-    let entry = separated_pair(ws(ident_key), tag(":"), ron_value);
+    let entry = separated_pair(ron_map_key, ws(tag(":")), ron_value);
 
     let map_body = delimited(
         ws(opening),
@@ -304,6 +304,9 @@ mod tests {
         assert_eq!(rust_ident("a:"), Ok((":", "a")));
         assert_eq!(rust_ident("Ok"), Ok(("", "Ok")));
         assert_eq!(rust_ident("_ok"), Ok(("", "_ok")));
+        assert_eq!(rust_ident("im_ok"), Ok(("", "im_ok")));
+        // assert_eq!(rust_ident("im_ok_"), Ok(("", "im_ok_"))); // todo
+        assert_eq!(rust_ident("im_ok_123abc"), Ok(("", "im_ok_123abc")));
         assert!(rust_ident("1notok").is_err());
     }
 
@@ -312,10 +315,10 @@ mod tests {
         // assert_eq!(ron_value("()"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
         // assert_eq!(ron_value("{}"), Ok(("", RonValue::Map(RonMap::new(None, Default::default())))));
         //
-        // assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
-        // assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
-        // assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
-        // assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo ()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo()"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo {}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
+        assert_eq!(ron_value("Foo{}"), Ok(("", RonValue::Map(RonMap::new(Some("Foo"), Default::default())))));
 
         assert_eq!(rust_ident("a:"), Ok((":", "a")));
 
@@ -332,8 +335,15 @@ mod tests {
             (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
         ].into_iter().collect())))));
 
-        assert_eq!(ron_value(r#"B { a: 1 }"#), Ok(("", RonValue::Map(RonMap::new(Some("B"), vec![
+        assert_eq!(ron_value(r#"Struct { a : 1 }"#), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
             (RonValue::String("a".into()), RonValue::Number(ron::Number::Integer(1))),
         ].into_iter().collect())))));
+
+        assert_eq!(ron_value(r#"Mixed { 1: "a", "b": 2, c: true }"#), Ok(("", RonValue::Map(RonMap::new(Some("Struct"), vec![
+            (RonValue::Number(ron::Number::Integer(1)), RonValue::String("a".into())),
+            (RonValue::String("b".into()), RonValue::Number(ron::Number::Integer(2))),
+            (RonValue::String("c".into()), RonValue::Bool(true)),
+        ].into_iter().collect())))));
     }
+
 }
