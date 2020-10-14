@@ -156,7 +156,7 @@ pub fn resolve_type(
 mod tests {
     use super::*;
     use anyhow::Context;
-    use ronext::Value;
+    use ronext::{Value, Tuple};
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeDef, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
@@ -426,31 +426,27 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn transcode_variant() -> Result<()> {
         #[derive(TypeInfo)]
         #[allow(dead_code)]
         enum E {
-            A,
-            B(u32, String),
-            C { a: [u8; 4], b: Vec<E> },
+            A(u32, String),
+            B { a: [u8; 4], b: Vec<E> },
+            C,
         }
 
-        let v: Value = ronext::from_str(r#"A(1, "two")"#)?;
-        assert_eq!(Value::Unit, v);
+        transcode_roundtrip::<E>(
+            r#"A(1, "2")"#,
+            Value::Tuple(
+                Tuple::new(
+                    Some("A"),
+                    vec![Value::UInt(1), Value::String("2".into())]
+                )
+            )
+        )?;
 
         Ok(())
-
-        // transcode_roundtrip::<E>(
-        //     r#"A()"#,
-        //     // the RON/serde data model does not support enum variants, so we have to make it a Map
-        //     // with the key being the variant name
-        //     Value::Map(vec![
-        //         (
-        //             Value::String("A".to_string()),
-        //             Value::Unit
-        //         )
-        //     ].into_iter().collect())
-        // )
     }
 
     #[test]
