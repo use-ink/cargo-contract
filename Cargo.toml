@@ -86,6 +86,8 @@ extrinsics = [
     "subxt",
     "async-std",
     "futures",
+    "jsonrpsee",
+    "sp-rpc",
     "hex",
     "nom",
     "indexmap",
