@@ -519,8 +519,8 @@ dependencies = [
  "indexmap",
  "ink_env",
  "ink_lang",
- "ink_metadata",
- "ink_primitives",
+ "ink_metadata 3.0.0-rc1 (git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex)",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ink_storage",
  "itertools 0.9.0",
  "jsonrpsee",
@@ -1740,9 +1740,9 @@ dependencies = [
  "cfg-if 1.0.0",
  "derive_more",
  "ink_allocator",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits",
  "parity-scale-codec",
  "paste 1.0.1",
@@ -1762,9 +1762,9 @@ dependencies = [
  "derive_more",
  "ink_env",
  "ink_lang_macro",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ink_storage",
  "parity-scale-codec",
  "static_assertions",
@@ -1811,7 +1811,7 @@ checksum = "e88120dcc4ac936c8eb74b1fb082ec2f960f28d43647d590c9cfb189861c094d"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
- "ink_primitives",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "proc-macro2",
  "scale-info",
@@ -1827,8 +1827,21 @@ checksum = "1ed38fc186c14d52185a29749da0122529c7f4dfa8b51f953ab327572bffe9e1"
 dependencies = [
  "derive_more",
  "impl-serde",
- "ink_prelude",
- "ink_primitives",
+ "ink_prelude 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "scale-info",
+ "serde",
+]
+
+[[package]]
+name = "ink_metadata"
+version = "3.0.0-rc1"
+source = "git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex#e31840a3777373fdc3b0f8a4491c588e110f13f9"
+dependencies = [
+ "derive_more",
+ "impl-serde",
+ "ink_prelude 3.0.0-rc1 (git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex)",
+ "ink_primitives 3.0.0-rc1 (git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex)",
  "scale-info",
  "serde",
 ]
@@ -1843,14 +1856,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "ink_prelude"
+version = "3.0.0-rc1"
+source = "git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex#e31840a3777373fdc3b0f8a4491c588e110f13f9"
+dependencies = [
+ "cfg-if 1.0.0",
+]
+
+[[package]]
 name = "ink_primitives"
 version = "3.0.0-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d61a016f0261a13b40edfdc9dfc6fe9f352afd376202ea16e2667bf23555b7bc"
 dependencies = [
- "ink_prelude",
+ "ink_prelude 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "scale-info",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "ink_primitives"
+version = "3.0.0-rc1"
+source = "git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex#e31840a3777373fdc3b0f8a4491c588e110f13f9"
+dependencies = [
+ "ink_prelude 3.0.0-rc1 (git+https://github.com/paritytech/ink?branch=aj-decode-empty-hex)",
+ "parity-scale-codec",
  "tiny-keccak",
 ]
 
@@ -1866,9 +1897,9 @@ dependencies = [
  "derive_more",
  "generic-array 0.14.4",
  "ink_env",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives 3.0.0-rc1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ink_storage_derive",
  "parity-scale-codec",
  "scale-info",
