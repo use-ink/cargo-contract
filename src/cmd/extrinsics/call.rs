@@ -38,7 +38,7 @@ pub struct CallCommand {
     #[structopt(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Maximum amount of gas to be used for this command
-    #[structopt(name = "gas", long, default_value = "5000000000")]
+    #[structopt(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
     /// The value to be transferred as part of the call
     #[structopt(name = "value", long, default_value = "0")]
