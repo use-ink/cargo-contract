@@ -18,13 +18,13 @@ use anyhow::Result;
 use scale::{Compact, Decode, Input};
 use scale_info::{
     form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
-    TypeDefSequence,
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefVariant, TypeDefComposite, TypeDefPrimitive,
+    TypeDefSequence, Variant,
 };
 use std::{convert::TryInto, fmt::Debug};
 use super::{
     resolve_type,
-    ronext::Value,
+    ronext::{Map, Tuple, Value},
 };
 
 pub trait DecodeValue {
@@ -53,6 +53,7 @@ impl DecodeValue for TypeDef<CompactForm> {
     ) -> Result<Value> {
         match self {
             TypeDef::Composite(composite) => composite.decode_value(registry, input),
+            TypeDef::Variant(variant) => variant.decode_value(registry, input),
             TypeDef::Array(array) => array.decode_value(registry, input),
             TypeDef::Sequence(sequence) => sequence.decode_value(registry, input),
             TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
@@ -69,11 +70,52 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
     ) -> Result<Value> {
         let mut map = Vec::new();
         for field in self.fields() {
+            let name = field.name()
+                .ok_or(anyhow::anyhow!("Struct fields must always have a name"))?;
             let value = field.decode_value(registry, input)?;
-            let name = field.name().expect("Struct fields always have a name");
             map.push((Value::String(name.to_string()), value));
         }
         Ok(Value::Map(map.into_iter().collect()))
+    }
+}
+
+impl DecodeValue for TypeDefVariant<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<Value> {
+        let discriminant = input.read_byte()?;
+        let variant = self.variants().get(discriminant as usize)
+            .ok_or(anyhow::anyhow!("No variant found with discriminant {}", discriminant))?;
+        variant.decode_value(registry, input)
+    }
+}
+
+impl DecodeValue for Variant<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        input: &mut I,
+    ) -> Result<Value> {
+        let mut named = Vec::new();
+        let mut unnamed = Vec::new();
+        for field in self.fields() {
+            // println!("Decoding ")
+            let value = field.decode_value(registry, input)?;
+            if let Some(name) = field.name() {
+                named.push((Value::String(name.to_owned()), value));
+            } else {
+                unnamed.push(value);
+            }
+        }
+        if !named.is_empty() && !unnamed.is_empty() {
+            Err(anyhow::anyhow!("Variant must have either all named or all unnamed fields"))
+        } else if !named.is_empty() {
+            Ok(Value::Map(Map::new(Some(self.name()), named.into_iter().collect())))
+        } else {
+            Ok(Value::Tuple(Tuple::new(Some(self.name()), unnamed)))
+        }
     }
 }
 
@@ -174,37 +216,3 @@ impl DecodeValue for TypeDefPrimitive {
         }
     }
 }
-
-// todo: replace with Value, maybe an enum variant
-#[derive(Debug)]
-pub struct DecodedEvent {
-    pub name: String,
-    pub args: Vec<DecodedEventArg>,
-}
-
-#[derive(Debug)]
-pub struct DecodedEventArg {
-    pub name: String,
-    pub value: String,
-}
-
-//
-// fn decode_event(registry: &RegistryReadOnly, input: &[u8]) -> Result<DecodedEvent> {
-// 	match self {
-// 		TypeDef::Array(array) => {
-// 			match resolve_type(registry, array.type_param.id)? {
-// 				Type { type_def: TypeDef::Primitive(TypeDefPrimitive::U8), .. } => {
-// 					let len = <Compact<u32>>::decode(data)?;
-// 					let mut bytes = Vec::new();
-// 					for _ in 0..len.0 {
-// 						bytes.push(u8::decode(data)?)
-// 					}
-// 				},
-// 				_ => Err(anyhow::anyhow!("Only byte (u8) arrays supported")),
-// 			}
-// 		},
-// 		TypeDef::Primitive(primitive) => primitive.encode_arg(registry, arg),
-// 		TypeDef::Composite(composite) => composite.encode_arg(registry, arg),
-// 		_ => unimplemented!(),
-// 	}
-// }

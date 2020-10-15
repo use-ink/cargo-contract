@@ -50,12 +50,13 @@ sp-core = { version = "2.0.0", optional = true }
 subxt = { version = "0.13.0", package = "substrate-subxt", optional = true }
 futures = { version = "0.3.5", optional = true }
 hex = { version = "0.4.2", optional = true }
-jsonrpsee = "0.1.0"
-sp-rpc = "2.0.0"
-nom = "5.1.2"
-indexmap = "1.6.0"
-thiserror = "1.0.21"
-escape8259 = "0.5.0"
+jsonrpsee = { version = "0.1.0", optional = true }
+sp-rpc = { version = "2.0.0", optional = true }
+nom = { version = "5.1.2", optional = true }
+indexmap = { version = "1.6.0", optional = true }
+thiserror = { version = "1.0.21", optional = true }
+escape8259 = { version = "0.5.0", optional = true }
+itertools = { version = "0.9.0", optional = true }
 
 [build-dependencies]
 anyhow = "1.0.32"
@@ -78,7 +79,20 @@ std = []
 # Enable this for (experimental) commands to deploy, instantiate and call contracts.
 #
 # Disabled by default
-extrinsics = ["ink_metadata", "scale-info", "sp-core", "subxt", "async-std", "futures", "hex"]
+extrinsics = [
+    "ink_metadata",
+    "scale-info",
+    "sp-core",
+    "subxt",
+    "async-std",
+    "futures",
+    "hex",
+    "nom",
+    "indexmap",
+    "thiserror",
+    "escape8259",
+    "itertools",
+]
 
 # Enable this to execute long running tests, which usually are only run on the CI server
 #

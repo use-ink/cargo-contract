@@ -112,6 +112,10 @@ impl Map {
         }
     }
 
+    pub fn ident(&self) -> Option<String> {
+        self.ident.clone()
+    }
+
     /// Iterate all key-value pairs.
     pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + DoubleEndedIterator {
         self.map.iter()
@@ -141,6 +145,15 @@ impl From<Vec<Value>> for Tuple {
 impl Tuple {
     pub fn new(ident: Option<&str>, values: Vec<Value>) -> Self {
         Tuple { ident: ident.map(|s| s.into()), values }
+    }
+
+    pub fn ident(&self) -> Option<String> {
+        self.ident.clone()
+    }
+
+    /// Returns an iterator over the tuple's values
+    pub fn values(&self) -> impl Iterator<Item = &Value> {
+        self.values.iter()
     }
 }
 

@@ -19,9 +19,9 @@ mod encode;
 mod ronext;
 
 use self::{
-    decode::{DecodeValue, DecodedEvent, DecodedEventArg},
+    decode::DecodeValue,
     encode::EncodeValue,
-    ronext::{Value},
+    ronext::{Map, Value},
 };
 
 use anyhow::Result;
@@ -31,11 +31,18 @@ use scale_info::{
     form::{CompactForm, Form},
     RegistryReadOnly, Type,
 };
+use std::fmt::Debug;
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
 pub struct Transcoder {
     metadata: InkProject,
+}
+
+#[derive(Debug)]
+pub struct DecodedEvent {
+    pub name: String,
+    pub map: Map,
 }
 
 impl Transcoder {
@@ -101,7 +108,7 @@ impl Transcoder {
 
     pub fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
     where
-        I: Input,
+        I: Input + Debug,
     {
         let variant_index = data.read_byte()?;
         let event_spec = self
@@ -113,18 +120,19 @@ impl Transcoder {
                 "Event variant {} not found in contract metadata",
                 variant_index
             ))?;
+
         let mut args = Vec::new();
         for arg in event_spec.args() {
-            args.push(DecodedEventArg {
-                name: arg.name().to_string(),
-                value: "TODO".to_string(), // todo: resolve and decode type
-            })
+            let name = arg.name().to_string();
+            let ty = resolve_type(self.registry(), arg.ty().ty())?;
+            let value = ty.decode_value(self.registry(), data)?;
+            args.push((Value::String(name), value));
         }
 
-        Ok(DecodedEvent {
-            name: event_spec.name().to_string(),
-            args,
-        })
+        let name = event_spec.name().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(DecodedEvent { name, map })
     }
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
@@ -426,7 +434,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn transcode_variant() -> Result<()> {
         #[derive(TypeInfo)]
         #[allow(dead_code)]

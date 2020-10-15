@@ -522,6 +522,7 @@ dependencies = [
  "ink_metadata",
  "ink_primitives",
  "ink_storage",
+ "itertools 0.9.0",
  "jsonrpsee",
  "log",
  "nom",

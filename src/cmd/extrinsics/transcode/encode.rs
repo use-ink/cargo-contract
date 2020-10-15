@@ -15,12 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
+use itertools::Itertools;
 use scale::{Compact, Encode, Output};
-use scale_info::{
-    form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive,
-    TypeDefSequence,
-};
+use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 use super::ronext::Value;
 
@@ -72,6 +69,7 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
         output: &mut O,
     ) -> Result<()> {
         if let Value::Map(map) = value {
+            // todo: should lookup via name so that order does not matter
             for (field, value) in self.fields().iter().zip(map.values()) {
                 field.encode_value_to(registry, value, output)?;
             }
@@ -88,22 +86,58 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
 impl EncodeValue for TypeDefVariant<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        _registry: &RegistryReadOnly,
-        _value: &Value,
-        _output: &mut O,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
     ) -> Result<()> {
-        todo!()
-        // if let Value::Map(map) = value {
-        //     for (field, value) in self.fields().iter().zip(map.values()) {
-        //         field.encode_value_to(registry, value, output)?;
-        //     }
-        //     Ok(())
-        // } else {
-        //     Err(anyhow::anyhow!(
-        //         "Expected a Value::Map for a struct, found {:?}",
-        //         value
-        //     ))
-        // }
+        let variant_ident =
+            match value {
+                Value::Map(map) => {
+                    map.ident().ok_or(anyhow::anyhow!("Missing enum variant identifier for map"))
+                },
+                Value::Tuple(tuple) => {
+                    tuple.ident().ok_or(anyhow::anyhow!("Missing enum variant identifier for tuple"))
+                },
+                v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v))
+            }?;
+
+        let (index, variant) = self
+            .variants()
+            .iter()
+            .find_position(|v| v.name() == &variant_ident)
+            .ok_or(anyhow::anyhow!("No variant '{}' found", variant_ident))?;
+
+        let index: u8 = index.try_into().map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
+        output.push_byte(index);
+
+        variant.encode_value_to(registry, value, output)
+    }
+}
+
+impl EncodeValue for Variant<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        match value {
+            Value::Map(_map) => {
+                // todo: should lookup via name so that order does not matter
+                // for (field, value) in self.fields().iter().zip(map.values()) {
+                //     field.encode_value_to(registry, value, output)?;
+                // }
+                // Ok(())
+                todo!()
+            },
+            Value::Tuple(tuple) => {
+                for (field, value) in self.fields().iter().zip(tuple.values()) {
+                    field.encode_value_to(registry, value, output)?;
+                }
+                Ok(())
+            },
+            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v))
+        }
     }
 }
 
