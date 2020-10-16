@@ -57,7 +57,7 @@ impl Transcoder {
     pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<str>,
+        S: AsRef<str> + Debug,
     {
         let (selector, spec_args) = match (
             self.find_constructor_spec(name),
@@ -82,7 +82,9 @@ impl Transcoder {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let ty = resolve_type(self.registry(), spec.ty().ty())?;
+            log::debug!("Encoding arg {:?} with type {:?}", arg, ty);
             let value = ronext::from_str(arg.as_ref())?;
+            log::debug!("Arg value {:?}", value);
             ty.encode_value_to(&self.registry(), &value, &mut encoded)?;
         }
         Ok(encoded)
