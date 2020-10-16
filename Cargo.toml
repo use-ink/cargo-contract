@@ -44,7 +44,7 @@ url = { version = "2.1.1", features = ["serde"] }
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.2", optional = true }
-ink_metadata = { version = "3.0.0-rc1", git = "https://github.com/paritytech/ink", branch = "aj-decode-empty-hex", package = "ink_metadata", optional = true }
+ink_metadata = { version = "3.0.0-rc1", package = "ink_metadata", git = "https://github.com/paritytech/ink", optional = true }
 scale-info = { version = "0.4", default-features = false, features = ["derive"], optional = true }
 sp-core = { version = "2.0.0", optional = true }
 subxt = { version = "0.13.0", package = "substrate-subxt", optional = true }
@@ -67,10 +67,10 @@ walkdir = "2.3.1"
 assert_matches = "1.3.0"
 pretty_assertions = "0.6.1"
 wabt = "0.10.0"
-ink_primitives = "3.0.0-rc1"
-ink_env = "3.0.0-rc1"
-ink_storage = "3.0.0-rc1"
-ink_lang = "3.0.0-rc1"
+ink_primitives = { version = "3.0.0-rc1", package = "ink_primitives", git = "https://github.com/paritytech/ink" }
+ink_env = { version = "3.0.0-rc1", package = "ink_env", git = "https://github.com/paritytech/ink" }
+ink_storage = { version = "3.0.0-rc1", package = "ink_storage", git = "https://github.com/paritytech/ink" }
+ink_lang = { version = "3.0.0-rc1", package = "ink_lang", git = "https://github.com/paritytech/ink" }
 
 [features]
 default = ["std"]

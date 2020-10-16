@@ -25,6 +25,7 @@ use std::{convert::TryInto, fmt::Debug};
 use super::{
     resolve_type,
     ronext::{Map, Tuple, Value},
+    CompositeTypeFields,
 };
 
 pub trait DecodeValue {
@@ -68,14 +69,29 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
         registry: &RegistryReadOnly,
         input: &mut I,
     ) -> Result<Value> {
-        let mut map = Vec::new();
-        for field in self.fields() {
-            let name = field.name()
-                .ok_or(anyhow::anyhow!("Struct fields must always have a name"))?;
-            let value = field.decode_value(registry, input)?;
-            map.push((Value::String(name.to_string()), value));
+        let struct_type = CompositeTypeFields::from_type_def(&self)?;
+
+        match struct_type {
+            CompositeTypeFields::StructNamedFields(fields) => {
+                let mut map = Vec::new();
+                for field in fields {
+                    let value = field.field().decode_value(registry, input)?;
+                    map.push((Value::String(field.name().to_string()), value));
+                }
+                Ok(Value::Map(map.into_iter().collect()))
+            },
+            CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                let mut tuple = Vec::new();
+                for field in fields {
+                    let value = field.decode_value(registry, input)?;
+                    tuple.push(value);
+                }
+                Ok(Value::Tuple(tuple.into_iter().collect::<Vec<_>>().into()))
+            }
+            CompositeTypeFields::NoFields => {
+                Ok(Value::Tuple(Vec::new().into()))
+            }
         }
-        Ok(Value::Map(map.into_iter().collect()))
     }
 }
 
@@ -101,7 +117,6 @@ impl DecodeValue for Variant<CompactForm> {
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
         for field in self.fields() {
-            // println!("Decoding ")
             let value = field.decode_value(registry, input)?;
             if let Some(name) = field.name() {
                 named.push((Value::String(name.to_owned()), value));

@@ -27,10 +27,7 @@ use self::{
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
-use scale_info::{
-    form::{CompactForm, Form},
-    RegistryReadOnly, Type,
-};
+use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, Type, TypeDefComposite, Field};
 use std::fmt::Debug;
 
 /// Encode strings to SCALE encoded smart contract calls.
@@ -160,6 +157,49 @@ pub fn resolve_type(
         symbol.id()
     ))?;
     Ok(ty.clone())
+}
+
+#[derive(Debug)]
+pub enum CompositeTypeFields {
+    StructNamedFields(Vec<CompositeTypeNamedField>),
+    TupleStructUnnamedFields(Vec<Field<CompactForm>>),
+    NoFields,
+}
+
+#[derive(Debug)]
+pub struct CompositeTypeNamedField {
+    name: <CompactForm as Form>::String,
+    field: Field<CompactForm>,
+}
+
+impl CompositeTypeNamedField {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn field(&self) -> &Field<CompactForm> {
+        &self.field
+    }
+}
+
+impl CompositeTypeFields {
+    pub fn from_type_def(type_def: &TypeDefComposite<CompactForm>) -> Result<Self> {
+        if type_def.fields().is_empty() {
+            Ok(Self::NoFields)
+        } else if type_def.fields().iter().all(|f| f.name().is_some()) {
+            let fields = type_def.fields().iter().map(|f| {
+                CompositeTypeNamedField {
+                    name: f.name().expect("All fields have a name; qed").to_owned(),
+                    field: f.clone()
+                }
+            }).collect();
+            Ok(Self::StructNamedFields(fields))
+        } else if type_def.fields().iter().all(|f| f.name().is_none()) {
+            Ok(Self::TupleStructUnnamedFields(type_def.fields().to_vec()))
+        } else {
+            Err(anyhow::anyhow!("Struct fields should either be all named or all unnamed"))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -376,7 +416,7 @@ mod tests {
     }
 
     #[test]
-    fn transcode_composite() -> Result<()> {
+    fn transcode_composite_struct() -> Result<()> {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
@@ -433,6 +473,33 @@ mod tests {
                 .collect(),
             ),
         )
+    }
+
+    #[test]
+    fn transcode_composite_tuple_struct() -> Result<()> {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S (
+            u32,
+            String,
+            [u8; 4],
+        );
+
+        transcode_roundtrip::<S>(
+            r#"S(1, "ink!", "0xDEADBEEF")"#,
+            Value::Tuple(
+                vec![
+                    Value::UInt(1),
+                    Value::String("ink!".to_string()),
+                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                ].into()
+            )
+        )
+    }
+
+    #[test]
+    fn transcode_composite_single_field_struct() -> Result<()> {
+        todo!()
     }
 
     #[test]

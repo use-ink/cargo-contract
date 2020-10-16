@@ -19,9 +19,11 @@ use itertools::Itertools;
 use scale::{Compact, Encode, Output};
 use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
-use super::ronext::Value;
-
-use super::resolve_type;
+use super::{
+    ronext::Value,
+    resolve_type,
+    CompositeTypeFields,
+};
 
 pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
@@ -40,6 +42,7 @@ impl EncodeValue for Type<CompactForm> {
         output: &mut O,
     ) -> Result<()> {
         self.type_def().encode_value_to(registry, value, output)
+            .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", self.path(), e))
     }
 }
 
@@ -68,17 +71,39 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        if let Value::Map(map) = value {
-            // todo: should lookup via name so that order does not matter
-            for (field, value) in self.fields().iter().zip(map.values()) {
-                field.encode_value_to(registry, value, output)?;
+        let struct_type = CompositeTypeFields::from_type_def(&self)?;
+
+        match value {
+            Value::Map(map) => {
+                // todo: should lookup via name so that order does not matter
+                for (field, value) in self.fields().iter().zip(map.values()) {
+                    field.encode_value_to(registry, value, output)?;
+                }
+                Ok(())
+            },
+            Value::Tuple(tuple) => {
+                match struct_type {
+                    CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                        for (field, value) in fields.iter().zip(tuple.values()) {
+                            field.encode_value_to(registry, value, output)?;
+                        }
+                        Ok(())
+                    },
+                    CompositeTypeFields::NoFields => {
+                        Ok(())
+                    },
+                    CompositeTypeFields::StructNamedFields(_) => {
+                        return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
+                    }
+                }
+
+            },
+            v => {
+                Err(anyhow::anyhow!(
+                    "Expected a Value::Map for a struct, found {:?}",
+                    v
+                ))
             }
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!(
-                "Expected a Value::Map for a struct, found {:?}",
-                value
-            ))
         }
     }
 }
