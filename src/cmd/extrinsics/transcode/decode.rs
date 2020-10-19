@@ -195,7 +195,7 @@ fn decode_seq<I: Input + Debug>(
             let elem = ty.type_def().decode_value(registry, ty, input)?;
             elems.push(elem)
         }
-        Ok(Value::Seq(elems))
+        Ok(Value::Seq(elems.into()))
     }
 }
 

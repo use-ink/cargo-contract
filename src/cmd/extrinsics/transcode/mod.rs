@@ -360,14 +360,14 @@ mod tests {
                 Value::UInt(1),
                 Value::UInt(2),
                 Value::UInt(3),
-            ]),
+            ].into()),
         )?;
         transcode_roundtrip::<[String; 2]>(
             "[\"hello\", \"world\"]",
             Value::Seq(vec![
                 Value::String("hello".to_string()),
                 Value::String("world".to_string()),
-            ]),
+            ].into()),
         )
     }
 
@@ -379,14 +379,14 @@ mod tests {
                 Value::UInt(1),
                 Value::UInt(2),
                 Value::UInt(3),
-            ]),
+            ].into()),
         )?;
         transcode_roundtrip::<Vec<String>>(
             "[\"hello\", \"world\"]",
             Value::Seq(vec![
                 Value::String("hello".to_string()),
                 Value::String("world".to_string()),
-            ]),
+            ].into()),
         )
     }
 
@@ -442,12 +442,12 @@ mod tests {
                                 ),
                                 (
                                     Value::String("d".to_string()),
-                                    Value::Seq(Vec::new().into_iter().collect()),
+                                    Value::Seq(Vec::new().into_iter().collect::<Vec<_>>().into()),
                                 ),
                             ]
                             .into_iter()
                             .collect(),
-                        )]),
+                        )].into()),
                     ),
                 ]
                 .into_iter()

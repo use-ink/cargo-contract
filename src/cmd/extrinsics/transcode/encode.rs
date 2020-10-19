@@ -217,7 +217,7 @@ fn encode_seq<O: Output + Debug>(
             if encode_len {
                 Compact(values.len() as u32).encode_to(output);
             }
-            for value in values {
+            for value in values.elems() {
                 ty.type_def().encode_value_to(registry, value, output)?;
             }
         },

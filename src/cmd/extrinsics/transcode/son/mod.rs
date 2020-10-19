@@ -16,6 +16,7 @@
 
 //! SCALE Object Notation (SON)
 
+mod display;
 mod parse;
 
 use indexmap::IndexMap;
@@ -42,9 +43,9 @@ pub enum Value {
     Int(i128),
     Map(Map),
     Tuple(Tuple),
-    Option(Option<Box<Value>>),
+    Option(SonOption),
     String(String),
-    Seq(Vec<Value>),
+    Seq(Seq),
     Bytes(Bytes),
     Unit,
 }
@@ -160,6 +161,31 @@ impl Tuple {
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Seq {
+    elems: Vec<Value>,
+}
+
+impl From<Vec<Value>> for Seq {
+    fn from(elems: Vec<Value>) -> Self {
+        Self::new(elems)
+    }
+}
+
+impl Seq {
+    pub fn new(elems: Vec<Value>) -> Self {
+        Seq { elems }
+    }
+
+    pub fn elems(&self) -> &[Value] {
+        &self.elems
+    }
+
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Bytes {
     bytes: Vec<u8>,
 }
@@ -178,5 +204,17 @@ impl Bytes {
 
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SonOption {
+    value: Option<Box<Value>>,
+}
+
+impl From<Option<Value>> for SonOption {
+    fn from(value: Option<Value>) -> Self {
+        let value = value.map(Box::new);
+        SonOption { value }
     }
 }

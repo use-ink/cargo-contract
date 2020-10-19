@@ -18,7 +18,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{anychar, alphanumeric1, one_of, digit0, multispace0, char},
-    combinator::{map, opt, recognize, value, verify},
+    combinator::{map, map_res, opt, recognize, value, verify},
     error::{ErrorKind, ParseError},
     multi::{many0, many0_count, separated_list},
     sequence::{delimited, pair, separated_pair, tuple, preceded},
@@ -32,7 +32,6 @@ use super::{
     Value,
     Tuple,
 };
-use nom::combinator::map_res;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum SonParseError {
@@ -197,8 +196,8 @@ fn ron_seq(input: &str) -> IResult<&str, Value, SonParseError> {
 }
 
 fn ron_option(input: &str) -> IResult<&str, Value, SonParseError> {
-    let none = value(Value::Option(None), tag("None"));
-    let some_value = map(ron_value, |v| Value::Option(Some(v.into())));
+    let none = value(Value::Option(None.into()), tag("None"));
+    let some_value = map(ron_value, |v| Value::Option(Some(v.into()).into()));
     let some = preceded(
         tag("Some"),
         delimited(
@@ -365,7 +364,7 @@ mod tests {
         assert_eq!(ron_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
 
         let trailing = r#"["a", "b",]"#;
-        assert_eq!(ron_value(trailing), Ok(("", Value::Seq(vec![Value::String("a".into()), Value::String("b".into())]))));
+        assert_eq!(ron_value(trailing), Ok(("", Value::Seq(vec![Value::String("a".into()), Value::String("b".into())].into()))));
     }
 
     #[test]
@@ -437,7 +436,7 @@ mod tests {
         assert_eq!(ron_value(tuple), Ok(("", Value::Tuple(Tuple::new(Some("Mixed"), vec![
             Value::String("a".into()),
             Value::UInt(10),
-            Value::Seq(vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())]),
+            Value::Seq(vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())].into()),
         ])))));
 
         let nested = r#"(Nested("a", 10))"#;
@@ -454,8 +453,8 @@ mod tests {
 
     #[test]
     fn test_option() {
-        assert_ron_value(r#"Some("a")"#, Value::Option(Some(Value::String("a".into()).into())));
-        assert_ron_value(r#"None"#, Value::Option(None));
+        assert_ron_value(r#"Some("a")"#, Value::Option(Some(Value::String("a".into()).into()).into()));
+        assert_ron_value(r#"None"#, Value::Option(None.into()));
     }
 
     #[test]
