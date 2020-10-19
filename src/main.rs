@@ -260,6 +260,9 @@ fn exec(cmd: Command) -> Result<String> {
             Ok(format!("Contract account: {:?}", contract_account))
         }
         #[cfg(feature = "extrinsics")]
-        Command::Call(call) => call.run(),
+        Command::Call(call) => {
+            call.run()?;
+            Ok("".into())
+        },
     }
 }

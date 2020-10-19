@@ -17,11 +17,15 @@
 use super::Transcoder;
 use crate::ExtrinsicOpts;
 use anyhow::Result;
+use bat::PrettyPrinter;
 use jsonrpsee::common::Params;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    fmt::Display,
+};
 use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
@@ -50,8 +54,26 @@ pub struct CallCommand {
     rpc: bool,
 }
 
+fn pretty_print<V>(value: V) -> Result<()>
+where
+    V: Display,
+{
+    let content = format!("{}", value);
+    let mut pretty_printer = PrettyPrinter::new();
+    pretty_printer
+        .input_from_bytes(content.as_bytes())
+        .language("rust")
+        .tab_width(Some(4))
+        .true_color(false)
+        .header(false)
+        .line_numbers(false)
+        .grid(false);
+    let _ = pretty_printer.print();
+    Ok(())
+}
+
 impl CallCommand {
-    pub fn run(&self) -> Result<String> {
+    pub fn run(&self) -> Result<()> {
         let metadata = super::load_metadata()?;
         let msg_encoder = Transcoder::new(metadata);
         let call_data = msg_encoder.encode(&self.name, &self.args)?;
@@ -61,7 +83,7 @@ impl CallCommand {
             match result {
                 RpcContractExecResult::Success { data, .. } => {
                     let value = msg_encoder.decode_return(&self.name, data.0)?;
-                    Ok(format!("{:#?}", value))
+                    pretty_print(value)
                 }
                 RpcContractExecResult::Error(()) => {
                     Err(anyhow::anyhow!("Failed to execute call via rpc"))
@@ -76,9 +98,10 @@ impl CallCommand {
 
             if let Some(execution_event) = result.contract_execution()? {
                 let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
-                Ok(format!("{}", events))
+                pretty_print(events)
             } else {
-                Ok("Contract call succeeded".to_string())
+                println!("Contract call succeeded");
+                Ok(())
             }
         }
     }
