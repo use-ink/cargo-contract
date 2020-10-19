@@ -19,15 +19,15 @@ mod encode;
 mod son;
 
 use self::{
-    decode::DecodeValue,
-    encode::EncodeValue,
+    decode::decode_value,
+    encode::encode_value,
     son::{Map, Value},
 };
 
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
-use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, Type, TypeDefComposite, Field};
+use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, TypeDefComposite, Field};
 use std::fmt::Debug;
 
 /// Encode strings to SCALE encoded smart contract calls.
@@ -78,11 +78,8 @@ impl Transcoder {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
-            let ty = resolve_type(self.registry(), spec.ty().ty())?;
-            log::debug!("Encoding arg {:?} with type {:?}", arg, ty);
             let value = son::from_str(arg.as_ref())?;
-            log::debug!("Arg value {:?}", value);
-            ty.encode_value_to(&self.registry(), &value, &mut encoded)?;
+            encode_value(self.registry(), spec.ty().ty().id(), &value, &mut encoded)?;
         }
         Ok(encoded)
     }
@@ -123,8 +120,7 @@ impl Transcoder {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.name().to_string();
-            let ty = resolve_type(self.registry(), arg.ty().ty())?;
-            let value = ty.decode_value(self.registry(), data)?;
+            let value = decode_value(self.registry(), arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
         }
 
@@ -140,23 +136,11 @@ impl Transcoder {
             name
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            let ty = resolve_type(&self.registry(), return_ty.ty())?;
-            ty.type_def().decode_value(self.registry(), &mut &data[..])
+            decode_value(self.registry(), return_ty.ty().id(), &mut &data[..])
         } else {
             Ok(Value::Unit)
         }
     }
-}
-
-pub fn resolve_type(
-    registry: &RegistryReadOnly,
-    symbol: &<CompactForm as Form>::Type,
-) -> Result<Type<CompactForm>> {
-    let ty = registry.resolve(symbol.id()).ok_or(anyhow::anyhow!(
-        "Failed to resolve type with id '{}'",
-        symbol.id()
-    ))?;
-    Ok(ty.clone())
 }
 
 #[derive(Debug)]
@@ -208,7 +192,7 @@ mod tests {
     use anyhow::Context;
     use son::{Value, Tuple};
     use scale::Encode;
-    use scale_info::{MetaType, Registry, TypeDef, TypeInfo};
+    use scale_info::{MetaType, Registry, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
 
     use ink_lang as ink;
@@ -279,7 +263,7 @@ mod tests {
         Ok(())
     }
 
-    fn registry_with_type<T>() -> Result<(RegistryReadOnly, TypeDef<CompactForm>)>
+    fn registry_with_type<T>() -> Result<(RegistryReadOnly, NonZeroU32)>
     where
         T: scale_info::TypeInfo + 'static,
     {
@@ -287,9 +271,8 @@ mod tests {
         registry.register_type(&MetaType::new::<T>());
         let registry: RegistryReadOnly = registry.into();
 
-        let ty = registry.resolve(NonZeroU32::try_from(1)?).unwrap();
-        let type_def = ty.type_def().clone();
-        Ok((registry, type_def))
+        let type_id = NonZeroU32::try_from(1)?;
+        Ok((registry, type_id))
     }
 
     fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
@@ -300,9 +283,9 @@ mod tests {
 
         let value = son::from_str(input).context("Invalid SON value")?;
         let mut output = Vec::new();
-        ty.encode_value_to(&registry, &value, &mut output)?;
+        encode_value(&registry, ty, &value, &mut output)?;
         // println!("transcode_roundtrip: {:?}", output);
-        let decoded = ty.decode_value(&registry, &mut &output[..])?;
+        let decoded = decode_value(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
     }
@@ -319,10 +302,8 @@ mod tests {
 
         let encoded = u32::from('c').encode();
 
-        assert!(ty
-            .encode_value_to(&registry, &Value::Char('c'), &mut Vec::new())
-            .is_err());
-        assert!(ty.decode_value(&registry, &mut &encoded[..]).is_err());
+        assert!(encode_value(&registry, ty, &Value::Char('c'), &mut Vec::new()).is_err());
+        assert!(decode_value(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }
 
@@ -366,9 +347,9 @@ mod tests {
 
     #[test]
     fn transcode_byte_array() -> Result<()> {
-        transcode_roundtrip::<[u8; 2]>("\"0000\"", Value::Bytes(vec![0x00, 0x00].into()))?;
-        transcode_roundtrip::<[u8; 4]>("\"0xDEADBEEF\"", Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))?;
-        transcode_roundtrip::<[u8; 4]>("\"0xdeadbeef\"", Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))
+        transcode_roundtrip::<[u8; 2]>(r#"0x0000"#, Value::Bytes(vec![0x00, 0x00].into()))?;
+        transcode_roundtrip::<[u8; 4]>(r#"0xDEADBEEF"#, Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))?;
+        transcode_roundtrip::<[u8; 4]>(r#"0xdeadbeef"#, Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))
     }
 
     #[test]
@@ -428,7 +409,7 @@ mod tests {
         }
 
         transcode_roundtrip::<S>(
-            r#"S(a: 1, b: "ink!", c: "0xDEADBEEF", d: [S(a: 2, b: "ink!", c: "0xDEADBEEF", d: [])])"#,
+            r#"S(a: 1, b: "ink!", c: 0xDEADBEEF, d: [S(a: 2, b: "ink!", c: 0xDEADBEEF, d: [])])"#,
             Value::Map(
                 vec![
                     (
@@ -486,20 +467,39 @@ mod tests {
         );
 
         transcode_roundtrip::<S>(
-            r#"S(1, "ink!", "0xDEADBEEF")"#,
+            r#"S(1, "ink!", 0xDEADBEEF)"#,
             Value::Tuple(
+                Tuple::new(
+                    Some("S"),
                 vec![
-                    Value::UInt(1),
-                    Value::String("ink!".to_string()),
-                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                ].into()
+                        Value::UInt(1),
+                        Value::String("ink!".to_string()),
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    ]
+                )
             )
         )
     }
 
     #[test]
     fn transcode_composite_single_field_struct() -> Result<()> {
-        todo!()
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S (
+            [u8; 4],
+        );
+
+        transcode_roundtrip::<S>(
+            r#""0xDEADBEEF""#,
+            Value::Tuple(
+                Tuple::new(
+                    Some("S"),
+                    vec![
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    ].into()
+                )
+            )
+        )
     }
 
     #[test]

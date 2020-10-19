@@ -23,41 +23,45 @@ use scale_info::{
 };
 use std::{convert::TryInto, fmt::Debug};
 use super::{
-    resolve_type,
     son::{Map, Tuple, Value},
     CompositeTypeFields,
 };
+use sp_core::sp_std::num::NonZeroU32;
 
 pub trait DecodeValue {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        ty: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value>;
 }
 
-impl DecodeValue for Type<CompactForm> {
-    fn decode_value<I: Input + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        input: &mut I,
-    ) -> Result<Value> {
-        self.type_def().decode_value(registry, input)
-    }
+pub fn decode_value<I>(registry: &RegistryReadOnly, type_id: NonZeroU32, input: &mut I) -> Result<Value>
+where
+    I: Input + Debug
+{
+    let ty = registry.resolve(type_id)
+        .ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id '{}'",
+            type_id
+        ))?;
+    ty.type_def().decode_value(registry, &ty, input)
 }
 
 impl DecodeValue for TypeDef<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        ty: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         match self {
-            TypeDef::Composite(composite) => composite.decode_value(registry, input),
-            TypeDef::Variant(variant) => variant.decode_value(registry, input),
-            TypeDef::Array(array) => array.decode_value(registry, input),
-            TypeDef::Sequence(sequence) => sequence.decode_value(registry, input),
-            TypeDef::Primitive(primitive) => primitive.decode_value(registry, input),
+            TypeDef::Composite(composite) => composite.decode_value(registry, ty, input),
+            TypeDef::Variant(variant) => variant.decode_value(registry, ty, input),
+            TypeDef::Array(array) => array.decode_value(registry, ty, input),
+            TypeDef::Sequence(sequence) => sequence.decode_value(registry, ty, input),
+            TypeDef::Primitive(primitive) => primitive.decode_value(registry, ty, input),
             def => unimplemented!("{:?}", def),
         }
     }
@@ -67,29 +71,31 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        ty: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         let struct_type = CompositeTypeFields::from_type_def(&self)?;
+        let ident = ty.path().segments().last().map(|s| s.as_str());
 
         match struct_type {
             CompositeTypeFields::StructNamedFields(fields) => {
                 let mut map = Vec::new();
                 for field in fields {
-                    let value = field.field().decode_value(registry, input)?;
+                    let value = field.field().decode_value(registry, ty, input)?;
                     map.push((Value::String(field.name().to_string()), value));
                 }
-                Ok(Value::Map(map.into_iter().collect()))
+                Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
             },
             CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                 let mut tuple = Vec::new();
                 for field in fields {
-                    let value = field.decode_value(registry, input)?;
+                    let value = field.decode_value(registry, ty, input)?;
                     tuple.push(value);
                 }
-                Ok(Value::Tuple(tuple.into_iter().collect::<Vec<_>>().into()))
+                Ok(Value::Tuple(Tuple::new(ident, tuple.into_iter().collect::<Vec<_>>())))
             }
             CompositeTypeFields::NoFields => {
-                Ok(Value::Tuple(Vec::new().into()))
+                Ok(Value::Tuple(Tuple::new(ident, Vec::new())))
             }
         }
     }
@@ -99,12 +105,13 @@ impl DecodeValue for TypeDefVariant<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        ty: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
         let variant = self.variants().get(discriminant as usize)
             .ok_or(anyhow::anyhow!("No variant found with discriminant {}", discriminant))?;
-        variant.decode_value(registry, input)
+        variant.decode_value(registry, ty, input)
     }
 }
 
@@ -112,12 +119,13 @@ impl DecodeValue for Variant<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        ty: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
         for field in self.fields() {
-            let value = field.decode_value(registry, input)?;
+            let value = field.decode_value(registry, ty, input)?;
             if let Some(name) = field.name() {
                 named.push((Value::String(name.to_owned()), value));
             } else {
@@ -138,10 +146,10 @@ impl DecodeValue for Field<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        _: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
-        let ty = resolve_type(registry, self.ty())?;
-        ty.decode_value(registry, input)
+        decode_value(registry, self.ty().id(), input)
     }
 }
 
@@ -149,6 +157,7 @@ impl DecodeValue for TypeDefArray<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        _: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         decode_seq(self.type_param(), self.len() as usize, registry, input)
@@ -159,6 +168,7 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
     fn decode_value<I: Input + Debug>(
         &self,
         registry: &RegistryReadOnly,
+        _: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         let len = <Compact<u32>>::decode(input)?;
@@ -172,16 +182,17 @@ fn decode_seq<I: Input + Debug>(
     registry: &RegistryReadOnly,
     input: &mut I,
 ) -> Result<Value> {
-    let ty = resolve_type(registry, ty)?;
+    let ty = registry.resolve(ty.id())
+        .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+
     if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
-        // byte arrays represented as hex byte strings
         let mut bytes = vec![0u8; len];
         input.read(&mut bytes)?;
         Ok(Value::Bytes(bytes.into()))
     } else {
         let mut elems = Vec::new();
         while elems.len() < len as usize {
-            let elem = ty.decode_value(registry, input)?;
+            let elem = ty.type_def().decode_value(registry, ty, input)?;
             elems.push(elem)
         }
         Ok(Value::Seq(elems))
@@ -192,6 +203,7 @@ impl DecodeValue for TypeDefPrimitive {
     fn decode_value<I: Input + Debug>(
         &self,
         _: &RegistryReadOnly,
+        _: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
         match self {

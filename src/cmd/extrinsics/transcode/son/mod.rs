@@ -175,4 +175,8 @@ impl Bytes {
         let bytes = hex::decode(s)?;
         Ok(Self { bytes })
     }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
 }

@@ -17,13 +17,13 @@
 use anyhow::Result;
 use itertools::Itertools;
 use scale::{Compact, Encode, Output};
-use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
+use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 use super::{
     son::Value,
-    resolve_type,
     CompositeTypeFields,
 };
+use sp_core::sp_std::num::NonZeroU32;
 
 pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
@@ -34,16 +34,17 @@ pub trait EncodeValue {
     ) -> Result<()>;
 }
 
-impl EncodeValue for Type<CompactForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        registry: &RegistryReadOnly,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        self.type_def().encode_value_to(registry, value, output)
-            .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", self.path(), e))
-    }
+pub fn encode_value<O>(registry: &RegistryReadOnly, type_id: NonZeroU32, value: &Value, output: &mut O) -> Result<()>
+where
+    O: Output + Debug
+{
+    let ty = registry.resolve(type_id)
+        .ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id '{}'",
+            type_id
+        ))?;
+    ty.type_def().encode_value_to(registry, value, output)
+        .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))
 }
 
 impl EncodeValue for TypeDef<CompactForm> {
@@ -173,8 +174,7 @@ impl EncodeValue for Field<CompactForm> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        let ty = resolve_type(registry, self.ty())?;
-        ty.encode_value_to(registry, value, output)
+        encode_value(registry, self.ty().id(), value, output)
     }
 }
 
@@ -201,41 +201,34 @@ impl EncodeValue for TypeDefSequence<CompactForm> {
 }
 
 fn encode_seq<O: Output + Debug>(
-    type_param: &<CompactForm as Form>::Type,
+    ty: &<CompactForm as Form>::Type,
     registry: &RegistryReadOnly,
     value: &Value,
     encode_len: bool,
     output: &mut O,
 ) -> Result<()> {
-    let ty = resolve_type(registry, type_param)?;
+    let ty = registry.resolve(ty.id())
+        .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
     match value {
-        Value::String(s) => {
-            if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
-                if encode_len {
-                    Compact(s.len() as u32).encode_to(output);
-                }
-                let decoded_byte_string = hex::decode(s.trim_start_matches("0x"))?;
-                for byte in decoded_byte_string {
-                    byte.encode_to(output);
-                }
-                Ok(())
-            } else {
-                Err(anyhow::anyhow!(
-                    "Only byte (u8) arrays supported as strings"
-                ))
-            }
-        }
         Value::Seq(values) => {
             if encode_len {
                 Compact(values.len() as u32).encode_to(output);
             }
             for value in values {
-                ty.encode_value_to(registry, value, output)?;
+                ty.type_def().encode_value_to(registry, value, output)?;
             }
-            Ok(())
+        },
+        Value::Bytes(bytes) => {
+            if encode_len {
+                Compact(bytes.bytes().len() as u32).encode_to(output);
+            }
+            for byte in bytes.bytes() {
+                output.push_byte(*byte);
+            }
         }
-        value => Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
+        value => return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
     }
+    Ok(())
 }
 
 impl EncodeValue for TypeDefPrimitive {
