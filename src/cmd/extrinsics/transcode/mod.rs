@@ -28,18 +28,14 @@ use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
 use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, TypeDefComposite, Field};
-use std::fmt::Debug;
+use std::fmt::{
+    self, Display, Debug, Formatter,
+};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
 pub struct Transcoder {
     metadata: InkProject,
-}
-
-#[derive(Debug)]
-pub struct DecodedEvent {
-    pub name: String,
-    pub map: Map,
 }
 
 impl Transcoder {
@@ -183,6 +179,18 @@ impl CompositeTypeFields {
         } else {
             Err(anyhow::anyhow!("Struct fields should either be all named or all unnamed"))
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct DecodedEvent {
+    pub name: String,
+    pub map: Map,
+}
+
+impl Display for DecodedEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.map)
     }
 }
 

@@ -76,7 +76,7 @@ impl CallCommand {
 
             if let Some(execution_event) = result.contract_execution()? {
                 let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
-                Ok(format!("{:?}", events))
+                Ok(format!("{}", events))
             } else {
                 Ok("Contract call succeeded".to_string())
             }
