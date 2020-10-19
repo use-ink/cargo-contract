@@ -490,7 +490,7 @@ mod tests {
         );
 
         transcode_roundtrip::<S>(
-            r#""0xDEADBEEF""#,
+            r#"0xDEADBEEF"#,
             Value::Tuple(
                 Tuple::new(
                     Some("S"),

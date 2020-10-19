@@ -97,13 +97,16 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
                         return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
                     }
                 }
-
             },
             v => {
-                Err(anyhow::anyhow!(
-                    "Expected a Value::Map for a struct, found {:?}",
-                    v
-                ))
+                if let Ok(single_field) = self.fields().iter().exactly_one() {
+                    single_field.encode_value_to(registry, value, output)
+                } else {
+                    Err(anyhow::anyhow!(
+                        "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
+                        v
+                    ))
+                }
             }
         }
     }
