@@ -366,9 +366,9 @@ mod tests {
 
     #[test]
     fn transcode_byte_array() -> Result<()> {
-        transcode_roundtrip::<[u8; 2]>("\"0000\"", Value::String("0000".to_string()))?;
-        transcode_roundtrip::<[u8; 4]>("\"0xDEADBEEF\"", Value::String("deadbeef".to_string()))?;
-        transcode_roundtrip::<[u8; 4]>("\"0xdeadbeef\"", Value::String("deadbeef".to_string()))
+        transcode_roundtrip::<[u8; 2]>("\"0000\"", Value::Bytes(vec![0x00, 0x00].into()))?;
+        transcode_roundtrip::<[u8; 4]>("\"0xDEADBEEF\"", Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))?;
+        transcode_roundtrip::<[u8; 4]>("\"0xdeadbeef\"", Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))
     }
 
     #[test]
@@ -441,7 +441,7 @@ mod tests {
                     ),
                     (
                         Value::String("c".to_string()),
-                        Value::String("deadbeef".to_string()),
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
                     ),
                     (
                         Value::String("d".to_string()),
@@ -457,7 +457,7 @@ mod tests {
                                 ),
                                 (
                                     Value::String("c".to_string()),
-                                    Value::String("deadbeef".to_string()),
+                                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
                                 ),
                                 (
                                     Value::String("d".to_string()),

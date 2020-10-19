@@ -177,8 +177,7 @@ fn decode_seq<I: Input + Debug>(
         // byte arrays represented as hex byte strings
         let mut bytes = vec![0u8; len];
         input.read(&mut bytes)?;
-        let byte_str = hex::encode(bytes);
-        Ok(Value::String(byte_str))
+        Ok(Value::Bytes(bytes.into()))
     } else {
         let mut elems = Vec::new();
         while elems.len() < len as usize {
