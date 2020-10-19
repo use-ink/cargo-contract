@@ -20,7 +20,7 @@ use scale::{Compact, Encode, Output};
 use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 use super::{
-    ronext::Value,
+    son::Value,
     resolve_type,
     CompositeTypeFields,
 };

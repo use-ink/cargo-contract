@@ -24,7 +24,7 @@ use scale_info::{
 use std::{convert::TryInto, fmt::Debug};
 use super::{
     resolve_type,
-    ronext::{Map, Tuple, Value},
+    son::{Map, Tuple, Value},
     CompositeTypeFields,
 };
 

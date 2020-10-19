@@ -16,12 +16,12 @@
 
 mod decode;
 mod encode;
-mod ronext;
+mod son;
 
 use self::{
     decode::DecodeValue,
     encode::EncodeValue,
-    ronext::{Map, Value},
+    son::{Map, Value},
 };
 
 use anyhow::Result;
@@ -80,7 +80,7 @@ impl Transcoder {
         for (spec, arg) in spec_args.iter().zip(args) {
             let ty = resolve_type(self.registry(), spec.ty().ty())?;
             log::debug!("Encoding arg {:?} with type {:?}", arg, ty);
-            let value = ronext::from_str(arg.as_ref())?;
+            let value = son::from_str(arg.as_ref())?;
             log::debug!("Arg value {:?}", value);
             ty.encode_value_to(&self.registry(), &value, &mut encoded)?;
         }
@@ -206,7 +206,7 @@ impl CompositeTypeFields {
 mod tests {
     use super::*;
     use anyhow::Context;
-    use ronext::{Value, Tuple};
+    use son::{Value, Tuple};
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeDef, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
@@ -298,7 +298,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
 
-        let value = ronext::from_str(input).context("Invalid RON value")?;
+        let value = son::from_str(input).context("Invalid SON value")?;
         let mut output = Vec::new();
         ty.encode_value_to(&registry, &value, &mut output)?;
         // println!("transcode_roundtrip: {:?}", output);

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+//! SCALE Object Notation (SON)
+
 mod parse;
 
 use indexmap::IndexMap;
@@ -25,7 +27,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-pub fn from_str<S>(s: S) -> Result<Value, nom::Err<parse::RonParseError>>
+pub fn from_str<S>(s: S) -> Result<Value, nom::Err<parse::SonParseError>>
 where
     S: AsRef<str>
 {

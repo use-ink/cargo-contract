@@ -35,7 +35,7 @@ use super::{
 use nom::combinator::map_res;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
-pub enum RonParseError {
+pub enum SonParseError {
     #[error("bad integer")]
     BadInt(#[from] ParseIntError),
     #[error("bad escape sequence")]
@@ -46,9 +46,9 @@ pub enum RonParseError {
     Unparseable,
 }
 
-impl<I> ParseError<I> for RonParseError {
+impl<I> ParseError<I> for SonParseError {
     fn from_error_kind(_input: I, _kind: ErrorKind) -> Self {
-        RonParseError::Unparseable
+        SonParseError::Unparseable
     }
 
     fn append(_: I, _: ErrorKind, other: Self) -> Self {
@@ -56,13 +56,13 @@ impl<I> ParseError<I> for RonParseError {
     }
 }
 
-fn ron_string(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_string(input: &str) -> IResult<&str, Value, SonParseError> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
     // Note: we don't enforce that escape codes are valid here.
     // There must be a decoder later on.
-    fn escape_code(input: &str) -> IResult<&str, &str, RonParseError> {
+    fn escape_code(input: &str) -> IResult<&str, &str, SonParseError> {
         recognize(
             pair(
                 tag("\\"),
@@ -82,7 +82,7 @@ fn ron_string(input: &str) -> IResult<&str, Value, RonParseError> {
     }
 
     // Zero or more text characters
-    fn string_body(input: &str) -> IResult<&str, &str, RonParseError> {
+    fn string_body(input: &str) -> IResult<&str, &str, SonParseError> {
         recognize(
             many0(
                 alt((
@@ -93,7 +93,7 @@ fn ron_string(input: &str) -> IResult<&str, Value, RonParseError> {
         )(input)
     }
 
-    fn string_literal(input: &str) -> IResult<&str, String, RonParseError> {
+    fn string_literal(input: &str) -> IResult<&str, String, SonParseError> {
         let (remain, raw_string) = delimited(
             tag("\""),
             string_body,
@@ -102,7 +102,7 @@ fn ron_string(input: &str) -> IResult<&str, Value, RonParseError> {
 
         match unescape(raw_string) {
             Ok(s) => Ok((remain, s)),
-            Err(_) => Err(nom::Err::Failure(RonParseError::BadEscape)),
+            Err(_) => Err(nom::Err::Failure(SonParseError::BadEscape)),
         }
     }
 
@@ -122,25 +122,25 @@ fn is_nonescaped_string_char(c: char) -> bool {
 }
 
 // One or more unescaped text characters
-fn nonescaped_string(input: &str) -> IResult<&str, &str, RonParseError> {
+fn nonescaped_string(input: &str) -> IResult<&str, &str, SonParseError> {
     take_while1(is_nonescaped_string_char)
         (input)
 }
 
-fn rust_ident(input: &str) -> IResult<&str, &str, RonParseError> {
+fn rust_ident(input: &str) -> IResult<&str, &str, SonParseError> {
     recognize(pair(
         verify(anychar, |&c| c.is_alphabetic() || c == '_'),
         many0_count(preceded(opt(char('_')), alphanumeric1))
     ))(input)
 }
 
-fn digit1to9(input: &str) -> IResult<&str, char, RonParseError> {
+fn digit1to9(input: &str) -> IResult<&str, char, SonParseError> {
     one_of("123456789")
         (input)
 }
 
 // unsigned_integer = zero / ( digit1-9 *DIGIT )
-fn uint(input: &str) -> IResult<&str, &str, RonParseError> {
+fn uint(input: &str) -> IResult<&str, &str, SonParseError> {
     alt((
         tag("0"),
         recognize(
@@ -153,36 +153,36 @@ fn uint(input: &str) -> IResult<&str, &str, RonParseError> {
         (input)
 }
 
-fn ron_integer(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     let signed = recognize(pair(
         char('-'),
         uint
     ));
 
     alt((
-        map_res(signed, |s| s.parse::<i128>().map_err(RonParseError::BadInt).map(Value::Int)),
-        map_res(uint, |s| s.parse::<u128>().map_err(RonParseError::BadInt).map(Value::UInt))
+        map_res(signed, |s| s.parse::<i128>().map_err(SonParseError::BadInt).map(Value::Int)),
+        map_res(uint, |s| s.parse::<u128>().map_err(SonParseError::BadInt).map(Value::UInt))
         ))(input)
 }
 
-fn ron_unit(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_unit(input: &str) -> IResult<&str, Value, SonParseError> {
     let (i, _) = tag("()")(input)?;
     Ok((i, Value::Unit))
 }
 
-fn ron_bool(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_bool(input: &str) -> IResult<&str, Value, SonParseError> {
     alt((
         value(Value::Bool(false), tag("false")),
         value(Value::Bool(true), tag("true")),
     ))(input)
 }
 
-fn ron_char(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_char(input: &str) -> IResult<&str, Value, SonParseError> {
     let parse_char = delimited(tag("'"), anychar, tag("'"));
     map(parse_char, |c| Value::Char(c))(input)
 }
 
-fn ron_seq(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_seq(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
     let parser = delimited(
@@ -196,7 +196,7 @@ fn ron_seq(input: &str) -> IResult<&str, Value, RonParseError> {
         (input)
 }
 
-fn ron_option(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_option(input: &str) -> IResult<&str, Value, SonParseError> {
     let none = value(Value::Option(None), tag("None"));
     let some_value = map(ron_value, |v| Value::Option(Some(v.into())));
     let some = preceded(
@@ -209,7 +209,7 @@ fn ron_option(input: &str) -> IResult<&str, Value, RonParseError> {
     alt((none, some))(input)
 }
 
-fn ron_tuple(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
@@ -224,7 +224,7 @@ fn ron_tuple(input: &str) -> IResult<&str, Value, RonParseError> {
     })(input)
 }
 
-fn ron_map(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_map(input: &str) -> IResult<&str, Value, SonParseError> {
     let ident_key = map(rust_ident, |s| Value::String(s.into()));
     let ron_map_key = ws(alt((
         ident_key,
@@ -250,7 +250,7 @@ fn ron_map(input: &str) -> IResult<&str, Value, RonParseError> {
     })(input)
 }
 
-fn ron_bytes(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
     let (rest, byte_str) = preceded(tag("0x"), nom::character::complete::hex_digit1)(input)?;
     let bytes = Bytes::from_hex_string(byte_str)
         .map_err(|e| nom::Err::Failure(e.into()))?;
@@ -267,7 +267,7 @@ fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
     delimited(multispace0, f, multispace0)
 }
 
-fn ron_value(input: &str) -> IResult<&str, Value, RonParseError> {
+fn ron_value(input: &str) -> IResult<&str, Value, SonParseError> {
     ws(alt((
         ron_unit,
         ron_bytes,
@@ -283,8 +283,8 @@ fn ron_value(input: &str) -> IResult<&str, Value, RonParseError> {
         (input)
 }
 
-/// Attempt to parse a RON (extended) value
-pub fn parse_value(input: &str) -> Result<Value, nom::Err<RonParseError>> {
+/// Attempt to parse a SON value
+pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
     let (_, value) = ron_value(input)?;
     Ok(value)
 }
@@ -353,7 +353,7 @@ mod tests {
         assert!(ron_string(r#""\""#).is_err());
 
         // Parses correctly but has escape errors due to incomplete surrogate pair.
-        assert_eq!(ron_string(r#""\ud800""#), Err(nom::Err::Failure(RonParseError::BadEscape)));
+        assert_eq!(ron_string(r#""\ud800""#), Err(nom::Err::Failure(SonParseError::BadEscape)));
     }
 
     #[test]
