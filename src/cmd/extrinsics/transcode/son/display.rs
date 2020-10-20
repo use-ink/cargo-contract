@@ -22,42 +22,44 @@ use super::{
     Tuple,
     Value
 };
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Debug, Display, Formatter, Result};
 
-impl Display for Value {
+impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            Value::Bool(boolean) => boolean.fmt(f),
-            Value::Char(character) => character.fmt(f),
-            Value::UInt(uint) => uint.fmt(f),
-            Value::Int(integer) => integer.fmt(f),
-            Value::Map(map) => map.fmt(f),
-            Value::Tuple(tuple) => tuple.fmt(f),
-            Value::Option(option) => option.fmt(f),
-            Value::String(string) => string.fmt(f),
-            Value::Seq(seq) => seq.fmt(f),
-            Value::Bytes(bytes) => bytes.fmt(f),
+            Value::Bool(boolean) => <bool as Debug>::fmt(boolean, f),
+            Value::Char(character) => <char as Debug>::fmt(character, f),
+            Value::UInt(uint) => <u128 as Debug>::fmt(uint, f),
+            Value::Int(integer) => <i128 as Debug>::fmt(integer, f),
+            Value::Map(map) => <Map as Debug>::fmt(map, f),
+            Value::Tuple(tuple) => <Tuple as Debug>::fmt(tuple, f),
+            Value::Option(option) => <SonOption as Debug>::fmt(option, f),
+            Value::String(string) => <String as Display>::fmt(string, f),
+            Value::Seq(seq) => <Seq as Debug>::fmt(seq, f),
+            Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
             Value::Unit => write!(f, "()")
         }
     }
 }
 
-impl Display for Map {
+impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ref ident) = self.ident {
-            write!(f, "{} {{ ", ident)?;
-        } else {
-            write!(f, "{{ ")?;
-        }
-
-        for (name, value) in self.map.iter() {
-            write!(f, "{}: {}, ", name, value)?;
-        }
-        write!(f, " }}")
+        <Value as Debug>::fmt(self, f)
     }
 }
 
-impl Display for Tuple {
+impl Debug for Map {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let name = self.ident.as_ref().map_or("", |s| s.as_str());
+        let mut builder = f.debug_struct(name);
+        for (name, value) in self.map.iter() {
+            builder.field(&format!("{:?}", name), value);
+        }
+        builder.finish()
+    }
+}
+
+impl Debug for Tuple {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(ref ident) = self.ident {
             write!(f, "{} ( ", ident)?;
@@ -72,7 +74,7 @@ impl Display for Tuple {
     }
 }
 
-impl Display for Seq {
+impl Debug for Seq {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "[ ")?;
         for item in &self.elems {
@@ -82,13 +84,13 @@ impl Display for Seq {
     }
 }
 
-impl Display for Bytes {
+impl Debug for Bytes {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", hex::encode(&self.bytes))
+        write!(f, "0x{}", hex::encode(&self.bytes))
     }
 }
 
-impl Display for SonOption {
+impl Debug for SonOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
             None => write!(f, "None"),

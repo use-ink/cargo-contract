@@ -24,7 +24,7 @@ use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
 use std::{
     convert::TryInto,
-    fmt::Display,
+    fmt::Debug,
 };
 use structopt::StructOpt;
 use subxt::{
@@ -56,9 +56,9 @@ pub struct CallCommand {
 
 fn pretty_print<V>(value: V) -> Result<()>
 where
-    V: Display,
+    V: Debug,
 {
-    let content = format!("{}", value);
+    let content = format!("{:#?}", value);
     let mut pretty_printer = PrettyPrinter::new();
     pretty_printer
         .input_from_bytes(content.as_bytes())

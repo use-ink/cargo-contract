@@ -35,7 +35,7 @@ where
     parse::parse_value(s.as_ref())
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Value {
     Bool(bool),
     Char(char),
@@ -50,7 +50,7 @@ pub enum Value {
     Unit,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Map {
     ident: Option<String>,
     map: IndexMap<Value, Value>,
@@ -130,7 +130,7 @@ impl Map {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Tuple {
     ident: Option<String>,
     values: Vec<Value>,
@@ -160,7 +160,7 @@ impl Tuple {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Seq {
     elems: Vec<Value>,
 }
@@ -185,7 +185,7 @@ impl Seq {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Bytes {
     bytes: Vec<u8>,
 }
@@ -207,7 +207,7 @@ impl Bytes {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SonOption {
     value: Option<Box<Value>>,
 }

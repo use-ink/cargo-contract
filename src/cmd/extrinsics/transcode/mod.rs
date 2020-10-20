@@ -29,7 +29,7 @@ use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
 use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, TypeDefComposite, Field};
 use std::fmt::{
-    self, Display, Debug, Formatter,
+    self, Debug, Formatter,
 };
 
 /// Encode strings to SCALE encoded smart contract calls.
@@ -182,15 +182,14 @@ impl CompositeTypeFields {
     }
 }
 
-#[derive(Debug)]
 pub struct DecodedEvent {
     pub name: String,
     pub map: Map,
 }
 
-impl Display for DecodedEvent {
+impl Debug for DecodedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.map)
+        self.map.fmt(f)
     }
 }
 
