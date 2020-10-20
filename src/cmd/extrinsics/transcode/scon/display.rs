@@ -61,7 +61,7 @@ impl Debug for Map {
             None => {
                 let mut builder = f.debug_map();
                 for (name, value) in self.map.iter() {
-                    builder.field(&format!("{:?}", name), value);
+                    builder.entry(name, value);
                 }
                 builder.finish()
             }
