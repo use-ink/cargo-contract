@@ -23,7 +23,7 @@ use scale_info::{
 };
 use std::{convert::TryInto, fmt::Debug};
 use super::{
-    son::{Map, Tuple, Value},
+    scon::{Map, Tuple, Value},
     CompositeTypeFields,
 };
 use sp_core::sp_std::num::NonZeroU32;

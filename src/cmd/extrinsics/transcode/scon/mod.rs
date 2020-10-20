@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-//! SCALE Object Notation (SON)
+//! SCALE Object Notation (SCON)
 
 mod display;
 mod parse;
@@ -43,7 +43,7 @@ pub enum Value {
     Int(i128),
     Map(Map),
     Tuple(Tuple),
-    Option(SonOption),
+    Option(SconOption),
     String(String),
     Seq(Seq),
     Bytes(Bytes),
@@ -208,13 +208,13 @@ impl Bytes {
 }
 
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct SonOption {
+pub struct SconOption {
     value: Option<Box<Value>>,
 }
 
-impl From<Option<Value>> for SonOption {
+impl From<Option<Value>> for SconOption {
     fn from(value: Option<Value>) -> Self {
         let value = value.map(Box::new);
-        SonOption { value }
+        SconOption { value }
     }
 }

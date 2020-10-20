@@ -18,7 +18,7 @@ use super::{
     Bytes,
     Map,
     Seq,
-    SonOption,
+    SconOption,
     Tuple,
     Value
 };
@@ -33,7 +33,7 @@ impl Debug for Value {
             Value::Int(integer) => <i128 as Debug>::fmt(integer, f),
             Value::Map(map) => <Map as Debug>::fmt(map, f),
             Value::Tuple(tuple) => <Tuple as Debug>::fmt(tuple, f),
-            Value::Option(option) => <SonOption as Debug>::fmt(option, f),
+            Value::Option(option) => <SconOption as Debug>::fmt(option, f),
             Value::String(string) => <String as Display>::fmt(string, f),
             Value::Seq(seq) => <Seq as Debug>::fmt(seq, f),
             Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
@@ -96,7 +96,7 @@ impl Debug for Bytes {
     }
 }
 
-impl Debug for SonOption {
+impl Debug for SconOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         <Option<_> as Debug>::fmt(&self.value, f)
     }

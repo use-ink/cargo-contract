@@ -16,12 +16,12 @@
 
 mod decode;
 mod encode;
-mod son;
+mod scon;
 
 use self::{
     decode::decode_value,
     encode::encode_value,
-    son::{Map, Value},
+    scon::{Map, Value},
 };
 
 use anyhow::Result;
@@ -74,7 +74,7 @@ impl Transcoder {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
-            let value = son::from_str(arg.as_ref())?;
+            let value = scon::from_str(arg.as_ref())?;
             encode_value(self.registry(), spec.ty().ty().id(), &value, &mut encoded)?;
         }
         Ok(encoded)
@@ -197,7 +197,7 @@ impl Debug for DecodedEvent {
 mod tests {
     use super::*;
     use anyhow::Context;
-    use son::{Value, Tuple};
+    use scon::{Value, Tuple};
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use std::{convert::TryFrom, num::NonZeroU32};
@@ -288,7 +288,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
 
-        let value = son::from_str(input).context("Invalid SON value")?;
+        let value = scon::from_str(input).context("Invalid SON value")?;
         let mut output = Vec::new();
         encode_value(&registry, ty, &value, &mut output)?;
         // println!("transcode_roundtrip: {:?}", output);
