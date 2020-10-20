@@ -50,37 +50,43 @@ impl Display for Value {
 
 impl Debug for Map {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let name = self.ident.as_ref().map_or("", |s| s.as_str());
-        let mut builder = f.debug_struct(name);
-        for (name, value) in self.map.iter() {
-            builder.field(&format!("{:?}", name), value);
+        match self.ident {
+            Some(ref name) => {
+                let mut builder = f.debug_struct(name);
+                for (name, value) in self.map.iter() {
+                    builder.field(&format!("{:?}", name), value);
+                }
+                builder.finish()
+            },
+            None => {
+                let mut builder = f.debug_map();
+                for (name, value) in self.map.iter() {
+                    builder.field(&format!("{:?}", name), value);
+                }
+                builder.finish()
+            }
         }
-        builder.finish()
     }
 }
 
 impl Debug for Tuple {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ref ident) = self.ident {
-            write!(f, "{} ( ", ident)?;
-        } else {
-            write!(f, "( ")?;
+        let name = self.ident.as_ref().map_or("", |s| s.as_str());
+        let mut builder = f.debug_tuple(name);
+        for value in self.values.iter() {
+            builder.field(value);
         }
-
-        for field in self.values.iter() {
-            write!(f, "{}, ", field)?;
-        }
-        write!(f, " )")
+        builder.finish()
     }
 }
 
 impl Debug for Seq {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "[ ")?;
-        for item in &self.elems {
-            write!(f, "{}, ", item)?;
+        let mut builder = f.debug_list();
+        for elem in &self.elems {
+            builder.entry(elem);
         }
-        write!(f, " ]")
+        builder.finish()
     }
 }
 
@@ -92,10 +98,7 @@ impl Debug for Bytes {
 
 impl Debug for SonOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self.value {
-            None => write!(f, "None"),
-            Some(value) => write!(f, "Some({})", value)
-        }
+        <Option<_> as Debug>::fmt(&self.value, f)
     }
 }
 
