@@ -78,7 +78,7 @@ impl CallCommand {
 
             // extrinsic success
             if let Some(xt_success) = find_event::<ExtrinsicSuccessEvent<ContractsTemplateRuntime>>(&result)? {
-                println!("{}::{}", xt_success.module_name.bold(), xt_success.event_name.bright_green().bold());
+                println!("{}::{}", xt_success.module_name.bold(), xt_success.event_name.bright_cyan().bold());
             }
 
             // extrinsic failure
@@ -89,7 +89,7 @@ impl CallCommand {
 
             // contract events
             if let Some(contract_exec) = find_event::<ContractExecutionEvent<ContractsTemplateRuntime>>(&result)? {
-                println!("{}::{}", contract_exec.module_name.bold(), contract_exec.event_name.cyan().bold());
+                println!("{}::{}", contract_exec.module_name.bold(), contract_exec.event_name.bright_cyan().bold());
                 let events = msg_encoder.decode_events(&mut &contract_exec.event.data[..])?;
                 pretty_print(events)?;
             }
