@@ -398,9 +398,20 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn transcode_tuple() -> Result<()> {
-        todo!()
+        transcode_roundtrip::<(u32, String, [u8; 4])>(
+            r#"(1, "ink!", 0xDEADBEEF)"#,
+            Value::Tuple(
+                Tuple::new(
+                    None,
+                    vec![
+                        Value::UInt(1),
+                        Value::String("ink!".to_string()),
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    ]
+                )
+            )
+        )
     }
 
     #[test]
@@ -501,6 +512,22 @@ mod tests {
             Value::Tuple(
                 Tuple::new(
                     Some("S"),
+                    vec![
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    ].into()
+                )
+            )
+        )
+    }
+
+    #[test]
+    #[ignore] // todo: assert fails (0xdeadbeef,)
+    fn transcode_composite_single_field_tuple() -> Result<()> {
+        transcode_roundtrip::<([u8; 4])>(
+            r#"0xDEADBEEF"#,
+            Value::Tuple(
+                Tuple::new(
+                    None,
                     vec![
                         Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
                     ].into()

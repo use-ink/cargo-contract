@@ -17,7 +17,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use scale::{Compact, Encode, Output};
-use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, Variant};
+use scale_info::{form::{CompactForm, Form}, Field, RegistryReadOnly, TypeDef, TypeDefArray, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefSequence, TypeDefTuple, Variant};
 use std::{convert::TryInto, fmt::Debug, str::FromStr};
 use super::{
     scon::Value,
@@ -58,9 +58,9 @@ impl EncodeValue for TypeDef<CompactForm> {
             TypeDef::Composite(composite) => composite.encode_value_to(registry, value, output),
             TypeDef::Variant(variant) => variant.encode_value_to(registry, value, output),
             TypeDef::Array(array) => array.encode_value_to(registry, value, output),
+            TypeDef::Tuple(tuple) => tuple.encode_value_to(registry, value, output),
             TypeDef::Sequence(sequence) => sequence.encode_value_to(registry, value, output),
             TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
-            def => unimplemented!("TypeDef::encode_value {:?}", def),
         }
     }
 }
@@ -104,6 +104,34 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
+                        v
+                    ))
+                }
+            }
+        }
+    }
+}
+
+impl EncodeValue for TypeDefTuple<CompactForm> {
+    fn encode_value_to<O: Output + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        match value {
+            Value::Tuple(tuple) => {
+                for (field_type, value) in self.fields().iter().zip(tuple.values()) {
+                    encode_value(registry, field_type.id(), value, output)?;
+                }
+                Ok(())
+            },
+            v => {
+                if let Ok(single_field) = self.fields().iter().exactly_one() {
+                    encode_value(registry, single_field.id(), value, output)
+                } else {
+                    Err(anyhow::anyhow!(
+                        "Expected a Tuple or a single Value for a tuple data type, found {:?}",
                         v
                     ))
                 }

@@ -18,7 +18,7 @@ use anyhow::Result;
 use scale::{Compact, Decode, Input};
 use scale_info::{
     form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefVariant, TypeDefComposite, TypeDefPrimitive,
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefVariant, TypeDefComposite, TypeDefTuple, TypeDefPrimitive,
     TypeDefSequence, Variant,
 };
 use std::{convert::TryInto, fmt::Debug};
@@ -58,11 +58,11 @@ impl DecodeValue for TypeDef<CompactForm> {
     ) -> Result<Value> {
         match self {
             TypeDef::Composite(composite) => composite.decode_value(registry, ty, input),
+            TypeDef::Tuple(tuple) => tuple.decode_value(registry, ty, input),
             TypeDef::Variant(variant) => variant.decode_value(registry, ty, input),
             TypeDef::Array(array) => array.decode_value(registry, ty, input),
             TypeDef::Sequence(sequence) => sequence.decode_value(registry, ty, input),
             TypeDef::Primitive(primitive) => primitive.decode_value(registry, ty, input),
-            def => unimplemented!("{:?}", def),
         }
     }
 }
@@ -98,6 +98,22 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
                 Ok(Value::Tuple(Tuple::new(ident, Vec::new())))
             }
         }
+    }
+}
+
+impl DecodeValue for TypeDefTuple<CompactForm> {
+    fn decode_value<I: Input + Debug>(
+        &self,
+        registry: &RegistryReadOnly,
+        _: &Type<CompactForm>,
+        input: &mut I,
+    ) -> Result<Value> {
+        let mut tuple = Vec::new();
+        for field_type in self.fields() {
+            let value = decode_value(registry, field_type.id(), input)?;
+            tuple.push(value);
+        }
+        Ok(Value::Tuple(Tuple::new(None, tuple.into_iter().collect::<Vec<_>>())))
     }
 }
 
