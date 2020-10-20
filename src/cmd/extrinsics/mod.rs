@@ -19,10 +19,15 @@ pub mod deploy;
 pub mod instantiate;
 mod transcode;
 
-use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use anyhow::Result;
-use std::fs::File;
+use bat::PrettyPrinter;
+use subxt::{ExtrinsicSuccess, Event, ContractsTemplateRuntime};
+use std::{
+    fs::File,
+    fmt::Debug,
+};
 
+use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use self::transcode::Transcoder;
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
@@ -38,4 +43,46 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     };
     let metadata = serde_json::from_reader(File::open(path)?)?;
     Ok(metadata)
+}
+
+#[derive(Debug)]
+pub struct DecodedEvent<E: Event<ContractsTemplateRuntime>> {
+    event: E,
+    module_name: &'static str,
+    event_name: &'static str,
+}
+
+/// Find the Event for the given module/variant, attempting to decode the event data.
+pub fn find_event<E>(result: &ExtrinsicSuccess<ContractsTemplateRuntime>) -> Result<Option<DecodedEvent<E>>>
+where
+    E: Event<ContractsTemplateRuntime>,
+{
+    if let Some(event) = result.find_event_raw(E::MODULE, E::EVENT) {
+        let event = DecodedEvent {
+            event: E::decode(&mut &event.data[..])?,
+            module_name: E::MODULE,
+            event_name: E::EVENT,
+        };
+        Ok(Some(event))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn pretty_print<V>(value: V) -> Result<()>
+where
+    V: Debug,
+{
+    let content = format!("{:#?}", value);
+    let mut pretty_printer = PrettyPrinter::new();
+    pretty_printer
+        .input_from_bytes(content.as_bytes())
+        .language("rust")
+        .tab_width(Some(4))
+        .true_color(false)
+        .header(false)
+        .line_numbers(false)
+        .grid(false);
+    let _ = pretty_printer.print();
+    Ok(())
 }

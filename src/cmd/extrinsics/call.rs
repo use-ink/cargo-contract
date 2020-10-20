@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::Transcoder;
+use super::{Transcoder, pretty_print, find_event, load_metadata};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
-use bat::PrettyPrinter;
+use colored::Colorize;
 use jsonrpsee::common::Params;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
@@ -28,7 +28,7 @@ use std::{
 };
 use structopt::StructOpt;
 use subxt::{
-    balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
+    balances::Balances, contracts::*, system::*, ClientBuilder, ContractsTemplateRuntime,
     ExtrinsicSuccess, Signer,
 };
 
@@ -54,27 +54,9 @@ pub struct CallCommand {
     rpc: bool,
 }
 
-fn pretty_print<V>(value: V) -> Result<()>
-where
-    V: Debug,
-{
-    let content = format!("{:#?}", value);
-    let mut pretty_printer = PrettyPrinter::new();
-    pretty_printer
-        .input_from_bytes(content.as_bytes())
-        .language("rust")
-        .tab_width(Some(4))
-        .true_color(false)
-        .header(false)
-        .line_numbers(false)
-        .grid(false);
-    let _ = pretty_printer.print();
-    Ok(())
-}
-
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
-        let metadata = super::load_metadata()?;
+        let metadata = load_metadata()?;
         let msg_encoder = Transcoder::new(metadata);
         let call_data = msg_encoder.encode(&self.name, &self.args)?;
 
@@ -92,17 +74,24 @@ impl CallCommand {
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
 
-            for event in &result.events {
-                println!("{}:{}", event.module, event.variant);
+            // extrinsic success
+            if let Some(xt_success) = find_event::<ExtrinsicSuccessEvent<ContractsTemplateRuntime>>(&result)? {
+                println!("{}::{}", xt_success.module_name.bold(), xt_success.event_name.bright_green().bold());
             }
 
-            if let Some(execution_event) = result.contract_execution()? {
-                let events = msg_encoder.decode_events(&mut &execution_event.data[..])?;
-                pretty_print(events)
-            } else {
-                println!("Contract call succeeded");
-                Ok(())
+            // extrinsic failure
+            if let Some(xt_failed) = find_event::<ExtrinsicFailedEvent<ContractsTemplateRuntime>>(&result)? {
+                println!("{}::{}", xt_failed.module_name.bold(), xt_failed.event_name.bright_red().bold());
+                println!("  {}", format!("{:?}", xt_failed.event.error).bright_red().bold());
             }
+
+            // contract events
+            if let Some(contract_exec) = find_event::<ContractExecutionEvent<ContractsTemplateRuntime>>(&result)? {
+                println!("{}::{}", contract_exec.module_name.bold(), contract_exec.event_name.cyan().bold());
+                let events = msg_encoder.decode_events(&mut &contract_exec.event.data[..])?;
+                pretty_print(events)?;
+            }
+            Ok(())
         }
     }
 
