@@ -50,7 +50,7 @@ impl<I> ParseError<I> for SonParseError {
     }
 }
 
-fn ron_string(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_string(input: &str) -> IResult<&str, Value, SonParseError> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
@@ -121,7 +121,7 @@ fn uint(input: &str) -> IResult<&str, &str, SonParseError> {
     alt((tag("0"), recognize(pair(digit1to9, digit0))))(input)
 }
 
-fn ron_integer(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     let signed = recognize(pair(char('-'), uint));
 
     alt((
@@ -138,39 +138,39 @@ fn ron_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     ))(input)
 }
 
-fn ron_unit(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_unit(input: &str) -> IResult<&str, Value, SonParseError> {
     let (i, _) = tag("()")(input)?;
     Ok((i, Value::Unit))
 }
 
-fn ron_bool(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_bool(input: &str) -> IResult<&str, Value, SonParseError> {
     alt((
         value(Value::Bool(false), tag("false")),
         value(Value::Bool(true), tag("true")),
     ))(input)
 }
 
-fn ron_char(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_char(input: &str) -> IResult<&str, Value, SonParseError> {
     let parse_char = delimited(tag("'"), anychar, tag("'"));
     map(parse_char, |c| Value::Char(c))(input)
 }
 
-fn ron_seq(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_seq(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
     let parser = delimited(
         ws(tag("[")),
-        separated_list(ws(tag(",")), ron_value),
+        separated_list(ws(tag(",")), scon_value),
         opt_trailing_comma_close,
     );
     map(parser, |v| Value::Seq(v.into()))(input)
 }
 
-fn ron_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
-        separated_list(ws(tag(",")), ron_value),
+        separated_list(ws(tag(",")), scon_value),
         opt_trailing_comma_close,
     );
 
@@ -181,13 +181,13 @@ fn ron_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
     })(input)
 }
 
-fn ron_map(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
     let ident_key = map(rust_ident, |s| Value::String(s.into()));
-    let ron_map_key = ws(alt((ident_key, ron_string, ron_integer)));
+    let scon_map_key = ws(alt((ident_key, scon_string, scon_integer)));
 
     let opening = alt((tag("("), tag("{")));
     let closing = alt((tag(")"), tag("}")));
-    let entry = separated_pair(ron_map_key, ws(tag(":")), ron_value);
+    let entry = separated_pair(scon_map_key, ws(tag(":")), scon_value);
 
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(closing));
     let map_body = delimited(
@@ -203,7 +203,7 @@ fn ron_map(input: &str) -> IResult<&str, Value, SonParseError> {
     })(input)
 }
 
-fn ron_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
     let (rest, byte_str) = preceded(tag("0x"), nom::character::complete::hex_digit1)(input)?;
     let bytes = Bytes::from_hex_string(byte_str).map_err(|e| nom::Err::Failure(e.into()))?;
     Ok((rest, Value::Bytes(bytes)))
@@ -219,23 +219,23 @@ where
     delimited(multispace0, f, multispace0)
 }
 
-fn ron_value(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_value(input: &str) -> IResult<&str, Value, SonParseError> {
     ws(alt((
-        ron_unit,
-        ron_bytes,
-        ron_seq,
-        ron_tuple,
-        ron_map,
-        ron_string,
-        ron_integer,
-        ron_bool,
-        ron_char,
+        scon_unit,
+        scon_bytes,
+        scon_seq,
+        scon_tuple,
+        scon_map,
+        scon_string,
+        scon_integer,
+        scon_bool,
+        scon_char,
     )))(input)
 }
 
 /// Attempt to parse a SON value
 pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
-    let (_, value) = ron_value(input)?;
+    let (_, value) = scon_value(input)?;
     Ok(value)
 }
 
@@ -243,107 +243,107 @@ pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
 mod tests {
     use super::*;
 
-    fn assert_ron_value(input: &str, expected: Value) {
-        assert_eq!(ron_value(input), Ok(("", expected)));
+    fn assert_scon_value(input: &str, expected: Value) {
+        assert_eq!(scon_value(input), Ok(("", expected)));
     }
 
     #[test]
     fn test_unit() {
-        assert_eq!(ron_value("()"), Ok(("", Value::Unit)));
+        assert_eq!(scon_value("()"), Ok(("", Value::Unit)));
     }
 
     #[test]
     fn test_bool() {
-        assert_eq!(ron_bool("false"), Ok(("", Value::Bool(false))));
-        assert_eq!(ron_bool("true"), Ok(("", Value::Bool(true))));
-        assert!(ron_bool("foo").is_err());
+        assert_eq!(scon_bool("false"), Ok(("", Value::Bool(false))));
+        assert_eq!(scon_bool("true"), Ok(("", Value::Bool(true))));
+        assert!(scon_bool("foo").is_err());
     }
 
     #[test]
     fn test_integer() {
-        assert_eq!(ron_integer("42"), Ok(("", Value::UInt(42))));
-        assert_eq!(ron_integer("-123"), Ok(("", Value::Int(-123))));
-        assert_eq!(ron_integer("0"), Ok(("", Value::UInt(0))));
-        assert_eq!(ron_integer("01"), Ok(("1", Value::UInt(0))));
+        assert_eq!(scon_integer("42"), Ok(("", Value::UInt(42))));
+        assert_eq!(scon_integer("-123"), Ok(("", Value::Int(-123))));
+        assert_eq!(scon_integer("0"), Ok(("", Value::UInt(0))));
+        assert_eq!(scon_integer("01"), Ok(("1", Value::UInt(0))));
         assert_eq!(
-            ron_integer("340282366920938463463374607431768211455"),
+            scon_integer("340282366920938463463374607431768211455"),
             Ok(("", Value::UInt(340282366920938463463374607431768211455)))
         );
         // todo
-        // assert!(matches!(ron_integer("abc123"), Err(nom::Err::Failure(RonParseError::BadInt(_)))));
-        // // assert!(matches!(ron_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
+        // assert!(matches!(scon_integer("abc123"), Err(nom::Err::Failure(RonParseError::BadInt(_)))));
+        // // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
     }
 
     #[test]
     fn test_string() {
         // Plain Unicode strings with no escaping
-        assert_eq!(ron_string(r#""""#), Ok(("", Value::String("".into()))));
+        assert_eq!(scon_string(r#""""#), Ok(("", Value::String("".into()))));
         assert_eq!(
-            ron_string(r#""Hello""#),
+            scon_string(r#""Hello""#),
             Ok(("", Value::String("Hello".into())))
         );
-        assert_eq!(ron_string(r#""の""#), Ok(("", Value::String("の".into()))));
-        assert_eq!(ron_string(r#""𝄞""#), Ok(("", Value::String("𝄞".into()))));
+        assert_eq!(scon_string(r#""の""#), Ok(("", Value::String("の".into()))));
+        assert_eq!(scon_string(r#""𝄞""#), Ok(("", Value::String("𝄞".into()))));
 
         // valid 2-character escapes
         assert_eq!(
-            ron_string(r#""  \\  ""#),
+            scon_string(r#""  \\  ""#),
             Ok(("", Value::String("  \\  ".into())))
         );
         assert_eq!(
-            ron_string(r#""  \"  ""#),
+            scon_string(r#""  \"  ""#),
             Ok(("", Value::String("  \"  ".into())))
         );
 
         // valid 6-character escapes
         assert_eq!(
-            ron_string(r#""\u0000""#),
+            scon_string(r#""\u0000""#),
             Ok(("", Value::String("\x00".into())))
         );
         assert_eq!(
-            ron_string(r#""\u00DF""#),
+            scon_string(r#""\u00DF""#),
             Ok(("", Value::String("ß".into())))
         );
         assert_eq!(
-            ron_string(r#""\uD834\uDD1E""#),
+            scon_string(r#""\uD834\uDD1E""#),
             Ok(("", Value::String("𝄞".into())))
         );
 
         // Invalid because surrogate characters must come in pairs
-        assert!(ron_string(r#""\ud800""#).is_err());
+        assert!(scon_string(r#""\ud800""#).is_err());
         // Unknown 2-character escape
-        assert!(ron_string(r#""\x""#).is_err());
+        assert!(scon_string(r#""\x""#).is_err());
         // Not enough hex digits
-        assert!(ron_string(r#""\u""#).is_err());
-        assert!(ron_string(r#""\u001""#).is_err());
+        assert!(scon_string(r#""\u""#).is_err());
+        assert!(scon_string(r#""\u001""#).is_err());
         // Naked control character
-        assert!(ron_string(r#""\x0a""#).is_err());
+        assert!(scon_string(r#""\x0a""#).is_err());
         // Not a JSON string because it's not wrapped in quotes
-        assert!(ron_string("abc").is_err());
+        assert!(scon_string("abc").is_err());
         // An unterminated string (because the trailing quote is escaped)
-        assert!(ron_string(r#""\""#).is_err());
+        assert!(scon_string(r#""\""#).is_err());
 
         // Parses correctly but has escape errors due to incomplete surrogate pair.
         assert_eq!(
-            ron_string(r#""\ud800""#),
+            scon_string(r#""\ud800""#),
             Err(nom::Err::Failure(SonParseError::BadEscape))
         );
     }
 
     #[test]
     fn test_seq() {
-        assert_eq!(ron_value("[ ]"), Ok(("", Value::Seq(vec![].into()))));
+        assert_eq!(scon_value("[ ]"), Ok(("", Value::Seq(vec![].into()))));
         assert_eq!(
-            ron_value("[ 1 ]"),
+            scon_value("[ 1 ]"),
             Ok(("", Value::Seq(vec![Value::UInt(1)].into())))
         );
 
         let expected = Value::Seq(vec![Value::UInt(1), Value::String("x".into())].into());
-        assert_eq!(ron_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
+        assert_eq!(scon_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
 
         let trailing = r#"["a", "b",]"#;
         assert_eq!(
-            ron_value(trailing),
+            scon_value(trailing),
             Ok((
                 "",
                 Value::Seq(vec![Value::String("a".into()), Value::String("b".into())].into())
@@ -366,18 +366,18 @@ mod tests {
     #[test]
     fn test_map() {
         assert_eq!(
-            ron_value("Foo {}"),
+            scon_value("Foo {}"),
             Ok(("", Value::Map(Map::new(Some("Foo"), Default::default()))))
         );
         assert_eq!(
-            ron_value("Foo{}"),
+            scon_value("Foo{}"),
             Ok(("", Value::Map(Map::new(Some("Foo"), Default::default()))))
         );
 
         assert_eq!(rust_ident("a:"), Ok((":", "a")));
 
         assert_eq!(
-            ron_value(r#"(a: 1)"#),
+            scon_value(r#"(a: 1)"#),
             Ok((
                 "",
                 Value::Map(Map::new(
@@ -390,7 +390,7 @@ mod tests {
         );
 
         assert_eq!(
-            ron_value(r#"A (a: 1, b: "bar")"#),
+            scon_value(r#"A (a: 1, b: "bar")"#),
             Ok((
                 "",
                 Value::Map(Map::new(
@@ -406,7 +406,7 @@ mod tests {
         );
 
         assert_eq!(
-            ron_value(r#"B(a: 1)"#),
+            scon_value(r#"B(a: 1)"#),
             Ok((
                 "",
                 Value::Map(Map::new(
@@ -419,7 +419,7 @@ mod tests {
         );
 
         assert_eq!(
-            ron_value(r#"Struct { a : 1 }"#),
+            scon_value(r#"Struct { a : 1 }"#),
             Ok((
                 "",
                 Value::Map(Map::new(
@@ -438,7 +438,7 @@ mod tests {
         }"#;
 
         assert_eq!(
-            ron_value(map),
+            scon_value(map),
             Ok((
                 "",
                 Value::Map(Map::new(
@@ -457,15 +457,15 @@ mod tests {
 
     #[test]
     fn test_tuple() {
-        assert_ron_value("Foo ()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
-        assert_ron_value("Foo()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
-        assert_ron_value("Foo", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+        assert_scon_value("Foo ()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+        assert_scon_value("Foo()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+        assert_scon_value("Foo", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
 
-        assert_ron_value(
+        assert_scon_value(
             r#"B("a")"#,
             Value::Tuple(Tuple::new(Some("B"), vec![Value::String("a".into())])),
         );
-        assert_ron_value(
+        assert_scon_value(
             r#"B("a", 10, true)"#,
             Value::Tuple(Tuple::new(
                 Some("B"),
@@ -477,7 +477,7 @@ mod tests {
             )),
         );
 
-        assert_ron_value(
+        assert_scon_value(
             r#"Mixed ("a", 10, ["a", "b", "c"],)"#,
             Value::Tuple(Tuple::new(
                 Some("Mixed"),
@@ -496,7 +496,7 @@ mod tests {
             )),
         );
 
-        assert_ron_value(
+        assert_scon_value(
             r#"(Nested("a", 10))"#,
             Value::Tuple(Tuple::new(
                 None,
@@ -510,11 +510,11 @@ mod tests {
 
     #[test]
     fn test_option() {
-        assert_ron_value(
+        assert_scon_value(
             r#"Some("a")"#,
             Value::Tuple(Tuple::new(Some("Some"), vec![Value::String("a".into())])),
         );
-        assert_ron_value(
+        assert_scon_value(
             r#"None"#,
             Value::Tuple(Tuple::new(Some("None"), Vec::new())),
         );
@@ -522,11 +522,11 @@ mod tests {
 
     #[test]
     fn test_char() {
-        assert_ron_value(r#"'c'"#, Value::Char('c'));
+        assert_scon_value(r#"'c'"#, Value::Char('c'));
     }
 
     #[test]
     fn test_bytes() {
-        assert_ron_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
+        assert_scon_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
     }
 }
