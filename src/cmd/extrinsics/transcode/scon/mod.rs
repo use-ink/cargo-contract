@@ -30,7 +30,7 @@ use std::{
 
 pub fn from_str<S>(s: S) -> Result<Value, nom::Err<parse::SonParseError>>
 where
-    S: AsRef<str>
+    S: AsRef<str>,
 {
     parse::parse_value(s.as_ref())
 }
@@ -88,7 +88,7 @@ impl Ord for Map {
 impl PartialEq for Map {
     fn eq(&self, other: &Map) -> bool {
         if self.map.len() != other.map.len() {
-            return false
+            return false;
         }
         self.iter().zip(other.iter()).all(|(a, b)| a == b)
     }
@@ -147,7 +147,10 @@ impl From<Vec<Value>> for Tuple {
 
 impl Tuple {
     pub fn new(ident: Option<&str>, values: Vec<Value>) -> Self {
-        Tuple { ident: ident.map(|s| s.into()), values }
+        Tuple {
+            ident: ident.map(|s| s.into()),
+            values,
+        }
     }
 
     pub fn ident(&self) -> Option<String> {

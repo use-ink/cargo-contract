@@ -21,14 +21,11 @@ mod transcode;
 
 use anyhow::Result;
 use bat::PrettyPrinter;
-use subxt::{ExtrinsicSuccess, Event, ContractsTemplateRuntime};
-use std::{
-    fs::File,
-    fmt::Debug,
-};
+use std::{fmt::Debug, fs::File};
+use subxt::{ContractsTemplateRuntime, Event, ExtrinsicSuccess};
 
-use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use self::transcode::Transcoder;
+use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let manifest_path = ManifestPath::default();
@@ -53,7 +50,9 @@ pub struct DecodedEvent<E: Event<ContractsTemplateRuntime>> {
 }
 
 /// Find the Event for the given module/variant, attempting to decode the event data.
-pub fn find_event<E>(result: &ExtrinsicSuccess<ContractsTemplateRuntime>) -> Result<Option<DecodedEvent<E>>>
+pub fn find_event<E>(
+    result: &ExtrinsicSuccess<ContractsTemplateRuntime>,
+) -> Result<Option<DecodedEvent<E>>>
 where
     E: Event<ContractsTemplateRuntime>,
 {

@@ -14,19 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
-use scale::{Compact, Decode, Input};
-use scale_info::{
-    form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefVariant, TypeDefComposite, TypeDefTuple, TypeDefPrimitive,
-    TypeDefSequence, Variant,
-};
-use std::{convert::TryInto, fmt::Debug};
 use super::{
     scon::{Map, Tuple, Value},
     CompositeTypeFields,
 };
+use anyhow::Result;
+use scale::{Compact, Decode, Input};
+use scale_info::{
+    form::{CompactForm, Form},
+    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
+};
 use sp_core::sp_std::num::NonZeroU32;
+use std::{convert::TryInto, fmt::Debug};
 
 pub trait DecodeValue {
     fn decode_value<I: Input + Debug>(
@@ -37,15 +37,18 @@ pub trait DecodeValue {
     ) -> Result<Value>;
 }
 
-pub fn decode_value<I>(registry: &RegistryReadOnly, type_id: NonZeroU32, input: &mut I) -> Result<Value>
+pub fn decode_value<I>(
+    registry: &RegistryReadOnly,
+    type_id: NonZeroU32,
+    input: &mut I,
+) -> Result<Value>
 where
-    I: Input + Debug
+    I: Input + Debug,
 {
-    let ty = registry.resolve(type_id)
-        .ok_or(anyhow::anyhow!(
-            "Failed to resolve type with id '{}'",
-            type_id
-        ))?;
+    let ty = registry.resolve(type_id).ok_or(anyhow::anyhow!(
+        "Failed to resolve type with id '{}'",
+        type_id
+    ))?;
     ty.type_def().decode_value(registry, &ty, input)
 }
 
@@ -85,18 +88,19 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
                     map.push((Value::String(field.name().to_string()), value));
                 }
                 Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
-            },
+            }
             CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                 let mut tuple = Vec::new();
                 for field in fields {
                     let value = field.decode_value(registry, ty, input)?;
                     tuple.push(value);
                 }
-                Ok(Value::Tuple(Tuple::new(ident, tuple.into_iter().collect::<Vec<_>>())))
+                Ok(Value::Tuple(Tuple::new(
+                    ident,
+                    tuple.into_iter().collect::<Vec<_>>(),
+                )))
             }
-            CompositeTypeFields::NoFields => {
-                Ok(Value::Tuple(Tuple::new(ident, Vec::new())))
-            }
+            CompositeTypeFields::NoFields => Ok(Value::Tuple(Tuple::new(ident, Vec::new()))),
         }
     }
 }
@@ -113,7 +117,10 @@ impl DecodeValue for TypeDefTuple<CompactForm> {
             let value = decode_value(registry, field_type.id(), input)?;
             tuple.push(value);
         }
-        Ok(Value::Tuple(Tuple::new(None, tuple.into_iter().collect::<Vec<_>>())))
+        Ok(Value::Tuple(Tuple::new(
+            None,
+            tuple.into_iter().collect::<Vec<_>>(),
+        )))
     }
 }
 
@@ -125,8 +132,13 @@ impl DecodeValue for TypeDefVariant<CompactForm> {
         input: &mut I,
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
-        let variant = self.variants().get(discriminant as usize)
-            .ok_or(anyhow::anyhow!("No variant found with discriminant {}", discriminant))?;
+        let variant = self
+            .variants()
+            .get(discriminant as usize)
+            .ok_or(anyhow::anyhow!(
+                "No variant found with discriminant {}",
+                discriminant
+            ))?;
         variant.decode_value(registry, ty, input)
     }
 }
@@ -149,9 +161,14 @@ impl DecodeValue for Variant<CompactForm> {
             }
         }
         if !named.is_empty() && !unnamed.is_empty() {
-            Err(anyhow::anyhow!("Variant must have either all named or all unnamed fields"))
+            Err(anyhow::anyhow!(
+                "Variant must have either all named or all unnamed fields"
+            ))
         } else if !named.is_empty() {
-            Ok(Value::Map(Map::new(Some(self.name()), named.into_iter().collect())))
+            Ok(Value::Map(Map::new(
+                Some(self.name()),
+                named.into_iter().collect(),
+            )))
         } else {
             Ok(Value::Tuple(Tuple::new(Some(self.name()), unnamed)))
         }
@@ -198,7 +215,8 @@ fn decode_seq<I: Input + Debug>(
     registry: &RegistryReadOnly,
     input: &mut I,
 ) -> Result<Value> {
-    let ty = registry.resolve(ty.id())
+    let ty = registry
+        .resolve(ty.id())
         .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
 
     if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
@@ -226,15 +244,9 @@ impl DecodeValue for TypeDefPrimitive {
             TypeDefPrimitive::Bool => Ok(Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => Ok(Value::String(String::decode(input)?)),
-            TypeDefPrimitive::U8 => Ok(Value::UInt(
-                u8::decode(input)?.into(),
-            )),
-            TypeDefPrimitive::U16 => Ok(Value::UInt(
-                u16::decode(input)?.into(),
-            )),
-            TypeDefPrimitive::U32 => Ok(Value::UInt(
-                u32::decode(input)?.into(),
-            )),
+            TypeDefPrimitive::U8 => Ok(Value::UInt(u8::decode(input)?.into())),
+            TypeDefPrimitive::U16 => Ok(Value::UInt(u16::decode(input)?.into())),
+            TypeDefPrimitive::U32 => Ok(Value::UInt(u32::decode(input)?.into())),
             TypeDefPrimitive::U64 => {
                 let decoded = u64::decode(input)?;
                 match decoded.try_into() {

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Transcoder, pretty_print, find_event, load_metadata};
+use super::{find_event, load_metadata, pretty_print, Transcoder};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
@@ -22,10 +22,7 @@ use jsonrpsee::common::Params;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
-use std::{
-    convert::TryInto,
-    fmt::Debug,
-};
+use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
 use subxt::{
     balances::Balances, contracts::*, system::*, ClientBuilder, ContractsTemplateRuntime,
@@ -63,7 +60,9 @@ impl CallCommand {
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
             match result {
-                RpcContractExecResult::Success { data, gas_consumed, .. } => {
+                RpcContractExecResult::Success {
+                    data, gas_consumed, ..
+                } => {
                     let value = msg_encoder.decode_return(&self.name, data.0)?;
                     pretty_print(value)?;
                     println!("{} {}", "Gas consumed:".bold(), gas_consumed);
@@ -77,19 +76,40 @@ impl CallCommand {
             let result = async_std::task::block_on(self.call(call_data))?;
 
             // extrinsic success
-            if let Some(xt_success) = find_event::<ExtrinsicSuccessEvent<ContractsTemplateRuntime>>(&result)? {
-                println!("{}::{}", xt_success.module_name.bold(), xt_success.event_name.bright_cyan().bold());
+            if let Some(xt_success) =
+                find_event::<ExtrinsicSuccessEvent<ContractsTemplateRuntime>>(&result)?
+            {
+                println!(
+                    "{}::{}",
+                    xt_success.module_name.bold(),
+                    xt_success.event_name.bright_cyan().bold()
+                );
             }
 
             // extrinsic failure
-            if let Some(xt_failed) = find_event::<ExtrinsicFailedEvent<ContractsTemplateRuntime>>(&result)? {
-                println!("{}::{}", xt_failed.module_name.bold(), xt_failed.event_name.bright_red().bold());
-                println!("  {}", format!("{:?}", xt_failed.event.error).bright_red().bold());
+            if let Some(xt_failed) =
+                find_event::<ExtrinsicFailedEvent<ContractsTemplateRuntime>>(&result)?
+            {
+                println!(
+                    "{}::{}",
+                    xt_failed.module_name.bold(),
+                    xt_failed.event_name.bright_red().bold()
+                );
+                println!(
+                    "  {}",
+                    format!("{:?}", xt_failed.event.error).bright_red().bold()
+                );
             }
 
             // contract events
-            if let Some(contract_exec) = find_event::<ContractExecutionEvent<ContractsTemplateRuntime>>(&result)? {
-                println!("{}::{}", contract_exec.module_name.bold(), contract_exec.event_name.bright_cyan().bold());
+            if let Some(contract_exec) =
+                find_event::<ContractExecutionEvent<ContractsTemplateRuntime>>(&result)?
+            {
+                println!(
+                    "{}::{}",
+                    contract_exec.module_name.bold(),
+                    contract_exec.event_name.bright_cyan().bold()
+                );
                 let events = msg_encoder.decode_events(&mut &contract_exec.event.data[..])?;
                 pretty_print(events)?;
             }

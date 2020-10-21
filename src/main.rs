@@ -263,6 +263,6 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Call(call) => {
             call.run()?;
             Ok("".into())
-        },
+        }
     }
 }

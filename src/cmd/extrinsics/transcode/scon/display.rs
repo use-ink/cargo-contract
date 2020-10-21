@@ -14,14 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    Bytes,
-    Map,
-    Seq,
-    SconOption,
-    Tuple,
-    Value
-};
+use super::{Bytes, Map, SconOption, Seq, Tuple, Value};
 use std::fmt::{Debug, Display, Formatter, Result};
 
 impl Debug for Value {
@@ -37,7 +30,7 @@ impl Debug for Value {
             Value::String(string) => <String as Display>::fmt(string, f),
             Value::Seq(seq) => <Seq as Debug>::fmt(seq, f),
             Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
-            Value::Unit => write!(f, "()")
+            Value::Unit => write!(f, "()"),
         }
     }
 }
@@ -57,7 +50,7 @@ impl Debug for Map {
                     builder.field(&format!("{:?}", name), value);
                 }
                 builder.finish()
-            },
+            }
             None => {
                 let mut builder = f.debug_map();
                 for (name, value) in self.map.iter() {
@@ -101,4 +94,3 @@ impl Debug for SconOption {
         <Option<_> as Debug>::fmt(&self.value, f)
     }
 }
-

@@ -27,10 +27,11 @@ use self::{
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
-use scale_info::{form::{CompactForm, Form}, RegistryReadOnly, TypeDefComposite, Field};
-use std::fmt::{
-    self, Debug, Formatter,
+use scale_info::{
+    form::{CompactForm, Form},
+    Field, RegistryReadOnly, TypeDefComposite,
 };
+use std::fmt::{self, Debug, Formatter};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
@@ -167,17 +168,21 @@ impl CompositeTypeFields {
         if type_def.fields().is_empty() {
             Ok(Self::NoFields)
         } else if type_def.fields().iter().all(|f| f.name().is_some()) {
-            let fields = type_def.fields().iter().map(|f| {
-                CompositeTypeNamedField {
+            let fields = type_def
+                .fields()
+                .iter()
+                .map(|f| CompositeTypeNamedField {
                     name: f.name().expect("All fields have a name; qed").to_owned(),
-                    field: f.clone()
-                }
-            }).collect();
+                    field: f.clone(),
+                })
+                .collect();
             Ok(Self::StructNamedFields(fields))
         } else if type_def.fields().iter().all(|f| f.name().is_none()) {
             Ok(Self::TupleStructUnnamedFields(type_def.fields().to_vec()))
         } else {
-            Err(anyhow::anyhow!("Struct fields should either be all named or all unnamed"))
+            Err(anyhow::anyhow!(
+                "Struct fields should either be all named or all unnamed"
+            ))
         }
     }
 }
@@ -197,9 +202,9 @@ impl Debug for DecodedEvent {
 mod tests {
     use super::*;
     use anyhow::Context;
-    use scon::{Value, Tuple};
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
+    use scon::{Tuple, Value};
     use std::{convert::TryFrom, num::NonZeroU32};
 
     use ink_lang as ink;
@@ -328,10 +333,7 @@ mod tests {
         transcode_roundtrip::<u16>("65535", Value::UInt(65535))?;
 
         transcode_roundtrip::<u32>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u32>(
-            "4294967295",
-            Value::UInt(4294967295),
-        )?;
+        transcode_roundtrip::<u32>("4294967295", Value::UInt(4294967295))?;
 
         transcode_roundtrip::<u64>("0", Value::UInt(0))?;
         transcode_roundtrip::<u64>(
@@ -355,26 +357,31 @@ mod tests {
     #[test]
     fn transcode_byte_array() -> Result<()> {
         transcode_roundtrip::<[u8; 2]>(r#"0x0000"#, Value::Bytes(vec![0x00, 0x00].into()))?;
-        transcode_roundtrip::<[u8; 4]>(r#"0xDEADBEEF"#, Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))?;
-        transcode_roundtrip::<[u8; 4]>(r#"0xdeadbeef"#, Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()))
+        transcode_roundtrip::<[u8; 4]>(
+            r#"0xDEADBEEF"#,
+            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+        )?;
+        transcode_roundtrip::<[u8; 4]>(
+            r#"0xdeadbeef"#,
+            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+        )
     }
 
     #[test]
     fn transcode_array() -> Result<()> {
         transcode_roundtrip::<[u32; 3]>(
             "[1, 2, 3]",
-            Value::Seq(vec![
-                Value::UInt(1),
-                Value::UInt(2),
-                Value::UInt(3),
-            ].into()),
+            Value::Seq(vec![Value::UInt(1), Value::UInt(2), Value::UInt(3)].into()),
         )?;
         transcode_roundtrip::<[String; 2]>(
             "[\"hello\", \"world\"]",
-            Value::Seq(vec![
-                Value::String("hello".to_string()),
-                Value::String("world".to_string()),
-            ].into()),
+            Value::Seq(
+                vec![
+                    Value::String("hello".to_string()),
+                    Value::String("world".to_string()),
+                ]
+                .into(),
+            ),
         )
     }
 
@@ -382,18 +389,17 @@ mod tests {
     fn transcode_seq() -> Result<()> {
         transcode_roundtrip::<Vec<u32>>(
             "[1, 2, 3]",
-            Value::Seq(vec![
-                Value::UInt(1),
-                Value::UInt(2),
-                Value::UInt(3),
-            ].into()),
+            Value::Seq(vec![Value::UInt(1), Value::UInt(2), Value::UInt(3)].into()),
         )?;
         transcode_roundtrip::<Vec<String>>(
             "[\"hello\", \"world\"]",
-            Value::Seq(vec![
-                Value::String("hello".to_string()),
-                Value::String("world".to_string()),
-            ].into()),
+            Value::Seq(
+                vec![
+                    Value::String("hello".to_string()),
+                    Value::String("world".to_string()),
+                ]
+                .into(),
+            ),
         )
     }
 
@@ -401,16 +407,14 @@ mod tests {
     fn transcode_tuple() -> Result<()> {
         transcode_roundtrip::<(u32, String, [u8; 4])>(
             r#"(1, "ink!", 0xDEADBEEF)"#,
-            Value::Tuple(
-                Tuple::new(
-                    None,
-                    vec![
-                        Value::UInt(1),
-                        Value::String("ink!".to_string()),
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                    ]
-                )
-            )
+            Value::Tuple(Tuple::new(
+                None,
+                vec![
+                    Value::UInt(1),
+                    Value::String("ink!".to_string()),
+                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                ],
+            )),
         )
     }
 
@@ -430,10 +434,7 @@ mod tests {
             r#"S(a: 1, b: "ink!", c: 0xDEADBEEF, d: [S(a: 2, b: "ink!", c: 0xDEADBEEF, d: [])])"#,
             Value::Map(
                 vec![
-                    (
-                        Value::String("a".to_string()),
-                        Value::UInt(1),
-                    ),
+                    (Value::String("a".to_string()), Value::UInt(1)),
                     (
                         Value::String("b".to_string()),
                         Value::String("ink!".to_string()),
@@ -444,28 +445,30 @@ mod tests {
                     ),
                     (
                         Value::String("d".to_string()),
-                        Value::Seq(vec![Value::Map(
-                            vec![
-                                (
-                                    Value::String("a".to_string()),
-                                    Value::UInt(2),
-                                ),
-                                (
-                                    Value::String("b".to_string()),
-                                    Value::String("ink!".to_string()),
-                                ),
-                                (
-                                    Value::String("c".to_string()),
-                                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                                ),
-                                (
-                                    Value::String("d".to_string()),
-                                    Value::Seq(Vec::new().into_iter().collect::<Vec<_>>().into()),
-                                ),
-                            ]
-                            .into_iter()
-                            .collect(),
-                        )].into()),
+                        Value::Seq(
+                            vec![Value::Map(
+                                vec![
+                                    (Value::String("a".to_string()), Value::UInt(2)),
+                                    (
+                                        Value::String("b".to_string()),
+                                        Value::String("ink!".to_string()),
+                                    ),
+                                    (
+                                        Value::String("c".to_string()),
+                                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                                    ),
+                                    (
+                                        Value::String("d".to_string()),
+                                        Value::Seq(
+                                            Vec::new().into_iter().collect::<Vec<_>>().into(),
+                                        ),
+                                    ),
+                                ]
+                                .into_iter()
+                                .collect(),
+                            )]
+                            .into(),
+                        ),
                     ),
                 ]
                 .into_iter()
@@ -478,24 +481,18 @@ mod tests {
     fn transcode_composite_tuple_struct() -> Result<()> {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
-        struct S (
-            u32,
-            String,
-            [u8; 4],
-        );
+        struct S(u32, String, [u8; 4]);
 
         transcode_roundtrip::<S>(
             r#"S(1, "ink!", 0xDEADBEEF)"#,
-            Value::Tuple(
-                Tuple::new(
-                    Some("S"),
+            Value::Tuple(Tuple::new(
+                Some("S"),
                 vec![
-                        Value::UInt(1),
-                        Value::String("ink!".to_string()),
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                    ]
-                )
-            )
+                    Value::UInt(1),
+                    Value::String("ink!".to_string()),
+                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                ],
+            )),
         )
     }
 
@@ -503,20 +500,14 @@ mod tests {
     fn transcode_composite_single_field_struct() -> Result<()> {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
-        struct S (
-            [u8; 4],
-        );
+        struct S([u8; 4]);
 
         transcode_roundtrip::<S>(
             r#"0xDEADBEEF"#,
-            Value::Tuple(
-                Tuple::new(
-                    Some("S"),
-                    vec![
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                    ].into()
-                )
-            )
+            Value::Tuple(Tuple::new(
+                Some("S"),
+                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
+            )),
         )
     }
 
@@ -525,14 +516,10 @@ mod tests {
     fn transcode_composite_single_field_tuple() -> Result<()> {
         transcode_roundtrip::<([u8; 4])>(
             r#"0xDEADBEEF"#,
-            Value::Tuple(
-                Tuple::new(
-                    None,
-                    vec![
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                    ].into()
-                )
-            )
+            Value::Tuple(Tuple::new(
+                None,
+                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
+            )),
         )
     }
 
@@ -548,12 +535,10 @@ mod tests {
 
         transcode_roundtrip::<E>(
             r#"A(1, "2")"#,
-            Value::Tuple(
-                Tuple::new(
-                    Some("A"),
-                    vec![Value::UInt(1), Value::String("2".into())]
-                )
-            )
+            Value::Tuple(Tuple::new(
+                Some("A"),
+                vec![Value::UInt(1), Value::String("2".into())],
+            )),
         )?;
 
         Ok(())
