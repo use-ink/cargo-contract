@@ -43,7 +43,6 @@ pub enum Value {
     Int(i128),
     Map(Map),
     Tuple(Tuple),
-    Option(SconOption),
     String(String),
     Seq(Seq),
     Bytes(Bytes),
@@ -207,17 +206,5 @@ impl Bytes {
 
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
-    }
-}
-
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct SconOption {
-    value: Option<Box<Value>>,
-}
-
-impl From<Option<Value>> for SconOption {
-    fn from(value: Option<Value>) -> Self {
-        let value = value.map(Box::new);
-        SconOption { value }
     }
 }

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Bytes, Map, SconOption, Seq, Tuple, Value};
+use super::{Bytes, Map, Seq, Tuple, Value};
 use std::fmt::{Debug, Display, Formatter, Result};
 
 impl Debug for Value {
@@ -26,7 +26,6 @@ impl Debug for Value {
             Value::Int(integer) => <i128 as Debug>::fmt(integer, f),
             Value::Map(map) => <Map as Debug>::fmt(map, f),
             Value::Tuple(tuple) => <Tuple as Debug>::fmt(tuple, f),
-            Value::Option(option) => <SconOption as Debug>::fmt(option, f),
             Value::String(string) => <String as Display>::fmt(string, f),
             Value::Seq(seq) => <Seq as Debug>::fmt(seq, f),
             Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
@@ -86,11 +85,5 @@ impl Debug for Seq {
 impl Debug for Bytes {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "0x{}", hex::encode(&self.bytes))
-    }
-}
-
-impl Debug for SconOption {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        <Option<_> as Debug>::fmt(&self.value, f)
     }
 }

@@ -539,14 +539,19 @@ mod tests {
                 Some("A"),
                 vec![Value::UInt(1), Value::String("2".into())],
             )),
-        )?;
-
-        Ok(())
+        )
     }
 
     #[test]
-    #[ignore]
     fn transcode_option() -> Result<()> {
-        todo!()
+        transcode_roundtrip::<Option<u32>>(
+            r#"Some(32)"#,
+            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32).into()]))
+        )?;
+
+        transcode_roundtrip::<Option<u32>>(
+            r#"None"#,
+            Value::Tuple(Tuple::new(Some("None"), Vec::new()))
+        )
     }
 }

@@ -166,16 +166,6 @@ fn ron_seq(input: &str) -> IResult<&str, Value, SonParseError> {
     map(parser, |v| Value::Seq(v.into()))(input)
 }
 
-fn ron_option(input: &str) -> IResult<&str, Value, SonParseError> {
-    let none = value(Value::Option(None.into()), tag("None"));
-    let some_value = map(ron_value, |v| Value::Option(Some(v.into()).into()));
-    let some = preceded(
-        tag("Some"),
-        delimited(ws(tag("(")), some_value, ws(tag(")"))),
-    );
-    alt((none, some))(input)
-}
-
 fn ron_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
@@ -233,7 +223,6 @@ fn ron_value(input: &str) -> IResult<&str, Value, SonParseError> {
     ws(alt((
         ron_unit,
         ron_bytes,
-        ron_option,
         ron_seq,
         ron_tuple,
         ron_map,
@@ -472,11 +461,18 @@ mod tests {
             ron_value("Foo ()"),
             Ok((
                 "",
-                Value::Tuple(Tuple::new(Some("Foo"), Default::default()))
+                Value::Tuple(Tuple::new(Some("Foo"), vec![Value::Unit]))
             ))
         );
         assert_eq!(
             ron_value("Foo()"),
+            Ok((
+                "",
+                Value::Tuple(Tuple::new(Some("Foo"), vec![Value::Unit]))
+            ))
+        );
+        assert_eq!(
+            ron_value("Foo"),
             Ok((
                 "",
                 Value::Tuple(Tuple::new(Some("Foo"), Default::default()))
@@ -547,9 +543,9 @@ mod tests {
     fn test_option() {
         assert_ron_value(
             r#"Some("a")"#,
-            Value::Option(Some(Value::String("a".into()).into()).into()),
+            Value::Tuple(Tuple::new(Some("Some"), vec![Value::String("a".into())])),
         );
-        assert_ron_value(r#"None"#, Value::Option(None.into()));
+        assert_ron_value(r#"None"#, Value::Tuple(Tuple::new(Some("None"), Vec::new())));
     }
 
     #[test]
