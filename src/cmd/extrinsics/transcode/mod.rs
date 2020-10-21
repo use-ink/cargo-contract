@@ -546,12 +546,12 @@ mod tests {
     fn transcode_option() -> Result<()> {
         transcode_roundtrip::<Option<u32>>(
             r#"Some(32)"#,
-            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32).into()]))
+            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32).into()])),
         )?;
 
         transcode_roundtrip::<Option<u32>>(
             r#"None"#,
-            Value::Tuple(Tuple::new(Some("None"), Vec::new()))
+            Value::Tuple(Tuple::new(Some("None"), Vec::new())),
         )
     }
 }

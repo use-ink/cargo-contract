@@ -457,86 +457,55 @@ mod tests {
 
     #[test]
     fn test_tuple() {
-        assert_eq!(
-            ron_value("Foo ()"),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(Some("Foo"), vec![Value::Unit]))
-            ))
+        assert_ron_value("Foo ()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+        assert_ron_value("Foo()", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+        assert_ron_value("Foo", Value::Tuple(Tuple::new(Some("Foo"), vec![])));
+
+        assert_ron_value(
+            r#"B("a")"#,
+            Value::Tuple(Tuple::new(Some("B"), vec![Value::String("a".into())])),
         );
-        assert_eq!(
-            ron_value("Foo()"),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(Some("Foo"), vec![Value::Unit]))
-            ))
-        );
-        assert_eq!(
-            ron_value("Foo"),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(Some("Foo"), Default::default()))
-            ))
+        assert_ron_value(
+            r#"B("a", 10, true)"#,
+            Value::Tuple(Tuple::new(
+                Some("B"),
+                vec![
+                    Value::String("a".into()),
+                    Value::UInt(10),
+                    Value::Bool(true),
+                ],
+            )),
         );
 
-        assert_eq!(
-            ron_value(r#"B("a")"#),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(Some("B"), vec![Value::String("a".into()),]))
-            ))
+        assert_ron_value(
+            r#"Mixed ("a", 10, ["a", "b", "c"],)"#,
+            Value::Tuple(Tuple::new(
+                Some("Mixed"),
+                vec![
+                    Value::String("a".into()),
+                    Value::UInt(10),
+                    Value::Seq(
+                        vec![
+                            Value::String("a".into()),
+                            Value::String("b".into()),
+                            Value::String("c".into()),
+                        ]
+                        .into(),
+                    ),
+                ],
+            )),
         );
 
-        assert_eq!(
-            ron_value(r#"B("a", 10, true)"#),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(
-                    Some("B"),
-                    vec![
-                        Value::String("a".into()),
-                        Value::UInt(10),
-                        Value::Bool(true),
-                    ]
-                ))
-            ))
-        );
-
-        let tuple = r#"Mixed ("a", 10, ["a", "b", "c"],)"#;
-
-        assert_eq!(
-            ron_value(tuple),
-            Ok((
-                "",
-                Value::Tuple(Tuple::new(
-                    Some("Mixed"),
-                    vec![
-                        Value::String("a".into()),
-                        Value::UInt(10),
-                        Value::Seq(
-                            vec![
-                                Value::String("a".into()),
-                                Value::String("b".into()),
-                                Value::String("c".into())
-                            ]
-                            .into()
-                        ),
-                    ]
-                ))
-            ))
-        );
-
-        let nested = r#"(Nested("a", 10))"#;
-
-        let expected = Value::Tuple(Tuple::new(
-            None,
-            vec![Value::Tuple(Tuple::new(
-                Some("Nested"),
-                vec![Value::String("a".into()), Value::UInt(10)],
-            ))],
-        ));
-
-        assert_eq!(ron_value(nested), Ok(("", expected)));
+        assert_ron_value(
+            r#"(Nested("a", 10))"#,
+            Value::Tuple(Tuple::new(
+                None,
+                vec![Value::Tuple(Tuple::new(
+                    Some("Nested"),
+                    vec![Value::String("a".into()), Value::UInt(10)],
+                ))],
+            )),
+        )
     }
 
     #[test]
@@ -545,7 +514,10 @@ mod tests {
             r#"Some("a")"#,
             Value::Tuple(Tuple::new(Some("Some"), vec![Value::String("a".into())])),
         );
-        assert_ron_value(r#"None"#, Value::Tuple(Tuple::new(Some("None"), Vec::new())));
+        assert_ron_value(
+            r#"None"#,
+            Value::Tuple(Tuple::new(Some("None"), Vec::new())),
+        );
     }
 
     #[test]
