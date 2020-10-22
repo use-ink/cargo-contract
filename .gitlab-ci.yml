@@ -17,7 +17,7 @@ variables:
   CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   CI_SERVER_NAME:                  "GitLab CI"
   REGISTRY:                        "paritytech"
-  RUSTUP_TOOLCHAIN:                nightly
+  RUSTUP_TOOLCHAIN:                nightly-2020-10-01
   RUST_LIB_BACKTRACE:              0
 
 .collect-artifacts:                &collect-artifacts
