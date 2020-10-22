@@ -26,7 +26,7 @@ use scale_info::{
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
 use sp_core::sp_std::num::NonZeroU32;
-use std::{convert::TryInto, fmt::Debug};
+use std::fmt::Debug;
 
 pub trait DecodeValue {
     fn decode_value<I: Input + Debug>(
@@ -241,33 +241,37 @@ impl DecodeValue for TypeDefPrimitive {
         _: &Type<CompactForm>,
         input: &mut I,
     ) -> Result<Value> {
+        fn decode_uint<I, T>(input: &mut I) -> Result<Value>
+        where
+            I: Input,
+            T: Decode + Into<u128>
+        {
+            let decoded = T::decode(input)?;
+            Ok(Value::UInt(decoded.into()))
+        }
+        fn decode_int<I, T>(input: &mut I) -> Result<Value>
+        where
+            I: Input,
+            T: Decode + Into<i128>
+        {
+            let decoded = T::decode(input)?;
+            Ok(Value::Int(decoded.into()))
+        }
+
         match self {
             TypeDefPrimitive::Bool => Ok(Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => Ok(Value::String(String::decode(input)?)),
-            TypeDefPrimitive::U8 => Ok(Value::UInt(u8::decode(input)?.into())),
-            TypeDefPrimitive::U16 => Ok(Value::UInt(u16::decode(input)?.into())),
-            TypeDefPrimitive::U32 => Ok(Value::UInt(u32::decode(input)?.into())),
-            TypeDefPrimitive::U64 => {
-                let decoded = u64::decode(input)?;
-                match decoded.try_into() {
-                    Ok(i) => Ok(Value::UInt(i)),
-                    Err(_) => Ok(Value::String(format!("{}", decoded))),
-                }
-            }
-            TypeDefPrimitive::U128 => {
-                let decoded = u128::decode(input)?;
-                match decoded.try_into() {
-                    Ok(i) => Ok(Value::UInt(i)),
-                    Err(_) => Ok(Value::String(format!("{}", decoded))),
-                }
-            }
-            // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-            // TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-            // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-            // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-            // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
-            prim => unimplemented!("{:?}", prim),
+            TypeDefPrimitive::U8 => decode_uint::<I, u8>(input),
+            TypeDefPrimitive::U16 => decode_uint::<I, u16>(input),
+            TypeDefPrimitive::U32 => decode_uint::<I, u32>(input),
+            TypeDefPrimitive::U64 => decode_uint::<I, u64>(input),
+            TypeDefPrimitive::U128 => decode_uint::<I, u128>(input),
+            TypeDefPrimitive::I8 => decode_int::<I, i8>(input),
+            TypeDefPrimitive::I16 => decode_int::<I, i16>(input),
+            TypeDefPrimitive::I32 => decode_int::<I, i32>(input),
+            TypeDefPrimitive::I64 => decode_int::<I, i64>(input),
+            TypeDefPrimitive::I128 => decode_int::<I, i128>(input),
         }
     }
 }

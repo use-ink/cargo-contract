@@ -348,25 +348,25 @@ mod tests {
 
     #[test]
     fn transcode_integers() -> Result<()> {
-        transcode_roundtrip::<i8>("-128", Value::Int(-128))?;
-        transcode_roundtrip::<i8>("128", Value::Int(127))?;
+        transcode_roundtrip::<i8>("-128", Value::Int(i8::min_value().into()))?;
+        transcode_roundtrip::<i8>("127", Value::Int(i8::max_value().into()))?;
 
-        transcode_roundtrip::<i16>("-32768", Value::Int(-32768))?;
-        transcode_roundtrip::<i16>("32767", Value::Int(32767))?;
+        transcode_roundtrip::<i16>("-32768", Value::Int(i16::min_value().into()))?;
+        transcode_roundtrip::<i16>("32767", Value::Int(i16::max_value().into()))?;
 
-        transcode_roundtrip::<i32>("-2147483648", Value::Int(-2147483648))?;
-        transcode_roundtrip::<i32>("2147483647", Value::UInt(2147483647))?;
+        transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::min_value().into()))?;
+        transcode_roundtrip::<i32>("2147483647", Value::Int(i32::max_value().into()))?;
 
-        transcode_roundtrip::<i64>("-9_223_372_036_854_775_808", Value::Int(-9_223_372_036_854_775_808))?;
+        transcode_roundtrip::<i64>("-9223372036854775808", Value::Int(i64::min_value().into()))?;
         transcode_roundtrip::<i64>(
             "\"9_223_372_036_854_775_807\"",
-            Value::Int(9_223_372_036_854_775_807),
+            Value::Int(i64::max_value().into()),
         )?;
 
-        transcode_roundtrip::<u128>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u128>(
-            "\"340_282_366_920_938_463_463_374_607_431_768_211_455\"",
-            Value::UInt(340282366920938463463374607431768211455),
+        transcode_roundtrip::<i128>("-170141183460469231731687303715884105728", Value::Int(i128::min_value()))?;
+        transcode_roundtrip::<i128>(
+            "\"170141183460469231731687303715884105727\"",
+            Value::Int(i128::max_value()),
         )
     }
 

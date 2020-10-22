@@ -24,7 +24,7 @@ use scale_info::{
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
 use sp_core::sp_std::num::NonZeroU32;
-use std::{convert::{TryInto, TryFrom}, fmt::Debug, str::FromStr};
+use std::{error::Error, convert::{TryInto, TryFrom}, fmt::Debug, str::FromStr};
 
 pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
@@ -277,6 +277,9 @@ impl EncodeValue for TypeDefPrimitive {
         fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
         where
             T: TryFrom<u128> + FromStr + Encode,
+            <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+            <T as FromStr>::Err: Error + Send + Sync + 'static,
+            O: Output,
         {
             match value {
                 Value::UInt(i) => {
@@ -290,9 +293,38 @@ impl EncodeValue for TypeDefPrimitive {
                     u.encode_to(output);
                     Ok(())
                 }
-                _ => Err(anyhow::anyhow!("Expected a {} or a String value", expected)),
+                _ => Err(anyhow::anyhow!("Expected a {} or a String value, got {}", expected, value)),
             }
         }
+        fn encode_int<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
+            where
+                T: TryFrom<i128> + TryFrom<u128> + FromStr + Encode,
+                <T as TryFrom<i128>>::Error: Error + Send + Sync + 'static,
+                <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+                <T as FromStr>::Err: Error + Send + Sync + 'static,
+                O: Output,
+        {
+            let int =
+                match value {
+                    Value::Int(i) => {
+                        let i: T = (*i).try_into()?;
+                        Ok(i)
+                    },
+                    Value::UInt(u) => {
+                        let i: T = (*u).try_into()?;
+                        Ok(i)
+                    }
+                    Value::String(s) => {
+                        let sanitized = s.replace(&['_', ','][..], "");
+                        let i = T::from_str(&sanitized)?;
+                        Ok(i)
+                    }
+                    _ => Err(anyhow::anyhow!("Expected a {} or a String value, got {}", expected, value)),
+                }?;
+            int.encode_to(output);
+            Ok(())
+        }
+
         match self {
             TypeDefPrimitive::Bool => {
                 if let Value::Bool(b) = value {
@@ -316,13 +348,11 @@ impl EncodeValue for TypeDefPrimitive {
             TypeDefPrimitive::U32 => encode_uint::<u32, O>(value, "u32", output),
             TypeDefPrimitive::U64 => encode_uint::<u64, O>(value, "u64", output),
             TypeDefPrimitive::U128 => encode_uint::<u128, O>(value, "u128", output),
-
-            _ => unimplemented!("TypeDefPrimitive::encode_value"),
-            // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),
-            // TypeDefPrimitive::I16 => Ok(i16::encode(&i16::from_str(arg)?)),
-            // TypeDefPrimitive::I32 => Ok(i32::encode(&i32::from_str(arg)?)),
-            // TypeDefPrimitive::I64 => Ok(i64::encode(&i64::from_str(arg)?)),
-            // TypeDefPrimitive::I128 => Ok(i128::encode(&i128::from_str(arg)?)),
+            TypeDefPrimitive::I8 => encode_int::<i8, O>(value, "i8", output),
+            TypeDefPrimitive::I16 => encode_int::<i16, O>(value, "i16", output),
+            TypeDefPrimitive::I32 => encode_int::<i32, O>(value, "i32", output),
+            TypeDefPrimitive::I64 => encode_int::<i64, O>(value, "i64", output),
+            TypeDefPrimitive::I128 => encode_int::<i128, O>(value, "i128", output),
         }
     }
 }
