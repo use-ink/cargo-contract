@@ -24,7 +24,7 @@ use scale_info::{
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
 use sp_core::sp_std::num::NonZeroU32;
-use std::{convert::TryInto, fmt::Debug, str::FromStr};
+use std::{convert::{TryInto, TryFrom}, fmt::Debug, str::FromStr};
 
 pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
@@ -274,6 +274,25 @@ impl EncodeValue for TypeDefPrimitive {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
+        fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
+        where
+            T: TryFrom<u128> + FromStr + Encode,
+        {
+            match value {
+                Value::UInt(i) => {
+                    let u: T = (*i).try_into()?;
+                    u.encode_to(output);
+                    Ok(())
+                }
+                Value::String(s) => {
+                    let sanitized = s.replace(&['_', ','][..], "");
+                    let u = T::from_str(&sanitized)?;
+                    u.encode_to(output);
+                    Ok(())
+                }
+                _ => Err(anyhow::anyhow!("Expected a {} or a String value", expected)),
+            }
+        }
         match self {
             TypeDefPrimitive::Bool => {
                 if let Value::Bool(b) = value {
@@ -292,61 +311,11 @@ impl EncodeValue for TypeDefPrimitive {
                     Err(anyhow::anyhow!("Expected a String value"))
                 }
             }
-            TypeDefPrimitive::U8 => {
-                if let Value::UInt(i) = value {
-                    let u: u8 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a u8 value"))
-                }
-            }
-            TypeDefPrimitive::U16 => {
-                if let Value::UInt(i) = value {
-                    let u: u16 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a u16 value"))
-                }
-            }
-            TypeDefPrimitive::U32 => {
-                if let Value::UInt(i) = value {
-                    let u: u32 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                } else {
-                    Err(anyhow::anyhow!("Expected a u16 value"))
-                }
-            }
-            TypeDefPrimitive::U64 => match value {
-                Value::UInt(i) => {
-                    let u: u64 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                Value::String(s) => {
-                    let sanitized = s.replace(&['_', ','][..], "");
-                    let u: u64 = u64::from_str(&sanitized)?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                _ => Err(anyhow::anyhow!("Expected a Number or a String value")),
-            },
-            TypeDefPrimitive::U128 => match value {
-                Value::UInt(i) => {
-                    let u: u128 = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                Value::String(s) => {
-                    let sanitized = s.replace(&['_', ','][..], "");
-                    let u: u128 = u128::from_str(&sanitized)?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                _ => Err(anyhow::anyhow!("Expected a Number or a String value")),
-            },
+            TypeDefPrimitive::U8 => encode_uint::<u8, O>(value, "u8", output),
+            TypeDefPrimitive::U16 => encode_uint::<u16, O>(value, "u16", output),
+            TypeDefPrimitive::U32 => encode_uint::<u32, O>(value, "u32", output),
+            TypeDefPrimitive::U64 => encode_uint::<u64, O>(value, "u64", output),
+            TypeDefPrimitive::U128 => encode_uint::<u128, O>(value, "u128", output),
 
             _ => unimplemented!("TypeDefPrimitive::encode_value"),
             // TypeDefPrimitive::I8 => Ok(i8::encode(&i8::from_str(arg)?)),

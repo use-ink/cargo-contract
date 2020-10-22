@@ -347,9 +347,27 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn transcode_integers() -> Result<()> {
-        todo!()
+        transcode_roundtrip::<i8>("-128", Value::Int(-128))?;
+        transcode_roundtrip::<i8>("128", Value::Int(127))?;
+
+        transcode_roundtrip::<i16>("-32768", Value::Int(-32768))?;
+        transcode_roundtrip::<i16>("32767", Value::Int(32767))?;
+
+        transcode_roundtrip::<i32>("-2147483648", Value::Int(-2147483648))?;
+        transcode_roundtrip::<i32>("2147483647", Value::UInt(2147483647))?;
+
+        transcode_roundtrip::<i64>("-9_223_372_036_854_775_808", Value::Int(-9_223_372_036_854_775_808))?;
+        transcode_roundtrip::<i64>(
+            "\"9_223_372_036_854_775_807\"",
+            Value::Int(9_223_372_036_854_775_807),
+        )?;
+
+        transcode_roundtrip::<u128>("0", Value::UInt(0))?;
+        transcode_roundtrip::<u128>(
+            "\"340_282_366_920_938_463_463_374_607_431_768_211_455\"",
+            Value::UInt(340282366920938463463374607431768211455),
+        )
     }
 
     #[test]
