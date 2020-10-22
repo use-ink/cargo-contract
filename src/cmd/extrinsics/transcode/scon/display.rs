@@ -19,16 +19,28 @@ use std::fmt::{Debug, Display, Formatter, Result};
 
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        fn debug_fmt<T>(name: &str, value: &T, f: &mut Formatter<'_>) -> Result
+            where T: Debug
+        {
+            if !f.alternate() {
+                write!(f, "{}(", name)?;
+            }
+            <T as Debug>::fmt(value, f)?;
+            if !f.alternate() {
+                write!(f, ")")?;
+            }
+            Ok(())
+        }
         match self {
-            Value::Bool(boolean) => <bool as Debug>::fmt(boolean, f),
-            Value::Char(character) => <char as Debug>::fmt(character, f),
-            Value::UInt(uint) => <u128 as Debug>::fmt(uint, f),
-            Value::Int(integer) => <i128 as Debug>::fmt(integer, f),
-            Value::Map(map) => <Map as Debug>::fmt(map, f),
-            Value::Tuple(tuple) => <Tuple as Debug>::fmt(tuple, f),
-            Value::String(string) => <String as Display>::fmt(string, f),
-            Value::Seq(seq) => <Seq as Debug>::fmt(seq, f),
-            Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
+            Value::Bool(boolean) => debug_fmt("Bool", boolean, f),
+            Value::Char(character) => debug_fmt("Char",character, f),
+            Value::UInt(uint) => debug_fmt("UInt",uint, f),
+            Value::Int(integer) => debug_fmt("Int",integer, f),
+            Value::Map(map) => debug_fmt("Map",map, f),
+            Value::Tuple(tuple) => debug_fmt("Tuple",tuple, f),
+            Value::String(string) => debug_fmt("String",string, f),
+            Value::Seq(seq) => debug_fmt("Seq",seq, f),
+            Value::Bytes(bytes) => debug_fmt("Bytes",bytes, f),
             Value::Unit => write!(f, "()"),
         }
     }

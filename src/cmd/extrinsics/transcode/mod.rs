@@ -296,7 +296,6 @@ mod tests {
         let value = scon::from_str(input).context("Invalid SON value")?;
         let mut output = Vec::new();
         encode_value(&registry, ty, &value, &mut output)?;
-        // println!("transcode_roundtrip: {:?}", output);
         let decoded = decode_value(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
@@ -512,7 +511,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // todo: assert fails (0xdeadbeef,)
     fn transcode_composite_single_field_tuple() -> Result<()> {
         transcode_roundtrip::<([u8; 4])>(
             r#"0xDEADBEEF"#,
