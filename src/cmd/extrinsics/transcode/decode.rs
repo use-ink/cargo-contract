@@ -49,6 +49,7 @@ where
         "Failed to resolve type with id '{}'",
         type_id
     ))?;
+    log::debug!("Decoding value with type {:?}", ty);
     ty.type_def().decode_value(registry, &ty, input)
 }
 

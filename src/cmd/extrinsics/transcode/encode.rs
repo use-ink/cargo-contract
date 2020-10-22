@@ -48,6 +48,7 @@ where
         "Failed to resolve type with id '{}'",
         type_id
     ))?;
+    log::debug!("Encoding value {:?} with type {:?}", value, ty);
     ty.type_def()
         .encode_value_to(registry, value, output)
         .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))

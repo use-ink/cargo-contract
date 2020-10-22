@@ -205,7 +205,7 @@ mod tests {
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use scon::{Tuple, Value};
-    use std::{convert::TryFrom, num::NonZeroU32};
+    use std::num::NonZeroU32;
 
     use ink_lang as ink;
 
@@ -280,11 +280,10 @@ mod tests {
         T: scale_info::TypeInfo + 'static,
     {
         let mut registry = Registry::new();
-        registry.register_type(&MetaType::new::<T>());
+        let type_id = registry.register_type(&MetaType::new::<T>());
         let registry: RegistryReadOnly = registry.into();
 
-        let type_id = NonZeroU32::try_from(1)?;
-        Ok((registry, type_id))
+        Ok((registry, type_id.id()))
     }
 
     fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
@@ -512,7 +511,8 @@ mod tests {
 
     #[test]
     fn transcode_composite_single_field_tuple() -> Result<()> {
-        transcode_roundtrip::<([u8; 4])>(
+        env_logger::try_init()?;
+        transcode_roundtrip::<([u8; 4],)>(
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 None,
