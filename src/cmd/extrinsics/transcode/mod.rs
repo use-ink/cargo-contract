@@ -363,7 +363,10 @@ mod tests {
             Value::Int(i64::max_value().into()),
         )?;
 
-        transcode_roundtrip::<i128>("-170141183460469231731687303715884105728", Value::Int(i128::min_value()))?;
+        transcode_roundtrip::<i128>(
+            "-170141183460469231731687303715884105728",
+            Value::Int(i128::min_value()),
+        )?;
         transcode_roundtrip::<i128>(
             "\"170141183460469231731687303715884105727\"",
             Value::Int(i128::max_value()),

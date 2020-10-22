@@ -244,7 +244,7 @@ impl DecodeValue for TypeDefPrimitive {
         fn decode_uint<I, T>(input: &mut I) -> Result<Value>
         where
             I: Input,
-            T: Decode + Into<u128>
+            T: Decode + Into<u128>,
         {
             let decoded = T::decode(input)?;
             Ok(Value::UInt(decoded.into()))
@@ -252,7 +252,7 @@ impl DecodeValue for TypeDefPrimitive {
         fn decode_int<I, T>(input: &mut I) -> Result<Value>
         where
             I: Input,
-            T: Decode + Into<i128>
+            T: Decode + Into<i128>,
         {
             let decoded = T::decode(input)?;
             Ok(Value::Int(decoded.into()))

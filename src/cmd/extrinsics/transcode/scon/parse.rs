@@ -184,7 +184,9 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
 /// Parse a rust ident on its own which could represent a struct with no fields or a enum unit
 /// variant e.g. "None"
 fn scon_unit_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
-    map(rust_ident, |ident| Value::Tuple(Tuple::new(Some(ident), Vec::new())))(input)
+    map(rust_ident, |ident| {
+        Value::Tuple(Tuple::new(Some(ident), Vec::new()))
+    })(input)
 }
 
 fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
