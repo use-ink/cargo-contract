@@ -25,6 +25,7 @@ mod tests;
 use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,
+    process,
 };
 
 use anyhow::{Error, Result};
@@ -207,12 +208,18 @@ fn main() {
 
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
-        Ok(msg) => println!("\t{}", msg),
-        Err(err) => eprintln!(
-            "{} {}",
-            "ERROR:".bright_red().bold(),
-            format!("{:?}", err).bright_red()
-        ),
+        Ok(msg) => {
+            println!("\t{}", msg);
+            process::exit(0);
+        },
+        Err(err) => {
+            eprintln!(
+                "{} {}",
+                "ERROR:".bright_red().bold(),
+                format!("{:?}", err).bright_red()
+            );
+            process::exit(1);
+        },
     }
 }
 
