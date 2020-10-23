@@ -73,6 +73,7 @@ ink_primitives = "3.0.0-rc2"
 ink_env = "3.0.0-rc2"
 ink_storage = "3.0.0-rc2"
 ink_lang = "3.0.0-rc2"
+regex = "1.4.1"
 
 [features]
 default = ["std"]
