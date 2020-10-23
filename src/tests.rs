@@ -14,7 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use assert_cmd::Command;
+use assert_cmd::{
+    Command,
+};
+
+use predicates::prelude::*;
 use std::path::{Path, PathBuf};
 use std::str;
 
@@ -57,7 +61,7 @@ fn build_deploy_instantiate_call() {
     //     .assert()
     //     .success();
 
-    // cargo contract deploy --suri //Alice
+    // upload the code blob to the chain
     let output =
         cmd(project_path.as_path())
             .arg("deploy")
@@ -74,11 +78,7 @@ fn build_deploy_instantiate_call() {
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
-    // cargo contract \
-    //   instantiate new true \
-    //   --code-hash <code_hash> \
-    //   --endowment 100000000000000 \
-    //   --suri //Alice
+    // instantiate the contract with an initial value of true
     let output =
         cmd(project_path.as_path())
             .arg("instantiate")
@@ -97,4 +97,30 @@ fn build_deploy_instantiate_call() {
     let caps = regex.captures(&stdout).unwrap();
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(64, contract_account.len());
+
+    let call_get = |expected: bool| {
+        cmd(project_path.as_path())
+            .arg("call")
+            .arg("get")
+            .arg("--rpc")
+            .args(&["--contract", contract_account])
+            .args(&["--suri", "//Alice"])
+            .assert()
+            .stdout(predicate::str::contains(expected.to_string()));
+    };
+
+    // call the `get` message via rpc to assert that it was set to the initial value
+    call_get(true);
+
+    // call the `flip` message with an extrinsic to change the state of the contract
+    cmd(project_path.as_path())
+        .arg("call")
+        .arg("flip")
+        .args(&["--contract", contract_account])
+        .args(&["--suri", "//Alice"])
+        .assert()
+        .stdout(predicate::str::contains("ExtrinsicSuccess"));
+
+    // call the `get` message via rpc to assert that the value has been flipped
+    call_get(false);
 }
