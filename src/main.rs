@@ -18,6 +18,9 @@ mod cmd;
 mod crate_metadata;
 mod util;
 mod workspace;
+#[cfg(test)]
+#[cfg(feature = "integration-tests")]
+mod tests;
 
 use std::{
     convert::{TryFrom, TryInto},
