@@ -19,7 +19,7 @@ use assert_cmd::{
 };
 
 use predicates::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str;
 
 fn cmd(path: &Path) -> Command {
@@ -33,33 +33,33 @@ fn cmd(path: &Path) -> Command {
 /// Run the whole lifecycle of creating/building/
 #[test]
 fn build_deploy_instantiate_call() {
-    // let tmp_dir = tempfile::Builder::new()
-    //     .prefix("cargo-contract.cli.test.")
-    //     .tempdir()
-    //     .expect("temporary directory creation failed");
-    //
-    // // cargo contract new flipper
-    // cmd(tmp_dir.path())
-    //     .arg("new")
-    //     .arg("flipper")
-    //     .assert()
-    //     .success();
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    // cargo contract new flipper
+    cmd(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
 
     // cd flipper
-    let mut project_path = PathBuf::from("/home/andrew/tmp/cargo-contract"); //tmp_dir.into_path();
+    let mut project_path = tmp_dir.into_path();
     project_path.push("flipper");
 
-    // cargo contract build
-    // cmd(project_path.as_path())
-    //     .arg("generate-metadata")
-    //     .assert()
-    //     .success();
-    //
-    // // cargo contract generate-metadata
-    // cmd(project_path.as_path())
-    //     .arg("generate-metadata")
-    //     .assert()
-    //     .success();
+    // build the contract
+    cmd(project_path.as_path())
+        .arg("generate-metadata")
+        .assert()
+        .success();
+
+    // generate the contract metadata
+    cmd(project_path.as_path())
+        .arg("generate-metadata")
+        .assert()
+        .success();
 
     // upload the code blob to the chain
     let output =
