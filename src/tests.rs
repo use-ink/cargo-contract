@@ -68,7 +68,7 @@ fn build_deploy_instantiate_call() {
 
     // Expected output:
     //   Code hash: 0x13118a4b9c3e3929f449051a023a64e6eaed7065843b1e719956df9dec68756a
-    let regex = regex::Regex::new(".*Code hash: 0x([0-9A-Fa-f]+)").unwrap();
+    let regex = regex::Regex::new("Code hash: 0x([0-9A-Fa-f]+)").unwrap();
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let caps = regex.captures(&stdout).unwrap();
     let code_hash = caps.get(1).unwrap().as_str();
@@ -89,4 +89,12 @@ fn build_deploy_instantiate_call() {
             .output()
             .expect("failed to execute process");
     assert!(output.status.success(), "instantiate failed");
+
+    // Expected output:
+    //   Contract account: 5134f8a2fbfb03d09b19b8697b75dd72c5a5f41f69f095c6758e11f6f2e198d1 (5DuBUJbn...)
+    let regex = regex::Regex::new("Contract account: ([0-9A-Fa-f]+)").unwrap();
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let caps = regex.captures(&stdout).unwrap();
+    let contract_account = caps.get(1).unwrap().as_str();
+    assert_eq!(64, contract_account.len());
 }
