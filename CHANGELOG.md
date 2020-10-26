@@ -1,3 +1,7 @@
+# Version v0.7.1 (2020-10-26)
+
+* Update new command template to ink! 3.0-rc2 [#85](https://github.com/paritytech/cargo-contract/pull/85)
+
 # Version v0.7.0 (2020-10-13)
 
 * Fix deprecation warnings [#82](https://github.com/paritytech/cargo-contract/pull/82)
