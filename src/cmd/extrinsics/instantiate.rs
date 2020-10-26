@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::display_events;
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use structopt::StructOpt;
@@ -69,9 +70,7 @@ impl InstantiateCommand {
                 )
                 .await?;
 
-            for event in &events.events {
-                println!("{}:{}", event.module, event.variant);
-            }
+            display_events(&events, &transcoder);
 
             let instantiated = events
                 .instantiated()?

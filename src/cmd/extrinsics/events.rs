@@ -41,6 +41,7 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
         if display_matching_event(event, |event: ContractExecutionEvent<Runtime>| DisplayContractExecution { transcoder, event } ) {
             continue;
         }
+        println!();
         log::info!("{}::{} event has no matching custom display", event.module, event.variant);
     }
 }
@@ -64,13 +65,14 @@ where
             display_event.print();
         },
         Err(err) => {
-            println!(
+            print!(
                 "{} {}",
                 "Error decoding event:".bright_red().bold(),
                 format!("{}", err),
             );
         }
     }
+    println!();
     true
 }
 
