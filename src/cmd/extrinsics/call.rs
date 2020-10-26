@@ -44,7 +44,7 @@ pub struct CallCommand {
     /// The value to be transferred as part of the call
     #[structopt(name = "value", long, default_value = "0")]
     value: <ContractsTemplateRuntime as Balances>::Balance,
-    #[structopt(name = "contract", long)]
+    #[structopt(name = "contract", long, env = "CONTRACT")]
     /// The address of the the contract to call
     contract: <ContractsTemplateRuntime as System>::AccountId,
     #[structopt(name = "rpc", long)]
