@@ -16,11 +16,11 @@
 
 mod cmd;
 mod crate_metadata;
-mod util;
-mod workspace;
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod tests;
+mod util;
+mod workspace;
 
 use std::{
     convert::{TryFrom, TryInto},
@@ -211,7 +211,7 @@ fn main() {
         Ok(msg) => {
             println!("\t{}", msg);
             process::exit(0);
-        },
+        }
         Err(err) => {
             eprintln!(
                 "{} {}",
@@ -219,7 +219,7 @@ fn main() {
                 format!("{:?}", err).bright_red()
             );
             process::exit(1);
-        },
+        }
     }
 }
 
