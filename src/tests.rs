@@ -30,7 +30,15 @@ fn cmd(path: &Path) -> Command {
     cmd
 }
 
-/// Sanity test the whole lifecycle of new -> build -> generate-metadata - deploy -> instantiate -> call
+/// Sanity test the whole lifecycle of:
+///   new -> build -> generate-metadata - deploy -> instantiate -> call
+///
+/// # Note
+///
+/// Requires running `--dev` node with compatible contracts pallet e.g.
+/// https://github.com/paritytech/canvas-node.
+///
+/// Before running this test run `--purge-db`, and start the node.
 #[test]
 fn build_deploy_instantiate_call() {
     let tmp_dir = tempfile::Builder::new()
