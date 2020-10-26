@@ -76,17 +76,6 @@ impl CallCommand {
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
 
-            // extrinsic success
-            if let Some(xt_success) =
-                find_event::<ExtrinsicSuccessEvent<ContractsTemplateRuntime>>(&result)?
-            {
-                println!(
-                    "{}::{}",
-                    xt_success.module_name.bold(),
-                    xt_success.event_name.bright_cyan().bold()
-                );
-            }
-
             // extrinsic failure
             if let Some(xt_failed) =
                 find_event::<ExtrinsicFailedEvent<ContractsTemplateRuntime>>(&result)?
