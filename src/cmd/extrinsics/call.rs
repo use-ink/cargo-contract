@@ -54,8 +54,8 @@ pub struct CallCommand {
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
         let metadata = load_metadata()?;
-        let msg_encoder = Transcoder::new(metadata);
-        let call_data = msg_encoder.encode(&self.name, &self.args)?;
+        let transcoder = Transcoder::new(metadata);
+        let call_data = transcoder.encode(&self.name, &self.args)?;
 
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
@@ -63,7 +63,7 @@ impl CallCommand {
                 RpcContractExecResult::Success {
                     data, gas_consumed, ..
                 } => {
-                    let value = msg_encoder.decode_return(&self.name, data.0)?;
+                    let value = transcoder.decode_return(&self.name, data.0)?;
                     pretty_print(value)?;
                     println!("{} {}", "Gas consumed:".bold(), gas_consumed);
                     Ok(())
@@ -110,7 +110,7 @@ impl CallCommand {
                     contract_exec.module_name.bold(),
                     contract_exec.event_name.bright_cyan().bold()
                 );
-                let events = msg_encoder.decode_events(&mut &contract_exec.event.data[..])?;
+                let events = transcoder.decode_events(&mut &contract_exec.event.data[..])?;
                 pretty_print(events)?;
             }
             Ok(())
