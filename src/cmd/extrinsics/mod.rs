@@ -26,7 +26,7 @@ use std::{fmt::Debug, fs::File};
 
 use self::{
     transcode::Transcoder,
-    events::{DecodedEvent, find_event}
+    events::{display_events}
 };
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 

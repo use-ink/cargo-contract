@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{find_event, load_metadata, pretty_print, Transcoder};
+use super::{display_events, load_metadata, pretty_print, Transcoder};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
@@ -75,34 +75,7 @@ impl CallCommand {
             }
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
-
-            // extrinsic failure
-            if let Some(xt_failed) =
-                find_event::<ExtrinsicFailedEvent<ContractsTemplateRuntime>>(&result)?
-            {
-                println!(
-                    "{}::{}",
-                    xt_failed.module_name.bold(),
-                    xt_failed.event_name.bright_red().bold()
-                );
-                println!(
-                    "  {}",
-                    format!("{:?}", xt_failed.event.error).bright_red().bold()
-                );
-            }
-
-            // contract events
-            if let Some(contract_exec) =
-                find_event::<ContractExecutionEvent<ContractsTemplateRuntime>>(&result)?
-            {
-                println!(
-                    "{}::{}",
-                    contract_exec.module_name.bold(),
-                    contract_exec.event_name.bright_cyan().bold()
-                );
-                let events = transcoder.decode_events(&mut &contract_exec.event.data[..])?;
-                pretty_print(events)?;
-            }
+            display_events(&result, &transcoder);
             Ok(())
         }
     }

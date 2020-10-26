@@ -14,109 +14,111 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
 use colored::Colorize;
 use subxt::{
-    balances::Balances, contracts::*, Event, system::*, ClientBuilder, ContractsTemplateRuntime,
-    ExtrinsicSuccess, Signer, RawEvent
+    contracts::*, Event, system::*, ContractsTemplateRuntime as Runtime,
+    ExtrinsicSuccess, RawEvent
 };
-use std::fmt::{self, Formatter};
+use super::{Transcoder, pretty_print};
 
-#[derive(Debug)]
-pub struct DecodedEvent<E: Event<ContractsTemplateRuntime>> {
-    event: E,
-    module_name: &'static str,
-    event_name: &'static str,
+pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcoder) {
+    for event in &result.events {
+        print!(
+            "{}::{} ",
+            event.module.bold(),
+            event.variant.bright_cyan().bold(),
+        );
+
+        if display_matching_event(event, |e: ExtrinsicSuccessEvent<Runtime>| e) {
+            continue;
+        }
+        if display_matching_event(event, |e: ExtrinsicFailedEvent<Runtime>| e) {
+            continue;
+        }
+        if display_matching_event(event, |e: NewAccountEvent<Runtime>| e) {
+            continue;
+        }
+        if display_matching_event(event, |event: ContractExecutionEvent<Runtime>| DisplayContractExecution { transcoder, event } ) {
+            continue;
+        }
+        log::info!("{}::{} event has no matching custom display", event.module, event.variant);
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct EventKey {
-    module_name: &'static str,
-    event_name: &'static str,
-}
-
-trait RuntimeEvent = Event<ContractsTemplateRuntime>;
-type XtSuccess = ExtrinsicSuccessEvent<ContractsTemplateRuntime>;
-type XtFailed = Extrinsic<ContractsTemplateRuntime>;
-
-pub fn display_events(result: &ExtrinsicSuccess<ContractsTemplateRuntime>) {
-    fn decode_or_error<E, F>(raw_event: RawEvent, f: F)
-    where
-        F: FnOnce(E),
-        E: RuntimeEvent
-    {
-        match E::decode(&mut &event.data[..]) {
-            Ok(event) => f(event),
-            Err(err) => {
-                println!("{}: {}", "Error decoding event")
-            }
-        }
+/// Prints the details for the given event if it matches.
+///
+/// Returns true iff the module and event name match.
+fn display_matching_event<E, F, D>(raw_event: &RawEvent, new_display: F) -> bool
+where
+    E: Event<Runtime>,
+    F: FnOnce(E) -> D,
+    D: DisplayEvent,
+{
+    if raw_event.module != E::MODULE || raw_event.variant != E::EVENT {
+        return false
     }
 
-    for event in result.events {
-        match (event.module, event.variant) {
-            // System::ExtrinsicSuccess
-            (<XtSuccess as RuntimeEvent>::MODULE, <XtSuccess as RuntimeEvent>::EVENT) => {
-                println!(
-                    "{}::{}",
-                    xt_success.module_name.bold(),
-                    xt_success.event_name.bright_cyan().bold()
-                );
-            },
-            // System::ExtrinsicFailed
-            (<XtFailed as RuntimeEvent>::MODULE, <XtFailed as RuntimeEvent>::EVENT) => {
-                let decoded = XtFailed::decode(&mut &event.data[..])
-                println!(
-                    "{}::{}",
-                    xt_failed.module_name.bold(),
-                    xt_failed.event_name.bright_red().bold()
-                );
-                println!(
-                    "  {}",
-                    format!("{:?}", xt_failed.event.error).bright_red().bold()
-                );
-            },
-            (module, module) => {
-                println!(
-                    "{}::{}",
-                    module.bold(),
-                    module.bright_cyan().bold()
-                );
-            }
+    match E::decode(&mut &raw_event.data[..]) {
+        Ok(event) => {
+            let display_event = new_display(event);
+            display_event.print();
+        },
+        Err(err) => {
+            println!(
+                "{} {}",
+                "Error decoding event:".bright_red().bold(),
+                format!("{}", err),
+            );
         }
     }
+    true
 }
 
 trait DisplayEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result;
+    fn print(&self);
 }
 
-impl DisplayEvent for ExtrinsicSuccessEvent<ContractsTemplateRuntime> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}::{}",
-            xt_success.module_name.bold(),
-            xt_success.event_name.bright_cyan().bold()
+impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
+    fn print(&self) {
+    }
+}
+
+impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
+    fn print(&self) {
+        println!(
+            "{}",
+            format!("{:?}", self.error).bright_red().bold()
         )
     }
 }
 
-/// Find the Event for the given module/variant, attempting to decode the event data.
-pub fn find_event<E>(
-    result: &ExtrinsicSuccess<ContractsTemplateRuntime>,
-) -> Result<Option<DecodedEvent<E>>>
-    where
-        E: Event<ContractsTemplateRuntime>,
-{
-    if let Some(event) = result.find_event_raw(E::MODULE, E::EVENT) {
-        let event = DecodedEvent {
-            event: E::decode(&mut &event.data[..])?,
-            module_name: E::MODULE,
-            event_name: E::EVENT,
-        };
-        Ok(Some(event))
-    } else {
-        Ok(None)
+impl DisplayEvent for NewAccountEvent<Runtime> {
+    fn print(&self) {
+        println!(
+            "account: {}",
+            format!("{}", self.account).bold()
+        )
+    }
+}
+
+struct DisplayContractExecution<'a> {
+    event: ContractExecutionEvent<Runtime>,
+    transcoder: &'a Transcoder,
+}
+
+impl<'a> DisplayEvent for DisplayContractExecution<'a> {
+    fn print(&self) {
+        match self.transcoder.decode_events(&mut &self.event.data[..]) {
+            Ok(events) => {
+                let _ = pretty_print(events);
+            },
+            Err(err) => {
+                println!(
+                    "{} {}",
+                    "Error decoding contract event:".bright_red().bold(),
+                    format!("{}", err),
+                );
+            }
+        }
     }
 }
