@@ -30,7 +30,7 @@ fn cmd(path: &Path) -> Command {
     cmd
 }
 
-/// Run the whole lifecycle of creating/building/
+/// Sanity test the whole lifecycle of new -> build -> generate-metadata - deploy -> instantiate -> call
 #[test]
 fn build_deploy_instantiate_call() {
     let tmp_dir = tempfile::Builder::new()
@@ -98,7 +98,7 @@ fn build_deploy_instantiate_call() {
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(64, contract_account.len());
 
-    let call_get = |expected: bool| {
+    let call_get_rpc = |expected: bool| {
         cmd(project_path.as_path())
             .arg("call")
             .arg("get")
@@ -110,7 +110,7 @@ fn build_deploy_instantiate_call() {
     };
 
     // call the `get` message via rpc to assert that it was set to the initial value
-    call_get(true);
+    call_get_rpc(true);
 
     // call the `flip` message with an extrinsic to change the state of the contract
     cmd(project_path.as_path())
@@ -122,5 +122,5 @@ fn build_deploy_instantiate_call() {
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
     // call the `get` message via rpc to assert that the value has been flipped
-    call_get(false);
+    call_get_rpc(false);
 }
