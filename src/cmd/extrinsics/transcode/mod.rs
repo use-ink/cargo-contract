@@ -124,7 +124,10 @@ impl Transcoder {
         let name = event_spec.name().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
-        Ok(ContractEvent { name, value: Value::Map(map) })
+        Ok(ContractEvent {
+            name,
+            value: Value::Map(map),
+        })
     }
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {

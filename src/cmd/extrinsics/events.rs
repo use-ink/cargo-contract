@@ -85,7 +85,9 @@ trait DisplayEvent {
 }
 
 impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
-    fn print(&self) { println!() }
+    fn print(&self) {
+        println!()
+    }
 }
 
 impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
@@ -107,7 +109,10 @@ struct DisplayContractExecution<'a> {
 
 impl<'a> DisplayEvent for DisplayContractExecution<'a> {
     fn print(&self) {
-        match self.transcoder.decode_contract_event(&mut &self.event.data[..]) {
+        match self
+            .transcoder
+            .decode_contract_event(&mut &self.event.data[..])
+        {
             Ok(contract_event) => {
                 println!();
                 let _ = pretty_print(contract_event, true);

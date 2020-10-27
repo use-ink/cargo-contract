@@ -112,7 +112,15 @@ mod tests {
                 .into_iter()
                 .collect(),
         ));
-        assert_eq!(r#"M { a: 1 }"#, format!("{}", map), "non-alternate same line");
-        assert_eq!("M {\n    a: 1,\n}", format!("{:#}", map), "alternate indented (pretty)");
+        assert_eq!(
+            r#"M { a: 1 }"#,
+            format!("{}", map),
+            "non-alternate same line"
+        );
+        assert_eq!(
+            "M {\n    a: 1,\n}",
+            format!("{:#}", map),
+            "alternate indented (pretty)"
+        );
     }
 }
