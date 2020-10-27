@@ -77,7 +77,6 @@ where
             );
         }
     }
-    println!();
     true
 }
 
@@ -86,18 +85,18 @@ trait DisplayEvent {
 }
 
 impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
-    fn print(&self) {}
+    fn print(&self) { println!() }
 }
 
 impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
     fn print(&self) {
-        print!("{}", format!("{:?}", self.error).bright_red().bold())
+        println!("{}", format!("{:?}", self.error).bright_red().bold())
     }
 }
 
 impl DisplayEvent for NewAccountEvent<Runtime> {
     fn print(&self) {
-        print!("account: {}", format!("{}", self.account).bold())
+        println!("account: {}", format!("{}", self.account).bold())
     }
 }
 
@@ -109,8 +108,9 @@ struct DisplayContractExecution<'a> {
 impl<'a> DisplayEvent for DisplayContractExecution<'a> {
     fn print(&self) {
         match self.transcoder.decode_contract_event(&mut &self.event.data[..]) {
-            Ok(events) => {
-                let _ = pretty_print(events, true);
+            Ok(contract_event) => {
+                println!();
+                let _ = pretty_print(contract_event, true);
             }
             Err(err) => {
                 println!(
