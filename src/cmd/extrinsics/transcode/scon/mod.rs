@@ -35,7 +35,7 @@ where
     parse::parse_value(s.as_ref())
 }
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Value {
     Bool(bool),
     Char(char),
@@ -49,7 +49,7 @@ pub enum Value {
     Unit,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Map {
     ident: Option<String>,
     map: IndexMap<Value, Value>,
@@ -129,7 +129,7 @@ impl Map {
     }
 }
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Tuple {
     ident: Option<String>,
     values: Vec<Value>,
@@ -162,7 +162,7 @@ impl Tuple {
     }
 }
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Seq {
     elems: Vec<Value>,
 }

@@ -17,31 +17,21 @@
 use super::{Bytes, Map, Seq, Tuple, Value};
 use std::fmt::{Debug, Display, Formatter, Result};
 
-impl Debug for Value {
+/// Wraps Value for custom Debug impl to provide pretty-printed Display
+struct DisplayValue<'a>(&'a Value);
+
+impl<'a> Debug for DisplayValue<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        fn debug_fmt<T>(name: &str, value: &T, f: &mut Formatter<'_>) -> Result
-        where
-            T: Debug,
-        {
-            if !f.alternate() {
-                write!(f, "{}(", name)?;
-            }
-            <T as Debug>::fmt(value, f)?;
-            if !f.alternate() {
-                write!(f, ")")?;
-            }
-            Ok(())
-        }
-        match self {
-            Value::Bool(boolean) => debug_fmt("Bool", boolean, f),
-            Value::Char(character) => debug_fmt("Char", character, f),
-            Value::UInt(uint) => debug_fmt("UInt", uint, f),
-            Value::Int(integer) => debug_fmt("Int", integer, f),
-            Value::Map(map) => debug_fmt("Map", map, f),
-            Value::Tuple(tuple) => debug_fmt("Tuple", tuple, f),
-            Value::String(string) => debug_fmt("String", string, f),
-            Value::Seq(seq) => debug_fmt("Seq", seq, f),
-            Value::Bytes(bytes) => debug_fmt("Bytes", bytes, f),
+        match &self.0 {
+            Value::Bool(boolean) => <bool as Debug>::fmt(boolean, f),
+            Value::Char(character) => <char as Debug>::fmt(character, f),
+            Value::UInt(uint) => <u128 as Display>::fmt(uint, f),
+            Value::Int(integer) => <i128 as Display>::fmt(integer, f),
+            Value::Map(map) => <DisplayMap as Debug>::fmt(&DisplayMap(map), f),
+            Value::Tuple(tuple) => <DisplayTuple as Debug>::fmt(&DisplayTuple(tuple), f),
+            Value::String(string) => <String as Display>::fmt(string, f),
+            Value::Seq(seq) => <DisplaySeq as Debug>::fmt(&DisplaySeq(seq), f),
+            Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
             Value::Unit => write!(f, "()"),
         }
     }
@@ -49,24 +39,29 @@ impl Debug for Value {
 
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        <Value as Debug>::fmt(self, f)
+        match self {
+            Value::String(string) => <String as Display>::fmt(string, f),
+            value => <DisplayValue as Debug>::fmt(&DisplayValue(value), f),
+        }
     }
 }
 
-impl Debug for Map {
+struct DisplayMap<'a>(&'a Map);
+
+impl<'a> Debug for DisplayMap<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.ident {
+        match self.0.ident {
             Some(ref name) => {
                 let mut builder = f.debug_struct(name);
-                for (name, value) in self.map.iter() {
-                    builder.field(&format!("{:?}", name), value);
+                for (name, value) in self.0.map.iter() {
+                    builder.field(&format!("{}", name), &DisplayValue(value));
                 }
                 builder.finish()
             }
             None => {
                 let mut builder = f.debug_map();
-                for (name, value) in self.map.iter() {
-                    builder.entry(name, value);
+                for (name, value) in self.0.map.iter() {
+                    builder.entry(name, &DisplayValue(value));
                 }
                 builder.finish()
             }
@@ -74,22 +69,26 @@ impl Debug for Map {
     }
 }
 
-impl Debug for Tuple {
+struct DisplayTuple<'a>(&'a Tuple);
+
+impl<'a> Debug for DisplayTuple<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let name = self.ident.as_ref().map_or("", |s| s.as_str());
+        let name = self.0.ident.as_ref().map_or("", |s| s.as_str());
         let mut builder = f.debug_tuple(name);
-        for value in self.values.iter() {
-            builder.field(value);
+        for value in self.0.values.iter() {
+            builder.field(&DisplayValue(value));
         }
         builder.finish()
     }
 }
 
-impl Debug for Seq {
+struct DisplaySeq<'a>(&'a Seq);
+
+impl<'a> Debug for DisplaySeq<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_list();
-        for elem in &self.elems {
-            builder.entry(elem);
+        for elem in &self.0.elems {
+            builder.entry(&DisplayValue(elem));
         }
         builder.finish()
     }
@@ -98,5 +97,22 @@ impl Debug for Seq {
 impl Debug for Bytes {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "0x{}", hex::encode(&self.bytes))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_map() {
+        let map = Value::Map(Map::new(
+            Some("M"),
+            vec![(Value::String("a".into()), Value::UInt(1))]
+                .into_iter()
+                .collect(),
+        ));
+        assert_eq!(r#"M { a: 1 }"#, format!("{}", map), "non-alternate same line");
+        assert_eq!("M {\n    a: 1,\n}", format!("{:#}", map), "alternate indented (pretty)");
     }
 }
