@@ -91,13 +91,13 @@ impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
 
 impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
     fn print(&self) {
-        println!("{}", format!("{:?}", self.error).bright_red().bold())
+        print!("{}", format!("{:?}", self.error).bright_red().bold())
     }
 }
 
 impl DisplayEvent for NewAccountEvent<Runtime> {
     fn print(&self) {
-        println!("account: {}", format!("{}", self.account).bold())
+        print!("account: {}", format!("{}", self.account).bold())
     }
 }
 
@@ -110,7 +110,7 @@ impl<'a> DisplayEvent for DisplayContractExecution<'a> {
     fn print(&self) {
         match self.transcoder.decode_contract_event(&mut &self.event.data[..]) {
             Ok(events) => {
-                let _ = pretty_print(events, false);
+                let _ = pretty_print(events, true);
             }
             Err(err) => {
                 println!(

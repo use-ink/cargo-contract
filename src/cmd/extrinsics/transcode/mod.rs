@@ -124,7 +124,7 @@ impl Transcoder {
         let name = event_spec.name().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
-        Ok(ContractEvent { name, map })
+        Ok(ContractEvent { name, value: Value::Map(map) })
     }
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
@@ -189,12 +189,12 @@ impl CompositeTypeFields {
 
 pub struct ContractEvent {
     pub name: String,
-    pub map: Map,
+    pub value: Value,
 }
 
 impl Display for ContractEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.map.fmt(f)
+        <Value as Display>::fmt(&self.value, f)
     }
 }
 
