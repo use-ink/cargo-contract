@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::{pretty_print, Transcoder};
 use colored::Colorize;
 use subxt::{
-    contracts::*, Event, system::*, ContractsTemplateRuntime as Runtime,
-    ExtrinsicSuccess, RawEvent
+    contracts::*, system::*, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
 };
-use super::{Transcoder, pretty_print};
 
 pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcoder) {
     for event in &result.events {
@@ -38,11 +37,17 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
         if display_matching_event(event, |e: NewAccountEvent<Runtime>| e) {
             continue;
         }
-        if display_matching_event(event, |event: ContractExecutionEvent<Runtime>| DisplayContractExecution { transcoder, event } ) {
+        if display_matching_event(event, |event: ContractExecutionEvent<Runtime>| {
+            DisplayContractExecution { transcoder, event }
+        }) {
             continue;
         }
         println!();
-        log::info!("{}::{} event has no matching custom display", event.module, event.variant);
+        log::info!(
+            "{}::{} event has no matching custom display",
+            event.module,
+            event.variant
+        );
     }
 }
 
@@ -56,14 +61,14 @@ where
     D: DisplayEvent,
 {
     if raw_event.module != E::MODULE || raw_event.variant != E::EVENT {
-        return false
+        return false;
     }
 
     match E::decode(&mut &raw_event.data[..]) {
         Ok(event) => {
             let display_event = new_display(event);
             display_event.print();
-        },
+        }
         Err(err) => {
             print!(
                 "{} {}",
@@ -81,25 +86,18 @@ trait DisplayEvent {
 }
 
 impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
-    fn print(&self) {
-    }
+    fn print(&self) {}
 }
 
 impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
     fn print(&self) {
-        println!(
-            "{}",
-            format!("{:?}", self.error).bright_red().bold()
-        )
+        println!("{}", format!("{:?}", self.error).bright_red().bold())
     }
 }
 
 impl DisplayEvent for NewAccountEvent<Runtime> {
     fn print(&self) {
-        println!(
-            "account: {}",
-            format!("{}", self.account).bold()
-        )
+        println!("account: {}", format!("{}", self.account).bold())
     }
 }
 
@@ -113,7 +111,7 @@ impl<'a> DisplayEvent for DisplayContractExecution<'a> {
         match self.transcoder.decode_events(&mut &self.event.data[..]) {
             Ok(events) => {
                 let _ = pretty_print(events);
-            },
+            }
             Err(err) => {
                 println!(
                     "{} {}",

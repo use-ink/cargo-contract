@@ -16,18 +16,15 @@
 
 pub mod call;
 pub mod deploy;
-pub mod instantiate;
 mod events;
+pub mod instantiate;
 mod transcode;
 
 use anyhow::Result;
 use bat::PrettyPrinter;
 use std::{fmt::Debug, fs::File};
 
-use self::{
-    transcode::Transcoder,
-    events::{display_events}
-};
+use self::{events::display_events, transcode::Transcoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
