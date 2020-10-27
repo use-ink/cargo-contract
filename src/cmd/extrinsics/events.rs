@@ -108,9 +108,9 @@ struct DisplayContractExecution<'a> {
 
 impl<'a> DisplayEvent for DisplayContractExecution<'a> {
     fn print(&self) {
-        match self.transcoder.decode_events(&mut &self.event.data[..]) {
+        match self.transcoder.decode_contract_event(&mut &self.event.data[..]) {
             Ok(events) => {
-                let _ = pretty_print(events);
+                let _ = pretty_print(events, false);
             }
             Err(err) => {
                 println!(

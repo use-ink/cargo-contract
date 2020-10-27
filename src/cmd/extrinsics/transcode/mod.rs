@@ -31,7 +31,7 @@ use scale_info::{
     form::{CompactForm, Form},
     Field, RegistryReadOnly, TypeDefComposite,
 };
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
@@ -99,7 +99,7 @@ impl Transcoder {
             .find(|msg| msg.name().contains(&name.to_string()))
     }
 
-    pub fn decode_events<I>(&self, data: &mut I) -> Result<DecodedEvent>
+    pub fn decode_contract_event<I>(&self, data: &mut I) -> Result<ContractEvent>
     where
         I: Input + Debug,
     {
@@ -124,7 +124,7 @@ impl Transcoder {
         let name = event_spec.name().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
-        Ok(DecodedEvent { name, map })
+        Ok(ContractEvent { name, map })
     }
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
@@ -187,12 +187,12 @@ impl CompositeTypeFields {
     }
 }
 
-pub struct DecodedEvent {
+pub struct ContractEvent {
     pub name: String,
     pub map: Map,
 }
 
-impl Debug for DecodedEvent {
+impl Display for ContractEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.map.fmt(f)
     }

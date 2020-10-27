@@ -65,7 +65,7 @@ impl CallCommand {
                     data, gas_consumed, ..
                 } => {
                     let value = transcoder.decode_return(&self.name, data.0)?;
-                    pretty_print(value)?;
+                    pretty_print(value, false)?;
                     println!("{} {}", "Gas consumed:".bold(), gas_consumed);
                     Ok(())
                 }

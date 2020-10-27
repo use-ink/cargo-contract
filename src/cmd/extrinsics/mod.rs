@@ -22,7 +22,7 @@ mod transcode;
 
 use anyhow::Result;
 use bat::PrettyPrinter;
-use std::{fmt::Debug, fs::File};
+use std::{fmt::Display, fs::File};
 
 use self::{events::display_events, transcode::Transcoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
@@ -42,11 +42,15 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     Ok(metadata)
 }
 
-pub fn pretty_print<V>(value: V) -> Result<()>
+pub fn pretty_print<V>(value: V, indentation: bool) -> Result<()>
 where
-    V: Debug,
+    V: Display,
 {
-    let content = format!("{:#?}", value);
+    let content = if indentation {
+        format!("{:#}", value)
+    } else {
+        format!("{}", value)
+    };
     let mut pretty_printer = PrettyPrinter::new();
     pretty_printer
         .input_from_bytes(content.as_bytes())
