@@ -10,7 +10,7 @@ set -u
 
 function prepopulate {
   if [[ ! -d $1 ]]; then
-    mkdir -p "/ci-cache/$CI_PROJECT_NAME/$2/$CI_COMMIT_REF_NAME";
+    mkdir -p "/ci-cache/$CI_PROJECT_NAME/$2/$CI_COMMIT_REF_NAME/$CI_JOB_NAME";
     FRESH_CACHE=$(find "/ci-cache/$CI_PROJECT_NAME/$2" -mindepth 2 -maxdepth 2 \
       -type d -name "$CI_JOB_NAME"  -exec stat --printf="%Y\t%n\n" {} \; |sort -n -r |head -1 |cut -f2);
     if [[ -d $FRESH_CACHE ]]; then
