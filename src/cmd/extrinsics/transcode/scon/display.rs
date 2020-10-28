@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{Bytes, Map, Seq, Tuple, Value};
-use std::fmt::{Debug, Display, Formatter, Result};
+use std::fmt::{Debug, Display, LowerHex, Formatter, Result};
 
 /// Wraps Value for custom Debug impl to provide pretty-printed Display
 struct DisplayValue<'a>(&'a Value);
@@ -96,7 +96,17 @@ impl<'a> Debug for DisplaySeq<'a> {
 
 impl Debug for Bytes {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "0x{}", hex::encode(&self.bytes))
+        write!(f, "{:#x}", self)
+    }
+}
+
+impl LowerHex for Bytes {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if f.alternate() {
+            write!(f, "0x{}", hex::encode(&self.bytes))
+        } else {
+            write!(f, "{}", hex::encode(&self.bytes))
+        }
     }
 }
 
