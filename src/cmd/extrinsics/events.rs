@@ -19,6 +19,7 @@ use colored::Colorize;
 use subxt::{
     contracts::*, system::*, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
 };
+use std::fmt::{Display, Formatter, Result};
 
 pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcoder) {
     for event in &result.events {
@@ -28,18 +29,16 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
             event.variant.bright_cyan().bold(),
         );
 
-        if display_matching_event(event, |e: ExtrinsicSuccessEvent<Runtime>| e) {
+        if display_matching_event(event, |e| DisplayExtrinsicSuccessEvent(e), false) {
             continue;
         }
-        if display_matching_event(event, |e: ExtrinsicFailedEvent<Runtime>| e) {
+        if display_matching_event(event, |e| DisplayExtrinsicFailedEvent(e), false) {
             continue;
         }
-        if display_matching_event(event, |e: NewAccountEvent<Runtime>| e) {
+        if display_matching_event(event, |e| DisplayNewAccountEvent(e), false) {
             continue;
         }
-        if display_matching_event(event, |event: ContractExecutionEvent<Runtime>| {
-            DisplayContractExecution { transcoder, event }
-        }) {
+        if display_matching_event(event, |event| DisplayContractExecution { transcoder, event }, true) {
             continue;
         }
         println!();
@@ -54,11 +53,11 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
 /// Prints the details for the given event if it matches.
 ///
 /// Returns true iff the module and event name match.
-fn display_matching_event<E, F, D>(raw_event: &RawEvent, new_display: F) -> bool
+fn display_matching_event<E, F, D>(raw_event: &RawEvent, new_display: F, indent: bool) -> bool
 where
     E: Event<Runtime>,
     F: FnOnce(E) -> D,
-    D: DisplayEvent,
+    D: Display,
 {
     if raw_event.module != E::MODULE || raw_event.variant != E::EVENT {
         return false;
@@ -67,7 +66,7 @@ where
     match E::decode(&mut &raw_event.data[..]) {
         Ok(event) => {
             let display_event = new_display(event);
-            display_event.print();
+            let _ = pretty_print(display_event, indent);
         }
         Err(err) => {
             print!(
@@ -80,25 +79,34 @@ where
     true
 }
 
-trait DisplayEvent {
-    fn print(&self);
-}
+/// Wraps ExtrinsicSuccessEvent for Display impl
+struct DisplayExtrinsicSuccessEvent(ExtrinsicSuccessEvent<Runtime>);
 
-impl DisplayEvent for ExtrinsicSuccessEvent<Runtime> {
-    fn print(&self) {
-        println!()
+impl Display for DisplayExtrinsicSuccessEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "")
     }
 }
 
-impl DisplayEvent for ExtrinsicFailedEvent<Runtime> {
-    fn print(&self) {
-        println!("{}", format!("{:?}", self.error).bright_red().bold())
+/// Wraps ExtrinsicFailedEvent for Display impl
+struct DisplayExtrinsicFailedEvent(ExtrinsicFailedEvent<Runtime>);
+
+impl Display for DisplayExtrinsicFailedEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("error", &format!("{:?}", self.0.error));
+        builder.finish()
     }
 }
 
-impl DisplayEvent for NewAccountEvent<Runtime> {
-    fn print(&self) {
-        println!("account: {}", format!("{}", self.account).bold())
+/// Wraps NewAccountEvent for Display impl
+struct DisplayNewAccountEvent(NewAccountEvent<Runtime>);
+
+impl Display for DisplayNewAccountEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("account", &format!("{}", self.0.account));
+        builder.finish()
     }
 }
 
@@ -107,23 +115,22 @@ struct DisplayContractExecution<'a> {
     transcoder: &'a Transcoder,
 }
 
-impl<'a> DisplayEvent for DisplayContractExecution<'a> {
-    fn print(&self) {
+impl<'a> Display for DisplayContractExecution<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("caller", &self.event.caller);
         match self
             .transcoder
             .decode_contract_event(&mut &self.event.data[..])
         {
             Ok(contract_event) => {
-                println!();
-                let _ = pretty_print(contract_event, true);
+                builder.field("event", &contract_event);
             }
             Err(err) => {
-                println!(
-                    "{} {}",
-                    "Error decoding contract event:".bright_red().bold(),
-                    format!("{}", err),
-                );
+                log::error!("Error decoding contract event: {}", err);
+                builder.field("event", &"Failed to decode contract event, see logs");
             }
         }
+        builder.finish()
     }
 }

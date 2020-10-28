@@ -195,6 +195,12 @@ pub struct ContractEvent {
     pub value: Value,
 }
 
+impl Debug for ContractEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        <Self as Display>::fmt(&self, f)
+    }
+}
+
 impl Display for ContractEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         <Value as Display>::fmt(&self.value, f)
