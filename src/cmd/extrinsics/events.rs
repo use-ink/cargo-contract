@@ -17,7 +17,7 @@
 use super::{pretty_print, Transcoder};
 use colored::Colorize;
 use subxt::{
-    balances, contracts::*, system::*, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
+    balances, contracts, system, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
 };
 use std::fmt::{Display, Formatter, Result};
 
@@ -83,7 +83,7 @@ where
 }
 
 /// Wraps ExtrinsicSuccessEvent for Display impl
-struct DisplayExtrinsicSuccessEvent(ExtrinsicSuccessEvent<Runtime>);
+struct DisplayExtrinsicSuccessEvent(system::ExtrinsicSuccessEvent<Runtime>);
 
 impl Display for DisplayExtrinsicSuccessEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -92,12 +92,23 @@ impl Display for DisplayExtrinsicSuccessEvent {
 }
 
 /// Wraps ExtrinsicFailedEvent for Display impl
-struct DisplayExtrinsicFailedEvent(ExtrinsicFailedEvent<Runtime>);
+struct DisplayExtrinsicFailedEvent(system::ExtrinsicFailedEvent<Runtime>);
 
 impl Display for DisplayExtrinsicFailedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
         builder.field("error", &format!("{:?}", self.0.error));
+        builder.finish()
+    }
+}
+
+/// Wraps NewAccountEvent for Display impl
+struct DisplayNewAccountEvent(system::NewAccountEvent<Runtime>);
+
+impl Display for DisplayNewAccountEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("account", &self.0.account);
         builder.finish()
     }
 }
@@ -114,19 +125,8 @@ impl Display for DisplayTransferEvent {
     }
 }
 
-/// Wraps NewAccountEvent for Display impl
-struct DisplayNewAccountEvent(NewAccountEvent<Runtime>);
-
-impl Display for DisplayNewAccountEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("account", &self.0.account);
-        builder.finish()
-    }
-}
-
 struct DisplayContractExecution<'a> {
-    event: ContractExecutionEvent<Runtime>,
+    event: contracts::ContractExecutionEvent<Runtime>,
     transcoder: &'a Transcoder,
 }
 
