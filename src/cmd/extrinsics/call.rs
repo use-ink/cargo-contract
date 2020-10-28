@@ -75,7 +75,7 @@ impl CallCommand {
             }
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
-            display_events(&result, &transcoder);
+            display_events(&result, &transcoder, self.extrinsic_opts.verbosity()?);
             Ok(())
         }
     }

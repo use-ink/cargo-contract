@@ -33,7 +33,7 @@ use colored::Colorize;
 use structopt::{clap, StructOpt};
 
 #[cfg(feature = "extrinsics")]
-use crate::cmd::{CallCommand, InstantiateCommand};
+use crate::cmd::{DeployCommand, CallCommand, InstantiateCommand};
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519};
 #[cfg(feature = "extrinsics")]
@@ -70,7 +70,7 @@ impl std::str::FromStr for HexData {
 
 /// Arguments required for creating and sending an extrinsic to a substrate node
 #[cfg(feature = "extrinsics")]
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Debug, StructOpt)]
 pub(crate) struct ExtrinsicOpts {
     /// Websockets url of a substrate node
     #[structopt(
@@ -86,6 +86,8 @@ pub(crate) struct ExtrinsicOpts {
     /// Password for the secret key
     #[structopt(name = "password", long, short)]
     password: Option<String>,
+    #[structopt(flatten)]
+    verbosity: VerbosityFlags,
 }
 
 #[cfg(feature = "extrinsics")]
@@ -96,9 +98,14 @@ impl ExtrinsicOpts {
                 .map_err(|_| anyhow::anyhow!("Secret string error"))?;
         Ok(PairSigner::new(pair))
     }
+
+    /// Returns the verbosity
+    pub fn verbosity(&self) -> Result<Verbosity> {
+        self.verbosity.try_into()
+    }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, StructOpt)]
 struct VerbosityFlags {
     #[structopt(long)]
     quiet: bool,
@@ -106,20 +113,39 @@ struct VerbosityFlags {
     verbose: bool,
 }
 
-#[derive(Clone, Copy)]
-enum Verbosity {
-    Quiet,
-    Verbose,
+impl Default for VerbosityFlags {
+    fn default() -> Self {
+        Self::quiet()
+    }
 }
 
-impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
+impl VerbosityFlags {
+    pub fn quiet() -> Self {
+        Self { quiet: true, verbose: false }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Verbosity {
+    Quiet,
+    Verbose,
+    NotSpecified,
+}
+
+impl Default for Verbosity {
+    fn default() -> Self {
+        Self::NotSpecified
+    }
+}
+
+impl TryFrom<VerbosityFlags> for Verbosity {
     type Error = Error;
 
-    fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
+    fn try_from(value: VerbosityFlags) -> Result<Self, Self::Error> {
         match (value.quiet, value.verbose) {
-            (false, false) => Ok(None),
-            (true, false) => Ok(Some(Verbosity::Quiet)),
-            (false, true) => Ok(Some(Verbosity::Verbose)),
+            (false, false) => Ok(Verbosity::NotSpecified),
+            (true, false) => Ok(Verbosity::Quiet),
+            (false, true) => Ok(Verbosity::Verbose),
             (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
         }
     }
@@ -189,13 +215,7 @@ enum Command {
     /// Upload the smart contract code to the chain
     #[cfg(feature = "extrinsics")]
     #[structopt(name = "deploy")]
-    Deploy {
-        #[structopt(flatten)]
-        extrinsic_opts: ExtrinsicOpts,
-        /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
-        #[structopt(parse(from_os_str))]
-        wasm_path: Option<PathBuf>,
-    },
+    Deploy(DeployCommand),
     /// Instantiate a deployed smart contract
     #[cfg(feature = "extrinsics")]
     Instantiate(InstantiateCommand),
@@ -233,7 +253,7 @@ fn exec(cmd: Command) -> Result<String> {
             let manifest_path = Default::default();
             let dest_wasm = cmd::build::execute(
                 &manifest_path,
-                verbosity.try_into()?,
+                verbosity.clone().try_into()?,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
@@ -247,7 +267,7 @@ fn exec(cmd: Command) -> Result<String> {
         } => {
             let metadata_file = cmd::metadata::execute(
                 Default::default(),
-                verbosity.try_into()?,
+                verbosity.clone().try_into()?,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
@@ -257,17 +277,14 @@ fn exec(cmd: Command) -> Result<String> {
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
-        Command::Deploy {
-            extrinsic_opts,
-            wasm_path,
-        } => {
-            let code_hash = cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref())?;
-            Ok(format!("Code hash: {:?}", code_hash))
+        Command::Deploy(deploy) => {
+            let _code_hash = deploy.exec()?;
+            Ok("".into())
         }
         #[cfg(feature = "extrinsics")]
         Command::Instantiate(instantiate) => {
-            let contract_account = instantiate.run()?;
-            Ok(format!("Contract account: {:?}", contract_account))
+            let _contract_account = instantiate.run()?;
+            Ok("".into())
         }
         #[cfg(feature = "extrinsics")]
         Command::Call(call) => {

@@ -31,7 +31,7 @@ use url::Url;
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_options: UnstableFlags,
 }
 
@@ -174,7 +174,7 @@ impl GenerateMetadataCommand {
 /// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute(
     manifest_path: ManifestPath,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_options: UnstableFlags,
 ) -> Result<PathBuf> {
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
@@ -287,7 +287,7 @@ mod tests {
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let metadata_file =
-                cmd::metadata::execute(test_manifest.manifest_path, None, UnstableFlags::default())
+                cmd::metadata::execute(test_manifest.manifest_path, Default::default(), UnstableFlags::default())
                     .expect("generate metadata failed");
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;

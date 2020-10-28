@@ -50,7 +50,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_options: UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
@@ -61,10 +61,11 @@ fn build_cargo_project(
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
     );
 
-    let verbosity = verbosity.map(|v| match v {
-        Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
-        Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
-    });
+    let verbosity = match verbosity {
+        Verbosity::Verbose => Some(xargo_lib::Verbosity::Verbose),
+        Verbosity::Quiet => Some(xargo_lib::Verbosity::Quiet),
+        Verbosity::NotSpecified => None,
+    };
 
     let xbuild = |manifest_path: &ManifestPath| {
         let manifest_path = Some(manifest_path);
@@ -248,7 +249,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// [`execute_build_with_metadata`] if an instance is already available.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_options: UnstableFlags,
 ) -> Result<PathBuf> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
@@ -264,7 +265,7 @@ pub(crate) fn execute(
 /// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
 pub(crate) fn execute_with_metadata(
     crate_metadata: &CrateMetadata,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_options: UnstableFlags,
 ) -> Result<PathBuf> {
     println!(
@@ -299,7 +300,7 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(&manifest_path, None, UnstableFlags::default()).expect("build failed");
+            super::execute(&manifest_path, Default::default(), UnstableFlags::default()).expect("build failed");
             Ok(())
         })
     }

@@ -70,7 +70,7 @@ impl InstantiateCommand {
                 )
                 .await?;
 
-            display_events(&events, &transcoder);
+            display_events(&events, &transcoder, self.extrinsic_opts.verbosity()?);
 
             let instantiated = events
                 .instantiated()?
@@ -95,7 +95,7 @@ fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd::execute_deploy, util::tests::with_tmp_dir, ExtrinsicOpts};
+    use crate::{cmd::DeployCommand, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags};
     use assert_matches::assert_matches;
     use std::{fs, io::Write};
 
@@ -121,9 +121,11 @@ mod tests {
                 url,
                 suri: "//Alice".into(),
                 password: None,
+                verbosity: VerbosityFlags::quiet(),
             };
+            let deploy = DeployCommand { extrinsic_opts: extrinsic_opts.clone(), wasm_path: Some(wasm_path) };
             let code_hash =
-                execute_deploy(&extrinsic_opts, Some(&wasm_path)).expect("Deploy should succeed");
+                deploy.exec().expect("Deploy should succeed");
 
             let cmd = InstantiateCommand {
                 extrinsic_opts,

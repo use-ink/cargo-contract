@@ -42,7 +42,7 @@ pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
@@ -59,9 +59,9 @@ where
     cmd.arg(command);
     cmd.args(args);
     match verbosity {
-        Some(Verbosity::Quiet) => cmd.arg("--quiet"),
-        Some(Verbosity::Verbose) => cmd.arg("--verbose"),
-        None => &mut cmd,
+        Verbosity::Quiet => cmd.arg("--quiet"),
+        Verbosity::Verbose => cmd.arg("--verbose"),
+        Verbosity::NotSpecified => &mut cmd,
     };
 
     log::info!("invoking cargo: {:?}", cmd);

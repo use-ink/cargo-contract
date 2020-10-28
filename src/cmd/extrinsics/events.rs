@@ -14,14 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::Verbosity;
 use super::{pretty_print, Transcoder};
+
 use colored::Colorize;
 use subxt::{
     balances, contracts, system, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
 };
 use std::fmt::{Display, Formatter, Result};
 
-pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcoder) {
+pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcoder, verbosity: Verbosity) {
+    if matches!(verbosity, Verbosity::Quiet) {
+        return;
+    }
+
     for event in &result.events {
         print!(
             "{}::{} ",
