@@ -33,7 +33,7 @@ use colored::Colorize;
 use structopt::{clap, StructOpt};
 
 #[cfg(feature = "extrinsics")]
-use crate::cmd::{DeployCommand, CallCommand, InstantiateCommand};
+use crate::cmd::{CallCommand, DeployCommand, InstantiateCommand};
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519};
 #[cfg(feature = "extrinsics")]
@@ -121,7 +121,10 @@ impl Default for VerbosityFlags {
 
 impl VerbosityFlags {
     pub fn quiet() -> Self {
-        Self { quiet: true, verbose: false }
+        Self {
+            quiet: true,
+            verbose: false,
+        }
     }
 }
 
@@ -287,8 +290,6 @@ fn exec(cmd: Command) -> Result<String> {
             Ok(format!("Contract account: {}", contract_account))
         }
         #[cfg(feature = "extrinsics")]
-        Command::Call(call) => {
-            call.run()
-        }
+        Command::Call(call) => call.run(),
     }
 }

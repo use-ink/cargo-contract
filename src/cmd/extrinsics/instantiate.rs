@@ -83,12 +83,11 @@ impl InstantiateCommand {
 
 #[cfg(feature = "extrinsics")]
 fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::Hash> {
-    let bytes =
-        if input.starts_with("0x") {
-            hex::decode(input.trim_start_matches("0x"))?
-        } else {
-            hex::decode(input)?
-        };
+    let bytes = if input.starts_with("0x") {
+        hex::decode(input.trim_start_matches("0x"))?
+    } else {
+        hex::decode(input)?
+    };
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")
     }
@@ -128,9 +127,11 @@ mod tests {
                 password: None,
                 verbosity: VerbosityFlags::quiet(),
             };
-            let deploy = DeployCommand { extrinsic_opts: extrinsic_opts.clone(), wasm_path: Some(wasm_path) };
-            let code_hash =
-                deploy.exec().expect("Deploy should succeed");
+            let deploy = DeployCommand {
+                extrinsic_opts: extrinsic_opts.clone(),
+                wasm_path: Some(wasm_path),
+            };
+            let code_hash = deploy.exec().expect("Deploy should succeed");
 
             let cmd = InstantiateCommand {
                 extrinsic_opts,
@@ -150,8 +151,14 @@ mod tests {
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").is_ok());
+        assert!(parse_code_hash(
+            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok());
         // without 0x prefix
-        assert!(parse_code_hash("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").is_ok())
+        assert!(
+            parse_code_hash("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+                .is_ok()
+        )
     }
 }

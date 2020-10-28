@@ -16,11 +16,11 @@
 
 use anyhow::{Context, Result};
 use sp_core::H256;
+use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
 use subxt::{contracts::*, ClientBuilder, ContractsTemplateRuntime};
-use std::{fs, io::Read, path::PathBuf};
 
-use super::{load_metadata, display_events, Transcoder};
+use super::{display_events, load_metadata, Transcoder};
 use crate::{crate_metadata, ExtrinsicOpts};
 
 #[derive(Debug, StructOpt)]
@@ -34,7 +34,6 @@ pub struct DeployCommand {
 }
 
 impl DeployCommand {
-
     /// Load the wasm blob from the specified path.
     ///
     /// Defaults to the target contract wasm in the current project, inferred via the crate metadata.
@@ -120,7 +119,10 @@ mod tests {
                 password: None,
                 verbosity: VerbosityFlags::quiet(),
             };
-            let cmd = DeployCommand { extrinsic_opts, wasm_path: Some(wasm_path) };
+            let cmd = DeployCommand {
+                extrinsic_opts,
+                wasm_path: Some(wasm_path),
+            };
             let result = cmd.exec();
 
             assert_matches!(result, Ok(_));

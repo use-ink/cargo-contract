@@ -286,9 +286,12 @@ mod tests {
             test_manifest.write()?;
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
-            let metadata_file =
-                cmd::metadata::execute(test_manifest.manifest_path, Default::default(), UnstableFlags::default())
-                    .expect("generate metadata failed");
+            let metadata_file = cmd::metadata::execute(
+                test_manifest.manifest_path,
+                Default::default(),
+                UnstableFlags::default(),
+            )
+            .expect("generate metadata failed");
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;
 

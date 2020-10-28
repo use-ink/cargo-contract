@@ -23,5 +23,5 @@ mod extrinsics;
 
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::extrinsics::{
-    deploy::DeployCommand, call::CallCommand, instantiate::InstantiateCommand,
+    call::CallCommand, deploy::DeployCommand, instantiate::InstantiateCommand,
 };
