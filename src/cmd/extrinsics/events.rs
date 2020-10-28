@@ -41,6 +41,12 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
         if display_matching_event(event, |e| DisplayNewAccountEvent(e), false) {
             continue;
         }
+        if display_matching_event(event, |e| DisplayCodeStoredEvent(e), true) {
+            continue;
+        }
+        if display_matching_event(event, |e| DisplayInstantiatedEvent(e), true) {
+            continue;
+        }
         if display_matching_event(event, |event| DisplayContractExecution { transcoder, event }, true) {
             continue;
         }
@@ -113,6 +119,7 @@ impl Display for DisplayNewAccountEvent {
     }
 }
 
+/// Wraps balances::TransferEvent for Display impl
 struct DisplayTransferEvent(balances::TransferEvent<Runtime>);
 
 impl Display for DisplayTransferEvent {
@@ -125,6 +132,30 @@ impl Display for DisplayTransferEvent {
     }
 }
 
+/// Wraps contracts::CodeStored for Display impl
+struct DisplayCodeStoredEvent(contracts::CodeStoredEvent<Runtime>);
+
+impl Display for DisplayCodeStoredEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("code_hash", &self.0.code_hash);
+        builder.finish()
+    }
+}
+
+/// Wraps contracts::InstantiatedEvent for Display impl
+struct DisplayInstantiatedEvent(contracts::InstantiatedEvent<Runtime>);
+
+impl Display for DisplayInstantiatedEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("caller", &self.0.caller);
+        builder.field("contract", &self.0.contract);
+        builder.finish()
+    }
+}
+
+/// Wraps contracts::ContractExecutionEvent<Runtime> for Display impl and decodes contract events.
 struct DisplayContractExecution<'a> {
     event: contracts::ContractExecutionEvent<Runtime>,
     transcoder: &'a Transcoder,
