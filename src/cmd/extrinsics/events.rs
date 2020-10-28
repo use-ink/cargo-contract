@@ -63,6 +63,7 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
             event.variant
         );
     }
+    println!();
 }
 
 /// Prints the details for the given event if it matches.

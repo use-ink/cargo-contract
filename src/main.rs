@@ -279,7 +279,7 @@ fn exec(cmd: Command) -> Result<String> {
         #[cfg(feature = "extrinsics")]
         Command::Deploy(deploy) => {
             let code_hash = deploy.exec()?;
-            Ok(format!("Code hash: {}", code_hash))
+            Ok(format!("Code hash: {:#x}", code_hash))
         }
         #[cfg(feature = "extrinsics")]
         Command::Instantiate(instantiate) => {
