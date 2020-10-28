@@ -53,7 +53,7 @@ pub struct CallCommand {
 }
 
 impl CallCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> Result<String> {
         let metadata = load_metadata()?;
         let transcoder = Transcoder::new(metadata);
         let call_data = transcoder.encode(&self.name, &self.args)?;
@@ -66,8 +66,7 @@ impl CallCommand {
                 } => {
                     let value = transcoder.decode_return(&self.name, data.0)?;
                     pretty_print(value, false)?;
-                    println!("{} {}", "Gas consumed:".bold(), gas_consumed);
-                    Ok(())
+                    Ok(format!("{} {}", "Gas consumed:".bold(), gas_consumed))
                 }
                 RpcContractExecResult::Error(()) => {
                     Err(anyhow::anyhow!("Failed to execute call via rpc"))
@@ -76,7 +75,7 @@ impl CallCommand {
         } else {
             let result = async_std::task::block_on(self.call(call_data))?;
             display_events(&result, &transcoder, self.extrinsic_opts.verbosity()?);
-            Ok(())
+            Ok("".into())
         }
     }
 

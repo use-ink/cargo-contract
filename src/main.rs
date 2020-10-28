@@ -229,7 +229,7 @@ fn main() {
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
         Ok(msg) => {
-            println!("\t{}", msg);
+            println!("{}", msg);
             process::exit(0);
         }
         Err(err) => {
@@ -278,18 +278,17 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy(deploy) => {
-            let _code_hash = deploy.exec()?;
-            Ok("".into())
+            let code_hash = deploy.exec()?;
+            Ok(format!("Code hash: {}", code_hash))
         }
         #[cfg(feature = "extrinsics")]
         Command::Instantiate(instantiate) => {
-            let _contract_account = instantiate.run()?;
-            Ok("".into())
+            let contract_account = instantiate.run()?;
+            Ok(format!("Contract account: {}", contract_account))
         }
         #[cfg(feature = "extrinsics")]
         Command::Call(call) => {
-            call.run()?;
-            Ok("".into())
+            call.run()
         }
     }
 }
