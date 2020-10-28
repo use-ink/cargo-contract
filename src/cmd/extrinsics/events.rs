@@ -17,7 +17,7 @@
 use super::{pretty_print, Transcoder};
 use colored::Colorize;
 use subxt::{
-    contracts::*, system::*, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
+    balances, contracts::*, system::*, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess, RawEvent,
 };
 use std::fmt::{Display, Formatter, Result};
 
@@ -33,6 +33,9 @@ pub fn display_events(result: &ExtrinsicSuccess<Runtime>, transcoder: &Transcode
             continue;
         }
         if display_matching_event(event, |e| DisplayExtrinsicFailedEvent(e), false) {
+            continue;
+        }
+        if display_matching_event(event, |e| DisplayTransferEvent(e), true) {
             continue;
         }
         if display_matching_event(event, |e| DisplayNewAccountEvent(e), false) {
@@ -99,13 +102,25 @@ impl Display for DisplayExtrinsicFailedEvent {
     }
 }
 
+struct DisplayTransferEvent(balances::TransferEvent<Runtime>);
+
+impl Display for DisplayTransferEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut builder = f.debug_struct("");
+        builder.field("from", &self.0.from);
+        builder.field("to", &self.0.to);
+        builder.field("amount", &self.0.amount);
+        builder.finish()
+    }
+}
+
 /// Wraps NewAccountEvent for Display impl
 struct DisplayNewAccountEvent(NewAccountEvent<Runtime>);
 
 impl Display for DisplayNewAccountEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("account", &format!("{}", self.0.account));
+        builder.field("account", &self.0.account);
         builder.finish()
     }
 }
