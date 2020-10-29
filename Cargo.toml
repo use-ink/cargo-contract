@@ -43,7 +43,7 @@ tempfile = "3.1.0"
 url = { version = "2.1.1", features = ["serde"] }
 
 # dependencies for optional extrinsics feature
-async-std = { version = "1.6.2", optional = true }
+async-std = { version = "1.6.4", features = ["attributes"], optional = true }
 ink_metadata = { version = "3.0.0-rc2", optional = true }
 scale-info = { version = "0.4", default-features = false, features = ["derive"], optional = true }
 sp-core = { version = "2.0.0", optional = true }
