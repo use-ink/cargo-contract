@@ -78,7 +78,7 @@ impl TryFrom<&PathBuf> for ManifestPath {
 
 impl<P> TryFrom<Option<P>> for ManifestPath
 where
-    P: AsRef<Path>
+    P: AsRef<Path>,
 {
     type Error = anyhow::Error;
 

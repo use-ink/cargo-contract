@@ -19,6 +19,8 @@ mod crate_metadata;
 mod util;
 mod workspace;
 
+use self::workspace::ManifestPath;
+
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
 use std::{
@@ -31,7 +33,6 @@ use subxt::PairSigner;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
-use crate::workspace::ManifestPath;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]

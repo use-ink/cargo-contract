@@ -291,7 +291,7 @@ pub(crate) fn execute_with_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, workspace::ManifestPath, UnstableFlags};
+    use crate::{cmd, util::tests::with_tmp_dir, ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
