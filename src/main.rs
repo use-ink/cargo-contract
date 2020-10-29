@@ -31,6 +31,7 @@ use subxt::PairSigner;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
+use crate::workspace::ManifestPath;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -163,6 +164,9 @@ enum Command {
     /// Compiles the smart contract
     #[structopt(name = "build")]
     Build {
+        /// Path to the Cargo.toml of the contract to build.
+        #[structopt(parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
         #[structopt(flatten)]
@@ -171,6 +175,9 @@ enum Command {
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
+        /// Path to the Cargo.toml of the contract for which to generate metadata
+        #[structopt(parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
         #[structopt(flatten)]
@@ -239,10 +246,11 @@ fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build {
+            manifest_path,
             verbosity,
             unstable_options,
         } => {
-            let manifest_path = Default::default();
+            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
             let dest_wasm = cmd::build::execute(
                 &manifest_path,
                 verbosity.try_into()?,
@@ -254,11 +262,13 @@ fn exec(cmd: Command) -> Result<String> {
             ))
         }
         Command::GenerateMetadata {
+            manifest_path,
             verbosity,
             unstable_options,
         } => {
+            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
             let metadata_file = cmd::metadata::execute(
-                Default::default(),
+                manifest_path,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
             )?;
