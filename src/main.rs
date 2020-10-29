@@ -165,7 +165,7 @@ enum Command {
     #[structopt(name = "build")]
     Build {
         /// Path to the Cargo.toml of the contract to build.
-        #[structopt(parse(from_os_str))]
+        #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
@@ -176,7 +176,7 @@ enum Command {
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
         /// Path to the Cargo.toml of the contract for which to generate metadata
-        #[structopt(parse(from_os_str))]
+        #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
