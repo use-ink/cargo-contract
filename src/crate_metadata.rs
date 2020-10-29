@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::workspace::ManifestPath;
+use crate::ManifestPath;
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
 use semver::Version;
