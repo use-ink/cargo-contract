@@ -60,15 +60,18 @@ impl ContractsNodeProcess {
             .arg("--dev")
             .spawn()?;
         // wait for rpc to be initialized
-        let attempts = 0;
+        const MAX_ATTEMPTS: u32 = 10;
+        let mut attempts = 1;
         let client =
             loop {
                 thread::sleep(time::Duration::from_secs(1));
+                log::info!("Connecting to contracts enabled node, attempt {}/{}", attempts, MAX_ATTEMPTS);
                 let result = ClientBuilder::<ContractsTemplateRuntime>::new().build().await;
                 if let Ok(client) = result {
                     break Ok(client);
                 }
-                if attempts < 10 {
+                if attempts < MAX_ATTEMPTS {
+                    attempts += 1;
                     continue;
                 }
                 if let Err(err) = result {
