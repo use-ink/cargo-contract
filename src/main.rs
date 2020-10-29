@@ -165,7 +165,7 @@ enum Command {
     /// Compiles the smart contract
     #[structopt(name = "build")]
     Build {
-        /// Path to the Cargo.toml of the contract to build.
+        /// Path to the Cargo.toml of the contract to build
         #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
         #[structopt(flatten)]
