@@ -18,7 +18,6 @@ use anyhow::Result;
 use predicates::prelude::*;
 use std::{ffi::OsStr, path::Path, process, str, thread, time};
 use subxt::{Client, ClientBuilder, ContractsTemplateRuntime};
-use std::path::PathBuf;
 
 const CONTRACTS_NODE: &str = "canvas";
 
@@ -33,6 +32,7 @@ fn cargo_contract(path: &Path) -> assert_cmd::Command {
 #[allow(dead_code)]
 struct ContractsNodeProcess {
     proc: process::Child,
+    tmp_dir: tempfile::TempDir,
     client: Client<ContractsTemplateRuntime>,
 }
 
@@ -43,15 +43,18 @@ impl Drop for ContractsNodeProcess {
 }
 
 impl ContractsNodeProcess {
-    async fn spawn<S, P>(program: S, base_path: P) -> Result<Self>
+    async fn spawn<S>(program: S) -> Result<Self>
     where
         S: AsRef<OsStr>,
-        P: AsRef<Path>,
     {
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("cargo-contract.cli.test.node")
+            .tempdir()?;
+
         let mut proc = process::Command::new(program)
             .env("RUST_LOG", "error")
             .arg("--dev")
-            .arg(format!("--base-path={}", base_path.as_ref().to_string_lossy()))
+            .arg(format!("--base-path={}", tmp_dir.path().to_string_lossy()))
             .spawn()?;
         // wait for rpc to be initialized
         const MAX_ATTEMPTS: u32 = 10;
@@ -78,7 +81,7 @@ impl ContractsNodeProcess {
             }
         };
         match client {
-            Ok(client) => Ok(Self { proc, client }),
+            Ok(client) => Ok(Self { proc, client, tmp_dir }),
             Err(err) => {
                 let err = anyhow::anyhow!(
                     "Failed to connect to node rpc after {} attempts: {}",
@@ -111,28 +114,26 @@ impl ContractsNodeProcess {
 async fn build_deploy_instantiate_call() {
     env_logger::try_init().ok();
 
-    // let tmp_dir = tempfile::Builder::new()
-    //     .prefix("cargo-contract.cli.test.")
-    //     .tempdir()
-    //     .expect("temporary directory creation failed");
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
 
-    let tmp_dir = PathBuf::from("/home/andrew/code/paritytech/ink/examples/");
+    // Spawn the contracts node
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE).await
+        .expect("Error spawning contracts node");
 
-    // // Spawn the contracts node
-    // let mut node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE, tmp_dir.path()).await
-    //     .expect("Error spawning contracts node");
-
-    // log::info!("Creating new contract in temporary directory {}", tmp_dir.path().to_string_lossy());
+    log::info!("Creating new contract in temporary directory {}", tmp_dir.path().to_string_lossy());
 
     // cargo contract new flipper
-    // cargo_contract(tmp_dir.as_path())
-    //     .arg("new")
-    //     .arg("flipper")
-    //     .assert()
-    //     .success();
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
 
     // cd flipper
-    let mut project_path = tmp_dir.clone();
+    let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
     log::info!("Building contract in {}", project_path.to_string_lossy());
@@ -211,5 +212,6 @@ async fn build_deploy_instantiate_call() {
     // call the `get` message via rpc to assert that the value has been flipped
     call_get_rpc(false);
 
-    // node_process.kill();
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
 }
