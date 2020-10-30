@@ -18,6 +18,7 @@ use anyhow::Result;
 use predicates::prelude::*;
 use std::{ffi::OsStr, path::Path, process, str, thread, time};
 use subxt::{Client, ClientBuilder, ContractsTemplateRuntime};
+use std::path::PathBuf;
 
 const CONTRACTS_NODE: &str = "canvas";
 
@@ -37,10 +38,7 @@ struct ContractsNodeProcess {
 
 impl Drop for ContractsNodeProcess {
     fn drop(&mut self) {
-        log::info!("Killing contracts node process {}", self.proc.id());
-        if let Err(err) = self.proc.kill() {
-            log::error!("Error killing contracts node process {}: {}", self.proc.id(), err)
-        }
+        self.kill()
     }
 }
 
@@ -93,6 +91,13 @@ impl ContractsNodeProcess {
             }
         }
     }
+
+    fn kill(&mut self) {
+        log::info!("Killing contracts node process {}", self.proc.id());
+        if let Err(err) = self.proc.kill() {
+            log::error!("Error killing contracts node process {}: {}", self.proc.id(), err)
+        }
+    }
 }
 
 /// Sanity test the whole lifecycle of:
@@ -106,28 +111,28 @@ impl ContractsNodeProcess {
 async fn build_deploy_instantiate_call() {
     env_logger::try_init().ok();
 
-    use std::mem::ManuallyDrop;
+    // let tmp_dir = tempfile::Builder::new()
+    //     .prefix("cargo-contract.cli.test.")
+    //     .tempdir()
+    //     .expect("temporary directory creation failed");
 
-    let tmp_dir = tempfile::Builder::new()
-        .prefix("cargo-contract.cli.test.")
-        .tempdir()
-        .expect("temporary directory creation failed");
+    let tmp_dir = PathBuf::from("/home/andrew/code/paritytech/ink/examples/");
 
-    // Spawn the contracts node
-    let _ = ManuallyDrop::new(ContractsNodeProcess::spawn(CONTRACTS_NODE, tmp_dir.path()).await
-        .expect("Error spawning contracts node"));
+    // // Spawn the contracts node
+    // let mut node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE, tmp_dir.path()).await
+    //     .expect("Error spawning contracts node");
 
-    log::info!("Creating new contract in temporary directory {}", tmp_dir.path().to_string_lossy());
+    // log::info!("Creating new contract in temporary directory {}", tmp_dir.path().to_string_lossy());
 
     // cargo contract new flipper
-    cargo_contract(tmp_dir.path())
-        .arg("new")
-        .arg("flipper")
-        .assert()
-        .success();
+    // cargo_contract(tmp_dir.as_path())
+    //     .arg("new")
+    //     .arg("flipper")
+    //     .assert()
+    //     .success();
 
     // cd flipper
-    let mut project_path = tmp_dir.into_path();
+    let mut project_path = tmp_dir.clone();
     project_path.push("flipper");
 
     log::info!("Building contract in {}", project_path.to_string_lossy());
@@ -148,12 +153,14 @@ async fn build_deploy_instantiate_call() {
         .args(&["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    assert!(output.status.success(), "deploy failed");
+    println!("status: {}", output.status);
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "deploy failed: {}", stderr);
 
     // Expected output:
     //   Code hash: 0x13118a4b9c3e3929f449051a023a64e6eaed7065843b1e719956df9dec68756a
     let regex = regex::Regex::new("Code hash: 0x([0-9A-Fa-f]+)").unwrap();
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     let caps = regex.captures(&stdout).unwrap();
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
@@ -167,15 +174,16 @@ async fn build_deploy_instantiate_call() {
         .args(&["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    assert!(output.status.success(), "instantiate failed");
-
-    // Expected output:l
-    //   Contract account: 5134f8a2fbfb03d09b19b8697b75dd72c5a5f41f69f095c6758e11f6f2e198d1 (5DuBUJbn...)
-    let regex = regex::Regex::new("Contract account: ([0-9A-Fa-f]+)").unwrap();
     let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {}", stderr);
+
+    // Expected output:
+    //   Contract account: 5134f8a2fbfb03d09b19b8697b75dd72c5a5f41f69f095c6758e11f6f2e198d1 (5DuBUJbn...)
+    let regex = regex::Regex::new("Contract account: ([0-9A-Za-z]+)").unwrap();
     let caps = regex.captures(&stdout).unwrap();
     let contract_account = caps.get(1).unwrap().as_str();
-    assert_eq!(64, contract_account.len());
+    assert_eq!(48, contract_account.len(), "{:?}", stdout);
 
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())
@@ -202,4 +210,6 @@ async fn build_deploy_instantiate_call() {
 
     // call the `get` message via rpc to assert that the value has been flipped
     call_get_rpc(false);
+
+    // node_process.kill();
 }
