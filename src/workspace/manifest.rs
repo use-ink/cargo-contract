@@ -76,6 +76,17 @@ impl TryFrom<&PathBuf> for ManifestPath {
     }
 }
 
+impl<P> TryFrom<Option<P>> for ManifestPath
+where
+    P: AsRef<Path>,
+{
+    type Error = anyhow::Error;
+
+    fn try_from(value: Option<P>) -> Result<Self, Self::Error> {
+        value.map_or(Ok(Default::default()), ManifestPath::new)
+    }
+}
+
 impl Default for ManifestPath {
     fn default() -> ManifestPath {
         ManifestPath::new(MANIFEST_FILE).expect("it's a valid manifest file")
