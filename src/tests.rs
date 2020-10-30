@@ -81,7 +81,11 @@ impl ContractsNodeProcess {
             }
         };
         match client {
-            Ok(client) => Ok(Self { proc, client, tmp_dir }),
+            Ok(client) => Ok(Self {
+                proc,
+                client,
+                tmp_dir,
+            }),
             Err(err) => {
                 let err = anyhow::anyhow!(
                     "Failed to connect to node rpc after {} attempts: {}",
@@ -98,7 +102,11 @@ impl ContractsNodeProcess {
     fn kill(&mut self) {
         log::info!("Killing contracts node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
-            log::error!("Error killing contracts node process {}: {}", self.proc.id(), err)
+            log::error!(
+                "Error killing contracts node process {}: {}",
+                self.proc.id(),
+                err
+            )
         }
     }
 }
@@ -120,10 +128,14 @@ async fn build_deploy_instantiate_call() {
         .expect("temporary directory creation failed");
 
     // Spawn the contracts node
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE).await
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
         .expect("Error spawning contracts node");
 
-    log::info!("Creating new contract in temporary directory {}", tmp_dir.path().to_string_lossy());
+    log::info!(
+        "Creating new contract in temporary directory {}",
+        tmp_dir.path().to_string_lossy()
+    );
 
     // cargo contract new flipper
     cargo_contract(tmp_dir.path())
@@ -142,7 +154,10 @@ async fn build_deploy_instantiate_call() {
         .assert()
         .success();
 
-    log::info!("Generating metadata for the contract in {}", project_path.to_string_lossy());
+    log::info!(
+        "Generating metadata for the contract in {}",
+        project_path.to_string_lossy()
+    );
     cargo_contract(project_path.as_path())
         .arg("generate-metadata")
         .assert()
