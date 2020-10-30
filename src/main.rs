@@ -24,8 +24,6 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-#[cfg(feature = "extrinsics")]
-use sp_core::{crypto::Pair, sr25519, H256};
 use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,
