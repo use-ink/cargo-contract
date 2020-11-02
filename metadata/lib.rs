@@ -33,9 +33,9 @@
 //!     .version(Version::new(2, 1, 0))
 //!     .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
 //!     .description("increment a value".to_string())
-//!     .documentation(Url::parse("http:docs.rs/").unwrap())
-//!     .repository(Url::parse("http:github.com/paritytech/ink/").unwrap())
-//!     .homepage(Url::parse("http:example.com/").unwrap())
+//!     .documentation(Url::parse("http://docs.rs/").unwrap())
+//!     .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+//!     .homepage(Url::parse("http://example.com/").unwrap())
 //!     .license("Apache-2.0".to_string())
 //!     .build()
 //!     .unwrap();
