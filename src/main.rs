@@ -274,8 +274,8 @@ fn exec(cmd: Command) -> Result<String> {
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
-                "Your metadata file is ready.\nYou can find it here:\n{}",
-                metadata_file.display()
+                "\nYour metadata file is ready.\nYou can find it here:\n{}",
+                metadata_file.display().to_string().bold()
             ))
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
