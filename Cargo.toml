@@ -41,6 +41,7 @@ serde = { version = "1.0.115", default-features = false, features = ["derive"] }
 serde_json = "1.0.57"
 tempfile = "3.1.0"
 url = { version = "2.1.1", features = ["serde"] }
+binaryen = "0.10.0"
 
 # dependencies for optional extrinsics feature
 async-std = { version = "1.6.4", features = ["attributes"], optional = true }
