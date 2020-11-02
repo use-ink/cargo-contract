@@ -21,8 +21,10 @@ use crate::{
     UnstableFlags, Verbosity,
 };
 use anyhow::Result;
+use blake2::digest::{Update as _, VariableOutput as _};
 use contract_metadata::{
-    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage, User,
+    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage,
+    SourceWasm, User,
 };
 use semver::Version;
 use std::{fs, path::PathBuf};
@@ -34,6 +36,7 @@ const METADATA_FILE: &str = "metadata.json";
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
+    include_wasm: bool,
     unstable_options: UnstableFlags,
 }
 
@@ -112,7 +115,16 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            Source::new(hash, lang, compiler)
+            let maybe_wasm = match self.include_wasm {
+                true => {
+                    let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
+                    // The Wasm which we read must have the same hash as `source.hash`
+                    debug_assert_eq!(blake2_hash(wasm.clone().as_slice()), hash);
+                    Some(SourceWasm::new(wasm))
+                }
+                false => None,
+            };
+            Source::new(maybe_wasm, hash, lang, compiler)
         };
 
         // Required contract fields
@@ -161,14 +173,17 @@ impl GenerateMetadataCommand {
         )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
-
-        use ::blake2::digest::{Update as _, VariableOutput as _};
-        let mut output = [0u8; 32];
-        let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
-        blake2.update(wasm);
-        blake2.finalize_variable(|result| output.copy_from_slice(result));
-        Ok(output)
+        Ok(blake2_hash(wasm.as_slice()))
     }
+}
+
+/// Returns the blake2 hash of the submitted slice.
+fn blake2_hash(code: &[u8]) -> [u8; 32] {
+    let mut output = [0u8; 32];
+    let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
+    blake2.update(code);
+    blake2.finalize_variable(|result| output.copy_from_slice(result));
+    output
 }
 
 /// Generates a file with metadata describing the ABI of the smart-contract.
@@ -177,12 +192,14 @@ impl GenerateMetadataCommand {
 pub(crate) fn execute(
     manifest_path: ManifestPath,
     verbosity: Option<Verbosity>,
+    include_wasm: bool,
     unstable_options: UnstableFlags,
 ) -> Result<PathBuf> {
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     GenerateMetadataCommand {
         crate_metadata,
         verbosity,
+        include_wasm,
         unstable_options,
     }
     .exec()
@@ -287,9 +304,13 @@ mod tests {
             test_manifest.write()?;
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
-            let metadata_file =
-                cmd::metadata::execute(test_manifest.manifest_path, None, UnstableFlags::default())
-                    .expect("generate metadata failed");
+            let metadata_file = cmd::metadata::execute(
+                test_manifest.manifest_path,
+                None,
+                true,
+                UnstableFlags::default(),
+            )
+            .expect("generate metadata failed");
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;
 
@@ -302,6 +323,7 @@ mod tests {
             let hash = source.get("hash").expect("source.hash not found");
             let language = source.get("language").expect("source.language not found");
             let compiler = source.get("compiler").expect("source.compiler not found");
+            let wasm = source.get("wasm").expect("source.wasm not found");
 
             let contract = metadata_json.get("contract").expect("contract not found");
             let name = contract.get("name").expect("contract.name not found");
@@ -331,17 +353,14 @@ mod tests {
             let user = metadata_json.get("user").expect("user section not found");
 
             // calculate wasm hash
-            let wasm = fs::read(&crate_metadata.dest_wasm)?;
+            let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
             let mut output = [0u8; 32];
             let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
-            blake2.update(wasm);
+            blake2.update(fs_wasm.clone());
             blake2.finalize_variable(|result| output.copy_from_slice(result));
+            let expected_hash = build_byte_str(&output);
+            let expected_wasm = build_byte_str(&fs_wasm);
 
-            let mut expected_hash = String::new();
-            write!(expected_hash, "0x").expect("failed writing to string");
-            for byte in &output {
-                write!(expected_hash, "{:02x}", byte).expect("failed writing to string");
-            }
             let expected_language =
                 SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
             let expected_rustc_version =
@@ -359,6 +378,7 @@ mod tests {
             );
 
             assert_eq!(expected_hash, hash.as_str().unwrap());
+            assert_eq!(expected_wasm, wasm.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
             assert_eq!(crate_metadata.package_name, name.as_str().unwrap());
@@ -376,5 +396,14 @@ mod tests {
 
             Ok(())
         })
+    }
+
+    fn build_byte_str(bytes: &[u8]) -> String {
+        let mut str = String::new();
+        write!(str, "0x").expect("failed writing to string");
+        for byte in bytes {
+            write!(str, "{:02x}", byte).expect("failed writing to string");
+        }
+        str
     }
 }

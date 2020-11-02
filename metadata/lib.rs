@@ -27,7 +27,8 @@
 //!
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-//! let source = Source::new([0u8; 32], language, compiler);
+//! let wasm = SourceWasm::new(vec![0u8]);
+//! let source = Source::new(Some(wasm), [0u8; 32], language, compiler);
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
@@ -100,16 +101,56 @@ pub struct Source {
     hash: [u8; 32],
     language: SourceLanguage,
     compiler: SourceCompiler,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wasm: Option<SourceWasm>,
 }
 
 impl Source {
     /// Constructs a new InkProjectSource.
-    pub fn new(hash: [u8; 32], language: SourceLanguage, compiler: SourceCompiler) -> Self {
+    pub fn new(
+        wasm: Option<SourceWasm>,
+        hash: [u8; 32],
+        language: SourceLanguage,
+        compiler: SourceCompiler,
+    ) -> Self {
         Source {
             hash,
             language,
             compiler,
+            wasm,
         }
+    }
+}
+
+/// The bytes of the compiled Wasm smart contract.
+#[derive(Debug)]
+pub struct SourceWasm {
+    wasm: Vec<u8>,
+}
+
+impl SourceWasm {
+    /// Constructs a new `SourceWasm`.
+    pub fn new(wasm: Vec<u8>) -> Self {
+        SourceWasm { wasm }
+    }
+}
+
+impl Serialize for SourceWasm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_as_byte_str(&self.wasm[..], serializer)
+    }
+}
+
+impl Display for SourceWasm {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        write!(f, "0x").expect("failed writing to string");
+        for byte in &self.wasm {
+            write!(f, "{:02x}", byte).expect("failed writing to string");
+        }
+        write!(f, "")
     }
 }
 
@@ -463,7 +504,8 @@ mod tests {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-        let source = Source::new([0u8; 32], language, compiler);
+        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let source = Source::new(Some(wasm), [0u8; 32], language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
@@ -507,7 +549,8 @@ mod tests {
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
-                    "compiler": "rustc 1.46.0-nightly"
+                    "compiler": "rustc 1.46.0-nightly",
+                    "wasm": "0x000102"
                 },
                 "contract": {
                     "name": "incrementer",
@@ -544,7 +587,7 @@ mod tests {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-        let source = Source::new([0u8; 32], language, compiler);
+        let source = Source::new(None, [0u8; 32], language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))

@@ -173,6 +173,17 @@ enum Command {
         #[structopt(flatten)]
         unstable_options: UnstableOptions,
     },
+    /// Compiles the contract, generates metadata, packs both together in one file
+    #[structopt(name = "pack")]
+    Pack {
+        /// Path to the Cargo.toml of the contract to build and pack
+        #[structopt(long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
+        #[structopt(flatten)]
+        verbosity: VerbosityFlags,
+        #[structopt(flatten)]
+        unstable_options: UnstableOptions,
+    },
     /// Generate contract metadata artifacts
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
@@ -262,6 +273,23 @@ fn exec(cmd: Command) -> Result<String> {
                 dest_wasm.display().to_string().bold()
             ))
         }
+        Command::Pack {
+            manifest_path,
+            verbosity,
+            unstable_options,
+        } => {
+            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+            let pack_file = cmd::metadata::execute(
+                manifest_path,
+                verbosity.try_into()?,
+                true,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "\nYour packed contract is ready. You can find it here:\n{}",
+                pack_file.display().to_string().bold()
+            ))
+        }
         Command::GenerateMetadata {
             manifest_path,
             verbosity,
@@ -271,6 +299,7 @@ fn exec(cmd: Command) -> Result<String> {
             let metadata_file = cmd::metadata::execute(
                 manifest_path,
                 verbosity.try_into()?,
+                false,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
