@@ -223,10 +223,10 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
+    use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags,
     };
-    use blake2::digest::{Update as _, VariableOutput as _};
     use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
@@ -320,11 +320,12 @@ mod tests {
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let metadata_file = cmd::metadata::execute(
-                test_manifest.manifest_path,
+                &test_manifest.manifest_path,
                 None,
                 true,
                 UnstableFlags::default(),
-            )?;
+            )?
+            .metadata_file;
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;
 
@@ -387,7 +388,7 @@ mod tests {
                 ),
             );
 
-            assert_eq!(expected_hash, hash.as_str().unwrap());
+            assert_eq!(build_byte_str(&expected_hash[..]), hash.as_str().unwrap());
             assert_eq!(expected_wasm, wasm.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
