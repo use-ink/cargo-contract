@@ -279,14 +279,22 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+            let metadata_file = cmd::metadata::execute(
+                &manifest_path,
+                verbosity.try_into()?,
+                false,
+                unstable_options.try_into()?,
+            )?;
             let pack_file = cmd::metadata::execute(
-                manifest_path,
+                &manifest_path,
                 verbosity.try_into()?,
                 true,
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
-                "\nYour packed contract is ready. You can find it here:\n{}",
+                "\nYour metadata file is ready.\nYou can find it here:\n{}
+                \nYour packed contract is ready. You can find it here:\n{}",
+                metadata_file.display().to_string().bold(),
                 pack_file.display().to_string().bold()
             ))
         }
