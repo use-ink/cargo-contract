@@ -41,7 +41,7 @@ struct GenerateMetadataCommand {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<PathBuf> {
+    pub fn exec(&self) -> Result<(PathBuf, PathBuf)> {
         util::assert_channel()?;
         println!("  Generating metadata");
 
@@ -55,7 +55,7 @@ impl GenerateMetadataCommand {
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
-        let (source_meta, contract_meta, user_meta) = self.extended_metadata()?;
+        let (dest_wasm, source_meta, contract_meta, user_meta) = self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -94,11 +94,11 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        Ok(out_path)
+        Ok((out_path, dest_wasm))
     }
 
     /// Generate the extended contract project metadata
-    fn extended_metadata(&self) -> Result<(Source, Contract, Option<User>)> {
+    fn extended_metadata(&self) -> Result<(PathBuf, Source, Contract, Option<User>)> {
         let contract_package = &self.crate_metadata.root_package;
         let ink_version = &self.crate_metadata.ink_version;
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
@@ -115,7 +115,7 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let hash = self.wasm_hash()?;
+        let (dest_wasm, hash) = self.wasm_hash()?;
 
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
@@ -165,19 +165,19 @@ impl GenerateMetadataCommand {
         // user defined metadata
         let user = self.crate_metadata.user.clone().map(User::new);
 
-        Ok((source, contract, user))
+        Ok((dest_wasm, source, contract, user))
     }
 
     /// Compile the contract and then hash the resulting wasm
-    fn wasm_hash(&self) -> Result<[u8; 32]> {
-        super::build::execute_with_metadata(
+    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32])> {
+        let dest_wasm = super::build::execute_with_metadata(
             &self.crate_metadata,
             self.verbosity,
             self.unstable_options.clone(),
         )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
-        Ok(blake2_hash(wasm.as_slice()))
+        Ok((dest_wasm, blake2_hash(wasm.as_slice())))
     }
 }
 
@@ -198,7 +198,7 @@ pub(crate) fn execute(
     verbosity: Option<Verbosity>,
     include_wasm: bool,
     unstable_options: UnstableFlags,
-) -> Result<PathBuf> {
+) -> Result<(PathBuf, PathBuf)> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     GenerateMetadataCommand {
         crate_metadata,
