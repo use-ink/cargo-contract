@@ -279,13 +279,13 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let (metadata_file, _dest_wasm) = cmd::metadata::execute(
+            let metadata_result = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 false,
                 unstable_options.try_into()?,
             )?;
-            let (pack_file, dest_wasm) = cmd::metadata::execute(
+            let pack_result = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 true,
@@ -295,9 +295,9 @@ fn exec(cmd: Command) -> Result<String> {
                 "\nYour contract is ready. You can find it here:\n{}
                 \nYour metadata file is ready. You can find it here:\n{}
                 \nYour packed contract is ready. You can find it here:\n{}",
-                dest_wasm.display().to_string().bold(),
-                metadata_file.display().to_string().bold(),
-                pack_file.display().to_string().bold()
+                pack_result.wasm_file.display().to_string().bold(),
+                metadata_result.metadata_file.display().to_string().bold(),
+                pack_result.metadata_file.display().to_string().bold()
             ))
         }
         Command::GenerateMetadata {
@@ -306,7 +306,7 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let (metadata_file, _dest_wasm) = cmd::metadata::execute(
+            let res = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 false,
@@ -314,7 +314,7 @@ fn exec(cmd: Command) -> Result<String> {
             )?;
             Ok(format!(
                 "\nYour metadata file is ready.\nYou can find it here:\n{}",
-                metadata_file.display().to_string().bold()
+                res.metadata_file.display().to_string().bold(),
             ))
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),

@@ -32,6 +32,14 @@ use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
 
+/// Result of the metadata generation process.
+pub struct GenerateMetadataResult {
+    /// Path to the resulting metadata file.
+    pub metadata_file: PathBuf,
+    /// Path to the resulting Wasm file.
+    pub wasm_file: PathBuf,
+}
+
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
@@ -41,7 +49,7 @@ struct GenerateMetadataCommand {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<(PathBuf, PathBuf)> {
+    pub fn exec(&self) -> Result<GenerateMetadataResult> {
         util::assert_channel()?;
         println!("  Generating metadata");
 
@@ -94,7 +102,10 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        Ok((out_path, dest_wasm))
+        Ok(GenerateMetadataResult {
+            metadata_file: out_path,
+            wasm_file: dest_wasm,
+        })
     }
 
     /// Generate the extended contract project metadata
@@ -198,7 +209,7 @@ pub(crate) fn execute(
     verbosity: Option<Verbosity>,
     include_wasm: bool,
     unstable_options: UnstableFlags,
-) -> Result<(PathBuf, PathBuf)> {
+) -> Result<GenerateMetadataResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     GenerateMetadataCommand {
         crate_metadata,
