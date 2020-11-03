@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::display_events;
-use crate::ExtrinsicOpts;
+use crate::{ExtrinsicOpts, util::decode_hex};
 use anyhow::Result;
 use structopt::StructOpt;
 use subxt::{
@@ -83,11 +83,7 @@ impl InstantiateCommand {
 
 #[cfg(feature = "extrinsics")]
 fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::Hash> {
-    let bytes = if input.starts_with("0x") {
-        hex::decode(input.trim_start_matches("0x"))?
-    } else {
-        hex::decode(input)?
-    };
+    let bytes = decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")
     }

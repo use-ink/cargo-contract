@@ -200,7 +200,7 @@ impl From<Vec<u8>> for Bytes {
 
 impl Bytes {
     pub fn from_hex_string(s: &str) -> Result<Self, hex::FromHexError> {
-        let bytes = hex::decode(s)?;
+        let bytes = crate::util::decode_hex(s)?;
         Ok(Self { bytes })
     }
 
