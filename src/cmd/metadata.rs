@@ -353,11 +353,7 @@ mod tests {
 
             // calculate wasm hash
             let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
-            let mut output = [0u8; 32];
-            let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
-            blake2.update(fs_wasm.clone());
-            blake2.finalize_variable(|result| output.copy_from_slice(result));
-            let expected_hash = build_byte_str(&output);
+            let expected_hash = blake2_hash(&fs_wasm[..]);
             let expected_wasm = build_byte_str(&fs_wasm);
 
             let expected_language =
