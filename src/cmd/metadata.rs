@@ -189,12 +189,12 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 ///
 /// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute(
-    manifest_path: ManifestPath,
+    manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     include_wasm: bool,
     unstable_options: UnstableFlags,
 ) -> Result<PathBuf> {
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     GenerateMetadataCommand {
         crate_metadata,
         verbosity,

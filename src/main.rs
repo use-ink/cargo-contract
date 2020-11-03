@@ -297,7 +297,7 @@ fn exec(cmd: Command) -> Result<String> {
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
             let metadata_file = cmd::metadata::execute(
-                manifest_path,
+                &manifest_path,
                 verbosity.try_into()?,
                 false,
                 unstable_options.try_into()?,
