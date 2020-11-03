@@ -309,8 +309,7 @@ mod tests {
                 None,
                 true,
                 UnstableFlags::default(),
-            )
-            .expect("generate metadata failed");
+            )?;
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&metadata_file)?)?;
 
