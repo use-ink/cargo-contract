@@ -46,6 +46,7 @@ pub enum Value {
     String(String),
     Seq(Seq),
     Bytes(Bytes),
+    Literal(String),
     Unit,
 }
 

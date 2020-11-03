@@ -541,7 +541,6 @@ mod tests {
 
     #[test]
     fn transcode_composite_single_field_tuple() -> Result<()> {
-        env_logger::try_init()?;
         transcode_roundtrip::<([u8; 4],)>(
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
@@ -580,6 +579,22 @@ mod tests {
         transcode_roundtrip::<Option<u32>>(
             r#"None"#,
             Value::Tuple(Tuple::new(Some("None"), Vec::new())),
+        )
+    }
+
+    #[test]
+    fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
+        env_logger::init();
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: [u8; 32],
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S( a: "blah" )"#,
+            Value::Map(Map::new(Some("S"), vec![(Value::String("a".into()), Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))].into_iter().collect())),
         )
     }
 }

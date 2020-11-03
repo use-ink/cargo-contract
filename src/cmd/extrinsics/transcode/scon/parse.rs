@@ -19,10 +19,10 @@ use escape8259::unescape;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{alphanumeric1, anychar, char, digit0, multispace0, one_of},
+    character::complete::{alphanumeric1, anychar, char, digit0, multispace0, one_of, hex_digit1},
     combinator::{map, map_res, opt, recognize, value, verify},
     error::{ErrorKind, ParseError},
-    multi::{many0, many0_count, separated_list},
+    multi::{many0, many1, many0_count, separated_list},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
@@ -212,9 +212,15 @@ fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
 }
 
 fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
-    let (rest, byte_str) = preceded(tag("0x"), nom::character::complete::hex_digit1)(input)?;
+    let (rest, byte_str) = preceded(tag("0x"), hex_digit1)(input)?;
     let bytes = Bytes::from_hex_string(byte_str).map_err(|e| nom::Err::Failure(e.into()))?;
     Ok((rest, Value::Bytes(bytes)))
+}
+
+fn scon_literal(input: &str) -> IResult<&str, Value, SonParseError> {
+    // let parser = recognize(ws(many1(alphanumeric1)));
+    let parser = recognize(many1(alphanumeric1));
+    map(parser, |literal: &str| Value::Literal(literal.into()))(input)
 }
 
 fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
@@ -239,6 +245,7 @@ fn scon_value(input: &str) -> IResult<&str, Value, SonParseError> {
         scon_bool,
         scon_char,
         scon_unit_tuple,
+        scon_literal,
     )))(input)
 }
 
@@ -373,6 +380,11 @@ mod tests {
     }
 
     #[test]
+    fn test_literal() {
+        assert_scon_value("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()));
+    }
+
+    #[test]
     fn test_map() {
         assert_eq!(
             scon_value("Foo {}"),
@@ -456,6 +468,7 @@ mod tests {
                         (Value::UInt(1), Value::String("a".into())),
                         (Value::String("b".into()), Value::UInt(2)),
                         (Value::String("c".into()), Value::Bool(true)),
+                        // (Value::String("d".into()), Value::Literal("5ALiteral".into())),
                     ]
                     .into_iter()
                     .collect()

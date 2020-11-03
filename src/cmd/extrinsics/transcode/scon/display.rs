@@ -32,6 +32,7 @@ impl<'a> Debug for DisplayValue<'a> {
             Value::String(string) => <String as Display>::fmt(string, f),
             Value::Seq(seq) => <DisplaySeq as Debug>::fmt(&DisplaySeq(seq), f),
             Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
+            Value::Literal(literal) => <String as Display>::fmt(literal, f),
             Value::Unit => write!(f, "()"),
         }
     }
