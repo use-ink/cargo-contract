@@ -115,14 +115,13 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = match self.include_wasm {
-                true => {
-                    let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
-                    // The Wasm which we read must have the same hash as `source.hash`
-                    debug_assert_eq!(blake2_hash(wasm.clone().as_slice()), hash);
-                    Some(SourceWasm::new(wasm))
-                }
-                false => None,
+            let maybe_wasm = if self.include_wasm {
+                let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
+                // The Wasm which we read must have the same hash as `source.hash`
+                debug_assert_eq!(blake2_hash(wasm.clone().as_slice()), hash);
+                Some(SourceWasm::new(wasm))
+            } else {
+                None
             };
             Source::new(maybe_wasm, hash, lang, compiler)
         };
