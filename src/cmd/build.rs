@@ -55,7 +55,8 @@ fn build_cargo_project(
 ) -> Result<()> {
     util::assert_channel()?;
 
-    // set RUSTFLAGS, read from environment var by cargo-xbuild
+    // set linker args via RUSTFLAGS.
+    // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
     std::env::set_var(
         "RUSTFLAGS",
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
