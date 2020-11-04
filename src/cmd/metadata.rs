@@ -55,7 +55,7 @@ impl GenerateMetadataCommand {
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
         let out_path = if self.include_wasm {
-            let fname = format!("{}.pack", self.crate_metadata.package_name);
+            let fname = format!("{}.contract", self.crate_metadata.package_name);
             cargo_meta.target_directory.join(fname)
         } else {
             cargo_meta.target_directory.join(METADATA_FILE)
