@@ -500,8 +500,7 @@ dependencies = [
  "async-std",
  "binaryen",
  "blake2",
- "cargo-xbuild",
- "cargo_metadata 0.11.4",
+ "cargo_metadata",
  "colored",
  "contract-metadata",
  "env_logger",
@@ -527,37 +526,6 @@ dependencies = [
  "walkdir",
  "which 4.0.2",
  "zip",
-]
-
-[[package]]
-name = "cargo-xbuild"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f55737d6e19978db84c0365fe0717e2bc20bb0c941a80d7686c8daa88ce5594d"
-dependencies = [
- "cargo_metadata 0.9.1",
- "error-chain",
- "libc",
- "rustc_version",
- "serde",
- "serde_derive",
- "serde_json",
- "tempfile",
- "toml",
- "walkdir",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "cargo_metadata"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46e3374c604fb39d1a2f35ed5e4a4e30e60d01fab49446e08f1b3e9a90aef202"
-dependencies = [
- "semver 0.9.0",
- "serde",
- "serde_derive",
- "serde_json",
 ]
 
 [[package]]
@@ -904,15 +872,6 @@ name = "environmental"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6576a1755ddffd988788025e75bce9e74b018f7cc226198fe931d077911c6d7e"
-
-[[package]]
-name = "error-chain"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d2f06b9cac1506ece98fe3231e3cc9c4410ec3d5b1f24ae1c8946f0742cdefc"
-dependencies = [
- "version_check",
-]
 
 [[package]]
 name = "event-listener"
@@ -2820,7 +2779,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
 dependencies = [
  "semver-parser",
- "serde",
 ]
 
 [[package]]
