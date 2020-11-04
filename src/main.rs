@@ -162,34 +162,18 @@ enum Command {
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the smart contract
+    /// Compiles the contract, generates metadata, packs both together in one <package-name>.contract file
     #[structopt(name = "build")]
     Build {
         /// Path to the Cargo.toml of the contract to build
         #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
-        #[structopt(flatten)]
-        verbosity: VerbosityFlags,
-        #[structopt(flatten)]
-        unstable_options: UnstableOptions,
-    },
-    /// Compiles the contract, generates metadata, packs both together in one file
-    #[structopt(name = "pack")]
-    Pack {
-        /// Path to the Cargo.toml of the contract to build and pack
-        #[structopt(long, parse(from_os_str))]
-        manifest_path: Option<PathBuf>,
-        #[structopt(flatten)]
-        verbosity: VerbosityFlags,
-        #[structopt(flatten)]
-        unstable_options: UnstableOptions,
-    },
-    /// Generate contract metadata artifacts
-    #[structopt(name = "generate-metadata")]
-    GenerateMetadata {
-        /// Path to the Cargo.toml of the contract for which to generate metadata
-        #[structopt(long, parse(from_os_str))]
-        manifest_path: Option<PathBuf>,
+        /// Only the Wasm and the metadata are generated, no packed .contract file is created
+        #[structopt(long = "skip-packing", conflicts_with = "skip-metadata")]
+        skip_packing: bool,
+        /// Only the Wasm is created, generation of metadata and a packed .contract file is skipped
+        #[structopt(long = "skip-metadata", conflicts_with = "skip-packing")]
+        skip_metadata: bool,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
         #[structopt(flatten)]
@@ -260,24 +244,22 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {
             manifest_path,
             verbosity,
+            skip_packing,
+            skip_metadata,
             unstable_options,
         } => {
-            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let dest_wasm = cmd::build::execute(
-                &manifest_path,
-                verbosity.try_into()?,
-                unstable_options.try_into()?,
-            )?;
-            Ok(format!(
-                "\nYour contract is ready. You can find it here:\n{}",
-                dest_wasm.display().to_string().bold()
-            ))
-        }
-        Command::Pack {
-            manifest_path,
-            verbosity,
-            unstable_options,
-        } => {
+            if *(skip_metadata) {
+                let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+                let dest_wasm = cmd::build::execute(
+                    &manifest_path,
+                    verbosity.try_into()?,
+                    unstable_options.try_into()?,
+                )?;
+                return Ok(format!(
+                    "\nYour contract is ready. You can find it here:\n{}",
+                    dest_wasm.display().to_string().bold()
+                ));
+            }
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
             let metadata_result = cmd::metadata::execute(
                 &manifest_path,
@@ -285,6 +267,14 @@ fn exec(cmd: Command) -> Result<String> {
                 false,
                 unstable_options.try_into()?,
             )?;
+            if *(skip_packing) {
+                return Ok(format!(
+                    "\nYour contract's code is ready. You can find it here:\n{}
+                    \nYour contract's metadata is ready. You can find it here:\n{}",
+                    metadata_result.wasm_file.display().to_string().bold(),
+                    metadata_result.metadata_file.display().to_string().bold(),
+                ));
+            }
             let pack_result = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
@@ -298,23 +288,6 @@ fn exec(cmd: Command) -> Result<String> {
                 pack_result.wasm_file.display().to_string().bold(),
                 metadata_result.metadata_file.display().to_string().bold(),
                 pack_result.metadata_file.display().to_string().bold()
-            ))
-        }
-        Command::GenerateMetadata {
-            manifest_path,
-            verbosity,
-            unstable_options,
-        } => {
-            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let res = cmd::metadata::execute(
-                &manifest_path,
-                verbosity.try_into()?,
-                false,
-                unstable_options.try_into()?,
-            )?;
-            Ok(format!(
-                "\nYour metadata is ready.\nYou can find it here:\n{}",
-                res.metadata_file.display().to_string().bold(),
             ))
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
