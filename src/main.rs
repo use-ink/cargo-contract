@@ -292,9 +292,9 @@ fn exec(cmd: Command) -> Result<String> {
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
-                "\nYour contract is ready. You can find it here:\n{}
-                \nYour metadata file is ready. You can find it here:\n{}
-                \nYour packed contract is ready. You can find it here:\n{}",
+                "\nYour contract's code is ready. You can find it here:\n{}
+                \nYour contract's metadata is ready. You can find it here:\n{}
+                \nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
                 pack_result.wasm_file.display().to_string().bold(),
                 metadata_result.metadata_file.display().to_string().bold(),
                 pack_result.metadata_file.display().to_string().bold()
@@ -313,7 +313,7 @@ fn exec(cmd: Command) -> Result<String> {
                 unstable_options.try_into()?,
             )?;
             Ok(format!(
-                "\nYour metadata file is ready.\nYou can find it here:\n{}",
+                "\nYour metadata is ready.\nYou can find it here:\n{}",
                 res.metadata_file.display().to_string().bold(),
             ))
         }
