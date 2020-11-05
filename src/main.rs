@@ -162,16 +162,16 @@ enum Command {
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the contract, generates metadata, bundles both together in a '.contract' file
+    /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
     #[structopt(name = "build")]
     Build {
         /// Path to the Cargo.toml of the contract to build
         #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
-        /// Only the Wasm and the metadata are generated, no bundled .contract file is created
+        /// Only the Wasm and the metadata are generated, no bundled `<name>.contract` file is created
         #[structopt(long = "skip-bundle", conflicts_with = "skip-metadata")]
         skip_bundle: bool,
-        /// Only the Wasm is created, generation of metadata and a bundled .contract file is skipped
+        /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
         #[structopt(long = "skip-metadata", conflicts_with = "skip-bundle")]
         skip_metadata: bool,
         #[structopt(flatten)]
@@ -179,7 +179,7 @@ enum Command {
         #[structopt(flatten)]
         unstable_options: UnstableOptions,
     },
-    /// Command has been deprecated, use 'cargo contract build' instead
+    /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {
         /// Path to the Cargo.toml of the contract to build
@@ -190,7 +190,7 @@ enum Command {
         #[structopt(flatten)]
         unstable_options: UnstableOptions,
     },
-    /// Check that the Wasm builds; does not optimize, generate metadata, or bundle
+    /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
     #[structopt(name = "check")]
     Check {
         /// Path to the Cargo.toml of the contract to build
@@ -210,7 +210,7 @@ enum Command {
     Deploy {
         #[structopt(flatten)]
         extrinsic_opts: ExtrinsicOpts,
-        /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
+        /// Path to wasm contract code, defaults to `./target/<name>-pruned.wasm`
         #[structopt(parse(from_os_str))]
         wasm_path: Option<PathBuf>,
     },
@@ -334,7 +334,7 @@ fn exec(cmd: Command) -> Result<String> {
             verbosity: _,
             unstable_options: _,
         } => Err(anyhow::anyhow!(format!(
-            "Command deprecated, use 'cargo contract build' instead"
+            "Command deprecated, use `cargo contract build` instead"
         ))),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]

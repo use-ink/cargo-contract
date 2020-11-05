@@ -33,7 +33,7 @@ OPTIONS:
 SUBCOMMANDS:
     new                  Setup and create a new smart contract project
     build                Compiles the contract, generates metadata, bundles both together in a '.contract' file
-    check                Check that the Wasm builds; does not optimize, generate metadata, or bundle
+    check                Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
     test                 Test the smart contract off-chain
     deploy               Upload the smart contract code to the chain
     instantiate          Instantiate a deployed smart contract
