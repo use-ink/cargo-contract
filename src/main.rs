@@ -181,15 +181,7 @@ enum Command {
     },
     /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
-    GenerateMetadata {
-        /// Path to the Cargo.toml of the contract to build
-        #[structopt(long, parse(from_os_str))]
-        manifest_path: Option<PathBuf>,
-        #[structopt(flatten)]
-        verbosity: VerbosityFlags,
-        #[structopt(flatten)]
-        unstable_options: UnstableOptions,
-    },
+    GenerateMetadata {},
     /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
     #[structopt(name = "check")]
     Check {
@@ -329,11 +321,7 @@ fn exec(cmd: Command) -> Result<String> {
             assert!(maybe_dest_wasm.is_none(), "no dest_wasm should exist");
             Ok(format!("\nYour contract's code was built successfully."))
         }
-        Command::GenerateMetadata {
-            manifest_path: _,
-            verbosity: _,
-            unstable_options: _,
-        } => Err(anyhow::anyhow!(format!(
+        Command::GenerateMetadata {} => Err(anyhow::anyhow!(format!(
             "Command deprecated, use `cargo contract build` instead"
         ))),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
