@@ -15,10 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    fs::metadata,
-    io::{self, Write},
+    fs::{metadata, File},
+    io::{Read, Write},
     path::PathBuf,
-    process::Command,
 };
 
 use crate::{
@@ -189,42 +188,34 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
-/// Attempts to perform optional wasm optimization using `wasm-opt`.
+/// Attempts to perform optional wasm optimization using `binaryen`.
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-///
-/// This step depends on the `wasm-opt` tool being installed. If it is not the build will still
-/// succeed, and the user will be encouraged to install it for further optimizations.
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
-    // check `wasm-opt` installed
-    if which::which("wasm-opt").is_err() {
-        println!(
-            "{}",
-            "wasm-opt is not installed. Install this tool on your system in order to \n\
-             reduce the size of your contract's Wasm binary. \n\
-             See https://github.com/WebAssembly/binaryen#tools"
-                .bright_yellow()
-        );
-        return Ok(());
-    }
-
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
-    let output = Command::new("wasm-opt")
-        .arg(crate_metadata.dest_wasm.as_os_str())
-        .arg("-O3") // execute -O3 optimization passes (spends potentially a lot of time optimizing)
-        .arg("-o")
-        .arg(optimized.as_os_str())
-        .output()?;
+    let codegen_config = binaryen::CodegenConfig {
+        // execute -O3 optimization passes (spends potentially a lot of time optimizing)
+        optimization_level: 3,
+        // the default
+        shrink_level: 1,
+        // the default
+        debug_info: false,
+    };
 
-    if !output.status.success() {
-        // Dump the output streams produced by wasm-opt into the stdout/stderr.
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
-        anyhow::bail!("wasm-opt optimization failed");
-    }
+    let mut dest_wasm_file = File::open(crate_metadata.dest_wasm.as_os_str())?;
+    let mut dest_wasm_file_content = Vec::new();
+    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
+
+    let mut module = binaryen::Module::read(&dest_wasm_file_content)
+        .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
+    module.optimize(&codegen_config);
+    let optimized_wasm = module.write();
+
+    let mut optimized_wasm_file = File::create(optimized.as_os_str())?;
+    optimized_wasm_file.write_all(&optimized_wasm)?;
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
     let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;

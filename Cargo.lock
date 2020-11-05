@@ -302,6 +302,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
+name = "binaryen"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a51ad23b3c7ab468d9daa948201921879ef0052e561c250fd0b326e6f000f2dd"
+dependencies = [
+ "binaryen-sys",
+]
+
+[[package]]
+name = "binaryen-sys"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df5829a7c89f7827e58866704e4dfdf48a635d73c6e5449c1a8a0ba5a319d28a"
+dependencies = [
+ "cc",
+ "cmake",
+ "heck",
+ "regex",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,6 +498,7 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "async-std",
+ "binaryen",
  "blake2",
  "cargo-xbuild",
  "cargo_metadata 0.11.4",
