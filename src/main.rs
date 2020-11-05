@@ -319,16 +319,13 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let dest_wasm = cmd::build::execute(
+            let _dest_unoptimized_wasm = cmd::build::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
                 false,
             )?;
-            Ok(format!(
-                "\nYour contract's code was built successfully. You can find it here:\n{}",
-                dest_wasm.display().to_string().bold()
-            ))
+            Ok(format!("\nYour contract's code was built successfully."))
         }
         Command::GenerateMetadata {
             manifest_path: _,

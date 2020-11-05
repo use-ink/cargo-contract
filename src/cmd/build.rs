@@ -243,7 +243,10 @@ pub(crate) fn execute(
     unstable_options: UnstableFlags,
     optimize_contract: bool,
 ) -> Result<PathBuf> {
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let mut crate_metadata = CrateMetadata::collect(manifest_path)?;
+    if !optimize_contract {
+        crate_metadata.dest_wasm.set_extension("wasm.unoptimized");
+    }
     execute_with_metadata(
         &crate_metadata,
         verbosity,
