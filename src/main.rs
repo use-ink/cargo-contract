@@ -162,17 +162,17 @@ enum Command {
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the contract, generates metadata, packs both together in one <package-name>.contract file
+    /// Compiles the contract, generates metadata, bundles both together in one <package-name>.contract file
     #[structopt(name = "build")]
     Build {
         /// Path to the Cargo.toml of the contract to build
         #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
-        /// Only the Wasm and the metadata are generated, no packed .contract file is created
-        #[structopt(long = "skip-packing", conflicts_with = "skip-metadata")]
-        skip_packing: bool,
+        /// Only the Wasm and the metadata are generated, no bundled .contract file is created
+        #[structopt(long = "skip-bundle", conflicts_with = "skip-metadata")]
+        skip_bundle: bool,
         /// Only the Wasm is created, generation of metadata and a packed .contract file is skipped
-        #[structopt(long = "skip-metadata", conflicts_with = "skip-packing")]
+        #[structopt(long = "skip-metadata", conflicts_with = "skip-bundle")]
         skip_metadata: bool,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
@@ -244,7 +244,7 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {
             manifest_path,
             verbosity,
-            skip_packing,
+            skip_bundle,
             skip_metadata,
             unstable_options,
         } => {
@@ -256,7 +256,7 @@ fn exec(cmd: Command) -> Result<String> {
                     unstable_options.try_into()?,
                 )?;
                 return Ok(format!(
-                    "\nYour contract is ready. You can find it here:\n{}",
+                    "\nYour contract's code is ready. You can find it here:\n{}",
                     dest_wasm.display().to_string().bold()
                 ));
             }
@@ -267,7 +267,7 @@ fn exec(cmd: Command) -> Result<String> {
                 false,
                 unstable_options.try_into()?,
             )?;
-            if *(skip_packing) {
+            if *(skip_bundle) {
                 return Ok(format!(
                     "\nYour contract's code is ready. You can find it here:\n{}
                     \nYour contract's metadata is ready. You can find it here:\n{}",
@@ -275,7 +275,7 @@ fn exec(cmd: Command) -> Result<String> {
                     metadata_result.metadata_file.display().to_string().bold(),
                 ));
             }
-            let pack_result = cmd::metadata::execute(
+            let bundle_result = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 true,
@@ -285,9 +285,9 @@ fn exec(cmd: Command) -> Result<String> {
                 "\nYour contract's code is ready. You can find it here:\n{}
                 \nYour contract's metadata is ready. You can find it here:\n{}
                 \nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
-                pack_result.wasm_file.display().to_string().bold(),
+                bundle_result.wasm_file.display().to_string().bold(),
                 metadata_result.metadata_file.display().to_string().bold(),
-                pack_result.metadata_file.display().to_string().bold()
+                bundle_result.metadata_file.display().to_string().bold()
             ))
         }
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
