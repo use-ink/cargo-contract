@@ -162,7 +162,7 @@ enum Command {
         #[structopt(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the contract, generates metadata, bundles both together in one <package-name>.contract file
+    /// Compiles the contract, generates metadata, bundles both together in a '.contract' file
     #[structopt(name = "build")]
     Build {
         /// Path to the Cargo.toml of the contract to build
