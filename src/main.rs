@@ -276,6 +276,7 @@ fn exec(cmd: Command) -> Result<String> {
                     &manifest_path,
                     verbosity.try_into()?,
                     unstable_options.try_into()?,
+                    true,
                 )?;
                 return Ok(format!(
                     "\nYour contract's code is ready. You can find it here:\n{}",
@@ -322,6 +323,7 @@ fn exec(cmd: Command) -> Result<String> {
                 &manifest_path,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
+                false,
             )?;
             Ok(format!(
                 "\nYour contract's code was built successfully. You can find it here:\n{}",

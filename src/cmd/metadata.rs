@@ -185,6 +185,7 @@ impl GenerateMetadataCommand {
             &self.crate_metadata,
             self.verbosity,
             self.unstable_options.clone(),
+            true,
         )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;

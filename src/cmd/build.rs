@@ -241,9 +241,15 @@ pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
+    optimize_contract: bool,
 ) -> Result<PathBuf> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    execute_with_metadata(&crate_metadata, verbosity, unstable_options)
+    execute_with_metadata(
+        &crate_metadata,
+        verbosity,
+        unstable_options,
+        optimize_contract,
+    )
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -257,6 +263,7 @@ pub(crate) fn execute_with_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
+    optimize_contract: bool,
 ) -> Result<PathBuf> {
     println!(
         " {} {}",
@@ -270,12 +277,14 @@ pub(crate) fn execute_with_metadata(
         "Post processing wasm file".bright_green().bold()
     );
     post_process_wasm(&crate_metadata)?;
-    println!(
-        " {} {}",
-        "[3/3]".bold(),
-        "Optimizing wasm file".bright_green().bold()
-    );
-    optimize_wasm(&crate_metadata)?;
+    if optimize_contract {
+        println!(
+            " {} {}",
+            "[3/3]".bold(),
+            "Optimizing wasm file".bright_green().bold()
+        );
+        optimize_wasm(&crate_metadata)?;
+    }
     Ok(crate_metadata.dest_wasm.clone())
 }
 
