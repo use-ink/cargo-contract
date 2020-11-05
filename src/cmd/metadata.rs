@@ -186,7 +186,8 @@ impl GenerateMetadataCommand {
             self.verbosity,
             self.unstable_options.clone(),
             true,
-        )?;
+        )?
+        .expect("dest_wasm must exist");
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
         Ok((dest_wasm, blake2_hash(wasm.as_slice())))

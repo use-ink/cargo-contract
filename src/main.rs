@@ -277,7 +277,8 @@ fn exec(cmd: Command) -> Result<String> {
                     verbosity.try_into()?,
                     unstable_options.try_into()?,
                     true,
-                )?;
+                )?
+                .expect("dest_wasm must exist");
                 return Ok(format!(
                     "\nYour contract's code is ready. You can find it here:\n{}",
                     dest_wasm.display().to_string().bold()
@@ -319,12 +320,13 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let _dest_unoptimized_wasm = cmd::build::execute(
+            let maybe_dest_wasm = cmd::build::execute(
                 &manifest_path,
                 verbosity.try_into()?,
                 unstable_options.try_into()?,
                 false,
             )?;
+            assert!(maybe_dest_wasm.is_none(), "no dest_wasm should exist");
             Ok(format!("\nYour contract's code was built successfully."))
         }
         Command::GenerateMetadata {

@@ -242,11 +242,8 @@ pub(crate) fn execute(
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
     optimize_contract: bool,
-) -> Result<PathBuf> {
-    let mut crate_metadata = CrateMetadata::collect(manifest_path)?;
-    if !optimize_contract {
-        crate_metadata.dest_wasm.set_extension("wasm.unoptimized");
-    }
+) -> Result<Option<PathBuf>> {
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     execute_with_metadata(
         &crate_metadata,
         verbosity,
@@ -267,7 +264,7 @@ pub(crate) fn execute_with_metadata(
     verbosity: Option<Verbosity>,
     unstable_options: UnstableFlags,
     optimize_contract: bool,
-) -> Result<PathBuf> {
+) -> Result<Option<PathBuf>> {
     println!(
         " {} {}",
         "[1/3]".bold(),
@@ -280,15 +277,16 @@ pub(crate) fn execute_with_metadata(
         "Post processing wasm file".bright_green().bold()
     );
     post_process_wasm(&crate_metadata)?;
-    if optimize_contract {
-        println!(
-            " {} {}",
-            "[3/3]".bold(),
-            "Optimizing wasm file".bright_green().bold()
-        );
-        optimize_wasm(&crate_metadata)?;
+    if !optimize_contract {
+        return Ok(None);
     }
-    Ok(crate_metadata.dest_wasm.clone())
+    println!(
+        " {} {}",
+        "[3/3]".bold(),
+        "Optimizing wasm file".bright_green().bold()
+    );
+    optimize_wasm(&crate_metadata)?;
+    Ok(Some(crate_metadata.dest_wasm.clone()))
 }
 
 #[cfg(feature = "test-ci-only")]
