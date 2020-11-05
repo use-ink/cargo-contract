@@ -179,6 +179,17 @@ enum Command {
         #[structopt(flatten)]
         unstable_options: UnstableOptions,
     },
+    /// Command has been deprecated, use 'cargo contract build' instead
+    #[structopt(name = "generate-metadata")]
+    GenerateMetadata {
+        /// Path to the Cargo.toml of the contract to build
+        #[structopt(long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
+        #[structopt(flatten)]
+        verbosity: VerbosityFlags,
+        #[structopt(flatten)]
+        unstable_options: UnstableOptions,
+    },
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
@@ -290,6 +301,13 @@ fn exec(cmd: Command) -> Result<String> {
                 bundle_result.metadata_file.display().to_string().bold()
             ))
         }
+        Command::GenerateMetadata {
+            manifest_path: _,
+            verbosity: _,
+            unstable_options: _,
+        } => Err(anyhow::anyhow!(format!(
+            "Command deprecated, use 'cargo contract build' instead"
+        ))),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
