@@ -32,7 +32,6 @@ codec = { package = "parity-scale-codec", version = "1.3.4" }
 which = "4.0.2"
 colored = "2.0.0"
 toml = "0.5.6"
-cargo-xbuild = "0.6.0"
 rustc_version = "0.2.3"
 blake2 = "0.9.0"
 contract-metadata = { version = "0.1.0", path = "./metadata" }

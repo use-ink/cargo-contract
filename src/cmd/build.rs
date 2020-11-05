@@ -35,8 +35,9 @@ const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
-/// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
-/// the resulting Wasm binary.
+/// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
+/// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
+/// which reduces the size of the Wasm binary by not including panic strings and formatting code.
 ///
 /// # Cargo.toml optimizations
 ///
@@ -54,42 +55,28 @@ fn build_cargo_project(
 ) -> Result<()> {
     util::assert_channel()?;
 
-    // set RUSTFLAGS, read from environment var by cargo-xbuild
+    // set linker args via RUSTFLAGS.
+    // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
     std::env::set_var(
         "RUSTFLAGS",
         "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
     );
 
-    let verbosity = verbosity.map(|v| match v {
-        Verbosity::Verbose => xargo_lib::Verbosity::Verbose,
-        Verbosity::Quiet => xargo_lib::Verbosity::Quiet,
-    });
-
-    let xbuild = |manifest_path: &ManifestPath| {
-        let manifest_path = Some(manifest_path);
-        let target = Some("wasm32-unknown-unknown");
+    let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.cargo_meta.target_directory;
-        let other_args = [
-            "--no-default-features",
-            "--release",
-            &format!("--target-dir={}", target_dir.to_string_lossy()),
-        ];
-        let args = xargo_lib::Args::new(target, manifest_path, verbosity, &other_args)
-            .map_err(|e| anyhow::anyhow!("{}", e))
-            .context("Creating xargo args")?;
-
-        let config = xargo_lib::Config {
-            sysroot_path: target_dir.join("sysroot"),
-            memcpy: false,
-            panic_immediate_abort: true,
-        };
-
-        let exit_status = xargo_lib::build(args, "build", Some(config))
-            .map_err(|e| anyhow::anyhow!("{}", e))
-            .context("Building with xbuild")?;
-        if !exit_status.success() {
-            anyhow::bail!("xbuild failed with status {}", exit_status)
-        }
+        util::invoke_cargo(
+            "build",
+            &[
+                "--target=wasm32-unknown-unknown",
+                "-Zbuild-std",
+                "-Zbuild-std-features=panic_immediate_abort",
+                "--no-default-features",
+                "--release",
+                &format!("--target-dir={}", target_dir.to_string_lossy()),
+            ],
+            manifest_path.directory(),
+            verbosity,
+        )?;
         Ok(())
     };
 
@@ -100,7 +87,7 @@ fn build_cargo_project(
             "with 'original-manifest' enabled, the contract binary may not be of optimal size."
                 .bold()
         );
-        xbuild(&crate_metadata.manifest_path)?;
+        cargo_build(&crate_metadata.manifest_path)?;
     } else {
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
@@ -109,7 +96,7 @@ fn build_cargo_project(
                     .with_profile_release_defaults(Profile::default_contract_release())?;
                 Ok(())
             })?
-            .using_temp(xbuild)?;
+            .using_temp(cargo_build)?;
     }
 
     // clear RUSTFLAGS
