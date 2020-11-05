@@ -171,7 +171,7 @@ enum Command {
         /// Only the Wasm and the metadata are generated, no bundled .contract file is created
         #[structopt(long = "skip-bundle", conflicts_with = "skip-metadata")]
         skip_bundle: bool,
-        /// Only the Wasm is created, generation of metadata and a packed .contract file is skipped
+        /// Only the Wasm is created, generation of metadata and a bundled .contract file is skipped
         #[structopt(long = "skip-metadata", conflicts_with = "skip-bundle")]
         skip_metadata: bool,
         #[structopt(flatten)]
