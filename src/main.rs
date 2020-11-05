@@ -190,6 +190,17 @@ enum Command {
         #[structopt(flatten)]
         unstable_options: UnstableOptions,
     },
+    /// Check that the Wasm builds; does not optimize, generate metadata, or bundle
+    #[structopt(name = "check")]
+    Check {
+        /// Path to the Cargo.toml of the contract to build
+        #[structopt(long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
+        #[structopt(flatten)]
+        verbosity: VerbosityFlags,
+        #[structopt(flatten)]
+        unstable_options: UnstableOptions,
+    },
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
@@ -299,6 +310,22 @@ fn exec(cmd: Command) -> Result<String> {
                 bundle_result.wasm_file.display().to_string().bold(),
                 metadata_result.metadata_file.display().to_string().bold(),
                 bundle_result.metadata_file.display().to_string().bold()
+            ))
+        }
+        Command::Check {
+            manifest_path,
+            verbosity,
+            unstable_options,
+        } => {
+            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+            let dest_wasm = cmd::build::execute(
+                &manifest_path,
+                verbosity.try_into()?,
+                unstable_options.try_into()?,
+            )?;
+            Ok(format!(
+                "\nYour contract's code was built successfully. You can find it here:\n{}",
+                dest_wasm.display().to_string().bold()
             ))
         }
         Command::GenerateMetadata {
