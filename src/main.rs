@@ -319,9 +319,9 @@ fn exec(cmd: Command) -> Result<String> {
             assert!(maybe_dest_wasm.is_none(), "no dest_wasm should exist");
             Ok(format!("\nYour contract's code was built successfully."))
         }
-        Command::GenerateMetadata {} => Err(anyhow::anyhow!(format!(
+        Command::GenerateMetadata {} => Err(anyhow::anyhow!(
             "Command deprecated, use `cargo contract build` instead"
-        ))),
+        )),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
