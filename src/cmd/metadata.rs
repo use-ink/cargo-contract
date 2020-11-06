@@ -67,11 +67,6 @@ impl GenerateMetadataCommand {
         // build the extended contract project metadata
         let (dest_wasm, source_meta, contract_meta, user_meta) = self.extended_metadata()?;
 
-        println!(
-            " {} {}",
-            format!("[4/{}]", self.total_steps).bold(),
-            "Generating metadata".bright_green().bold()
-        );
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
             let stdout = util::invoke_cargo(
@@ -89,21 +84,29 @@ impl GenerateMetadataCommand {
 
             let ink_meta: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_slice(&stdout)?;
+
             let mut metadata =
                 ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
-            let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_wasm, contents)?;
-
+            let mut current_progress = 4;
             if self.create_bundle {
                 println!(
                     " {} {}",
-                    format!("[5/{}]", self.total_steps).bold(),
+                    format!("[{}/{}]", current_progress, self.total_steps).bold(),
                     "Generating bundle".bright_green().bold()
                 );
-                metadata.remove_source_wasm_attribute();
                 let contents = serde_json::to_string_pretty(&metadata)?;
                 fs::write(&out_path_bundle, contents)?;
+                current_progress += 1;
             }
+
+            println!(
+                " {} {}",
+                format!("[{}/{}]", current_progress, self.total_steps).bold(),
+                "Generating metadata".bright_green().bold()
+            );
+            metadata.remove_source_wasm_attribute();
+            let contents = serde_json::to_string_pretty(&metadata)?;
+            fs::write(&out_path_wasm, contents)?;
             Ok(())
         };
 
