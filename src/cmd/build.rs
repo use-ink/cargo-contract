@@ -296,7 +296,7 @@ pub(crate) fn execute(
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == BuildArtifacts::CodeOnly {
-        let dest_wasm = execute_with_metadata(
+        let dest_wasm = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,
             optimize_contract,
@@ -321,14 +321,14 @@ pub(crate) fn execute(
     Ok(res)
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart-contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 ///
 /// # Note
 ///
 /// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
-pub(crate) fn execute_with_metadata(
+pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,

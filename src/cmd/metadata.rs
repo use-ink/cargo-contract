@@ -208,7 +208,7 @@ impl GenerateMetadataCommand {
 
     /// Compile the contract and then hash the resulting wasm
     fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32])> {
-        let dest_wasm = super::build::execute_with_metadata(
+        let dest_wasm = super::build::execute_with_crate_metadata(
             &self.crate_metadata,
             self.verbosity,
             true, // for the hash we always use the optimized version of the contract
