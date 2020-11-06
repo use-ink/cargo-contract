@@ -311,7 +311,7 @@ fn exec(cmd: Command) -> Result<String> {
                 unstable_options.try_into()?,
             )?;
             assert!(res.dest_wasm.is_none(), "no dest_wasm should exist");
-            Ok(format!("\nYour contract's code was built successfully."))
+            Ok("\nYour contract's code was built successfully.".to_string())
         }
         Command::GenerateMetadata {} => Err(anyhow::anyhow!(
             "Command deprecated, use `cargo contract build` instead"

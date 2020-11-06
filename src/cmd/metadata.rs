@@ -160,7 +160,7 @@ impl GenerateMetadataCommand {
             let maybe_wasm = if self.create_bundle {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
-                debug_assert_eq!(blake2_hash(wasm.clone().as_slice()), hash);
+                debug_assert_eq!(blake2_hash(wasm.as_slice()), hash);
                 Some(SourceWasm::new(wasm))
             } else {
                 None

@@ -266,7 +266,7 @@ pub(crate) fn execute(
             total_steps,
         )?;
         let res = BuildResult {
-            dest_wasm: dest_wasm,
+            dest_wasm,
             dest_metadata: None,
             dest_bundle: None,
         };
