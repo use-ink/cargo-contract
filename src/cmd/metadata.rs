@@ -354,7 +354,6 @@ mod tests {
                 &test_manifest.manifest_path,
                 None,
                 false,
-                false,
                 UnstableFlags::default(),
                 3,
             )?
