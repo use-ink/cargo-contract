@@ -257,11 +257,13 @@ pub(crate) fn execute(
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if skip_metadata {
+        let total_steps = 3;
         let dest_wasm = execute_with_metadata(
             &crate_metadata,
             verbosity,
             optimize_contract,
             unstable_options,
+            total_steps,
         )?;
         let res = BuildResult {
             dest_wasm: dest_wasm,
@@ -271,12 +273,14 @@ pub(crate) fn execute(
         return Ok(res);
     }
 
+    let total_steps = if skip_bundle { 4 } else { 5 };
     let metadata_result = super::metadata::execute(
         &manifest_path,
         verbosity,
         !skip_bundle,
         optimize_contract,
         unstable_options,
+        total_steps,
     )?;
     let res = BuildResult {
         dest_wasm: Some(metadata_result.wasm_file),
@@ -298,10 +302,11 @@ pub(crate) fn execute_with_metadata(
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
     unstable_options: UnstableFlags,
+    total_steps: usize,
 ) -> Result<Option<PathBuf>> {
     println!(
         " {} {}",
-        "[1/3]".bold(),
+        format!("[1/{}]", total_steps).bold(),
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, verbosity, unstable_options)?;

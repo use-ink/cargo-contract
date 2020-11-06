@@ -22,6 +22,7 @@ use crate::{
 };
 use anyhow::Result;
 use blake2::digest::{Update as _, VariableOutput as _};
+use colored::Colorize;
 use contract_metadata::{
     Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage,
     SourceWasm, User,
@@ -49,12 +50,12 @@ struct GenerateMetadataCommand {
     create_bundle: bool,
     optimize_contract: bool,
     unstable_options: UnstableFlags,
+    total_steps: usize,
 }
 
 impl GenerateMetadataCommand {
     pub fn exec(&self) -> Result<GenerateMetadataResult> {
         util::assert_channel()?;
-        println!("  Generating metadata");
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
         let out_path_wasm = cargo_meta.target_directory.join(METADATA_FILE);
@@ -67,6 +68,11 @@ impl GenerateMetadataCommand {
         // build the extended contract project metadata
         let (dest_wasm, source_meta, contract_meta, user_meta) = self.extended_metadata()?;
 
+        println!(
+            " {} {}",
+            format!("[4/{}]", self.total_steps).bold(),
+            "Generating metadata".bright_green().bold()
+        );
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
             let stdout = util::invoke_cargo(
@@ -86,13 +92,19 @@ impl GenerateMetadataCommand {
                 serde_json::from_slice(&stdout)?;
             let mut metadata =
                 ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
-            if self.create_bundle {
-                let contents = serde_json::to_string_pretty(&metadata)?;
-                fs::write(&out_path_bundle, contents)?;
-            }
-            metadata.remove_wasm();
             let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_wasm, contents)?;
+            fs::write(&out_path_bundle, contents)?;
+
+            if self.create_bundle {
+                println!(
+                    " {} {}",
+                    format!("[5/{}]", self.total_steps).bold(),
+                    "Generating bundle".bright_green().bold()
+                );
+                metadata.remove_source_wasm_attribute();
+                let contents = serde_json::to_string_pretty(&metadata)?;
+                fs::write(&out_path_wasm, contents)?;
+            }
             Ok(())
         };
 
@@ -200,6 +212,7 @@ impl GenerateMetadataCommand {
             self.verbosity,
             self.optimize_contract,
             self.unstable_options.clone(),
+            self.total_steps,
         )?
         .expect("dest_wasm must exist");
 
@@ -226,6 +239,7 @@ pub(crate) fn execute(
     create_bundle: bool,
     optimize_contract: bool,
     unstable_options: UnstableFlags,
+    total_steps: usize,
 ) -> Result<GenerateMetadataResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
@@ -234,6 +248,7 @@ pub(crate) fn execute(
         create_bundle,
         optimize_contract,
         unstable_options,
+        total_steps,
     }
     .exec()?;
     Ok(res)

@@ -94,7 +94,7 @@ impl ContractMetadata {
         }
     }
 
-    pub fn remove_wasm(&mut self) {
+    pub fn remove_source_wasm_attribute(&mut self) {
         self.source.wasm = None;
     }
 }
