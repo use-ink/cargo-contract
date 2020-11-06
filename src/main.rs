@@ -30,6 +30,7 @@ use std::{
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
+use crate::cmd::build::BuildArtifacts;
 use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
@@ -168,12 +169,22 @@ enum Command {
         /// Path to the Cargo.toml of the contract to build
         #[structopt(long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
-        /// Only the Wasm and the metadata are generated, no bundled `<name>.contract` file is created
-        #[structopt(long = "skip-bundle", conflicts_with = "skip-metadata")]
-        skip_bundle: bool,
-        /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
-        #[structopt(long = "skip-metadata", conflicts_with = "skip-bundle")]
-        skip_metadata: bool,
+        /// Which build artifacts to generate.
+        ///
+        /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
+        ///
+        /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
+        ///   `<name>.contract` file is skipped.
+        ///
+        /// - `metadata-only`: Only the Wasm and the metadata are generated, no bundled
+        ///   `<name>.contract` file is created.
+        #[structopt(
+            long = "generate",
+            default_value = "all",
+            value_name = "all | code-only | metadata-only",
+            verbatim_doc_comment
+        )]
+        build_artifact: BuildArtifacts,
         #[structopt(flatten)]
         verbosity: VerbosityFlags,
         #[structopt(flatten)]
@@ -258,8 +269,7 @@ fn exec(cmd: Command) -> Result<String> {
         Command::Build {
             manifest_path,
             verbosity,
-            skip_bundle,
-            skip_metadata,
+            build_artifact,
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
@@ -267,8 +277,7 @@ fn exec(cmd: Command) -> Result<String> {
                 &manifest_path,
                 verbosity.try_into()?,
                 true,
-                *skip_bundle,
-                *skip_metadata,
+                *build_artifact,
                 unstable_options.try_into()?,
             )?;
 
@@ -306,8 +315,7 @@ fn exec(cmd: Command) -> Result<String> {
                 &manifest_path,
                 verbosity.try_into()?,
                 false,
-                true,
-                true,
+                BuildArtifacts::CodeOnly,
                 unstable_options.try_into()?,
             )?;
             assert!(res.dest_wasm.is_none(), "no dest_wasm should exist");

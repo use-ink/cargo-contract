@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
-    UnstableFlags, Verbosity,
+    BuildArtifacts, UnstableFlags, Verbosity,
 };
 use anyhow::Result;
 use blake2::digest::{Update as _, VariableOutput as _};
@@ -47,9 +47,8 @@ pub struct GenerateMetadataResult {
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
-    create_bundle: bool,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-    total_steps: usize,
 }
 
 impl GenerateMetadataCommand {
@@ -88,10 +87,10 @@ impl GenerateMetadataCommand {
             let mut metadata =
                 ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
             let mut current_progress = 4;
-            if self.create_bundle {
+            if self.build_artifact == BuildArtifacts::All {
                 println!(
                     " {} {}",
-                    format!("[{}/{}]", current_progress, self.total_steps).bold(),
+                    format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                     "Generating bundle".bright_green().bold()
                 );
                 let contents = serde_json::to_string_pretty(&metadata)?;
@@ -101,7 +100,7 @@ impl GenerateMetadataCommand {
 
             println!(
                 " {} {}",
-                format!("[{}/{}]", current_progress, self.total_steps).bold(),
+                format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                 "Generating metadata".bright_green().bold()
             );
             metadata.remove_source_wasm_attribute();
@@ -124,7 +123,7 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        let bundle_file = if self.create_bundle {
+        let bundle_file = if self.build_artifact == BuildArtifacts::All {
             Some(out_path_bundle)
         } else {
             None
@@ -159,7 +158,7 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = if self.create_bundle {
+            let maybe_wasm = if self.build_artifact == BuildArtifacts::All {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
                 debug_assert_eq!(blake2_hash(wasm.as_slice()), hash);
@@ -213,8 +212,8 @@ impl GenerateMetadataCommand {
             &self.crate_metadata,
             self.verbosity,
             true, // for the hash we always use the optimized version of the contract
+            self.build_artifact,
             self.unstable_options.clone(),
-            self.total_steps,
         )?
         .expect("dest_wasm must exist");
 
@@ -238,17 +237,15 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    create_bundle: bool,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-    total_steps: usize,
 ) -> Result<GenerateMetadataResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
-        create_bundle,
+        build_artifact,
         unstable_options,
-        total_steps,
     }
     .exec()?;
     Ok(res)
@@ -259,7 +256,8 @@ pub(crate) fn execute(
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags,
+        cmd, cmd::build::BuildArtifacts, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
+        ManifestPath, UnstableFlags,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -356,9 +354,8 @@ mod tests {
             let bundle_file = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                true,
+                BuildArtifacts::MetadataOnly,
                 UnstableFlags::default(),
-                3,
             )?
             .bundle_file
             .expect("bundle file not found");
