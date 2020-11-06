@@ -339,8 +339,15 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(&manifest_path, None, true, false, false, UnstableFlags::default())
-                .expect("build failed");
+            super::execute(
+                &manifest_path,
+                None,
+                true,
+                false,
+                false,
+                UnstableFlags::default(),
+            )
+            .expect("build failed");
             Ok(())
         })
     }
