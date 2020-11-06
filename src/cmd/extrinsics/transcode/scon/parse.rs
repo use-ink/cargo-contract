@@ -21,8 +21,8 @@ use nom::{
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, multispace0, one_of, hex_digit1},
     combinator::{map, map_res, opt, recognize, value, verify},
-    error::{ErrorKind, ParseError},
-    multi::{many0, many1, many0_count, separated_list},
+    error::{ErrorKind, ParseError, FromExternalError},
+    multi::{many0, many1, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
@@ -38,6 +38,12 @@ pub enum SonParseError {
     BadHex(#[from] hex::FromHexError),
     #[error("unknown parser error")]
     Unparseable,
+}
+
+impl<I> FromExternalError<I, ParseIntError> for SonParseError {
+    fn from_external_error(_input: I, _kind: ErrorKind, e: ParseIntError) -> Self {
+        e.into()
+    }
 }
 
 impl<I> ParseError<I> for SonParseError {
@@ -127,12 +133,10 @@ fn scon_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     alt((
         map_res(signed, |s| {
             s.parse::<i128>()
-                .map_err(SonParseError::BadInt)
                 .map(Value::Int)
         }),
         map_res(uint, |s| {
             s.parse::<u128>()
-                .map_err(SonParseError::BadInt)
                 .map(Value::UInt)
         }),
     ))(input)
@@ -160,7 +164,7 @@ fn scon_seq(input: &str) -> IResult<&str, Value, SonParseError> {
 
     let parser = delimited(
         ws(tag("[")),
-        separated_list(ws(tag(",")), scon_value),
+        separated_list0(ws(tag(",")), scon_value),
         opt_trailing_comma_close,
     );
     map(parser, |v| Value::Seq(v.into()))(input)
@@ -170,7 +174,7 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
-        separated_list(ws(tag(",")), scon_value),
+        separated_list0(ws(tag(",")), scon_value),
         opt_trailing_comma_close,
     );
 
@@ -200,7 +204,7 @@ fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(closing));
     let map_body = delimited(
         ws(opening),
-        separated_list(ws(tag(",")), entry),
+        separated_list0(ws(tag(",")), entry),
         opt_trailing_comma_close,
     );
 
@@ -223,9 +227,9 @@ fn scon_literal(input: &str) -> IResult<&str, Value, SonParseError> {
     map(parser, |literal: &str| Value::Literal(literal.into()))(input)
 }
 
-fn ws<F, I, O, E>(f: F) -> impl Fn(I) -> IResult<I, O, E>
+fn ws<F, I, O, E>(f: F) -> impl FnMut(I) -> IResult<I, O, E>
 where
-    F: Fn(I) -> IResult<I, O, E>,
+    F: FnMut(I) -> IResult<I, O, E>,
     I: nom::InputTakeAtPosition,
     <I as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
     E: nom::error::ParseError<I>,
