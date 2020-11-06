@@ -92,7 +92,7 @@ impl GenerateMetadataCommand {
             let mut metadata =
                 ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
             let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_bundle, contents)?;
+            fs::write(&out_path_wasm, contents)?;
 
             if self.create_bundle {
                 println!(
@@ -102,7 +102,7 @@ impl GenerateMetadataCommand {
                 );
                 metadata.remove_source_wasm_attribute();
                 let contents = serde_json::to_string_pretty(&metadata)?;
-                fs::write(&out_path_wasm, contents)?;
+                fs::write(&out_path_bundle, contents)?;
             }
             Ok(())
         };
