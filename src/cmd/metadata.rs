@@ -354,7 +354,7 @@ mod tests {
             let bundle_file = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                BuildArtifacts::MetadataOnly,
+                BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
             .bundle_file
