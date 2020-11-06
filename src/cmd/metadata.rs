@@ -48,7 +48,6 @@ struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
     create_bundle: bool,
-    optimize_contract: bool,
     unstable_options: UnstableFlags,
     total_steps: usize,
 }
@@ -210,7 +209,7 @@ impl GenerateMetadataCommand {
         let dest_wasm = super::build::execute_with_metadata(
             &self.crate_metadata,
             self.verbosity,
-            self.optimize_contract,
+            true, // for the hash we always use the optimized version of the contract
             self.unstable_options.clone(),
             self.total_steps,
         )?
@@ -237,7 +236,6 @@ pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     create_bundle: bool,
-    optimize_contract: bool,
     unstable_options: UnstableFlags,
     total_steps: usize,
 ) -> Result<GenerateMetadataResult> {
@@ -246,7 +244,6 @@ pub(crate) fn execute(
         crate_metadata,
         verbosity,
         create_bundle,
-        optimize_contract,
         unstable_options,
         total_steps,
     }

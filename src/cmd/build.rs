@@ -278,7 +278,6 @@ pub(crate) fn execute(
         &manifest_path,
         verbosity,
         !skip_bundle,
-        optimize_contract,
         unstable_options,
         total_steps,
     )?;
