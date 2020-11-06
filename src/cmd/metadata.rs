@@ -353,7 +353,7 @@ mod tests {
             let bundle_file = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                false,
+                true,
                 UnstableFlags::default(),
                 3,
             )?
