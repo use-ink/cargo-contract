@@ -33,6 +33,16 @@ use parity_wasm::elements::{External, MemoryType, Module, Section};
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Result of the metadata generation process.
+pub struct BuildResult {
+    /// Path to the resulting metadata file.
+    pub dest_metadata: Option<PathBuf>,
+    /// Path to the resulting Wasm file.
+    pub dest_wasm: Option<PathBuf>,
+    /// Path to the bundled file.
+    pub dest_bundle: Option<PathBuf>,
+}
+
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
 /// Uses [`cargo-xbuild`](https://github.com/rust-osdev/cargo-xbuild) for maximum optimization of
@@ -240,16 +250,40 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    unstable_options: UnstableFlags,
     optimize_contract: bool,
-) -> Result<Option<PathBuf>> {
+    skip_bundle: bool,
+    skip_metadata: bool,
+    unstable_options: UnstableFlags,
+) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    execute_with_metadata(
-        &crate_metadata,
+    if skip_metadata {
+        let dest_wasm = execute_with_metadata(
+            &crate_metadata,
+            verbosity,
+            optimize_contract,
+            unstable_options,
+        )?;
+        let res = BuildResult {
+            dest_wasm: dest_wasm,
+            dest_metadata: None,
+            dest_bundle: None,
+        };
+        return Ok(res);
+    }
+
+    let metadata_result = super::metadata::execute(
+        &manifest_path,
         verbosity,
-        unstable_options,
+        !skip_bundle,
         optimize_contract,
-    )
+        unstable_options,
+    )?;
+    let res = BuildResult {
+        dest_wasm: Some(metadata_result.wasm_file),
+        dest_metadata: Some(metadata_result.metadata_file),
+        dest_bundle: metadata_result.bundle_file,
+    };
+    Ok(res)
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -262,8 +296,8 @@ pub(crate) fn execute(
 pub(crate) fn execute_with_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
-    unstable_options: UnstableFlags,
     optimize_contract: bool,
+    unstable_options: UnstableFlags,
 ) -> Result<Option<PathBuf>> {
     println!(
         " {} {}",
@@ -300,7 +334,7 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(&manifest_path, None, UnstableFlags::default(), true)
+            super::execute(&manifest_path, None, UnstableFlags::default(), true, true)
                 .expect("build failed");
             Ok(())
         })

@@ -263,46 +263,38 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            if *(skip_metadata) {
-                let dest_wasm = cmd::build::execute(
-                    &manifest_path,
-                    verbosity.try_into()?,
-                    unstable_options.try_into()?,
-                    true,
-                )?
-                .expect("dest_wasm must exist");
-                return Ok(format!(
-                    "\nYour contract's code is ready. You can find it here:\n{}",
-                    dest_wasm.display().to_string().bold()
-                ));
-            }
-
-            let metadata_result = cmd::metadata::execute(
+            let build_result = cmd::build::execute(
                 &manifest_path,
                 verbosity.try_into()?,
+                true,
                 *skip_bundle,
+                *skip_metadata,
                 unstable_options.try_into()?,
             )?;
-            let maybe_bundle = if !*(skip_bundle) {
-                format!(
+
+            let mut out = "".to_string();
+            if let Some(dest_bundle) = build_result.dest_bundle {
+                let bundle = format!(
                     "\nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
-                    metadata_result
-                        .bundle_file
-                        .expect("bundle file must exist")
-                        .display()
-                        .to_string()
-                        .bold()
-                )
-            } else {
-                "".to_string()
-            };
-            Ok(format!(
-                "\nYour contract's code is ready. You can find it here:\n{}
-                \nYour contract's metadata is ready. You can find it here:\n{}{}",
-                metadata_result.wasm_file.display().to_string().bold(),
-                metadata_result.metadata_file.display().to_string().bold(),
-                maybe_bundle,
-            ))
+                    dest_bundle.display().to_string().bold()
+                );
+                out.push_str(&bundle);
+            }
+            if let Some(dest_wasm) = build_result.dest_wasm {
+                let wasm = format!(
+                    "\nYour contract's code is ready. You can find it here:\n{}",
+                    dest_wasm.display().to_string().bold()
+                );
+                out.push_str(&wasm);
+            }
+            if let Some(dest_metadata) = build_result.dest_metadata {
+                let metadata = format!(
+                    "\nYour contract's metadata is ready. You can find it here:\n{}",
+                    dest_metadata.display().to_string().bold()
+                );
+                out.push_str(&metadata);
+            }
+            Ok(out)
         }
         Command::Check {
             manifest_path,
@@ -310,13 +302,15 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let maybe_dest_wasm = cmd::build::execute(
+            let res = cmd::build::execute(
                 &manifest_path,
                 verbosity.try_into()?,
-                unstable_options.try_into()?,
                 false,
+                true,
+                true,
+                unstable_options.try_into()?,
             )?;
-            assert!(maybe_dest_wasm.is_none(), "no dest_wasm should exist");
+            assert!(res.dest_wasm.is_none(), "no dest_wasm should exist");
             Ok(format!("\nYour contract's code was built successfully."))
         }
         Command::GenerateMetadata {} => Err(anyhow::anyhow!(

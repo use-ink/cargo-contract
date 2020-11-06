@@ -93,6 +93,10 @@ impl ContractMetadata {
             abi,
         }
     }
+
+    pub fn remove_wasm(&mut self) {
+        self.source.wasm = None;
+    }
 }
 
 #[derive(Debug, Serialize)]

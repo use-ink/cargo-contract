@@ -46,7 +46,8 @@ pub struct GenerateMetadataResult {
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
-    include_wasm: bool,
+    create_bundle: bool,
+    optimize_contract: bool,
     unstable_options: UnstableFlags,
 }
 
@@ -56,12 +57,11 @@ impl GenerateMetadataCommand {
         println!("  Generating metadata");
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path = if self.include_wasm {
-            let fname = format!("{}.contract", self.crate_metadata.package_name);
-            cargo_meta.target_directory.join(fname)
-        } else {
-            cargo_meta.target_directory.join(METADATA_FILE)
-        };
+        let out_path_wasm = cargo_meta.target_directory.join(METADATA_FILE);
+
+        let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
+        let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
+
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
@@ -84,9 +84,15 @@ impl GenerateMetadataCommand {
 
             let ink_meta: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_slice(&stdout)?;
-            let metadata = ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
+            let mut metadata =
+                ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
+            if self.create_bundle {
+                let contents = serde_json::to_string_pretty(&metadata)?;
+                fs::write(&out_path_bundle, contents)?;
+            }
+            metadata.remove_wasm();
             let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path, contents)?;
+            fs::write(&out_path_wasm, contents)?;
             Ok(())
         };
 
@@ -104,10 +110,15 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
+        let bundle_file = if self.create_bundle {
+            Some(out_path_bundle)
+        } else {
+            None
+        };
         Ok(GenerateMetadataResult {
-            metadata_file: out_path,
+            metadata_file: out_path_wasm,
             wasm_file: dest_wasm,
-            bundle_file: None,
+            bundle_file,
         })
     }
 
@@ -134,7 +145,7 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = if self.include_wasm {
+            let maybe_wasm = if self.create_bundle {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
                 debug_assert_eq!(blake2_hash(wasm.clone().as_slice()), hash);
@@ -187,8 +198,8 @@ impl GenerateMetadataCommand {
         let dest_wasm = super::build::execute_with_metadata(
             &self.crate_metadata,
             self.verbosity,
+            self.optimize_contract,
             self.unstable_options.clone(),
-            true,
         )?
         .expect("dest_wasm must exist");
 
@@ -212,32 +223,19 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    skip_bundle: bool,
+    create_bundle: bool,
+    optimize_contract: bool,
     unstable_options: UnstableFlags,
 ) -> Result<GenerateMetadataResult> {
-    let bundle_file = if skip_bundle {
-        None
-    } else {
-        let crate_metadata = CrateMetadata::collect(manifest_path)?;
-        let res = GenerateMetadataCommand {
-            crate_metadata,
-            verbosity,
-            include_wasm: true,
-            unstable_options: unstable_options.clone(),
-        }
-        .exec()?;
-        Some(res.metadata_file)
-    };
-
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    let mut res = GenerateMetadataCommand {
+    let res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
-        include_wasm: false,
+        create_bundle,
+        optimize_contract,
         unstable_options,
     }
     .exec()?;
-    res.bundle_file = bundle_file;
     Ok(res)
 }
 
