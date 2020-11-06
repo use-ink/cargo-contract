@@ -357,7 +357,9 @@ mod tests {
                 &test_manifest.manifest_path,
                 None,
                 false,
+                false,
                 UnstableFlags::default(),
+                3,
             )?
             .bundle_file
             .expect("bundle file not found");
