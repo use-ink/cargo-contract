@@ -38,6 +38,8 @@ pub struct GenerateMetadataResult {
     pub metadata_file: PathBuf,
     /// Path to the resulting Wasm file.
     pub wasm_file: PathBuf,
+    /// Path to the bundled file.
+    pub bundle_file: Option<PathBuf>,
 }
 
 /// Executes the metadata generation process
@@ -105,6 +107,7 @@ impl GenerateMetadataCommand {
         Ok(GenerateMetadataResult {
             metadata_file: out_path,
             wasm_file: dest_wasm,
+            bundle_file: None,
         })
     }
 
@@ -209,17 +212,33 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    include_wasm: bool,
+    skip_bundle: bool,
     unstable_options: UnstableFlags,
 ) -> Result<GenerateMetadataResult> {
+    let bundle_file = if skip_bundle {
+        None
+    } else {
+        let crate_metadata = CrateMetadata::collect(manifest_path)?;
+        let res = GenerateMetadataCommand {
+            crate_metadata,
+            verbosity,
+            include_wasm: true,
+            unstable_options: unstable_options.clone(),
+        }
+        .exec()?;
+        Some(res.metadata_file)
+    };
+
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    GenerateMetadataCommand {
+    let mut res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
-        include_wasm,
+        include_wasm: false,
         unstable_options,
     }
-    .exec()
+    .exec()?;
+    res.bundle_file = bundle_file;
+    Ok(res)
 }
 
 #[cfg(feature = "test-ci-only")]
@@ -321,19 +340,20 @@ mod tests {
             test_manifest.write()?;
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
-            let metadata_file = cmd::metadata::execute(
+            let bundle_file = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                true,
+                false,
                 UnstableFlags::default(),
             )?
-            .metadata_file;
+            .bundle_file
+            .expect("bundle file not found");
             let metadata_json: Map<String, Value> =
-                serde_json::from_slice(&fs::read(&metadata_file)?)?;
+                serde_json::from_slice(&fs::read(&bundle_file)?)?;
 
             assert!(
-                metadata_file.exists(),
-                format!("Missing metadata file '{}'", metadata_file.display())
+                bundle_file.exists(),
+                format!("Missing metadata file '{}'", bundle_file.display())
             );
 
             let source = metadata_json.get("source").expect("source not found");

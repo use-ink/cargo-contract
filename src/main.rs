@@ -262,8 +262,8 @@ fn exec(cmd: Command) -> Result<String> {
             skip_metadata,
             unstable_options,
         } => {
+            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
             if *(skip_metadata) {
-                let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
                 let dest_wasm = cmd::build::execute(
                     &manifest_path,
                     verbosity.try_into()?,
@@ -276,34 +276,32 @@ fn exec(cmd: Command) -> Result<String> {
                     dest_wasm.display().to_string().bold()
                 ));
             }
-            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+
             let metadata_result = cmd::metadata::execute(
                 &manifest_path,
                 verbosity.try_into()?,
-                false,
+                *skip_bundle,
                 unstable_options.try_into()?,
             )?;
-            if *(skip_bundle) {
-                return Ok(format!(
-                    "\nYour contract's code is ready. You can find it here:\n{}
-                    \nYour contract's metadata is ready. You can find it here:\n{}",
-                    metadata_result.wasm_file.display().to_string().bold(),
-                    metadata_result.metadata_file.display().to_string().bold(),
-                ));
-            }
-            let bundle_result = cmd::metadata::execute(
-                &manifest_path,
-                verbosity.try_into()?,
-                true,
-                unstable_options.try_into()?,
-            )?;
+            let maybe_bundle = if !*(skip_bundle) {
+                format!(
+                    "\nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
+                    metadata_result
+                        .bundle_file
+                        .expect("bundle file must exist")
+                        .display()
+                        .to_string()
+                        .bold()
+                )
+            } else {
+                "".to_string()
+            };
             Ok(format!(
                 "\nYour contract's code is ready. You can find it here:\n{}
-                \nYour contract's metadata is ready. You can find it here:\n{}
-                \nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
-                bundle_result.wasm_file.display().to_string().bold(),
+                \nYour contract's metadata is ready. You can find it here:\n{}{}",
+                metadata_result.wasm_file.display().to_string().bold(),
                 metadata_result.metadata_file.display().to_string().bold(),
-                bundle_result.metadata_file.display().to_string().bold()
+                maybe_bundle,
             ))
         }
         Command::Check {
