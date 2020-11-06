@@ -312,7 +312,7 @@ pub(crate) fn execute_with_metadata(
     build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
     println!(
         " {} {}",
-        "[2/3]".bold(),
+        format!("[2/{}]", total_steps).bold(),
         "Post processing wasm file".bright_green().bold()
     );
     post_process_wasm(&crate_metadata)?;
@@ -321,7 +321,7 @@ pub(crate) fn execute_with_metadata(
     }
     println!(
         " {} {}",
-        "[3/3]".bold(),
+        format!("[3/{}]", total_steps).bold(),
         "Optimizing wasm file".bright_green().bold()
     );
     optimize_wasm(&crate_metadata)?;
