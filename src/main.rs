@@ -186,13 +186,17 @@ impl GenerateArtifacts {
                     .as_ref()
                     .expect("metadata path must exist")
                     .display()
+                    .to_string()
+                    .bold()
             );
         }
 
         let optimization = GenerationResult::display_optimization(result);
-        let mut out = format!("\nOriginal wasm size: {:.1}K, Optimized: {:.1}K\n\nYour contract artifacts are ready. You can find them in:\n{}\n\n",
-                              optimization.0, optimization.1,
-                              result.target_directory.display().to_string()
+        let mut out = format!(
+            "\nOriginal wasm size: {}, Optimized: {}\n\nYour contract artifacts are ready. You can find them in:\n{}\n\n",
+            format!("{:.1}K", optimization.0).bold(),
+            format!("{:.1}K", optimization.1).bold(),
+            result.target_directory.display().to_string().bold()
         );
 
         if self == &GenerateArtifacts::CodeOnly {
@@ -203,6 +207,8 @@ impl GenerateArtifacts {
                     .as_ref()
                     .expect("wasm path must exist")
                     .display()
+                    .to_string()
+                    .bold()
             );
             return out;
         };
@@ -210,21 +216,21 @@ impl GenerateArtifacts {
         if let Some(dest_bundle) = result.dest_bundle.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                GenerationResult::display(&dest_bundle)
+                GenerationResult::display(&dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
         if let Some(dest_wasm) = result.dest_wasm.as_ref() {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
-                GenerationResult::display(&dest_wasm)
+                GenerationResult::display(&dest_wasm).bold()
             );
             out.push_str(&wasm);
         }
         if let Some(dest_metadata) = result.dest_metadata.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                GenerationResult::display(&dest_metadata)
+                GenerationResult::display(&dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
