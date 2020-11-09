@@ -594,7 +594,15 @@ mod tests {
 
         transcode_roundtrip::<S>(
             r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
-            Value::Map(Map::new(Some("S"), vec![(Value::String("a".into()), Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))].into_iter().collect())),
+            Value::Map(Map::new(
+                Some("S"),
+                vec![(
+                    Value::String("a".into()),
+                    Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                )]
+                .into_iter()
+                .collect(),
+            )),
         )
     }
 }

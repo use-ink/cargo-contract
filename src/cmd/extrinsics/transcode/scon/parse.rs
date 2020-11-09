@@ -19,17 +19,14 @@ use escape8259::unescape;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{alphanumeric1, anychar, char, digit0, multispace0, one_of, hex_digit1},
+    character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
     combinator::{map, map_res, opt, recognize, value, verify},
-    error::{ErrorKind, ParseError, FromExternalError},
-    multi::{many0, many1, many0_count, separated_list0},
+    error::{ErrorKind, FromExternalError, ParseError},
+    multi::{many0, many0_count, many1, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
-use std::{
-    fmt::Debug,
-    num::ParseIntError,
-};
+use std::{fmt::Debug, num::ParseIntError};
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum SonParseError {
@@ -49,8 +46,7 @@ impl<I> FromExternalError<I, ParseIntError> for SonParseError {
     }
 }
 
-impl ParseError<&str> for SonParseError
-{
+impl ParseError<&str> for SonParseError {
     fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
         SonParseError::Nom(input.to_string(), kind)
     }
@@ -135,14 +131,8 @@ fn scon_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     let signed = recognize(pair(char('-'), uint));
 
     alt((
-        map_res(signed, |s| {
-            s.parse::<i128>()
-                .map(Value::Int)
-        }),
-        map_res(uint, |s| {
-            s.parse::<u128>()
-                .map(Value::UInt)
-        }),
+        map_res(signed, |s| s.parse::<i128>().map(Value::Int)),
+        map_res(uint, |s| s.parse::<u128>().map(Value::UInt)),
     ))(input)
 }
 
@@ -389,7 +379,10 @@ mod tests {
 
     #[test]
     fn test_literal() {
-        assert_scon_value("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()));
+        assert_scon_value(
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+        );
     }
 
     #[test]

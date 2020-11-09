@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::display_events;
-use crate::{ExtrinsicOpts, util::decode_hex};
+use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
 use structopt::StructOpt;
 use subxt::{
