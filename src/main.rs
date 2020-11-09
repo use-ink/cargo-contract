@@ -192,16 +192,16 @@ impl GenerateArtifacts {
         }
 
         let optimization = GenerationResult::display_optimization(result);
-        let mut out = format!(
-            "\nOriginal wasm size: {}, Optimized: {}\n\nYour contract artifacts are ready. You can find them in:\n{}\n\n",
+        let size_diff = format!(
+            "\nOriginal wasm size: {}, Optimized: {}\n\n",
             format!("{:.1}K", optimization.0).bold(),
             format!("{:.1}K", optimization.1).bold(),
-            result.target_directory.display().to_string().bold()
         );
 
         if self == &GenerateArtifacts::CodeOnly {
             let out = format!(
-                "\nYour contract's code is ready. You can find it here:\n{}",
+                "{}Your contract's code is ready. You can find it here:\n{}",
+                size_diff,
                 result
                     .dest_wasm
                     .as_ref()
@@ -213,6 +213,11 @@ impl GenerateArtifacts {
             return out;
         };
 
+        let mut out = format!(
+            "{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
+            size_diff,
+            result.target_directory.display().to_string().bold(),
+        );
         if let Some(dest_bundle) = result.dest_bundle.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
