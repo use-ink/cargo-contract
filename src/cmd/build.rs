@@ -81,6 +81,18 @@ pub struct BuildResult {
     pub dest_wasm: Option<PathBuf>,
     /// Path to the bundled file.
     pub dest_bundle: Option<PathBuf>,
+    /// Path to the directory where output files are written to.
+    pub target_directory: PathBuf,
+}
+
+impl BuildResult {
+    /// Returns the base name of the path.
+    pub fn display(path: &PathBuf) -> &str {
+        path.file_name()
+            .expect("file name must exist")
+            .to_str()
+            .expect("must be valid utf-8")
+    }
 }
 
 /// Builds the project in the specified directory, defaults to the current directory.
@@ -307,6 +319,7 @@ pub(crate) fn execute(
             dest_wasm,
             dest_metadata: None,
             dest_bundle: None,
+            target_directory: crate_metadata.cargo_meta.target_directory,
         };
         return Ok(res);
     }
@@ -317,6 +330,7 @@ pub(crate) fn execute(
         dest_wasm: Some(metadata_result.wasm_file),
         dest_metadata: Some(metadata_result.metadata_file),
         dest_bundle: metadata_result.bundle_file,
+        target_directory: crate_metadata.cargo_meta.target_directory.clone(),
     };
     Ok(res)
 }

@@ -281,25 +281,28 @@ fn exec(cmd: Command) -> Result<String> {
                 unstable_options.try_into()?,
             )?;
 
-            let mut out = "".to_string();
+            let mut out = format!(
+                "\nYour contract artifacts are ready. You can find them in:\n{}\n",
+                build_result.target_directory.display().to_string().bold()
+            );
             if let Some(dest_bundle) = build_result.dest_bundle {
                 let bundle = format!(
-                    "\nYour contract bundle (code + metadata) is ready. You can find it here:\n{}",
-                    dest_bundle.display().to_string().bold()
+                    "  - {} (code + metadata)\n",
+                    cmd::build::BuildResult::display(&dest_bundle)
                 );
                 out.push_str(&bundle);
             }
             if let Some(dest_wasm) = build_result.dest_wasm {
                 let wasm = format!(
-                    "\nYour contract's code is ready. You can find it here:\n{}",
-                    dest_wasm.display().to_string().bold()
+                    "  - {} (the contract's code)\n",
+                    cmd::build::BuildResult::display(&dest_wasm)
                 );
                 out.push_str(&wasm);
             }
             if let Some(dest_metadata) = build_result.dest_metadata {
                 let metadata = format!(
-                    "\nYour contract's metadata is ready. You can find it here:\n{}",
-                    dest_metadata.display().to_string().bold()
+                    "  - {} (the contract's metadata)",
+                    cmd::build::BuildResult::display(&dest_metadata)
                 );
                 out.push_str(&metadata);
             }
