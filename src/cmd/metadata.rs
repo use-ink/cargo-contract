@@ -453,7 +453,7 @@ mod tests {
                 ),
             );
 
-            assert_eq!(build_byte_str(&expected_hash[..]), hash.as_str().unwrap());
+            assert_eq!(build_byte_str(&expected_hash.0[..]), hash.as_str().unwrap());
             assert_eq!(expected_wasm, wasm.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
