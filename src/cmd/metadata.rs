@@ -56,7 +56,7 @@ impl GenerateMetadataCommand {
         util::assert_channel()?;
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path_wasm = cargo_meta.target_directory.join(METADATA_FILE);
+        let out_path_metadata = cargo_meta.target_directory.join(METADATA_FILE);
 
         let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
         let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
@@ -90,8 +90,26 @@ impl GenerateMetadataCommand {
             let ink_meta: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_slice(&stdout)?;
 
-            let mut metadata = ContractMetadata::new(source, contract, user, ink_meta);
             let mut current_progress = 4;
+            let metadata = ContractMetadata::new(source, contract, user, ink_meta);
+
+            {
+                let mut metadata = metadata.clone();
+                let curr_step = match self.build_artifact {
+                    GenerateArtifacts::MetadataOnly => 1,
+                    _ => current_progress,
+                };
+                println!(
+                    " {} {}",
+                    format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
+                    "Generating metadata".bright_green().bold()
+                );
+                metadata.remove_source_wasm_attribute();
+                let contents = serde_json::to_string_pretty(&metadata)?;
+                fs::write(&out_path_metadata, contents)?;
+                current_progress += 1;
+            }
+
             if self.build_artifact == GenerateArtifacts::All {
                 println!(
                     " {} {}",
@@ -100,21 +118,8 @@ impl GenerateMetadataCommand {
                 );
                 let contents = serde_json::to_string_pretty(&metadata)?;
                 fs::write(&out_path_bundle, contents)?;
-                current_progress += 1;
             }
 
-            let curr_step = match self.build_artifact {
-                GenerateArtifacts::MetadataOnly => 1,
-                _ => current_progress,
-            };
-            println!(
-                " {} {}",
-                format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
-                "Generating metadata".bright_green().bold()
-            );
-            metadata.remove_source_wasm_attribute();
-            let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_wasm, contents)?;
             Ok(())
         };
 
@@ -138,7 +143,7 @@ impl GenerateMetadataCommand {
             None
         };
         Ok(GenerationResult {
-            dest_metadata: Some(out_path_wasm),
+            dest_metadata: Some(out_path_metadata),
             dest_wasm,
             dest_bundle,
             optimization_result,
