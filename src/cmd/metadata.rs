@@ -103,19 +103,15 @@ impl GenerateMetadataCommand {
                 current_progress += 1;
             }
 
-            if self.build_artifact == GenerateArtifacts::MetadataOnly {
-                println!(
-                    " {} {}",
-                    format!("[{}/{}]", 1, self.build_artifact.steps()).bold(),
-                    "Generating metadata".bright_green().bold()
-                );
-            } else {
-                println!(
-                    " {} {}",
-                    format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
-                    "Generating metadata".bright_green().bold()
-                );
-            }
+            let curr_step = match self.build_artifact {
+                GenerateArtifacts::MetadataOnly => 1,
+                _ => current_progress,
+            };
+            println!(
+                " {} {}",
+                format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
+                "Generating metadata".bright_green().bold()
+            );
             metadata.remove_source_wasm_attribute();
             let contents = serde_json::to_string_pretty(&metadata)?;
             fs::write(&out_path_wasm, contents)?;
