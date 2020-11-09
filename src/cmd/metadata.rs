@@ -288,7 +288,7 @@ pub(crate) fn execute(
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, cmd::BuildArtifacts, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, GenerateArtifacts,
         ManifestPath, UnstableFlags,
     };
     use contract_metadata::*;
@@ -383,20 +383,20 @@ mod tests {
             test_manifest.write()?;
 
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
-            let bundle_file = cmd::metadata::execute(
+            let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                BuildArtifacts::All,
+                GenerateArtifacts::All,
                 UnstableFlags::default(),
             )?
-            .bundle_file
+            .dest_bundle
             .expect("bundle file not found");
             let metadata_json: Map<String, Value> =
-                serde_json::from_slice(&fs::read(&bundle_file)?)?;
+                serde_json::from_slice(&fs::read(&dest_bundle)?)?;
 
             assert!(
-                bundle_file.exists(),
-                format!("Missing metadata file '{}'", bundle_file.display())
+                dest_bundle.exists(),
+                format!("Missing metadata file '{}'", dest_bundle.display())
             );
 
             let source = metadata_json.get("source").expect("source not found");
