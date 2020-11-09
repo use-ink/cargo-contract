@@ -53,6 +53,15 @@ struct GenerateMetadataCommand {
     unstable_options: UnstableFlags,
 }
 
+/// Result of generating the extended contract project metadata
+struct ExtendedMetadataResult {
+    dest_wasm: PathBuf,
+    source: Source,
+    contract: Contract,
+    user: Option<User>,
+    optimization_result: super::build::OptimizationResult,
+}
+
 impl GenerateMetadataCommand {
     pub fn exec(&self) -> Result<GenerateMetadataResult> {
         util::assert_channel()?;
@@ -66,8 +75,13 @@ impl GenerateMetadataCommand {
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
-        let (dest_wasm, source_meta, contract_meta, user_meta, optimization_result) =
-            self.extended_metadata()?;
+        let ExtendedMetadataResult {
+            dest_wasm,
+            source,
+            contract,
+            user,
+            optimization_result,
+        } = self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -87,8 +101,7 @@ impl GenerateMetadataCommand {
             let ink_meta: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_slice(&stdout)?;
 
-            let mut metadata =
-                ContractMetadata::new(source_meta, contract_meta, user_meta, ink_meta);
+            let mut metadata = ContractMetadata::new(source, contract, user, ink_meta);
             let mut current_progress = 4;
             if self.build_artifact == BuildArtifacts::All {
                 println!(
@@ -140,15 +153,7 @@ impl GenerateMetadataCommand {
     }
 
     /// Generate the extended contract project metadata
-    fn extended_metadata(
-        &self,
-    ) -> Result<(
-        PathBuf,
-        Source,
-        Contract,
-        Option<User>,
-        super::build::OptimizationResult,
-    )> {
+    fn extended_metadata(&self) -> Result<ExtendedMetadataResult> {
         let contract_package = &self.crate_metadata.root_package;
         let ink_version = &self.crate_metadata.ink_version;
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
@@ -165,7 +170,7 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let (dest_wasm, hash, optimization_res) = self.wasm_hash()?;
+        let (dest_wasm, hash, optimization_result) = self.wasm_hash()?;
 
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
@@ -215,7 +220,13 @@ impl GenerateMetadataCommand {
         // user defined metadata
         let user = self.crate_metadata.user.clone().map(User::new);
 
-        Ok((dest_wasm, source, contract, user, optimization_res))
+        Ok(ExtendedMetadataResult {
+            dest_wasm,
+            source,
+            contract,
+            user,
+            optimization_result,
+        })
     }
 
     /// Compile the contract and then hash the resulting Wasm.
