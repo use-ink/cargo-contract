@@ -283,10 +283,10 @@ fn exec(cmd: Command) -> Result<String> {
 
             let mut out = format!(
                 "\nOriginal wasm size: {:.1}K, Optimized: {:.1}K\n\n\
-                Your contract artifacts are ready. You can find them in:\n{}\n",
+                Your contract artifacts are ready. You can find them in:\n{}\n\n",
                 cmd::build::BuildResult::display_optimization(&build_result).0,
                 cmd::build::BuildResult::display_optimization(&build_result).1,
-                build_result.target_directory.display().to_string().bold()
+                build_result.target_directory.display().to_string()
             );
             if let Some(dest_bundle) = build_result.dest_bundle {
                 let bundle = format!(
