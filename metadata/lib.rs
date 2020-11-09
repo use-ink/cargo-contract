@@ -101,8 +101,11 @@ impl ContractMetadata {
 
 #[derive(Debug, Serialize)]
 pub struct Source {
-    #[serde(serialize_with = "serialize_as_byte_str")]
-    hash: [u8; 32],
+    #[serde(
+        serialize_with = "serialize_as_byte_str_foo",
+        skip_serializing_if = "Option::is_none"
+    )]
+    hash: Option<[u8; 32]>,
     language: SourceLanguage,
     compiler: SourceCompiler,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -113,7 +116,7 @@ impl Source {
     /// Constructs a new InkProjectSource.
     pub fn new(
         wasm: Option<SourceWasm>,
-        hash: [u8; 32],
+        hash: Option<[u8; 32]>,
         language: SourceLanguage,
         compiler: SourceCompiler,
     ) -> Self {
@@ -431,6 +434,14 @@ impl ContractBuilder {
             ))
         }
     }
+}
+
+fn serialize_as_byte_str_foo<S>(bytes: &Option<[u8; 32]>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let bytes = bytes.expect("must_exist");
+    serialize_as_byte_str(&bytes[..], serializer)
 }
 
 /// Serializes the given bytes as byte string.

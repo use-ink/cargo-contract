@@ -19,13 +19,12 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
 };
-use structopt::StructOpt;
 
 use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
-    UnstableFlags, Verbosity,
+    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -33,87 +32,6 @@ use parity_wasm::elements::{External, MemoryType, Module, Section};
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
-
-/// Describes which build artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
-#[structopt(name = "build-artifacts")]
-pub enum BuildArtifacts {
-    /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
-    #[structopt(name = "all")]
-    All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
-    #[structopt(name = "code-only")]
-    CodeOnly,
-    /// Only the Wasm and the metadata are generated, no bundled `<name>.contract` file is created
-    #[structopt(name = "metadata-only")]
-    MetadataOnly,
-}
-
-impl BuildArtifacts {
-    /// Returns the number of steps required to complete a build artifact.
-    /// Used as output on the cli.
-    pub fn steps(&self) -> usize {
-        match self {
-            BuildArtifacts::All => 5,
-            BuildArtifacts::MetadataOnly => 4,
-            BuildArtifacts::CodeOnly => 3,
-        }
-    }
-}
-
-impl std::str::FromStr for BuildArtifacts {
-    type Err = String;
-    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
-        match artifact {
-            "all" => Ok(BuildArtifacts::All),
-            "code-only" => Ok(BuildArtifacts::CodeOnly),
-            "metadata-only" => Ok(BuildArtifacts::MetadataOnly),
-            _ => Err("Could not parse build artifact".to_string()),
-        }
-    }
-}
-
-/// Result of the metadata generation process.
-pub struct BuildResult {
-    /// Path to the resulting metadata file.
-    pub dest_metadata: Option<PathBuf>,
-    /// Path to the resulting Wasm file.
-    pub dest_wasm: Option<PathBuf>,
-    /// Path to the bundled file.
-    pub dest_bundle: Option<PathBuf>,
-    /// Path to the directory where output files are written to.
-    pub target_directory: PathBuf,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<OptimizationResult>,
-}
-
-impl BuildResult {
-    /// Returns the base name of the path.
-    pub fn display(path: &PathBuf) -> &str {
-        path.file_name()
-            .expect("file name must exist")
-            .to_str()
-            .expect("must be valid utf-8")
-    }
-
-    /// Returns a tuple of `(original_size, optimized_size)`.
-    ///
-    /// Panics if no optimization result is available.
-    pub fn display_optimization(res: &BuildResult) -> (f64, f64) {
-        let optimization = res
-            .optimization_result
-            .as_ref()
-            .expect("optimization result must exist");
-        (optimization.original_size, optimization.optimized_size)
-    }
-}
-
-pub struct OptimizationResult {
-    /// The original Wasm size.
-    pub original_size: f64,
-    /// The Wasm size after optimizations have been applied.
-    pub optimized_size: f64,
-}
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
@@ -328,11 +246,11 @@ pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
-    build_artifact: BuildArtifacts,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<BuildResult> {
+) -> Result<GenerationResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    if build_artifact == BuildArtifacts::CodeOnly {
+    if build_artifact == GenerateArtifacts::CodeOnly {
         let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,
@@ -340,7 +258,7 @@ pub(crate) fn execute(
             build_artifact,
             unstable_options,
         )?;
-        let res = BuildResult {
+        let res = GenerationResult {
             dest_wasm: maybe_dest_wasm,
             dest_metadata: None,
             dest_bundle: None,
@@ -350,15 +268,8 @@ pub(crate) fn execute(
         return Ok(res);
     }
 
-    let metadata_result =
+    let res =
         super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_options)?;
-    let res = BuildResult {
-        dest_wasm: Some(metadata_result.wasm_file),
-        dest_metadata: Some(metadata_result.metadata_file),
-        dest_bundle: metadata_result.bundle_file,
-        target_directory: crate_metadata.cargo_meta.target_directory.clone(),
-        optimization_result: metadata_result.optimization_result,
-    };
     Ok(res)
 }
 
@@ -375,7 +286,7 @@ pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
-    build_artifact: BuildArtifacts,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
@@ -408,7 +319,7 @@ pub(crate) fn execute_with_crate_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
+    use crate::{cmd, util::tests::with_tmp_dir, GenerateArtifacts, ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
@@ -420,7 +331,7 @@ mod tests {
                 &manifest_path,
                 None,
                 true,
-                BuildArtifacts::All,
+                GenerateArtifacts::All,
                 UnstableFlags::default(),
             )
             .expect("build failed");

@@ -18,8 +18,9 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
-    BuildArtifacts, UnstableFlags, Verbosity,
+    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
 };
+
 use anyhow::Result;
 use blake2::digest::{Update as _, VariableOutput as _};
 use colored::Colorize;
@@ -33,37 +34,25 @@ use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
 
-/// Result of the metadata generation process.
-pub struct GenerateMetadataResult {
-    /// Path to the resulting metadata file.
-    pub metadata_file: PathBuf,
-    /// Path to the resulting Wasm file.
-    pub wasm_file: PathBuf,
-    /// Path to the bundled file.
-    pub bundle_file: Option<PathBuf>,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<super::build::OptimizationResult>,
-}
-
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
-    build_artifact: BuildArtifacts,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
 }
 
 /// Result of generating the extended contract project metadata
 struct ExtendedMetadataResult {
-    dest_wasm: PathBuf,
+    dest_wasm: Option<PathBuf>,
     source: Source,
     contract: Contract,
     user: Option<User>,
-    optimization_result: super::build::OptimizationResult,
+    optimization_result: Option<OptimizationResult>,
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<GenerateMetadataResult> {
+    pub fn exec(&self) -> Result<GenerationResult> {
         util::assert_channel()?;
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
@@ -72,7 +61,7 @@ impl GenerateMetadataCommand {
         let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
         let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
 
-        let target_dir = cargo_meta.target_directory.clone();
+        let target_directory = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
         let ExtendedMetadataResult {
@@ -84,7 +73,7 @@ impl GenerateMetadataCommand {
         } = self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-            let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
+            let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
             let stdout = util::invoke_cargo(
                 "run",
                 &[
@@ -103,7 +92,7 @@ impl GenerateMetadataCommand {
 
             let mut metadata = ContractMetadata::new(source, contract, user, ink_meta);
             let mut current_progress = 4;
-            if self.build_artifact == BuildArtifacts::All {
+            if self.build_artifact == GenerateArtifacts::All {
                 println!(
                     " {} {}",
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
@@ -114,11 +103,19 @@ impl GenerateMetadataCommand {
                 current_progress += 1;
             }
 
-            println!(
-                " {} {}",
-                format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
-                "Generating metadata".bright_green().bold()
-            );
+            if self.build_artifact == GenerateArtifacts::MetadataOnly {
+                println!(
+                    " {} {}",
+                    format!("[{}/{}]", 1, self.build_artifact.steps()).bold(),
+                    "Generating metadata".bright_green().bold()
+                );
+            } else {
+                println!(
+                    " {} {}",
+                    format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
+                    "Generating metadata".bright_green().bold()
+                );
+            }
             metadata.remove_source_wasm_attribute();
             let contents = serde_json::to_string_pretty(&metadata)?;
             fs::write(&out_path_wasm, contents)?;
@@ -139,16 +136,17 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        let bundle_file = if self.build_artifact == BuildArtifacts::All {
+        let dest_bundle = if self.build_artifact == GenerateArtifacts::All {
             Some(out_path_bundle)
         } else {
             None
         };
-        Ok(GenerateMetadataResult {
-            metadata_file: out_path_wasm,
-            wasm_file: dest_wasm,
-            bundle_file,
-            optimization_result: Some(optimization_result),
+        Ok(GenerationResult {
+            dest_metadata: Some(out_path_wasm),
+            dest_wasm,
+            dest_bundle,
+            optimization_result,
+            target_directory,
         })
     }
 
@@ -170,21 +168,29 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let (dest_wasm, hash, optimization_result) = self.wasm_hash()?;
-
+        //{
+        let (dest_wasm, hash, optimization_result) =
+            if self.build_artifact != GenerateArtifacts::MetadataOnly {
+                let (wasm, hash, optimization) = self.wasm_hash()?;
+                (Some(wasm), Some(hash), Some(optimization))
+            } else {
+                (None, None, None)
+            };
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = if self.build_artifact == BuildArtifacts::All {
+            let maybe_wasm = if self.build_artifact == GenerateArtifacts::All {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
-                debug_assert_eq!(blake2_hash(wasm.as_slice()), hash);
+                debug_assert_eq!(Some(blake2_hash(wasm.as_slice())), hash);
                 Some(SourceWasm::new(wasm))
             } else {
                 None
             };
             Source::new(maybe_wasm, hash, lang, compiler)
         };
+        //(dest_wasm, hash, optimization_result, source)
+        //}
 
         // Required contract fields
         let mut builder = Contract::builder();
@@ -232,7 +238,7 @@ impl GenerateMetadataCommand {
     /// Compile the contract and then hash the resulting Wasm.
     ///
     /// Return a tuple of `(dest_wasm, hash, optimization_result)`.
-    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32], super::build::OptimizationResult)> {
+    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32], OptimizationResult)> {
         let (maybe_dest_wasm, maybe_optimization_res) = super::build::execute_with_crate_metadata(
             &self.crate_metadata,
             self.verbosity,
@@ -263,9 +269,9 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    build_artifact: BuildArtifacts,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<GenerateMetadataResult> {
+) -> Result<GenerationResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,
@@ -282,7 +288,7 @@ pub(crate) fn execute(
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, cmd::build::BuildArtifacts, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
+        cmd, cmd::BuildArtifacts, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
         ManifestPath, UnstableFlags,
     };
     use contract_metadata::*;
