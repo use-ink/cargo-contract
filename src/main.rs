@@ -438,8 +438,7 @@ fn exec(cmd: Command) -> Result<String> {
                 )?
             };
 
-            let out = build_artifact.display(&result);
-            return Ok(out);
+            build_artifact.display(&result)
         }
         Command::Check {
             manifest_path,
