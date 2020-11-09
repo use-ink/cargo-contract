@@ -99,13 +99,23 @@ impl ContractMetadata {
     }
 }
 
+/// Representation of the Wasm code hash.
+#[derive(Debug, Eq, PartialEq)]
+pub struct CodeHash(pub [u8; 32]);
+
+impl Serialize for CodeHash {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_as_byte_str(&self.0[..], serializer)
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct Source {
-    #[serde(
-        serialize_with = "serialize_as_byte_str_foo",
-        skip_serializing_if = "Option::is_none"
-    )]
-    hash: Option<[u8; 32]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hash: Option<CodeHash>,
     language: SourceLanguage,
     compiler: SourceCompiler,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,7 +126,7 @@ impl Source {
     /// Constructs a new InkProjectSource.
     pub fn new(
         wasm: Option<SourceWasm>,
-        hash: Option<[u8; 32]>,
+        hash: Option<CodeHash>,
         language: SourceLanguage,
         compiler: SourceCompiler,
     ) -> Self {
@@ -434,14 +444,6 @@ impl ContractBuilder {
             ))
         }
     }
-}
-
-fn serialize_as_byte_str_foo<S>(bytes: &Option<[u8; 32]>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    let bytes = bytes.expect("must_exist");
-    serialize_as_byte_str(&bytes[..], serializer)
 }
 
 /// Serializes the given bytes as byte string.

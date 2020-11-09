@@ -25,8 +25,8 @@ use anyhow::Result;
 use blake2::digest::{Update as _, VariableOutput as _};
 use colored::Colorize;
 use contract_metadata::{
-    Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler, SourceLanguage,
-    SourceWasm, User,
+    CodeHash, Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
+    SourceLanguage, SourceWasm, User,
 };
 use semver::Version;
 use std::{fs, path::PathBuf};
@@ -181,7 +181,10 @@ impl GenerateMetadataCommand {
             let maybe_wasm = if self.build_artifact == GenerateArtifacts::All {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
-                debug_assert_eq!(Some(blake2_hash(wasm.as_slice())), hash);
+                debug_assert!({
+                    let expected = blake2_hash(wasm.as_slice());
+                    Some(expected) == hash
+                });
                 Some(SourceWasm::new(wasm))
             } else {
                 None
@@ -235,7 +238,7 @@ impl GenerateMetadataCommand {
     /// Compile the contract and then hash the resulting Wasm.
     ///
     /// Return a tuple of `(dest_wasm, hash, optimization_result)`.
-    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32], OptimizationResult)> {
+    fn wasm_hash(&self) -> Result<(PathBuf, CodeHash, OptimizationResult)> {
         let (maybe_dest_wasm, maybe_optimization_res) = super::build::execute_with_crate_metadata(
             &self.crate_metadata,
             self.verbosity,
@@ -252,12 +255,12 @@ impl GenerateMetadataCommand {
 }
 
 /// Returns the blake2 hash of the submitted slice.
-fn blake2_hash(code: &[u8]) -> [u8; 32] {
+fn blake2_hash(code: &[u8]) -> CodeHash {
     let mut output = [0u8; 32];
     let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
     blake2.update(code);
     blake2.finalize_variable(|result| output.copy_from_slice(result));
-    output
+    CodeHash(output)
 }
 
 /// Generates a file with metadata describing the ABI of the smart-contract.
