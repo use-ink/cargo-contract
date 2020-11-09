@@ -168,7 +168,6 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        //{
         let (dest_wasm, hash, optimization_result) =
             if self.build_artifact != GenerateArtifacts::MetadataOnly {
                 let (wasm, hash, optimization) = self.wasm_hash()?;
@@ -189,8 +188,6 @@ impl GenerateMetadataCommand {
             };
             Source::new(maybe_wasm, hash, lang, compiler)
         };
-        //(dest_wasm, hash, optimization_result, source)
-        //}
 
         // Required contract fields
         let mut builder = Contract::builder();
