@@ -28,7 +28,7 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
 //! let wasm = SourceWasm::new(vec![0u8]);
-//! let source = Source::new(Some(wasm), [0u8; 32], language, compiler);
+//! let source = Source::new(Some(wasm), Some([0u8; 32]), language, compiler);
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
