@@ -41,6 +41,8 @@ pub struct GenerateMetadataResult {
     pub wasm_file: PathBuf,
     /// Path to the bundled file.
     pub bundle_file: Option<PathBuf>,
+    /// If existent the result of the optimization.
+    pub optimization_result: Option<super::build::OptimizationResult>,
 }
 
 /// Executes the metadata generation process
@@ -64,7 +66,8 @@ impl GenerateMetadataCommand {
         let target_dir = cargo_meta.target_directory.clone();
 
         // build the extended contract project metadata
-        let (dest_wasm, source_meta, contract_meta, user_meta) = self.extended_metadata()?;
+        let (dest_wasm, source_meta, contract_meta, user_meta, optimization_result) =
+            self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let target_dir_arg = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -132,11 +135,20 @@ impl GenerateMetadataCommand {
             metadata_file: out_path_wasm,
             wasm_file: dest_wasm,
             bundle_file,
+            optimization_result: Some(optimization_result),
         })
     }
 
     /// Generate the extended contract project metadata
-    fn extended_metadata(&self) -> Result<(PathBuf, Source, Contract, Option<User>)> {
+    fn extended_metadata(
+        &self,
+    ) -> Result<(
+        PathBuf,
+        Source,
+        Contract,
+        Option<User>,
+        super::build::OptimizationResult,
+    )> {
         let contract_package = &self.crate_metadata.root_package;
         let ink_version = &self.crate_metadata.ink_version;
         let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
@@ -153,7 +165,7 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let (dest_wasm, hash) = self.wasm_hash()?;
+        let (dest_wasm, hash, optimization_res) = self.wasm_hash()?;
 
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
@@ -203,22 +215,25 @@ impl GenerateMetadataCommand {
         // user defined metadata
         let user = self.crate_metadata.user.clone().map(User::new);
 
-        Ok((dest_wasm, source, contract, user))
+        Ok((dest_wasm, source, contract, user, optimization_res))
     }
 
-    /// Compile the contract and then hash the resulting wasm
-    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32])> {
-        let dest_wasm = super::build::execute_with_crate_metadata(
+    /// Compile the contract and then hash the resulting Wasm.
+    ///
+    /// Return a tuple of `(dest_wasm, hash, optimization_result)`.
+    fn wasm_hash(&self) -> Result<(PathBuf, [u8; 32], super::build::OptimizationResult)> {
+        let (maybe_dest_wasm, maybe_optimization_res) = super::build::execute_with_crate_metadata(
             &self.crate_metadata,
             self.verbosity,
             true, // for the hash we always use the optimized version of the contract
             self.build_artifact,
             self.unstable_options.clone(),
-        )?
-        .expect("dest_wasm must exist");
+        )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
-        Ok((dest_wasm, blake2_hash(wasm.as_slice())))
+        let dest_wasm = maybe_dest_wasm.expect("dest wasm must exist");
+        let optimization_res = maybe_optimization_res.expect("optimization result must exist");
+        Ok((dest_wasm, blake2_hash(wasm.as_slice()), optimization_res))
     }
 }
 

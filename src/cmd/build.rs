@@ -83,6 +83,8 @@ pub struct BuildResult {
     pub dest_bundle: Option<PathBuf>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
+    /// If existent the result of the optimization.
+    pub optimization_result: Option<OptimizationResult>,
 }
 
 impl BuildResult {
@@ -93,6 +95,24 @@ impl BuildResult {
             .to_str()
             .expect("must be valid utf-8")
     }
+
+    /// Returns a tuple of `(original_size, optimized_size)`.
+    ///
+    /// Panics if no optimization result is available.
+    pub fn display_optimization(res: &BuildResult) -> (f64, f64) {
+        let optimization = res
+            .optimization_result
+            .as_ref()
+            .expect("optimization result must exist");
+        (optimization.original_size, optimization.optimized_size)
+    }
+}
+
+pub struct OptimizationResult {
+    /// The original Wasm size.
+    pub original_size: f64,
+    /// The Wasm size after optimizations have been applied.
+    pub optimized_size: f64,
 }
 
 /// Builds the project in the specified directory, defaults to the current directory.
@@ -254,7 +274,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
+fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
@@ -281,14 +301,19 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
     let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
+    /*
     println!(
         " Original wasm size: {:.1}K, Optimized: {:.1}K",
         original_size, optimized_size
     );
+    */
 
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
-    Ok(())
+    Ok(OptimizationResult {
+        original_size,
+        optimized_size,
+    })
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -308,7 +333,7 @@ pub(crate) fn execute(
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == BuildArtifacts::CodeOnly {
-        let dest_wasm = execute_with_crate_metadata(
+        let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,
             optimize_contract,
@@ -316,10 +341,11 @@ pub(crate) fn execute(
             unstable_options,
         )?;
         let res = BuildResult {
-            dest_wasm,
+            dest_wasm: maybe_dest_wasm,
             dest_metadata: None,
             dest_bundle: None,
             target_directory: crate_metadata.cargo_meta.target_directory,
+            optimization_result: maybe_optimization_result,
         };
         return Ok(res);
     }
@@ -331,6 +357,7 @@ pub(crate) fn execute(
         dest_metadata: Some(metadata_result.metadata_file),
         dest_bundle: metadata_result.bundle_file,
         target_directory: crate_metadata.cargo_meta.target_directory.clone(),
+        optimization_result: metadata_result.optimization_result,
     };
     Ok(res)
 }
@@ -342,13 +369,15 @@ pub(crate) fn execute(
 /// # Note
 ///
 /// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
+///
+/// Returns a tuple of `(maybe_optimized_wasm_path, maybe_optimization_result)`.
 pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<Option<PathBuf>> {
+) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
@@ -362,15 +391,18 @@ pub(crate) fn execute_with_crate_metadata(
     );
     post_process_wasm(&crate_metadata)?;
     if !optimize_contract {
-        return Ok(None);
+        return Ok((None, None));
     }
     println!(
         " {} {}",
         format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
     );
-    optimize_wasm(&crate_metadata)?;
-    Ok(Some(crate_metadata.dest_wasm.clone()))
+    let optimization_result = optimize_wasm(&crate_metadata)?;
+    Ok((
+        Some(crate_metadata.dest_wasm.clone()),
+        Some(optimization_result),
+    ))
 }
 
 #[cfg(feature = "test-ci-only")]
