@@ -75,7 +75,7 @@ impl Transcoder {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
-            let value = scon::from_str(arg.as_ref())?;
+            let value = arg.as_ref().parse::<scon::Value>()?;
             encode_value(self.registry(), spec.ty().ty().id(), &value, &mut encoded)?;
         }
         Ok(encoded)
@@ -301,7 +301,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
 
-        let value = scon::from_str(input).context("Invalid SON value")?;
+        let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
         encode_value(&registry, ty, &value, &mut output)?;
         let decoded = decode_value(&registry, ty, &mut &output[..])?;
@@ -593,7 +593,7 @@ mod tests {
         }
 
         transcode_roundtrip::<S>(
-            r#"S( a: "blah" )"#,
+            r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
             Value::Map(Map::new(Some("S"), vec![(Value::String("a".into()), Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))].into_iter().collect())),
         )
     }

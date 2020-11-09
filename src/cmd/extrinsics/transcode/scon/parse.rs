@@ -26,7 +26,10 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
-use std::num::ParseIntError;
+use std::{
+    fmt::Debug,
+    num::ParseIntError,
+};
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum SonParseError {
@@ -36,8 +39,8 @@ pub enum SonParseError {
     BadEscape,
     #[error("hex string parse error")]
     BadHex(#[from] hex::FromHexError),
-    #[error("unknown parser error")]
-    Unparseable,
+    #[error("parser error")]
+    Nom(String, ErrorKind),
 }
 
 impl<I> FromExternalError<I, ParseIntError> for SonParseError {
@@ -46,12 +49,13 @@ impl<I> FromExternalError<I, ParseIntError> for SonParseError {
     }
 }
 
-impl<I> ParseError<I> for SonParseError {
-    fn from_error_kind(_input: I, _kind: ErrorKind) -> Self {
-        SonParseError::Unparseable
+impl ParseError<&str> for SonParseError
+{
+    fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
+        SonParseError::Nom(input.to_string(), kind)
     }
 
-    fn append(_: I, _: ErrorKind, other: Self) -> Self {
+    fn append(_: &str, _: ErrorKind, other: Self) -> Self {
         other
     }
 }
