@@ -197,9 +197,6 @@ pub enum GenerateArtifacts {
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
     #[structopt(name = "code-only")]
     CodeOnly,
-    /// Only the Wasm and the metadata are generated, no bundled `<name>.contract` file is created
-    #[structopt(name = "metadata-only")]
-    MetadataOnly,
 }
 
 impl GenerateArtifacts {
@@ -209,24 +206,10 @@ impl GenerateArtifacts {
         match self {
             GenerateArtifacts::All => 5,
             GenerateArtifacts::CodeOnly => 3,
-            GenerateArtifacts::MetadataOnly => 1,
         }
     }
 
     pub fn display(&self, result: &GenerationResult) -> String {
-        if self == &GenerateArtifacts::MetadataOnly {
-            return format!(
-                "\nYour contract's metadata is ready. You can find it here:\n{}",
-                result
-                    .dest_metadata
-                    .as_ref()
-                    .expect("metadata path must exist")
-                    .display()
-                    .to_string()
-                    .bold()
-            );
-        }
-
         let optimization = GenerationResult::display_optimization(result);
         let size_diff = format!(
             "\nOriginal wasm size: {}, Optimized: {}\n\n",
@@ -285,7 +268,6 @@ impl std::str::FromStr for GenerateArtifacts {
         match artifact {
             "all" => Ok(GenerateArtifacts::All),
             "code-only" => Ok(GenerateArtifacts::CodeOnly),
-            "metadata-only" => Ok(GenerateArtifacts::MetadataOnly),
             _ => Err("Could not parse build artifact".to_string()),
         }
     }
@@ -354,18 +336,13 @@ enum Command {
         /// Which build artifacts to generate.
         ///
         /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
-        ///   The metadata file includes the Wasm hash.
         ///
         /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
         ///   `<name>.contract` file is skipped.
-        ///
-        /// - `metadata-only`: Only the metadata iis generated, neither the bundled
-        ///   `<name>.contract`, nor the Wasm file are created. The resulting metadata
-        ///   does not contain the Wasm hash.
         #[structopt(
             long = "generate",
             default_value = "all",
-            value_name = "all | code-only | metadata-only",
+            value_name = "all | code-only",
             verbatim_doc_comment
         )]
         build_artifact: GenerateArtifacts,
@@ -432,22 +409,13 @@ fn exec(cmd: Command) -> Result<String> {
             unstable_options,
         } => {
             let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let result = if build_artifact == &GenerateArtifacts::MetadataOnly {
-                cmd::metadata::execute(
-                    &manifest_path,
-                    verbosity.try_into()?,
-                    *build_artifact,
-                    unstable_options.try_into()?,
-                )?
-            } else {
-                cmd::build::execute(
-                    &manifest_path,
-                    verbosity.try_into()?,
-                    true,
-                    *build_artifact,
-                    unstable_options.try_into()?,
-                )?
-            };
+            let result = cmd::build::execute(
+                &manifest_path,
+                verbosity.try_into()?,
+                true,
+                *build_artifact,
+                unstable_options.try_into()?,
+            )?;
 
             Ok(build_artifact.display(&result))
         }
