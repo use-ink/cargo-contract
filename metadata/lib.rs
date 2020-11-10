@@ -27,15 +27,16 @@
 //!
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-//! let source = Source::new([0u8; 32], language, compiler);
+//! let wasm = SourceWasm::new(vec![0u8]);
+//! let source = Source::new(Some(wasm), Some(CodeHash([0u8; 32])), language, compiler);
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
 //!     .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
 //!     .description("increment a value".to_string())
-//!     .documentation(Url::parse("http:docs.rs/").unwrap())
-//!     .repository(Url::parse("http:github.com/paritytech/ink/").unwrap())
-//!     .homepage(Url::parse("http:example.com/").unwrap())
+//!     .documentation(Url::parse("http://docs.rs/").unwrap())
+//!     .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+//!     .homepage(Url::parse("http://example.com/").unwrap())
 //!     .license("Apache-2.0".to_string())
 //!     .build()
 //!     .unwrap();
@@ -60,7 +61,7 @@ use url::Url;
 const METADATA_VERSION: &str = "0.1.0";
 
 /// Smart contract metadata.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ContractMetadata {
     #[serde(rename = "metadataVersion")]
     metadata_version: semver::Version,
@@ -92,29 +93,86 @@ impl ContractMetadata {
             abi,
         }
     }
+
+    pub fn remove_source_wasm_attribute(&mut self) {
+        self.source.wasm = None;
+    }
 }
 
-#[derive(Debug, Serialize)]
+/// Representation of the Wasm code hash.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CodeHash(pub [u8; 32]);
+
+impl Serialize for CodeHash {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_as_byte_str(&self.0[..], serializer)
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct Source {
-    #[serde(serialize_with = "serialize_as_byte_str")]
-    hash: [u8; 32],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hash: Option<CodeHash>,
     language: SourceLanguage,
     compiler: SourceCompiler,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wasm: Option<SourceWasm>,
 }
 
 impl Source {
     /// Constructs a new InkProjectSource.
-    pub fn new(hash: [u8; 32], language: SourceLanguage, compiler: SourceCompiler) -> Self {
+    pub fn new(
+        wasm: Option<SourceWasm>,
+        hash: Option<CodeHash>,
+        language: SourceLanguage,
+        compiler: SourceCompiler,
+    ) -> Self {
         Source {
             hash,
             language,
             compiler,
+            wasm,
         }
     }
 }
 
+/// The bytes of the compiled Wasm smart contract.
+#[derive(Clone, Debug)]
+pub struct SourceWasm {
+    wasm: Vec<u8>,
+}
+
+impl SourceWasm {
+    /// Constructs a new `SourceWasm`.
+    pub fn new(wasm: Vec<u8>) -> Self {
+        SourceWasm { wasm }
+    }
+}
+
+impl Serialize for SourceWasm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_as_byte_str(&self.wasm[..], serializer)
+    }
+}
+
+impl Display for SourceWasm {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        write!(f, "0x").expect("failed writing to string");
+        for byte in &self.wasm {
+            write!(f, "{:02x}", byte).expect("failed writing to string");
+        }
+        write!(f, "")
+    }
+}
+
 /// The language and version in which a smart contract is written.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SourceLanguage {
     language: Language,
     version: Version,
@@ -143,7 +201,7 @@ impl Display for SourceLanguage {
 }
 
 /// The language in which the smart contract is written.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Language {
     Ink,
     Solidity,
@@ -161,7 +219,7 @@ impl Display for Language {
 }
 
 /// A compiler used to compile a smart contract.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SourceCompiler {
     compiler: Compiler,
     version: Version,
@@ -189,7 +247,7 @@ impl SourceCompiler {
 }
 
 /// Compilers used to compile a smart contract.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub enum Compiler {
     RustC,
     Solang,
@@ -205,7 +263,7 @@ impl Display for Compiler {
 }
 
 /// Metadata about a smart contract.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Contract {
     name: String,
     version: Version,
@@ -229,7 +287,7 @@ impl Contract {
 }
 
 /// Additional user defined metadata, can be any valid json.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct User {
     #[serde(flatten)]
     json: Map<String, Value>,
@@ -463,7 +521,8 @@ mod tests {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-        let source = Source::new([0u8; 32], language, compiler);
+        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let source = Source::new(Some(wasm), Some(CodeHash([0u8; 32])), language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
@@ -507,7 +566,8 @@ mod tests {
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
-                    "compiler": "rustc 1.46.0-nightly"
+                    "compiler": "rustc 1.46.0-nightly",
+                    "wasm": "0x000102"
                 },
                 "contract": {
                     "name": "incrementer",
@@ -544,7 +604,7 @@ mod tests {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-        let source = Source::new([0u8; 32], language, compiler);
+        let source = Source::new(None, Some(CodeHash([0u8; 32])), language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
