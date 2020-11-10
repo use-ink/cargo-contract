@@ -103,7 +103,7 @@ impl ExtrinsicOpts {
 
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
-        self.verbosity.try_into()
+        TryFrom::try_from(&self.verbosity)
     }
 }
 
@@ -143,10 +143,10 @@ impl Default for Verbosity {
     }
 }
 
-impl TryFrom<VerbosityFlags> for Verbosity {
+impl TryFrom<&VerbosityFlags> for Verbosity {
     type Error = Error;
 
-    fn try_from(value: VerbosityFlags) -> Result<Self, Self::Error> {
+    fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
         match (value.quiet, value.verbose) {
             (false, false) => Ok(Verbosity::NotSpecified),
             (true, false) => Ok(Verbosity::Quiet),
