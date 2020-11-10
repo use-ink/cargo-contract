@@ -24,7 +24,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
-    UnstableFlags, Verbosity,
+    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -179,7 +179,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
+fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
@@ -206,14 +206,13 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
     let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
-    println!(
-        " Original wasm size: {:.1}K, Optimized: {:.1}K",
-        original_size, optimized_size
-    );
 
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
-    Ok(())
+    Ok(OptimizationResult {
+        original_size,
+        optimized_size,
+    })
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -227,49 +226,81 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
+    optimize_contract: bool,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<PathBuf> {
+) -> Result<GenerationResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    execute_with_metadata(&crate_metadata, verbosity, unstable_options)
+    if build_artifact == GenerateArtifacts::CodeOnly {
+        let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
+            &crate_metadata,
+            verbosity,
+            optimize_contract,
+            build_artifact,
+            unstable_options,
+        )?;
+        let res = GenerationResult {
+            dest_wasm: maybe_dest_wasm,
+            dest_metadata: None,
+            dest_bundle: None,
+            target_directory: crate_metadata.cargo_meta.target_directory,
+            optimization_result: maybe_optimization_result,
+        };
+        return Ok(res);
+    }
+
+    let res =
+        super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_options)?;
+    Ok(res)
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart-contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 ///
 /// # Note
 ///
 /// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
-pub(crate) fn execute_with_metadata(
+///
+/// Returns a tuple of `(maybe_optimized_wasm_path, maybe_optimization_result)`.
+pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Verbosity,
+    optimize_contract: bool,
+    build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<PathBuf> {
+) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
         " {} {}",
-        "[1/3]".bold(),
+        format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
     println!(
         " {} {}",
-        "[2/3]".bold(),
+        format!("[2/{}]", build_artifact.steps()).bold(),
         "Post processing wasm file".bright_green().bold()
     );
     post_process_wasm(&crate_metadata)?;
+    if !optimize_contract {
+        return Ok((None, None));
+    }
     println!(
         " {} {}",
-        "[3/3]".bold(),
+        format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
     );
-    optimize_wasm(&crate_metadata)?;
-    Ok(crate_metadata.dest_wasm.clone())
+    let optimization_result = optimize_wasm(&crate_metadata)?;
+    Ok((
+        Some(crate_metadata.dest_wasm.clone()),
+        Some(optimization_result),
+    ))
 }
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, ManifestPath, UnstableFlags};
+    use crate::{cmd, util::tests::with_tmp_dir, GenerateArtifacts, ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
@@ -277,8 +308,14 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(&manifest_path, Default::default(), UnstableFlags::default())
-                .expect("build failed");
+            super::execute(
+                &manifest_path,
+                Default::default(),
+                true,
+                GenerateArtifacts::All,
+                UnstableFlags::default(),
+            )
+            .expect("build failed");
             Ok(())
         })
     }
