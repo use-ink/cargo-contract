@@ -73,6 +73,16 @@ impl GenerateMetadataCommand {
         } = self.extended_metadata()?;
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
+            let mut current_progress = 4;
+            let curr_step = match self.build_artifact {
+                GenerateArtifacts::MetadataOnly => 1,
+                _ => current_progress,
+            };
+            println!(
+                " {} {}",
+                format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
+                "Generating metadata".bright_green().bold()
+            );
             let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
             let stdout = util::invoke_cargo(
                 "run",
@@ -89,21 +99,9 @@ impl GenerateMetadataCommand {
 
             let ink_meta: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_slice(&stdout)?;
-
-            let mut current_progress = 4;
             let metadata = ContractMetadata::new(source, contract, user, ink_meta);
-
             {
                 let mut metadata = metadata.clone();
-                let curr_step = match self.build_artifact {
-                    GenerateArtifacts::MetadataOnly => 1,
-                    _ => current_progress,
-                };
-                println!(
-                    " {} {}",
-                    format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
-                    "Generating metadata".bright_green().bold()
-                );
                 metadata.remove_source_wasm_attribute();
                 let contents = serde_json::to_string_pretty(&metadata)?;
                 fs::write(&out_path_metadata, contents)?;
