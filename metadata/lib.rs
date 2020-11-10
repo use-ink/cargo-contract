@@ -28,7 +28,7 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
 //! let wasm = SourceWasm::new(vec![0u8]);
-//! let source = Source::new(Some(wasm), Some(CodeHash([0u8; 32])), language, compiler);
+//! let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
@@ -114,8 +114,7 @@ impl Serialize for CodeHash {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Source {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    hash: Option<CodeHash>,
+    hash: CodeHash,
     language: SourceLanguage,
     compiler: SourceCompiler,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,7 +125,7 @@ impl Source {
     /// Constructs a new InkProjectSource.
     pub fn new(
         wasm: Option<SourceWasm>,
-        hash: Option<CodeHash>,
+        hash: CodeHash,
         language: SourceLanguage,
         compiler: SourceCompiler,
     ) -> Self {
@@ -522,7 +521,7 @@ mod tests {
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
-        let source = Source::new(Some(wasm), Some(CodeHash([0u8; 32])), language, compiler);
+        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
@@ -604,7 +603,7 @@ mod tests {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
         let compiler =
             SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-        let source = Source::new(None, Some(CodeHash([0u8; 32])), language, compiler);
+        let source = Source::new(None, CodeHash([0u8; 32]), language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))

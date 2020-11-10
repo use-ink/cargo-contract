@@ -74,13 +74,9 @@ impl GenerateMetadataCommand {
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let mut current_progress = 4;
-            let curr_step = match self.build_artifact {
-                GenerateArtifacts::MetadataOnly => 1,
-                _ => current_progress,
-            };
             println!(
                 " {} {}",
-                format!("[{}/{}]", curr_step, self.build_artifact.steps()).bold(),
+                format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                 "Generating metadata".bright_green().bold()
             );
             let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
@@ -167,13 +163,7 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let (dest_wasm, hash, optimization_result) =
-            if self.build_artifact != GenerateArtifacts::MetadataOnly {
-                let (wasm, hash, optimization) = self.wasm_hash()?;
-                (Some(wasm), Some(hash), Some(optimization))
-            } else {
-                (None, None, None)
-            };
+        let (dest_wasm, hash, optimization_result) = self.wasm_hash()?;
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
@@ -182,7 +172,7 @@ impl GenerateMetadataCommand {
                 // The Wasm which we read must have the same hash as `source.hash`
                 debug_assert!({
                     let expected = blake2_hash(wasm.as_slice());
-                    Some(expected) == hash
+                    expected == hash
                 });
                 Some(SourceWasm::new(wasm))
             } else {
@@ -226,11 +216,11 @@ impl GenerateMetadataCommand {
         let user = self.crate_metadata.user.clone().map(User::new);
 
         Ok(ExtendedMetadataResult {
-            dest_wasm,
+            dest_wasm: Some(dest_wasm),
             source,
             contract,
             user,
-            optimization_result,
+            optimization_result: Some(optimization_result),
         })
     }
 
