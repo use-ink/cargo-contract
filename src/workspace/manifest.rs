@@ -383,9 +383,9 @@ impl Manifest {
                 .get("dependencies")
                 .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
                 .get("ink_metadata")
-                .ok_or(anyhow::anyhow!("{} dependency not found", contract_package_name))?
+                .ok_or(anyhow::anyhow!("ink_metadata dependency not found"))?
                 .as_table()
-                .ok_or(anyhow::anyhow!("{} dependency should be a table", contract_package_name))?;
+                .ok_or(anyhow::anyhow!("ink_metadata dependency should be a table"))?;
 
             metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
         }
