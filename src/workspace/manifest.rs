@@ -369,25 +369,25 @@ impl Manifest {
 
             fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
 
-            let name = self
+            let contract_package_name = self
                 .toml
-                .get("lib")
-                .ok_or(anyhow::anyhow!("lib section not found"))?
+                .get("package")
+                .ok_or(anyhow::anyhow!("package section not found"))?
                 .get("name")
-                .ok_or(anyhow::anyhow!("[lib] name field not found"))?
+                .ok_or(anyhow::anyhow!("[package] name field not found"))?
                 .as_str()
-                .ok_or(anyhow::anyhow!("[lib] name should be a string"))?;
+                .ok_or(anyhow::anyhow!("[package] name should be a string"))?;
 
             let ink_metadata = self
                 .toml
                 .get("dependencies")
                 .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
                 .get("ink_metadata")
-                .ok_or(anyhow::anyhow!("{} dependency not found", name))?
+                .ok_or(anyhow::anyhow!("{} dependency not found", contract_package_name))?
                 .as_table()
-                .ok_or(anyhow::anyhow!("{} dependency should be a table", name))?;
+                .ok_or(anyhow::anyhow!("{} dependency should be a table", contract_package_name))?;
 
-            metadata::generate_package(dir, name, ink_metadata.clone())?;
+            metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
