@@ -384,17 +384,14 @@ fn main() {
 
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
-        Ok(msg) => {
-            println!("{}", msg);
-            process::exit(0);
-        }
+        Ok(msg) => println!("\t{}", msg),
         Err(err) => {
             eprintln!(
                 "{} {}",
                 "ERROR:".bright_red().bold(),
                 format!("{:?}", err).bright_red()
             );
-            process::exit(1);
+            std::process::exit(1);
         }
     }
 }

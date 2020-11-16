@@ -108,7 +108,7 @@ impl GenerateMetadataCommand {
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                     "Generating bundle".bright_green().bold()
                 );
-                let contents = serde_json::to_string_pretty(&metadata)?;
+                let contents = serde_json::to_string(&metadata)?;
                 fs::write(&out_path_bundle, contents)?;
             }
 
