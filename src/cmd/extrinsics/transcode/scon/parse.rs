@@ -22,7 +22,7 @@ use nom::{
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
     combinator::{map, map_res, opt, recognize, value, verify},
     error::{ErrorKind, FromExternalError, ParseError},
-    multi::{many0, many0_count, many1, separated_list0},
+    multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
@@ -215,10 +215,13 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
     Ok((rest, Value::Bytes(bytes)))
 }
 
+/// Parse any alphanumeric literal with more than 39 characters (the length of `u128::MAX`)
+///
+/// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, SonParseError> {
-    // let parser = recognize(ws(many1(alphanumeric1)));
-    let parser = recognize(many1(alphanumeric1));
-    map(parser, |literal: &str| Value::Literal(literal.into()))(input)
+    const MAX_UINT_LEN: usize = 39;
+    let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN ));
+    map(parser, |literal: &str| Value::Literal(literal.to_string()))(input)
 }
 
 fn ws<F, I, O, E>(f: F) -> impl FnMut(I) -> IResult<I, O, E>
@@ -239,11 +242,11 @@ fn scon_value(input: &str) -> IResult<&str, Value, SonParseError> {
         scon_tuple,
         scon_map,
         scon_string,
+        scon_literal,
         scon_integer,
         scon_bool,
         scon_char,
         scon_unit_tuple,
-        scon_literal,
     )))(input)
 }
 
@@ -252,6 +255,7 @@ pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
     let (_, value) = scon_value(input)?;
     Ok(value)
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -379,6 +383,9 @@ mod tests {
 
     #[test]
     fn test_literal() {
+        assert_eq!(scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"), Ok(("", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))));
+        assert_eq!(scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"), Ok(("", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))));
+
         assert_scon_value(
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
             Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
@@ -551,5 +558,6 @@ mod tests {
     #[test]
     fn test_bytes() {
         assert_scon_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
+        assert_scon_value(r#"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"#, Value::Bytes(vec![255u8; 23].into()));
     }
 }

@@ -27,7 +27,6 @@ use self::workspace::ManifestPath;
 use std::{
     convert::{TryFrom, TryInto},
     path::PathBuf,
-    process,
 };
 
 use anyhow::{Error, Result};
