@@ -65,7 +65,7 @@ impl DeployCommand {
     pub fn exec(&self) -> Result<H256> {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
-        let transcoder = Transcoder::new(metadata);
+        let transcoder = Transcoder::new(&metadata);
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::<ContractsTemplateRuntime>::new()

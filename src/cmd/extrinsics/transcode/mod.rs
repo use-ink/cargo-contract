@@ -20,7 +20,7 @@ mod scon;
 
 use self::{
     decode::decode_value,
-    encode::encode_value,
+    encode::Encoder,
     scon::{Map, Value},
 };
 
@@ -31,21 +31,25 @@ use scale_info::{
     form::{CompactForm, Form},
     Field, RegistryReadOnly, TypeDefComposite,
 };
-use std::fmt::{self, Debug, Display, Formatter};
+use std::{
+    fmt::{self, Debug, Display, Formatter},
+};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
-pub struct Transcoder {
-    metadata: InkProject,
+pub struct Transcoder<'a> {
+    metadata: &'a InkProject,
+    registry: &'a RegistryReadOnly,
+    encoder: Encoder<'a>,
 }
 
-impl Transcoder {
-    pub fn new(metadata: InkProject) -> Self {
-        Self { metadata }
-    }
-
-    fn registry(&self) -> &RegistryReadOnly {
-        self.metadata.registry()
+impl<'a> Transcoder<'a> {
+    pub fn new(metadata: &'a InkProject) -> Self {
+        Self {
+            metadata,
+            registry: metadata.registry(),
+            encoder: Encoder::new(metadata.registry())
+        }
     }
 
     pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
@@ -76,7 +80,7 @@ impl Transcoder {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let value = arg.as_ref().parse::<scon::Value>()?;
-            encode_value(self.registry(), spec.ty().ty().id(), &value, &mut encoded)?;
+            self.encoder.encode_value(spec.ty().ty().id(), &value, &mut encoded)?;
         }
         Ok(encoded)
     }
@@ -117,7 +121,7 @@ impl Transcoder {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.name().to_string();
-            let value = decode_value(self.registry(), arg.ty().ty().id(), data)?;
+            let value = decode_value(self.registry, arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
         }
 
@@ -136,7 +140,7 @@ impl Transcoder {
             name
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            decode_value(self.registry(), return_ty.ty().id(), &mut &data[..])
+            decode_value(self.registry, return_ty.ty().id(), &mut &data[..])
         } else {
             Ok(Value::Unit)
         }
@@ -262,7 +266,7 @@ mod tests {
     #[test]
     fn encode_single_primitive_arg() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = Transcoder::new(metadata);
+        let transcoder = Transcoder::new(&metadata);
 
         let encoded = transcoder.encode("new", &["true"])?;
         // encoded args follow the 4 byte selector
@@ -275,7 +279,7 @@ mod tests {
     #[test]
     fn decode_primitive_return() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = Transcoder::new(metadata);
+        let transcoder = Transcoder::new(&metadata);
 
         let encoded = true.encode();
         let decoded = transcoder.decode_return("get", encoded)?;
@@ -300,10 +304,11 @@ mod tests {
         T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
+        let encoder = Encoder::new(&registry);
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
-        encode_value(&registry, ty, &value, &mut output)?;
+        encoder.encode_value( ty, &value, &mut output)?;
         let decoded = decode_value(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
@@ -318,10 +323,11 @@ mod tests {
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
         let (registry, ty) = registry_with_type::<char>()?;
+        let encoder = Encoder::new(&registry);
 
         let encoded = u32::from('c').encode();
 
-        assert!(encode_value(&registry, ty, &Value::Char('c'), &mut Vec::new()).is_err());
+        assert!(encoder.encode_value(ty, &Value::Char('c'), &mut Vec::new()).is_err());
         assert!(decode_value(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }

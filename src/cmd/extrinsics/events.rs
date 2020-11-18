@@ -174,7 +174,7 @@ impl Display for DisplayInstantiatedEvent {
 /// Wraps contracts::ContractExecutionEvent<Runtime> for Display impl and decodes contract events.
 struct DisplayContractExecution<'a> {
     event: contracts::ContractExecutionEvent<Runtime>,
-    transcoder: &'a Transcoder,
+    transcoder: &'a Transcoder<'a>,
 }
 
 impl<'a> Display for DisplayContractExecution<'a> {

@@ -55,7 +55,7 @@ pub struct CallCommand {
 impl CallCommand {
     pub fn run(&self) -> Result<String> {
         let metadata = load_metadata()?;
-        let transcoder = Transcoder::new(metadata);
+        let transcoder = Transcoder::new(&metadata);
         let call_data = transcoder.encode(&self.name, &self.args)?;
 
         if self.rpc {
