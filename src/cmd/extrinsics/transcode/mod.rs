@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod env_types;
 mod decode;
 mod encode;
 mod scon;
 
 use self::{
+    env_types::{EnvTypesTranscoder},
     decode::decode_value,
-    encode::Encoder,
+    encode::encode_value,
     scon::{Map, Value},
 };
 
@@ -31,16 +33,14 @@ use scale_info::{
     form::{CompactForm, Form},
     Field, RegistryReadOnly, TypeDefComposite,
 };
-use std::{
-    fmt::{self, Debug, Display, Formatter},
-};
+use std::fmt::{self, Debug, Display, Formatter};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
 pub struct Transcoder<'a> {
     metadata: &'a InkProject,
     registry: &'a RegistryReadOnly,
-    encoder: Encoder<'a>,
+    env_types: EnvTypesTranscoder,
 }
 
 impl<'a> Transcoder<'a> {
@@ -48,7 +48,7 @@ impl<'a> Transcoder<'a> {
         Self {
             metadata,
             registry: metadata.registry(),
-            encoder: Encoder::new(metadata.registry())
+            env_types: EnvTypesTranscoder::new(metadata.registry()),
         }
     }
 
@@ -79,8 +79,11 @@ impl<'a> Transcoder<'a> {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
+            let type_spec = spec.ty();
             let value = arg.as_ref().parse::<scon::Value>()?;
-            self.encoder.encode_value(spec.ty().ty().id(), &value, &mut encoded)?;
+            if !self.env_types.encode(type_spec, &value, &mut encoded)? {
+                encode_value(self.registry, type_spec.ty().id(), &value, &mut encoded)?;
+            }
         }
         Ok(encoded)
     }
@@ -304,11 +307,10 @@ mod tests {
         T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
-        let encoder = Encoder::new(&registry);
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
-        encoder.encode_value( ty, &value, &mut output)?;
+        encode_value(&registry, ty, &value, &mut output)?;
         let decoded = decode_value(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
@@ -323,11 +325,9 @@ mod tests {
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
         let (registry, ty) = registry_with_type::<char>()?;
-        let encoder = Encoder::new(&registry);
-
         let encoded = u32::from('c').encode();
 
-        assert!(encoder.encode_value(ty, &Value::Char('c'), &mut Vec::new()).is_err());
+        assert!(encode_value(&registry, ty, &Value::Char('c'), &mut Vec::new()).is_err());
         assert!(decode_value(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }
