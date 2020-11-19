@@ -21,24 +21,18 @@ use scale::{Compact, Encode, Output};
 use scale_info::{
     form::{CompactForm, Form},
     Field, RegistryReadOnly, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant, Path,
+    TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant, Path, TypeInfo, IntoCompact,
 };
-use sp_core::sp_std::num::NonZeroU32;
+use sp_core::crypto::AccountId32;
 use std::{
     boxed::Box,
     collections::HashMap,
     convert::{TryFrom, TryInto},
     error::Error,
     fmt::Debug,
+    num::NonZeroU32,
     str::FromStr,
 };
-
-type ScaleInfoTypeId = NonZeroU32;
-
-pub trait CustomEncoder {
-    fn type_path(&self) -> Result<Path<CompactForm>>;
-    fn encode(&self, value: &Value) -> Result<Vec<u8>>;
-}
 
 /// Encodes SCON values into SCALE
 pub struct Encoder<'a> {
@@ -56,7 +50,7 @@ impl<'a> Encoder<'a> {
     where
         T: CustomEncoder + 'static
     {
-        let path = encoder.type_path()?;
+        let path = encoder.type_path();
 
         // use this to extract all the types from the registry, todo: replace once `fn enumerate()` available in scale-info
         let mut enumerated_types = Vec::new(); //Vec<(NonZeroU32, &Type<CompactForm>>
@@ -422,5 +416,60 @@ impl EncodeValue for TypeDefPrimitive {
             TypeDefPrimitive::I64 => encode_int::<i64, O>(value, "i64", output),
             TypeDefPrimitive::I128 => encode_int::<i128, O>(value, "i128", output),
         }
+    }
+}
+
+/// Alias for the unique type identifier assigned in the `scale-info` type registry.
+type ScaleInfoTypeId = NonZeroU32;
+
+/// Implement this trait to define custom encoding for a type in a `scale-info` type registry.
+pub trait CustomEncoder {
+    fn type_path(&self) -> Path<CompactForm>;
+    fn encode(&self, value: &Value) -> Result<Vec<u8>>;
+}
+
+struct AccountId;
+
+impl CustomEncoder for AccountId {
+    fn type_path(&self) -> Path<CompactForm> {
+        <ink_env::DefaultEnvironment as ink_env::Environment>::AccountId::type_info()
+            .path()
+            .clone()
+            .into_compact(&mut Default::default())
+    }
+
+    fn encode(&self, value: &Value) -> Result<Vec<u8>> {
+        let account_id =
+            match value {
+                Value::Literal(literal) => {
+                    AccountId32::from_str(literal)
+                        .map_err(|e| anyhow::anyhow!("Error parsing AccountId from literal `{}`: {}", literal, e))?
+                }
+                Value::String(string) => {
+                    AccountId32::from_str(string)
+                        .map_err(|e| anyhow::anyhow!("Error parsing AccountId from string '{}': {}", string, e))?
+                },
+                Value::Bytes(bytes) => {
+                    AccountId32::try_from(bytes.bytes())
+                        .map_err(|_| anyhow::anyhow!("Error converting bytes `{:?}` to AccountId", bytes))?
+                },
+                _ => Err(anyhow::anyhow!("Expected a string or a literal for an AccountId"))?
+            };
+        Ok(account_id.encode())
+    }
+}
+
+struct Balance;
+
+impl CustomEncoder for Balance {
+    fn type_path(&self) -> Path<CompactForm> {
+        <ink_env::DefaultEnvironment as ink_env::Environment>::Balance::type_info()
+            .path()
+            .clone()
+            .into_compact(&mut Default::default())
+    }
+
+    fn encode(&self, value: &Value) -> Result<Vec<u8>> {
+        unimplemented!()
     }
 }
