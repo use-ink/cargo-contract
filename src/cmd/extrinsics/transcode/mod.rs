@@ -81,7 +81,7 @@ impl<'a> Transcoder<'a> {
         for (spec, arg) in spec_args.iter().zip(args) {
             let type_spec = spec.ty();
             let value = arg.as_ref().parse::<scon::Value>()?;
-            if !self.env_types.encode(type_spec, &value, &mut encoded)? {
+            if !self.env_types.try_encode(type_spec, &value, &mut encoded)? {
                 encode_value(self.registry, type_spec.ty().id(), &value, &mut encoded)?;
             }
         }
@@ -221,7 +221,10 @@ mod tests {
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use scon::{Tuple, Value};
-    use std::num::NonZeroU32;
+    use std::{
+        num::NonZeroU32,
+        str::FromStr,
+    };
 
     use ink_lang as ink;
 
@@ -256,6 +259,12 @@ mod tests {
             pub fn get(&self) -> bool {
                 self.value
             }
+
+            /// Dummy setter which receives the env type AccountId.
+            #[ink(message)]
+            pub fn set_account_id(&self, account_id: AccountId) {
+                let _ = account_id;
+            }
         }
     }
 
@@ -276,6 +285,21 @@ mod tests {
         let encoded_args = &encoded[4..];
 
         assert_eq!(true.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_account_id_custom_ss58_encoding() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = Transcoder::new(&metadata);
+
+        let encoded = transcoder.encode("set_account_id", &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"])?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = sp_core::crypto::AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY").unwrap();
+        assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }
 
@@ -585,30 +609,6 @@ mod tests {
         transcode_roundtrip::<Option<u32>>(
             r#"None"#,
             Value::Tuple(Tuple::new(Some("None"), Vec::new())),
-        )
-    }
-
-    #[test]
-    fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-        env_logger::init();
-
-        #[allow(dead_code)]
-        #[derive(TypeInfo)]
-        struct S {
-            a: [u8; 32],
-        }
-
-        transcode_roundtrip::<S>(
-            r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
-            Value::Map(Map::new(
-                Some("S"),
-                vec![(
-                    Value::String("a".into()),
-                    Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
-                )]
-                .into_iter()
-                .collect(),
-            )),
         )
     }
 }

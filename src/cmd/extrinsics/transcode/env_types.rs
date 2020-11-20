@@ -20,7 +20,7 @@ use ink_metadata::TypeSpec;
 use scale::{Encode, Output};
 use scale_info::{
     form::CompactForm,
-    RegistryReadOnly, TypeInfo, IntoCompact,
+    RegistryReadOnly, TypeInfo, IntoCompact, Path,
 };
 use sp_core::crypto::AccountId32;
 use std::{
@@ -30,6 +30,17 @@ use std::{
     num::NonZeroU32,
     str::FromStr,
 };
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+struct PathKey(Vec<String>);
+
+impl From<Path<CompactForm>> for PathKey {
+    fn from(path: Path<CompactForm>) -> Self {
+        PathKey(path.segments().to_vec())
+    }
+}
+
+type TypesByPath = HashMap<PathKey, NonZeroU32>;
 
 /// Unique identifier for a type used in a contract
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
@@ -45,34 +56,24 @@ impl EnvTypeId {
     ///
     /// Returns `None` if there is no matching type found in the registry. This is expected when the
     /// specified type is not used in a contract: it won't appear in the registry.
-    pub fn new<T>(registry: &RegistryReadOnly) -> Option<Self>
+    pub fn new<T>(type_lookup: &TypesByPath) -> Option<Self>
     where
         T: EnvType
     {
-        // use this to extract all the types from the registry, todo: replace once `fn enumerate()` available in scale-info
-        let mut enumerated_types = Vec::new(); //Vec<(NonZeroU32, &Type<CompactForm>>
-        let mut i = 1;
-        while let Some(ty) = registry.resolve(NonZeroU32::new(i).unwrap()) {
-            enumerated_types.push((NonZeroU32::new(i).unwrap(), ty));
-            i += 1;
-        }
-
         let type_info = T::Type::type_info();
         let path = type_info
             .path()
             .clone()
             .into_compact(&mut Default::default());
 
-        let type_id = enumerated_types
-            .iter()
-            .find_map(|(id, ty)| if ty.path() == &path { Some(id) } else { None });
-
-        type_id.map(|type_id| {
-            Self {
-                type_id: *type_id,
-                display_name: Some(T::ALIAS.to_owned()),
-            }
-        })
+        type_lookup
+            .get(&path.into())
+            .map(|type_id| {
+                Self {
+                    type_id: *type_id,
+                    display_name: Some(T::ALIAS.to_owned()),
+                }
+            })
     }
 }
 
@@ -92,26 +93,41 @@ pub struct EnvTypesTranscoder {
 impl EnvTypesTranscoder {
     pub fn new(registry: &RegistryReadOnly) -> Self {
         let mut transcoders = HashMap::new();
-        Self::register_transcoder(registry, &mut transcoders, AccountId);
-        Self::register_transcoder(registry, &mut transcoders, Balance);
+        // use this to extract all the types from the registry, todo: replace once `fn enumerate()` available in scale-info
+        let mut types_by_path = HashMap::new();
+        let mut i = 1;
+        while let Some(ty) = registry.resolve(NonZeroU32::new(i).unwrap()) {
+            types_by_path.insert(ty.path().clone().into(), NonZeroU32::new(i).unwrap());
+            i += 1;
+        }
+        // todo: restore this once new scale-info with https://github.com/paritytech/scale-info/commit/0aad2bba53c7339b9409d766b1ef1e4755c9ca82 released
+        // let types_by_path = registry.enumerate()
+        //     .map(|(id, ty)| (ty.path().clone(), id))
+        //     .collect::<TypesByPath>();
+        log::debug!("Types by path: {:?}", types_by_path);
+        Self::register_transcoder(&types_by_path, &mut transcoders, AccountId);
+        Self::register_transcoder(&types_by_path, &mut transcoders, Balance);
         Self { encoders: transcoders }
     }
 
-    fn register_transcoder<T>(registry: &RegistryReadOnly, transcoders: &mut HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>, transcoder: T)
+    fn register_transcoder<T>(type_lookup: &TypesByPath, transcoders: &mut HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>, transcoder: T)
     where
         T: EnvType + EnvTypeEncoder + 'static,
     {
-        let type_id = EnvTypeId::new::<T>(registry);
+        let type_id = EnvTypeId::new::<T>(type_lookup);
 
         if let Some(type_id) = type_id {
             let existing = transcoders.insert(type_id.clone(), Box::new(transcoder));
+            log::debug!("Registered environment type `{}` with id {:?}", T::ALIAS, type_id);
             if existing.is_some() {
                 panic!("Attempted to register transcoder with existing type id {:?}", type_id);
             }
         }
     }
 
-    pub fn encode<O>(&self, type_spec: &TypeSpec<CompactForm>, value: &Value, output: &mut O) -> Result<bool>
+    /// If the given type spec is for an environment type with custom encoding, encodes the given
+    /// value with the custom encoder and returns `true`. Otherwise returns `false`.
+    pub fn try_encode<O>(&self, type_spec: &TypeSpec<CompactForm>, value: &Value, output: &mut O) -> Result<bool>
     where
         O: Output
     {
