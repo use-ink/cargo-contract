@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-mod env_types;
 mod decode;
 mod encode;
+mod env_types;
 mod scon;
 
 use self::{
-    env_types::{EnvTypesTranscoder},
     decode::decode_value,
     encode::encode_value,
+    env_types::EnvTypesTranscoder,
     scon::{Map, Value},
 };
 
@@ -221,10 +221,7 @@ mod tests {
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use scon::{Tuple, Value};
-    use std::{
-        num::NonZeroU32,
-        str::FromStr,
-    };
+    use std::{num::NonZeroU32, str::FromStr};
 
     use ink_lang as ink;
 
@@ -293,12 +290,18 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = Transcoder::new(&metadata);
 
-        let encoded = transcoder.encode("set_account_id", &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"])?;
+        let encoded = transcoder.encode(
+            "set_account_id",
+            &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+        )?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
-        let expected = sp_core::crypto::AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY").unwrap();
+        let expected = sp_core::crypto::AccountId32::from_str(
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        )
+        .unwrap();
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }
@@ -609,6 +612,30 @@ mod tests {
         transcode_roundtrip::<Option<u32>>(
             r#"None"#,
             Value::Tuple(Tuple::new(Some("None"), Vec::new())),
+        )
+    }
+
+    #[test]
+    fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
+        env_logger::init();
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: [u8; 32],
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
+            Value::Map(Map::new(
+                Some("S"),
+                vec![(
+                    Value::String("a".into()),
+                    Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                )]
+                .into_iter()
+                .collect(),
+            )),
         )
     }
 }

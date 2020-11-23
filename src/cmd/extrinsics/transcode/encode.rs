@@ -37,13 +37,13 @@ pub fn encode_value<O>(
     value: &Value,
     output: &mut O,
 ) -> Result<()>
-    where
-        O: Output + Debug,
+where
+    O: Output + Debug,
 {
     let ty = registry.resolve(type_id).ok_or(anyhow::anyhow!(
-            "Failed to resolve type with id '{}'",
-            type_id
-        ))?;
+        "Failed to resolve type with id '{}'",
+        type_id
+    ))?;
 
     log::debug!("Encoding value {:?} with type {:?}", value, ty);
     ty.type_def()
@@ -137,7 +137,7 @@ impl EncodeValue for TypeDefTuple<CompactForm> {
             }
             v => {
                 if let Ok(single_field) = self.fields().iter().exactly_one() {
-                    encode_value(registry,single_field.id(), value, output)
+                    encode_value(registry, single_field.id(), value, output)
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Tuple or a single Value for a tuple data type, found {:?}",

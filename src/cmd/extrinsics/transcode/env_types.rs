@@ -18,18 +18,9 @@ use super::scon::Value;
 use anyhow::Result;
 use ink_metadata::TypeSpec;
 use scale::{Encode, Output};
-use scale_info::{
-    form::CompactForm,
-    RegistryReadOnly, TypeInfo, IntoCompact, Path,
-};
+use scale_info::{form::CompactForm, IntoCompact, Path, RegistryReadOnly, TypeInfo};
 use sp_core::crypto::AccountId32;
-use std::{
-    boxed::Box,
-    collections::HashMap,
-    convert::TryFrom,
-    num::NonZeroU32,
-    str::FromStr,
-};
+use std::{boxed::Box, collections::HashMap, convert::TryFrom, num::NonZeroU32, str::FromStr};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 struct PathKey(Vec<String>);
@@ -58,7 +49,7 @@ impl EnvTypeId {
     /// specified type is not used in a contract: it won't appear in the registry.
     pub fn new<T>(type_lookup: &TypesByPath) -> Option<Self>
     where
-        T: EnvType
+        T: EnvType,
     {
         let type_info = T::Type::type_info();
         let path = type_info
@@ -66,14 +57,10 @@ impl EnvTypeId {
             .clone()
             .into_compact(&mut Default::default());
 
-        type_lookup
-            .get(&path.into())
-            .map(|type_id| {
-                Self {
-                    type_id: *type_id,
-                    display_name: Some(T::ALIAS.to_owned()),
-                }
-            })
+        type_lookup.get(&path.into()).map(|type_id| Self {
+            type_id: *type_id,
+            display_name: Some(T::ALIAS.to_owned()),
+        })
     }
 }
 
@@ -87,7 +74,7 @@ impl From<&TypeSpec<CompactForm>> for EnvTypeId {
 }
 
 pub struct EnvTypesTranscoder {
-    encoders: HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>
+    encoders: HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>,
 }
 
 impl EnvTypesTranscoder {
@@ -107,29 +94,46 @@ impl EnvTypesTranscoder {
         log::debug!("Types by path: {:?}", types_by_path);
         Self::register_transcoder(&types_by_path, &mut transcoders, AccountId);
         Self::register_transcoder(&types_by_path, &mut transcoders, Balance);
-        Self { encoders: transcoders }
+        Self {
+            encoders: transcoders,
+        }
     }
 
-    fn register_transcoder<T>(type_lookup: &TypesByPath, transcoders: &mut HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>, transcoder: T)
-    where
+    fn register_transcoder<T>(
+        type_lookup: &TypesByPath,
+        transcoders: &mut HashMap<EnvTypeId, Box<dyn EnvTypeEncoder>>,
+        transcoder: T,
+    ) where
         T: EnvType + EnvTypeEncoder + 'static,
     {
         let type_id = EnvTypeId::new::<T>(type_lookup);
 
         if let Some(type_id) = type_id {
             let existing = transcoders.insert(type_id.clone(), Box::new(transcoder));
-            log::debug!("Registered environment type `{}` with id {:?}", T::ALIAS, type_id);
+            log::debug!(
+                "Registered environment type `{}` with id {:?}",
+                T::ALIAS,
+                type_id
+            );
             if existing.is_some() {
-                panic!("Attempted to register transcoder with existing type id {:?}", type_id);
+                panic!(
+                    "Attempted to register transcoder with existing type id {:?}",
+                    type_id
+                );
             }
         }
     }
 
     /// If the given type spec is for an environment type with custom encoding, encodes the given
     /// value with the custom encoder and returns `true`. Otherwise returns `false`.
-    pub fn try_encode<O>(&self, type_spec: &TypeSpec<CompactForm>, value: &Value, output: &mut O) -> Result<bool>
+    pub fn try_encode<O>(
+        &self,
+        type_spec: &TypeSpec<CompactForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<bool>
     where
-        O: Output
+        O: Output,
     {
         let type_id = type_spec.into();
         match self.encoders.get(&type_id) {
@@ -138,9 +142,7 @@ impl EnvTypesTranscoder {
                 output.write(&encoded_env_type);
                 Ok(true)
             }
-            None => {
-                Ok(false)
-            }
+            None => Ok(false),
         }
     }
 }
@@ -166,22 +168,20 @@ impl EnvType for AccountId {
 
 impl EnvTypeEncoder for AccountId {
     fn encode(&self, value: &Value) -> Result<Vec<u8>> {
-        let account_id =
-            match value {
-                Value::Literal(literal) => {
-                    AccountId32::from_str(literal)
-                        .map_err(|e| anyhow::anyhow!("Error parsing AccountId from literal `{}`: {}", literal, e))?
-                }
-                Value::String(string) => {
-                    AccountId32::from_str(string)
-                        .map_err(|e| anyhow::anyhow!("Error parsing AccountId from string '{}': {}", string, e))?
-                },
-                Value::Bytes(bytes) => {
-                    AccountId32::try_from(bytes.bytes())
-                        .map_err(|_| anyhow::anyhow!("Error converting bytes `{:?}` to AccountId", bytes))?
-                },
-                _ => Err(anyhow::anyhow!("Expected a string or a literal for an AccountId"))?
-            };
+        let account_id = match value {
+            Value::Literal(literal) => AccountId32::from_str(literal).map_err(|e| {
+                anyhow::anyhow!("Error parsing AccountId from literal `{}`: {}", literal, e)
+            })?,
+            Value::String(string) => AccountId32::from_str(string).map_err(|e| {
+                anyhow::anyhow!("Error parsing AccountId from string '{}': {}", string, e)
+            })?,
+            Value::Bytes(bytes) => AccountId32::try_from(bytes.bytes()).map_err(|_| {
+                anyhow::anyhow!("Error converting bytes `{:?}` to AccountId", bytes)
+            })?,
+            _ => Err(anyhow::anyhow!(
+                "Expected a string or a literal for an AccountId"
+            ))?,
+        };
         Ok(account_id.encode())
     }
 }

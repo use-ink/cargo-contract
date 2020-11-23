@@ -220,7 +220,7 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, SonParseError> {
     const MAX_UINT_LEN: usize = 39;
-    let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN ));
+    let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN));
     map(parser, |literal: &str| Value::Literal(literal.to_string()))(input)
 }
 
@@ -255,7 +255,6 @@ pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
     let (_, value) = scon_value(input)?;
     Ok(value)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -383,8 +382,20 @@ mod tests {
 
     #[test]
     fn test_literal() {
-        assert_eq!(scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"), Ok(("", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))));
-        assert_eq!(scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"), Ok(("", Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()))));
+        assert_eq!(
+            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"),
+            Ok((
+                "",
+                Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into())
+            ))
+        );
+        assert_eq!(
+            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"),
+            Ok((
+                "",
+                Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into())
+            ))
+        );
 
         assert_scon_value(
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -558,6 +569,9 @@ mod tests {
     #[test]
     fn test_bytes() {
         assert_scon_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
-        assert_scon_value(r#"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"#, Value::Bytes(vec![255u8; 23].into()));
+        assert_scon_value(
+            r#"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"#,
+            Value::Bytes(vec![255u8; 23].into()),
+        );
     }
 }
