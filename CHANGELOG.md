@@ -1,3 +1,15 @@
+# Version v0.8.0 (2020-11-27)
+
+* Exit with 1 on Err [#109](https://github.com/paritytech/cargo-contract/pull/109)
+* Use package name instead of lib name for metadata dependency [#107](https://github.com/paritytech/cargo-contract/pull/107)
+* Do not prettify JSON for bundle [#105](https://github.com/paritytech/cargo-contract/pull/105)
+* Make `source.hash` non-optional, remove metadata-only [#104](https://github.com/paritytech/cargo-contract/pull/104)
+* Implement new commands `build` and `check` + introduce bundles (.contract files) [#97](https://github.com/paritytech/cargo-contract/pull/97)
+* (aj-stack-overflow) Replace xbuild with cargo build-std [#99](https://github.com/paritytech/cargo-contract/pull/99)
+* Make ci run [#100](https://github.com/paritytech/cargo-contract/pull/100)
+* Use binaryen-rs as dep instead of requiring manual wasm-opt installation [#95](https://github.com/paritytech/cargo-contract/pull/95)
+* Specify optional --manifest-path for build and generate-metadata [#93](https://github.com/paritytech/cargo-contract/pull/93)
+
 # Version v0.7.1 (2020-10-26)
 
 * Update new command template to ink! 3.0-rc2 [#85](https://github.com/paritytech/cargo-contract/pull/85)
