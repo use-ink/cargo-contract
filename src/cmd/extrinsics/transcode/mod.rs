@@ -622,7 +622,7 @@ mod tests {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            a: [u8; 32],
+            a: ink_env::AccountId,
         }
 
         transcode_roundtrip::<S>(
