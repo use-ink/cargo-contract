@@ -5,7 +5,7 @@
 * Do not prettify JSON for bundle [#105](https://github.com/paritytech/cargo-contract/pull/105)
 * Make `source.hash` non-optional, remove metadata-only [#104](https://github.com/paritytech/cargo-contract/pull/104)
 * Implement new commands `build` and `check` + introduce bundles (.contract files) [#97](https://github.com/paritytech/cargo-contract/pull/97)
-* (aj-stack-overflow) Replace xbuild with cargo build-std [#99](https://github.com/paritytech/cargo-contract/pull/99)
+* Replace xbuild with cargo build-std [#99](https://github.com/paritytech/cargo-contract/pull/99)
 * Make ci run [#100](https://github.com/paritytech/cargo-contract/pull/100)
 * Use binaryen-rs as dep instead of requiring manual wasm-opt installation [#95](https://github.com/paritytech/cargo-contract/pull/95)
 * Specify optional --manifest-path for build and generate-metadata [#93](https://github.com/paritytech/cargo-contract/pull/93)
