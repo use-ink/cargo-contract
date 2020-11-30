@@ -21,26 +21,30 @@ mod scon;
 
 use self::{
     decode::decode_value,
-    encode::encode_value,
-    env_types::EnvTypesTranscoder,
+    encode::Encoder,
+    env_types::EnvType,
     scon::{Map, Value},
 };
 
 use anyhow::Result;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec, TypeSpec};
 use scale::Input;
 use scale_info::{
     form::{CompactForm, Form},
-    Field, RegistryReadOnly, TypeDefComposite,
+    Field, RegistryReadOnly, TypeDefComposite, Path, TypeInfo, IntoCompact,
 };
-use std::fmt::{self, Debug, Display, Formatter};
+use std::{
+    collections::HashMap,
+    num::NonZeroU32,
+    fmt::{self, Debug, Display, Formatter}
+};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
 pub struct Transcoder<'a> {
     metadata: &'a InkProject,
     registry: &'a RegistryReadOnly,
-    env_types: EnvTypesTranscoder,
+    encoder: Encoder<'a>,
 }
 
 impl<'a> Transcoder<'a> {
@@ -48,7 +52,7 @@ impl<'a> Transcoder<'a> {
         Self {
             metadata,
             registry: metadata.registry(),
-            env_types: EnvTypesTranscoder::new(metadata.registry()),
+            encoder: Encoder::new(metadata.registry()),
         }
     }
 
@@ -79,11 +83,8 @@ impl<'a> Transcoder<'a> {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
-            let type_spec = spec.ty();
             let value = arg.as_ref().parse::<scon::Value>()?;
-            if !self.env_types.try_encode(type_spec, &value, &mut encoded)? {
-                encode_value(self.registry, type_spec.ty().id(), &value, &mut encoded)?;
-            }
+            self.encoder.encode(spec.ty(), &value, &mut encoded)?;
         }
         Ok(encoded)
     }
@@ -146,6 +147,80 @@ impl<'a> Transcoder<'a> {
             decode_value(self.registry, return_ty.ty().id(), &mut &data[..])
         } else {
             Ok(Value::Unit)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct PathKey(Vec<String>);
+
+impl From<Path<CompactForm>> for PathKey {
+    fn from(path: Path<CompactForm>) -> Self {
+        PathKey(path.segments().to_vec())
+    }
+}
+
+type TypesByPath = HashMap<PathKey, NonZeroU32>;
+
+/// Unique identifier for a type used in a contract
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct TypeLookupId {
+    /// The lookup id of the type in the `scale-info` type registry
+    type_id: NonZeroU32,
+    /// The display name of the type, required to identify type aliases e.g. `type Balance = u128`
+    maybe_alias: Option<String>,
+}
+
+impl TypeLookupId {
+    /// Create a new `EnvTypeId` for the given `EnvType`, for the supplied type registry.
+    ///
+    /// Returns `None` if there is no matching type found in the registry. This is expected when the
+    /// specified type is not used in a contract: it won't appear in the registry.
+    pub fn from_env_type<T>(type_lookup: &TypesByPath) -> Option<Self>
+        where
+            T: EnvType,
+    {
+        let type_info = T::Type::type_info();
+        let path = type_info
+            .path()
+            .clone()
+            .into_compact(&mut Default::default());
+
+        type_lookup.get(&path.into()).map(|type_id| Self {
+            type_id: *type_id,
+            maybe_alias: Some(T::ALIAS.to_owned()),
+        })
+    }
+
+    /// Returns the type identifier for resolving the type from the registry.
+    pub fn type_id(&self) -> NonZeroU32 {
+        self.type_id
+    }
+}
+
+impl From<&TypeSpec<CompactForm>> for TypeLookupId {
+    fn from(type_spec: &TypeSpec<CompactForm>) -> Self {
+        Self {
+            type_id: type_spec.ty().id(),
+            maybe_alias: type_spec.display_name().segments().iter().last().cloned(),
+        }
+    }
+}
+
+impl From<&Field<CompactForm>> for TypeLookupId {
+    fn from(field: &Field<CompactForm>) -> Self {
+        Self {
+            type_id: field.ty().id(),
+            maybe_alias: field.type_name().split("::").last().map(ToOwned::to_owned),
+        }
+    }
+}
+
+impl From<NonZeroU32> for TypeLookupId {
+    fn from(type_id: NonZeroU32) -> Self {
+        Self {
+            type_id,
+            maybe_alias: None,
         }
     }
 }
@@ -337,10 +412,20 @@ mod tests {
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
-        encode_value(&registry, ty, &value, &mut output)?;
+        Encoder::new(&registry).encode(ty, &value, &mut output)?;
         let decoded = decode_value(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded);
         Ok(())
+    }
+
+    fn encode_value(
+        registry: &RegistryReadOnly,
+        type_id: NonZeroU32,
+        value: &Value,
+        output: &mut Vec<u8>,
+    ) -> Result<()>
+    {
+        Encoder::new(registry).encode(type_id, value, output)
     }
 
     #[test]

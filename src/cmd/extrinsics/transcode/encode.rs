@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{scon::Value, CompositeTypeFields};
+use super::{env_types::EnvTypesEncoder, scon::Value, CompositeTypeFields, TypeLookupId};
 use anyhow::Result;
 use itertools::Itertools;
 use scale::{Compact, Encode, Output};
@@ -27,34 +27,80 @@ use std::{
     convert::{TryFrom, TryInto},
     error::Error,
     fmt::Debug,
-    num::NonZeroU32,
     str::FromStr,
 };
 
-pub fn encode_value<O>(
-    registry: &RegistryReadOnly,
-    type_id: NonZeroU32,
-    value: &Value,
-    output: &mut O,
-) -> Result<()>
-where
-    O: Output + Debug,
-{
-    let ty = registry.resolve(type_id).ok_or(anyhow::anyhow!(
-        "Failed to resolve type with id '{}'",
-        type_id
-    ))?;
+pub struct Encoder<'a> {
+    registry: &'a RegistryReadOnly,
+    env_types: EnvTypesEncoder,
+}
 
-    log::debug!("Encoding value {:?} with type {:?}", value, ty);
-    ty.type_def()
-        .encode_value_to(registry, value, output)
-        .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))
+impl<'a> Encoder<'a> {
+    pub fn new(registry: &'a RegistryReadOnly) -> Self {
+        Self {
+            registry,
+            env_types: EnvTypesEncoder::new(registry),
+        }
+    }
+
+    pub fn encode<T, O>(&self, ty: T, value: &Value, output: &mut O) -> Result<()>
+    where
+        T: Into<TypeLookupId>,
+        O: Output + Debug,
+    {
+        let type_id = ty.into();
+        let ty = self.registry.resolve(type_id.type_id()).ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id '{:?}'",
+            type_id
+        ))?;
+
+        log::debug!("Encoding value {:?} with type {:?}", value, ty);
+        if !self.env_types.try_encode(&type_id, &value, output)? {
+            ty.type_def()
+                .encode_value_to(&self, value, output)
+                .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))?;
+        }
+        Ok(())
+    }
+
+    pub fn encode_seq<O: Output + Debug>(
+        &self,
+        ty: &<CompactForm as Form>::Type,
+        value: &Value,
+        encode_len: bool,
+        output: &mut O,
+    ) -> Result<()> {
+        let ty = self
+            .registry
+            .resolve(ty.id())
+            .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+        match value {
+            Value::Seq(values) => {
+                if encode_len {
+                    Compact(values.len() as u32).encode_to(output);
+                }
+                for value in values.elems() {
+                    ty.type_def().encode_value_to(&self, value, output)?;
+                }
+            }
+            Value::Bytes(bytes) => {
+                if encode_len {
+                    Compact(bytes.bytes().len() as u32).encode_to(output);
+                }
+                for byte in bytes.bytes() {
+                    output.push_byte(*byte);
+                }
+            }
+            value => return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
+        }
+        Ok(())
+    }
 }
 
 pub trait EncodeValue {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()>;
@@ -63,17 +109,17 @@ pub trait EncodeValue {
 impl EncodeValue for TypeDef<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
         match self {
-            TypeDef::Composite(composite) => composite.encode_value_to(registry, value, output),
-            TypeDef::Variant(variant) => variant.encode_value_to(registry, value, output),
-            TypeDef::Array(array) => array.encode_value_to(registry, value, output),
-            TypeDef::Tuple(tuple) => tuple.encode_value_to(registry, value, output),
-            TypeDef::Sequence(sequence) => sequence.encode_value_to(registry, value, output),
-            TypeDef::Primitive(primitive) => primitive.encode_value_to(registry, value, output),
+            TypeDef::Composite(composite) => composite.encode_value_to(encoder, value, output),
+            TypeDef::Variant(variant) => variant.encode_value_to(encoder, value, output),
+            TypeDef::Array(array) => array.encode_value_to(encoder, value, output),
+            TypeDef::Tuple(tuple) => tuple.encode_value_to(encoder, value, output),
+            TypeDef::Sequence(sequence) => sequence.encode_value_to(encoder, value, output),
+            TypeDef::Primitive(primitive) => primitive.encode_value_to(encoder, value, output),
         }
     }
 }
@@ -81,7 +127,7 @@ impl EncodeValue for TypeDef<CompactForm> {
 impl EncodeValue for TypeDefComposite<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
@@ -91,14 +137,14 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
             Value::Map(map) => {
                 // todo: should lookup via name so that order does not matter
                 for (field, value) in self.fields().iter().zip(map.values()) {
-                    field.encode_value_to(registry, value, output)?;
+                    field.encode_value_to(encoder, value, output)?;
                 }
                 Ok(())
             }
             Value::Tuple(tuple) => match struct_type {
                 CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                     for (field, value) in fields.iter().zip(tuple.values()) {
-                        field.encode_value_to(registry, value, output)?;
+                        field.encode_value_to(encoder, value, output)?;
                     }
                     Ok(())
                 }
@@ -109,7 +155,7 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
             },
             v => {
                 if let Ok(single_field) = self.fields().iter().exactly_one() {
-                    single_field.encode_value_to(registry, value, output)
+                    single_field.encode_value_to(encoder, value, output)
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
@@ -124,20 +170,20 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
 impl EncodeValue for TypeDefTuple<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
         match value {
             Value::Tuple(tuple) => {
                 for (field_type, value) in self.fields().iter().zip(tuple.values()) {
-                    encode_value(registry, field_type.id(), value, output)?;
+                    encoder.encode(field_type.id(), value, output)?;
                 }
                 Ok(())
             }
             v => {
                 if let Ok(single_field) = self.fields().iter().exactly_one() {
-                    encode_value(registry, single_field.id(), value, output)
+                    encoder.encode(single_field.id(), value, output)
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Tuple or a single Value for a tuple data type, found {:?}",
@@ -152,7 +198,7 @@ impl EncodeValue for TypeDefTuple<CompactForm> {
 impl EncodeValue for TypeDefVariant<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
@@ -177,14 +223,14 @@ impl EncodeValue for TypeDefVariant<CompactForm> {
             .map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
         output.push_byte(index);
 
-        variant.encode_value_to(registry, value, output)
+        variant.encode_value_to(encoder, value, output)
     }
 }
 
 impl EncodeValue for Variant<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
@@ -199,7 +245,7 @@ impl EncodeValue for Variant<CompactForm> {
             }
             Value::Tuple(tuple) => {
                 for (field, value) in self.fields().iter().zip(tuple.values()) {
-                    field.encode_value_to(registry, value, output)?;
+                    field.encode_value_to(encoder, value, output)?;
                 }
                 Ok(())
             }
@@ -211,72 +257,40 @@ impl EncodeValue for Variant<CompactForm> {
 impl EncodeValue for Field<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        encode_value(registry, self.ty().id(), value, output)
+        encoder.encode(self, value, output)
     }
 }
 
 impl EncodeValue for TypeDefArray<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        encode_seq(self.type_param(), registry, value, false, output)
+        encoder.encode_seq(self.type_param(), value, false, output)
     }
 }
 
 impl EncodeValue for TypeDefSequence<CompactForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        registry: &RegistryReadOnly,
+        encoder: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        encode_seq(self.type_param(), registry, value, true, output)
+        encoder.encode_seq(self.type_param(), value, true, output)
     }
-}
-
-fn encode_seq<O: Output + Debug>(
-    ty: &<CompactForm as Form>::Type,
-    registry: &RegistryReadOnly,
-    value: &Value,
-    encode_len: bool,
-    output: &mut O,
-) -> Result<()> {
-    let ty = registry
-        .resolve(ty.id())
-        .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
-    match value {
-        Value::Seq(values) => {
-            if encode_len {
-                Compact(values.len() as u32).encode_to(output);
-            }
-            for value in values.elems() {
-                ty.type_def().encode_value_to(registry, value, output)?;
-            }
-        }
-        Value::Bytes(bytes) => {
-            if encode_len {
-                Compact(bytes.bytes().len() as u32).encode_to(output);
-            }
-            for byte in bytes.bytes() {
-                output.push_byte(*byte);
-            }
-        }
-        value => return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
-    }
-    Ok(())
 }
 
 impl EncodeValue for TypeDefPrimitive {
     fn encode_value_to<O: Output + Debug>(
         &self,
-        _: &RegistryReadOnly,
+        _: &Encoder,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
