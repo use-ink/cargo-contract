@@ -105,9 +105,10 @@ mod tests {
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
             let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
+            assert!(result.is_err(), "Should fail");
             assert_eq!(
-                format!("{:?}", result),
-                r#"Err(Contract names cannot contain hyphens)"#
+                result.err().unwrap().to_string(),
+                "Contract names cannot contain hyphens"
             );
             Ok(())
         })
