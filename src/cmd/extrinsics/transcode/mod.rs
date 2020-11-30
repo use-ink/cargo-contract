@@ -18,41 +18,36 @@ mod decode;
 mod encode;
 mod env_types;
 mod scon;
+mod transcoder;
 
 use self::{
-    decode::decode_value,
-    encode::Encoder,
-    env_types::EnvType,
-    scon::{Map, Value},
+    scon::{Value, Map},
+    transcoder::Transcoder,
 };
 
 use anyhow::Result;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec, TypeSpec};
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale::Input;
 use scale_info::{
     form::{CompactForm, Form},
-    Field, RegistryReadOnly, TypeDefComposite, Path, TypeInfo, IntoCompact,
+    Field, TypeDefComposite,
 };
 use std::{
-    collections::HashMap,
-    num::NonZeroU32,
     fmt::{self, Debug, Display, Formatter}
 };
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
-pub struct Transcoder<'a> {
+pub struct ContractMessageTranscoder<'a> {
     metadata: &'a InkProject,
-    registry: &'a RegistryReadOnly,
-    encoder: Encoder<'a>,
+    transcoder: Transcoder<'a>,
 }
 
-impl<'a> Transcoder<'a> {
+impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
         Self {
             metadata,
-            registry: metadata.registry(),
-            encoder: Encoder::new(metadata.registry()),
+            transcoder: Transcoder::new(metadata.registry()),
         }
     }
 
@@ -84,7 +79,7 @@ impl<'a> Transcoder<'a> {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let value = arg.as_ref().parse::<scon::Value>()?;
-            self.encoder.encode(spec.ty(), &value, &mut encoded)?;
+            self.transcoder.encode(spec.ty(), &value, &mut encoded)?;
         }
         Ok(encoded)
     }
@@ -125,7 +120,7 @@ impl<'a> Transcoder<'a> {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.name().to_string();
-            let value = decode_value(self.registry, arg.ty().ty().id(), data)?;
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
         }
 
@@ -144,83 +139,9 @@ impl<'a> Transcoder<'a> {
             name
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            decode_value(self.registry, return_ty.ty().id(), &mut &data[..])
+            self.transcoder.decode(return_ty.ty().id(), &mut &data[..])
         } else {
             Ok(Value::Unit)
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct PathKey(Vec<String>);
-
-impl From<Path<CompactForm>> for PathKey {
-    fn from(path: Path<CompactForm>) -> Self {
-        PathKey(path.segments().to_vec())
-    }
-}
-
-type TypesByPath = HashMap<PathKey, NonZeroU32>;
-
-/// Unique identifier for a type used in a contract
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct TypeLookupId {
-    /// The lookup id of the type in the `scale-info` type registry
-    type_id: NonZeroU32,
-    /// The display name of the type, required to identify type aliases e.g. `type Balance = u128`
-    maybe_alias: Option<String>,
-}
-
-impl TypeLookupId {
-    /// Create a new `EnvTypeId` for the given `EnvType`, for the supplied type registry.
-    ///
-    /// Returns `None` if there is no matching type found in the registry. This is expected when the
-    /// specified type is not used in a contract: it won't appear in the registry.
-    pub fn from_env_type<T>(type_lookup: &TypesByPath) -> Option<Self>
-        where
-            T: EnvType,
-    {
-        let type_info = T::Type::type_info();
-        let path = type_info
-            .path()
-            .clone()
-            .into_compact(&mut Default::default());
-
-        type_lookup.get(&path.into()).map(|type_id| Self {
-            type_id: *type_id,
-            maybe_alias: Some(T::ALIAS.to_owned()),
-        })
-    }
-
-    /// Returns the type identifier for resolving the type from the registry.
-    pub fn type_id(&self) -> NonZeroU32 {
-        self.type_id
-    }
-}
-
-impl From<&TypeSpec<CompactForm>> for TypeLookupId {
-    fn from(type_spec: &TypeSpec<CompactForm>) -> Self {
-        Self {
-            type_id: type_spec.ty().id(),
-            maybe_alias: type_spec.display_name().segments().iter().last().cloned(),
-        }
-    }
-}
-
-impl From<&Field<CompactForm>> for TypeLookupId {
-    fn from(field: &Field<CompactForm>) -> Self {
-        Self {
-            type_id: field.ty().id(),
-            maybe_alias: field.type_name().split("::").last().map(ToOwned::to_owned),
-        }
-    }
-}
-
-impl From<NonZeroU32> for TypeLookupId {
-    fn from(type_id: NonZeroU32) -> Self {
-        Self {
-            type_id,
-            maybe_alias: None,
         }
     }
 }
@@ -292,11 +213,9 @@ impl Display for ContractEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Context;
     use scale::Encode;
-    use scale_info::{MetaType, Registry, TypeInfo};
-    use scon::{Tuple, Value};
-    use std::{num::NonZeroU32, str::FromStr};
+    use scon::Value;
+    use std::str::FromStr;
 
     use ink_lang as ink;
 
@@ -350,7 +269,7 @@ mod tests {
     #[test]
     fn encode_single_primitive_arg() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = Transcoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(&metadata);
 
         let encoded = transcoder.encode("new", &["true"])?;
         // encoded args follow the 4 byte selector
@@ -363,7 +282,7 @@ mod tests {
     #[test]
     fn encode_account_id_custom_ss58_encoding() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = Transcoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(&metadata);
 
         let encoded = transcoder.encode(
             "set_account_id",
@@ -384,343 +303,12 @@ mod tests {
     #[test]
     fn decode_primitive_return() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = Transcoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(&metadata);
 
         let encoded = true.encode();
         let decoded = transcoder.decode_return("get", encoded)?;
 
         assert_eq!(Value::Bool(true), decoded);
         Ok(())
-    }
-
-    fn registry_with_type<T>() -> Result<(RegistryReadOnly, NonZeroU32)>
-    where
-        T: scale_info::TypeInfo + 'static,
-    {
-        let mut registry = Registry::new();
-        let type_id = registry.register_type(&MetaType::new::<T>());
-        let registry: RegistryReadOnly = registry.into();
-
-        Ok((registry, type_id.id()))
-    }
-
-    fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
-    where
-        T: scale_info::TypeInfo + 'static,
-    {
-        let (registry, ty) = registry_with_type::<T>()?;
-
-        let value = input.parse::<Value>().context("Invalid SON value")?;
-        let mut output = Vec::new();
-        Encoder::new(&registry).encode(ty, &value, &mut output)?;
-        let decoded = decode_value(&registry, ty, &mut &output[..])?;
-        assert_eq!(expected_output, decoded);
-        Ok(())
-    }
-
-    fn encode_value(
-        registry: &RegistryReadOnly,
-        type_id: NonZeroU32,
-        value: &Value,
-        output: &mut Vec<u8>,
-    ) -> Result<()>
-    {
-        Encoder::new(registry).encode(type_id, value, output)
-    }
-
-    #[test]
-    fn transcode_bool() -> Result<()> {
-        transcode_roundtrip::<bool>("true", Value::Bool(true))?;
-        transcode_roundtrip::<bool>("false", Value::Bool(false))
-    }
-
-    #[test]
-    fn transcode_char_unsupported() -> Result<()> {
-        let (registry, ty) = registry_with_type::<char>()?;
-        let encoded = u32::from('c').encode();
-
-        assert!(encode_value(&registry, ty, &Value::Char('c'), &mut Vec::new()).is_err());
-        assert!(decode_value(&registry, ty, &mut &encoded[..]).is_err());
-        Ok(())
-    }
-
-    #[test]
-    fn transcode_str() -> Result<()> {
-        transcode_roundtrip::<String>("\"ink!\"", Value::String("ink!".to_string()))
-    }
-
-    #[test]
-    fn transcode_unsigned_integers() -> Result<()> {
-        transcode_roundtrip::<u8>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u8>("255", Value::UInt(255))?;
-
-        transcode_roundtrip::<u16>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u16>("65535", Value::UInt(65535))?;
-
-        transcode_roundtrip::<u32>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u32>("4294967295", Value::UInt(4294967295))?;
-
-        transcode_roundtrip::<u64>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u64>(
-            "\"18_446_744_073_709_551_615\"",
-            Value::UInt(18446744073709551615),
-        )?;
-
-        transcode_roundtrip::<u128>("0", Value::UInt(0))?;
-        transcode_roundtrip::<u128>(
-            "\"340_282_366_920_938_463_463_374_607_431_768_211_455\"",
-            Value::UInt(340282366920938463463374607431768211455),
-        )
-    }
-
-    #[test]
-    fn transcode_integers() -> Result<()> {
-        transcode_roundtrip::<i8>("-128", Value::Int(i8::min_value().into()))?;
-        transcode_roundtrip::<i8>("127", Value::Int(i8::max_value().into()))?;
-
-        transcode_roundtrip::<i16>("-32768", Value::Int(i16::min_value().into()))?;
-        transcode_roundtrip::<i16>("32767", Value::Int(i16::max_value().into()))?;
-
-        transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::min_value().into()))?;
-        transcode_roundtrip::<i32>("2147483647", Value::Int(i32::max_value().into()))?;
-
-        transcode_roundtrip::<i64>("-9223372036854775808", Value::Int(i64::min_value().into()))?;
-        transcode_roundtrip::<i64>(
-            "\"9_223_372_036_854_775_807\"",
-            Value::Int(i64::max_value().into()),
-        )?;
-
-        transcode_roundtrip::<i128>(
-            "-170141183460469231731687303715884105728",
-            Value::Int(i128::min_value()),
-        )?;
-        transcode_roundtrip::<i128>(
-            "\"170141183460469231731687303715884105727\"",
-            Value::Int(i128::max_value()),
-        )
-    }
-
-    #[test]
-    fn transcode_byte_array() -> Result<()> {
-        transcode_roundtrip::<[u8; 2]>(r#"0x0000"#, Value::Bytes(vec![0x00, 0x00].into()))?;
-        transcode_roundtrip::<[u8; 4]>(
-            r#"0xDEADBEEF"#,
-            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-        )?;
-        transcode_roundtrip::<[u8; 4]>(
-            r#"0xdeadbeef"#,
-            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-        )
-    }
-
-    #[test]
-    fn transcode_array() -> Result<()> {
-        transcode_roundtrip::<[u32; 3]>(
-            "[1, 2, 3]",
-            Value::Seq(vec![Value::UInt(1), Value::UInt(2), Value::UInt(3)].into()),
-        )?;
-        transcode_roundtrip::<[String; 2]>(
-            "[\"hello\", \"world\"]",
-            Value::Seq(
-                vec![
-                    Value::String("hello".to_string()),
-                    Value::String("world".to_string()),
-                ]
-                .into(),
-            ),
-        )
-    }
-
-    #[test]
-    fn transcode_seq() -> Result<()> {
-        transcode_roundtrip::<Vec<u32>>(
-            "[1, 2, 3]",
-            Value::Seq(vec![Value::UInt(1), Value::UInt(2), Value::UInt(3)].into()),
-        )?;
-        transcode_roundtrip::<Vec<String>>(
-            "[\"hello\", \"world\"]",
-            Value::Seq(
-                vec![
-                    Value::String("hello".to_string()),
-                    Value::String("world".to_string()),
-                ]
-                .into(),
-            ),
-        )
-    }
-
-    #[test]
-    fn transcode_tuple() -> Result<()> {
-        transcode_roundtrip::<(u32, String, [u8; 4])>(
-            r#"(1, "ink!", 0xDEADBEEF)"#,
-            Value::Tuple(Tuple::new(
-                None,
-                vec![
-                    Value::UInt(1),
-                    Value::String("ink!".to_string()),
-                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                ],
-            )),
-        )
-    }
-
-    #[test]
-    fn transcode_composite_struct() -> Result<()> {
-        #[allow(dead_code)]
-        #[derive(TypeInfo)]
-        struct S {
-            a: u32,
-            b: String,
-            c: [u8; 4],
-            // nested struct
-            d: Vec<S>,
-        }
-
-        transcode_roundtrip::<S>(
-            r#"S(a: 1, b: "ink!", c: 0xDEADBEEF, d: [S(a: 2, b: "ink!", c: 0xDEADBEEF, d: [])])"#,
-            Value::Map(
-                vec![
-                    (Value::String("a".to_string()), Value::UInt(1)),
-                    (
-                        Value::String("b".to_string()),
-                        Value::String("ink!".to_string()),
-                    ),
-                    (
-                        Value::String("c".to_string()),
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                    ),
-                    (
-                        Value::String("d".to_string()),
-                        Value::Seq(
-                            vec![Value::Map(
-                                vec![
-                                    (Value::String("a".to_string()), Value::UInt(2)),
-                                    (
-                                        Value::String("b".to_string()),
-                                        Value::String("ink!".to_string()),
-                                    ),
-                                    (
-                                        Value::String("c".to_string()),
-                                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                                    ),
-                                    (
-                                        Value::String("d".to_string()),
-                                        Value::Seq(
-                                            Vec::new().into_iter().collect::<Vec<_>>().into(),
-                                        ),
-                                    ),
-                                ]
-                                .into_iter()
-                                .collect(),
-                            )]
-                            .into(),
-                        ),
-                    ),
-                ]
-                .into_iter()
-                .collect(),
-            ),
-        )
-    }
-
-    #[test]
-    fn transcode_composite_tuple_struct() -> Result<()> {
-        #[allow(dead_code)]
-        #[derive(TypeInfo)]
-        struct S(u32, String, [u8; 4]);
-
-        transcode_roundtrip::<S>(
-            r#"S(1, "ink!", 0xDEADBEEF)"#,
-            Value::Tuple(Tuple::new(
-                Some("S"),
-                vec![
-                    Value::UInt(1),
-                    Value::String("ink!".to_string()),
-                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
-                ],
-            )),
-        )
-    }
-
-    #[test]
-    fn transcode_composite_single_field_struct() -> Result<()> {
-        #[allow(dead_code)]
-        #[derive(TypeInfo)]
-        struct S([u8; 4]);
-
-        transcode_roundtrip::<S>(
-            r#"0xDEADBEEF"#,
-            Value::Tuple(Tuple::new(
-                Some("S"),
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
-            )),
-        )
-    }
-
-    #[test]
-    fn transcode_composite_single_field_tuple() -> Result<()> {
-        transcode_roundtrip::<([u8; 4],)>(
-            r#"0xDEADBEEF"#,
-            Value::Tuple(Tuple::new(
-                None,
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
-            )),
-        )
-    }
-
-    #[test]
-    fn transcode_variant() -> Result<()> {
-        #[derive(TypeInfo)]
-        #[allow(dead_code)]
-        enum E {
-            A(u32, String),
-            B { a: [u8; 4], b: Vec<E> },
-            C,
-        }
-
-        transcode_roundtrip::<E>(
-            r#"A(1, "2")"#,
-            Value::Tuple(Tuple::new(
-                Some("A"),
-                vec![Value::UInt(1), Value::String("2".into())],
-            )),
-        )
-    }
-
-    #[test]
-    fn transcode_option() -> Result<()> {
-        transcode_roundtrip::<Option<u32>>(
-            r#"Some(32)"#,
-            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32).into()])),
-        )?;
-
-        transcode_roundtrip::<Option<u32>>(
-            r#"None"#,
-            Value::Tuple(Tuple::new(Some("None"), Vec::new())),
-        )
-    }
-
-    #[test]
-    fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-        env_logger::init();
-
-        #[allow(dead_code)]
-        #[derive(TypeInfo)]
-        struct S {
-            a: ink_env::AccountId,
-        }
-
-        transcode_roundtrip::<S>(
-            r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
-            Value::Map(Map::new(
-                Some("S"),
-                vec![(
-                    Value::String("a".into()),
-                    Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
-                )]
-                .into_iter()
-                .collect(),
-            )),
-        )
     }
 }

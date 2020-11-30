@@ -20,7 +20,7 @@ use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
 use subxt::{contracts::*, ClientBuilder, ContractsTemplateRuntime};
 
-use super::{display_events, load_metadata, Transcoder};
+use super::{display_events, load_metadata, ContractMessageTranscoder};
 use crate::{crate_metadata, ExtrinsicOpts};
 
 #[derive(Debug, StructOpt)]
@@ -65,7 +65,7 @@ impl DeployCommand {
     pub fn exec(&self) -> Result<H256> {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
-        let transcoder = Transcoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(&metadata);
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::<ContractsTemplateRuntime>::new()

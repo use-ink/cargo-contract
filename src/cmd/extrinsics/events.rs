@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{pretty_print, Transcoder};
+use super::{pretty_print, ContractMessageTranscoder};
 use crate::Verbosity;
 
 use colored::Colorize;
@@ -26,7 +26,7 @@ use subxt::{
 
 pub fn display_events(
     result: &ExtrinsicSuccess<Runtime>,
-    transcoder: &Transcoder,
+    transcoder: &ContractMessageTranscoder,
     verbosity: Verbosity,
 ) {
     if matches!(verbosity, Verbosity::Quiet) {
@@ -174,7 +174,7 @@ impl Display for DisplayInstantiatedEvent {
 /// Wraps contracts::ContractExecutionEvent<Runtime> for Display impl and decodes contract events.
 struct DisplayContractExecution<'a> {
     event: contracts::ContractExecutionEvent<Runtime>,
-    transcoder: &'a Transcoder<'a>,
+    transcoder: &'a ContractMessageTranscoder<'a>,
 }
 
 impl<'a> Display for DisplayContractExecution<'a> {

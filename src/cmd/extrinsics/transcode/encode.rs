@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{env_types::EnvTypesEncoder, scon::Value, CompositeTypeFields, TypeLookupId};
+use super::{env_types::{EnvTypesTranscoder, TypeLookupId}, scon::Value, CompositeTypeFields};
 use anyhow::Result;
 use itertools::Itertools;
 use scale::{Compact, Encode, Output};
@@ -32,14 +32,14 @@ use std::{
 
 pub struct Encoder<'a> {
     registry: &'a RegistryReadOnly,
-    env_types: EnvTypesEncoder,
+    env_types: &'a EnvTypesTranscoder,
 }
 
 impl<'a> Encoder<'a> {
-    pub fn new(registry: &'a RegistryReadOnly) -> Self {
+    pub fn new(registry: &'a RegistryReadOnly, env_types: &'a EnvTypesTranscoder) -> Self {
         Self {
             registry,
-            env_types: EnvTypesEncoder::new(registry),
+            env_types,
         }
     }
 

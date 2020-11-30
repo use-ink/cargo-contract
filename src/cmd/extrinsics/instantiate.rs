@@ -50,7 +50,7 @@ impl InstantiateCommand {
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<<ContractsTemplateRuntime as System>::Address> {
         let metadata = super::load_metadata()?;
-        let transcoder = super::Transcoder::new(&metadata);
+        let transcoder = super::ContractMessageTranscoder::new(&metadata);
         let data = transcoder.encode(&self.name, &self.args)?;
 
         async_std::task::block_on(async move {

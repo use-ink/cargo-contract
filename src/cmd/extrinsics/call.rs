@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, load_metadata, pretty_print, Transcoder};
+use super::{display_events, load_metadata, pretty_print, ContractMessageTranscoder};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
@@ -55,7 +55,7 @@ pub struct CallCommand {
 impl CallCommand {
     pub fn run(&self) -> Result<String> {
         let metadata = load_metadata()?;
-        let transcoder = Transcoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(&metadata);
         let call_data = transcoder.encode(&self.name, &self.args)?;
 
         if self.rpc {

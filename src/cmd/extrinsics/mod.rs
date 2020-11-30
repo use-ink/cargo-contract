@@ -24,7 +24,7 @@ use anyhow::Result;
 use bat::PrettyPrinter;
 use std::{fmt::Display, fs::File};
 
-use self::{events::display_events, transcode::Transcoder};
+use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
