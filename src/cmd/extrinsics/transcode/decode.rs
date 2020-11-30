@@ -267,11 +267,13 @@ impl DecodeValue for TypeDefPrimitive {
             TypeDefPrimitive::U32 => decode_uint::<I, u32>(input),
             TypeDefPrimitive::U64 => decode_uint::<I, u64>(input),
             TypeDefPrimitive::U128 => decode_uint::<I, u128>(input),
+            TypeDefPrimitive::U256 => Err(anyhow::anyhow!("U256 currently not supported")),
             TypeDefPrimitive::I8 => decode_int::<I, i8>(input),
             TypeDefPrimitive::I16 => decode_int::<I, i16>(input),
             TypeDefPrimitive::I32 => decode_int::<I, i32>(input),
             TypeDefPrimitive::I64 => decode_int::<I, i64>(input),
             TypeDefPrimitive::I128 => decode_int::<I, i128>(input),
+            TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
         }
     }
 }

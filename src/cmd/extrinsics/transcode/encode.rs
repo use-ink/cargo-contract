@@ -361,11 +361,13 @@ impl EncodeValue for TypeDefPrimitive {
             TypeDefPrimitive::U32 => encode_uint::<u32, O>(value, "u32", output),
             TypeDefPrimitive::U64 => encode_uint::<u64, O>(value, "u64", output),
             TypeDefPrimitive::U128 => encode_uint::<u128, O>(value, "u128", output),
+            TypeDefPrimitive::U256 => Err(anyhow::anyhow!("U256 currently not supported")),
             TypeDefPrimitive::I8 => encode_int::<i8, O>(value, "i8", output),
             TypeDefPrimitive::I16 => encode_int::<i16, O>(value, "i16", output),
             TypeDefPrimitive::I32 => encode_int::<i32, O>(value, "i32", output),
             TypeDefPrimitive::I64 => encode_int::<i64, O>(value, "i64", output),
             TypeDefPrimitive::I128 => encode_int::<i128, O>(value, "i128", output),
+            TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
         }
     }
 }
