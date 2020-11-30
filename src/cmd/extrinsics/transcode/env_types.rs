@@ -80,17 +80,9 @@ pub struct EnvTypesTranscoder {
 impl EnvTypesTranscoder {
     pub fn new(registry: &RegistryReadOnly) -> Self {
         let mut transcoders = HashMap::new();
-        // use this to extract all the types from the registry, todo: replace once `fn enumerate()` available in scale-info
-        let mut types_by_path = HashMap::new();
-        let mut i = 1;
-        while let Some(ty) = registry.resolve(NonZeroU32::new(i).unwrap()) {
-            types_by_path.insert(ty.path().clone().into(), NonZeroU32::new(i).unwrap());
-            i += 1;
-        }
-        // todo: restore this once new scale-info with https://github.com/paritytech/scale-info/commit/0aad2bba53c7339b9409d766b1ef1e4755c9ca82 released
-        // let types_by_path = registry.enumerate()
-        //     .map(|(id, ty)| (ty.path().clone(), id))
-        //     .collect::<TypesByPath>();
+        let types_by_path = registry.enumerate()
+            .map(|(id, ty)| (ty.path().clone().into(), id))
+            .collect::<TypesByPath>();
         log::debug!("Types by path: {:?}", types_by_path);
         Self::register_transcoder(&types_by_path, &mut transcoders, AccountId);
         Self::register_transcoder(&types_by_path, &mut transcoders, Balance);
