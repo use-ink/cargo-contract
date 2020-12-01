@@ -26,7 +26,6 @@ use scale_info::{
     Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
-use std::fmt::Debug;
 
 pub struct Decoder<'a> {
     registry: &'a RegistryReadOnly,
@@ -38,14 +37,13 @@ impl<'a> Decoder<'a> {
         Self { registry, env_types }
     }
 
-    pub fn decode<T, I>(
+    pub fn decode<T>(
         &self,
         ty: T,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value>
         where
             T: Into<TypeLookupId>,
-            I: Input + Debug,
     {
         let type_id = ty.into();
         let ty = self.registry.resolve(type_id.type_id()).ok_or(anyhow::anyhow!(
@@ -63,12 +61,12 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    fn decode_seq<I: Input + Debug>(
+    fn decode_seq(
         &self,
         ty: &<CompactForm as Form>::Type,
         len: usize,
         decoder: &Decoder,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let ty = self
             .registry
@@ -91,20 +89,20 @@ impl<'a> Decoder<'a> {
 }
 
 pub trait DecodeValue {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         ty: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value>;
 }
 
 impl DecodeValue for TypeDef<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         ty: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         match self {
             TypeDef::Composite(composite) => composite.decode_value(decoder, ty, input),
@@ -118,11 +116,11 @@ impl DecodeValue for TypeDef<CompactForm> {
 }
 
 impl DecodeValue for TypeDefComposite<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         ty: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let struct_type = CompositeTypeFields::from_type_def(&self)?;
         let ident = ty.path().segments().last().map(|s| s.as_str());
@@ -153,11 +151,11 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
 }
 
 impl DecodeValue for TypeDefTuple<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         _: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let mut tuple = Vec::new();
         for field_type in self.fields() {
@@ -172,11 +170,11 @@ impl DecodeValue for TypeDefTuple<CompactForm> {
 }
 
 impl DecodeValue for TypeDefVariant<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         ty: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
         let variant = self
@@ -191,11 +189,11 @@ impl DecodeValue for TypeDefVariant<CompactForm> {
 }
 
 impl DecodeValue for Variant<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         ty: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
@@ -223,33 +221,33 @@ impl DecodeValue for Variant<CompactForm> {
 }
 
 impl DecodeValue for Field<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         _: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         decoder.decode(self.ty().id(), input)
     }
 }
 
 impl DecodeValue for TypeDefArray<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         _: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         decoder.decode_seq(self.type_param(), self.len() as usize, decoder, input)
     }
 }
 
 impl DecodeValue for TypeDefSequence<CompactForm> {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         decoder: &Decoder,
         _: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
         let len = <Compact<u32>>::decode(input)?;
         decoder.decode_seq(self.type_param(), len.0 as usize, decoder, input)
@@ -257,23 +255,21 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
 }
 
 impl DecodeValue for TypeDefPrimitive {
-    fn decode_value<I: Input + Debug>(
+    fn decode_value(
         &self,
         _: &Decoder,
         _: &Type<CompactForm>,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value> {
-        fn decode_uint<I, T>(input: &mut I) -> Result<Value>
+        fn decode_uint<T>(input: &mut &[u8]) -> Result<Value>
         where
-            I: Input,
             T: Decode + Into<u128>,
         {
             let decoded = T::decode(input)?;
             Ok(Value::UInt(decoded.into()))
         }
-        fn decode_int<I, T>(input: &mut I) -> Result<Value>
+        fn decode_int<T>(input: &mut &[u8]) -> Result<Value>
         where
-            I: Input,
             T: Decode + Into<i128>,
         {
             let decoded = T::decode(input)?;
@@ -284,17 +280,17 @@ impl DecodeValue for TypeDefPrimitive {
             TypeDefPrimitive::Bool => Ok(Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => Ok(Value::String(String::decode(input)?)),
-            TypeDefPrimitive::U8 => decode_uint::<I, u8>(input),
-            TypeDefPrimitive::U16 => decode_uint::<I, u16>(input),
-            TypeDefPrimitive::U32 => decode_uint::<I, u32>(input),
-            TypeDefPrimitive::U64 => decode_uint::<I, u64>(input),
-            TypeDefPrimitive::U128 => decode_uint::<I, u128>(input),
+            TypeDefPrimitive::U8 => decode_uint::<u8>(input),
+            TypeDefPrimitive::U16 => decode_uint::<u16>(input),
+            TypeDefPrimitive::U32 => decode_uint::<u32>(input),
+            TypeDefPrimitive::U64 => decode_uint::<u64>(input),
+            TypeDefPrimitive::U128 => decode_uint::<u128>(input),
             TypeDefPrimitive::U256 => Err(anyhow::anyhow!("U256 currently not supported")),
-            TypeDefPrimitive::I8 => decode_int::<I, i8>(input),
-            TypeDefPrimitive::I16 => decode_int::<I, i16>(input),
-            TypeDefPrimitive::I32 => decode_int::<I, i32>(input),
-            TypeDefPrimitive::I64 => decode_int::<I, i64>(input),
-            TypeDefPrimitive::I128 => decode_int::<I, i128>(input),
+            TypeDefPrimitive::I8 => decode_int::<i8>(input),
+            TypeDefPrimitive::I16 => decode_int::<i16>(input),
+            TypeDefPrimitive::I32 => decode_int::<i32>(input),
+            TypeDefPrimitive::I64 => decode_int::<i64>(input),
+            TypeDefPrimitive::I128 => decode_int::<i128>(input),
             TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
         }
     }

@@ -22,11 +22,13 @@ use scale_info::{RegistryReadOnly, TypeInfo, Path, IntoCompact, form::CompactFor
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr, num::NonZeroU32};
 
+/// Provides custom encoding and decoding for predefined environment types.
 pub struct EnvTypesTranscoder {
     transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>,
 }
 
 impl EnvTypesTranscoder {
+    /// Construct an `EnvTypesTranscoder` from the given type registry.
     pub fn new(registry: &RegistryReadOnly) -> Self {
         let mut transcoders = HashMap::new();
         let types_by_path = registry
@@ -64,8 +66,13 @@ impl EnvTypesTranscoder {
         }
     }
 
-    /// If the given type spec is for an environment type with custom encoding, encodes the given
-    /// value with the custom encoder and returns `true`. Otherwise returns `false`.
+    /// If the given `TypeLookupId`` is for an environment type with custom
+    /// encoding, encodes the given value with the custom encoder and returns
+    /// `true`. Otherwise returns `false`.
+    ///
+    /// # Errors
+    ///
+    /// - If the custom encoding fails.
     pub fn try_encode<O>(
         &self,
         type_id: &TypeLookupId,
@@ -82,6 +89,27 @@ impl EnvTypesTranscoder {
                 Ok(true)
             }
             None => Ok(false),
+        }
+    }
+
+    /// If the given type lookup id is for an environment type with custom
+    /// decoding, decodes the given input with the custom decoder and returns
+    /// `Some(value)`. Otherwise returns `None`.
+    ///
+    /// # Errors
+    ///
+    /// - If the custom decoding fails.
+    pub fn try_decode(
+        &self,
+        type_id: &TypeLookupId,
+        input: &mut &[u8],
+    ) -> Result<Option<Value>> {
+        match self.transcoders.get(&type_id) {
+            Some(transcoder) => {
+                let decoded = transcoder.decode(input)?;
+                Ok(Some(decoded))
+            }
+            None => Ok(None),
         }
     }
 }
@@ -124,6 +152,7 @@ impl TypeLookupId {
     ///
     /// Returns `None` if there is no matching type found in the registry. This is expected when the
     /// specified type is not used in a contract: it won't appear in the registry.
+    ///
     pub fn from_env_type<T>(type_lookup: &TypesByPath) -> Option<Self>
         where
             T: EnvType,
@@ -221,3 +250,17 @@ impl CustomTypeTranscoder for Balance {
         unimplemented!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn custom_encode_account_id_no_alias() {
+        todo!()
+    }
+
+    #[test]
+    fn custom_encode_account_id_with_alias() {
+        todo!()
+    }
+}
+

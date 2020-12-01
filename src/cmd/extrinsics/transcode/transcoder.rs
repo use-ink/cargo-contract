@@ -22,7 +22,7 @@ use super::{
 };
 
 use anyhow::Result;
-use scale::{Input, Output};
+use scale::Output;
 use scale_info::RegistryReadOnly;
 use std::fmt::Debug;
 
@@ -50,14 +50,13 @@ impl<'a> Transcoder<'a> {
         encoder.encode(ty, &value, output)
     }
 
-    pub fn decode<T, I>(
+    pub fn decode<T>(
         &self,
         ty: T,
-        input: &mut I,
+        input: &mut &[u8],
     ) -> Result<Value>
     where
         T: Into<TypeLookupId>,
-        I: Input + Debug,
     {
         let decoder = Decoder::new(self.registry, &self.env_types);
         decoder.decode(ty, input)

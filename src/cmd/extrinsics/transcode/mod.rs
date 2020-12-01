@@ -102,10 +102,7 @@ impl<'a> ContractMessageTranscoder<'a> {
             .find(|msg| msg.name().contains(&name.to_string()))
     }
 
-    pub fn decode_contract_event<I>(&self, data: &mut I) -> Result<ContractEvent>
-    where
-        I: Input + Debug,
-    {
+    pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<ContractEvent> {
         let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
