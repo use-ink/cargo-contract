@@ -375,19 +375,34 @@ mod tests {
     fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
         env_logger::init();
 
+        type AccountId = ink_env::AccountId;
+        type AnotherAlias = ink_env::AccountId;
+
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            a: ink_env::AccountId,
+            no_alias: ink_env::AccountId,
+            aliased: AccountId,
+            different_alias: AnotherAlias,
         }
 
         transcode_roundtrip::<S>(
-            r#"S( a: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY )"#,
+            r#"S(
+                no_alias: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
+                aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
+                different_alias: 5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,
+             )"#,
             Value::Map(Map::new(
                 Some("S"),
                 vec![(
-                    Value::String("a".into()),
+                    Value::String("no_alias".into()),
                     Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                ), (
+                    Value::String("aliased".into()),
+                    Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
+                ), (
+                    Value::String("different_alias".into()),
+                    Value::Literal("5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y".into()),
                 )]
                     .into_iter()
                     .collect(),

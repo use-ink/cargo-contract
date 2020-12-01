@@ -253,16 +253,3 @@ impl CustomTypeTranscoder for Balance {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn custom_encode_account_id_no_alias() {
-        todo!()
-    }
-
-    #[test]
-    fn custom_encode_account_id_with_alias() {
-        todo!()
-    }
-}
-
