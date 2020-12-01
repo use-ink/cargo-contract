@@ -51,7 +51,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
-    unstable_options: UnstableFlags,
+    unstable_flags: UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
 
@@ -80,7 +80,7 @@ fn build_cargo_project(
         Ok(())
     };
 
-    if unstable_options.original_manifest {
+    if unstable_flags.original_manifest {
         println!(
             "{} {}",
             "warning:".yellow().bold(),
@@ -228,7 +228,7 @@ pub(crate) fn execute(
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
     build_artifact: GenerateArtifacts,
-    unstable_options: UnstableFlags,
+    unstable_flags: UnstableFlags,
 ) -> Result<GenerationResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == GenerateArtifacts::CodeOnly {
@@ -237,7 +237,7 @@ pub(crate) fn execute(
             verbosity,
             optimize_contract,
             build_artifact,
-            unstable_options,
+            unstable_flags,
         )?;
         let res = GenerationResult {
             dest_wasm: maybe_dest_wasm,
@@ -249,8 +249,7 @@ pub(crate) fn execute(
         return Ok(res);
     }
 
-    let res =
-        super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_options)?;
+    let res = super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_flags)?;
     Ok(res)
 }
 
@@ -268,14 +267,14 @@ pub(crate) fn execute_with_crate_metadata(
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
     build_artifact: GenerateArtifacts,
-    unstable_options: UnstableFlags,
+    unstable_flags: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity, unstable_options)?;
+    build_cargo_project(&crate_metadata, verbosity, unstable_flags)?;
     println!(
         " {} {}",
         format!("[2/{}]", build_artifact.steps()).bold(),
