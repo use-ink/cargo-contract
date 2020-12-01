@@ -54,7 +54,7 @@ impl<'a> Encoder<'a> {
             type_id
         ))?;
 
-        log::debug!("Encoding value {:?} with type {:?}", value, ty);
+        log::debug!("Encoding value `{:?}` with type id `{:?}` and definition `{:?}`", value, type_id, ty);
         if !self.env_types.try_encode(&type_id, &value, output)? {
             ty.type_def()
                 .encode_value_to(&self, value, output)

@@ -84,6 +84,7 @@ impl EnvTypesTranscoder {
     {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
+                log::debug!("Encoding type {:?} with custom encoder", type_id);
                 let encoded_env_type = transcoder.encode(value)?;
                 output.write(&encoded_env_type);
                 Ok(true)
@@ -106,6 +107,7 @@ impl EnvTypesTranscoder {
     ) -> Result<Option<Value>> {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
+                log::debug!("Decoding type {:?} with custom decoder", type_id);
                 let decoded = transcoder.decode(input)?;
                 Ok(Some(decoded))
             }

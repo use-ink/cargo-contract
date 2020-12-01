@@ -47,11 +47,10 @@ impl<'a> Decoder<'a> {
     {
         let type_id = ty.into();
         let ty = self.registry.resolve(type_id.type_id()).ok_or(anyhow::anyhow!(
-            "Failed to resolve type with id '{:?}'",
+            "Failed to resolve type with id `{:?}`",
             type_id
         ))?;
-        log::debug!("Decoding value with type {:?}", ty);
-
+        log::debug!("Decoding input with type id `{:?}` and definition `{:?}`", type_id, ty);
         match self.env_types.try_decode(&type_id, input) {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
@@ -227,7 +226,7 @@ impl DecodeValue for Field<CompactForm> {
         _: &Type<CompactForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        decoder.decode(self.ty().id(), input)
+        decoder.decode(self, input)
     }
 }
 
