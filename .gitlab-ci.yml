@@ -16,11 +16,7 @@ variables:
   CARGO_HOME:                      "/ci-cache/${CI_PROJECT_NAME}/cargo/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   RUST_LIB_BACKTRACE:              "0"
-
-# Necessary for building binaryen-sys, which is part of the binaryen dependency.
-# Should be reverted once the `cargo-contract` ci image provides a clang version
-# for which building `binaryen-sys` works (paritytech/scripts/#237).
-  CXX:                             "/usr/bin/clang++-8"
+  CI_IMAGE:                        "paritytech/contracts-ci-linux:production"
 
 workflow:
   rules:
@@ -36,7 +32,7 @@ workflow:
       - artifacts/
 
 .docker-env:                       &docker-env
-  image:                           paritytech/contracts-ci-linux:latest
+  image:                           "${CI_IMAGE}"
   before_script:
     - cargo -vV
     - rustc -vV
@@ -52,7 +48,6 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_COMMIT_REF_NAME == "master"
     - if: $CI_COMMIT_REF_NAME == "tags"
-    - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                   # PRs
     - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
   dependencies:                    []
