@@ -50,11 +50,7 @@ impl<'a> Transcoder<'a> {
         encoder.encode(ty, &value, output)
     }
 
-    pub fn decode<T>(
-        &self,
-        ty: T,
-        input: &mut &[u8],
-    ) -> Result<Value>
+    pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
     where
         T: Into<TypeLookupId>,
     {
@@ -65,16 +61,16 @@ impl<'a> Transcoder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::scon::{Tuple, Value};
     use super::*;
-    use super::super::scon::{Value, Tuple};
     use anyhow::Context;
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use std::num::NonZeroU32;
 
     fn registry_with_type<T>() -> Result<(RegistryReadOnly, NonZeroU32)>
-        where
-            T: scale_info::TypeInfo + 'static,
+    where
+        T: scale_info::TypeInfo + 'static,
     {
         let mut registry = Registry::new();
         let type_id = registry.register_type(&MetaType::new::<T>());
@@ -84,8 +80,8 @@ mod tests {
     }
 
     fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
-        where
-            T: scale_info::TypeInfo + 'static,
+    where
+        T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
         let transcoder = Transcoder::new(&registry);
@@ -110,7 +106,9 @@ mod tests {
         let transcoder = Transcoder::new(&registry);
         let encoded = u32::from('c').encode();
 
-        assert!(transcoder.encode(ty, &Value::Char('c'), &mut Vec::new()).is_err());
+        assert!(transcoder
+            .encode(ty, &Value::Char('c'), &mut Vec::new())
+            .is_err());
         assert!(transcoder.decode(ty, &mut &encoded[..]).is_err());
         Ok(())
     }
@@ -197,7 +195,7 @@ mod tests {
                     Value::String("hello".to_string()),
                     Value::String("world".to_string()),
                 ]
-                    .into(),
+                .into(),
             ),
         )
     }
@@ -215,7 +213,7 @@ mod tests {
                     Value::String("hello".to_string()),
                     Value::String("world".to_string()),
                 ]
-                    .into(),
+                .into(),
             ),
         )
     }
@@ -281,15 +279,15 @@ mod tests {
                                         ),
                                     ),
                                 ]
-                                    .into_iter()
-                                    .collect(),
+                                .into_iter()
+                                .collect(),
                             )]
-                                .into(),
+                            .into(),
                         ),
                     ),
                 ]
-                    .into_iter()
-                    .collect(),
+                .into_iter()
+                .collect(),
             ),
         )
     }
@@ -376,37 +374,55 @@ mod tests {
         env_logger::init();
 
         type AccountId = ink_env::AccountId;
-        type AnotherAlias = ink_env::AccountId;
 
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
             no_alias: ink_env::AccountId,
             aliased: AccountId,
-            different_alias: AnotherAlias,
         }
 
         transcode_roundtrip::<S>(
             r#"S(
                 no_alias: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
                 aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
-                different_alias: 5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,
              )"#,
             Value::Map(Map::new(
                 Some("S"),
-                vec![(
-                    Value::String("no_alias".into()),
-                    Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
-                ), (
-                    Value::String("aliased".into()),
-                    Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
-                ), (
-                    Value::String("different_alias".into()),
-                    Value::Literal("5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y".into()),
-                )]
-                    .into_iter()
-                    .collect(),
+                vec![
+                    (
+                        Value::String("no_alias".into()),
+                        Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                    ),
+                    (
+                        Value::String("aliased".into()),
+                        Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
             )),
         )
+    }
+
+    #[test]
+    fn transcode_account_id_custom_encoding_fails_with_non_matching_type_name() -> Result<()> {
+        type SomeOtherAlias = ink_env::AccountId;
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            aliased: SomeOtherAlias,
+        }
+
+        let (registry, ty) = registry_with_type::<S>()?;
+        let transcoder = Transcoder::new(&registry);
+
+        let input = r#"S( aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty )"#;
+        let value = input.parse::<Value>()?;
+        let mut output = Vec::new();
+        assert!(transcoder.encode(ty, &value, &mut output).is_err());
+
+        Ok(())
     }
 }

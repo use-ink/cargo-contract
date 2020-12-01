@@ -34,29 +34,35 @@ pub struct Decoder<'a> {
 
 impl<'a> Decoder<'a> {
     pub fn new(registry: &'a RegistryReadOnly, env_types: &'a EnvTypesTranscoder) -> Self {
-        Self { registry, env_types }
+        Self {
+            registry,
+            env_types,
+        }
     }
 
-    pub fn decode<T>(
-        &self,
-        ty: T,
-        input: &mut &[u8],
-    ) -> Result<Value>
-        where
-            T: Into<TypeLookupId>,
+    pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
+    where
+        T: Into<TypeLookupId>,
     {
         let type_id = ty.into();
-        let ty = self.registry.resolve(type_id.type_id()).ok_or(anyhow::anyhow!(
-            "Failed to resolve type with id `{:?}`",
-            type_id
-        ))?;
-        log::debug!("Decoding input with type id `{:?}` and definition `{:?}`", type_id, ty);
+        let ty = self
+            .registry
+            .resolve(type_id.type_id())
+            .ok_or(anyhow::anyhow!(
+                "Failed to resolve type with id `{:?}`",
+                type_id
+            ))?;
+        log::debug!(
+            "Decoding input with type id `{:?}` and definition `{:?}`",
+            type_id,
+            ty
+        );
         match self.env_types.try_decode(&type_id, input) {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
             // No custom decoder registered so attempt default decoding.
             Ok(None) => ty.type_def().decode_value(self, &ty, input),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -254,12 +260,7 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
 }
 
 impl DecodeValue for TypeDefPrimitive {
-    fn decode_value(
-        &self,
-        _: &Decoder,
-        _: &Type<CompactForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
+    fn decode_value(&self, _: &Decoder, _: &Type<CompactForm>, input: &mut &[u8]) -> Result<Value> {
         fn decode_uint<T>(input: &mut &[u8]) -> Result<Value>
         where
             T: Decode + Into<u128>,

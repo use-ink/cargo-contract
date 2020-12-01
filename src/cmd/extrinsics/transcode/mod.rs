@@ -21,7 +21,7 @@ mod scon;
 mod transcoder;
 
 use self::{
-    scon::{Value, Map},
+    scon::{Map, Value},
     transcoder::Transcoder,
 };
 
@@ -32,9 +32,7 @@ use scale_info::{
     form::{CompactForm, Form},
     Field, TypeDefComposite,
 };
-use std::{
-    fmt::{self, Debug, Display, Formatter}
-};
+use std::fmt::{self, Debug, Display, Formatter};
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.

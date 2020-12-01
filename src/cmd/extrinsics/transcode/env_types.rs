@@ -17,10 +17,10 @@
 use super::scon::Value;
 use anyhow::Result;
 use ink_metadata::TypeSpec;
-use scale::{Encode, Decode, Output};
-use scale_info::{RegistryReadOnly, TypeInfo, Path, IntoCompact, form::CompactForm, Field};
+use scale::{Decode, Encode, Output};
+use scale_info::{form::CompactForm, Field, IntoCompact, Path, RegistryReadOnly, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
-use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr, num::NonZeroU32};
+use std::{boxed::Box, collections::HashMap, convert::TryFrom, num::NonZeroU32, str::FromStr};
 
 /// Provides custom encoding and decoding for predefined environment types.
 pub struct EnvTypesTranscoder {
@@ -100,11 +100,7 @@ impl EnvTypesTranscoder {
     /// # Errors
     ///
     /// - If the custom decoding fails.
-    pub fn try_decode(
-        &self,
-        type_id: &TypeLookupId,
-        input: &mut &[u8],
-    ) -> Result<Option<Value>> {
+    pub fn try_decode(&self, type_id: &TypeLookupId, input: &mut &[u8]) -> Result<Option<Value>> {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
                 log::debug!("Decoding type {:?} with custom decoder", type_id);
@@ -156,8 +152,8 @@ impl TypeLookupId {
     /// specified type is not used in a contract: it won't appear in the registry.
     ///
     pub fn from_env_type<T>(type_lookup: &TypesByPath) -> Option<Self>
-        where
-            T: EnvType,
+    where
+        T: EnvType,
     {
         let type_info = T::Type::type_info();
         let path = type_info
@@ -252,4 +248,3 @@ impl CustomTypeTranscoder for Balance {
         unimplemented!()
     }
 }
-
