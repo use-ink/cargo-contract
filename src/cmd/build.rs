@@ -231,7 +231,9 @@ pub(crate) fn execute(
     unstable_flags: UnstableFlags,
 ) -> Result<GenerationResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    if build_artifact == GenerateArtifacts::CodeOnly {
+    if build_artifact == GenerateArtifacts::CodeOnly
+        || build_artifact == GenerateArtifacts::CheckOnly
+    {
         let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,

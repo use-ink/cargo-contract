@@ -161,6 +161,7 @@ pub enum GenerateArtifacts {
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
     #[structopt(name = "code-only")]
     CodeOnly,
+    CheckOnly,
 }
 
 impl GenerateArtifacts {
@@ -170,6 +171,7 @@ impl GenerateArtifacts {
         match self {
             GenerateArtifacts::All => 5,
             GenerateArtifacts::CodeOnly => 3,
+            GenerateArtifacts::CheckOnly => 2,
         }
     }
 
