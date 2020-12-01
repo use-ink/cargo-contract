@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    convert::TryFrom,
     fs::{metadata, File},
     io::{Read, Write},
     path::PathBuf,
@@ -24,14 +25,93 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
-    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
+    GenerateArtifacts, GenerationResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
+use crate::{OptimizationResult, Verbosity};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use structopt::StructOpt;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "build")]
+pub struct BuildCommand {
+    /// Path to the Cargo.toml of the contract to build
+    #[structopt(long, parse(from_os_str))]
+    manifest_path: Option<PathBuf>,
+    /// Which build artifacts to generate.
+    ///
+    /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
+    ///
+    /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
+    ///   `<name>.contract` file is skipped.
+    #[structopt(
+        long = "generate",
+        default_value = "all",
+        value_name = "all | code-only",
+        verbatim_doc_comment
+    )]
+    build_artifact: GenerateArtifacts,
+    #[structopt(flatten)]
+    verbosity: VerbosityFlags,
+    #[structopt(flatten)]
+    unstable_options: UnstableOptions,
+}
+
+impl BuildCommand {
+    /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+    ///
+    /// It does so by invoking `cargo build` and then post processing the final binary.
+    ///
+    /// # Note
+    ///
+    /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
+    /// [`execute_build_with_metadata`] if an instance is already available.
+    pub fn exec(&self) -> Result<GenerationResult> {
+        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let unstable_flags: UnstableFlags =
+            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
+        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        execute(
+            &manifest_path,
+            verbosity,
+            true,
+            self.build_artifact,
+            unstable_flags,
+        )
+    }
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "check")]
+pub struct CheckCommand {
+    /// Path to the Cargo.toml of the contract to build
+    #[structopt(long, parse(from_os_str))]
+    manifest_path: Option<PathBuf>,
+    #[structopt(flatten)]
+    verbosity: VerbosityFlags,
+    #[structopt(flatten)]
+    unstable_options: UnstableOptions,
+}
+
+impl CheckCommand {
+    pub fn exec(&self) -> Result<GenerationResult> {
+        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let unstable_flags: UnstableFlags =
+            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
+        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        execute(
+            &manifest_path,
+            verbosity,
+            false,
+            GenerateArtifacts::CheckOnly,
+            unstable_flags,
+        )
+    }
+}
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
@@ -223,7 +303,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 ///
 /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
 /// [`execute_build_with_metadata`] if an instance is already available.
-pub(crate) fn execute(
+fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
@@ -247,6 +327,7 @@ pub(crate) fn execute(
             dest_bundle: None,
             target_directory: crate_metadata.cargo_meta.target_directory,
             optimization_result: maybe_optimization_result,
+            build_artifact,
         };
         return Ok(res);
     }

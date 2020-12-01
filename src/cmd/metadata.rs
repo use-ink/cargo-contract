@@ -142,6 +142,7 @@ impl GenerateMetadataCommand {
             dest_bundle,
             optimization_result,
             target_directory,
+            build_artifact: self.build_artifact,
         })
     }
 
