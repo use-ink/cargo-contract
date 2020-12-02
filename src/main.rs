@@ -21,12 +21,11 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
+use crate::cmd::{BuildCommand, CheckCommand};
+
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::{
-    convert::{TryFrom, TryInto},
-    path::PathBuf,
-};
+use std::{convert::TryFrom, path::PathBuf};
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
@@ -93,8 +92,8 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Debug, StructOpt)]
-struct VerbosityFlags {
+#[derive(Clone, Debug, StructOpt)]
+pub struct VerbosityFlags {
     #[structopt(long)]
     quiet: bool,
     #[structopt(long)]
@@ -120,7 +119,7 @@ impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Debug, StructOpt)]
 struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
     #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
@@ -154,39 +153,77 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 /// Describes which artifacts to generate
 #[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
 #[structopt(name = "build-artifacts")]
-pub enum GenerateArtifacts {
+pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[structopt(name = "all")]
     All,
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
     #[structopt(name = "code-only")]
     CodeOnly,
+    CheckOnly,
 }
 
-impl GenerateArtifacts {
+impl BuildArtifacts {
     /// Returns the number of steps required to complete a build artifact.
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            GenerateArtifacts::All => 5,
-            GenerateArtifacts::CodeOnly => 3,
+            BuildArtifacts::All => 5,
+            BuildArtifacts::CodeOnly => 3,
+            BuildArtifacts::CheckOnly => 2,
         }
     }
+}
 
-    pub fn display(&self, result: &GenerationResult) -> String {
-        let optimization = GenerationResult::display_optimization(result);
+impl std::str::FromStr for BuildArtifacts {
+    type Err = String;
+    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
+        match artifact {
+            "all" => Ok(BuildArtifacts::All),
+            "code-only" => Ok(BuildArtifacts::CodeOnly),
+            _ => Err("Could not parse build artifact".to_string()),
+        }
+    }
+}
+
+/// Result of the metadata generation process.
+pub struct BuildResult {
+    /// Path to the resulting metadata file.
+    pub dest_metadata: Option<PathBuf>,
+    /// Path to the resulting Wasm file.
+    pub dest_wasm: Option<PathBuf>,
+    /// Path to the bundled file.
+    pub dest_bundle: Option<PathBuf>,
+    /// Path to the directory where output files are written to.
+    pub target_directory: PathBuf,
+    /// If existent the result of the optimization.
+    pub optimization_result: Option<OptimizationResult>,
+    /// Which build artifacts were generated.
+    pub build_artifact: BuildArtifacts,
+}
+
+/// Result of the optimization process.
+pub struct OptimizationResult {
+    /// The original Wasm size.
+    pub original_size: f64,
+    /// The Wasm size after optimizations have been applied.
+    pub optimized_size: f64,
+}
+
+impl BuildResult {
+    pub fn display(&self) -> String {
+        let optimization = self.display_optimization();
         let size_diff = format!(
             "\nOriginal wasm size: {}, Optimized: {}\n\n",
             format!("{:.1}K", optimization.0).bold(),
             format!("{:.1}K", optimization.1).bold(),
         );
 
-        if self == &GenerateArtifacts::CodeOnly {
+        if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
                 "{}Your contract's code is ready. You can find it here:\n{}",
                 size_diff,
-                result
-                    .dest_wasm
+                self.dest_wasm
                     .as_ref()
                     .expect("wasm path must exist")
                     .display()
@@ -199,80 +236,37 @@ impl GenerateArtifacts {
         let mut out = format!(
             "{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
             size_diff,
-            result.target_directory.display().to_string().bold(),
+            self.target_directory.display().to_string().bold(),
         );
-        if let Some(dest_bundle) = result.dest_bundle.as_ref() {
+        if let Some(dest_bundle) = self.dest_bundle.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                GenerationResult::display(&dest_bundle).bold()
+                util::base_name(&dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
-        if let Some(dest_wasm) = result.dest_wasm.as_ref() {
+        if let Some(dest_wasm) = self.dest_wasm.as_ref() {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
-                GenerationResult::display(&dest_wasm).bold()
+                util::base_name(&dest_wasm).bold()
             );
             out.push_str(&wasm);
         }
-        if let Some(dest_metadata) = result.dest_metadata.as_ref() {
+        if let Some(dest_metadata) = self.dest_metadata.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                GenerationResult::display(&dest_metadata).bold()
+                util::base_name(&dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
         out
     }
-}
-
-impl std::str::FromStr for GenerateArtifacts {
-    type Err = String;
-    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
-        match artifact {
-            "all" => Ok(GenerateArtifacts::All),
-            "code-only" => Ok(GenerateArtifacts::CodeOnly),
-            _ => Err("Could not parse build artifact".to_string()),
-        }
-    }
-}
-
-/// Result of the metadata generation process.
-pub struct GenerationResult {
-    /// Path to the resulting metadata file.
-    pub dest_metadata: Option<PathBuf>,
-    /// Path to the resulting Wasm file.
-    pub dest_wasm: Option<PathBuf>,
-    /// Path to the bundled file.
-    pub dest_bundle: Option<PathBuf>,
-    /// Path to the directory where output files are written to.
-    pub target_directory: PathBuf,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<OptimizationResult>,
-}
-
-/// Result of the optimization process.
-pub struct OptimizationResult {
-    /// The original Wasm size.
-    pub original_size: f64,
-    /// The Wasm size after optimizations have been applied.
-    pub optimized_size: f64,
-}
-
-impl GenerationResult {
-    /// Returns the base name of the path.
-    pub fn display(path: &PathBuf) -> &str {
-        path.file_name()
-            .expect("file name must exist")
-            .to_str()
-            .expect("must be valid utf-8")
-    }
 
     /// Returns a tuple of `(original_size, optimized_size)`.
     ///
     /// Panics if no optimization result is available.
-    pub fn display_optimization(res: &GenerationResult) -> (f64, f64) {
-        let optimization = res
+    fn display_optimization(&self) -> (f64, f64) {
+        let optimization = self
             .optimization_result
             .as_ref()
             .expect("optimization result must exist");
@@ -293,42 +287,13 @@ enum Command {
     },
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
     #[structopt(name = "build")]
-    Build {
-        /// Path to the Cargo.toml of the contract to build
-        #[structopt(long, parse(from_os_str))]
-        manifest_path: Option<PathBuf>,
-        /// Which build artifacts to generate.
-        ///
-        /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
-        ///
-        /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
-        ///   `<name>.contract` file is skipped.
-        #[structopt(
-            long = "generate",
-            default_value = "all",
-            value_name = "all | code-only",
-            verbatim_doc_comment
-        )]
-        build_artifact: GenerateArtifacts,
-        #[structopt(flatten)]
-        verbosity: VerbosityFlags,
-        #[structopt(flatten)]
-        unstable_options: UnstableOptions,
-    },
+    Build(BuildCommand),
     /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
     /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
     #[structopt(name = "check")]
-    Check {
-        /// Path to the Cargo.toml of the contract to build
-        #[structopt(long, parse(from_os_str))]
-        manifest_path: Option<PathBuf>,
-        #[structopt(flatten)]
-        verbosity: VerbosityFlags,
-        #[structopt(flatten)]
-        unstable_options: UnstableOptions,
-    },
+    Check(CheckCommand),
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test {},
@@ -394,37 +359,16 @@ fn main() {
 fn exec(cmd: Command) -> Result<String> {
     match &cmd {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
-        Command::Build {
-            manifest_path,
-            verbosity,
-            build_artifact,
-            unstable_options,
-        } => {
-            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let result = cmd::build::execute(
-                &manifest_path,
-                verbosity.try_into()?,
-                true,
-                *build_artifact,
-                unstable_options.try_into()?,
-            )?;
-
-            Ok(build_artifact.display(&result))
+        Command::Build(build) => {
+            let result = build.exec()?;
+            Ok(result.display())
         }
-        Command::Check {
-            manifest_path,
-            verbosity,
-            unstable_options,
-        } => {
-            let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
-            let res = cmd::build::execute(
-                &manifest_path,
-                verbosity.try_into()?,
-                false,
-                GenerateArtifacts::CodeOnly,
-                unstable_options.try_into()?,
-            )?;
-            assert!(res.dest_wasm.is_none(), "no dest_wasm should exist");
+        Command::Check(check) => {
+            let res = check.exec()?;
+            assert!(
+                res.dest_wasm.is_none(),
+                "no dest_wasm must be on the generation result"
+            );
             Ok("\nYour contract's code was built successfully.".to_string())
         }
         Command::GenerateMetadata {} => Err(anyhow::anyhow!(
