@@ -36,6 +36,14 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+///
+/// It does so by invoking `cargo build` and then post processing the final binary.
+///
+/// # Note
+///
+/// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
+/// [`execute_with_crate_metadata`] if an instance is already available.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "build")]
 pub struct BuildCommand {
@@ -62,14 +70,6 @@ pub struct BuildCommand {
 }
 
 impl BuildCommand {
-    /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
-    ///
-    /// It does so by invoking `cargo build` and then post processing the final binary.
-    ///
-    /// # Note
-    ///
-    /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
-    /// [`execute_with_crate_metadata`] if an instance is already available.
     pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
