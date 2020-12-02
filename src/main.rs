@@ -206,21 +206,21 @@ impl GenerateArtifacts {
         if let Some(dest_bundle) = result.dest_bundle.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                GenerationResult::display(&dest_bundle).bold()
+                util::base_name(&dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
         if let Some(dest_wasm) = result.dest_wasm.as_ref() {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
-                GenerationResult::display(&dest_wasm).bold()
+                util::base_name(&dest_wasm).bold()
             );
             out.push_str(&wasm);
         }
         if let Some(dest_metadata) = result.dest_metadata.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                GenerationResult::display(&dest_metadata).bold()
+                util::base_name(&dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
@@ -262,13 +262,6 @@ pub struct OptimizationResult {
 }
 
 impl GenerationResult {
-    /// Returns the base name of the path.
-    pub fn display(path: &PathBuf) -> &str {
-        path.file_name()
-            .expect("file name must exist")
-            .to_str()
-            .expect("must be valid utf-8")
-    }
 
     /// Returns a tuple of `(original_size, optimized_size)`.
     ///
