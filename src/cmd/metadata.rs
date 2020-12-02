@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
-    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
+    GenerateArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -52,7 +52,7 @@ struct ExtendedMetadataResult {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<GenerationResult> {
+    pub fn exec(&self) -> Result<BuildResult> {
         util::assert_channel()?;
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
@@ -136,7 +136,7 @@ impl GenerateMetadataCommand {
         } else {
             None
         };
-        Ok(GenerationResult {
+        Ok(BuildResult {
             dest_metadata: Some(out_path_metadata),
             dest_wasm,
             dest_bundle,
@@ -261,7 +261,7 @@ pub(crate) fn execute(
     verbosity: Option<Verbosity>,
     build_artifact: GenerateArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<GenerationResult> {
+) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,

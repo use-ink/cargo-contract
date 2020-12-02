@@ -25,7 +25,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
-    GenerateArtifacts, GenerationResult, UnstableFlags, UnstableOptions, VerbosityFlags,
+    GenerateArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
 use crate::{OptimizationResult, Verbosity};
 use anyhow::{Context, Result};
@@ -70,7 +70,7 @@ impl BuildCommand {
     ///
     /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
     /// [`execute_build_with_metadata`] if an instance is already available.
-    pub fn exec(&self) -> Result<GenerationResult> {
+    pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
@@ -98,7 +98,7 @@ pub struct CheckCommand {
 }
 
 impl CheckCommand {
-    pub fn exec(&self) -> Result<GenerationResult> {
+    pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
@@ -309,7 +309,7 @@ fn execute(
     optimize_contract: bool,
     build_artifact: GenerateArtifacts,
     unstable_flags: UnstableFlags,
-) -> Result<GenerationResult> {
+) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == GenerateArtifacts::CodeOnly
         || build_artifact == GenerateArtifacts::CheckOnly
@@ -321,7 +321,7 @@ fn execute(
             build_artifact,
             unstable_flags,
         )?;
-        let res = GenerationResult {
+        let res = BuildResult {
             dest_wasm: maybe_dest_wasm,
             dest_metadata: None,
             dest_bundle: None,

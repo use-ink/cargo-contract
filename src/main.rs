@@ -187,7 +187,7 @@ impl std::str::FromStr for GenerateArtifacts {
 }
 
 /// Result of the metadata generation process.
-pub struct GenerationResult {
+pub struct BuildResult {
     /// Path to the resulting metadata file.
     pub dest_metadata: Option<PathBuf>,
     /// Path to the resulting Wasm file.
@@ -210,7 +210,7 @@ pub struct OptimizationResult {
     pub optimized_size: f64,
 }
 
-impl GenerationResult {
+impl BuildResult {
     pub fn display(&self) -> String {
         let optimization = self.display_optimization();
         let size_diff = format!(
