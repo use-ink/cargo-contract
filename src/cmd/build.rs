@@ -25,7 +25,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Profile, Workspace},
-    GenerateArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
+    BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
 use crate::{OptimizationResult, Verbosity};
 use anyhow::{Context, Result};
@@ -54,7 +54,7 @@ pub struct BuildCommand {
         value_name = "all | code-only",
         verbatim_doc_comment
     )]
-    build_artifact: GenerateArtifacts,
+    build_artifact: BuildArtifacts,
     #[structopt(flatten)]
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
@@ -107,7 +107,7 @@ impl CheckCommand {
             &manifest_path,
             verbosity,
             false,
-            GenerateArtifacts::CheckOnly,
+            BuildArtifacts::CheckOnly,
             unstable_flags,
         )
     }
@@ -307,13 +307,11 @@ fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
-    build_artifact: GenerateArtifacts,
+    build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    if build_artifact == GenerateArtifacts::CodeOnly
-        || build_artifact == GenerateArtifacts::CheckOnly
-    {
+    if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
         let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,
@@ -349,7 +347,7 @@ pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     optimize_contract: bool,
-    build_artifact: GenerateArtifacts,
+    build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
@@ -382,7 +380,7 @@ pub(crate) fn execute_with_crate_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, GenerateArtifacts, ManifestPath, UnstableFlags};
+    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
 
     #[test]
     fn build_template() {
@@ -394,7 +392,7 @@ mod tests {
                 &manifest_path,
                 None,
                 true,
-                GenerateArtifacts::All,
+                BuildArtifacts::All,
                 UnstableFlags::default(),
             )
             .expect("build failed");

@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
-    GenerateArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
+    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -38,7 +38,7 @@ const METADATA_FILE: &str = "metadata.json";
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
     verbosity: Option<Verbosity>,
-    build_artifact: GenerateArtifacts,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 }
 
@@ -104,7 +104,7 @@ impl GenerateMetadataCommand {
                 current_progress += 1;
             }
 
-            if self.build_artifact == GenerateArtifacts::All {
+            if self.build_artifact == BuildArtifacts::All {
                 println!(
                     " {} {}",
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
@@ -131,7 +131,7 @@ impl GenerateMetadataCommand {
                 .using_temp(generate_metadata)?;
         }
 
-        let dest_bundle = if self.build_artifact == GenerateArtifacts::All {
+        let dest_bundle = if self.build_artifact == BuildArtifacts::All {
             Some(out_path_bundle)
         } else {
             None
@@ -168,7 +168,7 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = if self.build_artifact == GenerateArtifacts::All {
+            let maybe_wasm = if self.build_artifact == BuildArtifacts::All {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
                 debug_assert!({
@@ -259,7 +259,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
-    build_artifact: GenerateArtifacts,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
@@ -278,7 +278,7 @@ pub(crate) fn execute(
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, GenerateArtifacts,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
         ManifestPath, UnstableFlags,
     };
     use contract_metadata::*;
@@ -376,7 +376,7 @@ mod tests {
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                GenerateArtifacts::All,
+                BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
             .dest_bundle

@@ -153,7 +153,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 /// Describes which artifacts to generate
 #[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
 #[structopt(name = "build-artifacts")]
-pub enum GenerateArtifacts {
+pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[structopt(name = "all")]
     All,
@@ -163,24 +163,24 @@ pub enum GenerateArtifacts {
     CheckOnly,
 }
 
-impl GenerateArtifacts {
+impl BuildArtifacts {
     /// Returns the number of steps required to complete a build artifact.
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            GenerateArtifacts::All => 5,
-            GenerateArtifacts::CodeOnly => 3,
-            GenerateArtifacts::CheckOnly => 2,
+            BuildArtifacts::All => 5,
+            BuildArtifacts::CodeOnly => 3,
+            BuildArtifacts::CheckOnly => 2,
         }
     }
 }
 
-impl std::str::FromStr for GenerateArtifacts {
+impl std::str::FromStr for BuildArtifacts {
     type Err = String;
     fn from_str(artifact: &str) -> Result<Self, Self::Err> {
         match artifact {
-            "all" => Ok(GenerateArtifacts::All),
-            "code-only" => Ok(GenerateArtifacts::CodeOnly),
+            "all" => Ok(BuildArtifacts::All),
+            "code-only" => Ok(BuildArtifacts::CodeOnly),
             _ => Err("Could not parse build artifact".to_string()),
         }
     }
@@ -199,7 +199,7 @@ pub struct BuildResult {
     /// If existent the result of the optimization.
     pub optimization_result: Option<OptimizationResult>,
     /// Which build artifacts were generated.
-    pub build_artifact: GenerateArtifacts,
+    pub build_artifact: BuildArtifacts,
 }
 
 /// Result of the optimization process.
@@ -219,7 +219,7 @@ impl BuildResult {
             format!("{:.1}K", optimization.1).bold(),
         );
 
-        if self.build_artifact == GenerateArtifacts::CodeOnly {
+        if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
                 "{}Your contract's code is ready. You can find it here:\n{}",
                 size_diff,
