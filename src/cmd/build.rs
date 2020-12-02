@@ -69,7 +69,7 @@ impl BuildCommand {
     /// # Note
     ///
     /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
-    /// [`execute_build_with_metadata`] if an instance is already available.
+    /// [`execute_with_crate_metadata`] if an instance is already available.
     pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
@@ -302,7 +302,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 /// # Note
 ///
 /// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
-/// [`execute_build_with_metadata`] if an instance is already available.
+/// [`execute_with_crate_metadata`] if an instance is already available.
 fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
