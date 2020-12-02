@@ -39,11 +39,6 @@ const MAX_MEMORY_PAGES: u32 = 16;
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-///
-/// # Note
-///
-/// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
-/// [`execute_with_crate_metadata`] if an instance is already available.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "build")]
 pub struct BuildCommand {
@@ -298,11 +293,6 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-///
-/// # Note
-///
-/// Collects the contract crate's metadata using the supplied manifest (`Cargo.toml`) path. Use
-/// [`execute_with_crate_metadata`] if an instance is already available.
 fn execute(
     manifest_path: &ManifestPath,
     verbosity: Option<Verbosity>,
