@@ -13,7 +13,7 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
   - **rust-src**: `rustup component add rust-src`
   - A C++14 compiler and python >= 3.5 is required for building the
     [binaryen](https://github.com/WebAssembly/binaryen) dependency.
-    `binaryen` is build automatically during the `cargo-contract` build process.
+    `binaryen` is built automatically during the `cargo-contract` build process.
 
 - **Install latest version from [crates.io](https://crates.io/crates/cargo-contract)**
   - `cargo install cargo-contract`
@@ -66,5 +66,4 @@ Once they are stable and the compilation time is acceptable, we will consider re
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE). Please [contact us](https://www.parity.io/contact/) if you have questions about the licensing of our products.
-
 
