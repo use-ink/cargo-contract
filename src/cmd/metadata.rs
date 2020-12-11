@@ -263,7 +263,7 @@ pub(crate) fn execute(
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path, Some(build_artifact))?;
     let res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
@@ -354,6 +354,7 @@ mod tests {
     fn generate_metadata() {
         env_logger::try_init().ok();
         with_tmp_dir(|path| {
+            let build_artifact = BuildArtifacts::All;
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
@@ -373,11 +374,12 @@ mod tests {
             )?;
             test_manifest.write()?;
 
-            let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
+            let crate_metadata =
+                CrateMetadata::collect(&test_manifest.manifest_path, Some(build_artifact))?;
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                BuildArtifacts::All,
+                build_artifact,
                 UnstableFlags::default(),
             )?
             .dest_bundle

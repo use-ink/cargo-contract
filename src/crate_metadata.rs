@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ManifestPath;
+use crate::{BuildArtifacts, ManifestPath};
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
 use semver::Version;
@@ -41,11 +41,22 @@ pub struct CrateMetadata {
 
 impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
-    pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
+    pub fn collect(
+        manifest_path: &ManifestPath,
+        build_artifact: Option<BuildArtifacts>,
+    ) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
-        let mut target_directory = metadata.target_directory.clone();
-        target_directory.push("ink");
+        let target_directory = if let Some(_ba @ BuildArtifacts::CheckOnly) = build_artifact {
+            let tmp_dir = tempfile::Builder::new()
+                .prefix("cargo-contract_")
+                .tempdir()?;
+            tmp_dir.into_path()
+        } else {
+            let mut target_directory = metadata.target_directory.clone();
+            target_directory.push("ink");
+            target_directory
+        };
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
