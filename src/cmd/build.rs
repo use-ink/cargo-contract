@@ -396,4 +396,30 @@ mod tests {
             Ok(())
         })
     }
+
+    #[test]
+    fn check_must_not_create_target_in_project_dir() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let project_dir = path.join("new_project");
+            let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
+
+            // when
+            super::execute(
+                &manifest_path,
+                None,
+                true,
+                BuildArtifacts::CheckOnly,
+                UnstableFlags::default(),
+            )
+            .expect("build failed");
+
+            // then
+            if project_dir.join("target").exists() {
+                panic!("found target folder in project directory!");
+            }
+            Ok(())
+        })
+    }
 }
