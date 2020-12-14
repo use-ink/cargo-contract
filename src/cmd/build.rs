@@ -378,7 +378,7 @@ mod tests {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            super::execute(
+            let res = super::execute(
                 &manifest_path,
                 None,
                 true,
@@ -386,6 +386,13 @@ mod tests {
                 UnstableFlags::default(),
             )
             .expect("build failed");
+
+            // we can't use `/target/ink` here, since this would match
+            // for `/target` being the root path. but since `ends_with`
+            // always matches whole path components we can be sure
+            // the path can never be e.g. `foo_target/ink` -- the assert
+            // would fail for that.
+            assert!(res.target_directory.ends_with("target/ink"));
             Ok(())
         })
     }
