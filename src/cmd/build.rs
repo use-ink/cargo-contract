@@ -138,7 +138,7 @@ fn build_cargo_project(
     );
 
     let cargo_build = |manifest_path: &ManifestPath| {
-        let target_dir = &crate_metadata.cargo_meta.target_directory;
+        let target_dir = &crate_metadata.target_directory;
         util::invoke_cargo(
             "build",
             &[
@@ -313,7 +313,7 @@ fn execute(
             dest_wasm: maybe_dest_wasm,
             dest_metadata: None,
             dest_bundle: None,
-            target_directory: crate_metadata.cargo_meta.target_directory,
+            target_directory: crate_metadata.target_directory,
             optimization_result: maybe_optimization_result,
             build_artifact,
         };

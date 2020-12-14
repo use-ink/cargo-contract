@@ -56,12 +56,12 @@ impl GenerateMetadataCommand {
         util::assert_channel()?;
 
         let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path_metadata = cargo_meta.target_directory.join(METADATA_FILE);
+
+        let target_directory = self.crate_metadata.target_directory.clone();
+        let out_path_metadata = target_directory.join(METADATA_FILE);
 
         let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
-        let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
-
-        let target_directory = cargo_meta.target_directory.clone();
+        let out_path_bundle = target_directory.join(fname_bundle);
 
         // build the extended contract project metadata
         let ExtendedMetadataResult {
