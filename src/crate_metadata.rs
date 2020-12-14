@@ -42,8 +42,7 @@ pub struct CrateMetadata {
 impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
-        let (mut metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        metadata.target_directory.push("ink");
+        let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
         let mut target_directory = metadata.target_directory.clone();
         target_directory.push("ink");
