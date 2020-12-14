@@ -36,6 +36,7 @@ pub struct CrateMetadata {
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
+    pub target_directory: PathBuf,
 }
 
 impl CrateMetadata {
@@ -43,18 +44,21 @@ impl CrateMetadata {
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
+        let mut target_directory = metadata.target_directory.clone();
+        target_directory.push("ink");
+
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
 
         // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
-        let mut original_wasm = metadata.target_directory.clone();
+        let mut original_wasm = target_directory.clone();
         original_wasm.push("wasm32-unknown-unknown");
         original_wasm.push("release");
         original_wasm.push(package_name.clone());
         original_wasm.set_extension("wasm");
 
         // {target_dir}/{package_name}.wasm
-        let mut dest_wasm = metadata.target_directory.clone();
+        let mut dest_wasm = target_directory.clone();
         dest_wasm.push(package_name.clone());
         dest_wasm.set_extension("wasm");
 
@@ -86,6 +90,7 @@ impl CrateMetadata {
             documentation,
             homepage,
             user,
+            target_directory,
         };
         Ok(crate_metadata)
     }

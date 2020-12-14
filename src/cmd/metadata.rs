@@ -55,13 +55,11 @@ impl GenerateMetadataCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         util::assert_channel()?;
 
-        let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path_metadata = cargo_meta.target_directory.join(METADATA_FILE);
+        let target_directory = self.crate_metadata.target_directory.clone();
+        let out_path_metadata = target_directory.join(METADATA_FILE);
 
         let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
-        let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
-
-        let target_directory = cargo_meta.target_directory.clone();
+        let out_path_bundle = target_directory.join(fname_bundle);
 
         // build the extended contract project metadata
         let ExtendedMetadataResult {
@@ -120,15 +118,18 @@ impl GenerateMetadataCommand {
         if self.unstable_options.original_manifest {
             generate_metadata(&self.crate_metadata.manifest_path)?;
         } else {
-            Workspace::new(&cargo_meta, &self.crate_metadata.root_package.id)?
-                .with_root_package_manifest(|manifest| {
-                    manifest
-                        .with_added_crate_type("rlib")?
-                        .with_profile_release_lto(false)?;
-                    Ok(())
-                })?
-                .with_metadata_gen_package()?
-                .using_temp(generate_metadata)?;
+            Workspace::new(
+                &self.crate_metadata.cargo_meta,
+                &self.crate_metadata.root_package.id,
+            )?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_added_crate_type("rlib")?
+                    .with_profile_release_lto(false)?;
+                Ok(())
+            })?
+            .with_metadata_gen_package()?
+            .using_temp(generate_metadata)?;
         }
 
         let dest_bundle = if self.build_artifact == BuildArtifacts::All {
