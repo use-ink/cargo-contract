@@ -342,6 +342,8 @@ checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 [[package]]
 name = "binaryen"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a9b407f52d0b918c6ea41d7a328321496b315f61da99a309b375dfbbd04bc9a"
 dependencies = [
  "binaryen-sys",
 ]
@@ -349,6 +351,8 @@ dependencies = [
 [[package]]
 name = "binaryen-sys"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86e9636d01b92f2df45dce29c35a9e3724687c1055bb4472fb4b829cc4a5a561"
 dependencies = [
  "cc",
  "cmake",
