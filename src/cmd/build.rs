@@ -62,6 +62,9 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
+    /// Emit debug info into wasm file
+    #[structopt(long, short)]
+    debug: bool,
 }
 
 impl BuildCommand {
@@ -76,6 +79,7 @@ impl BuildCommand {
             true,
             self.build_artifact,
             unstable_flags,
+            self.debug,
         )
     }
 }
@@ -104,6 +108,7 @@ impl CheckCommand {
             false,
             BuildArtifacts::CheckOnly,
             unstable_flags,
+            true,
         )
     }
 }
@@ -254,7 +259,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
+fn optimize_wasm(crate_metadata: &CrateMetadata, debug_info: bool) -> Result<OptimizationResult> {
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
@@ -264,7 +269,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
         // the default
         shrink_level: 1,
         // the default
-        debug_info: false,
+        debug_info,
     };
 
     let mut dest_wasm_file = File::open(crate_metadata.dest_wasm.as_os_str())?;
@@ -299,6 +304,7 @@ fn execute(
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
+    debug: bool,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
@@ -308,6 +314,7 @@ fn execute(
             optimize_contract,
             build_artifact,
             unstable_flags,
+            debug,
         )?;
         let res = BuildResult {
             dest_wasm: maybe_dest_wasm,
@@ -339,6 +346,7 @@ pub(crate) fn execute_with_crate_metadata(
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
+    debug: bool,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
         " {} {}",
@@ -360,7 +368,7 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
     );
-    let optimization_result = optimize_wasm(&crate_metadata)?;
+    let optimization_result = optimize_wasm(&crate_metadata, debug)?;
     Ok((
         Some(crate_metadata.dest_wasm.clone()),
         Some(optimization_result),

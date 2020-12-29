@@ -236,6 +236,7 @@ impl GenerateMetadataCommand {
             true, // for the hash we always use the optimized version of the contract
             self.build_artifact,
             self.unstable_options.clone(),
+            false, // for the hash we always not emit the debug info into wasm
         )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
