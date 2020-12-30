@@ -132,15 +132,18 @@ fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     verbosity: Option<Verbosity>,
     unstable_flags: UnstableFlags,
+    debug: bool,
 ) -> Result<()> {
     util::assert_channel()?;
 
     // set linker args via RUSTFLAGS.
     // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
-    std::env::set_var(
-        "RUSTFLAGS",
-        "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
-    );
+    let mut flags =
+        "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory".to_string();
+    if debug {
+        flags.push_str(" -C opt-level=1");
+    }
+    std::env::set_var("RUSTFLAGS", flags);
 
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
@@ -324,7 +327,7 @@ fn execute(
     unstable_flags: UnstableFlags,
     debug: bool,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path, debug)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
         let (maybe_dest_wasm, maybe_dest_debug_wasm, maybe_optimization_result) =
             execute_with_crate_metadata(
@@ -379,7 +382,7 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity, unstable_flags)?;
+    build_cargo_project(&crate_metadata, verbosity, unstable_flags, debug)?;
     println!(
         " {} {}",
         format!("[2/{}]", build_artifact.steps()).bold(),

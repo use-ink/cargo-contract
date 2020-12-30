@@ -41,7 +41,7 @@ pub struct CrateMetadata {
 
 impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
-    pub fn collect(manifest_path: &ManifestPath, debug: bool) -> Result<Self> {
+    pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
         let mut target_directory = metadata.target_directory.clone();
@@ -53,7 +53,7 @@ impl CrateMetadata {
         // {target_dir}/wasm32-unknown-unknown/{debug/release}/{package_name}.wasm
         let mut original_wasm = target_directory.clone();
         original_wasm.push("wasm32-unknown-unknown");
-        original_wasm.push(if debug { "debug" } else { "release" });
+        original_wasm.push("release");
         original_wasm.push(package_name.clone());
         original_wasm.set_extension("wasm");
 

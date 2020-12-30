@@ -276,7 +276,7 @@ pub(crate) fn execute(
     unstable_options: UnstableFlags,
     debug: bool,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path, debug)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
