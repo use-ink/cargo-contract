@@ -192,6 +192,8 @@ pub struct BuildResult {
     pub dest_metadata: Option<PathBuf>,
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
+    /// Path to the debug Wasm file.
+    pub maybe_dest_debug_wasm: Option<PathBuf>,
     /// Path to the bundled file.
     pub dest_bundle: Option<PathBuf>,
     /// Path to the directory where output files are written to.
@@ -249,6 +251,13 @@ impl BuildResult {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
                 util::base_name(&dest_wasm).bold()
+            );
+            out.push_str(&wasm);
+        }
+        if let Some(dest_debug_wasm) = self.maybe_dest_debug_wasm.as_ref() {
+            let wasm = format!(
+                "  - {} (the contract's debug code)\n",
+                util::base_name(&dest_debug_wasm).bold()
             );
             out.push_str(&wasm);
         }

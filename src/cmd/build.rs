@@ -258,7 +258,10 @@ fn post_process_wasm(crate_metadata: &CrateMetadata, debug: bool) -> Result<()> 
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata, debug_info: bool) -> Result<OptimizationResult> {
+fn optimize_wasm(
+    crate_metadata: &CrateMetadata,
+    debug_info: bool,
+) -> Result<(OptimizationResult, Option<PathBuf>)> {
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
@@ -287,24 +290,27 @@ fn optimize_wasm(crate_metadata: &CrateMetadata, debug_info: bool) -> Result<Opt
     let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
 
     // move debug source wasm file to `*.src.wasm`
+    let mut maybe_debug_wasm = None;
     if debug_info {
-        std::fs::rename(
-            &crate_metadata.dest_wasm,
-            PathBuf::from(
-                &crate_metadata
-                    .dest_wasm
-                    .to_string_lossy()
-                    .replace(".wasm", ".src.wasm"),
-            ),
-        )?;
+        let debug_wasm = PathBuf::from(
+            &crate_metadata
+                .dest_wasm
+                .to_string_lossy()
+                .replace(".wasm", ".src.wasm"),
+        );
+        std::fs::rename(&crate_metadata.dest_wasm, &debug_wasm)?;
+        maybe_debug_wasm = Some(debug_wasm);
     }
 
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
-    Ok(OptimizationResult {
-        original_size,
-        optimized_size,
-    })
+    Ok((
+        OptimizationResult {
+            original_size,
+            optimized_size,
+        },
+        maybe_debug_wasm,
+    ))
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -320,16 +326,18 @@ fn execute(
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path, debug)?;
     if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
-        let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
-            &crate_metadata,
-            verbosity,
-            optimize_contract,
-            build_artifact,
-            unstable_flags,
-            debug,
-        )?;
+        let (maybe_dest_wasm, maybe_dest_debug_wasm, maybe_optimization_result) =
+            execute_with_crate_metadata(
+                &crate_metadata,
+                verbosity,
+                optimize_contract,
+                build_artifact,
+                unstable_flags,
+                debug,
+            )?;
         let res = BuildResult {
             dest_wasm: maybe_dest_wasm,
+            maybe_dest_debug_wasm,
             dest_metadata: None,
             dest_bundle: None,
             target_directory: crate_metadata.target_directory,
@@ -364,8 +372,8 @@ pub(crate) fn execute_with_crate_metadata(
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
-    debug_info: bool,
-) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
+    debug: bool,
+) -> Result<(Option<PathBuf>, Option<PathBuf>, Option<OptimizationResult>)> {
     println!(
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
@@ -377,18 +385,19 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[2/{}]", build_artifact.steps()).bold(),
         "Post processing wasm file".bright_green().bold()
     );
-    post_process_wasm(&crate_metadata, debug_info)?;
+    post_process_wasm(&crate_metadata, debug)?;
     if !optimize_contract {
-        return Ok((None, None));
+        return Ok((None, None, None));
     }
     println!(
         " {} {}",
         format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
     );
-    let optimization_result = optimize_wasm(&crate_metadata, optimize_contract)?;
+    let (optimization_result, maybe_dest_debug_wasm) = optimize_wasm(&crate_metadata, debug)?;
     Ok((
         Some(crate_metadata.dest_wasm.clone()),
+        maybe_dest_debug_wasm,
         Some(optimization_result),
     ))
 }

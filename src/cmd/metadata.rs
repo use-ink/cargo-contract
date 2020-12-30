@@ -46,6 +46,7 @@ struct GenerateMetadataCommand {
 /// Result of generating the extended contract project metadata
 struct ExtendedMetadataResult {
     dest_wasm: Option<PathBuf>,
+    maybe_dest_debug_wasm: Option<PathBuf>,
     source: Source,
     contract: Contract,
     user: Option<User>,
@@ -65,6 +66,7 @@ impl GenerateMetadataCommand {
         // build the extended contract project metadata
         let ExtendedMetadataResult {
             dest_wasm,
+            maybe_dest_debug_wasm,
             source,
             contract,
             user,
@@ -141,6 +143,7 @@ impl GenerateMetadataCommand {
         Ok(BuildResult {
             dest_metadata: Some(out_path_metadata),
             dest_wasm,
+            maybe_dest_debug_wasm,
             dest_bundle,
             optimization_result,
             target_directory,
@@ -166,7 +169,7 @@ impl GenerateMetadataCommand {
             .transpose()?;
         let homepage = self.crate_metadata.homepage.clone();
         let license = contract_package.license.clone();
-        let (dest_wasm, hash, optimization_result) = self.wasm_hash()?;
+        let (dest_wasm, maybe_dest_debug_wasm, hash, optimization_result) = self.wasm_hash()?;
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
@@ -220,6 +223,7 @@ impl GenerateMetadataCommand {
 
         Ok(ExtendedMetadataResult {
             dest_wasm: Some(dest_wasm),
+            maybe_dest_debug_wasm,
             source,
             contract,
             user,
@@ -230,20 +234,26 @@ impl GenerateMetadataCommand {
     /// Compile the contract and then hash the resulting Wasm.
     ///
     /// Return a tuple of `(dest_wasm, hash, optimization_result)`.
-    fn wasm_hash(&self) -> Result<(PathBuf, CodeHash, OptimizationResult)> {
-        let (maybe_dest_wasm, maybe_optimization_res) = super::build::execute_with_crate_metadata(
-            &self.crate_metadata,
-            self.verbosity,
-            true, // for the hash we always use the optimized version of the contract
-            self.build_artifact,
-            self.unstable_options.clone(),
-            self.debug,
-        )?;
+    fn wasm_hash(&self) -> Result<(PathBuf, Option<PathBuf>, CodeHash, OptimizationResult)> {
+        let (maybe_dest_wasm, maybe_dest_debug_wasm, maybe_optimization_res) =
+            super::build::execute_with_crate_metadata(
+                &self.crate_metadata,
+                self.verbosity,
+                true, // for the hash we always use the optimized version of the contract
+                self.build_artifact,
+                self.unstable_options.clone(),
+                self.debug,
+            )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
         let dest_wasm = maybe_dest_wasm.expect("dest wasm must exist");
         let optimization_res = maybe_optimization_res.expect("optimization result must exist");
-        Ok((dest_wasm, blake2_hash(wasm.as_slice()), optimization_res))
+        Ok((
+            dest_wasm,
+            maybe_dest_debug_wasm,
+            blake2_hash(wasm.as_slice()),
+            optimization_res,
+        ))
     }
 }
 
