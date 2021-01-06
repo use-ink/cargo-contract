@@ -303,7 +303,7 @@ enum Command {
     Deploy {
         #[structopt(flatten)]
         extrinsic_opts: ExtrinsicOpts,
-        /// Path to wasm contract code, defaults to `./target/ink/<name>-pruned.wasm`
+        /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`
         #[structopt(parse(from_os_str))]
         wasm_path: Option<PathBuf>,
     },
