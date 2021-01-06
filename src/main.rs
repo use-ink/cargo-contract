@@ -94,8 +94,10 @@ impl ExtrinsicOpts {
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
+    /// No output printed to stdout
     #[structopt(long)]
     quiet: bool,
+    /// Use verbose output
     #[structopt(long)]
     verbose: bool,
 }
