@@ -349,7 +349,7 @@ impl ContractBuilder {
             .map(|s| s.as_ref().to_string())
             .collect::<Vec<_>>();
 
-        if authors.len() == 0 {
+        if authors.is_empty() {
             panic!("must have at least one author")
         }
 
