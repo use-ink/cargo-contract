@@ -50,7 +50,7 @@ where
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
-    let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
