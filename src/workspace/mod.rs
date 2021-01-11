@@ -52,10 +52,12 @@ impl Workspace {
                 .packages
                 .iter()
                 .find(|p| p.id == *package_id)
-                .expect(&format!(
-                    "Package '{}' is a member and should be in the packages list",
-                    package_id
-                ));
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Package '{}' is a member and should be in the packages list",
+                        package_id
+                    )
+                });
             let manifest = Manifest::new(&package.manifest_path)?;
             Ok((package_id.clone(), (package.clone(), manifest)))
         };
