@@ -112,9 +112,9 @@ impl Workspace {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!(
-                "The workspace root package should be a workspace member"
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("The workspace root package should be a workspace member")
+            })?;
         f(workspace_manifest)?;
         Ok(self)
     }
