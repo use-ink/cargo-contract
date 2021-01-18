@@ -565,7 +565,7 @@ dependencies = [
  "parity-wasm 0.42.1",
  "pretty_assertions",
  "pwasm-utils",
- "rustc_version 0.3.2",
+ "rustc_version 0.3.3",
  "semver 0.11.0",
  "serde",
  "serde_json",
@@ -3191,9 +3191,9 @@ dependencies = [
 
 [[package]]
 name = "rustc_version"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397d411cfc34097bdb176984180f7d9980eb161aaf1368ceea96c9834d8f8b85"
+checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
 dependencies = [
  "semver 0.11.0",
 ]
