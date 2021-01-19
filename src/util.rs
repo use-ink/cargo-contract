@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ where
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
-    let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());

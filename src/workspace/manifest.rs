@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -142,14 +142,14 @@ impl Manifest {
         let lib = self
             .toml
             .get_mut("lib")
-            .ok_or(anyhow::anyhow!("lib section not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("lib section not found"))?;
         let crate_types = lib
             .get_mut("crate-type")
-            .ok_or(anyhow::anyhow!("crate-type section not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("crate-type section not found"))?;
 
         crate_types
             .as_array_mut()
-            .ok_or(anyhow::anyhow!("crate-types should be an Array"))
+            .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
     }
 
     /// Add a value to the `[lib] crate-types = []` section.
@@ -193,12 +193,12 @@ impl Manifest {
             .or_insert(value::Value::Table(Default::default()));
         let release = profile
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("profile should be a table"))?
+            .ok_or_else(|| anyhow::anyhow!("profile should be a table"))?
             .entry("release")
             .or_insert(value::Value::Table(Default::default()));
         release
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("release should be a table"))
+            .ok_or_else(|| anyhow::anyhow!("release should be a table"))
     }
 
     /// Remove a value from the `[lib] crate-types = []` section
@@ -220,11 +220,11 @@ impl Manifest {
             .or_insert(value::Value::Table(Default::default()));
         let members = workspace
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("workspace should be a table"))?
+            .ok_or_else(|| anyhow::anyhow!("workspace should be a table"))?
             .entry("members")
             .or_insert(value::Value::Array(Default::default()))
             .as_array_mut()
-            .ok_or(anyhow::anyhow!("members should be an array"))?;
+            .ok_or_else(|| anyhow::anyhow!("members should be an array"))?;
 
         if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
             // warn user if they have legacy metadata generation artifacts
@@ -269,7 +269,7 @@ impl Manifest {
         let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
             let path_str = existing_path
                 .as_str()
-                .ok_or(anyhow::anyhow!("{} should be a string", value_id))?;
+                .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);
@@ -280,10 +280,9 @@ impl Manifest {
         };
 
         let rewrite_path = |table_value: &mut value::Value, table_section: &str, default: &str| {
-            let table = table_value.as_table_mut().ok_or(anyhow::anyhow!(
-                "'[{}]' section should be a table",
-                table_section
-            ))?;
+            let table = table_value.as_table_mut().ok_or_else(|| {
+                anyhow::anyhow!("'[{}]' section should be a table", table_section)
+            })?;
 
             match table.get_mut("path") {
                 Some(existing_path) => {
@@ -317,7 +316,7 @@ impl Manifest {
         if let Some(bin) = self.toml.get_mut("bin") {
             let bins = bin
                 .as_array_mut()
-                .ok_or(anyhow::anyhow!("'[[bin]]' section should be a table array"))?;
+                .ok_or_else(|| anyhow::anyhow!("'[[bin]]' section should be a table array"))?;
 
             // Rewrite `[[bin]] path =` value to an absolute path.
             for bin in bins {
@@ -333,7 +332,7 @@ impl Manifest {
                 .collect::<HashSet<_>>();
             let table = dependencies
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!("dependencies should be a table"))?;
+                .ok_or_else(|| anyhow::anyhow!("dependencies should be a table"))?;
             for (name, value) in table {
                 let package_name = {
                     let package = value.get("package");
@@ -372,20 +371,20 @@ impl Manifest {
             let contract_package_name = self
                 .toml
                 .get("package")
-                .ok_or(anyhow::anyhow!("package section not found"))?
+                .ok_or_else(|| anyhow::anyhow!("package section not found"))?
                 .get("name")
-                .ok_or(anyhow::anyhow!("[package] name field not found"))?
+                .ok_or_else(|| anyhow::anyhow!("[package] name field not found"))?
                 .as_str()
-                .ok_or(anyhow::anyhow!("[package] name should be a string"))?;
+                .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?;
 
             let ink_metadata = self
                 .toml
                 .get("dependencies")
-                .ok_or(anyhow::anyhow!("[dependencies] section not found"))?
+                .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
                 .get("ink_metadata")
-                .ok_or(anyhow::anyhow!("ink_metadata dependency not found"))?
+                .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency not found"))?
                 .as_table()
-                .ok_or(anyhow::anyhow!("ink_metadata dependency should be a table"))?;
+                .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency should be a table"))?;
 
             metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
         }

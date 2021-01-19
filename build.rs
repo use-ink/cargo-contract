@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -101,7 +101,7 @@ fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> 
             f.read_to_end(&mut buffer)?;
             zip.write_all(&*buffer)?;
             buffer.clear();
-        } else if name.as_os_str().len() != 0 {
+        } else if !name.as_os_str().is_empty() {
             zip.add_directory(file_path, options)?;
         }
     }

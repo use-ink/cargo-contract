@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -86,7 +86,7 @@ impl CrateMetadata {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!("No 'ink_lang' dependency found"))?;
+            .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
 
         let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
 
@@ -140,7 +140,7 @@ fn get_cargo_toml_metadata(
 
     let get_url = |field_name| -> Result<Option<Url>> {
         toml.get("package")
-            .ok_or(anyhow::anyhow!("package section not found"))?
+            .ok_or_else(|| anyhow::anyhow!("package section not found"))?
             .get(field_name)
             .and_then(|v| v.as_str())
             .map(Url::parse)

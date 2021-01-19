@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -52,10 +52,12 @@ impl Workspace {
                 .packages
                 .iter()
                 .find(|p| p.id == *package_id)
-                .expect(&format!(
-                    "Package '{}' is a member and should be in the packages list",
-                    package_id
-                ));
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Package '{}' is a member and should be in the packages list",
+                        package_id
+                    )
+                });
             let manifest = Manifest::new(&package.manifest_path)?;
             Ok((package_id.clone(), (package.clone(), manifest)))
         };
@@ -112,9 +114,9 @@ impl Workspace {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!(
-                "The workspace root package should be a workspace member"
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("The workspace root package should be a workspace member")
+            })?;
         f(workspace_manifest)?;
         Ok(self)
     }
