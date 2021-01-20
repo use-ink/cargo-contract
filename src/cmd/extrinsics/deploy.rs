@@ -28,7 +28,7 @@ use crate::{crate_metadata, ExtrinsicOpts};
 pub struct DeployCommand {
     #[structopt(flatten)]
     pub(super) extrinsic_opts: ExtrinsicOpts,
-    /// Path to wasm contract code, defaults to ./target/<name>-pruned.wasm
+    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`
     #[structopt(parse(from_os_str))]
     pub(super) wasm_path: Option<PathBuf>,
 }

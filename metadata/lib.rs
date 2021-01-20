@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -349,7 +349,7 @@ impl ContractBuilder {
             .map(|s| s.as_ref().to_string())
             .collect::<Vec<_>>();
 
-        if authors.len() == 0 {
+        if authors.is_empty() {
             panic!("must have at least one author")
         }
 

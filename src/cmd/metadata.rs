@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     util,
     workspace::{ManifestPath, Workspace},
-    GenerateArtifacts, GenerationResult, OptimizationResult, UnstableFlags, Verbosity,
+    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -35,8 +35,8 @@ use url::Url;
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
-    verbosity: Verbosity,
-    build_artifact: GenerateArtifacts,
+    verbosity: Option<Verbosity>,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 }
 
@@ -50,16 +50,14 @@ struct ExtendedMetadataResult {
 }
 
 impl GenerateMetadataCommand {
-    pub fn exec(&self) -> Result<GenerationResult> {
+    pub fn exec(&self) -> Result<BuildResult> {
         util::assert_channel()?;
 
-        let cargo_meta = &self.crate_metadata.cargo_meta;
-        let out_path_metadata = self.crate_metadata.metadata_path();
+        let target_directory = self.crate_metadata.target_directory.clone();
+        let out_path_metadata = target_directory.join(METADATA_FILE);
 
         let fname_bundle = format!("{}.contract", self.crate_metadata.package_name);
-        let out_path_bundle = cargo_meta.target_directory.join(fname_bundle);
-
-        let target_directory = cargo_meta.target_directory.clone();
+        let out_path_bundle = target_directory.join(fname_bundle);
 
         // build the extended contract project metadata
         let ExtendedMetadataResult {
@@ -102,7 +100,7 @@ impl GenerateMetadataCommand {
                 current_progress += 1;
             }
 
-            if self.build_artifact == GenerateArtifacts::All {
+            if self.build_artifact == BuildArtifacts::All {
                 println!(
                     " {} {}",
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
@@ -118,28 +116,32 @@ impl GenerateMetadataCommand {
         if self.unstable_options.original_manifest {
             generate_metadata(&self.crate_metadata.manifest_path)?;
         } else {
-            Workspace::new(&cargo_meta, &self.crate_metadata.root_package.id)?
-                .with_root_package_manifest(|manifest| {
-                    manifest
-                        .with_added_crate_type("rlib")?
-                        .with_profile_release_lto(false)?;
-                    Ok(())
-                })?
-                .with_metadata_gen_package()?
-                .using_temp(generate_metadata)?;
+            Workspace::new(
+                &self.crate_metadata.cargo_meta,
+                &self.crate_metadata.root_package.id,
+            )?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_added_crate_type("rlib")?
+                    .with_profile_release_lto(false)?;
+                Ok(())
+            })?
+            .with_metadata_gen_package()?
+            .using_temp(generate_metadata)?;
         }
 
-        let dest_bundle = if self.build_artifact == GenerateArtifacts::All {
+        let dest_bundle = if self.build_artifact == BuildArtifacts::All {
             Some(out_path_bundle)
         } else {
             None
         };
-        Ok(GenerationResult {
+        Ok(BuildResult {
             dest_metadata: Some(out_path_metadata),
             dest_wasm,
             dest_bundle,
             optimization_result,
             target_directory,
+            build_artifact: self.build_artifact,
         })
     }
 
@@ -165,7 +167,7 @@ impl GenerateMetadataCommand {
         let source = {
             let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
             let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-            let maybe_wasm = if self.build_artifact == GenerateArtifacts::All {
+            let maybe_wasm = if self.build_artifact == BuildArtifacts::All {
                 let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
                 // The Wasm which we read must have the same hash as `source.hash`
                 debug_assert!({
@@ -255,10 +257,10 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 /// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
-    verbosity: Verbosity,
-    build_artifact: GenerateArtifacts,
+    verbosity: Option<Verbosity>,
+    build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-) -> Result<GenerationResult> {
+) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,
@@ -275,7 +277,7 @@ pub(crate) fn execute(
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, GenerateArtifacts,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
         ManifestPath, UnstableFlags,
     };
     use contract_metadata::*;
@@ -372,8 +374,8 @@ mod tests {
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
-                Default::default(),
-                GenerateArtifacts::All,
+                None,
+                BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
             .dest_bundle

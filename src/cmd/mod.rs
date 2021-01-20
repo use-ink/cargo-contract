@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ pub mod build;
 pub mod metadata;
 pub mod new;
 
+pub(crate) use self::build::{BuildCommand, CheckCommand};
 #[cfg(feature = "extrinsics")]
 mod extrinsics;
 

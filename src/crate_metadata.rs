@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -38,6 +38,7 @@ pub struct CrateMetadata {
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
+    pub target_directory: PathBuf,
 }
 
 impl CrateMetadata {
@@ -45,18 +46,21 @@ impl CrateMetadata {
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
 
+        let mut target_directory = metadata.target_directory.clone();
+        target_directory.push("ink");
+
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
 
         // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
-        let mut original_wasm = metadata.target_directory.clone();
+        let mut original_wasm = target_directory.clone();
         original_wasm.push("wasm32-unknown-unknown");
         original_wasm.push("release");
         original_wasm.push(package_name.clone());
         original_wasm.set_extension("wasm");
 
         // {target_dir}/{package_name}.wasm
-        let mut dest_wasm = metadata.target_directory.clone();
+        let mut dest_wasm = target_directory.clone();
         dest_wasm.push(package_name.clone());
         dest_wasm.set_extension("wasm");
 
@@ -73,7 +77,7 @@ impl CrateMetadata {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!("No 'ink_lang' dependency found"))?;
+            .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
 
         let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
 
@@ -88,6 +92,7 @@ impl CrateMetadata {
             documentation,
             homepage,
             user,
+            target_directory,
         };
         Ok(crate_metadata)
     }
@@ -131,7 +136,7 @@ fn get_cargo_toml_metadata(
 
     let get_url = |field_name| -> Result<Option<Url>> {
         toml.get("package")
-            .ok_or(anyhow::anyhow!("package section not found"))?
+            .ok_or_else(|| anyhow::anyhow!("package section not found"))?
             .get(field_name)
             .and_then(|v| v.as_str())
             .map(Url::parse)

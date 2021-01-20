@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -99,12 +99,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd, util::tests::with_tmp_dir};
+    use crate::util::tests::with_tmp_dir;
 
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = cmd::new::execute("rejects-hyphenated-name", Some(path));
+            let result = execute("rejects-hyphenated-name", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -119,7 +119,7 @@ mod tests {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
             let _ = execute(name, Some(path));
-            let result = cmd::new::execute(name, Some(path));
+            let result = execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
@@ -137,7 +137,7 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = cmd::new::execute(name, Some(path));
+            let result = execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
