@@ -125,6 +125,7 @@ impl CheckCommand {
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
+    build_artifact: BuildArtifacts,
     verbosity: Option<Verbosity>,
     unstable_flags: UnstableFlags,
 ) -> Result<()> {
@@ -139,19 +140,20 @@ fn build_cargo_project(
 
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
-        util::invoke_cargo(
-            "build",
-            &[
-                "--target=wasm32-unknown-unknown",
-                "-Zbuild-std",
-                "-Zbuild-std-features=panic_immediate_abort",
-                "--no-default-features",
-                "--release",
-                &format!("--target-dir={}", target_dir.to_string_lossy()),
-            ],
-            manifest_path.directory(),
-            verbosity,
-        )?;
+        let args = [
+            "--target=wasm32-unknown-unknown",
+            "-Zbuild-std",
+            "-Zbuild-std-features=panic_immediate_abort",
+            "--no-default-features",
+            "--release",
+            &format!("--target-dir={}", target_dir.to_string_lossy()),
+        ];
+        if build_artifact == BuildArtifacts::CheckOnly {
+            util::invoke_cargo("check", &args, manifest_path.directory(), verbosity)?;
+        } else {
+            util::invoke_cargo("build", &args, manifest_path.directory(), verbosity)?;
+        }
+
         Ok(())
     };
 
@@ -345,7 +347,7 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity, unstable_flags)?;
+    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
     println!(
         " {} {}",
         format!("[2/{}]", build_artifact.steps()).bold(),
@@ -393,6 +395,33 @@ mod tests {
             // the path can never be e.g. `foo_target/ink` -- the assert
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn check_must_not_create_target_in_project_dir() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let project_dir = path.join("new_project");
+            let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
+
+            // when
+            super::execute(
+                &manifest_path,
+                None,
+                true,
+                BuildArtifacts::CheckOnly,
+                UnstableFlags::default(),
+            )
+            .expect("build failed");
+
+            // then
+            assert!(
+                !project_dir.join("target").exists(),
+                "found target folder in project directory!"
+            );
             Ok(())
         })
     }
