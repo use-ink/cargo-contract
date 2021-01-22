@@ -140,7 +140,7 @@ fn build_cargo_project(
 
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
-        let mut args = [
+        let args = [
             "--target=wasm32-unknown-unknown",
             "-Zbuild-std",
             "-Zbuild-std-features=panic_immediate_abort",

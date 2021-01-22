@@ -43,7 +43,7 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let target_directory = metadata.target_directory.clone().as_path().join("ink");
+        let target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
