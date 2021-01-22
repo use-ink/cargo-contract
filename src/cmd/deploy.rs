@@ -29,7 +29,7 @@ fn load_contract_code(path: Option<&PathBuf>) -> Result<Vec<u8>> {
     let contract_wasm_path = match path {
         Some(path) => path.clone(),
         None => {
-            let metadata = crate_metadata::CrateMetadata::collect(&Default::default(), None)?;
+            let metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
             metadata.dest_wasm
         }
     };

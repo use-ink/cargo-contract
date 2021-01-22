@@ -263,7 +263,7 @@ pub(crate) fn execute(
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path, Some(build_artifact))?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {
         crate_metadata,
         verbosity,
@@ -374,8 +374,7 @@ mod tests {
             )?;
             test_manifest.write()?;
 
-            let crate_metadata =
-                CrateMetadata::collect(&test_manifest.manifest_path, Some(build_artifact))?;
+            let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
