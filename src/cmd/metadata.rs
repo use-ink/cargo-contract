@@ -354,7 +354,6 @@ mod tests {
     fn generate_metadata() {
         env_logger::try_init().ok();
         with_tmp_dir(|path| {
-            let build_artifact = BuildArtifacts::All;
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let working_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
@@ -378,7 +377,7 @@ mod tests {
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
                 None,
-                build_artifact,
+                BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
             .dest_bundle
