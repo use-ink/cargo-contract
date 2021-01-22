@@ -418,9 +418,10 @@ mod tests {
             .expect("build failed");
 
             // then
-            if project_dir.join("target").exists() {
-                panic!("found target folder in project directory!");
-            }
+            assert!(
+                !project_dir.join("target").exists(),
+                "found target folder in project directory!"
+            );
             Ok(())
         })
     }
