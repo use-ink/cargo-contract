@@ -229,7 +229,7 @@ impl Manifest {
         if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
             // warn user if they have legacy metadata generation artifacts
             use colored::Colorize;
-            println!(
+            eprintln!(
                 "{} {} {} {}",
                 "warning:".yellow().bold(),
                 "please remove".bold(),
