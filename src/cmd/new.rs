@@ -23,7 +23,7 @@ use std::{
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<String>
+pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<Option<String>>
 where
     P: AsRef<Path>,
 {
@@ -93,7 +93,7 @@ where
         }
     }
 
-    Ok(format!("Created contract {}", name))
+    Ok(Some(format!("Created contract {}", name)))
 }
 
 #[cfg(test)]

@@ -72,11 +72,13 @@ impl GenerateMetadataCommand {
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let mut current_progress = 4;
-            println!(
-                " {} {}",
-                format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
-                "Generating metadata".bright_green().bold()
-            );
+            if util::is_verbose(&self.verbosity) {
+                println!(
+                    " {} {}",
+                    format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
+                    "Generating metadata".bright_green().bold()
+                );
+            }
             let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
             let stdout = util::invoke_cargo(
                 "run",
@@ -102,7 +104,7 @@ impl GenerateMetadataCommand {
                 current_progress += 1;
             }
 
-            if self.build_artifact == BuildArtifacts::All {
+            if self.build_artifact == BuildArtifacts::All && util::is_verbose(&self.verbosity) {
                 println!(
                     " {} {}",
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
@@ -144,6 +146,7 @@ impl GenerateMetadataCommand {
             optimization_result,
             target_directory,
             build_artifact: self.build_artifact,
+            verbosity: self.verbosity,
         })
     }
 

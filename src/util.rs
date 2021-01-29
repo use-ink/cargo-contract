@@ -93,6 +93,15 @@ pub(crate) fn base_name(path: &PathBuf) -> &str {
         .expect("must be valid utf-8")
 }
 
+/// Returns `true` if output should be printed (i.e. verbose output is set).
+pub(crate) fn is_verbose(verbosity: &Option<Verbosity>) -> bool {
+    if let Some(Verbosity::Verbose) = verbosity {
+        true
+    } else {
+        false
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use std::path::Path;

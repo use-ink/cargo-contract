@@ -157,7 +157,7 @@ fn build_cargo_project(
         Ok(())
     };
 
-    if unstable_flags.original_manifest {
+    if unstable_flags.original_manifest && util::is_verbose(&verbosity) {
         println!(
             "{} {}",
             "warning:".yellow().bold(),
@@ -318,6 +318,7 @@ fn execute(
             target_directory: crate_metadata.target_directory,
             optimization_result: maybe_optimization_result,
             build_artifact,
+            verbosity,
         };
         return Ok(res);
     }
@@ -342,26 +343,32 @@ pub(crate) fn execute_with_crate_metadata(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
-    println!(
-        " {} {}",
-        format!("[1/{}]", build_artifact.steps()).bold(),
-        "Building cargo project".bright_green().bold()
-    );
+    if util::is_verbose(&verbosity) {
+        println!(
+            " {} {}",
+            format!("[1/{}]", build_artifact.steps()).bold(),
+            "Building cargo project".bright_green().bold()
+        );
+    }
     build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
-    println!(
-        " {} {}",
-        format!("[2/{}]", build_artifact.steps()).bold(),
-        "Post processing wasm file".bright_green().bold()
-    );
+    if util::is_verbose(&verbosity) {
+        println!(
+            " {} {}",
+            format!("[2/{}]", build_artifact.steps()).bold(),
+            "Post processing wasm file".bright_green().bold()
+        );
+    }
     post_process_wasm(&crate_metadata)?;
     if !optimize_contract {
         return Ok((None, None));
     }
-    println!(
-        " {} {}",
-        format!("[3/{}]", build_artifact.steps()).bold(),
-        "Optimizing wasm file".bright_green().bold()
-    );
+    if util::is_verbose(&verbosity) {
+        println!(
+            " {} {}",
+            format!("[3/{}]", build_artifact.steps()).bold(),
+            "Optimizing wasm file".bright_green().bold()
+        );
+    }
     let optimization_result = optimize_wasm(&crate_metadata)?;
     Ok((
         Some(crate_metadata.dest_wasm.clone()),

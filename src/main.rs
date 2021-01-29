@@ -94,15 +94,20 @@ impl ExtrinsicOpts {
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
+    /// No output printed to stdout
     #[structopt(long)]
     quiet: bool,
+    /// Use verbose output
     #[structopt(long)]
     verbose: bool,
 }
 
+/// Denotes if output should be printed to stdout.
 #[derive(Clone, Copy)]
-enum Verbosity {
+pub enum Verbosity {
+    /// No output printed to stdout
     Quiet,
+    /// Use verbose output
     Verbose,
 }
 
@@ -200,6 +205,8 @@ pub struct BuildResult {
     pub optimization_result: Option<OptimizationResult>,
     /// Which build artifacts were generated.
     pub build_artifact: BuildArtifacts,
+    /// The verbosity flags.
+    pub verbosity: Option<Verbosity>,
 }
 
 /// Result of the optimization process.
@@ -344,7 +351,11 @@ fn main() {
 
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
-        Ok(msg) => println!("\t{}", msg),
+        Ok(maybe_msg) => {
+            if let Some(msg) = maybe_msg {
+                println!("\t{}", msg)
+            }
+        }
         Err(err) => {
             eprintln!(
                 "{} {}",
@@ -356,12 +367,16 @@ fn main() {
     }
 }
 
-fn exec(cmd: Command) -> Result<String> {
+fn exec(cmd: Command) -> Result<Option<String>> {
     match &cmd {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
-            Ok(result.display())
+            if util::is_verbose(&result.verbosity) {
+                Ok(Some(result.display()))
+            } else {
+                Ok(None)
+            }
         }
         Command::Check(check) => {
             let res = check.exec()?;
@@ -369,7 +384,13 @@ fn exec(cmd: Command) -> Result<String> {
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
             );
-            Ok("\nYour contract's code was built successfully.".to_string())
+            if util::is_verbose(&res.verbosity) {
+                Ok(Some(
+                    "\nYour contract's code was built successfully.".to_string(),
+                ))
+            } else {
+                Ok(None)
+            }
         }
         Command::GenerateMetadata {} => Err(anyhow::anyhow!(
             "Command deprecated, use `cargo contract build` instead"
@@ -381,7 +402,7 @@ fn exec(cmd: Command) -> Result<String> {
             wasm_path,
         } => {
             let code_hash = cmd::execute_deploy(extrinsic_opts, wasm_path.as_ref())?;
-            Ok(format!("Code hash: {:?}", code_hash))
+            Ok(Some(format!("Code hash: {:?}", code_hash)))
         }
         #[cfg(feature = "extrinsics")]
         Command::Instantiate {
@@ -398,7 +419,7 @@ fn exec(cmd: Command) -> Result<String> {
                 *code_hash,
                 data.clone(),
             )?;
-            Ok(format!("Contract account: {:?}", contract_account))
+            Ok(Some(format!("Contract account: {:?}", contract_account)))
         }
     }
 }
