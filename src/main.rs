@@ -105,20 +105,32 @@ pub struct VerbosityFlags {
 /// Denotes if output should be printed to stdout.
 #[derive(Clone, Copy)]
 pub enum Verbosity {
+    /// Use default output
+    Default,
     /// No output printed to stdout
     Quiet,
     /// Use verbose output
     Verbose,
 }
 
-impl TryFrom<&VerbosityFlags> for Option<Verbosity> {
+impl Verbosity {
+    /// Returns `true` if output should be printed (i.e. verbose output is set).
+    pub(crate) fn is_verbose(&self) -> bool {
+        match self {
+            Verbosity::Quiet => false,
+            Verbosity::Default | Verbosity::Verbose => true,
+        }
+    }
+}
+
+impl TryFrom<&VerbosityFlags> for Verbosity {
     type Error = Error;
 
     fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
         match (value.quiet, value.verbose) {
-            (false, false) => Ok(None),
-            (true, false) => Ok(Some(Verbosity::Quiet)),
-            (false, true) => Ok(Some(Verbosity::Verbose)),
+            (false, false) => Ok(Verbosity::Default),
+            (true, false) => Ok(Verbosity::Quiet),
+            (false, true) => Ok(Verbosity::Verbose),
             (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
         }
     }
@@ -206,7 +218,7 @@ pub struct BuildResult {
     /// Which build artifacts were generated.
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
-    pub verbosity: Option<Verbosity>,
+    pub verbosity: Verbosity,
 }
 
 /// Result of the optimization process.
@@ -372,7 +384,7 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
-            if util::is_verbose(&result.verbosity) {
+            if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {
                 Ok(None)
@@ -384,7 +396,7 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
             );
-            if util::is_verbose(&res.verbosity) {
+            if res.verbosity.is_verbose() {
                 Ok(Some(
                     "\nYour contract's code was built successfully.".to_string(),
                 ))

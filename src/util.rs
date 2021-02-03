@@ -43,7 +43,7 @@ pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
@@ -60,9 +60,9 @@ where
     cmd.arg(command);
     cmd.args(args);
     match verbosity {
-        Some(Verbosity::Quiet) => cmd.arg("--quiet"),
-        Some(Verbosity::Verbose) => cmd.arg("--verbose"),
-        None => &mut cmd,
+        Verbosity::Quiet => cmd.arg("--quiet"),
+        Verbosity::Verbose => cmd.arg("--verbose"),
+        Verbosity::Default => &mut cmd,
     };
 
     log::info!("invoking cargo: {:?}", cmd);
@@ -93,13 +93,14 @@ pub(crate) fn base_name(path: &PathBuf) -> &str {
         .expect("must be valid utf-8")
 }
 
-/// Returns `true` if output should be printed (i.e. verbose output is set).
-pub(crate) fn is_verbose(verbosity: &Option<Verbosity>) -> bool {
-    if let Some(Verbosity::Verbose) = verbosity {
-        true
-    } else {
-        false
-    }
+/// Prints to stdout if `verbosity.is_verbose()` is `true`.
+#[macro_export]
+macro_rules! maybe_println {
+    ($verbosity:expr, $($msg:tt)*) => {
+        if $verbosity.is_verbose() {
+            println!($($msg)*);
+        }
+    };
 }
 
 #[cfg(test)]
