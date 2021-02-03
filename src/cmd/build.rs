@@ -23,7 +23,7 @@ use std::{
 
 use crate::{
     crate_metadata::CrateMetadata,
-    util,
+    maybe_println, util,
     workspace::{ManifestPath, Profile, Workspace},
     BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
@@ -69,7 +69,7 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
         execute(
             &manifest_path,
             verbosity,
@@ -97,7 +97,7 @@ impl CheckCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
         execute(
             &manifest_path,
             verbosity,
@@ -126,7 +126,7 @@ impl CheckCommand {
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
     build_artifact: BuildArtifacts,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     unstable_flags: UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
@@ -158,7 +158,8 @@ fn build_cargo_project(
     };
 
     if unstable_flags.original_manifest {
-        println!(
+        maybe_println!(
+            verbosity,
             "{} {}",
             "warning:".yellow().bold(),
             "with 'original-manifest' enabled, the contract binary may not be of optimal size."
@@ -297,7 +298,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 /// It does so by invoking `cargo build` and then post processing the final binary.
 fn execute(
     manifest_path: &ManifestPath,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
@@ -318,6 +319,7 @@ fn execute(
             target_directory: crate_metadata.target_directory,
             optimization_result: maybe_optimization_result,
             build_artifact,
+            verbosity,
         };
         return Ok(res);
     }
@@ -337,18 +339,20 @@ fn execute(
 /// Returns a tuple of `(maybe_optimized_wasm_path, maybe_optimization_result)`.
 pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
-    println!(
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
-    println!(
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[2/{}]", build_artifact.steps()).bold(),
         "Post processing wasm file".bright_green().bold()
@@ -357,7 +361,8 @@ pub(crate) fn execute_with_crate_metadata(
     if !optimize_contract {
         return Ok((None, None));
     }
-    println!(
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
