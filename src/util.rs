@@ -17,7 +17,6 @@
 use crate::Verbosity;
 use anyhow::{Context, Result};
 use rustc_version::Channel;
-use std::path::PathBuf;
 use std::{ffi::OsStr, path::Path, process::Command};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.

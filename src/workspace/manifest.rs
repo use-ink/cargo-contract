@@ -399,7 +399,7 @@ impl Manifest {
     }
 }
 
-fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
+fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
