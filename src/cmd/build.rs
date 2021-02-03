@@ -222,12 +222,9 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| match section {
-        Section::Custom(_) => false,
-        Section::Name(_) => false,
-        Section::Reloc(_) => false,
-        _ => true,
-    });
+    module.sections_mut().retain(|section|
+        !matches!(section, Section::Custom(_) | Section::Name(_) | Section::Reloc(_))
+    );
 }
 
 /// Performs required post-processing steps on the wasm artifact.
