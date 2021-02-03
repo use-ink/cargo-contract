@@ -86,7 +86,7 @@ where
 }
 
 /// Returns the base name of the path.
-pub(crate) fn base_name(path: &PathBuf) -> &str {
+pub(crate) fn base_name(path: &Path) -> &str {
     path.file_name()
         .expect("file name must exist")
         .to_str()
