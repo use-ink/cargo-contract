@@ -75,7 +75,11 @@ impl CrateMetadata {
             })
             .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
 
-        let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
+        let ExtraMetadata {
+            documentation,
+            homepage,
+            user,
+        } = get_cargo_toml_metadata(manifest_path)?;
 
         let crate_metadata = CrateMetadata {
             manifest_path: manifest_path.clone(),
@@ -118,10 +122,15 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
     Ok((metadata, root_package))
 }
 
+/// Extra metadata not available via `cargo metadata`.
+struct ExtraMetadata {
+    documentation: Option<Url>,
+    homepage: Option<Url>,
+    user: Option<Map<String, Value>>,
+}
+
 /// Read extra metadata not available via `cargo metadata` directly from `Cargo.toml`
-fn get_cargo_toml_metadata(
-    manifest_path: &ManifestPath,
-) -> Result<(Option<Url>, Option<Url>, Option<Map<String, Value>>)> {
+fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata> {
     let toml = fs::read_to_string(manifest_path)?;
     let toml: value::Table = toml::from_str(&toml)?;
 
@@ -151,5 +160,9 @@ fn get_cargo_toml_metadata(
         })
         .transpose()?;
 
-    Ok((documentation, homepage, user))
+    Ok(ExtraMetadata {
+        documentation,
+        homepage,
+        user,
+    })
 }

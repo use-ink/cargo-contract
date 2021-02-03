@@ -17,7 +17,6 @@
 use crate::Verbosity;
 use anyhow::{Context, Result};
 use rustc_version::Channel;
-use std::path::PathBuf;
 use std::{ffi::OsStr, path::Path, process::Command};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
@@ -86,7 +85,7 @@ where
 }
 
 /// Returns the base name of the path.
-pub(crate) fn base_name(path: &PathBuf) -> &str {
+pub(crate) fn base_name(path: &Path) -> &str {
     path.file_name()
         .expect("file name must exist")
         .to_str()
