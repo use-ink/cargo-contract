@@ -21,7 +21,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[cfg(not(feature = "wasm-opt-unavailable"))]
+#[cfg(not(feature = "binaryen-as-dependency"))]
 use std::{io, process::Command};
 
 use crate::{
@@ -268,7 +268,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
     let mut dest_wasm_file_content = Vec::new();
     dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
 
-    let optimized_wasm = get_optimized_wasm(crate_metadata, &optimized, &dest_wasm_file_content)?;
+    let optimized_wasm = do_optimization(crate_metadata, &optimized, &dest_wasm_file_content, 3)?;
 
     let mut optimized_wasm_file = File::create(optimized.as_os_str())?;
     optimized_wasm_file.write_all(&optimized_wasm)?;
@@ -286,12 +286,20 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 
 /// Optimizes the Wasm supplied as `wasm` using the `binaryen-rs` dependency.
 ///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
 /// If successful, the optimized Wasm is returned as a `Vec<u8>`.
-#[cfg(feature = "wasm-opt-unavailable")]
-fn get_optimized_wasm(_: &CrateMetadata, _: &Path, wasm: &[u8]) -> Result<Vec<u8>> {
+#[cfg(feature = "binaryen-as-dependency")]
+fn do_optimization(
+    _: &CrateMetadata,
+    _: &Path,
+    wasm: &[u8],
+    optimization_level: u32,
+) -> Result<Vec<u8>> {
     let codegen_config = binaryen::CodegenConfig {
-        // execute -O3 optimization passes (spends potentially a lot of time optimizing)
-        optimization_level: 3,
+        // number of optimization passes (spends potentially a lot of time optimizing)
+        optimization_level,
         // the default
         shrink_level: 1,
         // the default
@@ -306,13 +314,17 @@ fn get_optimized_wasm(_: &CrateMetadata, _: &Path, wasm: &[u8]) -> Result<Vec<u8
 /// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
 /// the `wasm-opt` binary.
 ///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
 /// If successful, the optimized Wasm file is created under `optimized`
 /// and returned as a `Vec<u8>`.
-#[cfg(not(feature = "wasm-opt-unavailable"))]
-fn get_optimized_wasm(
+#[cfg(not(feature = "binaryen-as-dependency"))]
+fn do_optimization(
     crate_metadata: &CrateMetadata,
-    optimized: &Path,
+    optimized_dest: &Path,
     _: &[u8],
+    optimization_level: u32,
 ) -> Result<Vec<u8>> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
@@ -327,9 +339,9 @@ fn get_optimized_wasm(
 
     let output = Command::new("wasm-opt")
         .arg(crate_metadata.dest_wasm.as_os_str())
-        .arg("-O3") // execute -O3 optimization passes (spends potentially a lot of time optimizing)
+        .arg(format!("-O{}", optimization_level))
         .arg("-o")
-        .arg(optimized.as_os_str())
+        .arg(optimized_dest.as_os_str())
         .output()?;
 
     if !output.status.success() {
