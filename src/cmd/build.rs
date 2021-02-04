@@ -36,6 +36,14 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Marker inserted by the ink! codegen for a cross-calling trait error which
+/// can't be checked at compile time.
+const INK_ENFORCE_ERR_MESSAGE: &str = "ink_enforce_error_for_message_";
+
+/// Marker inserted by the ink! codegen for a cross-calling trait constructor
+/// error which can't be checked at compile time.
+const INK_ENFORCE_ERR_CONSTRUCTOR: &str = "ink_enforce_error_for_constructor_";
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
@@ -249,7 +257,71 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
+    validate_import_section(&module)?;
+
     parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
+    Ok(())
+}
+
+/// Validates the import section in the Wasm.
+///
+/// The checks currently fall into two categories:
+/// - Known bugs for which we want to recommend a solution.
+/// - Markers inserted by the ink! codegen for errors which can't be checked at compile time.
+fn validate_import_section(module: &Module) -> Result<()> {
+    let imports = module
+        .import_section()
+        .expect("import section must exist")
+        .entries()
+        .iter();
+    let original_imports_len = imports.len();
+    let mut errs = Vec::new();
+
+    let filtered_imports = imports.filter(|section| {
+        let field = section.field();
+        if field.contains("panic") {
+            errs.push(String::from(
+                "An unexpected panic function import was found in the contract Wasm.\n\
+                This typically goes back to a known bug in the Rust compiler:\n\
+                https://github.com/rust-lang/rust/issues/78744\n\n\
+                As a workaround try to insert `overflow-checks = false` into your `Cargo.toml`.\n\
+                This will disable safe math operations, but unfortunately we are currently not \n\
+                aware of a better workaround until the bug in the compiler is fixed.",
+            ));
+        } else if field.contains(INK_ENFORCE_ERR_MESSAGE) {
+            errs.push(format!(
+                "An error was found while compiling the contract:\n\
+                The ink! message with the selector `{}` contains an invalid trait call.\n\n\
+                Please check if the mutable parameter of the function to call is consistent\n\
+                with the scope in which it is called.",
+                field
+                    .strip_prefix(INK_ENFORCE_ERR_MESSAGE)
+                    .expect("must exist")
+            ));
+        } else if field.contains(INK_ENFORCE_ERR_CONSTRUCTOR) {
+            errs.push(format!(
+                "An error was found while compiling the contract:\n\
+                The ink! constructor with the selector `{}` contains an invalid trait call.\n\
+                Constructor never need to be forwarded, please check if this is the case.",
+                field
+                    .strip_prefix(INK_ENFORCE_ERR_CONSTRUCTOR)
+                    .expect("must exist")
+            ));
+        }
+
+        // the only allowed imports
+        field.contains("seal") | field.contains("memory")
+    });
+
+    if original_imports_len != filtered_imports.count() {
+        anyhow::bail!(format!(
+            "Validation of the Wasm failed.\n\n\n{}",
+            errs.into_iter()
+                .map(|err| format!("{} {}", "ERROR:".to_string().bold(), err))
+                .collect::<Vec<String>>()
+                .join("\n\n\n")
+        ));
+    }
     Ok(())
 }
 
