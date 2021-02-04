@@ -8,15 +8,19 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
 
 ## Installation
 
-- **Prerequisites**
+`rust-src` is a prerequisite: `rustup component add rust-src`.
 
-  - **rust-src**: `rustup component add rust-src`
-  - A C++14 compiler and python >= 3.5 is required for building the
-    [binaryen](https://github.com/WebAssembly/binaryen) dependency.
-    `binaryen` is built automatically during the `cargo-contract` build process.
+We optimize the resulting contract Wasm using `binaryen`. You have two options of how
+to invoke `binaryen`:
 
-- **Install latest version from [crates.io](https://crates.io/crates/cargo-contract)**
-  - `cargo install cargo-contract`
+  - The preferred way:
+    Install [`binaryen`](https://github.com/WebAssembly/binaryen#tools). Many package managers
+    have it available nowadays (it's a package for e.g. Debian/Ubuntu, Homebrew, Arch Linux, etc.).
+    After you've installed `wasm-opt` execute `cargo install --force cargo-contract`.
+
+  - Build `binaryen` as a dependency when installing `cargo-contract`:
+    A C++14 compiler and python >= 3.5 is required.
+    Execute `cargo install --force --features wasm-opt-unavailable cargo-contract`.
 
 ## Usage
 
