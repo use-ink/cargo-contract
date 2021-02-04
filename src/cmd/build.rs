@@ -286,7 +286,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 
 /// Optimizes the Wasm supplied as `wasm` using the `binaryen-rs` dependency.
 ///
-/// The supplied `optimization_level` denotes the number of optimization passes,
+/// The supplied `optimization_passes` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
 /// If successful, the optimized Wasm is returned as a `Vec<u8>`.
@@ -295,11 +295,11 @@ fn do_optimization(
     _: &CrateMetadata,
     _: &Path,
     wasm: &[u8],
-    optimization_level: u32,
+    optimization_passes: u32,
 ) -> Result<Vec<u8>> {
     let codegen_config = binaryen::CodegenConfig {
         // number of optimization passes (spends potentially a lot of time optimizing)
-        optimization_level,
+        optimization_passes,
         // the default
         shrink_level: 1,
         // the default
@@ -314,7 +314,7 @@ fn do_optimization(
 /// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
 /// the `wasm-opt` binary.
 ///
-/// The supplied `optimization_level` denotes the number of optimization passes,
+/// The supplied `optimization_passes` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
 /// If successful, the optimized Wasm file is created under `optimized`
@@ -324,7 +324,7 @@ fn do_optimization(
     crate_metadata: &CrateMetadata,
     optimized_dest: &Path,
     _: &[u8],
-    optimization_level: u32,
+    optimization_passes: u32,
 ) -> Result<Vec<u8>> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
@@ -339,7 +339,7 @@ fn do_optimization(
 
     let output = Command::new("wasm-opt")
         .arg(crate_metadata.dest_wasm.as_os_str())
-        .arg(format!("-O{}", optimization_level))
+        .arg(format!("-O{}", optimization_passes))
         .arg("-o")
         .arg(optimized_dest.as_os_str())
         .output()?;
