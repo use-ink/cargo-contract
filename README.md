@@ -14,7 +14,8 @@ We optimize the resulting contract Wasm using `binaryen`. You have two options f
 
   - _The preferred way:_  
     Install [`binaryen`](https://github.com/WebAssembly/binaryen#tools). Many package managers
-    have it available nowadays (it's a package for e.g. Debian/Ubuntu, Homebrew, Arch Linux, etc.).
+    have it available nowadays ‒ e.g. it's a package for [Debian/Ubuntu](https://tracker.debian.org/pkg/binaryen),
+    [Homebrew](https://formulae.brew.sh/formula/binaryen) and [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/).
     After you've installed the package execute `cargo install --force cargo-contract`.
 
   - _Build `binaryen` as a dependency when installing `cargo-contract`:_  
