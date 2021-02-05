@@ -38,11 +38,11 @@ const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Marker inserted by the ink! codegen for a cross-calling trait error which
 /// can't be checked at compile time.
-const INK_ENFORCE_ERR_MESSAGE: &str = "ink_enforce_error_for_message_";
+const INK_ENFORCE_ERR_MESSAGE: &str = "__ink_enforce_error_for_message_";
 
 /// Marker inserted by the ink! codegen for a cross-calling trait constructor
 /// error which can't be checked at compile time.
-const INK_ENFORCE_ERR_CONSTRUCTOR: &str = "ink_enforce_error_for_constructor_";
+const INK_ENFORCE_ERR_CONSTRUCTOR: &str = "__ink_enforce_error_for_constructor_";
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
