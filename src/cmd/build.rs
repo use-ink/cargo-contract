@@ -448,7 +448,7 @@ pub(crate) fn execute_with_crate_metadata(
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
-mod tests {
+mod tests_ci_only {
     use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
 
     #[test]
@@ -501,5 +501,33 @@ mod tests {
             );
             Ok(())
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cmd::build::validate_import_section;
+
+    #[test]
+    fn validate_must_catch_panic_import() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func (param i32 i32 i32)))
+                (import "env" "_ZN4core9panicking5panic17h00e3acdd8048cb7cE" (func (;5;) (type 0)))
+                (func (;5;) (type 0))
+            )"#;
+        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
+        let module = parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .to_string()
+            .contains("An unexpected panic function import was found in the contract Wasm."));
     }
 }
