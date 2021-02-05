@@ -530,4 +530,30 @@ mod tests {
             .to_string()
             .contains("An unexpected panic function import was found in the contract Wasm."));
     }
+
+    #[test]
+    fn validate_must_catch_ink_enforce_error_markers() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func))
+                (import "env" "__ink_enforce_error_for_message_0xAD931DAA" (func $__ink_enforce_error_for_message_0xAD931DAA (type 0)))
+                (import "env" "__ink_enforce_error_for_constructor_0xAD931DCC" (func $__ink_enforce_error_for_message_0xAD931DCC (type 0)))
+            )"#;
+        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
+        let module = parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        let err = res.unwrap_err().to_string();
+        assert!(err.contains(
+            "The ink! message with the selector `0xAD931DAA` contains an invalid trait call."
+        ));
+        assert!(err.contains(
+            "The ink! constructor with the selector `0xAD931DCC` contains an invalid trait call."
+        ));
+    }
 }
