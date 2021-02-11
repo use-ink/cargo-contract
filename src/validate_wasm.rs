@@ -98,7 +98,13 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
             errs.push(parse_linker_error(field));
         }
 
-        is_import_allowed(field)
+        match check_import(field) {
+            Ok(_) => true,
+            Err(err) => {
+                errs.push(err);
+                false
+            }
+        }
     });
 
     if original_imports_len != filtered_imports.count() {
@@ -114,8 +120,21 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 }
 
 /// Returns `true` if the import is allowed.
-fn is_import_allowed(field: &str) -> bool {
-    field.starts_with("seal") | field.starts_with("memory")
+fn check_import(field: &str) -> Result<(), String> {
+    let allowed_prefixes = ["seal", "memory"];
+    if allowed_prefixes
+        .iter()
+        .any(|prefix| field.starts_with(prefix))
+    {
+        Ok(())
+    } else {
+        let msg = format!(
+            "An unexpected import function was found in the contract Wasm: {}.\n\
+            The only allowed import functions are those starting with one of the following prefixes:\n\
+            {}", field, allowed_prefixes.join(", ")
+        );
+        Err(msg)
+    }
 }
 
 /// Extracts the ink! linker error marker from the `field`, parses it, and
@@ -178,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn validate_must_catch_panic_import() {
+    fn must_catch_panic_import() {
         // given
         let contract = r#"
             (module
@@ -240,5 +259,27 @@ mod tests {
         assert!(res.unwrap_err().to_string().contains(
             "The ink! constructor `Flip::new` with the selector `0x40d75d74` contains an invalid trait call."
         ));
+    }
+
+    #[test]
+    fn must_catch_invalid_import() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func (param i32 i32 i32)))
+                (import "env" "some_fn" (func (;5;) (type 0)))
+                (func (;5;) (type 0))
+            )"#;
+        let module = create_module(contract);
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .to_string()
+            .contains("An unexpected import function was found in the contract Wasm: some_fn."));
     }
 }
