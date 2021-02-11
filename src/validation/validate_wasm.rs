@@ -113,35 +113,41 @@ fn parse_linker_error(field: &str) -> String {
     let encoded = field
         .strip_prefix(INK_ENFORCE_ERR)
         .expect("error marker must exist as prefix");
-    let hex = serde_hex::from_hex(&encoded)
-        .expect("decoding hex failed");
-    let decoded = <EnforcedErrors as codec::Decode>::decode(&mut &hex[..])
-        .expect("decoding object failed");
+    let hex = serde_hex::from_hex(&encoded).expect("decoding hex failed");
+    let decoded =
+        <EnforcedErrors as codec::Decode>::decode(&mut &hex[..]).expect("decoding object failed");
 
     match decoded {
-        EnforcedErrors::CannotCallTraitMessage { trait_ident, message_ident, message_selector, message_mut } => {
+        EnforcedErrors::CannotCallTraitMessage {
+            trait_ident,
+            message_ident,
+            message_selector,
+            message_mut,
+        } => {
             let receiver = match message_mut {
                 true => "&mut self",
                 false => "&self",
             };
             format!(
                 "An error was found while compiling the contract:\n\
-                        The ink! message `{}::{}` with the selector `{}` contains an invalid trait call.\n\n\
-                        Please check if the receiver of the function to call is consistent\n\
-                        with the scope in which it is called. The receiver is `{}`.",
+                The ink! message `{}::{}` with the selector `{}` contains an invalid trait call.\n\n\
+                Please check if the receiver of the function to call is consistent\n\
+                with the scope in which it is called. The receiver is `{}`.",
                 trait_ident,
                 message_ident,
                 serde_hex::to_hex(&codec::Encode::encode(&message_selector), false),
                 receiver
             )
-        },
+        }
         EnforcedErrors::CannotCallTraitConstructor {
-            trait_ident, constructor_ident, constructor_selector
+            trait_ident,
+            constructor_ident,
+            constructor_selector,
         } => {
             format!(
                 "An error was found while compiling the contract:\n\
-                        The ink! constructor `{}::{}` with the selector `{}` contains an invalid trait call.\n\
-                        Constructor never need to be forwarded, please check if this is the case.",
+                The ink! constructor `{}::{}` with the selector `{}` contains an invalid trait call.\n\
+                Constructor never need to be forwarded, please check if this is the case.",
                 trait_ident,
                 constructor_ident,
                 serde_hex::to_hex(&codec::Encode::encode(&constructor_selector), false)
