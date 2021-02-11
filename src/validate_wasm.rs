@@ -75,11 +75,14 @@ pub enum EnforcedErrors {
 /// - Known bugs for which we want to recommend a solution.
 /// - Markers inserted by the ink! codegen for errors which can't be checked at compile time.
 pub fn validate_import_section(module: &Module) -> Result<()> {
-    let imports = module
-        .import_section()
-        .expect("import section must exist")
-        .entries()
-        .iter();
+    let imports = match module.import_section() {
+        Some(section) => section.entries().iter(),
+        None => {
+            // the module does not contain any imports,
+            // hence no further validation is necessary.
+            return Ok(());
+        }
+    };
     let original_imports_len = imports.len();
     let mut errs = Vec::new();
 
@@ -293,6 +296,19 @@ mod tests {
                 (import "env" "memory" (func (;5;) (type 0)))
                 (func (;5;) (type 0))
             )"#;
+        let module = create_module(contract);
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn must_validate_successfully_if_no_import_section_found() {
+        // given
+        let contract = r#"(module)"#;
         let module = create_module(contract);
 
         // when
