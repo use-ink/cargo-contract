@@ -17,6 +17,7 @@
 mod cmd;
 mod crate_metadata;
 mod util;
+mod validation;
 mod workspace;
 
 use self::workspace::ManifestPath;
