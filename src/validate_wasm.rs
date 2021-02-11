@@ -87,7 +87,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
                 This will disable safe math operations, but unfortunately we are currently not \n\
                 aware of a better workaround until the bug in the compiler is fixed.",
             ));
-        } else if field.contains(INK_ENFORCE_ERR) {
+        } else if field.starts_with(INK_ENFORCE_ERR) {
             errs.push(parse_linker_error(field));
         }
 
@@ -108,7 +108,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 
 /// Returns `true` if the import is allowed.
 fn is_import_allowed(field: &str) -> bool {
-    field.contains("seal") | field.contains("memory")
+    field.starts_with("seal") | field.starts_with("memory")
 }
 
 /// Extracts the ink! linker error marker from the `field`, parses it, and
