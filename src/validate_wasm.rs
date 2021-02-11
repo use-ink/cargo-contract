@@ -282,4 +282,23 @@ mod tests {
             .to_string()
             .contains("An unexpected import function was found in the contract Wasm: some_fn."));
     }
+
+    #[test]
+    fn must_validate_successfully() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func (param i32 i32 i32)))
+                (import "env" "seal_foo" (func (;5;) (type 0)))
+                (import "env" "memory" (func (;5;) (type 0)))
+                (func (;5;) (type 0))
+            )"#;
+        let module = create_module(contract);
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_ok());
+    }
 }
