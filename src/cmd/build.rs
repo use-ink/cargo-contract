@@ -26,8 +26,7 @@ use std::{io, process::Command};
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println, util,
-    validation::validate_wasm,
+    maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
     BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
