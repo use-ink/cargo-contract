@@ -21,8 +21,7 @@ use parity_wasm::elements::Module;
 
 /// Marker inserted by the ink! codegen for an error which can't
 /// be checked at compile time.
-//const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
-const INK_ENFORCE_ERR: &str = "ink_enforce_error_";
+const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
 
 /// Errors which may occur when forwarding a call is not allowed.
 ///
@@ -142,4 +141,80 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_import_section;
+    use parity_wasm::elements::Module;
+
+    fn create_module(contract: &str) -> Module {
+        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
+        parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work")
+    }
+
+    #[test]
+    fn validate_must_catch_panic_import() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func (param i32 i32 i32)))
+                (import "env" "_ZN4core9panicking5panic17h00e3acdd8048cb7cE" (func (;5;) (type 0)))
+                (func (;5;) (type 0))
+            )"#;
+        let module = create_module(contract);
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .to_string()
+            .contains("An unexpected panic function import was found in the contract Wasm."));
+    }
+
+    #[test]
+    fn must_catch_ink_enforce_error_marker_message() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func))
+                (import "env" "__ink_enforce_error_0x0110466c697010666c6970aa97cade01" (func $__ink_enforce_error_0x0110466c697010666c6970aa97cade01 (type 0)))
+            )"#;
+        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
+        let module = parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        let err = res.unwrap_err().to_string();
+        assert!(err.contains(
+            "The ink! message `Flip::flip` with the selector `0xaa97cade` contains an invalid trait call."
+        ));
+        assert!(err.contains("The receiver is `&mut self`.",));
+    }
+
+    #[test]
+    fn must_catch_ink_enforce_error_marker_constructor() {
+        // given
+        let contract = r#"
+            (module
+                (type (;0;) (func))
+                (import "env" "__ink_enforce_error_0x0210466c69700c6e657740d75d74" (func $__ink_enforce_error_0x0210466c69700c6e657740d75d74 (type 0)))
+            )"#;
+        let module = create_module(contract);
+
+        // when
+        let res = validate_import_section(&module);
+
+        // then
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains(
+            "The ink! constructor `Flip::new` with the selector `0x40d75d74` contains an invalid trait call."
+        ));
+    }
 }
