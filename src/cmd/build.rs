@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use impl_serde::serialize as serde_hex;
 use std::{
     convert::TryFrom,
     fs::{metadata, File},
@@ -36,13 +37,49 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
-/// Marker inserted by the ink! codegen for a cross-calling trait error which
-/// can't be checked at compile time.
-const INK_ENFORCE_ERR_MESSAGE: &str = "__ink_enforce_error_for_message_";
+/// Marker inserted by the ink! codegen for an error which can't
+/// be checked at compile time.
+//const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
+const INK_ENFORCE_ERR: &str = "ink_enforce_error_";
 
-/// Marker inserted by the ink! codegen for a cross-calling trait constructor
-/// error which can't be checked at compile time.
-const INK_ENFORCE_ERR_CONSTRUCTOR: &str = "__ink_enforce_error_for_constructor_";
+/// Errors which may occur when forwarding a call is not allowed.
+///
+/// We insert markers for these errors in the generated contract code.
+/// This is necessary since we can't check these errors at compile time
+/// of the contract.
+/// `cargo-contract` checks the contract code for these error markers
+/// when building a contract and fails if it finds markers.
+#[derive(codec::Encode, codec::Decode)]
+pub enum EnforcedErrors {
+    /// The below error represents calling a `&mut self` message in a context that
+    /// only allows for `&self` messages. This may happen under certain circumstances
+    /// when ink! trait implementations are involved with long-hand calling notation.
+    #[codec(index = 1)]
+    CannotCallTraitMessage {
+        /// The trait that defines the called message.
+        trait_ident: String,
+        /// The name of the called message.
+        message_ident: String,
+        /// The selector of the called message.
+        message_selector: [u8; 4],
+        /// Is `true` if the `self` receiver of the ink! message is `&mut self`.
+        message_mut: bool,
+    },
+    /// The below error represents calling a constructor in a context that does
+    /// not allow calling it. This may happen when the constructor defined in a
+    /// trait is cross-called in another contract.
+    /// This is not allowed since the contract to which a call is forwarded must
+    /// already exist at the point when the call to it is made.
+    #[codec(index = 2)]
+    CannotCallTraitConstructor {
+        /// The trait that defines the called constructor.
+        trait_ident: String,
+        /// The name of the called constructor.
+        constructor_ident: String,
+        /// The selector of the called constructor.
+        constructor_selector: [u8; 4],
+    },
+}
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
@@ -288,25 +325,44 @@ fn validate_import_section(module: &Module) -> Result<()> {
                 This will disable safe math operations, but unfortunately we are currently not \n\
                 aware of a better workaround until the bug in the compiler is fixed.",
             ));
-        } else if field.contains(INK_ENFORCE_ERR_MESSAGE) {
-            errs.push(format!(
-                "An error was found while compiling the contract:\n\
-                The ink! message with the selector `{}` contains an invalid trait call.\n\n\
-                Please check if the mutable parameter of the function to call is consistent\n\
-                with the scope in which it is called.",
-                field
-                    .strip_prefix(INK_ENFORCE_ERR_MESSAGE)
-                    .expect("must exist")
-            ));
-        } else if field.contains(INK_ENFORCE_ERR_CONSTRUCTOR) {
-            errs.push(format!(
-                "An error was found while compiling the contract:\n\
-                The ink! constructor with the selector `{}` contains an invalid trait call.\n\
-                Constructor never need to be forwarded, please check if this is the case.",
-                field
-                    .strip_prefix(INK_ENFORCE_ERR_CONSTRUCTOR)
-                    .expect("must exist")
-            ));
+        } else if field.contains(INK_ENFORCE_ERR) {
+            let encoded = field
+                .strip_prefix(INK_ENFORCE_ERR)
+                .expect("must exist");
+            let hex = serde_hex::from_hex(&encoded)
+                .expect("decoding hex failed");
+            let decoded = <EnforcedErrors as codec::Decode>::decode(&mut &hex[..])
+                .expect("decoding object failed");
+            match decoded {
+                EnforcedErrors::CannotCallTraitMessage { trait_ident, message_ident, message_selector, message_mut } => {
+                    let receiver = match message_mut {
+                        true => "&mut self",
+                        false => "&self",
+                    };
+                    errs.push(format!(
+                        "An error was found while compiling the contract:\n\
+                        The ink! message `{}::{}` with the selector `{}` contains an invalid trait call.\n\n\
+                        Please check if the receiver of the function to call is consistent\n\
+                        with the scope in which it is called. The receiver is `{}`.",
+                        trait_ident,
+                        message_ident,
+                        serde_hex::to_hex(&codec::Encode::encode(&message_selector), false)
+                        receiver
+                    ));
+                },
+                EnforcedErrors::CannotCallTraitConstructor {
+                    trait_ident, constructor_ident, constructor_selector
+                } => {
+                    errs.push(format!(
+                        "An error was found while compiling the contract:\n\
+                        The ink! constructor `{}::{}` with the selector `{}` contains an invalid trait call.\n\
+                        Constructor never need to be forwarded, please check if this is the case.",
+                        trait_ident,
+                        constructor_ident,
+                        serde_hex::to_hex(&codec::Encode::encode(&constructor_selector), false)
+                    ));
+                }
+            }
         }
 
         // the only allowed imports

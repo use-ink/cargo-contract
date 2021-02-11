@@ -578,6 +578,7 @@ dependencies = [
  "futures 0.3.12",
  "heck",
  "hex",
+ "impl-serde",
  "log",
  "parity-scale-codec 2.0.0",
  "parity-wasm 0.42.1",
@@ -2434,7 +2435,7 @@ dependencies = [
  "arrayvec 0.5.2",
  "bitvec 0.17.4",
  "byte-slice-cast 0.3.5",
- "parity-scale-codec-derive",
+ "parity-scale-codec-derive 1.2.2",
  "serde",
 ]
 
@@ -2447,6 +2448,7 @@ dependencies = [
  "arrayvec 0.5.2",
  "bitvec 0.20.1",
  "byte-slice-cast 1.0.0",
+ "parity-scale-codec-derive 2.0.0",
  "serde",
 ]
 
@@ -2455,6 +2457,18 @@ name = "parity-scale-codec-derive"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "198db82bb1c18fc00176004462dd809b2a6d851669550aa17af6dacd21ae0c14"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "parity-scale-codec-derive"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9029e65297c7fd6d7013f0579e193ec2b34ae78eabca854c9417504ad8a2d214"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
