@@ -91,8 +91,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
             errs.push(parse_linker_error(field));
         }
 
-        // the only allowed imports
-        field.contains("seal") | field.contains("memory")
+        is_import_allowed(field)
     });
 
     if original_imports_len != filtered_imports.count() {
@@ -105,6 +104,11 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// Returns `true` if the import is allowed.
+fn is_import_allowed(field: &str) -> bool {
+    field.contains("seal") | field.contains("memory")
 }
 
 /// Extracts the ink! linker error marker from the `field`, parses it, and
