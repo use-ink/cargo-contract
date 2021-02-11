@@ -30,6 +30,13 @@ const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
 /// of the contract.
 /// `cargo-contract` checks the contract code for these error markers
 /// when building a contract and fails if it finds markers.
+///
+/// # Important Note
+///
+/// This is a copy of the equivalent type in ink!, which currently resides
+/// [here](https://github.com/paritytech/ink/blob/master/crates/lang/codegen/src/generator/cross_calling.rs).
+/// This type must be compatible with the ink! version in order to decode
+/// the error encoded in the marker.
 #[derive(codec::Encode, codec::Decode)]
 pub enum EnforcedErrors {
     /// The below error represents calling a `&mut self` message in a context that
