@@ -18,8 +18,11 @@ use std::{
     convert::TryFrom,
     fs::{metadata, File},
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
+
+#[cfg(not(feature = "binaryen-as-dependency"))]
+use std::{io, process::Command};
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -264,23 +267,11 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
     let mut optimized = crate_metadata.dest_wasm.clone();
     optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
-    let codegen_config = binaryen::CodegenConfig {
-        // execute -O3 optimization passes (spends potentially a lot of time optimizing)
-        optimization_level: 3,
-        // the default
-        shrink_level: 1,
-        // the default
-        debug_info: false,
-    };
-
     let mut dest_wasm_file = File::open(crate_metadata.dest_wasm.as_os_str())?;
     let mut dest_wasm_file_content = Vec::new();
     dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
 
-    let mut module = binaryen::Module::read(&dest_wasm_file_content)
-        .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
-    module.optimize(&codegen_config);
-    let optimized_wasm = module.write();
+    let optimized_wasm = do_optimization(crate_metadata, &optimized, &dest_wasm_file_content, 3)?;
 
     let mut optimized_wasm_file = File::create(optimized.as_os_str())?;
     optimized_wasm_file.write_all(&optimized_wasm)?;
@@ -294,6 +285,75 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
         original_size,
         optimized_size,
     })
+}
+
+/// Optimizes the Wasm supplied as `wasm` using the `binaryen-rs` dependency.
+///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
+/// If successful, the optimized Wasm is returned as a `Vec<u8>`.
+#[cfg(feature = "binaryen-as-dependency")]
+fn do_optimization(
+    _: &CrateMetadata,
+    _: &Path,
+    wasm: &[u8],
+    optimization_level: u32,
+) -> Result<Vec<u8>> {
+    let codegen_config = binaryen::CodegenConfig {
+        // number of optimization passes (spends potentially a lot of time optimizing)
+        optimization_level,
+        // the default
+        shrink_level: 1,
+        // the default
+        debug_info: false,
+    };
+    let mut module = binaryen::Module::read(&wasm)
+        .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
+    module.optimize(&codegen_config);
+    Ok(module.write())
+}
+
+/// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
+/// the `wasm-opt` binary.
+///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
+/// If successful, the optimized Wasm file is created under `optimized`
+/// and returned as a `Vec<u8>`.
+#[cfg(not(feature = "binaryen-as-dependency"))]
+fn do_optimization(
+    crate_metadata: &CrateMetadata,
+    optimized_dest: &Path,
+    _: &[u8],
+    optimization_level: u32,
+) -> Result<Vec<u8>> {
+    // check `wasm-opt` is installed
+    if which::which("wasm-opt").is_err() {
+        anyhow::bail!(
+            "{}",
+            "wasm-opt is not installed. Install this tool on your system in order to \n\
+             reduce the size of your contract's Wasm binary. \n\
+             See https://github.com/WebAssembly/binaryen#tools"
+                .bright_yellow()
+        );
+    }
+
+    let output = Command::new("wasm-opt")
+        .arg(crate_metadata.dest_wasm.as_os_str())
+        .arg(format!("-O{}", optimization_level))
+        .arg("-o")
+        .arg(optimized_dest.as_os_str())
+        .output()?;
+
+    if !output.status.success() {
+        // Dump the output streams produced by `wasm-opt` into the stdout/stderr.
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        anyhow::bail!("wasm-opt optimization failed");
+    }
+    Ok(output.stdout)
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
