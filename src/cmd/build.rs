@@ -26,7 +26,7 @@ use std::{io, process::Command};
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println, util,
+    maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
     BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
 };
@@ -252,6 +252,8 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
+    validate_wasm::validate_import_section(&module)?;
+
     parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
     Ok(())
 }
@@ -436,7 +438,7 @@ pub(crate) fn execute_with_crate_metadata(
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
-mod tests {
+mod tests_ci_only {
     use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
 
     #[test]
