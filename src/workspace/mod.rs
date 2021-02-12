@@ -32,6 +32,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::workspace::manifest::ContractPackage;
+
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
 /// paths to the original locations.
@@ -121,10 +123,32 @@ impl Workspace {
         Ok(self)
     }
 
-    /// Generates a package to invoke for generating contract metadata
-    pub(super) fn with_metadata_gen_package(&mut self) -> Result<&mut Self> {
+    /// Generates a package to invoke for generating contract metadata.
+    ///
+    /// The contract metadata will be generated for the supplied `package_name`
+    /// found at `package_path`.
+    pub(super) fn with_metadata_gen_package(
+        &mut self,
+        package_name: String,
+        package_path: PathBuf,
+    ) -> Result<&mut Self> {
+        // We strip the workspace root path from the path where the package is found.
+        // This way we have the relative path of the package in the workspace.
+        let stripped = package_path
+            .strip_prefix(self.workspace_root.clone())
+            .expect("132");
+        // We prepend this path since the metadata generation package will be under
+        // `.ink/metadata_gen/` and we need to traverse up from there.
+        let mut path = PathBuf::from("../../");
+        path.push(stripped);
+
+        let target_contract = ContractPackage {
+            name: package_name,
+            path,
+        };
+
         self.with_workspace_manifest(|manifest| {
-            manifest.with_metadata_package()?;
+            manifest.with_metadata_package(target_contract)?;
             Ok(())
         })
     }
