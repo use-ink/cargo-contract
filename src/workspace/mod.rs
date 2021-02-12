@@ -134,13 +134,13 @@ impl Workspace {
     ) -> Result<&mut Self> {
         // We strip the workspace root path from the path where the package is found.
         // This way we have the relative path of the package in the workspace.
-        let stripped = package_path
+        let relative_package_path = package_path
             .strip_prefix(self.workspace_root.clone())
-            .expect("132");
+            .expect("package path must be prefixed with workspace path");
         // We prepend this path since the metadata generation package will be under
         // `.ink/metadata_gen/` and we need to traverse up from there.
         let mut path = PathBuf::from("../../");
-        path.push(stripped);
+        path.push(relative_package_path);
 
         let target_contract = ContractPackage {
             name: package_name,

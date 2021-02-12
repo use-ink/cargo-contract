@@ -105,7 +105,7 @@ impl From<ManifestPath> for PathBuf {
     }
 }
 
-/// Pointer to the package of a contract
+/// Pointer to the package of a contract.
 pub struct ContractPackage {
     /// Name of the contract
     pub name: String,
@@ -117,8 +117,9 @@ pub struct ContractPackage {
 pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
-    /// Set to `Some(Contract)` if a metadata package should be generated for this manifest.
-    /// The `Contract` points to the package for which metadata should be generated.
+    /// Set to `Some(ContractPackage)` if a metadata package should be
+    /// generated for this manifest. The `ContractPackage` points to the
+    /// package for which metadata should be generated.
     metadata_package: Option<ContractPackage>,
 }
 
@@ -368,7 +369,7 @@ impl Manifest {
             fs::create_dir_all(dir).context(format!("Creating directory '{}'", dir.display()))?;
         }
 
-        if let Some(metadata_package) = &self.metadata_package {
+        if let Some(metadata_target_package) = &self.metadata_package {
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
                 manifest_dir.join(METADATA_PACKAGE_PATH)
             } else {
@@ -386,7 +387,7 @@ impl Manifest {
                 .as_table()
                 .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency should be a table"))?;
 
-            metadata::generate_package(dir, &metadata_package, ink_metadata.clone())?;
+            metadata::generate_package(dir, &metadata_target_package, ink_metadata.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
