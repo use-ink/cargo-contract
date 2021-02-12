@@ -19,7 +19,7 @@ categories = ["command-line-utilities", "development-tools::build-utils", "devel
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates"]
 
 [dependencies]
-env_logger = "0.8.2"
+env_logger = "0.8.3"
 anyhow = "1.0.38"
 structopt = "0.3.20"
 log = "0.4.14"
