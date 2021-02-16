@@ -50,6 +50,9 @@ subxt = { version = "0.14.0", package = "substrate-subxt", optional = true }
 futures = { version = "0.3.12", optional = true }
 hex = { version = "0.4.2", optional = true }
 
+# Should be removed once bitvecto-rs/bitvec#105 is resolved
+funty = "=1.1.0"
+
 [build-dependencies]
 anyhow = "1.0.38"
 zip = { version = "0.5.10", default-features = false }
