@@ -173,7 +173,6 @@ impl Workspace {
             }
 
             manifest.rewrite_relative_paths(&exclude_member_package_names)?;
-
             manifest.write(&new_manifest)?;
 
             new_manifest_paths.push((package_id.clone(), new_manifest));
