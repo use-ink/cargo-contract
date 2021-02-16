@@ -147,6 +147,12 @@ impl Manifest {
         &self.path
     }
 
+    /// If existent the `ContractPackage` points to the package for which
+    /// metadata should be generated.
+    pub(super) fn metadata_package_mut(&mut self) -> Option<&mut ContractPackage> {
+        self.metadata_package.as_mut()
+    }
+
     /// Get mutable reference to `[lib] crate-types = []` section
     fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
         let lib = self

@@ -132,19 +132,9 @@ impl Workspace {
         package_name: String,
         package_path: PathBuf,
     ) -> Result<&mut Self> {
-        // We strip the workspace root path from the path where the package is found.
-        // This way we have the relative path of the package in the workspace.
-        let relative_package_path = package_path
-            .strip_prefix(self.workspace_root.clone())
-            .expect("package path must be prefixed with workspace path");
-        // We prepend this path since the metadata generation package will be under
-        // `.ink/metadata_gen/` and we need to traverse up from there.
-        let mut path = PathBuf::from("../../");
-        path.push(relative_package_path);
-
         let target_contract = ContractPackage {
             name: package_name,
-            path,
+            path: package_path,
         };
 
         self.with_workspace_manifest(|manifest| {
@@ -173,7 +163,17 @@ impl Workspace {
             new_path.push(package.manifest_path.strip_prefix(&self.workspace_root)?);
             let new_manifest = ManifestPath::new(new_path)?;
 
+            // replace the original path to the package for which metadata should be
+            // generated with the absolute path to the package in the temporary directory.
+            if let Some(package) = manifest.metadata_package_mut() {
+                let absolute_package_path = package.path.canonicalize()?;
+                let mut new_path: PathBuf = target.as_ref().into();
+                new_path.push(absolute_package_path.strip_prefix(&self.workspace_root)?);
+                package.path = new_path;
+            }
+
             manifest.rewrite_relative_paths(&exclude_member_package_names)?;
+
             manifest.write(&new_manifest)?;
 
             new_manifest_paths.push((package_id.clone(), new_manifest));
