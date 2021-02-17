@@ -366,6 +366,8 @@ impl Manifest {
                 METADATA_PACKAGE_PATH.into()
             };
 
+            fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
+
             let contract_package_name = self
                 .toml
                 .get("package")
@@ -374,8 +376,6 @@ impl Manifest {
                 .ok_or_else(|| anyhow::anyhow!("[package] name field not found"))?
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?;
-
-            fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
 
             let ink_metadata = self
                 .toml
