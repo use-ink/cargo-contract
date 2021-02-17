@@ -98,16 +98,16 @@ impl Workspace {
         Ok(self)
     }
 
-    /// Amend the workspace manifest using the supplied function.
-    pub fn with_contract_manifest<F>(&mut self, path: &Path, f: F) -> Result<&mut Self>
+    /// Amend the manifest of the package at `package_path` using the supplied function.
+    pub fn with_contract_manifest<F>(&mut self, package_path: &Path, f: F) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
-        let workspace_manifest = self
+        let manifest = self
             .members
             .iter_mut()
             .find_map(|(_, (_, manifest))| {
-                if manifest.path().directory() == Some(path) {
+                if manifest.path().directory() == Some(package_path) {
                     Some(manifest)
                 } else {
                     None
@@ -116,14 +116,13 @@ impl Workspace {
             .ok_or_else(|| {
                 anyhow::anyhow!("The workspace root package should be a workspace member")
             })?;
-        f(workspace_manifest)?;
+        f(manifest)?;
         Ok(self)
     }
 
     /// Generates a package to invoke for generating contract metadata.
     ///
-    /// The contract metadata will be generated for the supplied `package_name`
-    /// found at `package_path`.
+    /// The contract metadata will be generated for the package found at `package_path`.
     pub(super) fn with_metadata_gen_package(&mut self, package_path: PathBuf) -> Result<&mut Self> {
         self.with_contract_manifest(&package_path, |manifest| {
             manifest.with_metadata_package()?;
