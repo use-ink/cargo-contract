@@ -32,8 +32,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::workspace::manifest::ContractPackage;
-
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
 /// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
 /// paths to the original locations.
@@ -101,16 +99,15 @@ impl Workspace {
     }
 
     /// Amend the workspace manifest using the supplied function.
-    pub fn with_workspace_manifest<F>(&mut self, f: F) -> Result<&mut Self>
+    pub fn with_contract_manifest<F>(&mut self, path: &Path, f: F) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
-        let workspace_root = self.workspace_root.clone();
         let workspace_manifest = self
             .members
             .iter_mut()
             .find_map(|(_, (_, manifest))| {
-                if manifest.path().directory() == Some(&workspace_root) {
+                if manifest.path().directory() == Some(path) {
                     Some(manifest)
                 } else {
                     None
@@ -127,18 +124,9 @@ impl Workspace {
     ///
     /// The contract metadata will be generated for the supplied `package_name`
     /// found at `package_path`.
-    pub(super) fn with_metadata_gen_package(
-        &mut self,
-        package_name: String,
-        package_path: PathBuf,
-    ) -> Result<&mut Self> {
-        let target_contract = ContractPackage {
-            name: package_name,
-            path: package_path,
-        };
-
-        self.with_workspace_manifest(|manifest| {
-            manifest.with_metadata_package(target_contract)?;
+    pub(super) fn with_metadata_gen_package(&mut self, package_path: PathBuf) -> Result<&mut Self> {
+        self.with_contract_manifest(&package_path, |manifest| {
+            manifest.with_metadata_package()?;
             Ok(())
         })
     }
@@ -162,15 +150,6 @@ impl Workspace {
             let mut new_path: PathBuf = target.as_ref().into();
             new_path.push(package.manifest_path.strip_prefix(&self.workspace_root)?);
             let new_manifest = ManifestPath::new(new_path)?;
-
-            // replace the original path to the package for which metadata should be
-            // generated with the absolute path to the package in the temporary directory.
-            if let Some(package) = manifest.metadata_package_mut() {
-                let absolute_package_path = package.path.canonicalize()?;
-                let mut new_path: PathBuf = target.as_ref().into();
-                new_path.push(absolute_package_path.strip_prefix(&self.workspace_root)?);
-                package.path = new_path;
-            }
 
             manifest.rewrite_relative_paths(&exclude_member_package_names)?;
             manifest.write(&new_manifest)?;

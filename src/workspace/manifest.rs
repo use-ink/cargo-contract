@@ -105,22 +105,12 @@ impl From<ManifestPath> for PathBuf {
     }
 }
 
-/// Pointer to the package of a contract.
-pub struct ContractPackage {
-    /// Name of the contract
-    pub name: String,
-    /// Path to the contract directory
-    pub path: PathBuf,
-}
-
 /// Create, amend and save a copy of the specified `Cargo.toml`.
 pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
-    /// Set to `Some(ContractPackage)` if a metadata package should be
-    /// generated for this manifest. The `ContractPackage` points to the
-    /// package for which metadata should be generated.
-    metadata_package: Option<ContractPackage>,
+    /// True if a metadata package should be generated for this manifest
+    metadata_package: bool,
 }
 
 impl Manifest {
@@ -138,19 +128,13 @@ impl Manifest {
         Ok(Manifest {
             path: manifest_path,
             toml,
-            metadata_package: None,
+            metadata_package: false,
         })
     }
 
     /// Get the path of the manifest file
     pub(super) fn path(&self) -> &ManifestPath {
         &self.path
-    }
-
-    /// If existent the `ContractPackage` points to the package for which
-    /// metadata should be generated.
-    pub(super) fn metadata_package_mut(&mut self) -> Option<&mut ContractPackage> {
-        self.metadata_package.as_mut()
     }
 
     /// Get mutable reference to `[lib] crate-types = []` section
@@ -229,7 +213,7 @@ impl Manifest {
     }
 
     /// Adds a metadata package to the manifest workspace for generating metadata
-    pub fn with_metadata_package(&mut self, target_contract: ContractPackage) -> Result<&mut Self> {
+    pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
         let workspace = self
             .toml
             .entry("workspace")
@@ -258,7 +242,7 @@ impl Manifest {
             members.push(METADATA_PACKAGE_PATH.into());
         }
 
-        self.metadata_package = Some(target_contract);
+        self.metadata_package = true;
         Ok(self)
     }
 
@@ -375,12 +359,21 @@ impl Manifest {
             fs::create_dir_all(dir).context(format!("Creating directory '{}'", dir.display()))?;
         }
 
-        if let Some(metadata_target_package) = &self.metadata_package {
+        if self.metadata_package {
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
                 manifest_dir.join(METADATA_PACKAGE_PATH)
             } else {
                 METADATA_PACKAGE_PATH.into()
             };
+
+            let contract_package_name = self
+                .toml
+                .get("package")
+                .ok_or_else(|| anyhow::anyhow!("package section not found"))?
+                .get("name")
+                .ok_or_else(|| anyhow::anyhow!("[package] name field not found"))?
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?;
 
             fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
 
@@ -393,7 +386,7 @@ impl Manifest {
                 .as_table()
                 .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency should be a table"))?;
 
-            metadata::generate_package(dir, &metadata_target_package, ink_metadata.clone())?;
+            metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

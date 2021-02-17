@@ -18,8 +18,6 @@ use anyhow::Result;
 use std::{fs, path::Path};
 use toml::value;
 
-use crate::workspace::manifest::ContractPackage;
-
 /// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to
 /// generate contract metadata.
 ///
@@ -29,13 +27,13 @@ use crate::workspace::manifest::ContractPackage;
 /// versions are utilized.
 pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
-    target_package: &ContractPackage,
+    contract_package_name: &str,
     mut ink_metadata_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
     log::debug!(
         "Generating metadata package for {} in {}",
-        target_package.name,
+        contract_package_name,
         dir.display()
     );
 
@@ -55,18 +53,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         .expect("contract dependency specified in the template")
         .as_table_mut()
         .expect("contract dependency is a table specified in the template");
-
-    // the metadata data generation package is put under `.ink/metadata_gen` and we need to
-    // explicitly reference the (possibly sub-)contract which is build.
-    let path = target_package
-        .path
-        .to_str()
-        .expect("path must be convertible to str");
-    contract.insert("path".into(), toml::Value::String(path.to_string()));
-    contract.insert(
-        "package".into(),
-        toml::Value::String(target_package.name.clone()),
-    );
+    contract.insert("package".into(), contract_package_name.into());
 
     // make ink_metadata dependency use default features
     ink_metadata_dependency.remove("default-features");

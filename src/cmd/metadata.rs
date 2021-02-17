@@ -123,7 +123,6 @@ impl GenerateMetadataCommand {
         if self.unstable_options.original_manifest {
             generate_metadata(&self.crate_metadata.manifest_path)?;
         } else {
-            let package_name = self.crate_metadata.package_name.clone();
             let manifest_dir = match self.crate_metadata.manifest_path.directory() {
                 Some(dir) => dir,
                 None => Path::new("./"),
@@ -140,7 +139,7 @@ impl GenerateMetadataCommand {
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package(package_name, absolute_package_path)?
+            .with_metadata_gen_package(absolute_package_path)?
             .using_temp(generate_metadata)?;
         }
 
