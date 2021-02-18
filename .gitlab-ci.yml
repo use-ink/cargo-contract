@@ -79,9 +79,7 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    # We are temporarily removing `--all-features` here for the build to succeed
-    # until our substrate dependencies are released in newer versions.
-    - cargo test --verbose --workspace
+    - cargo test --verbose --workspace --all-features
 
 #### stage:                        build (default features)
 
