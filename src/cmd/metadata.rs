@@ -281,7 +281,10 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests {
     use crate::cmd::metadata::blake2_hash;
-    use crate::{cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity};
+    use crate::{
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
+        ManifestPath, UnstableFlags, Verbosity,
+    };
     use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
