@@ -254,6 +254,11 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
     validate_wasm::validate_import_section(&module)?;
 
+    debug_assert!(
+        !module.clone().to_bytes().unwrap().is_empty(),
+        "resulting wasm size of post processing must be > 0"
+    );
+
     parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
     Ok(())
 }
@@ -462,6 +467,7 @@ mod tests_ci_only {
             // the path can never be e.g. `foo_target/ink` -- the assert
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
+            assert!(res.optimization_result.unwrap().optimized_size > 0.0);
             Ok(())
         })
     }
