@@ -14,23 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{convert::TryFrom, ffi::OsStr, fs::metadata, path::PathBuf};
+
+#[cfg(feature = "binaryen-as-dependency")]
 use std::{
-    convert::TryFrom,
-    fs::{metadata, File},
+    fs::File,
     io::{Read, Write},
-    path::{Path, PathBuf},
 };
 
 #[cfg(not(feature = "binaryen-as-dependency"))]
-use std::{io, process::Command};
+use std::process::Command;
 
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
+    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, UnstableOptions, Verbosity,
+    VerbosityFlags,
 };
-use crate::{OptimizationResult, Verbosity};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
@@ -254,6 +255,11 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 
     validate_wasm::validate_import_section(&module)?;
 
+    debug_assert!(
+        !module.clone().to_bytes().unwrap().is_empty(),
+        "resulting wasm size of post processing must be > 0"
+    );
+
     parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
     Ok(())
 }
@@ -263,23 +269,20 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
-    let mut optimized = crate_metadata.dest_wasm.clone();
-    optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
+    let mut dest_optimized = crate_metadata.dest_wasm.clone();
+    dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
 
-    let mut dest_wasm_file = File::open(crate_metadata.dest_wasm.as_os_str())?;
-    let mut dest_wasm_file_content = Vec::new();
-    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
-
-    let optimized_wasm = do_optimization(crate_metadata, &optimized, &dest_wasm_file_content, 3)?;
-
-    let mut optimized_wasm_file = File::create(optimized.as_os_str())?;
-    optimized_wasm_file.write_all(&optimized_wasm)?;
+    let _ = do_optimization(
+        crate_metadata.dest_wasm.as_os_str(),
+        &dest_optimized.as_os_str(),
+        3,
+    )?;
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
-    let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
+    let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
 
     // overwrite existing destination wasm file with the optimised version
-    std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
+    std::fs::rename(&dest_optimized, &crate_metadata.dest_wasm)?;
     Ok(OptimizationResult {
         original_size,
         optimized_size,
@@ -291,14 +294,17 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized Wasm is returned as a `Vec<u8>`.
+/// If successful, the optimized wasm is written to `dest_optimized`.
 #[cfg(feature = "binaryen-as-dependency")]
 fn do_optimization(
-    _: &CrateMetadata,
-    _: &Path,
-    wasm: &[u8],
+    dest_wasm: &OsStr,
+    dest_optimized: &OsStr,
     optimization_level: u32,
-) -> Result<Vec<u8>> {
+) -> Result<()> {
+    let mut dest_wasm_file = File::open(dest_wasm)?;
+    let mut dest_wasm_file_content = Vec::new();
+    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
+
     let codegen_config = binaryen::CodegenConfig {
         // number of optimization passes (spends potentially a lot of time optimizing)
         optimization_level,
@@ -307,10 +313,14 @@ fn do_optimization(
         // the default
         debug_info: false,
     };
-    let mut module = binaryen::Module::read(&wasm)
+    let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
     module.optimize(&codegen_config);
-    Ok(module.write())
+
+    let mut optimized_wasm_file = File::create(dest_optimized)?;
+    optimized_wasm_file.write_all(&module.write())?;
+
+    Ok(())
 }
 
 /// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
@@ -319,15 +329,13 @@ fn do_optimization(
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized Wasm file is created under `optimized`
-/// and returned as a `Vec<u8>`.
+/// If successful, the optimized wasm is written to `dest_optimized`.
 #[cfg(not(feature = "binaryen-as-dependency"))]
 fn do_optimization(
-    crate_metadata: &CrateMetadata,
-    optimized_dest: &Path,
-    _: &[u8],
+    dest_wasm: &OsStr,
+    dest_optimized: &OsStr,
     optimization_level: u32,
-) -> Result<Vec<u8>> {
+) -> Result<()> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
         anyhow::bail!(
@@ -340,19 +348,17 @@ fn do_optimization(
     }
 
     let output = Command::new("wasm-opt")
-        .arg(crate_metadata.dest_wasm.as_os_str())
+        .arg(dest_wasm)
         .arg(format!("-O{}", optimization_level))
         .arg("-o")
-        .arg(optimized_dest.as_os_str())
+        .arg(dest_optimized)
         .output()?;
 
     if !output.status.success() {
         // Dump the output streams produced by `wasm-opt` into the stdout/stderr.
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
         anyhow::bail!("wasm-opt optimization failed");
     }
-    Ok(output.stdout)
+    Ok(())
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -462,6 +468,7 @@ mod tests_ci_only {
             // the path can never be e.g. `foo_target/ink` -- the assert
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
+            assert!(res.optimization_result.unwrap().optimized_size > 0.0);
             Ok(())
         })
     }
