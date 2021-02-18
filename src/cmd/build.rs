@@ -294,7 +294,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized Wasm is returned as a `Vec<u8>`.
+/// If successful, the optimized wasm is written to `dest_optimized`.
 #[cfg(feature = "binaryen-as-dependency")]
 fn do_optimization(
     dest_wasm: &OsStr,
@@ -329,8 +329,7 @@ fn do_optimization(
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized Wasm file is created under `optimized`
-/// and returned as a `Vec<u8>`.
+/// If successful, the optimized wasm is written to `dest_optimized`.
 #[cfg(not(feature = "binaryen-as-dependency"))]
 fn do_optimization(
     dest_wasm: &OsStr,
