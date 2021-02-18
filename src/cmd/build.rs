@@ -439,7 +439,7 @@ pub(crate) fn execute_with_crate_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
+    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity};
 
     #[test]
     fn build_template() {
@@ -449,7 +449,7 @@ mod tests_ci_only {
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
             let res = super::execute(
                 &manifest_path,
-                None,
+                Verbosity::Default,
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
@@ -477,7 +477,7 @@ mod tests_ci_only {
             // when
             super::execute(
                 &manifest_path,
-                None,
+                Verbosity::Default,
                 true,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
