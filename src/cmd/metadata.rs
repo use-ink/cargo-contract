@@ -390,7 +390,8 @@ mod tests {
 
             assert!(
                 dest_bundle.exists(),
-                format!("Missing metadata file '{}'", dest_bundle.display())
+                "Missing metadata file '{}'",
+                dest_bundle.display()
             );
 
             let source = metadata_json.get("source").expect("source not found");
