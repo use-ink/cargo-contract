@@ -311,7 +311,7 @@ fn do_optimization(
         // the default
         shrink_level: 1,
         // the default
-        debug_info: true,
+        debug_info: false,
     };
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
