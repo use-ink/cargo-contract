@@ -359,7 +359,6 @@ fn do_optimization(
         .output()?;
 
     if !output.status.success() {
-        // Dump the output streams produced by `wasm-opt` into the stdout/stderr.
         anyhow::bail!("wasm-opt optimization failed");
     }
     Ok(())
