@@ -238,6 +238,10 @@ impl BuildResult {
             format!("{:.1}K", optimization.0).bold(),
             format!("{:.1}K", optimization.1).bold(),
         );
+        debug_assert!(
+            optimization.1 > 0.0,
+            "optimized file size must be greater 0"
+        );
 
         if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
