@@ -23,7 +23,7 @@ use std::{
 };
 
 #[cfg(not(feature = "binaryen-as-dependency"))]
-use std::process::Command;
+use std::{process::Command, str};
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -359,7 +359,15 @@ fn do_optimization(
         .output()?;
 
     if !output.status.success() {
-        anyhow::bail!("wasm-opt optimization failed");
+        let err = str::from_utf8(&output.stderr)
+            .expect("cannot convert stderr output of wasm-opt to string")
+            .trim();
+        anyhow::bail!(
+            "The wasm-opt optimization failed.\n\
+            A possible source of error could be that you have an outdated binaryen package installed.\n\n\
+            The error which wasm-opt returned was: \n{}",
+            err
+        );
     }
     Ok(())
 }
