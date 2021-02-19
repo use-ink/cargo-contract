@@ -475,6 +475,10 @@ mod tests_ci_only {
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
             assert!(res.optimization_result.unwrap().optimized_size > 0.0);
+
+            // our optimized contract template should always be below 3k.
+            assert!(res.optimization_result.unwrap().optimized_size < 3.0);
+
             Ok(())
         })
     }
