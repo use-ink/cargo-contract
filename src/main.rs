@@ -366,7 +366,11 @@ fn parse_code_hash(input: &str) -> Result<H256> {
 fn main() {
     env_logger::init();
 
-    let Opts::Contract(args) = Opts::from_args();
+    let app = Opts::clap();
+    // TODO if guys accept `SUBSTRATE_CLI_IMPL_VERSION`, I can use `generate_cargo_keys` in build.rs directly
+    let full_version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION");
+    let app = app.version(full_version);
+    let Opts::Contract(args) = Opts::from_clap(&app.get_matches()); //Opts::from_args();
     match exec(args.cmd) {
         Ok(maybe_msg) => {
             if let Some(msg) = maybe_msg {
