@@ -27,6 +27,10 @@ pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<Option<String>>
 where
     P: AsRef<Path>,
 {
+    if name.contains('.') {
+        anyhow::bail!("Contract names cannot contain periods");
+    }
+
     if name.contains('-') {
         anyhow::bail!("Contract names cannot contain hyphens");
     }
@@ -109,6 +113,19 @@ mod tests {
             assert_eq!(
                 result.err().unwrap().to_string(),
                 "Contract names cannot contain hyphens"
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn rejects_name_with_period() {
+        with_tmp_dir(|path| {
+            let result = execute("../xxx", Some(path));
+            assert!(result.is_err(), "Should fail");
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "Contract names cannot contain periods"
             );
             Ok(())
         })
