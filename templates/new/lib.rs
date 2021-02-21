@@ -53,14 +53,14 @@ mod {{name}} {
         use super::*;
 
         /// We test if the default constructor does its job.
-        #[test]
+        #[ink::test]
         fn default_works() {
             let {{name}} = {{camel_name}}::default();
             assert_eq!({{name}}.get(), false);
         }
 
         /// We test a simple use case of our contract.
-        #[test]
+        #[ink::test]
         fn it_works() {
             let mut {{name}} = {{camel_name}}::new(false);
             assert_eq!({{name}}.get(), false);
