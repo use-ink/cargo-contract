@@ -52,6 +52,8 @@ mod {{name}} {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
 
+        use ink_lang as ink;
+
         /// We test if the default constructor does its job.
         #[ink::test]
         fn default_works() {
