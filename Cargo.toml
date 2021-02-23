@@ -47,7 +47,7 @@ impl-serde = "0.3.1"
 async-std = { version = "1.9.0", optional = true }
 sp-core = { version = "2.0.1", optional = true }
 subxt = { version = "0.14.0", package = "substrate-subxt", optional = true }
-futures = { version = "0.3.12", optional = true }
+futures = { version = "0.3.13", optional = true }
 hex = { version = "0.4.2", optional = true }
 
 # Should be removed once bitvecto-rs/bitvec#105 is resolved
