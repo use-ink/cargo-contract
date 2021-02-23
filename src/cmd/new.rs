@@ -27,7 +27,7 @@ pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<Option<String>>
 where
     P: AsRef<Path>,
 {
-    if !name.replace('_', "").chars().all(char::is_alphanumeric) {
+    if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
         anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
     }
 
