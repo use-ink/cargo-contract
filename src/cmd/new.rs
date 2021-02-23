@@ -27,12 +27,8 @@ pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<Option<String>>
 where
     P: AsRef<Path>,
 {
-    if name.contains('.') {
-        anyhow::bail!("Contract names cannot contain periods");
-    }
-
-    if name.contains('-') {
-        anyhow::bail!("Contract names cannot contain hyphens");
+    if !name.replace('_', "").chars().all(char::is_alphanumeric) {
+        anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
     }
 
     let out_dir = dir
@@ -112,7 +108,7 @@ mod tests {
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
-                "Contract names cannot contain hyphens"
+                "Contract names can only contain alphanumeric characters and underscores"
             );
             Ok(())
         })
@@ -125,7 +121,7 @@ mod tests {
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
-                "Contract names cannot contain periods"
+                "Contract names can only contain alphanumeric characters and underscores"
             );
             Ok(())
         })
