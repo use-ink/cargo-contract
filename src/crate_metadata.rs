@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::util;
 use crate::ManifestPath;
 
 use anyhow::{Context, Result};
@@ -50,7 +49,7 @@ impl CrateMetadata {
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
 
-        let absolute_manifest_path = util::absolute_path(&manifest_path)?;
+        let absolute_manifest_path = manifest_path.absolute_directory()?;
         if absolute_manifest_path != metadata.workspace_root {
             target_directory = target_directory.join(package_name.clone());
         }

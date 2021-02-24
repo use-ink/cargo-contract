@@ -66,6 +66,15 @@ impl ManifestPath {
             None
         }
     }
+
+    /// Returns the absolute directory path of the manifest.
+    pub fn absolute_directory(&self) -> Result<PathBuf, std::io::Error> {
+        let directory = match self.directory() {
+            Some(dir) => dir,
+            None => Path::new("./"),
+        };
+        directory.canonicalize()
+    }
 }
 
 impl TryFrom<&PathBuf> for ManifestPath {
@@ -403,4 +412,31 @@ fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+}
+
+#[cfg(test)]
+mod test {
+    use super::ManifestPath;
+    use crate::util::tests::with_tmp_dir;
+    use std::fs;
+
+    #[test]
+    fn must_return_absolute_path_from_absolute_path() {
+        with_tmp_dir(|path| {
+            // given
+            let cargo_toml_path = path.join("Cargo.toml");
+            let _ = fs::File::create(&cargo_toml_path).expect("file creation failed");
+            let manifest_path =
+                ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+
+            // when
+            let absolute_path = manifest_path
+                .absolute_directory()
+                .expect("absolute path extraction failed");
+
+            // then
+            assert_eq!(absolute_path.as_path(), path);
+            Ok(())
+        })
+    }
 }

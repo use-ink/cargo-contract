@@ -130,7 +130,7 @@ impl GenerateMetadataCommand {
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package(util::absolute_path(&self.crate_metadata.manifest_path)?)?
+            .with_metadata_gen_package(self.crate_metadata.manifest_path.absolute_directory()?)?
             .using_temp(generate_metadata)?;
         }
 

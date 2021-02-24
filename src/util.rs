@@ -14,16 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::workspace::ManifestPath;
 use crate::Verbosity;
 
 use anyhow::{Context, Result};
 use rustc_version::Channel;
-use std::{
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{ffi::OsStr, path::Path, process::Command};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
 pub fn assert_channel() -> Result<()> {
@@ -98,15 +93,6 @@ pub(crate) fn base_name(path: &Path) -> &str {
         .expect("must be valid utf-8")
 }
 
-/// Returns the absolute path to the manifest directory.
-pub(crate) fn absolute_path(manifest_path: &ManifestPath) -> Result<PathBuf, std::io::Error> {
-    let directory = match manifest_path.directory() {
-        Some(dir) => dir,
-        None => Path::new("./"),
-    };
-    directory.canonicalize()
-}
-
 /// Prints to stdout if `verbosity.is_verbose()` is `true`.
 #[macro_export]
 macro_rules! maybe_println {
@@ -119,8 +105,7 @@ macro_rules! maybe_println {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::workspace::ManifestPath;
-    use std::{fs, path::Path};
+    use std::path::Path;
 
     pub fn with_tmp_dir<F>(f: F)
     where
@@ -133,24 +118,5 @@ pub mod tests {
 
         // catch test panics in order to clean up temp dir which will be very large
         f(tmp_dir.path()).expect("Error executing test with tmp dir")
-    }
-
-    #[test]
-    fn must_return_absolute_path_from_absolute_path() {
-        with_tmp_dir(|path| {
-            // given
-            let cargo_toml_path = path.join("Cargo.toml");
-            let _ = fs::File::create(&cargo_toml_path).expect("file creation failed");
-            let manifest_path =
-                ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
-
-            // when
-            let absolute_path =
-                super::absolute_path(&manifest_path).expect("absolute path extraction failed");
-
-            // then
-            assert_eq!(absolute_path.as_path(), path);
-            Ok(())
-        })
     }
 }
