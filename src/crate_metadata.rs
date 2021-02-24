@@ -14,15 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::util;
 use crate::ManifestPath;
+
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
 use semver::Version;
 use serde_json::{Map, Value};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 use toml::value;
 use url::Url;
 
@@ -51,11 +50,7 @@ impl CrateMetadata {
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
 
-        let manifest_dir = match manifest_path.directory() {
-            Some(dir) => dir,
-            None => Path::new("./"),
-        };
-        let absolute_manifest_path = manifest_dir.canonicalize()?;
+        let absolute_manifest_path = util::absolute_path(&manifest_path)?;
         if absolute_manifest_path != metadata.workspace_root {
             target_directory = target_directory.join(package_name.clone());
         }

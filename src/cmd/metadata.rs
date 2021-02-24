@@ -29,10 +29,7 @@ use contract_metadata::{
     SourceLanguage, SourceWasm, User,
 };
 use semver::Version;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
@@ -123,12 +120,6 @@ impl GenerateMetadataCommand {
         if self.unstable_options.original_manifest {
             generate_metadata(&self.crate_metadata.manifest_path)?;
         } else {
-            let manifest_dir = match self.crate_metadata.manifest_path.directory() {
-                Some(dir) => dir,
-                None => Path::new("./"),
-            };
-            let absolute_package_path = manifest_dir.canonicalize()?;
-
             Workspace::new(
                 &self.crate_metadata.cargo_meta,
                 &self.crate_metadata.root_package.id,
@@ -139,7 +130,7 @@ impl GenerateMetadataCommand {
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package(absolute_package_path)?
+            .with_metadata_gen_package(util::absolute_path(&self.crate_metadata.manifest_path)?)?
             .using_temp(generate_metadata)?;
         }
 
