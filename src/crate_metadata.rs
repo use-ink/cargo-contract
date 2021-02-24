@@ -19,7 +19,10 @@ use anyhow::{Context, Result};
 use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
 use semver::Version;
 use serde_json::{Map, Value};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use toml::value;
 use url::Url;
 
@@ -43,10 +46,19 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let target_directory = metadata.target_directory.as_path().join("ink");
+        let mut target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
+
+        let manifest_dir = match manifest_path.directory() {
+            Some(dir) => dir,
+            None => Path::new("./"),
+        };
+        let absolute_manifest_path = manifest_dir.canonicalize()?;
+        if absolute_manifest_path != metadata.workspace_root {
+            target_directory = target_directory.join(package_name.clone());
+        }
 
         // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
         let mut original_wasm = target_directory.clone();
