@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::Verbosity;
-
 use anyhow::{Context, Result};
 use rustc_version::Channel;
 use std::{ffi::OsStr, path::Path, process::Command};
