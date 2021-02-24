@@ -21,8 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update to scale-info 0.5 and codec 2.0 - [#164](https://github.com/paritytech/cargo-contract/pull/164)
 - Put build artifacts under `target/ink/` - [#122](https://github.com/paritytech/cargo-contract/pull/122)
 
-### Removed
-
 ### Fixed
 - Fix `wasm-opt` regression - [#187](https://github.com/paritytech/cargo-contract/pull/187)
 - Generate metadata explicitly for the contract which is build - [#174](https://github.com/paritytech/cargo-contract/pull/174)
