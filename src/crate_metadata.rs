@@ -49,7 +49,8 @@ impl CrateMetadata {
         let package_name = root_package.name.replace("-", "_");
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
-        if absolute_manifest_path != metadata.workspace_root {
+        let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        if absolute_manifest_path != absolute_workspace_root {
             target_directory = target_directory.join(package_name.clone());
         }
 
