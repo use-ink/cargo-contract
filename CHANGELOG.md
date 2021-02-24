@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2021-02-24
+
+### Fixed
+- Fix linker error when building complex contracts - [#199](https://github.com/paritytech/cargo-contract/pull/199)
+
 ## [0.9.0] - 2021-02-22
 
 ### Added
@@ -15,8 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use either `binaryen-rs` dep or `wasm-opt` binary - [#168](https://github.com/paritytech/cargo-contract/pull/168)
 - Update to scale-info 0.5 and codec 2.0 - [#164](https://github.com/paritytech/cargo-contract/pull/164)
 - Put build artifacts under `target/ink/` - [#122](https://github.com/paritytech/cargo-contract/pull/122)
-
-### Removed
 
 ### Fixed
 - Fix `wasm-opt` regression - [#187](https://github.com/paritytech/cargo-contract/pull/187)
