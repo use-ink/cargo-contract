@@ -23,7 +23,7 @@ use std::{
 };
 
 #[cfg(not(feature = "binaryen-as-dependency"))]
-use std::process::Command;
+use std::{process::Command, str};
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -352,11 +352,22 @@ fn do_optimization(
         .arg(format!("-O{}", optimization_level))
         .arg("-o")
         .arg(dest_optimized)
+        // the memory in our module is imported, `wasm-opt` needs to be told that
+        // the memory is initialized to zeros, otherwise it won't run the
+        // memory-packing pre-pass.
+        .arg("--zero-filled-memory")
         .output()?;
 
     if !output.status.success() {
-        // Dump the output streams produced by `wasm-opt` into the stdout/stderr.
-        anyhow::bail!("wasm-opt optimization failed");
+        let err = str::from_utf8(&output.stderr)
+            .expect("cannot convert stderr output of wasm-opt to string")
+            .trim();
+        anyhow::bail!(
+            "The wasm-opt optimization failed.\n\
+            A possible source of error could be that you have an outdated binaryen package installed.\n\n\
+            The error which wasm-opt returned was: \n{}",
+            err
+        );
     }
     Ok(())
 }
@@ -469,6 +480,10 @@ mod tests_ci_only {
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
             assert!(res.optimization_result.unwrap().optimized_size > 0.0);
+
+            // our optimized contract template should always be below 3k.
+            assert!(res.optimization_result.unwrap().optimized_size < 3.0);
+
             Ok(())
         })
     }

@@ -43,10 +43,16 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let target_directory = metadata.target_directory.as_path().join("ink");
+        let mut target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
+
+        let absolute_manifest_path = manifest_path.absolute_directory()?;
+        let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        if absolute_manifest_path != absolute_workspace_root {
+            target_directory = target_directory.join(package_name.clone());
+        }
 
         // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
         let mut original_wasm = target_directory.clone();
