@@ -481,10 +481,12 @@ mod tests_ci_only {
             // the path can never be e.g. `foo_target/ink` -- the assert
             // would fail for that.
             assert!(res.target_directory.ends_with("target/ink"));
-            assert!(res.optimization_result.unwrap().optimized_size > 0.0);
+
+            let optimized_size = res.optimization_result.unwrap().optimized_size;
+            assert!(optimized_size > 0.0);
 
             // our optimized contract template should always be below 3k.
-            assert!(res.optimization_result.unwrap().optimized_size < 3.0);
+            assert!(optimized_size < 3.0);
 
             Ok(())
         })
