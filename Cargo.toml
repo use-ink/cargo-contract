@@ -3,7 +3,7 @@ members = [".", "metadata"]
 
 [package]
 name = "cargo-contract"
-version = "0.8.0"
+version = "0.9.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2018"
@@ -24,7 +24,7 @@ anyhow = "1.0.38"
 structopt = "0.3.20"
 log = "0.4.14"
 heck = "0.3.2"
-zip = { version = "0.5.10", default-features = false }
+zip = { version = "0.5.11", default-features = false }
 pwasm-utils = "0.17.0"
 parity-wasm = "0.42.1"
 cargo_metadata = "0.12.3"
@@ -37,7 +37,7 @@ blake2 = "0.9.1"
 contract-metadata = { version = "0.2.0", path = "./metadata" }
 semver = { version = "0.11.0", features = ["serde"] }
 serde = { version = "1.0.123", default-features = false, features = ["derive"] }
-serde_json = "1.0.62"
+serde_json = "1.0.64"
 tempfile = "3.2.0"
 url = { version = "2.2.1", features = ["serde"] }
 binaryen = { version = "0.12.0", optional = true }
@@ -47,7 +47,7 @@ impl-serde = "0.3.1"
 async-std = { version = "1.9.0", optional = true }
 sp-core = { version = "2.0.1", optional = true }
 subxt = { version = "0.14.0", package = "substrate-subxt", optional = true }
-futures = { version = "0.3.12", optional = true }
+futures = { version = "0.3.13", optional = true }
 hex = { version = "0.4.2", optional = true }
 
 # Should be removed once bitvecto-rs/bitvec#105 is resolved
@@ -55,7 +55,7 @@ funty = "=1.1.0"
 
 [build-dependencies]
 anyhow = "1.0.38"
-zip = { version = "0.5.10", default-features = false }
+zip = { version = "0.5.11", default-features = false }
 walkdir = "2.3.1"
 
 [dev-dependencies]
