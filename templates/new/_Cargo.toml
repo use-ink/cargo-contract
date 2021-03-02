@@ -12,7 +12,7 @@ ink_storage = { version = "3.0.0-rc3", default-features = false }
 ink_lang = { version = "3.0.0-rc3", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "2.0.1", default-features = false, features = ["derive"] }
-scale-info = { version = "0.5.0", default-features = false, features = ["derive"], optional = true }
+scale-info = { version = "0.6.0", default-features = false, features = ["derive"], optional = true }
 
 # Should be removed once bitvecto-rs/bitvec#105 is resolved
 funty = "=1.1.0"
