@@ -12,8 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - no periods in new contract names - [#192](https://github.com/paritytech/cargo-contract/pull/192)
 
 ### Changed
-- Update `cargo contract new` template dependencies for `ink!` `rc3` - [#204](https://github.
-  com/paritytech/cargo-contract/pull/204)
+- Update `cargo contract new` template dependencies for `ink!` `rc3` - [#204](https://github.com/paritytech/cargo-contract/pull/204)
 
 ## [0.9.1] - 2021-02-24
 
