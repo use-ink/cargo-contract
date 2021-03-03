@@ -479,6 +479,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 
 [[package]]
+name = "camino"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd065703998b183ed0b348a22555691373a9345a1431141e5778b48bb17e4703"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cargo-contract"
 version = "0.10.0"
 dependencies = [
@@ -497,7 +506,7 @@ dependencies = [
  "hex",
  "impl-serde",
  "log",
- "parity-scale-codec 2.0.0",
+ "parity-scale-codec 2.0.1",
  "parity-wasm 0.42.1",
  "pretty_assertions",
  "pwasm-utils",
@@ -528,10 +537,11 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.12.3"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7714a157da7991e23d90686b9524b9e12e0407a108647f52e9328f4b3d51ac7f"
+checksum = "081e3f0755c1f380c2d010481b6fa2e02973586d5f2b24eebb7a2a1d98b143d8"
 dependencies = [
+ "camino",
  "cargo-platform",
  "semver 0.11.0",
  "semver-parser 0.10.2",
@@ -2021,14 +2031,14 @@ dependencies = [
 
 [[package]]
 name = "parity-scale-codec"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75c823fdae1bb5ff5708ee61a62697e6296175dc671710876871c853f48592b3"
+checksum = "0cd3dab59b5cf4bc81069ade0fc470341a1ef3ad5fa73e5a8943bed2ec12b2e8"
 dependencies = [
  "arrayvec 0.5.2",
  "bitvec 0.20.1",
  "byte-slice-cast 1.0.0",
- "parity-scale-codec-derive 2.0.0",
+ "parity-scale-codec-derive 2.0.1",
  "serde",
 ]
 
@@ -2046,9 +2056,9 @@ dependencies = [
 
 [[package]]
 name = "parity-scale-codec-derive"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9029e65297c7fd6d7013f0579e193ec2b34ae78eabca854c9417504ad8a2d214"
+checksum = "fa04976a81fde04924b40cc4036c4d12841e8bb04325a5cf2ada75731a150a7d"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",

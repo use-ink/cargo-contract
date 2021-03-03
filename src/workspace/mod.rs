@@ -58,7 +58,8 @@ impl Workspace {
                         package_id
                     )
                 });
-            let manifest = Manifest::new(&package.manifest_path)?;
+            let manifest_path = ManifestPath::new(&package.manifest_path)?;
+            let manifest = Manifest::new(manifest_path)?;
             Ok((package_id.clone(), (package.clone(), manifest)))
         };
 
@@ -73,7 +74,7 @@ impl Workspace {
         }
 
         Ok(Workspace {
-            workspace_root: metadata.workspace_root.clone(),
+            workspace_root: metadata.workspace_root.clone().into(),
             root_package: root_package.clone(),
             members,
         })

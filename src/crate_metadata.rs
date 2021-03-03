@@ -92,13 +92,13 @@ impl CrateMetadata {
             cargo_meta: metadata,
             root_package,
             package_name,
-            original_wasm,
-            dest_wasm,
+            original_wasm: original_wasm.into(),
+            dest_wasm: dest_wasm.into(),
             ink_version,
             documentation,
             homepage,
             user,
-            target_directory,
+            target_directory: target_directory.into(),
         };
         Ok(crate_metadata)
     }
