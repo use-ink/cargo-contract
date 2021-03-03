@@ -12,6 +12,7 @@ WORKDIR /build
 ENV RUSTUP_HOME="/rustup-home"
 ENV CARGO_HOME="/cargo-home"
 ENV DEBIAN_FRONTEND="noninteractive"
+ENV PATH="/cargo-home/bin:$PATH"
 
 # We first init as much as we can in the first layers
 RUN apt-get update && \
@@ -20,10 +21,10 @@ RUN apt-get update && \
         cmake pkg-config libssl-dev \
         git clang bsdmainutils jq ca-certificates curl binaryen && \
     curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUSTC_VERSION -y &&\
-    rm -rf /var/lib/apt/lists/*
-
-ENV PATH="/cargo-home/bin:$PATH"
-RUN rustup component add rust-src && \
-cargo install --git https://github.com/paritytech/cargo-contract.git --force
+    rm -rf /var/lib/apt/lists/* &&\
+    rustup toolchain install nightly --target wasm32-unknown-unknown \
+    --profile minimal --component rustfmt rust-src; \
+    rustup default nightly &&\
+    cargo install --git https://github.com/paritytech/cargo-contract.git --force
 
 #RUN cargo contract new test
