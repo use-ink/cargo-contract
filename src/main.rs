@@ -315,7 +315,7 @@ enum Command {
     /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
-    /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
+    /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[structopt(name = "check")]
     Check(CheckCommand),
     /// Test the smart contract off-chain

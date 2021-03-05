@@ -496,7 +496,7 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn check_must_not_create_target_in_project_dir() {
+    fn check_must_not_output_contract_artifacts_in_project_dir() {
         with_tmp_dir(|path| {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
@@ -515,8 +515,12 @@ mod tests_ci_only {
 
             // then
             assert!(
-                !project_dir.join("target").exists(),
-                "found target folder in project directory!"
+                !project_dir.join("target/ink/new_project.contract").exists(),
+                "found contract artifact in project directory!"
+            );
+            assert!(
+                !project_dir.join("target/ink/new_project.wasm").exists(),
+                "found wasm artifact in project directory!"
             );
             Ok(())
         })
