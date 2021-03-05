@@ -430,6 +430,9 @@ pub(crate) fn execute_with_crate_metadata(
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
+    if build_artifact == BuildArtifacts::CheckOnly {
+        return Ok((None, None));
+    }
     maybe_println!(
         verbosity,
         " {} {}",
