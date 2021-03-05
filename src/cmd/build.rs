@@ -478,13 +478,13 @@ mod tests_ci_only {
             )
             .expect("build failed");
 
-            // we can't use `/target/ink` here, since this would match
-            // for `/target` being the root path. but since `ends_with`
-            // always matches whole path components we can be sure
-            // the path can never be e.g. `foo_target/ink` -- the assert
-            // would fail for that.
-            eprintln!("{:?}", res.target_directory);
-            assert!(res.target_directory.ends_with("target/ink"));
+            // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
+            // this dir does not include `/target/` as a path, hence
+            // we can't match for e.g. `foo_project/target/ink`.
+            //
+            // we also can't match for `/ink` here, since this would match
+            // for `/ink` being the root path.
+            assert!(res.target_directory.ends_with("ink"));
 
             let optimized_size = res.optimization_result.unwrap().optimized_size;
             assert!(optimized_size > 0.0);
