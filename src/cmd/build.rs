@@ -483,6 +483,7 @@ mod tests_ci_only {
             // always matches whole path components we can be sure
             // the path can never be e.g. `foo_target/ink` -- the assert
             // would fail for that.
+            eprintln!("{:?}", res.target_directory);
             assert!(res.target_directory.ends_with("target/ink"));
 
             let optimized_size = res.optimization_result.unwrap().optimized_size;

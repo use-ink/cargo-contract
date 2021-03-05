@@ -64,6 +64,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
+    eprintln!("Invoking cargo: {:?}", cmd);
     log::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
