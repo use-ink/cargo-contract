@@ -20,7 +20,7 @@ We optimize the resulting contract Wasm using `binaryen`. You have two options f
 
   - _Build `binaryen` as a dependency when installing `cargo-contract`:_  
     A C++14 compiler and python >= 3.5 is required.
-    Execute `cargo install --force --features wasm-opt-unavailable cargo-contract`.
+    Execute `cargo install --force --features binaryen-as-dependency cargo-contract`.
 
 ## Usage
 
