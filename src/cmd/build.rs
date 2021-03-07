@@ -274,7 +274,10 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata, optimization_passes: u32) -> Result<OptimizationResult> {
+fn optimize_wasm(
+    crate_metadata: &CrateMetadata,
+    optimization_passes: u32,
+) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
     let _ = do_optimization(
@@ -410,7 +413,13 @@ fn execute(
         return Ok(res);
     }
 
-    let res = super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_flags, optimization_passes)?;
+    let res = super::metadata::execute(
+        &manifest_path,
+        verbosity,
+        build_artifact,
+        unstable_flags,
+        optimization_passes,
+    )?;
     Ok(res)
 }
 
@@ -437,7 +446,13 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags, optimization_passes)?;
+    build_cargo_project(
+        &crate_metadata,
+        build_artifact,
+        verbosity,
+        unstable_flags,
+        optimization_passes,
+    )?;
     maybe_println!(
         verbosity,
         " {} {}",
@@ -479,7 +494,7 @@ mod tests_ci_only {
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
-                optimization_passes
+                optimization_passes,
             )
             .expect("build failed");
 
