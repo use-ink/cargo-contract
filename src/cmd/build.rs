@@ -472,12 +472,14 @@ mod tests_ci_only {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
+            let optimization_passes = 3;
             let res = super::execute(
                 &manifest_path,
                 None,
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
+                optimization_passes
             )
             .expect("build failed");
 
@@ -503,6 +505,7 @@ mod tests_ci_only {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let project_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
+            let optimization_passes = 3;
 
             // when
             super::execute(
@@ -511,6 +514,7 @@ mod tests_ci_only {
                 true,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
+                optimization_passes,
             )
             .expect("build failed");
 
