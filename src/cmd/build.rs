@@ -339,7 +339,7 @@ fn do_optimization(
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
-    optimization_passes: u32,
+    optimization_level: u32,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
@@ -354,7 +354,7 @@ fn do_optimization(
 
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_passes))
+        .arg(format!("-O{}", optimization_level))
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
