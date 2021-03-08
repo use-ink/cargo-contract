@@ -132,6 +132,19 @@ mod tests {
     }
 
     #[test]
+    fn rejects_name_beginning_with_number() {
+        with_tmp_dir(|path| {
+            let result = execute("1xxx", Some(path));
+            assert!(result.is_err(), "Should fail");
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "Contract names must begin with an alphabetic character"
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
