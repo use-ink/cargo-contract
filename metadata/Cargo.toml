@@ -18,7 +18,7 @@ path = "lib.rs"
 
 [dependencies]
 semver = { version = "0.11.0", features = ["serde"] }
-serde = { version = "1.0.123", default-features = false, features = ["derive"] }
+serde = { version = "1.0.124", default-features = false, features = ["derive"] }
 serde_json = "1.0.64"
 url = { version = "2.2.1", features = ["serde"] }
 
