@@ -31,6 +31,10 @@ where
         anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
     }
 
+    if !name.chars().next().map(|c| c.is_alphabetic()).unwrap_or(false) {
+        anyhow::bail!("Contract names must begin with an alphabetic character");
+    }
+
     let out_dir = dir
         .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
         .join(name);
