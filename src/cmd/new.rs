@@ -31,6 +31,15 @@ where
         anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
     }
 
+    if !name
+        .chars()
+        .next()
+        .map(|c| c.is_alphabetic())
+        .unwrap_or(false)
+    {
+        anyhow::bail!("Contract names must begin with an alphabetic character");
+    }
+
     let out_dir = dir
         .map_or(env::current_dir()?, |p| p.as_ref().to_path_buf())
         .join(name);
@@ -122,6 +131,19 @@ mod tests {
             assert_eq!(
                 result.err().unwrap().to_string(),
                 "Contract names can only contain alphanumeric characters and underscores"
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn rejects_name_beginning_with_number() {
+        with_tmp_dir(|path| {
+            let result = execute("1xxx", Some(path));
+            assert!(result.is_err(), "Should fail");
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "Contract names must begin with an alphabetic character"
             );
             Ok(())
         })
