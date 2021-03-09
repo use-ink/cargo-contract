@@ -23,4 +23,4 @@ serde_json = "1.0.64"
 url = { version = "2.2.1", features = ["serde"] }
 
 [dev-dependencies]
-pretty_assertions = "0.6.1"
+pretty_assertions = "0.7.1"
