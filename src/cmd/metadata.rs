@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util,
     workspace::{ManifestPath, Workspace},
-    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
+    BuildArtifacts, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -40,7 +40,7 @@ struct GenerateMetadataCommand {
     verbosity: Verbosity,
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-    optimization_passes: u32,
+    optimization_passes: OptimizationPasses,
 }
 
 /// Result of generating the extended contract project metadata
@@ -267,7 +267,7 @@ pub(crate) fn execute(
     verbosity: Verbosity,
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
-    optimization_passes: u32,
+    optimization_passes: OptimizationPasses,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
     let res = GenerateMetadataCommand {

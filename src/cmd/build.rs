@@ -29,8 +29,8 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, UnstableOptions, Verbosity,
-    VerbosityFlags,
+    BuildArtifacts, BuildResult, OptimizationFlags, OptimizationPasses, OptimizationResult,
+    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -66,8 +66,8 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
-    #[structopt(long = "optimization-passes", default_value = "3")]
-    optimization_passes: u32,
+    #[structopt(flatten)]
+    optimization_passes: OptimizationFlags,
 }
 
 impl BuildCommand {
@@ -76,13 +76,15 @@ impl BuildCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let optimization_passes =
+            TryFrom::<&OptimizationFlags>::try_from(&self.optimization_passes)?;
         execute(
             &manifest_path,
             verbosity,
             true,
             self.build_artifact,
             unstable_flags,
-            self.optimization_passes,
+            optimization_passes,
         )
     }
 }
@@ -105,7 +107,7 @@ impl CheckCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        let optimization_passes = 0;
+        let optimization_passes = OptimizationPasses::Zero;
         execute(
             &manifest_path,
             verbosity,
@@ -137,7 +139,6 @@ fn build_cargo_project(
     build_artifact: BuildArtifacts,
     verbosity: Verbosity,
     unstable_flags: UnstableFlags,
-    _optimization_passes: u32,
 ) -> Result<()> {
     util::assert_channel()?;
 
@@ -276,7 +277,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// optimizations (or bugs?) between Rust and Wasm.
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
-    optimization_passes: u32,
+    optimization_passes: OptimizationPasses,
 ) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
@@ -307,7 +308,7 @@ fn optimize_wasm(
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
-    optimization_level: u32,
+    optimization_level: OptimizationPasses,
 ) -> Result<()> {
     let mut dest_wasm_file = File::open(dest_wasm)?;
     let mut dest_wasm_file_content = Vec::new();
@@ -315,9 +316,9 @@ fn do_optimization(
 
     let codegen_config = binaryen::CodegenConfig {
         // number of optimization passes (spends potentially a lot of time optimizing)
-        optimization_level,
+        optimization_level: optimization_level.to_passes(),
         // the default
-        shrink_level: 1,
+        shrink_level: optimization_level.to_shrink(),
         // the default
         debug_info: false,
     };
@@ -342,7 +343,7 @@ fn do_optimization(
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
-    optimization_level: u32,
+    optimization_level: OptimizationPasses,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
@@ -357,7 +358,7 @@ fn do_optimization(
 
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_level))
+        .arg(format!("-O{}", optimization_level.to_str()))
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
@@ -389,7 +390,7 @@ fn execute(
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
-    optimization_passes: u32,
+    optimization_passes: OptimizationPasses,
 ) -> Result<BuildResult> {
     if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
         let crate_metadata = CrateMetadata::collect(manifest_path)?;
@@ -438,7 +439,7 @@ pub(crate) fn execute_with_crate_metadata(
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
-    optimization_passes: u32,
+    optimization_passes: OptimizationPasses,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
     maybe_println!(
         verbosity,
@@ -446,13 +447,7 @@ pub(crate) fn execute_with_crate_metadata(
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(
-        &crate_metadata,
-        build_artifact,
-        verbosity,
-        unstable_flags,
-        optimization_passes,
-    )?;
+    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
     maybe_println!(
         verbosity,
         " {} {}",
