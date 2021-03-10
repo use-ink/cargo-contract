@@ -17,7 +17,7 @@
 use anyhow::{Context, Result};
 
 use super::{metadata, Profile};
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 use std::{
     collections::HashSet,
     fs,
@@ -77,14 +77,6 @@ impl ManifestPath {
     }
 }
 
-impl TryFrom<&PathBuf> for ManifestPath {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
-        ManifestPath::new(value)
-    }
-}
-
 impl<P> TryFrom<Option<P>> for ManifestPath
 where
     P: AsRef<Path>,
@@ -126,11 +118,7 @@ impl Manifest {
     /// Create new Manifest for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
-    pub fn new<P>(path: P) -> Result<Manifest>
-    where
-        P: TryInto<ManifestPath, Error = anyhow::Error>,
-    {
-        let manifest_path = path.try_into()?;
+    pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
