@@ -40,6 +40,12 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Result of executing the build.
+pub struct ExecutionResult {
+    pub dest_wasm: PathBuf,
+    pub optimization_result: OptimizationResult,
+}
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
@@ -114,6 +120,8 @@ impl CheckCommand {
 
 /// Builds the project in the specified directory, defaults to the current directory.
 ///
+/// Returns the path to the generated contract artifact, if one was generated.
+///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
 /// which reduces the size of the Wasm binary by not including panic strings and formatting code.
@@ -132,7 +140,7 @@ fn build_cargo_project(
     build_artifact: BuildArtifacts,
     verbosity: Verbosity,
     unstable_flags: UnstableFlags,
-) -> Result<()> {
+) -> Result<Option<PathBuf>> {
     util::assert_channel()?;
 
     // set linker args via RUSTFLAGS.
@@ -184,7 +192,11 @@ fn build_cargo_project(
     // clear RUSTFLAGS
     std::env::remove_var("RUSTFLAGS");
 
-    Ok(())
+    if build_artifact == BuildArtifacts::CheckOnly {
+        Ok(Some(crate_metadata.dest_wasm.clone()))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Ensures the wasm memory import of a given module has the maximum number of pages.
@@ -384,13 +396,19 @@ fn execute(
 ) -> Result<BuildResult> {
     if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
         let crate_metadata = CrateMetadata::collect(manifest_path)?;
-        let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
+        let maybe_execution_result = execute_with_crate_metadata(
             &crate_metadata,
             verbosity,
             optimize_contract,
             build_artifact,
             unstable_flags,
         )?;
+
+        let (maybe_dest_wasm, maybe_optimization_result) = maybe_execution_result
+            .map_or((None, None), |r| {
+                (Some(r.dest_wasm), Some(r.optimization_result))
+            });
+
         let res = BuildResult {
             dest_wasm: maybe_dest_wasm,
             dest_metadata: None,
@@ -415,23 +433,22 @@ fn execute(
 ///
 /// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
 ///
-/// Returns a tuple of `(maybe_optimized_wasm_path, maybe_optimization_result)`.
+/// Returns an `ExecutionResult` if the build resulted in any artifacts.
 pub(crate) fn execute_with_crate_metadata(
     crate_metadata: &CrateMetadata,
     verbosity: Verbosity,
     optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
-) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
+) -> Result<Option<ExecutionResult>> {
     maybe_println!(
         verbosity,
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
-    if build_artifact == BuildArtifacts::CheckOnly {
-        return Ok((None, None));
+    if build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?.is_none() {
+        return Ok(None);
     }
     maybe_println!(
         verbosity,
@@ -441,7 +458,7 @@ pub(crate) fn execute_with_crate_metadata(
     );
     post_process_wasm(&crate_metadata)?;
     if !optimize_contract {
-        return Ok((None, None));
+        return Ok(None);
     }
     maybe_println!(
         verbosity,
@@ -450,10 +467,10 @@ pub(crate) fn execute_with_crate_metadata(
         "Optimizing wasm file".bright_green().bold()
     );
     let optimization_result = optimize_wasm(&crate_metadata)?;
-    Ok((
-        Some(crate_metadata.dest_wasm.clone()),
-        Some(optimization_result),
-    ))
+    Ok(Some(ExecutionResult {
+        dest_wasm: crate_metadata.dest_wasm.clone(),
+        optimization_result,
+    }))
 }
 
 #[cfg(feature = "test-ci-only")]
