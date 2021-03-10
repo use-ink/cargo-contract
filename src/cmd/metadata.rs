@@ -29,7 +29,10 @@ use contract_metadata::{
     SourceLanguage, SourceWasm, User,
 };
 use semver::Version;
-use std::{fs, path::{PathBuf, Path}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
@@ -87,8 +90,7 @@ pub(crate) fn execute(
             verbosity,
         )?;
 
-        let ink_meta: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_slice(&stdout)?;
+        let ink_meta: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
         let metadata = ContractMetadata::new(source, contract, user, ink_meta);
         {
             let mut metadata = metadata.clone();
@@ -113,25 +115,25 @@ pub(crate) fn execute(
     if unstable_options.original_manifest {
         generate_metadata(&crate_metadata.manifest_path)?;
     } else {
-        Workspace::new(
-            &crate_metadata.cargo_meta,
-            &crate_metadata.root_package.id,
-        )?
-        .with_root_package_manifest(|manifest| {
-            manifest
-                .with_added_crate_type("rlib")?
-                .with_profile_release_lto(false)?;
-            Ok(())
-        })?
-        .with_metadata_gen_package(crate_metadata.manifest_path.absolute_directory()?)?
-        .using_temp(generate_metadata)?;
+        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_added_crate_type("rlib")?
+                    .with_profile_release_lto(false)?;
+                Ok(())
+            })?
+            .with_metadata_gen_package(crate_metadata.manifest_path.absolute_directory()?)?
+            .using_temp(generate_metadata)?;
     }
 
     Ok((out_path_metadata, out_path_bundle))
 }
 
 /// Generate the extended contract project metadata
-fn extended_metadata(crate_metadata: &CrateMetadata, final_contract_wasm: &Path) -> Result<ExtendedMetadataResult> {
+fn extended_metadata(
+    crate_metadata: &CrateMetadata,
+    final_contract_wasm: &Path,
+) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
     let ink_version = &crate_metadata.ink_version;
     let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
