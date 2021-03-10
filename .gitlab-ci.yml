@@ -81,11 +81,6 @@ test:
   script:
     - cargo test --verbose --workspace --all-features
 
-    # we also run the tests with the feature `binaryen-as-dependency` disabled
-    # in order to test that everything also works with a `binaryen` provided
-    # by the system.
-    - cargo test --verbose --workspace --features=test-ci-only
-
 #### stage:                        build (default features)
 
 build:
