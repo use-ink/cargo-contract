@@ -112,7 +112,8 @@ impl CheckCommand {
     }
 }
 
-/// Builds the project in the specified directory, defaults to the current directory.
+/// Executes the supplied cargo command on the project in the specified directory, defaults to the
+/// current directory.
 ///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
@@ -127,11 +128,11 @@ impl CheckCommand {
 /// user-defined settings will be preserved.
 ///
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
-fn build_cargo_project(
+fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
-    build_artifact: BuildArtifacts,
+    command: &str,
     verbosity: Verbosity,
-    unstable_flags: UnstableFlags,
+    unstable_flags: &UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
 
@@ -152,11 +153,7 @@ fn build_cargo_project(
             "--release",
             &format!("--target-dir={}", target_dir.to_string_lossy()),
         ];
-        if build_artifact == BuildArtifacts::CheckOnly {
-            util::invoke_cargo("check", &args, manifest_path.directory(), verbosity)?;
-        } else {
-            util::invoke_cargo("build", &args, manifest_path.directory(), verbosity)?;
-        }
+        util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
 
         Ok(())
     };
@@ -284,6 +281,7 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
     // overwrite existing destination wasm file with the optimised version
     std::fs::rename(&dest_optimized, &crate_metadata.dest_wasm)?;
     Ok(OptimizationResult {
+        dest_wasm: crate_metadata.dest_wasm.clone(),
         original_size,
         optimized_size,
     })
@@ -382,78 +380,77 @@ fn execute(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<BuildResult> {
-    if build_artifact == BuildArtifacts::CodeOnly || build_artifact == BuildArtifacts::CheckOnly {
-        let crate_metadata = CrateMetadata::collect(manifest_path)?;
-        let (maybe_dest_wasm, maybe_optimization_result) = execute_with_crate_metadata(
-            &crate_metadata,
-            verbosity,
-            optimize_contract,
-            build_artifact,
-            unstable_flags,
-        )?;
-        let res = BuildResult {
-            dest_wasm: maybe_dest_wasm,
-            dest_metadata: None,
-            dest_bundle: None,
-            target_directory: crate_metadata.target_directory,
-            optimization_result: maybe_optimization_result,
-            build_artifact,
-            verbosity,
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+
+    let (dest_wasm, opt_result, dest_metadata, dest_bundle) =
+        match build_artifact {
+            BuildArtifacts::CodeOnly => {
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[1/{}]", build_artifact.steps()).bold(),
+                    "Building cargo project".bright_green().bold()
+                );
+                exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
+
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[2/{}]", build_artifact.steps()).bold(),
+                    "Post processing wasm file".bright_green().bold()
+                );
+                post_process_wasm(&crate_metadata)?;
+
+                let (optimization_result, dest_wasm) =
+                    if optimize_contract {
+                        maybe_println!(
+                            verbosity,
+                            " {} {}",
+                            format!("[3/{}]", build_artifact.steps()).bold(),
+                            "Optimizing wasm file".bright_green().bold()
+                        );
+                        let optimization_result = optimize_wasm(&crate_metadata)?;
+                        let dest_wasm = optimization_result.dest_wasm.clone();
+                        (Some(optimization_result), dest_wasm)
+                    } else {
+                        (None, crate_metadata.dest_wasm.clone())
+                    };
+
+                (Some(dest_wasm), optimization_result, None, None)
+            }
+            BuildArtifacts::CheckOnly => {
+                exec_cargo_for_wasm_target(&crate_metadata, "check", verbosity, &unstable_flags)?;
+                (None, None, None, None)
+            }
+            BuildArtifacts::All => {
+                exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[2/{}]", build_artifact.steps()).bold(),
+                    "Post processing wasm file".bright_green().bold()
+                );
+                post_process_wasm(&crate_metadata)?;
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[3/{}]", build_artifact.steps()).bold(),
+                    "Optimizing wasm file".bright_green().bold()
+                );
+                let optimization_result = optimize_wasm(&crate_metadata)?;
+                let (dest_metadata, dest_bundle) = super::metadata::execute(&crate_metadata, optimization_result.dest_wasm.as_path(), verbosity, &unstable_flags)?;
+                (Some(optimization_result.dest_wasm.clone()), Some(optimization_result), Some(dest_metadata), Some(dest_bundle))
+            }
         };
-        return Ok(res);
-    }
-
-    let res = super::metadata::execute(&manifest_path, verbosity, build_artifact, unstable_flags)?;
-    Ok(res)
-}
-
-/// Executes build of the smart-contract which produces a Wasm binary that is ready for deploying.
-///
-/// It does so by invoking `cargo build` and then post processing the final binary.
-///
-/// # Note
-///
-/// Uses the supplied `CrateMetadata`. If an instance is not available use [`execute_build`]
-///
-/// Returns a tuple of `(maybe_optimized_wasm_path, maybe_optimization_result)`.
-pub(crate) fn execute_with_crate_metadata(
-    crate_metadata: &CrateMetadata,
-    verbosity: Verbosity,
-    optimize_contract: bool,
-    build_artifact: BuildArtifacts,
-    unstable_flags: UnstableFlags,
-) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
-    maybe_println!(
+    Ok(BuildResult {
+        dest_wasm,
+        dest_metadata,
+        dest_bundle,
+        target_directory: crate_metadata.target_directory,
+        optimization_result: opt_result,
+        build_artifact,
         verbosity,
-        " {} {}",
-        format!("[1/{}]", build_artifact.steps()).bold(),
-        "Building cargo project".bright_green().bold()
-    );
-    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
-    if build_artifact == BuildArtifacts::CheckOnly {
-        return Ok((None, None));
-    }
-    maybe_println!(
-        verbosity,
-        " {} {}",
-        format!("[2/{}]", build_artifact.steps()).bold(),
-        "Post processing wasm file".bright_green().bold()
-    );
-    post_process_wasm(&crate_metadata)?;
-    if !optimize_contract {
-        return Ok((None, None));
-    }
-    maybe_println!(
-        verbosity,
-        " {} {}",
-        format!("[3/{}]", build_artifact.steps()).bold(),
-        "Optimizing wasm file".bright_green().bold()
-    );
-    let optimization_result = optimize_wasm(&crate_metadata)?;
-    Ok((
-        Some(crate_metadata.dest_wasm.clone()),
-        Some(optimization_result),
-    ))
+    })
 }
 
 #[cfg(feature = "test-ci-only")]

@@ -224,6 +224,8 @@ pub struct BuildResult {
 
 /// Result of the optimization process.
 pub struct OptimizationResult {
+    /// The path of the optimized wasm file.
+    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.
