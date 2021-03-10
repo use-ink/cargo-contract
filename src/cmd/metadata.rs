@@ -233,21 +233,18 @@ impl GenerateMetadataCommand {
     ///
     /// Return a tuple of `(dest_wasm, hash, optimization_result)`.
     fn wasm_hash(&self) -> Result<(PathBuf, CodeHash, OptimizationResult)> {
-        let res = super::build::execute_with_crate_metadata(
+        let (maybe_dest_wasm, maybe_optimization_res) = super::build::execute_with_crate_metadata(
             &self.crate_metadata,
             self.verbosity,
             true, // for the hash we always use the optimized version of the contract
             self.build_artifact,
             self.unstable_options.clone(),
-        )?
-        .expect("result must exist");
+        )?;
 
         let wasm = fs::read(&self.crate_metadata.dest_wasm)?;
-        Ok((
-            res.dest_wasm,
-            blake2_hash(wasm.as_slice()),
-            res.optimization_result,
-        ))
+        let dest_wasm = maybe_dest_wasm.expect("dest wasm must exist");
+        let optimization_res = maybe_optimization_res.expect("optimization result must exist");
+        Ok((dest_wasm, blake2_hash(wasm.as_slice()), optimization_res))
     }
 }
 
