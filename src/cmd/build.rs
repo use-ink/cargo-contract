@@ -430,6 +430,9 @@ pub(crate) fn execute_with_crate_metadata(
         "Building cargo project".bright_green().bold()
     );
     build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
+    if build_artifact == BuildArtifacts::CheckOnly {
+        return Ok((None, None));
+    }
     maybe_println!(
         verbosity,
         " {} {}",
@@ -456,7 +459,9 @@ pub(crate) fn execute_with_crate_metadata(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
+    use crate::{
+        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity,
+    };
 
     #[test]
     fn build_template() {
@@ -466,30 +471,33 @@ mod tests_ci_only {
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
             let res = super::execute(
                 &manifest_path,
-                None,
+                Verbosity::Default,
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )
             .expect("build failed");
 
-            // we can't use `/target/ink` here, since this would match
-            // for `/target` being the root path. but since `ends_with`
-            // always matches whole path components we can be sure
-            // the path can never be e.g. `foo_target/ink` -- the assert
-            // would fail for that.
-            assert!(res.target_directory.ends_with("target/ink"));
-            assert!(res.optimization_result.unwrap().optimized_size > 0.0);
+            // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
+            // this dir does not include `/target/` as a path, hence
+            // we can't match for e.g. `foo_project/target/ink`.
+            //
+            // we also can't match for `/ink` here, since this would match
+            // for `/ink` being the root path.
+            assert!(res.target_directory.ends_with("ink"));
+
+            let optimized_size = res.optimization_result.unwrap().optimized_size;
+            assert!(optimized_size > 0.0);
 
             // our optimized contract template should always be below 3k.
-            assert!(res.optimization_result.unwrap().optimized_size < 3.0);
+            assert!(optimized_size < 3.0);
 
             Ok(())
         })
     }
 
     #[test]
-    fn check_must_not_create_target_in_project_dir() {
+    fn check_must_not_output_contract_artifacts_in_project_dir() {
         with_tmp_dir(|path| {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
@@ -499,7 +507,7 @@ mod tests_ci_only {
             // when
             super::execute(
                 &manifest_path,
-                None,
+                Verbosity::Default,
                 true,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
@@ -508,8 +516,12 @@ mod tests_ci_only {
 
             // then
             assert!(
-                !project_dir.join("target").exists(),
-                "found target folder in project directory!"
+                !project_dir.join("target/ink/new_project.contract").exists(),
+                "found contract artifact in project directory!"
+            );
+            assert!(
+                !project_dir.join("target/ink/new_project.wasm").exists(),
+                "found wasm artifact in project directory!"
             );
             Ok(())
         })

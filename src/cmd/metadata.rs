@@ -283,7 +283,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
-        ManifestPath, UnstableFlags,
+        ManifestPath, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -379,7 +379,7 @@ mod tests {
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
-                None,
+                Verbosity::Default,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
