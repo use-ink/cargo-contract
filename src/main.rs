@@ -159,7 +159,7 @@ impl OptimizationPasses {
         }
     }
 
-    /// to_shrink returns amount of shrinkage to do
+    /// Returns amount of shrinkage to do
     pub(crate) fn to_shrink(&self) -> u32 {
         match self {
             OptimizationPasses::Zero => 0,
