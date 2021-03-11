@@ -135,7 +135,10 @@ pub(crate) fn execute(
             .using_temp(generate_metadata)?;
     }
 
-    Ok(MetadataResult { dest_metadata: out_path_metadata, dest_bundle: out_path_bundle })
+    Ok(MetadataResult {
+        dest_metadata: out_path_metadata,
+        dest_bundle: out_path_bundle,
+    })
 }
 
 /// Generate the extended contract project metadata
@@ -222,8 +225,8 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
-        ManifestPath, UnstableFlags, Verbosity,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags,
+        Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};

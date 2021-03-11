@@ -22,10 +22,7 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-use crate::cmd::{
-    BuildCommand, CheckCommand,
-    metadata::MetadataResult,
-};
+use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
