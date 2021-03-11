@@ -134,7 +134,7 @@ impl TryFrom<&OptimizationFlags> for OptimizationPasses {
 }
 
 impl OptimizationPasses {
-    /// Returns string representation of OptimizationPasses
+    /// Returns the string representation of `OptimizationPasses`
     pub(crate) fn to_str(&self) -> &str {
         match self {
             OptimizationPasses::Zero => "0",
