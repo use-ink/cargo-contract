@@ -148,6 +148,7 @@ impl OptimizationPasses {
     }
 
     /// Returns the number of optimization passes to do
+    #[cfg(feature = "binaryen-as-dependency")]
     pub(crate) fn to_passes(&self) -> u32 {
         match self {
             OptimizationPasses::Zero => 0,
