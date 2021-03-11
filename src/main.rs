@@ -147,7 +147,7 @@ impl OptimizationPasses {
         }
     }
 
-    /// to_passes returns number of optimization passes to do
+    /// Returns the number of optimization passes to do
     pub(crate) fn to_passes(&self) -> u32 {
         match self {
             OptimizationPasses::Zero => 0,
