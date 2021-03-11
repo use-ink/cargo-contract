@@ -323,6 +323,7 @@ mod tests {
 
             // usually this file will be produced by a previous build step
             let final_contract_wasm_path = &crate_metadata.dest_wasm;
+            fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
             let dest_bundle = cmd::metadata::execute(
