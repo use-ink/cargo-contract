@@ -77,7 +77,6 @@ impl BuildCommand {
         execute(
             &manifest_path,
             verbosity,
-            true,
             self.build_artifact,
             unstable_flags,
         )
@@ -105,7 +104,6 @@ impl CheckCommand {
         execute(
             &manifest_path,
             verbosity,
-            false,
             BuildArtifacts::CheckOnly,
             unstable_flags,
         )
@@ -376,66 +374,51 @@ fn do_optimization(
 fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
-    optimize_contract: bool,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
-    let (dest_wasm, opt_result, dest_metadata, dest_bundle) = match build_artifact {
+    let build = || -> Result<OptimizationResult> {
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("[1/{}]", build_artifact.steps()).bold(),
+            "Building cargo project".bright_green().bold()
+        );
+        exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
+
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("[2/{}]", build_artifact.steps()).bold(),
+            "Post processing wasm file".bright_green().bold()
+        );
+        post_process_wasm(&crate_metadata)?;
+
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("[3/{}]", build_artifact.steps()).bold(),
+            "Optimizing wasm file".bright_green().bold()
+        );
+        let optimization_result = optimize_wasm(&crate_metadata)?;
+
+        Ok(optimization_result)
+    };
+
+    let (opt_result, dest_metadata, dest_bundle) = match build_artifact {
         BuildArtifacts::CodeOnly => {
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
-                "Building cargo project".bright_green().bold()
-            );
-            exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[2/{}]", build_artifact.steps()).bold(),
-                "Post processing wasm file".bright_green().bold()
-            );
-            post_process_wasm(&crate_metadata)?;
-
-            let (optimization_result, dest_wasm) = if optimize_contract {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[3/{}]", build_artifact.steps()).bold(),
-                    "Optimizing wasm file".bright_green().bold()
-                );
-                let optimization_result = optimize_wasm(&crate_metadata)?;
-                let dest_wasm = optimization_result.dest_wasm.clone();
-                (Some(optimization_result), dest_wasm)
-            } else {
-                (None, crate_metadata.dest_wasm.clone())
-            };
-
-            (Some(dest_wasm), optimization_result, None, None)
+            let optimization_result = build()?;
+            (Some(optimization_result), None, None)
         }
         BuildArtifacts::CheckOnly => {
             exec_cargo_for_wasm_target(&crate_metadata, "check", verbosity, &unstable_flags)?;
-            (None, None, None, None)
+            (None, None, None)
         }
         BuildArtifacts::All => {
-            exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[2/{}]", build_artifact.steps()).bold(),
-                "Post processing wasm file".bright_green().bold()
-            );
-            post_process_wasm(&crate_metadata)?;
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[3/{}]", build_artifact.steps()).bold(),
-                "Optimizing wasm file".bright_green().bold()
-            );
-            let optimization_result = optimize_wasm(&crate_metadata)?;
+            let optimization_result = build()?;
+
             let (dest_metadata, dest_bundle) = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
@@ -443,13 +426,13 @@ fn execute(
                 &unstable_flags,
             )?;
             (
-                Some(optimization_result.dest_wasm.clone()),
                 Some(optimization_result),
                 Some(dest_metadata),
                 Some(dest_bundle),
             )
         }
     };
+    let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
     Ok(BuildResult {
         dest_wasm,
         dest_metadata,
@@ -477,7 +460,6 @@ mod tests_ci_only {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
-                true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )
@@ -513,7 +495,6 @@ mod tests_ci_only {
             super::execute(
                 &manifest_path,
                 Verbosity::Default,
-                true,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
             )
