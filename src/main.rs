@@ -161,6 +161,7 @@ impl OptimizationPasses {
     }
 
     /// Returns amount of shrinkage to do
+    #[cfg(feature = "binaryen-as-dependency")]
     pub(crate) fn to_shrink(&self) -> u32 {
         match self {
             OptimizationPasses::Zero => 0,
