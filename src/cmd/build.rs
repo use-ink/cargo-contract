@@ -448,7 +448,7 @@ mod tests_ci_only {
     };
 
     #[test]
-    fn build_template() {
+    fn build_code_only() {
         with_tmp_dir(|path| {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
@@ -456,7 +456,7 @@ mod tests_ci_only {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
-                BuildArtifacts::All,
+                BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
             )
             .expect("build failed");
@@ -468,6 +468,11 @@ mod tests_ci_only {
             // we also can't match for `/ink` here, since this would match
             // for `/ink` being the root path.
             assert!(res.target_directory.ends_with("ink"));
+
+            assert!(
+                res.metadata_result.is_none(),
+                "CodeOnly should not generate the metadata"
+            );
 
             let optimized_size = res.optimization_result.unwrap().optimized_size;
             assert!(optimized_size > 0.0);

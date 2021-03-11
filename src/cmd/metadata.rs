@@ -224,7 +224,10 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 #[cfg(test)]
 mod tests {
     use crate::cmd::metadata::blake2_hash;
-    use crate::{cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags, Verbosity, BuildArtifacts};
+    use crate::{
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
+        ManifestPath, UnstableFlags, Verbosity,
+    };
     use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
@@ -329,7 +332,8 @@ mod tests {
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )?;
-            let dest_bundle = build_result.metadata_result
+            let dest_bundle = build_result
+                .metadata_result
                 .expect("Metadata should be generated")
                 .dest_bundle;
 
