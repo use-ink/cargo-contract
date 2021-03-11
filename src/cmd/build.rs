@@ -407,36 +407,32 @@ fn execute(
         Ok(optimization_result)
     };
 
-    let (opt_result, dest_metadata, dest_bundle) = match build_artifact {
-        BuildArtifacts::CodeOnly => {
-            let optimization_result = build()?;
-            (Some(optimization_result), None, None)
-        }
+    let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             exec_cargo_for_wasm_target(&crate_metadata, "check", verbosity, &unstable_flags)?;
-            (None, None, None)
+            (None, None)
+        }
+        BuildArtifacts::CodeOnly => {
+            let optimization_result = build()?;
+            (Some(optimization_result), None)
         }
         BuildArtifacts::All => {
             let optimization_result = build()?;
 
-            let (dest_metadata, dest_bundle) = super::metadata::execute(
+            let metadata_result = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
                 verbosity,
+                build_artifact.steps(),
                 &unstable_flags,
             )?;
-            (
-                Some(optimization_result),
-                Some(dest_metadata),
-                Some(dest_bundle),
-            )
+            (Some(optimization_result), Some(metadata_result))
         }
     };
     let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
     Ok(BuildResult {
         dest_wasm,
-        dest_metadata,
-        dest_bundle,
+        metadata_result,
         target_directory: crate_metadata.target_directory,
         optimization_result: opt_result,
         build_artifact,

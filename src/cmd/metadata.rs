@@ -37,6 +37,14 @@ use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
 
+/// Metadata generation result.
+pub struct MetadataResult {
+    /// Path to the resulting metadata file.
+    pub dest_metadata: PathBuf,
+    /// Path to the bundled file.
+    pub dest_bundle: PathBuf,
+}
+
 /// Result of generating the extended contract project metadata
 struct ExtendedMetadataResult {
     source: Source,
@@ -51,8 +59,9 @@ pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
     verbosity: Verbosity,
+    total_steps: usize,
     unstable_options: &UnstableFlags,
-) -> Result<(PathBuf, PathBuf)> {
+) -> Result<MetadataResult> {
     util::assert_channel()?;
 
     let target_directory = crate_metadata.target_directory.clone();
@@ -73,7 +82,7 @@ pub(crate) fn execute(
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", current_progress, 5).bold(),
+            format!("[{}/{}]", current_progress, total_steps).bold(),
             "Generating metadata".bright_green().bold()
         );
         let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
@@ -103,7 +112,7 @@ pub(crate) fn execute(
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", current_progress, 5).bold(),
+            format!("[{}/{}]", current_progress, total_steps).bold(),
             "Generating bundle".bright_green().bold()
         );
         let contents = serde_json::to_string(&metadata)?;
@@ -126,7 +135,7 @@ pub(crate) fn execute(
             .using_temp(generate_metadata)?;
     }
 
-    Ok((out_path_metadata, out_path_bundle))
+    Ok(MetadataResult { dest_metadata: out_path_metadata, dest_bundle: out_path_bundle })
 }
 
 /// Generate the extended contract project metadata
@@ -213,7 +222,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir,
         ManifestPath, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
@@ -310,17 +319,18 @@ mod tests {
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
 
             // usually this file will be produced by a previous build step
-            let final_contract_wasm_path = crate_metadata.dest_wasm;
-            fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB");
+            let final_contract_wasm_path = &crate_metadata.dest_wasm;
+            fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
             let dest_bundle = cmd::metadata::execute(
                 &crate_metadata,
                 &final_contract_wasm_path,
                 Verbosity::Default,
-                UnstableFlags::default(),
+                5,
+                &UnstableFlags::default(),
             )?
-            .dest_bundle
-            .expect("bundle file not found");
+            .dest_bundle;
+
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&dest_bundle)?)?;
 
