@@ -371,7 +371,7 @@ fn do_optimization(
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-fn execute(
+pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
     build_artifact: BuildArtifacts,

@@ -224,10 +224,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 #[cfg(test)]
 mod tests {
     use crate::cmd::metadata::blake2_hash;
-    use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags,
-        Verbosity,
-    };
+    use crate::{cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, ManifestPath, UnstableFlags, Verbosity, BuildArtifacts};
     use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
@@ -326,14 +323,15 @@ mod tests {
             fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-            let dest_bundle = cmd::metadata::execute(
-                &crate_metadata,
-                &final_contract_wasm_path,
+            let build_result = cmd::build::execute(
+                &test_manifest.manifest_path,
                 Verbosity::Default,
-                5,
-                &UnstableFlags::default(),
-            )?
-            .dest_bundle;
+                BuildArtifacts::All,
+                UnstableFlags::default(),
+            )?;
+            let dest_bundle = build_result.metadata_result
+                .expect("Metadata should be generated")
+                .dest_bundle;
 
             let metadata_json: Map<String, Value> =
                 serde_json::from_slice(&fs::read(&dest_bundle)?)?;
