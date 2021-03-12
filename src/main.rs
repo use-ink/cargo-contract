@@ -95,15 +95,28 @@ impl ExtrinsicOpts {
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct OptimizationFlags {
-    // number of optimization passes
+    /// number of optimization passes, passed as an argument to wasm-opt
+    ///
+    /// - `0`: execute no optimization passes
+    ///
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    ///
+    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
+    ///
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    ///
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
+    /// but is useful on more nested / complex / less-optimized input)
+    ///
+    /// - `s`, execute default optimization passes, focusing on code size
+    ///
+    /// - `z`, execute default optimization passes, super-focusing on code size
     #[structopt(long = "optimization-passes", default_value = "3")]
     optimization_passes: String,
 }
 
-/// Denotes if output should be printed to stdout.
 #[derive(Clone, Copy)]
 pub enum OptimizationPasses {
-    ///
     Zero,
     One,
     Two,
