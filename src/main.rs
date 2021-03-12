@@ -111,6 +111,8 @@ pub struct OptimizationFlags {
     /// - `s`, execute default optimization passes, focusing on code size
     ///
     /// - `z`, execute default optimization passes, super-focusing on code size
+    ///
+    /// -
     #[structopt(long = "optimization-passes", default_value = "3")]
     optimization_passes: String,
 }
