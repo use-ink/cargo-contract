@@ -20,7 +20,7 @@ use std::{
     fs::File,
     io::{prelude::*, Write},
     iter::Iterator,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Result;
@@ -64,7 +64,7 @@ fn main() {
     );
 }
 
-fn zip_dir(src_dir: &PathBuf, dst_file: &PathBuf, method: CompressionMethod) -> Result<()> {
+fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result<()> {
     if !src_dir.exists() {
         anyhow::bail!("src_dir '{}' does not exist", src_dir.display());
     }

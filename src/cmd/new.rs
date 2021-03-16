@@ -23,12 +23,21 @@ use std::{
 use anyhow::Result;
 use heck::CamelCase as _;
 
-pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<String>
+pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<Option<String>>
 where
     P: AsRef<Path>,
 {
-    if name.contains('-') {
-        anyhow::bail!("Contract names cannot contain hyphens");
+    if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
+    }
+
+    if !name
+        .chars()
+        .next()
+        .map(|c| c.is_alphabetic())
+        .unwrap_or(false)
+    {
+        anyhow::bail!("Contract names must begin with an alphabetic character");
     }
 
     let out_dir = dir
@@ -93,7 +102,7 @@ where
         }
     }
 
-    Ok(format!("Created contract {}", name))
+    Ok(Some(format!("Created contract {}", name)))
 }
 
 #[cfg(test)]
@@ -108,7 +117,33 @@ mod tests {
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
-                "Contract names cannot contain hyphens"
+                "Contract names can only contain alphanumeric characters and underscores"
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn rejects_name_with_period() {
+        with_tmp_dir(|path| {
+            let result = execute("../xxx", Some(path));
+            assert!(result.is_err(), "Should fail");
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "Contract names can only contain alphanumeric characters and underscores"
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn rejects_name_beginning_with_number() {
+        with_tmp_dir(|path| {
+            let result = execute("1xxx", Some(path));
+            assert!(result.is_err(), "Should fail");
+            assert_eq!(
+                result.err().unwrap().to_string(),
+                "Contract names must begin with an alphabetic character"
             );
             Ok(())
         })

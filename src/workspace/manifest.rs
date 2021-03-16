@@ -17,7 +17,7 @@
 use anyhow::{Context, Result};
 
 use super::{metadata, Profile};
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 use std::{
     collections::HashSet,
     fs,
@@ -66,13 +66,14 @@ impl ManifestPath {
             None
         }
     }
-}
 
-impl TryFrom<&PathBuf> for ManifestPath {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
-        ManifestPath::new(value)
+    /// Returns the absolute directory path of the manifest.
+    pub fn absolute_directory(&self) -> Result<PathBuf, std::io::Error> {
+        let directory = match self.directory() {
+            Some(dir) => dir,
+            None => Path::new("./"),
+        };
+        directory.canonicalize()
     }
 }
 
@@ -117,11 +118,7 @@ impl Manifest {
     /// Create new Manifest for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
-    pub fn new<P>(path: P) -> Result<Manifest>
-    where
-        P: TryInto<ManifestPath, Error = anyhow::Error>,
-    {
-        let manifest_path = path.try_into()?;
+    pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
@@ -229,7 +226,7 @@ impl Manifest {
         if members.contains(&LEGACY_METADATA_PACKAGE_PATH.into()) {
             // warn user if they have legacy metadata generation artifacts
             use colored::Colorize;
-            println!(
+            eprintln!(
                 "{} {} {} {}",
                 "warning:".yellow().bold(),
                 "please remove".bold(),
@@ -399,8 +396,35 @@ impl Manifest {
     }
 }
 
-fn crate_type_exists(crate_type: &str, crate_types: &value::Array) -> bool {
+fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+}
+
+#[cfg(test)]
+mod test {
+    use super::ManifestPath;
+    use crate::util::tests::with_tmp_dir;
+    use std::fs;
+
+    #[test]
+    fn must_return_absolute_path_from_absolute_path() {
+        with_tmp_dir(|path| {
+            // given
+            let cargo_toml_path = path.join("Cargo.toml");
+            let _ = fs::File::create(&cargo_toml_path).expect("file creation failed");
+            let manifest_path =
+                ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+
+            // when
+            let absolute_path = manifest_path
+                .absolute_directory()
+                .expect("absolute path extraction failed");
+
+            // then
+            assert_eq!(absolute_path.as_path(), path);
+            Ok(())
+        })
+    }
 }

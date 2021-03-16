@@ -17,7 +17,6 @@
 use crate::Verbosity;
 use anyhow::{Context, Result};
 use rustc_version::Channel;
-use std::path::PathBuf;
 use std::{ffi::OsStr, path::Path, process::Command};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
@@ -62,10 +61,10 @@ where
     match verbosity {
         Verbosity::Quiet => cmd.arg("--quiet"),
         Verbosity::Verbose => cmd.arg("--verbose"),
-        Verbosity::NotSpecified => &mut cmd,
+        Verbosity::Default => &mut cmd,
     };
 
-    log::info!("invoking cargo: {:?}", cmd);
+    log::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -86,7 +85,7 @@ where
 }
 
 /// Returns the base name of the path.
-pub(crate) fn base_name(path: &PathBuf) -> &str {
+pub(crate) fn base_name(path: &Path) -> &str {
     path.file_name()
         .expect("file name must exist")
         .to_str()
@@ -100,6 +99,16 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     } else {
         hex::decode(input)
     }
+}
+
+/// Prints to stdout if `verbosity.is_verbose()` is `true`.
+#[macro_export]
+macro_rules! maybe_println {
+    ($verbosity:expr, $($msg:tt)*) => {
+        if $verbosity.is_verbose() {
+            println!($($msg)*);
+        }
+    };
 }
 
 #[cfg(test)]

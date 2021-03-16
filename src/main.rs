@@ -20,6 +20,7 @@ mod crate_metadata;
 #[cfg(feature = "integration-tests")]
 mod tests;
 mod util;
+mod validate_wasm;
 mod workspace;
 
 use self::workspace::ManifestPath;
@@ -110,37 +111,32 @@ impl ExtrinsicOpts {
 
 #[derive(Clone, Copy, Debug, StructOpt)]
 pub struct VerbosityFlags {
+    /// No output printed to stdout
     #[structopt(long)]
     quiet: bool,
+    /// Use verbose output
     #[structopt(long)]
     verbose: bool,
 }
 
-impl Default for VerbosityFlags {
-    fn default() -> Self {
-        Self::quiet()
-    }
-}
-
-impl VerbosityFlags {
-    pub fn quiet() -> Self {
-        Self {
-            quiet: true,
-            verbose: false,
-        }
-    }
-}
-
+/// Denotes if output should be printed to stdout.
 #[derive(Clone, Copy)]
 pub enum Verbosity {
+    /// Use default output
+    Default,
+    /// No output printed to stdout
     Quiet,
+    /// Use verbose output
     Verbose,
-    NotSpecified,
 }
 
-impl Default for Verbosity {
-    fn default() -> Self {
-        Self::NotSpecified
+impl Verbosity {
+    /// Returns `true` if output should be printed (i.e. verbose output is set).
+    pub(crate) fn is_verbose(&self) -> bool {
+        match self {
+            Verbosity::Quiet => false,
+            Verbosity::Default | Verbosity::Verbose => true,
+        }
     }
 }
 
@@ -149,7 +145,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 
     fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
         match (value.quiet, value.verbose) {
-            (false, false) => Ok(Verbosity::NotSpecified),
+            (false, false) => Ok(Verbosity::Default),
             (true, false) => Ok(Verbosity::Quiet),
             (false, true) => Ok(Verbosity::Verbose),
             (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
@@ -238,6 +234,8 @@ pub struct BuildResult {
     pub optimization_result: Option<OptimizationResult>,
     /// Which build artifacts were generated.
     pub build_artifact: BuildArtifacts,
+    /// The verbosity flags.
+    pub verbosity: Verbosity,
 }
 
 /// Result of the optimization process.
@@ -255,6 +253,10 @@ impl BuildResult {
             "\nOriginal wasm size: {}, Optimized: {}\n\n",
             format!("{:.1}K", optimization.0).bold(),
             format!("{:.1}K", optimization.1).bold(),
+        );
+        debug_assert!(
+            optimization.1 > 0.0,
+            "optimized file size must be greater 0"
         );
 
         if self.build_artifact == BuildArtifacts::CodeOnly {
@@ -329,7 +331,7 @@ enum Command {
     /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
-    /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
+    /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[structopt(name = "check")]
     Check(CheckCommand),
     /// Test the smart contract off-chain
@@ -351,7 +353,11 @@ fn main() {
 
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
-        Ok(msg) => println!("\t{}", msg),
+        Ok(maybe_msg) => {
+            if let Some(msg) = maybe_msg {
+                println!("\t{}", msg)
+            }
+        }
         Err(err) => {
             eprintln!(
                 "{} {}",
@@ -363,12 +369,16 @@ fn main() {
     }
 }
 
-fn exec(cmd: Command) -> Result<String> {
+fn exec(cmd: Command) -> Result<Option<String>> {
     match &cmd {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
-            Ok(result.display())
+            if result.verbosity.is_verbose() {
+                Ok(Some(result.display()))
+            } else {
+                Ok(None)
+            }
         }
         Command::Check(check) => {
             let res = check.exec()?;
@@ -376,7 +386,13 @@ fn exec(cmd: Command) -> Result<String> {
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
             );
-            Ok("\nYour contract's code was built successfully.".to_string())
+            if res.verbosity.is_verbose() {
+                Ok(Some(
+                    "\nYour contract's code was built successfully.".to_string(),
+                ))
+            } else {
+                Ok(None)
+            }
         }
         Command::GenerateMetadata {} => Err(anyhow::anyhow!(
             "Command deprecated, use `cargo contract build` instead"

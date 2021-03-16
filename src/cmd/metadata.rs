@@ -16,7 +16,7 @@
 
 use crate::{
     crate_metadata::CrateMetadata,
-    util,
+    maybe_println, util,
     workspace::{ManifestPath, Workspace},
     BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, Verbosity,
 };
@@ -35,7 +35,7 @@ use url::Url;
 /// Executes the metadata generation process
 struct GenerateMetadataCommand {
     crate_metadata: CrateMetadata,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 }
@@ -70,7 +70,8 @@ impl GenerateMetadataCommand {
 
         let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
             let mut current_progress = 4;
-            println!(
+            maybe_println!(
+                self.verbosity,
                 " {} {}",
                 format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                 "Generating metadata".bright_green().bold()
@@ -101,7 +102,8 @@ impl GenerateMetadataCommand {
             }
 
             if self.build_artifact == BuildArtifacts::All {
-                println!(
+                maybe_println!(
+                    self.verbosity,
                     " {} {}",
                     format!("[{}/{}]", current_progress, self.build_artifact.steps()).bold(),
                     "Generating bundle".bright_green().bold()
@@ -126,7 +128,7 @@ impl GenerateMetadataCommand {
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package()?
+            .with_metadata_gen_package(self.crate_metadata.manifest_path.absolute_directory()?)?
             .using_temp(generate_metadata)?;
         }
 
@@ -142,6 +144,7 @@ impl GenerateMetadataCommand {
             optimization_result,
             target_directory,
             build_artifact: self.build_artifact,
+            verbosity: self.verbosity,
         })
     }
 
@@ -257,7 +260,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 /// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
     build_artifact: BuildArtifacts,
     unstable_options: UnstableFlags,
 ) -> Result<BuildResult> {
@@ -278,7 +281,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
-        ManifestPath, UnstableFlags,
+        ManifestPath, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -374,7 +377,7 @@ mod tests {
             let crate_metadata = CrateMetadata::collect(&test_manifest.manifest_path)?;
             let dest_bundle = cmd::metadata::execute(
                 &test_manifest.manifest_path,
-                None,
+                Verbosity::Default,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )?
@@ -385,7 +388,8 @@ mod tests {
 
             assert!(
                 dest_bundle.exists(),
-                format!("Missing metadata file '{}'", dest_bundle.display())
+                "Missing metadata file '{}'",
+                dest_bundle.display()
             );
 
             let source = metadata_json.get("source").expect("source not found");

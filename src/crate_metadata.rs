@@ -45,12 +45,16 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-
-        let mut target_directory = metadata.target_directory.clone();
-        target_directory.push("ink");
+        let mut target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
+
+        let absolute_manifest_path = manifest_path.absolute_directory()?;
+        let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        if absolute_manifest_path != absolute_workspace_root {
+            target_directory = target_directory.join(package_name.clone());
+        }
 
         // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
         let mut original_wasm = target_directory.clone();
@@ -79,20 +83,24 @@ impl CrateMetadata {
             })
             .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
 
-        let (documentation, homepage, user) = get_cargo_toml_metadata(manifest_path)?;
+        let ExtraMetadata {
+            documentation,
+            homepage,
+            user,
+        } = get_cargo_toml_metadata(manifest_path)?;
 
         let crate_metadata = CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
             root_package,
             package_name,
-            original_wasm,
-            dest_wasm,
+            original_wasm: original_wasm.into(),
+            dest_wasm: dest_wasm.into(),
             ink_version,
             documentation,
             homepage,
             user,
-            target_directory,
+            target_directory: target_directory.into(),
         };
         Ok(crate_metadata)
     }
@@ -127,10 +135,15 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
     Ok((metadata, root_package))
 }
 
+/// Extra metadata not available via `cargo metadata`.
+struct ExtraMetadata {
+    documentation: Option<Url>,
+    homepage: Option<Url>,
+    user: Option<Map<String, Value>>,
+}
+
 /// Read extra metadata not available via `cargo metadata` directly from `Cargo.toml`
-fn get_cargo_toml_metadata(
-    manifest_path: &ManifestPath,
-) -> Result<(Option<Url>, Option<Url>, Option<Map<String, Value>>)> {
+fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata> {
     let toml = fs::read_to_string(manifest_path)?;
     let toml: value::Table = toml::from_str(&toml)?;
 
@@ -160,5 +173,9 @@ fn get_cargo_toml_metadata(
         })
         .transpose()?;
 
-    Ok((documentation, homepage, user))
+    Ok(ExtraMetadata {
+        documentation,
+        homepage,
+        user,
+    })
 }

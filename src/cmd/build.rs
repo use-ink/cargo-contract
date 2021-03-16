@@ -14,20 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{convert::TryFrom, ffi::OsStr, fs::metadata, path::PathBuf};
+
+#[cfg(feature = "binaryen-as-dependency")]
 use std::{
-    convert::TryFrom,
-    fs::{metadata, File},
+    fs::File,
     io::{Read, Write},
-    path::PathBuf,
 };
+
+#[cfg(not(feature = "binaryen-as-dependency"))]
+use std::{process::Command, str};
 
 use crate::{
     crate_metadata::CrateMetadata,
-    util,
+    maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, UnstableFlags, UnstableOptions, VerbosityFlags,
+    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, UnstableOptions, Verbosity,
+    VerbosityFlags,
 };
-use crate::{OptimizationResult, Verbosity};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
@@ -69,7 +73,7 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
         execute(
             &manifest_path,
             verbosity,
@@ -97,7 +101,7 @@ impl CheckCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let verbosity: Option<Verbosity> = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
         execute(
             &manifest_path,
             verbosity,
@@ -125,7 +129,8 @@ impl CheckCommand {
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn build_cargo_project(
     crate_metadata: &CrateMetadata,
-    verbosity: Option<Verbosity>,
+    build_artifact: BuildArtifacts,
+    verbosity: Verbosity,
     unstable_flags: UnstableFlags,
 ) -> Result<()> {
     util::assert_channel()?;
@@ -139,24 +144,26 @@ fn build_cargo_project(
 
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
-        util::invoke_cargo(
-            "build",
-            &[
-                "--target=wasm32-unknown-unknown",
-                "-Zbuild-std",
-                "-Zbuild-std-features=panic_immediate_abort",
-                "--no-default-features",
-                "--release",
-                &format!("--target-dir={}", target_dir.to_string_lossy()),
-            ],
-            manifest_path.directory(),
-            verbosity,
-        )?;
+        let args = [
+            "--target=wasm32-unknown-unknown",
+            "-Zbuild-std",
+            "-Zbuild-std-features=panic_immediate_abort",
+            "--no-default-features",
+            "--release",
+            &format!("--target-dir={}", target_dir.to_string_lossy()),
+        ];
+        if build_artifact == BuildArtifacts::CheckOnly {
+            util::invoke_cargo("check", &args, manifest_path.directory(), verbosity)?;
+        } else {
+            util::invoke_cargo("build", &args, manifest_path.directory(), verbosity)?;
+        }
+
         Ok(())
     };
 
     if unstable_flags.original_manifest {
-        println!(
+        maybe_println!(
+            verbosity,
             "{} {}",
             "warning:".yellow().bold(),
             "with 'original-manifest' enabled, the contract binary may not be of optimal size."
@@ -219,11 +226,11 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| match section {
-        Section::Custom(_) => false,
-        Section::Name(_) => false,
-        Section::Reloc(_) => false,
-        _ => true,
+    module.sections_mut().retain(|section| {
+        !matches!(
+            section,
+            Section::Custom(_) | Section::Name(_) | Section::Reloc(_)
+        )
     });
 }
 
@@ -246,6 +253,13 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
+    validate_wasm::validate_import_section(&module)?;
+
+    debug_assert!(
+        !module.clone().to_bytes().unwrap().is_empty(),
+        "resulting wasm size of post processing must be > 0"
+    );
+
     parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
     Ok(())
 }
@@ -255,39 +269,107 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
 fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
-    let mut optimized = crate_metadata.dest_wasm.clone();
-    optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
+    let mut dest_optimized = crate_metadata.dest_wasm.clone();
+    dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
+
+    let _ = do_optimization(
+        crate_metadata.dest_wasm.as_os_str(),
+        &dest_optimized.as_os_str(),
+        3,
+    )?;
+
+    let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
+    let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
+
+    // overwrite existing destination wasm file with the optimised version
+    std::fs::rename(&dest_optimized, &crate_metadata.dest_wasm)?;
+    Ok(OptimizationResult {
+        original_size,
+        optimized_size,
+    })
+}
+
+/// Optimizes the Wasm supplied as `wasm` using the `binaryen-rs` dependency.
+///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
+/// If successful, the optimized wasm is written to `dest_optimized`.
+#[cfg(feature = "binaryen-as-dependency")]
+fn do_optimization(
+    dest_wasm: &OsStr,
+    dest_optimized: &OsStr,
+    optimization_level: u32,
+) -> Result<()> {
+    let mut dest_wasm_file = File::open(dest_wasm)?;
+    let mut dest_wasm_file_content = Vec::new();
+    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
 
     let codegen_config = binaryen::CodegenConfig {
-        // execute -O3 optimization passes (spends potentially a lot of time optimizing)
-        optimization_level: 3,
+        // number of optimization passes (spends potentially a lot of time optimizing)
+        optimization_level,
         // the default
         shrink_level: 1,
         // the default
         debug_info: false,
     };
-
-    let mut dest_wasm_file = File::open(crate_metadata.dest_wasm.as_os_str())?;
-    let mut dest_wasm_file_content = Vec::new();
-    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
-
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
     module.optimize(&codegen_config);
-    let optimized_wasm = module.write();
 
-    let mut optimized_wasm_file = File::create(optimized.as_os_str())?;
-    optimized_wasm_file.write_all(&optimized_wasm)?;
+    let mut optimized_wasm_file = File::create(dest_optimized)?;
+    optimized_wasm_file.write_all(&module.write())?;
 
-    let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
-    let optimized_size = metadata(&optimized)?.len() as f64 / 1000.0;
+    Ok(())
+}
 
-    // overwrite existing destination wasm file with the optimised version
-    std::fs::rename(&optimized, &crate_metadata.dest_wasm)?;
-    Ok(OptimizationResult {
-        original_size,
-        optimized_size,
-    })
+/// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
+/// the `wasm-opt` binary.
+///
+/// The supplied `optimization_level` denotes the number of optimization passes,
+/// resulting in potentially a lot of time spent optimizing.
+///
+/// If successful, the optimized wasm is written to `dest_optimized`.
+#[cfg(not(feature = "binaryen-as-dependency"))]
+fn do_optimization(
+    dest_wasm: &OsStr,
+    dest_optimized: &OsStr,
+    optimization_level: u32,
+) -> Result<()> {
+    // check `wasm-opt` is installed
+    if which::which("wasm-opt").is_err() {
+        anyhow::bail!(
+            "{}",
+            "wasm-opt is not installed. Install this tool on your system in order to \n\
+             reduce the size of your contract's Wasm binary. \n\
+             See https://github.com/WebAssembly/binaryen#tools"
+                .bright_yellow()
+        );
+    }
+
+    let output = Command::new("wasm-opt")
+        .arg(dest_wasm)
+        .arg(format!("-O{}", optimization_level))
+        .arg("-o")
+        .arg(dest_optimized)
+        // the memory in our module is imported, `wasm-opt` needs to be told that
+        // the memory is initialized to zeros, otherwise it won't run the
+        // memory-packing pre-pass.
+        .arg("--zero-filled-memory")
+        .output()?;
+
+    if !output.status.success() {
+        let err = str::from_utf8(&output.stderr)
+            .expect("cannot convert stderr output of wasm-opt to string")
+            .trim();
+        anyhow::bail!(
+            "The wasm-opt optimization failed.\n\
+            A possible source of error could be that you have an outdated binaryen package installed.\n\n\
+            The error which wasm-opt returned was: \n{}",
+            err
+        );
+    }
+    Ok(())
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -316,6 +398,7 @@ fn execute(
             target_directory: crate_metadata.target_directory,
             optimization_result: maybe_optimization_result,
             build_artifact,
+            verbosity,
         };
         return Ok(res);
     }
@@ -340,13 +423,18 @@ pub(crate) fn execute_with_crate_metadata(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
 ) -> Result<(Option<PathBuf>, Option<OptimizationResult>)> {
-    println!(
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[1/{}]", build_artifact.steps()).bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_cargo_project(&crate_metadata, verbosity, unstable_flags)?;
-    println!(
+    build_cargo_project(&crate_metadata, build_artifact, verbosity, unstable_flags)?;
+    if build_artifact == BuildArtifacts::CheckOnly {
+        return Ok((None, None));
+    }
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[2/{}]", build_artifact.steps()).bold(),
         "Post processing wasm file".bright_green().bold()
@@ -355,7 +443,8 @@ pub(crate) fn execute_with_crate_metadata(
     if !optimize_contract {
         return Ok((None, None));
     }
-    println!(
+    maybe_println!(
+        verbosity,
         " {} {}",
         format!("[3/{}]", build_artifact.steps()).bold(),
         "Optimizing wasm file".bright_green().bold()
@@ -369,8 +458,10 @@ pub(crate) fn execute_with_crate_metadata(
 
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
-mod tests {
-    use crate::{cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags};
+mod tests_ci_only {
+    use crate::{
+        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity,
+    };
 
     #[test]
     fn build_template() {
@@ -380,19 +471,58 @@ mod tests {
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
             let res = super::execute(
                 &manifest_path,
-                Default::default(),
+                Verbosity::Default,
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
             )
             .expect("build failed");
 
-            // we can't use `/target/ink` here, since this would match
-            // for `/target` being the root path. but since `ends_with`
-            // always matches whole path components we can be sure
-            // the path can never be e.g. `foo_target/ink` -- the assert
-            // would fail for that.
-            assert!(res.target_directory.ends_with("target/ink"));
+            // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
+            // this dir does not include `/target/` as a path, hence
+            // we can't match for e.g. `foo_project/target/ink`.
+            //
+            // we also can't match for `/ink` here, since this would match
+            // for `/ink` being the root path.
+            assert!(res.target_directory.ends_with("ink"));
+
+            let optimized_size = res.optimization_result.unwrap().optimized_size;
+            assert!(optimized_size > 0.0);
+
+            // our optimized contract template should always be below 3k.
+            assert!(optimized_size < 3.0);
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn check_must_not_output_contract_artifacts_in_project_dir() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let project_dir = path.join("new_project");
+            let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
+
+            // when
+            super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                true,
+                BuildArtifacts::CheckOnly,
+                UnstableFlags::default(),
+            )
+            .expect("build failed");
+
+            // then
+            assert!(
+                !project_dir.join("target/ink/new_project.contract").exists(),
+                "found contract artifact in project directory!"
+            );
+            assert!(
+                !project_dir.join("target/ink/new_project.wasm").exists(),
+                "found wasm artifact in project directory!"
+            );
             Ok(())
         })
     }
