@@ -317,9 +317,9 @@ fn do_optimization(
     let codegen_config = binaryen::CodegenConfig {
         // Number of optimization passes (spends potentially a lot of time optimizing)
         optimization_level: optimization_level.to_passes(),
-        // the default
+        // The default
         shrink_level: optimization_level.to_shrink(),
-        // the default
+        // The default
         debug_info: false,
     };
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
@@ -478,7 +478,8 @@ pub(crate) fn execute_with_crate_metadata(
 #[cfg(test)]
 mod tests_ci_only {
     use crate::{
-        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity,
+        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, OptimizationPasses,
+        UnstableFlags, Verbosity,
     };
 
     #[test]
@@ -487,14 +488,13 @@ mod tests_ci_only {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let manifest_path =
                 ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
-            let optimization_passes = 3;
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
                 true,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
-                optimization_passes,
+                OptimizationPasses::default(),
             )
             .expect("build failed");
 
@@ -523,7 +523,6 @@ mod tests_ci_only {
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let project_dir = path.join("new_project");
             let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
-            let optimization_passes = 3;
 
             // when
             super::execute(
@@ -532,7 +531,7 @@ mod tests_ci_only {
                 true,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
-                optimization_passes,
+                OptimizationPasses::default(),
             )
             .expect("build failed");
 

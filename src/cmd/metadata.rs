@@ -287,7 +287,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
-        ManifestPath, UnstableFlags, Verbosity,
+        ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -386,6 +386,7 @@ mod tests {
                 Verbosity::Default,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
+                OptimizationPasses::default(),
             )?
             .dest_bundle
             .expect("bundle file not found");
