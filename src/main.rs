@@ -22,7 +22,7 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-use crate::cmd::{BuildCommand, CheckCommand};
+use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
@@ -156,6 +156,7 @@ impl TryFrom<&OptimizationFlags> for OptimizationPasses {
 
 impl OptimizationPasses {
     /// Returns the string representation of `OptimizationPasses`
+    #[cfg(not(feature = "binaryen-as-dependency"))]
     pub(crate) fn to_str(&self) -> &str {
         match self {
             OptimizationPasses::Zero => "0",
@@ -306,12 +307,10 @@ impl std::str::FromStr for BuildArtifacts {
 
 /// Result of the metadata generation process.
 pub struct BuildResult {
-    /// Path to the resulting metadata file.
-    pub dest_metadata: Option<PathBuf>,
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
-    /// Path to the bundled file.
-    pub dest_bundle: Option<PathBuf>,
+    /// Result of the metadata generation.
+    pub metadata_result: Option<MetadataResult>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
     /// If existent the result of the optimization.
@@ -324,6 +323,8 @@ pub struct BuildResult {
 
 /// Result of the optimization process.
 pub struct OptimizationResult {
+    /// The path of the optimized wasm file.
+    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.
@@ -362,10 +363,10 @@ impl BuildResult {
             size_diff,
             self.target_directory.display().to_string().bold(),
         );
-        if let Some(dest_bundle) = self.dest_bundle.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                util::base_name(&dest_bundle).bold()
+                util::base_name(&metadata_result.dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
@@ -376,10 +377,10 @@ impl BuildResult {
             );
             out.push_str(&wasm);
         }
-        if let Some(dest_metadata) = self.dest_metadata.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                util::base_name(&dest_metadata).bold()
+                util::base_name(&metadata_result.dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
