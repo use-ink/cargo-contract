@@ -95,7 +95,7 @@ impl ExtrinsicOpts {
 
 #[derive(Clone, Debug, StructOpt)]
 pub struct OptimizationFlags {
-    /// number of optimization passes, passed as an argument to wasm-opt
+    /// Number of optimization passes, passed as an argument to wasm-opt.
     ///
     /// - `0`: execute no optimization passes
     ///
@@ -126,6 +126,12 @@ pub enum OptimizationPasses {
     Four,
     S,
     Z,
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Three
+    }
 }
 
 impl TryFrom<&OptimizationFlags> for OptimizationPasses {
