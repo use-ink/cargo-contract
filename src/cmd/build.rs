@@ -315,7 +315,7 @@ fn do_optimization(
     dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
 
     let codegen_config = binaryen::CodegenConfig {
-        // number of optimization passes (spends potentially a lot of time optimizing)
+        // Number of optimization passes (spends potentially a lot of time optimizing)
         optimization_level: optimization_level.to_passes(),
         // the default
         shrink_level: optimization_level.to_shrink(),
