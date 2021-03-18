@@ -94,6 +94,100 @@ impl ExtrinsicOpts {
 }
 
 #[derive(Clone, Debug, StructOpt)]
+pub struct OptimizationFlags {
+    /// number of optimization passes, passed as an argument to wasm-opt
+    ///
+    /// - `0`: execute no optimization passes
+    ///
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    ///
+    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
+    ///
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    ///
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
+    /// but is useful on more nested / complex / less-optimized input)
+    ///
+    /// - `s`, execute default optimization passes, focusing on code size
+    ///
+    /// - `z`, execute default optimization passes, super-focusing on code size
+    ///
+    /// -
+    #[structopt(long = "optimization-passes", default_value = "3")]
+    optimization_passes: String,
+}
+
+#[derive(Clone, Copy)]
+pub enum OptimizationPasses {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    S,
+    Z,
+}
+
+impl TryFrom<&OptimizationFlags> for OptimizationPasses {
+    type Error = Error;
+
+    fn try_from(value: &OptimizationFlags) -> Result<Self, Self::Error> {
+        match value.optimization_passes.to_lowercase().as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!(
+                "Unknown optimization passes option {}",
+                value.optimization_passes
+            ),
+        }
+    }
+}
+
+impl OptimizationPasses {
+    /// Returns the string representation of `OptimizationPasses`
+    pub(crate) fn to_str(&self) -> &str {
+        match self {
+            OptimizationPasses::Zero => "0",
+            OptimizationPasses::One => "1",
+            OptimizationPasses::Two => "2",
+            OptimizationPasses::Three => "3",
+            OptimizationPasses::Four => "4",
+            OptimizationPasses::S => "s",
+            OptimizationPasses::Z => "z",
+        }
+    }
+
+    /// Returns the number of optimization passes to do
+    #[cfg(feature = "binaryen-as-dependency")]
+    pub(crate) fn to_passes(&self) -> u32 {
+        match self {
+            OptimizationPasses::Zero => 0,
+            OptimizationPasses::One => 1,
+            OptimizationPasses::Two => 2,
+            OptimizationPasses::Three => 3,
+            OptimizationPasses::Four => 4,
+            _ => 3, // Default to three for shrink settings
+        }
+    }
+
+    /// Returns amount of shrinkage to do
+    #[cfg(feature = "binaryen-as-dependency")]
+    pub(crate) fn to_shrink(&self) -> u32 {
+        match self {
+            OptimizationPasses::Zero => 0,
+            OptimizationPasses::S => 1,
+            OptimizationPasses::Z => 2,
+            _ => 1,
+        }
+    }
+}
+
+#[derive(Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
     #[structopt(long)]
