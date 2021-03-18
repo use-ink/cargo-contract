@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util,
     workspace::{ManifestPath, Workspace},
-    UnstableFlags, Verbosity,
+    OptimizationPasses, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -226,7 +226,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
-        ManifestPath, UnstableFlags, Verbosity,
+        ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -331,6 +331,7 @@ mod tests {
                 Verbosity::Default,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
+                OptimizationPasses::default(),
             )?;
             let dest_bundle = build_result
                 .metadata_result

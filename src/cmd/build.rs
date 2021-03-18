@@ -29,8 +29,8 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, OptimizationResult, UnstableFlags, UnstableOptions, Verbosity,
-    VerbosityFlags,
+    BuildArtifacts, BuildResult, OptimizationFlags, OptimizationPasses, OptimizationResult,
+    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -66,6 +66,8 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
+    #[structopt(flatten)]
+    optimization_passes: OptimizationFlags,
 }
 
 impl BuildCommand {
@@ -74,11 +76,14 @@ impl BuildCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let optimization_passes =
+            TryFrom::<&OptimizationFlags>::try_from(&self.optimization_passes)?;
         execute(
             &manifest_path,
             verbosity,
             self.build_artifact,
             unstable_flags,
+            optimization_passes,
         )
     }
 }
@@ -101,11 +106,13 @@ impl CheckCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let optimization_passes = OptimizationPasses::Zero;
         execute(
             &manifest_path,
             verbosity,
             BuildArtifacts::CheckOnly,
             unstable_flags,
+            optimization_passes,
         )
     }
 }
@@ -263,14 +270,16 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 ///
 /// The intention is to reduce the size of bloated wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
+fn optimize_wasm(
+    crate_metadata: &CrateMetadata,
+    optimization_passes: OptimizationPasses,
+) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.package_name));
-
     let _ = do_optimization(
         crate_metadata.dest_wasm.as_os_str(),
         &dest_optimized.as_os_str(),
-        3,
+        optimization_passes,
     )?;
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
@@ -295,18 +304,18 @@ fn optimize_wasm(crate_metadata: &CrateMetadata) -> Result<OptimizationResult> {
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
-    optimization_level: u32,
+    optimization_level: OptimizationPasses,
 ) -> Result<()> {
     let mut dest_wasm_file = File::open(dest_wasm)?;
     let mut dest_wasm_file_content = Vec::new();
     dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
 
     let codegen_config = binaryen::CodegenConfig {
-        // number of optimization passes (spends potentially a lot of time optimizing)
-        optimization_level,
-        // the default
-        shrink_level: 1,
-        // the default
+        // Number of optimization passes (spends potentially a lot of time optimizing)
+        optimization_level: optimization_level.to_passes(),
+        // The default
+        shrink_level: optimization_level.to_shrink(),
+        // The default
         debug_info: false,
     };
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
@@ -330,7 +339,7 @@ fn do_optimization(
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
-    optimization_level: u32,
+    optimization_level: OptimizationPasses,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
@@ -345,7 +354,7 @@ fn do_optimization(
 
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_level))
+        .arg(format!("-O{}", optimization_level.to_str()))
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
@@ -376,6 +385,7 @@ pub(crate) fn execute(
     verbosity: Verbosity,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
+    optimization_passes: OptimizationPasses,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
@@ -444,7 +454,8 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use crate::{
-        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, UnstableFlags, Verbosity,
+        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, OptimizationPasses,
+        UnstableFlags, Verbosity,
     };
 
     #[test]
@@ -458,6 +469,7 @@ mod tests_ci_only {
                 Verbosity::Default,
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
+                OptimizationPasses::default(),
             )
             .expect("build failed");
 
@@ -498,6 +510,7 @@ mod tests_ci_only {
                 Verbosity::Default,
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
+                OptimizationPasses::default(),
             )
             .expect("build failed");
 
