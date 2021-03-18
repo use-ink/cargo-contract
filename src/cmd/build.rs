@@ -412,7 +412,7 @@ pub(crate) fn execute(
             format!("[3/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        let optimization_result = optimize_wasm(&crate_metadata)?;
+        let optimization_result = optimize_wasm(&crate_metadata, optimization_passes)?;
 
         Ok(optimization_result)
     };

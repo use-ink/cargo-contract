@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util,
     workspace::{ManifestPath, Workspace},
-    OptimizationPasses, UnstableFlags, Verbosity,
+    UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;

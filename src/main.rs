@@ -156,6 +156,7 @@ impl TryFrom<&OptimizationFlags> for OptimizationPasses {
 
 impl OptimizationPasses {
     /// Returns the string representation of `OptimizationPasses`
+    #[cfg(not(feature = "binaryen-as-dependency"))]
     pub(crate) fn to_str(&self) -> &str {
         match self {
             OptimizationPasses::Zero => "0",
