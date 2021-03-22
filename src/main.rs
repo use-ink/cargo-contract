@@ -26,7 +26,11 @@ use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fmt::{Display, Formatter, Result as DisplayResult},
+    path::PathBuf,
+};
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
@@ -93,7 +97,7 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, StructOpt)]
 pub struct OptimizationFlags {
     /// Number of optimization passes, passed as an argument to wasm-opt.
     ///
@@ -106,18 +110,18 @@ pub struct OptimizationFlags {
     /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
     ///
     /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
-    /// but is useful on more nested / complex / less-optimized input)
+    ///        but is useful on more nested / complex / less-optimized input)
     ///
     /// - `s`, execute default optimization passes, focusing on code size
     ///
     /// - `z`, execute default optimization passes, super-focusing on code size
     ///
     /// -
-    #[structopt(long = "optimization-passes", default_value = "3")]
-    optimization_passes: String,
+    #[structopt(long = "optimization-passes", default_value)]
+    optimization_passes: OptimizationPasses,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum OptimizationPasses {
     Zero,
     One,
@@ -128,37 +132,9 @@ pub enum OptimizationPasses {
     Z,
 }
 
-impl Default for OptimizationPasses {
-    fn default() -> OptimizationPasses {
-        OptimizationPasses::Three
-    }
-}
-
-impl TryFrom<&OptimizationFlags> for OptimizationPasses {
-    type Error = Error;
-
-    fn try_from(value: &OptimizationFlags) -> Result<Self, Self::Error> {
-        match value.optimization_passes.to_lowercase().as_str() {
-            "0" => Ok(OptimizationPasses::Zero),
-            "1" => Ok(OptimizationPasses::One),
-            "2" => Ok(OptimizationPasses::Two),
-            "3" => Ok(OptimizationPasses::Three),
-            "4" => Ok(OptimizationPasses::Four),
-            "s" => Ok(OptimizationPasses::S),
-            "z" => Ok(OptimizationPasses::Z),
-            _ => anyhow::bail!(
-                "Unknown optimization passes option {}",
-                value.optimization_passes
-            ),
-        }
-    }
-}
-
-impl OptimizationPasses {
-    /// Returns the string representation of `OptimizationPasses`
-    #[cfg(not(feature = "binaryen-as-dependency"))]
-    pub(crate) fn to_str(&self) -> &str {
-        match self {
+impl Display for OptimizationPasses {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let out = match self {
             OptimizationPasses::Zero => "0",
             OptimizationPasses::One => "1",
             OptimizationPasses::Two => "2",
@@ -166,9 +142,35 @@ impl OptimizationPasses {
             OptimizationPasses::Four => "4",
             OptimizationPasses::S => "s",
             OptimizationPasses::Z => "z",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Three
+    }
+}
+
+impl std::str::FromStr for OptimizationPasses {
+    type Err = Error;
+
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
+        match input.to_lowercase().as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!("Unknown optimization passes for option {}", input),
         }
     }
+}
 
+impl OptimizationPasses {
     /// Returns the number of optimization passes to do
     #[cfg(feature = "binaryen-as-dependency")]
     pub(crate) fn to_passes(&self) -> u32 {

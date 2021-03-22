@@ -29,8 +29,8 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, OptimizationFlags, OptimizationPasses, OptimizationResult,
-    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
+    BuildArtifacts, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
+    UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -66,8 +66,26 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
-    #[structopt(flatten)]
-    optimization_passes: OptimizationFlags,
+    /// Number of optimization passes, passed as an argument to wasm-opt.
+    ///
+    /// - `0`: execute no optimization passes
+    ///
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    ///
+    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
+    ///
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    ///
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
+    /// but is useful on more nested / complex / less-optimized input)
+    ///
+    /// - `s`, execute default optimization passes, focusing on code size
+    ///
+    /// - `z`, execute default optimization passes, super-focusing on code size
+    ///
+    /// -
+    #[structopt(long = "optimization-passes", default_value)]
+    optimization_passes: OptimizationPasses,
 }
 
 impl BuildCommand {
@@ -76,14 +94,12 @@ impl BuildCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        let optimization_passes =
-            TryFrom::<&OptimizationFlags>::try_from(&self.optimization_passes)?;
         execute(
             &manifest_path,
             verbosity,
             self.build_artifact,
             unstable_flags,
-            optimization_passes,
+            self.optimization_passes,
         )
     }
 }
@@ -354,7 +370,7 @@ fn do_optimization(
 
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_level.to_str()))
+        .arg(format!("-O{}", optimization_level))
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
