@@ -363,7 +363,12 @@ fn do_optimization(
     );
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
-    module.optimize(&codegen_config);
+
+    if optimization_level != OptimizationPasses::Zero {
+        // binaryen-rs does still use the default optimization passes for zero,
+        // due to executing `addDefaultOptimizationPasses`.
+        module.optimize(&codegen_config);
+    }
 
     let mut optimized_wasm_file = File::create(dest_optimized)?;
     optimized_wasm_file.write_all(&module.write())?;

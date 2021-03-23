@@ -99,6 +99,7 @@ impl ExtrinsicOpts {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum OptimizationPasses {
     Zero,
     One,
