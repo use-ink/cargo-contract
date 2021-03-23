@@ -608,7 +608,14 @@ mod tests_ci_only {
             // then
             // we have to truncate here to account for a possible small delta
             // in the floating point numbers
-            assert!(optimization.optimized_size.trunc() == optimization.original_size.trunc());
+            let optimized_size = optimization.optimized_size.trunc();
+            let original_size = optimization.original_size.trunc();
+            assert!(
+                optimized_size == original_size,
+                "The optimized size {:?} differs from the original size {:?}",
+                optimized_size,
+                original_size
+            );
 
             Ok(())
         })
