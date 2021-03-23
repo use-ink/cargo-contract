@@ -122,13 +122,12 @@ impl CheckCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        let optimization_passes = OptimizationPasses::Zero;
         execute(
             &manifest_path,
             verbosity,
             BuildArtifacts::CheckOnly,
             unstable_flags,
-            optimization_passes,
+            OptimizationPasses::Zero,
         )
     }
 }
