@@ -17,6 +17,8 @@
 use anyhow::{Context, Result};
 
 use super::{metadata, Profile};
+use crate::OptimizationPasses;
+
 use std::convert::TryFrom;
 use std::{
     collections::HashSet,
@@ -158,6 +160,26 @@ impl Manifest {
             crate_types.push(crate_type.into());
         }
         Ok(self)
+    }
+
+    /// Extract optimization-passes from `[profile.release]`
+    pub fn get_profile_release_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+        self.get_profile_release_table_mut()
+            .ok()?
+            .get("optimization-passes")
+            .map(|val| val.to_string())
+            .map(Into::into)
+    }
+
+    /// Extract optimization-passes from `[profile.release]`
+    #[cfg(test)]
+    pub fn set_profile_release_optimization_passes(
+        &mut self,
+        passes: OptimizationPasses,
+    ) -> Result<Option<value::Value>> {
+        Ok(self
+            .get_profile_release_table_mut()?
+            .insert("optimization-passes".to_string(), passes.to_string().into()))
     }
 
     /// Set `[profile.release]` lto flag

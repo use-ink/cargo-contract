@@ -28,7 +28,7 @@ use std::{process::Command, str};
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
-    workspace::{ManifestPath, Profile, Workspace},
+    workspace::{Manifest, ManifestPath, Profile, Workspace},
     BuildArtifacts, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
     UnstableOptions, Verbosity, VerbosityFlags,
 };
@@ -83,9 +83,13 @@ pub struct BuildCommand {
     ///
     /// - `z`, execute default optimization passes, super-focusing on code size
     ///
-    /// -
-    #[structopt(long = "optimization-passes", default_value)]
-    optimization_passes: OptimizationPasses,
+    /// - The default value is `3`
+    ///
+    /// - It is possible to define the number of optimization passes in the `[profile.release]` of
+    ///   your `Cargo.toml` as e.g. `optimization-passes = "3"`. The CLI argument always takes
+    ///   precedence over the profile value.
+    #[structopt(long = "optimization-passes")]
+    optimization_passes: Option<OptimizationPasses>,
 }
 
 impl BuildCommand {
@@ -94,12 +98,28 @@ impl BuildCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+
+        // The CLI flag `optimization-passes` overwrites optimization passes which are
+        // potentially defined in the `Cargo.toml` profile.
+        let optimization_passes = match self.optimization_passes {
+            Some(opt_passes) => opt_passes,
+            None => {
+                let mut manifest = Manifest::new(manifest_path.clone())?;
+                match manifest.get_profile_release_optimization_passes() {
+                    // if no setting is found, neither on the cli nor in the profile,
+                    // then we use the default
+                    None => OptimizationPasses::default(),
+                    Some(opt_passes) => opt_passes,
+                }
+            }
+        };
+
         execute(
             &manifest_path,
             verbosity,
             self.build_artifact,
             unstable_flags,
-            self.optimization_passes,
+            optimization_passes,
         )
     }
 }
@@ -481,8 +501,11 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use crate::{
-        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, OptimizationPasses,
-        UnstableFlags, Verbosity,
+        cmd::{self, BuildCommand},
+        util::tests::with_tmp_dir,
+        workspace::Manifest,
+        BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
+        Verbosity, VerbosityFlags,
     };
 
     #[test]
@@ -550,6 +573,43 @@ mod tests_ci_only {
                 !project_dir.join("target/ink/new_project.wasm").exists(),
                 "found wasm artifact in project directory!"
             );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn cli_optimization_passes_must_take_precedence_over_profile() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            let manifest_path =
+                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+            // we write "4" as the optimization passes into the release profile
+            assert!(Manifest::new(manifest_path.clone())?
+                .set_profile_release_optimization_passes(String::from("4").into())
+                .is_ok());
+            let cmd = BuildCommand {
+                manifest_path: Some(cargo_toml_path),
+                build_artifact: BuildArtifacts::All,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+
+                // we choose zero optimization passes as the "cli" parameter
+                optimization_passes: Some(OptimizationPasses::Zero),
+            };
+
+            // when
+            let res = cmd.exec().expect("build failed");
+            let optimization = res
+                .optimization_result
+                .expect("no optimization result available");
+
+            // then
+            // we have to truncate here to account for a possible small delta
+            // in the floating point numbers
+            assert!(optimization.optimized_size.trunc() == optimization.original_size.trunc());
+
             Ok(())
         })
     }
