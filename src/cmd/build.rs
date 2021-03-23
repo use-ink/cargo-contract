@@ -333,6 +333,14 @@ fn do_optimization(
         // The default
         debug_info: false,
     };
+    log::info!(
+        "Optimization level passed to `binaryen` dependency: {}",
+        codegen_config.optimization_level
+    );
+    log::info!(
+        "Shrink level passed to `binaryen` dependency: {}",
+        codegen_config.shrink_level
+    );
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
     module.optimize(&codegen_config);
@@ -367,6 +375,10 @@ fn do_optimization(
         );
     }
 
+    log::info!(
+        "Optimization level passed to wasm-opt: {}",
+        optimization_level
+    );
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
         .arg(format!("-O{}", optimization_level))
