@@ -105,7 +105,7 @@ impl BuildCommand {
             Some(opt_passes) => opt_passes,
             None => {
                 let mut manifest = Manifest::new(manifest_path.clone())?;
-                match manifest.get_profile_release_optimization_passes() {
+                match manifest.get_profile_optimization_passes() {
                     // if no setting is found, neither on the cli nor in the profile,
                     // then we use the default
                     None => OptimizationPasses::default(),
@@ -593,7 +593,7 @@ mod tests_ci_only {
                 ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
             // we write "4" as the optimization passes into the release profile
             assert!(Manifest::new(manifest_path.clone())?
-                .set_profile_release_optimization_passes(String::from("4").into())
+                .set_profile_optimization_passes(String::from("4").into())
                 .is_ok());
             let cmd = BuildCommand {
                 manifest_path: Some(cargo_toml_path),

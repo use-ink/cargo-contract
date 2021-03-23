@@ -162,24 +162,46 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Extract optimization-passes from `[profile.release]`
-    pub fn get_profile_release_optimization_passes(&mut self) -> Option<OptimizationPasses> {
-        self.get_profile_release_table_mut()
-            .ok()?
+    /// Extract `optimization-passes` from `[package.metadata.contract]`
+    pub fn get_profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+        self.toml
+            .get("package")?
+            .as_table()?
+            .get("metadata")?
+            .as_table()?
+            .get("contract")?
+            .as_table()?
             .get("optimization-passes")
             .map(|val| val.to_string())
             .map(Into::into)
     }
 
-    /// Extract optimization-passes from `[profile.release]`
+    /// Set `optimization-passes` in `[package.metadata.contract]`
     #[cfg(test)]
-    pub fn set_profile_release_optimization_passes(
+    pub fn set_profile_optimization_passes(
         &mut self,
         passes: OptimizationPasses,
     ) -> Result<Option<value::Value>> {
         Ok(self
-            .get_profile_release_table_mut()?
-            .insert("optimization-passes".to_string(), passes.to_string().into()))
+            .toml
+            .entry("package")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("package section should be a table"))?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("metadata section should be a table"))?
+            .entry("contract")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!(
+                "metadata.contract section should be a table"
+            ))?
+            .insert(
+                "optimization-passes".to_string(),
+                value::Value::String(passes.to_string()),
+            ))
     }
 
     /// Set `[profile.release]` lto flag
