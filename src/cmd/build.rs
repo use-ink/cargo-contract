@@ -365,8 +365,9 @@ fn do_optimization(
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
 
     if optimization_level != OptimizationPasses::Zero {
-        // binaryen-rs does still use the default optimization passes for zero,
-        // due to executing `addDefaultOptimizationPasses`.
+        // binaryen-rs still uses the default optimization passes, even if zero
+        // is passed. this is the ticket for it: https://github.com/pepyakin/binaryen-rs/issues/56.
+        // we can remove the if condition here once the issue is fixed.
         module.optimize(&codegen_config);
     }
 
