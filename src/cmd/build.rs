@@ -374,7 +374,7 @@ fn do_optimization(
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
-        // the memory is initialized to zeros, otherwise it won't run the
+        // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
         .arg("--zero-filled-memory")
         .output()?;
