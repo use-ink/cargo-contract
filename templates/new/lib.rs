@@ -52,7 +52,7 @@ mod {{name}} {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
 
-        /// Imports `ink_lang` so that we can use `#[ink::test]`.
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
         use ink_lang as ink;
 
         /// We test if the default constructor does its job.
