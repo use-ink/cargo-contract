@@ -85,9 +85,9 @@ pub struct BuildCommand {
     ///
     /// - The default value is `3`
     ///
-    /// - It is possible to define the number of optimization passes in the `[profile.release]` of
-    ///   your `Cargo.toml` as e.g. `optimization-passes = "3"`. The CLI argument always takes
-    ///   precedence over the profile value.
+    /// - It is possible to define the number of optimization passes in the
+    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
+    ///   The CLI argument always takes precedence over the profile value.
     #[structopt(long = "optimization-passes")]
     optimization_passes: Option<OptimizationPasses>,
 }
