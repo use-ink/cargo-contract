@@ -28,9 +28,9 @@ use std::{process::Command, str};
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
-    workspace::{ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, OptimizationFlags, OptimizationPasses, OptimizationResult,
-    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
+    workspace::{Manifest, ManifestPath, Profile, Workspace},
+    BuildArtifacts, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
+    UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -66,8 +66,30 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
-    #[structopt(flatten)]
-    optimization_passes: OptimizationFlags,
+    /// Number of optimization passes, passed as an argument to wasm-opt.
+    ///
+    /// - `0`: execute no optimization passes
+    ///
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    ///
+    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
+    ///
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    ///
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
+    /// but is useful on more nested / complex / less-optimized input)
+    ///
+    /// - `s`, execute default optimization passes, focusing on code size
+    ///
+    /// - `z`, execute default optimization passes, super-focusing on code size
+    ///
+    /// - The default value is `3`
+    ///
+    /// - It is possible to define the number of optimization passes in the
+    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
+    ///   The CLI argument always takes precedence over the profile value.
+    #[structopt(long = "optimization-passes")]
+    optimization_passes: Option<OptimizationPasses>,
 }
 
 impl BuildCommand {
@@ -76,8 +98,22 @@ impl BuildCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        let optimization_passes =
-            TryFrom::<&OptimizationFlags>::try_from(&self.optimization_passes)?;
+
+        // The CLI flag `optimization-passes` overwrites optimization passes which are
+        // potentially defined in the `Cargo.toml` profile.
+        let optimization_passes = match self.optimization_passes {
+            Some(opt_passes) => opt_passes,
+            None => {
+                let mut manifest = Manifest::new(manifest_path.clone())?;
+                match manifest.get_profile_optimization_passes() {
+                    // if no setting is found, neither on the cli nor in the profile,
+                    // then we use the default
+                    None => OptimizationPasses::default(),
+                    Some(opt_passes) => opt_passes,
+                }
+            }
+        };
+
         execute(
             &manifest_path,
             verbosity,
@@ -106,13 +142,12 @@ impl CheckCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        let optimization_passes = OptimizationPasses::Zero;
         execute(
             &manifest_path,
             verbosity,
             BuildArtifacts::CheckOnly,
             unstable_flags,
-            optimization_passes,
+            OptimizationPasses::Zero,
         )
     }
 }
@@ -318,9 +353,23 @@ fn do_optimization(
         // The default
         debug_info: false,
     };
+    log::info!(
+        "Optimization level passed to `binaryen` dependency: {}",
+        codegen_config.optimization_level
+    );
+    log::info!(
+        "Shrink level passed to `binaryen` dependency: {}",
+        codegen_config.shrink_level
+    );
     let mut module = binaryen::Module::read(&dest_wasm_file_content)
         .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
-    module.optimize(&codegen_config);
+
+    if optimization_level != OptimizationPasses::Zero {
+        // binaryen-rs still uses the default optimization passes, even if zero
+        // is passed. this is the ticket for it: https://github.com/pepyakin/binaryen-rs/issues/56.
+        // we can remove the if condition here once the issue is fixed.
+        module.optimize(&codegen_config);
+    }
 
     let mut optimized_wasm_file = File::create(dest_optimized)?;
     optimized_wasm_file.write_all(&module.write())?;
@@ -352,13 +401,17 @@ fn do_optimization(
         );
     }
 
+    log::info!(
+        "Optimization level passed to wasm-opt: {}",
+        optimization_level
+    );
     let output = Command::new("wasm-opt")
         .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_level.to_str()))
+        .arg(format!("-O{}", optimization_level))
         .arg("-o")
         .arg(dest_optimized)
         // the memory in our module is imported, `wasm-opt` needs to be told that
-        // the memory is initialized to zeros, otherwise it won't run the
+        // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
         .arg("--zero-filled-memory")
         .output()?;
@@ -454,8 +507,11 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use crate::{
-        cmd, util::tests::with_tmp_dir, BuildArtifacts, ManifestPath, OptimizationPasses,
-        UnstableFlags, Verbosity,
+        cmd::{self, BuildCommand},
+        util::tests::with_tmp_dir,
+        workspace::Manifest,
+        BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
+        Verbosity, VerbosityFlags,
     };
 
     #[test]
@@ -523,6 +579,50 @@ mod tests_ci_only {
                 !project_dir.join("target/ink/new_project.wasm").exists(),
                 "found wasm artifact in project directory!"
             );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn cli_optimization_passes_must_take_precedence_over_profile() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            let manifest_path =
+                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+            // we write "4" as the optimization passes into the release profile
+            assert!(Manifest::new(manifest_path.clone())?
+                .set_profile_optimization_passes(String::from("4").into())
+                .is_ok());
+            let cmd = BuildCommand {
+                manifest_path: Some(cargo_toml_path),
+                build_artifact: BuildArtifacts::All,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+
+                // we choose zero optimization passes as the "cli" parameter
+                optimization_passes: Some(OptimizationPasses::Zero),
+            };
+
+            // when
+            let res = cmd.exec().expect("build failed");
+            let optimization = res
+                .optimization_result
+                .expect("no optimization result available");
+
+            // then
+            // we have to truncate here to account for a possible small delta
+            // in the floating point numbers
+            let optimized_size = optimization.optimized_size.trunc();
+            let original_size = optimization.original_size.trunc();
+            assert!(
+                optimized_size == original_size,
+                "The optimized size {:?} differs from the original size {:?}",
+                optimized_size,
+                original_size
+            );
+
             Ok(())
         })
     }

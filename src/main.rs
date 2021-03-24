@@ -26,7 +26,12 @@ use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fmt::{Display, Formatter, Result as DisplayResult},
+    path::PathBuf,
+    str::FromStr,
+};
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
@@ -93,31 +98,8 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
-pub struct OptimizationFlags {
-    /// Number of optimization passes, passed as an argument to wasm-opt.
-    ///
-    /// - `0`: execute no optimization passes
-    ///
-    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
-    ///
-    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
-    ///
-    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
-    ///
-    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
-    /// but is useful on more nested / complex / less-optimized input)
-    ///
-    /// - `s`, execute default optimization passes, focusing on code size
-    ///
-    /// - `z`, execute default optimization passes, super-focusing on code size
-    ///
-    /// -
-    #[structopt(long = "optimization-passes", default_value = "3")]
-    optimization_passes: String,
-}
-
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum OptimizationPasses {
     Zero,
     One,
@@ -128,37 +110,9 @@ pub enum OptimizationPasses {
     Z,
 }
 
-impl Default for OptimizationPasses {
-    fn default() -> OptimizationPasses {
-        OptimizationPasses::Three
-    }
-}
-
-impl TryFrom<&OptimizationFlags> for OptimizationPasses {
-    type Error = Error;
-
-    fn try_from(value: &OptimizationFlags) -> Result<Self, Self::Error> {
-        match value.optimization_passes.to_lowercase().as_str() {
-            "0" => Ok(OptimizationPasses::Zero),
-            "1" => Ok(OptimizationPasses::One),
-            "2" => Ok(OptimizationPasses::Two),
-            "3" => Ok(OptimizationPasses::Three),
-            "4" => Ok(OptimizationPasses::Four),
-            "s" => Ok(OptimizationPasses::S),
-            "z" => Ok(OptimizationPasses::Z),
-            _ => anyhow::bail!(
-                "Unknown optimization passes option {}",
-                value.optimization_passes
-            ),
-        }
-    }
-}
-
-impl OptimizationPasses {
-    /// Returns the string representation of `OptimizationPasses`
-    #[cfg(not(feature = "binaryen-as-dependency"))]
-    pub(crate) fn to_str(&self) -> &str {
-        match self {
+impl Display for OptimizationPasses {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let out = match self {
             OptimizationPasses::Zero => "0",
             OptimizationPasses::One => "1",
             OptimizationPasses::Two => "2",
@@ -166,9 +120,45 @@ impl OptimizationPasses {
             OptimizationPasses::Four => "4",
             OptimizationPasses::S => "s",
             OptimizationPasses::Z => "z",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Three
+    }
+}
+
+impl std::str::FromStr for OptimizationPasses {
+    type Err = Error;
+
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
+        // We need to replace " here, since the input string could come
+        // from either the CLI or the `Cargo.toml` profile section.
+        // If it is from the profile it could e.g. be "3" or 3.
+        let normalized_input = input.replace("\"", "").to_lowercase();
+        match normalized_input.as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!("Unknown optimization passes for option {}", input),
         }
     }
+}
 
+impl From<std::string::String> for OptimizationPasses {
+    fn from(str: String) -> Self {
+        OptimizationPasses::from_str(&str).expect("conversion failed")
+    }
+}
+
+impl OptimizationPasses {
     /// Returns the number of optimization passes to do
     #[cfg(feature = "binaryen-as-dependency")]
     pub(crate) fn to_passes(&self) -> u32 {
@@ -194,7 +184,7 @@ impl OptimizationPasses {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
     #[structopt(long)]
@@ -238,7 +228,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, StructOpt)]
 struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
     #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
