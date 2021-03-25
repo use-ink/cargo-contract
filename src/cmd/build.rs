@@ -439,10 +439,12 @@ fn assert_compatible_ink_dependencies(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
 ) -> Result<()> {
-    let args = ["-i=parity-scale-codec", "--duplicates"];
-    util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity)
-        .map(|_| ())
-        .map_err(|_| anyhow::anyhow!("Mismatching versions of `parity-scale-codec` were found!"))
+    for dependency in ["parity-scale-codec", "scale-info"].iter() {
+        let args = ["-i", dependency, "--duplicates"];
+        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity)
+            .map_err(|_| anyhow::anyhow!("Mismatching versions of `{}` were found!", dependency))?;
+    }
+    Ok(())
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
