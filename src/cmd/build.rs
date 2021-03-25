@@ -584,17 +584,21 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn cli_optimization_passes_must_take_precedence_over_profile() {
+    fn optimization_passes_from_cli_must_take_precedence_over_profile() {
         with_tmp_dir(|path| {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let cargo_toml_path = path.join("new_project").join("Cargo.toml");
             let manifest_path =
                 ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+
             // we write "4" as the optimization passes into the release profile
-            assert!(Manifest::new(manifest_path.clone())?
+            let mut manifest = Manifest::new(manifest_path.clone())?;
+            assert!(manifest
                 .set_profile_optimization_passes(String::from("4").into())
                 .is_ok());
+            assert!(manifest.write(&manifest_path).is_ok());
+
             let cmd = BuildCommand {
                 manifest_path: Some(cargo_toml_path),
                 build_artifact: BuildArtifacts::All,
