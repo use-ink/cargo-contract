@@ -630,4 +630,48 @@ mod tests_ci_only {
             Ok(())
         })
     }
+
+    #[test]
+    fn optimization_passes_from_profile_must_be_used() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            let manifest_path =
+                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+
+            // we write "3" as the optimization passes into the release profile
+            let mut manifest = Manifest::new(manifest_path.clone())?;
+            assert!(manifest
+                .set_profile_optimization_passes(String::from("3").into())
+                .is_ok());
+            assert!(manifest.write(&manifest_path).is_ok());
+
+            let cmd = BuildCommand {
+                manifest_path: Some(cargo_toml_path),
+                build_artifact: BuildArtifacts::All,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+
+                // we choose no optimization passes as the "cli" parameter
+                optimization_passes: None,
+            };
+
+            // when
+            let res = cmd.exec().expect("build failed");
+            let optimization = res
+                .optimization_result
+                .expect("no optimization result available");
+
+            // then
+            assert!(
+                optimization.optimized_size < optimization.original_size * 0.5,
+                "The optimized size {:?} DOES NOT differ enough from the original size {:?}",
+                optimized_size,
+                original_size
+            );
+
+            Ok(())
+        })
+    }
 }
