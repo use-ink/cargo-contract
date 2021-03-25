@@ -513,6 +513,22 @@ mod tests_ci_only {
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
+    use std::path::PathBuf;
+
+    fn write_optimization_passes_into_manifest(
+        cargo_toml_path: &PathBuf,
+        passes: OptimizationPasses,
+    ) {
+        let manifest_path =
+            ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+        let mut manifest = Manifest::new(manifest_path.clone()).expect("manifest creation failed");
+        manifest
+            .set_profile_optimization_passes(passes)
+            .expect("setting `optimization-passes` in profile failed");
+        manifest
+            .write(&manifest_path)
+            .expect("writing manifest failed");
+    }
 
     #[test]
     fn build_code_only() {
@@ -589,16 +605,7 @@ mod tests_ci_only {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            let manifest_path =
-                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
-
-            // we write "4" as the optimization passes into the release profile
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            assert!(manifest
-                .set_profile_optimization_passes(String::from("4").into())
-                .is_ok());
-            assert!(manifest.write(&manifest_path).is_ok());
-
+            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
             let cmd = BuildCommand {
                 manifest_path: Some(cargo_toml_path),
                 build_artifact: BuildArtifacts::All,
@@ -637,16 +644,7 @@ mod tests_ci_only {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            let manifest_path =
-                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
-
-            // we write "3" as the optimization passes into the release profile
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            assert!(manifest
-                .set_profile_optimization_passes(String::from("3").into())
-                .is_ok());
-            assert!(manifest.write(&manifest_path).is_ok());
-
+            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
             let cmd = BuildCommand {
                 manifest_path: Some(cargo_toml_path),
                 build_artifact: BuildArtifacts::All,
@@ -667,8 +665,8 @@ mod tests_ci_only {
             assert!(
                 optimization.optimized_size < optimization.original_size * 0.5,
                 "The optimized size {:?} DOES NOT differ enough from the original size {:?}",
-                optimized_size,
-                original_size
+                optimization.optimized_size,
+                optimization.original_size
             );
 
             Ok(())
