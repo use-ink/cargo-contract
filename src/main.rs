@@ -98,8 +98,7 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(any(test, feature = "binaryen-as-dependency"), derive(PartialEq))]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum OptimizationPasses {
     Zero,
     One,
