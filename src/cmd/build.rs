@@ -513,6 +513,24 @@ mod tests_ci_only {
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
+    use std::path::PathBuf;
+
+    /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
+    /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
+    fn write_optimization_passes_into_manifest(
+        cargo_toml_path: &PathBuf,
+        passes: OptimizationPasses,
+    ) {
+        let manifest_path =
+            ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+        let mut manifest = Manifest::new(manifest_path.clone()).expect("manifest creation failed");
+        manifest
+            .set_profile_optimization_passes(passes)
+            .expect("setting `optimization-passes` in profile failed");
+        manifest
+            .write(&manifest_path)
+            .expect("writing manifest failed");
+    }
 
     #[test]
     fn build_code_only() {
@@ -584,17 +602,12 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn cli_optimization_passes_must_take_precedence_over_profile() {
+    fn optimization_passes_from_cli_must_take_precedence_over_profile() {
         with_tmp_dir(|path| {
             // given
             cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
             let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            let manifest_path =
-                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
-            // we write "4" as the optimization passes into the release profile
-            assert!(Manifest::new(manifest_path.clone())?
-                .set_profile_optimization_passes(String::from("4").into())
-                .is_ok());
+            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
             let cmd = BuildCommand {
                 manifest_path: Some(cargo_toml_path),
                 build_artifact: BuildArtifacts::All,
@@ -619,6 +632,45 @@ mod tests_ci_only {
             assert!(
                 optimized_size == original_size,
                 "The optimized size {:?} differs from the original size {:?}",
+                optimized_size,
+                original_size
+            );
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn optimization_passes_from_profile_must_be_used() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
+            let cmd = BuildCommand {
+                manifest_path: Some(cargo_toml_path),
+                build_artifact: BuildArtifacts::All,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+
+                // we choose no optimization passes as the "cli" parameter
+                optimization_passes: None,
+            };
+
+            // when
+            let res = cmd.exec().expect("build failed");
+            let optimization = res
+                .optimization_result
+                .expect("no optimization result available");
+
+            // then
+            // we have to truncate here to account for a possible small delta
+            // in the floating point numbers
+            let optimized_size = optimization.optimized_size.trunc();
+            let original_size = optimization.original_size.trunc();
+            assert!(
+                optimized_size < original_size,
+                "The optimized size DOES NOT {:?} differ from the original size {:?}",
                 optimized_size,
                 original_size
             );
