@@ -204,6 +204,24 @@ impl Manifest {
             ))
     }
 
+    /// Set the dependency version of `package` to `version`.
+    #[cfg(test)]
+    pub fn set_dependency_version(
+        &mut self,
+        dependency: &str,
+        version: &str,
+    ) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("dependencies")
+            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+            .get_mut(dependency)
+            .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("{} dependency should be a table", dependency))?
+            .insert("version".into(), value::Value::String(version.into())))
+    }
+
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self

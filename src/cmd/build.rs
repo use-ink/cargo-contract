@@ -430,6 +430,36 @@ fn do_optimization(
     Ok(())
 }
 
+/// Asserts that the contract's dependencies are compatible to the ones used in ink!.
+///
+/// This function utilizes `cargo tree`, which takes semver into consideration.
+///
+/// Hence this function only returns an `Err` if it is a proper mismatch according
+/// to semantic versioning. This means that either:
+///     - the major version mismatches, differences in the minor/patch version
+///       are not considered incompatible.
+///     - or if the version starts with zero (i.e. `0.y.z`) a mismatch in the minor
+///       version is already considered incompatible.
+fn assert_compatible_ink_dependencies(
+    manifest_path: &ManifestPath,
+    verbosity: Verbosity,
+) -> Result<()> {
+    for dependency in ["parity-scale-codec", "scale-info"].iter() {
+        let args = ["-i", dependency, "--duplicates"];
+        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity).map_err(
+            |_| {
+                anyhow::anyhow!(
+                    "Mismatching versions of `{}` were found!\n\
+                     Please ensure that your contract and your ink! dependencies use a compatible \
+                     version of this package.",
+                    dependency
+                )
+            },
+        )?;
+    }
+    Ok(())
+}
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
@@ -440,7 +470,9 @@ pub(crate) fn execute(
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+
+    assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
 
     let build = || -> Result<OptimizationResult> {
         maybe_println!(
@@ -506,6 +538,7 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
+    use super::assert_compatible_ink_dependencies;
     use crate::{
         cmd::{self, BuildCommand},
         util::tests::with_tmp_dir,
@@ -675,6 +708,52 @@ mod tests_ci_only {
                 original_size
             );
 
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn project_template_dependencies_must_be_ink_compatible() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            let manifest_path =
+                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+
+            // when
+            let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
+
+            // then
+            assert!(res.is_ok());
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn detect_mismatching_parity_scale_codec_dependencies() {
+        with_tmp_dir(|path| {
+            // given
+            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
+            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
+            let manifest_path =
+                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+
+            // at the time of writing this test ink! already uses `parity-scale-codec`
+            // in a version > 2, hence 1 is an incompatible version.
+            let mut manifest = Manifest::new(manifest_path.clone())?;
+            manifest
+                .set_dependency_version("scale", "1.0.0")
+                .expect("setting `scale` version failed");
+            manifest
+                .write(&manifest_path)
+                .expect("writing manifest failed");
+
+            // when
+            let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
+
+            // then
+            assert!(res.is_err());
             Ok(())
         })
     }
