@@ -433,8 +433,13 @@ fn do_optimization(
 /// Asserts that the contract's dependencies are compatible to the ones used in ink!.
 ///
 /// This function utilizes `cargo tree`, which takes semver into consideration.
-/// Hence this function only returns an `Err` if it is a proper mismatch in the
-/// major version, and not if the versions mismatch on the minor/patch version.
+///
+/// Hence this function only returns an `Err` if it is a proper mismatch according
+/// to semantic versioning. This means that either:
+///     - the major version mismatches, differences in the minor/patch version
+///       are not considered incompatible.
+///     - or if the version starts with zero (i.e. `0.y.z`) a mismatch in the minor
+///       version is already considered incompatible.
 fn assert_compatible_ink_dependencies(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
@@ -445,7 +450,7 @@ fn assert_compatible_ink_dependencies(
             |_| {
                 anyhow::anyhow!(
                     "Mismatching versions of `{}` were found!\n\
-                     Please ensure that your contract and your ink! dependency use a compatible \
+                     Please ensure that your contract and your ink! dependencies use a compatible \
                      version of this package.",
                     dependency
                 )
