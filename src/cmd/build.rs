@@ -441,8 +441,16 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity)
-            .map_err(|_| anyhow::anyhow!("Mismatching versions of `{}` were found!", dependency))?;
+        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity).map_err(
+            |_| {
+                anyhow::anyhow!(
+                    "Mismatching versions of `{}` were found!\n\
+                     Please ensure that your contract and your ink! dependency use a compatible \
+                     version of this package.",
+                    dependency
+                )
+            },
+        )?;
     }
     Ok(())
 }
