@@ -20,7 +20,7 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 
 [dependencies]
 env_logger = "0.8.3"
-anyhow = "1.0.39"
+anyhow = "1.0.40"
 structopt = "0.3.21"
 log = "0.4.14"
 heck = "0.3.2"
@@ -54,7 +54,7 @@ hex = { version = "0.4.3", optional = true }
 funty = "=1.1.0"
 
 [build-dependencies]
-anyhow = "1.0.39"
+anyhow = "1.0.40"
 zip = { version = "0.5.11", default-features = false }
 walkdir = "2.3.2"
 
