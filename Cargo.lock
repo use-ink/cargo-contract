@@ -510,6 +510,7 @@ dependencies = [
  "parity-wasm 0.42.2",
  "pretty_assertions",
  "pwasm-utils",
+ "regex",
  "rustc_version 0.3.3",
  "semver 0.11.0",
  "serde",

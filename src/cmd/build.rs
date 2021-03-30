@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use regex::Regex;
 use std::{convert::TryFrom, ffi::OsStr, fs::metadata, path::PathBuf};
 
 #[cfg(feature = "binaryen-as-dependency")]
@@ -22,8 +23,8 @@ use std::{
     io::{Read, Write},
 };
 
-#[cfg(not(feature = "binaryen-as-dependency"))]
-use std::{process::Command, str};
+#[cfg(any(test, not(feature = "binaryen-as-dependency")))]
+use std::{path::Path, process::Command, str};
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -398,21 +399,36 @@ fn do_optimization(
     optimization_level: OptimizationPasses,
 ) -> Result<()> {
     // check `wasm-opt` is installed
-    if which::which("wasm-opt").is_err() {
+    let which = which::which("wasm-opt");
+    if which.is_err() {
         anyhow::bail!(
-            "{}",
-            "wasm-opt is not installed. Install this tool on your system in order to \n\
-             reduce the size of your contract's Wasm binary. \n\
-             See https://github.com/WebAssembly/binaryen#tools"
-                .bright_yellow()
+            "wasm-opt not found! Make sure the binary is in your PATH environment.\n\
+            We use this tool to optimize the size of your contract's Wasm binary.\n\n\
+            wasm-opt is part of the binaryen package. You can find detailed\n\
+            installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
+
+            There are also ready-to-install packages for many platforms:\n\
+            * Debian/Ubuntu: https://tracker.debian.org/pkg/binaryen\n\
+            * Homebrew: https://formulae.brew.sh/formula/binaryen\n\
+            * Arch Linux: https://archlinux.org/packages/community/x86_64/binaryen\n\
+            * Windows: binary releases are available at https://github.com/WebAssembly/binaryen/releases"
+            .to_string()
+            .bright_yellow()
         );
     }
+    let wasm_opt_path = which
+        .as_ref()
+        .expect("we just checked if which returned an err; qed")
+        .as_path();
+    log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+
+    let _ = check_wasm_opt_version_compatibility(wasm_opt_path)?;
 
     log::info!(
         "Optimization level passed to wasm-opt: {}",
         optimization_level
     );
-    let output = Command::new("wasm-opt")
+    let output = Command::new(wasm_opt_path)
         .arg(dest_wasm)
         .arg(format!("-O{}", optimization_level))
         .arg("-o")
@@ -421,17 +437,88 @@ fn do_optimization(
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
         .arg("--zero-filled-memory")
-        .output()?;
+        .output()
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Executing {} failed with {:?}",
+                wasm_opt_path.display(),
+                err
+            )
+        })?;
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
             .expect("cannot convert stderr output of wasm-opt to string")
             .trim();
         anyhow::bail!(
-            "The wasm-opt optimization failed.\n\
-            A possible source of error could be that you have an outdated binaryen package installed.\n\n\
+            "The wasm-opt optimization failed.\n\n\
             The error which wasm-opt returned was: \n{}",
             err
+        );
+    }
+    Ok(())
+}
+
+/// Checks if the wasm-opt binary under `wasm_opt_path` returns a version
+/// compatible with `cargo-contract`.
+///
+/// Currently this must be a version >= 99.
+#[cfg(any(test, not(feature = "binaryen-as-dependency")))]
+fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
+    let cmd = Command::new(wasm_opt_path)
+        .arg("--version")
+        .output()
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Executing `{:?} --version` failed with {:?}",
+                wasm_opt_path.display(),
+                err
+            )
+        })?;
+    if !cmd.status.success() {
+        let err = str::from_utf8(&cmd.stderr)
+            .expect("Cannot convert stderr output of wasm-opt to string")
+            .trim();
+        anyhow::bail!(
+            "Getting version information from wasm-opt failed.\n\
+            The error which wasm-opt returned was: \n{}",
+            err
+        );
+    }
+
+    // ```sh
+    // $ wasm-opt --version
+    // wasm-opt version 99 (version_99-79-gc12cc3f50)
+    // ```
+    let version_stdout =
+        str::from_utf8(&cmd.stdout).expect("cannot convert stdout output of wasm-opt to string");
+    let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
+    let captures = re.captures(version_stdout).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Unable to extract version information from {:?}",
+            version_stdout
+        )
+    })?;
+    let version_number: u32 = captures
+        .get(1) // first capture group is at index 1
+        .ok_or_else(|| {
+            anyhow::anyhow!("Unable to extract version number from {:?}", version_stdout)
+        })?
+        .as_str()
+        .parse()
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Parsing version number failed with {:?} for {:?}",
+                err,
+                version_stdout
+            )
+        })?;
+
+    log::info!("The wasm-opt version is \"{}\"", version_stdout);
+    if version_number < 99 {
+        anyhow::bail!(
+            "Your wasm-opt version is {}, but we require a version >= 99.",
+            version_number
         );
     }
     Ok(())
@@ -545,7 +632,7 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use super::assert_compatible_ink_dependencies;
+    use super::{assert_compatible_ink_dependencies, check_wasm_opt_version_compatibility};
     use crate::{
         cmd::{self, BuildCommand},
         util::tests::with_tmp_dir,
@@ -553,7 +640,7 @@ mod tests_ci_only {
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
-    use std::path::PathBuf;
+    use std::{io::Write, os::unix::fs::PermissionsExt, path::PathBuf};
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
@@ -761,6 +848,60 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn incompatible_wasm_opt_version_must_be_detected() {
+        with_tmp_dir(|path| {
+            // given
+            let path = path.join("wasm-opt-mocked");
+            {
+                let mut file = std::fs::File::create(&path).unwrap();
+                file.write_all(
+                    b"#!/bin/sh\necho \"wasm-opt version 98 (version_13-79-gc12cc3f50)\"",
+                )
+                .expect("writing wasm-opt-mocked failed");
+            }
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+                .expect("setting permissions failed");
+
+            // when
+            let res = check_wasm_opt_version_compatibility(&path);
+
+            // then
+            assert!(res.is_err());
+            assert_eq!(
+                format!("{:?}", res),
+                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
+            );
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn compatible_wasm_opt_version_must_be_detected() {
+        with_tmp_dir(|path| {
+            // given
+            let path = path.join("wasm-opt-mocked");
+            {
+                let mut file = std::fs::File::create(&path).unwrap();
+                file.write_all(
+                    b"#!/bin/sh\necho \"wasm-opt version 99 (version_99-79-gc12cc3f50)\"",
+                )
+                .expect("writing wasm-opt-mocked failed");
+            }
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+                .expect("setting permissions failed");
+
+            // when
+            let res = check_wasm_opt_version_compatibility(&path);
+
+            // then
+            assert!(res.is_ok());
+
             Ok(())
         })
     }
