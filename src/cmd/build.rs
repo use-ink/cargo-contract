@@ -284,7 +284,8 @@ fn optimize_wasm(
 
     if !dest_optimized.exists() {
         return Err(anyhow::anyhow!(
-            "Optimization failed, optimized wasm output file not found."
+            "Optimization failed, optimized wasm output file `{}` not found.",
+            dest_optimized
         ));
     }
 
