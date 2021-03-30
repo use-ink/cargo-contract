@@ -104,7 +104,7 @@ test-new-project-template:
     - cargo check --verbose
     - cargo test --verbose --all
     - cargo fmt --verbose --all -- --check
-    - cargo clippy --verbose --manifest-path new_project/Cargo.toml -- -D warnings;
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
 #### stage:                        build (default features)
 
