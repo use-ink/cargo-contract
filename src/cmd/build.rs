@@ -448,7 +448,7 @@ fn do_optimization(
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
-            .expect("cannot convert stderr output of wasm-opt to string")
+            .expect("Cannot convert stderr output of wasm-opt to string")
             .trim();
         anyhow::bail!(
             "The wasm-opt optimization failed.\n\n\
@@ -491,7 +491,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     // wasm-opt version 99 (version_99-79-gc12cc3f50)
     // ```
     let version_stdout = str::from_utf8(&cmd.stdout)
-        .expect("cannot convert stdout output of wasm-opt to string")
+        .expect("Cannot convert stdout output of wasm-opt to string")
         .trim();
     let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
     let captures = re.captures(version_stdout).ok_or_else(|| {
