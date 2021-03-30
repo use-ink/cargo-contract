@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use regex::Regex;
 use std::{convert::TryFrom, ffi::OsStr, fs::metadata, path::PathBuf};
 
 #[cfg(feature = "binaryen-as-dependency")]
@@ -476,16 +477,19 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     // ```
     let version_stdout =
         str::from_utf8(&cmd.stdout).expect("cannot convert stdout output of wasm-opt to string");
-    let mut version_iter = version_stdout.split_whitespace();
-    let _ = version_iter
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("Cannot get program identifier for {:?}", version_stdout))?;
-    let _ = version_iter
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("Cannot get version label for {:?}", version_stdout))?;
-    let version_number: u32 = version_iter
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("Cannot get version information for {:?}", version_stdout))?
+    let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
+    let captures = re.captures(version_stdout).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Unable to extract version information from {:?}",
+            version_stdout
+        )
+    })?;
+    let version_number: u32 = captures
+        .get(1) // first capture group is at index 1
+        .ok_or_else(|| {
+            anyhow::anyhow!("Unable to extract version number from {:?}", version_stdout)
+        })?
+        .as_str()
         .parse()
         .map_err(|err| {
             anyhow::anyhow!(
