@@ -283,7 +283,9 @@ fn optimize_wasm(
     )?;
 
     if !dest_optimized.exists() {
-        return Err(anyhow::anyhow!("Optimization failed, optimized wasm output file not found."))
+        return Err(anyhow::anyhow!(
+            "Optimization failed, optimized wasm output file not found."
+        ));
     }
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
