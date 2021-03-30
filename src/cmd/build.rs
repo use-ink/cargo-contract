@@ -429,7 +429,7 @@ fn do_optimization(
         // memory-packing pre-pass.
         .arg("--zero-filled-memory")
         .output()
-        .map_err(|err| anyhow::anyhow!("Executing {:?} failed with {:?}", wasm_opt_path, err))?;
+        .map_err(|err| anyhow::anyhow!("Executing {} failed with {:?}", wasm_opt_path.display(), err))?;
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
@@ -456,7 +456,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
         .map_err(|err| {
             anyhow::anyhow!(
                 "Executing `{:?} --version` failed with {:?}",
-                wasm_opt_path,
+                wasm_opt_path.display(),
                 err
             )
         })?;
@@ -845,7 +845,7 @@ mod tests_ci_only {
             {
                 let mut file = std::fs::File::create(&path).unwrap();
                 file.write_all(
-                    b"#!/bin/sh\necho \"wasm-opt version 13 (version_13-79-gc12cc3f50)\"",
+                    b"#!/bin/sh\necho \"wasm-opt version 98 (version_13-79-gc12cc3f50)\"",
                 )
                 .expect("writing wasm-opt-mocked failed");
             }
@@ -859,7 +859,7 @@ mod tests_ci_only {
             assert!(res.is_err());
             assert_eq!(
                 format!("{:?}", res),
-                "Err(Your wasm-opt version is 13, but we require a version >= 99.)"
+                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
             );
 
             Ok(())
