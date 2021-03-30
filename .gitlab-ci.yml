@@ -73,6 +73,12 @@ fmt:
   script:
     - cargo fmt --verbose --all -- --check
 
+clippy:
+  stage:                           check
+  <<:                              *docker-env
+  script:
+    - cargo clippy --verbose -- -D warnings;
+
 #### stage:                        test (all features)
 
 test:
@@ -98,6 +104,7 @@ test-new-project-template:
     - cargo check --verbose
     - cargo test --verbose --all
     - cargo fmt --verbose --all -- --check
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
 #### stage:                        build (default features)
 
