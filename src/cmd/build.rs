@@ -395,7 +395,7 @@ fn do_optimization(
     let which = which::which("wasm-opt");
     if which.is_err() {
         anyhow::bail!(
-            "wasm-opt not found!\n\
+            "wasm-opt not found! Make sure the binary is in your PATH environment.\n\
             We use this tool to optimize the size of your contract's Wasm binary.\n\n\
             wasm-opt is part of the binaryen package. You can find detailed\n\
             installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
@@ -413,6 +413,11 @@ fn do_optimization(
         .as_ref()
         .expect("we just checked if which returned an err; qed")
         .as_path();
+    log::info!(
+        "Path to wasm-opt executable: {}",
+        wasm_opt_path.display()
+    );
+
     let _ = check_wasm_opt_version_compatibility(wasm_opt_path)?;
 
     log::info!(
