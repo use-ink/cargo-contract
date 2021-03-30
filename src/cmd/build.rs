@@ -496,7 +496,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
-            "Unable to extract version information from {:?}.\n\
+            "Unable to extract version information from {}.\n\
             Your wasm-opt version is most probably too old. Make sure you use a version >= 99.",
             version_stdout
         )
