@@ -393,11 +393,18 @@ fn do_optimization(
     // check `wasm-opt` is installed
     if which::which("wasm-opt").is_err() {
         anyhow::bail!(
-            "{}",
-            "wasm-opt is not installed. Install this tool on your system in order to \n\
-             reduce the size of your contract's Wasm binary. \n\
-             See https://github.com/WebAssembly/binaryen#tools"
-                .bright_yellow()
+            "wasm-opt not found!\n\
+            We use this tool to optimize the size of your contract's Wasm binary.\n\n\
+            wasm-opt is part of the binaryen package. You can find detailed\n\
+            installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
+
+            There are also ready-to-install packages for many platforms:\n\
+            * Debian/Ubuntu: https://tracker.debian.org/pkg/binaryen\n\
+            * Homebrew: https://formulae.brew.sh/formula/binaryen\n\
+            * Arch Linux: https://archlinux.org/packages/community/x86_64/binaryen\n\
+            * Windows: binary releases are available at https://github.com/WebAssembly/binaryen/releases"
+            .to_string()
+            .bright_yellow()
         );
     }
 
