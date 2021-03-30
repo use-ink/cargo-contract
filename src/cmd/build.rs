@@ -413,10 +413,7 @@ fn do_optimization(
         .as_ref()
         .expect("we just checked if which returned an err; qed")
         .as_path();
-    log::info!(
-        "Path to wasm-opt executable: {}",
-        wasm_opt_path.display()
-    );
+    log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
     let _ = check_wasm_opt_version_compatibility(wasm_opt_path)?;
 
@@ -434,7 +431,13 @@ fn do_optimization(
         // memory-packing pre-pass.
         .arg("--zero-filled-memory")
         .output()
-        .map_err(|err| anyhow::anyhow!("Executing {} failed with {:?}", wasm_opt_path.display(), err))?;
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Executing {} failed with {:?}",
+                wasm_opt_path.display(),
+                err
+            )
+        })?;
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
