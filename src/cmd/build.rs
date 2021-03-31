@@ -407,13 +407,13 @@ fn do_optimization(
             wasm-opt is part of the binaryen package. You can find detailed\n\
             installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
 
-            There are also ready-to-install packages for many platforms:\n\
-            * Debian/Ubuntu: https://tracker.debian.org/pkg/binaryen\n\
-            * Homebrew: https://formulae.brew.sh/formula/binaryen\n\
-            * Arch Linux: https://archlinux.org/packages/community/x86_64/binaryen\n\
-            * Windows: binary releases are available at https://github.com/WebAssembly/binaryen/releases"
-            .to_string()
-            .bright_yellow()
+            There are ready-to-install packages for many platforms:\n\
+            * Debian/Ubuntu: apt-get install binaryen\n\
+            * Homebrew: brew install binaryen\n\
+            * Arch Linux: pacman -S binaryen\n\
+            * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
+                .to_string()
+                .bright_yellow()
         );
     }
     let wasm_opt_path = which
@@ -448,7 +448,7 @@ fn do_optimization(
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
-            .expect("cannot convert stderr output of wasm-opt to string")
+            .expect("Cannot convert stderr output of wasm-opt to string")
             .trim();
         anyhow::bail!(
             "The wasm-opt optimization failed.\n\n\
@@ -490,12 +490,14 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     // $ wasm-opt --version
     // wasm-opt version 99 (version_99-79-gc12cc3f50)
     // ```
-    let version_stdout =
-        str::from_utf8(&cmd.stdout).expect("cannot convert stdout output of wasm-opt to string");
+    let version_stdout = str::from_utf8(&cmd.stdout)
+        .expect("Cannot convert stdout output of wasm-opt to string")
+        .trim();
     let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
-            "Unable to extract version information from {:?}",
+            "Unable to extract version information from {}.\n\
+            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.",
             version_stdout
         )
     })?;
