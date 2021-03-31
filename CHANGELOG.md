@@ -21,8 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Only allow new contract names beginning with an alphabetic character - [#219](https://github.com/paritytech/cargo-contract/pull/219)
 - Upgrade `cargo-metadata` and fix usages - [#210](https://github.com/paritytech/cargo-contract/pull/210)
 
-### Changed
-
 ## [0.10.0] - 2021-03-02
 
 ### Fixed
