@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2021-03-31
+
+### Added
+- Improve error output for `wasm-opt` interaction - [#244](https://github.com/paritytech/cargo-contract/pull/244)
+- Check optimized Wasm output file exists - [#243](https://github.com/paritytech/cargo-contract/pull/243)
+- Detect `wasm-opt` version compatibility and improve error messages - [#242](https://github.com/paritytech/cargo-contract/pull/242)
+- Detect version mismatches of `parity-scale-codec` in contract and ink! dependency - [#237](https://github.com/paritytech/cargo-contract/pull/237)
+- Support specifying `optimization-passes` in the release profile - [#231](https://github.com/paritytech/cargo-contract/pull/231)
+- Support specifying `optimization-passes` on the CLI - [#216](https://github.com/paritytech/cargo-contract/pull/216)
+- Use `ink::test` attribute in "new project" template - [#190](https://github.com/paritytech/cargo-contract/pull/190)
+
+### Fixed
+- Only allow new contract names beginning with an alphabetic character - [#219](https://github.com/paritytech/cargo-contract/pull/219)
+- Upgrade `cargo-metadata` and fix usages - [#210](https://github.com/paritytech/cargo-contract/pull/210)
+
 ## [0.10.0] - 2021-03-02
 
 ### Fixed

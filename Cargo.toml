@@ -3,7 +3,7 @@ members = [".", "metadata"]
 
 [package]
 name = "cargo-contract"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2018"
