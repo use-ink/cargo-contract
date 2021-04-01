@@ -59,6 +59,7 @@ anyhow = "1.0.40"
 zip = { version = "0.5.11", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
+platforms = "1.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

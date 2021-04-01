@@ -41,11 +41,11 @@ use structopt::{clap, StructOpt};
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
-#[structopt(version = env!("SUBSTRATE_CLI_IMPL_VERSION"))]
+#[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
 pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[structopt(name = "contract")]
-    #[structopt(version = env!("SUBSTRATE_CLI_IMPL_VERSION"))]
+    #[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
     #[structopt(setting = clap::AppSettings::UnifiedHelpMessage)]
     #[structopt(setting = clap::AppSettings::DeriveDisplayOrder)]
     #[structopt(setting = clap::AppSettings::DontCollapseArgsInUsage)]

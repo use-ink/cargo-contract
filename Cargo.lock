@@ -508,6 +508,7 @@ dependencies = [
  "log",
  "parity-scale-codec 2.0.1",
  "parity-wasm 0.42.2",
+ "platforms",
  "pretty_assertions",
  "pwasm-utils",
  "regex",
