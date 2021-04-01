@@ -22,11 +22,16 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-use crate::cmd::{BuildCommand, CheckCommand};
+use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fmt::{Display, Formatter, Result as DisplayResult},
+    path::PathBuf,
+    str::FromStr,
+};
 #[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
@@ -93,7 +98,92 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OptimizationPasses {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    S,
+    Z,
+}
+
+impl Display for OptimizationPasses {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let out = match self {
+            OptimizationPasses::Zero => "0",
+            OptimizationPasses::One => "1",
+            OptimizationPasses::Two => "2",
+            OptimizationPasses::Three => "3",
+            OptimizationPasses::Four => "4",
+            OptimizationPasses::S => "s",
+            OptimizationPasses::Z => "z",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Three
+    }
+}
+
+impl std::str::FromStr for OptimizationPasses {
+    type Err = Error;
+
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
+        // We need to replace " here, since the input string could come
+        // from either the CLI or the `Cargo.toml` profile section.
+        // If it is from the profile it could e.g. be "3" or 3.
+        let normalized_input = input.replace("\"", "").to_lowercase();
+        match normalized_input.as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!("Unknown optimization passes for option {}", input),
+        }
+    }
+}
+
+impl From<std::string::String> for OptimizationPasses {
+    fn from(str: String) -> Self {
+        OptimizationPasses::from_str(&str).expect("conversion failed")
+    }
+}
+
+impl OptimizationPasses {
+    /// Returns the number of optimization passes to do
+    #[cfg(feature = "binaryen-as-dependency")]
+    pub(crate) fn to_passes(&self) -> u32 {
+        match self {
+            OptimizationPasses::Zero => 0,
+            OptimizationPasses::One => 1,
+            OptimizationPasses::Two => 2,
+            OptimizationPasses::Three => 3,
+            OptimizationPasses::Four => 4,
+            _ => 3, // Default to three for shrink settings
+        }
+    }
+
+    /// Returns amount of shrinkage to do
+    #[cfg(feature = "binaryen-as-dependency")]
+    pub(crate) fn to_shrink(&self) -> u32 {
+        match self {
+            OptimizationPasses::Zero => 0,
+            OptimizationPasses::S => 1,
+            OptimizationPasses::Z => 2,
+            _ => 1,
+        }
+    }
+}
+
+#[derive(Default, Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
     #[structopt(long)]
@@ -137,7 +227,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, StructOpt)]
 struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
     #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
@@ -206,12 +296,10 @@ impl std::str::FromStr for BuildArtifacts {
 
 /// Result of the metadata generation process.
 pub struct BuildResult {
-    /// Path to the resulting metadata file.
-    pub dest_metadata: Option<PathBuf>,
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
-    /// Path to the bundled file.
-    pub dest_bundle: Option<PathBuf>,
+    /// Result of the metadata generation.
+    pub metadata_result: Option<MetadataResult>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
     /// If existent the result of the optimization.
@@ -224,6 +312,8 @@ pub struct BuildResult {
 
 /// Result of the optimization process.
 pub struct OptimizationResult {
+    /// The path of the optimized wasm file.
+    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.
@@ -262,10 +352,10 @@ impl BuildResult {
             size_diff,
             self.target_directory.display().to_string().bold(),
         );
-        if let Some(dest_bundle) = self.dest_bundle.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                util::base_name(&dest_bundle).bold()
+                util::base_name(&metadata_result.dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
@@ -276,10 +366,10 @@ impl BuildResult {
             );
             out.push_str(&wasm);
         }
-        if let Some(dest_metadata) = self.dest_metadata.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                util::base_name(&dest_metadata).bold()
+                util::base_name(&metadata_result.dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
@@ -315,7 +405,7 @@ enum Command {
     /// Command has been deprecated, use `cargo contract build` instead
     #[structopt(name = "generate-metadata")]
     GenerateMetadata {},
-    /// Check that the code builds as Wasm; does not output any build artifact to the top level `target/` directory
+    /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[structopt(name = "check")]
     Check(CheckCommand),
     /// Test the smart contract off-chain

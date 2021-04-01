@@ -17,7 +17,9 @@
 use anyhow::{Context, Result};
 
 use super::{metadata, Profile};
-use std::convert::{TryFrom, TryInto};
+use crate::OptimizationPasses;
+
+use std::convert::TryFrom;
 use std::{
     collections::HashSet,
     fs,
@@ -66,13 +68,14 @@ impl ManifestPath {
             None
         }
     }
-}
 
-impl TryFrom<&PathBuf> for ManifestPath {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
-        ManifestPath::new(value)
+    /// Returns the absolute directory path of the manifest.
+    pub fn absolute_directory(&self) -> Result<PathBuf, std::io::Error> {
+        let directory = match self.directory() {
+            Some(dir) => dir,
+            None => Path::new("./"),
+        };
+        directory.canonicalize()
     }
 }
 
@@ -117,11 +120,7 @@ impl Manifest {
     /// Create new Manifest for the given manifest path.
     ///
     /// The path *must* be to a `Cargo.toml`.
-    pub fn new<P>(path: P) -> Result<Manifest>
-    where
-        P: TryInto<ManifestPath, Error = anyhow::Error>,
-    {
-        let manifest_path = path.try_into()?;
+    pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
 
@@ -161,6 +160,66 @@ impl Manifest {
             crate_types.push(crate_type.into());
         }
         Ok(self)
+    }
+
+    /// Extract `optimization-passes` from `[package.metadata.contract]`
+    pub fn get_profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+        self.toml
+            .get("package")?
+            .as_table()?
+            .get("metadata")?
+            .as_table()?
+            .get("contract")?
+            .as_table()?
+            .get("optimization-passes")
+            .map(|val| val.to_string())
+            .map(Into::into)
+    }
+
+    /// Set `optimization-passes` in `[package.metadata.contract]`
+    #[cfg(test)]
+    pub fn set_profile_optimization_passes(
+        &mut self,
+        passes: OptimizationPasses,
+    ) -> Result<Option<value::Value>> {
+        Ok(self
+            .toml
+            .entry("package")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("package section should be a table"))?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!("metadata section should be a table"))?
+            .entry("contract")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or(anyhow::anyhow!(
+                "metadata.contract section should be a table"
+            ))?
+            .insert(
+                "optimization-passes".to_string(),
+                value::Value::String(passes.to_string()),
+            ))
+    }
+
+    /// Set the dependency version of `package` to `version`.
+    #[cfg(test)]
+    pub fn set_dependency_version(
+        &mut self,
+        dependency: &str,
+        version: &str,
+    ) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("dependencies")
+            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+            .get_mut(dependency)
+            .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("{} dependency should be a table", dependency))?
+            .insert("version".into(), value::Value::String(version.into())))
     }
 
     /// Set `[profile.release]` lto flag
@@ -403,4 +462,31 @@ fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+}
+
+#[cfg(test)]
+mod test {
+    use super::ManifestPath;
+    use crate::util::tests::with_tmp_dir;
+    use std::fs;
+
+    #[test]
+    fn must_return_absolute_path_from_absolute_path() {
+        with_tmp_dir(|path| {
+            // given
+            let cargo_toml_path = path.join("Cargo.toml");
+            let _ = fs::File::create(&cargo_toml_path).expect("file creation failed");
+            let manifest_path =
+                ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+
+            // when
+            let absolute_path = manifest_path
+                .absolute_directory()
+                .expect("absolute path extraction failed");
+
+            // then
+            assert_eq!(absolute_path.as_path(), path);
+            Ok(())
+        })
+    }
 }
