@@ -41,9 +41,11 @@ use structopt::{clap, StructOpt};
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
+#[structopt(version = env!("SUBSTRATE_CLI_IMPL_VERSION"))]
 pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[structopt(name = "contract")]
+    #[structopt(version = env!("SUBSTRATE_CLI_IMPL_VERSION"))]
     #[structopt(setting = clap::AppSettings::UnifiedHelpMessage)]
     #[structopt(setting = clap::AppSettings::DeriveDisplayOrder)]
     #[structopt(setting = clap::AppSettings::DontCollapseArgsInUsage)]
@@ -456,11 +458,7 @@ fn parse_code_hash(input: &str) -> Result<H256> {
 fn main() {
     env_logger::init();
 
-    let app = Opts::clap();
-    // TODO if guys accept `SUBSTRATE_CLI_IMPL_VERSION`, I can use `generate_cargo_keys` in build.rs directly
-    let full_version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION");
-    let app = app.version(full_version);
-    let Opts::Contract(args) = Opts::from_clap(&app.get_matches()); //Opts::from_args();
+    let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
         Ok(maybe_msg) => {
             if let Some(msg) = maybe_msg {
