@@ -119,7 +119,7 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
 }
 
 /// Generate the `cargo:` key output
-pub fn generate_cargo_keys() {
+fn generate_cargo_keys() {
     let output = Command::new("git")
         .args(&["rev-parse", "--short", "HEAD"])
         .output();
