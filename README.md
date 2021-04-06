@@ -30,7 +30,7 @@ We optimize the resulting contract Wasm using `binaryen`. You have two options f
 ## Usage
 
 ```
-cargo-contract 0.11.0-4d0206f-x86_64-linux-gnu
+cargo-contract 0.11.0
 Utilities to develop Wasm smart contracts
 
 USAGE:
