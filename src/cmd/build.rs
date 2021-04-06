@@ -496,7 +496,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let re = Regex::new(r"wasm-opt version (\d+)").unwrap();
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
-            "Unable to extract version information from {}.\n\
+            "Unable to extract version information from \"{}\".\n\
             Your wasm-opt version is most probably too old. Make sure you use a version >= 99.",
             version_stdout
         )
@@ -504,13 +504,16 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let version_number: u32 = captures
         .get(1) // first capture group is at index 1
         .ok_or_else(|| {
-            anyhow::anyhow!("Unable to extract version number from {:?}", version_stdout)
+            anyhow::anyhow!(
+                "Unable to extract version number from \"{:?}\"",
+                version_stdout
+            )
         })?
         .as_str()
         .parse()
         .map_err(|err| {
             anyhow::anyhow!(
-                "Parsing version number failed with {:?} for {:?}",
+                "Parsing version number failed with \"{:?}\" for \"{:?}\"",
                 err,
                 version_stdout
             )
