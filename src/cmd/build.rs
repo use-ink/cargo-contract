@@ -493,7 +493,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let version_stdout = str::from_utf8(&cmd.stdout)
         .expect("Cannot convert stdout output of wasm-opt to string")
         .trim();
-    let re = Regex::new(r"wasm-opt version (\d+)\s+").unwrap();
+    let re = Regex::new(r"wasm-opt version (\d+)").unwrap();
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
             "Unable to extract version information from {}.\n\
@@ -516,7 +516,11 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
             )
         })?;
 
-    log::info!("The wasm-opt version is \"{}\"", version_stdout);
+    log::info!(
+        "The wasm-opt version output is \"{}\", which was parsed to \"{}\"",
+        version_stdout,
+        version_number
+    );
     if version_number < 99 {
         anyhow::bail!(
             "Your wasm-opt version is {}, but we require a version >= 99.",
@@ -642,7 +646,11 @@ mod tests_ci_only {
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
-    use std::{io::Write, os::unix::fs::PermissionsExt, path::PathBuf};
+    use std::{
+        io::Write,
+        os::unix::fs::PermissionsExt,
+        path::{Path, PathBuf},
+    };
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
@@ -659,6 +667,23 @@ mod tests_ci_only {
         manifest
             .write(&manifest_path)
             .expect("writing manifest failed");
+    }
+
+    /// Creates an executable `wasm-opt-mocked` file which outputs
+    /// "wasm-opt version `version`".
+    ///
+    /// Returns the path to this file.
+    fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> PathBuf {
+        let path = tmp_dir.join("wasm-opt-mocked");
+        {
+            let mut file = std::fs::File::create(&path).unwrap();
+            let version = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
+            file.write_all(version.as_bytes())
+                .expect("writing wasm-opt-mocked failed");
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+            .expect("setting permissions failed");
+        path
     }
 
     #[test]
@@ -855,19 +880,10 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn incompatible_wasm_opt_version_must_be_detected() {
+    fn incompatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
             // given
-            let path = path.join("wasm-opt-mocked");
-            {
-                let mut file = std::fs::File::create(&path).unwrap();
-                file.write_all(
-                    b"#!/bin/sh\necho \"wasm-opt version 98 (version_13-79-gc12cc3f50)\"",
-                )
-                .expect("writing wasm-opt-mocked failed");
-            }
-            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-                .expect("setting permissions failed");
+            let path = mock_wasm_opt_version(path, "98 (version_13-79-gc12cc3f50)");
 
             // when
             let res = check_wasm_opt_version_compatibility(&path);
@@ -884,19 +900,46 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn compatible_wasm_opt_version_must_be_detected() {
+    fn compatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
             // given
-            let path = path.join("wasm-opt-mocked");
-            {
-                let mut file = std::fs::File::create(&path).unwrap();
-                file.write_all(
-                    b"#!/bin/sh\necho \"wasm-opt version 99 (version_99-79-gc12cc3f50)\"",
-                )
-                .expect("writing wasm-opt-mocked failed");
-            }
-            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-                .expect("setting permissions failed");
+            let path = mock_wasm_opt_version(path, "99 (version_99-79-gc12cc3f50");
+
+            // when
+            let res = check_wasm_opt_version_compatibility(&path);
+
+            // then
+            assert!(res.is_ok());
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn incompatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
+        with_tmp_dir(|path| {
+            // given
+            let path = mock_wasm_opt_version(path, "98");
+
+            // when
+            let res = check_wasm_opt_version_compatibility(&path);
+
+            // then
+            assert!(res.is_err());
+            assert_eq!(
+                format!("{:?}", res),
+                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
+            );
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn compatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
+        with_tmp_dir(|path| {
+            // given
+            let path = mock_wasm_opt_version(path, "99");
 
             // when
             let res = check_wasm_opt_version_compatibility(&path);
