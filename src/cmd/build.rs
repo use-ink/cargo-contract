@@ -493,10 +493,10 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let version_stdout = str::from_utf8(&cmd.stdout)
         .expect("Cannot convert stdout output of wasm-opt to string")
         .trim();
-    let re = Regex::new(r"wasm-opt version (\d+)").unwrap();
+    let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
-            "Unable to extract version information from \"{}\".\n\
+            "Unable to extract version information from '{}'.\n\
             Your wasm-opt version is most probably too old. Make sure you use a version >= 99.",
             version_stdout
         )
@@ -505,7 +505,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
         .get(1) // first capture group is at index 1
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "Unable to extract version number from \"{:?}\"",
+                "Unable to extract version number from '{:?}'",
                 version_stdout
             )
         })?
@@ -513,14 +513,14 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
         .parse()
         .map_err(|err| {
             anyhow::anyhow!(
-                "Parsing version number failed with \"{:?}\" for \"{:?}\"",
+                "Parsing version number failed with '{:?}' for '{:?}'",
                 err,
                 version_stdout
             )
         })?;
 
     log::info!(
-        "The wasm-opt version output is \"{}\", which was parsed to \"{}\"",
+        "The wasm-opt version output is '{}', which was parsed to '{}'",
         version_stdout,
         version_number
     );
