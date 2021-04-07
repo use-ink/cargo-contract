@@ -28,7 +28,7 @@ zip = { version = "0.5.11", default-features = false }
 pwasm-utils = "0.17.0"
 parity-wasm = "0.42.2"
 cargo_metadata = "0.13.1"
-codec = { package = "parity-scale-codec", version = "2.0.1", features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
 which = "4.1.0"
 colored = "2.0.0"
 toml = "0.5.8"
