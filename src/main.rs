@@ -159,32 +159,6 @@ impl From<std::string::String> for OptimizationPasses {
     }
 }
 
-impl OptimizationPasses {
-    /// Returns the number of optimization passes to do
-    #[cfg(feature = "binaryen-as-dependency")]
-    pub(crate) fn to_passes(&self) -> u32 {
-        match self {
-            OptimizationPasses::Zero => 0,
-            OptimizationPasses::One => 1,
-            OptimizationPasses::Two => 2,
-            OptimizationPasses::Three => 3,
-            OptimizationPasses::Four => 4,
-            _ => 3, // Default to three for shrink settings
-        }
-    }
-
-    /// Returns amount of shrinkage to do
-    #[cfg(feature = "binaryen-as-dependency")]
-    pub(crate) fn to_shrink(&self) -> u32 {
-        match self {
-            OptimizationPasses::Zero => 0,
-            OptimizationPasses::S => 1,
-            OptimizationPasses::Z => 2,
-            _ => 1,
-        }
-    }
-}
-
 #[derive(Default, Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
     /// No output printed to stdout

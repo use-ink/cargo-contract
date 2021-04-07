@@ -14,18 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use regex::Regex;
-use std::{convert::TryFrom, ffi::OsStr, fs::metadata, path::PathBuf};
-
-#[cfg(feature = "binaryen-as-dependency")]
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
-
-#[cfg(any(test, not(feature = "binaryen-as-dependency")))]
-use std::{path::Path, process::Command, str};
-
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
@@ -36,6 +24,15 @@ use crate::{
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, MemoryType, Module, Section};
+use regex::Regex;
+use std::{
+    convert::TryFrom,
+    ffi::OsStr,
+    fs::metadata,
+    path::{Path, PathBuf},
+    process::Command,
+    str,
+};
 use structopt::StructOpt;
 
 /// This is the maximum number of pages available for a contract to allocate.
@@ -337,54 +334,6 @@ fn optimize_wasm(
     })
 }
 
-/// Optimizes the Wasm supplied as `wasm` using the `binaryen-rs` dependency.
-///
-/// The supplied `optimization_level` denotes the number of optimization passes,
-/// resulting in potentially a lot of time spent optimizing.
-///
-/// If successful, the optimized wasm is written to `dest_optimized`.
-#[cfg(feature = "binaryen-as-dependency")]
-fn do_optimization(
-    dest_wasm: &OsStr,
-    dest_optimized: &OsStr,
-    optimization_level: OptimizationPasses,
-) -> Result<()> {
-    let mut dest_wasm_file = File::open(dest_wasm)?;
-    let mut dest_wasm_file_content = Vec::new();
-    dest_wasm_file.read_to_end(&mut dest_wasm_file_content)?;
-
-    let codegen_config = binaryen::CodegenConfig {
-        // Number of optimization passes (spends potentially a lot of time optimizing)
-        optimization_level: optimization_level.to_passes(),
-        // The default
-        shrink_level: optimization_level.to_shrink(),
-        // The default
-        debug_info: false,
-    };
-    log::info!(
-        "Optimization level passed to `binaryen` dependency: {}",
-        codegen_config.optimization_level
-    );
-    log::info!(
-        "Shrink level passed to `binaryen` dependency: {}",
-        codegen_config.shrink_level
-    );
-    let mut module = binaryen::Module::read(&dest_wasm_file_content)
-        .map_err(|_| anyhow::anyhow!("binaryen failed to read file content"))?;
-
-    if optimization_level != OptimizationPasses::Zero {
-        // binaryen-rs still uses the default optimization passes, even if zero
-        // is passed. this is the ticket for it: https://github.com/pepyakin/binaryen-rs/issues/56.
-        // we can remove the if condition here once the issue is fixed.
-        module.optimize(&codegen_config);
-    }
-
-    let mut optimized_wasm_file = File::create(dest_optimized)?;
-    optimized_wasm_file.write_all(&module.write())?;
-
-    Ok(())
-}
-
 /// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
 /// the `wasm-opt` binary.
 ///
@@ -392,7 +341,6 @@ fn do_optimization(
 /// resulting in potentially a lot of time spent optimizing.
 ///
 /// If successful, the optimized wasm is written to `dest_optimized`.
-#[cfg(not(feature = "binaryen-as-dependency"))]
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
@@ -463,7 +411,6 @@ fn do_optimization(
 /// compatible with `cargo-contract`.
 ///
 /// Currently this must be a version >= 99.
-#[cfg(any(test, not(feature = "binaryen-as-dependency")))]
 fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let cmd = Command::new(wasm_opt_path)
         .arg("--version")
