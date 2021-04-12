@@ -10,22 +10,17 @@ A CLI tool for helping setting up and managing WebAssembly smart contracts writt
 
 `rust-src` is a prerequisite: `rustup component add rust-src`.
 
-We optimize the resulting contract Wasm using `binaryen`. You have two options for installing it:
+`binaryen` is a prerequisite as well, we use it for optimizing the contract Wasm. 
 
-  - _The preferred way:_  
-    Install [`binaryen`](https://github.com/WebAssembly/binaryen#tools) with a version >= 99.
-    Many package managers have it available nowadays:
-    
-    * [Debian/Ubuntu](https://tracker.debian.org/pkg/binaryen): `apt-get install binaryen`
-    * [Homebrew](https://formulae.brew.sh/formula/binaryen): `brew install binaryen`
-    * [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
-    * Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
-      
-    After you've installed the package execute `cargo install --force cargo-contract`.
+Install [`binaryen`](https://github.com/WebAssembly/binaryen#tools) with a version >= 99.
+Many package managers have it available nowadays:
 
-  - _Build `binaryen` as a dependency when installing `cargo-contract`:_  
-    A C++14 compiler and python >= 3.5 is required.
-    Execute `cargo install --force --features binaryen-as-dependency cargo-contract`.
+* [Debian/Ubuntu](https://tracker.debian.org/pkg/binaryen): `apt-get install binaryen`
+* [Homebrew](https://formulae.brew.sh/formula/binaryen): `brew install binaryen`
+* [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
+* Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
+  
+After you've installed the package execute `cargo install --force cargo-contract`.
 
 ## Usage
 

@@ -68,7 +68,6 @@ wabt = "0.10.0"
 
 [features]
 default = []
-binaryen-as-dependency = ["binaryen"]
 
 # Enable this for (experimental) commands to deploy, instantiate and call contracts.
 #
