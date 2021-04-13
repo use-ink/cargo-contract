@@ -72,7 +72,7 @@ pub enum OptLevel {
 }
 
 impl OptLevel {
-    fn to_toml_value(&self) -> value::Value {
+    fn to_toml_value(self) -> value::Value {
         match self {
             OptLevel::NoOptimizations => 0.into(),
             OptLevel::O1 => 1.into(),
@@ -99,7 +99,7 @@ pub enum Lto {
 }
 
 impl Lto {
-    fn to_toml_value(&self) -> value::Value {
+    fn to_toml_value(self) -> value::Value {
         match self {
             Lto::ThinLocal => false.into(),
             Lto::Fat => "fat".into(),
@@ -118,7 +118,7 @@ pub enum PanicStrategy {
 }
 
 impl PanicStrategy {
-    fn to_toml_value(&self) -> value::Value {
+    fn to_toml_value(self) -> value::Value {
         match self {
             PanicStrategy::Unwind => "unwind".into(),
             PanicStrategy::Abort => "abort".into(),
