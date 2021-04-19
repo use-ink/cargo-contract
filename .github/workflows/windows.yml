@@ -1,4 +1,4 @@
-name:                 continuous-intergration/windows
+name: continuous-intergration/windows
 
 on:
   pull_request:
@@ -12,25 +12,25 @@ on:
 
 jobs:
   check:
-    name:              build-contract-template
+    name: build-contract-template
     strategy:
       matrix:
         platform:
           - windows-latest
         toolchain:
           - nightly
-    runs-on:           ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
     env:
-      RUST_BACKTRACE:  full
+      RUST_BACKTRACE: full
     steps:
-      - name:          Install sudo for windows #https://github.com/actions/virtual-environments/issues/572
+      - name: Install sudo for windows #https://github.com/actions/virtual-environments/issues/572
         run: choco install sudo
 
-      - name:          Set cache_hash ENV and prepare cache dir
-        run:           |
+      - name: Set cache_hash ENV and prepare cache dir
+        run: |
           echo "cache_hash=${{ runner.os }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.compiler }}-${{ hashFiles('**/Cargo.toml') }}" >> "$GITHUB_ENV"
           sudo chmod -R a+w $HOME/.cargo
-        shell:         bash
+        shell: bash
 
       - name: Cache cargo registry
         uses: actions/cache@master
@@ -56,22 +56,22 @@ jobs:
           url: "https://github.com/WebAssembly/binaryen/releases/download/version_101/binaryen-version_101-x86_64-windows.tar.gz"
           pathInArchive: "binaryen-version_101/bin/wasm-opt.exe"
 
-      - name:          Checkout sources & submodules
-        uses:          actions/checkout@master
+      - name: Checkout sources & submodules
+        uses: actions/checkout@master
         with:
           fetch-depth: 1
-          submodules:  recursive
+          submodules: recursive
 
-      - name:          Install toolchain
-        id:            toolchain
-        uses:          actions-rs/toolchain@master
+      - name: Install toolchain
+        id: toolchain
+        uses: actions-rs/toolchain@master
         with:
-          profile:     minimal
-          toolchain:   ${{ matrix.toolchain }}
-          components:  rust-src
-          override:    true
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          components: rust-src
+          override: true
 
-      - name:          Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
+      - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
           wasm-opt --version
           cargo -vV
