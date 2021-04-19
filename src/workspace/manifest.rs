@@ -177,6 +177,7 @@ impl Manifest {
     }
 
     /// Set `optimization-passes` in `[package.metadata.contract]`
+    #[cfg(feature = "test-ci-only")]
     #[cfg(test)]
     pub fn set_profile_optimization_passes(
         &mut self,
@@ -205,6 +206,7 @@ impl Manifest {
     }
 
     /// Set the dependency version of `package` to `version`.
+    #[cfg(feature = "test-ci-only")]
     #[cfg(test)]
     pub fn set_dependency_version(
         &mut self,
