@@ -596,9 +596,10 @@ mod tests_ci_only {
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
     use std::{
         io::Write,
-        os::unix::fs::PermissionsExt,
         path::{Path, PathBuf},
     };
 
@@ -623,6 +624,9 @@ mod tests_ci_only {
     /// "wasm-opt version `version`".
     ///
     /// Returns the path to this file.
+    ///
+    /// Currently works only on `unix`.
+    #[cfg(unix)]
     fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> PathBuf {
         let path = tmp_dir.join("wasm-opt-mocked");
         {
@@ -829,6 +833,7 @@ mod tests_ci_only {
         })
     }
 
+    #[cfg(unix)]
     #[test]
     fn incompatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
@@ -849,6 +854,7 @@ mod tests_ci_only {
         })
     }
 
+    #[cfg(unix)]
     #[test]
     fn compatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
@@ -865,6 +871,7 @@ mod tests_ci_only {
         })
     }
 
+    #[cfg(unix)]
     #[test]
     fn incompatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
         with_tmp_dir(|path| {
@@ -885,6 +892,7 @@ mod tests_ci_only {
         })
     }
 
+    #[cfg(unix)]
     #[test]
     fn compatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
         with_tmp_dir(|path| {
