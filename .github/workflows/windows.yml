@@ -1,0 +1,81 @@
+name:                 continuous-intergration/windows
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+  check:
+    name:              build-contract-template
+    strategy:
+      matrix:
+        platform:
+          - windows-latest
+        toolchain:
+          - nightly
+    runs-on:           ${{ matrix.platform }}
+    env:
+      RUST_BACKTRACE:  full
+    steps:
+      - name:          Install sudo for windows #https://github.com/actions/virtual-environments/issues/572
+        run: choco install sudo
+
+      - name:          Set cache_hash ENV and prepare cache dir
+        run:           |
+          echo "cache_hash=${{ runner.os }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.compiler }}-${{ hashFiles('**/Cargo.toml') }}" >> "$GITHUB_ENV"
+          sudo chmod -R a+w $HOME/.cargo
+        shell:         bash
+
+      - name: Cache cargo registry
+        uses: actions/cache@master
+        with:
+          path: $HOME/.cargo/registry
+          key: cargo-registry-${{ env['cache_hash'] }}
+
+      - name: Cache cargo index
+        uses: actions/cache@master
+        with:
+          path: $HOME/.cargo/git
+          key: cargo-git-${{ env['cache_hash'] }}
+
+      - name: Cache cargo build
+        uses: actions/cache@master
+        with:
+          path: target
+          key: cargo-target-${{ env['cache_hash'] }}
+
+      - uses: engineerd/configurator@v0.0.6
+        with:
+          name: "wasm-opt.exe"
+          url: "https://github.com/WebAssembly/binaryen/releases/download/version_101/binaryen-version_101-x86_64-windows.tar.gz"
+          pathInArchive: "binaryen-version_101/bin/wasm-opt.exe"
+
+      - name:          Checkout sources & submodules
+        uses:          actions/checkout@master
+        with:
+          fetch-depth: 1
+          submodules:  recursive
+
+      - name:          Install toolchain
+        id:            toolchain
+        uses:          actions-rs/toolchain@master
+        with:
+          profile:     minimal
+          toolchain:   ${{ matrix.toolchain }}
+          components:  rust-src
+          override:    true
+
+      - name:          Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
+        run: |
+          wasm-opt --version
+          cargo -vV
+          cargo run -- contract --version
+          cargo run -- contract new foobar
+          echo "[workspace]" >> foobar/Cargo.toml
+          cargo run -- contract build --manifest-path=foobar/Cargo.toml
