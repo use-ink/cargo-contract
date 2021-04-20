@@ -151,10 +151,10 @@ mod tests {
 
     #[test]
     fn contract_cargo_project_already_exists() {
-        with_new_contract_project(|manifest_path| {
+        with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = execute(name, Some(manifest_path.clone()));
-            let result = execute(name, Some(manifest_path));
+            let _ = execute(name, Some(path));
+            let result = execute(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
