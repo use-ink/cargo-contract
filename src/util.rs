@@ -123,7 +123,20 @@ pub mod tests {
         f(tmp_dir.path()).expect("Error executing test with tmp dir")
     }
 
-    /// Counter to generate unique project names in `with_new_contract_project`.
+    /// Global counter to generate unique contract names in `with_new_contract_project`.
+    ///
+    /// We typically use `with_tmp_dir` to generate temporary folders to build contracts
+    /// in. But for caching purposes our CI uses `CARGO_TARGET_DIR` to overwrite the
+    /// target directory of any contract build.
+    /// This poses a problem since we still want to ensure that each test builds to its
+    /// own, unique target directory -- without interfering with the target directory of
+    /// other tests. In the past this has been a problem when a test tried to create a
+    /// contract with the same contract name as another test -- both were then build
+    /// into the same target directory, sometimes causing test failures for strange reasons.
+    ///
+    /// The fix we decided on is to append a unique number to each contract name which
+    /// is created. This `COUNTER` provides a global counter which is accessed by each test
+    /// (in each thread) to get the current `COUNTER` number and increase it afterwards.
     static COUNTER: AtomicU32 = AtomicU32::new(0);
 
     /// Creates a new contract into a temporary directory. The contract's
@@ -133,8 +146,7 @@ pub mod tests {
         F: FnOnce(ManifestPath) -> anyhow::Result<()>,
     {
         with_tmp_dir(|tmp_dir| {
-            let unique_name = format!("new_project_{}", COUNTER.load(Ordering::SeqCst));
-            COUNTER.fetch_add(1, Ordering::SeqCst);
+            let unique_name = format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
 
             crate::cmd::new::execute(&unique_name, Some(tmp_dir))
                 .expect("new project creation failed");
