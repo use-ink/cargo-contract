@@ -43,7 +43,26 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let mut target_directory = metadata.target_directory.as_path().join("ink");
+        let mut target_directory = metadata.target_directory.to_path_buf();
+
+        #[cfg(test)]
+        {
+            // Our CI uses `CARGO_TARGET_DIR` to overwrite the `target_directory` returned
+            // here (for caching purposes). We still want to ensure that each test builds
+            // to its own, unique folder, without interfering with other tests.
+            // Hence we append a hash of the `manifest_path`, which for tests typically
+            // contains a `tmp_dir`.
+            use impl_serde::serialize as serde_hex;
+            let hex = serde_hex::to_hex(
+                &codec::Encode::encode(&manifest_path.as_ref().display().to_string()),
+                false,
+            );
+            target_directory = target_directory.join(hex);
+        }
+
+        // We have some tests which check that the target director path always ends with `ink`,
+        // hence we can only append it after (possibly) having appended the hash.
+        target_directory = target_directory.join("ink");
 
         // Normalize the package name.
         let package_name = root_package.name.replace("-", "_");
