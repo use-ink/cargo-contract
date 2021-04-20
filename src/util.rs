@@ -127,7 +127,8 @@ pub mod tests {
     ///
     /// We typically use `with_tmp_dir` to generate temporary folders to build contracts
     /// in. But for caching purposes our CI uses `CARGO_TARGET_DIR` to overwrite the
-    /// target directory of any contract build.
+    /// target directory of any contract build -- it is set to a fixed cache directory
+    /// instead.
     /// This poses a problem since we still want to ensure that each test builds to its
     /// own, unique target directory -- without interfering with the target directory of
     /// other tests. In the past this has been a problem when a test tried to create a
@@ -137,6 +138,9 @@ pub mod tests {
     /// The fix we decided on is to append a unique number to each contract name which
     /// is created. This `COUNTER` provides a global counter which is accessed by each test
     /// (in each thread) to get the current `COUNTER` number and increase it afterwards.
+    ///
+    /// We decided to go for this counter instead of hashing (with e.g. the temp dir) to
+    /// prevent an infinite number of contract artifacts being created in the cache directory.
     static COUNTER: AtomicU32 = AtomicU32::new(0);
 
     /// Creates a new contract into a temporary directory. The contract's
