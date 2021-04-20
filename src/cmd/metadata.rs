@@ -225,7 +225,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_tmp_dir, BuildArtifacts,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, BuildArtifacts,
         ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
@@ -299,11 +299,7 @@ mod tests {
     #[test]
     fn generate_metadata() {
         env_logger::try_init().ok();
-        with_tmp_dir(|path| {
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let working_dir = path.join("new_project");
-            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
-
+        with_new_contract_project(|manifest_path| {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;
             test_manifest.add_package_value("description", "contract description".into())?;

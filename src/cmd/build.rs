@@ -590,8 +590,8 @@ pub(crate) fn execute(
 mod tests_ci_only {
     use super::{assert_compatible_ink_dependencies, check_wasm_opt_version_compatibility};
     use crate::{
-        cmd::{self, BuildCommand},
-        util::tests::with_tmp_dir,
+        cmd::BuildCommand,
+        util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
         Verbosity, VerbosityFlags,
@@ -638,10 +638,7 @@ mod tests_ci_only {
 
     #[test]
     fn build_code_only() {
-        with_tmp_dir(|path| {
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let manifest_path =
-                ManifestPath::new(&path.join("new_project").join("Cargo.toml")).unwrap();
+        with_new_contract_project(|manifest_path| {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
@@ -676,11 +673,9 @@ mod tests_ci_only {
 
     #[test]
     fn check_must_not_output_contract_artifacts_in_project_dir() {
-        with_tmp_dir(|path| {
+        with_new_contract_project(|manifest_path| {
             // given
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let project_dir = path.join("new_project");
-            let manifest_path = ManifestPath::new(&project_dir.join("Cargo.toml")).unwrap();
+            let project_dir = manifest_path.directory().expect("directory must exist");
 
             // when
             super::execute(
@@ -707,13 +702,14 @@ mod tests_ci_only {
 
     #[test]
     fn optimization_passes_from_cli_must_take_precedence_over_profile() {
-        with_tmp_dir(|path| {
+        with_new_contract_project(|manifest_path| {
             // given
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
+            write_optimization_passes_into_manifest(
+                &manifest_path.clone().into(),
+                OptimizationPasses::Three,
+            );
             let cmd = BuildCommand {
-                manifest_path: Some(cargo_toml_path),
+                manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
@@ -746,13 +742,14 @@ mod tests_ci_only {
 
     #[test]
     fn optimization_passes_from_profile_must_be_used() {
-        with_tmp_dir(|path| {
+        with_new_contract_project(|manifest_path| {
             // given
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            write_optimization_passes_into_manifest(&cargo_toml_path, OptimizationPasses::Three);
+            write_optimization_passes_into_manifest(
+                &manifest_path.clone().into(),
+                OptimizationPasses::Three,
+            );
             let cmd = BuildCommand {
-                manifest_path: Some(cargo_toml_path),
+                manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
@@ -785,12 +782,9 @@ mod tests_ci_only {
 
     #[test]
     fn project_template_dependencies_must_be_ink_compatible() {
-        with_tmp_dir(|path| {
+        with_new_contract_project(|manifest_path| {
             // given
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            let manifest_path =
-                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+            // the manifest path
 
             // when
             let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
@@ -803,12 +797,9 @@ mod tests_ci_only {
 
     #[test]
     fn detect_mismatching_parity_scale_codec_dependencies() {
-        with_tmp_dir(|path| {
+        with_new_contract_project(|manifest_path| {
             // given
-            cmd::new::execute("new_project", Some(path)).expect("new project creation failed");
-            let cargo_toml_path = path.join("new_project").join("Cargo.toml");
-            let manifest_path =
-                ManifestPath::new(&cargo_toml_path).expect("manifest path creation failed");
+            // the manifest path
 
             // at the time of writing this test ink! already uses `parity-scale-codec`
             // in a version > 2, hence 1 is an incompatible version.

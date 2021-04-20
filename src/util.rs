@@ -104,8 +104,12 @@ macro_rules! maybe_println {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::ManifestPath;
     use std::path::Path;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
+    /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
+    /// Panics if `f` returns an `Err`.
     pub fn with_tmp_dir<F>(f: F)
     where
         F: FnOnce(&Path) -> anyhow::Result<()>,
@@ -117,5 +121,27 @@ pub mod tests {
 
         // catch test panics in order to clean up temp dir which will be very large
         f(tmp_dir.path()).expect("Error executing test with tmp dir")
+    }
+
+    /// Counter to generate unique project names in `with_new_contract_project`.
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    /// Creates a new contract into a temporary directory. The contract's
+    /// `ManifestPath` is passed into `f`.
+    pub fn with_new_contract_project<F>(f: F)
+    where
+        F: FnOnce(ManifestPath) -> anyhow::Result<()>,
+    {
+        with_tmp_dir(|tmp_dir| {
+            let unique_name = format!("new_project_{}", COUNTER.load(Ordering::SeqCst));
+            COUNTER.fetch_add(1, Ordering::SeqCst);
+
+            crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+                .expect("new project creation failed");
+            let working_dir = tmp_dir.join(unique_name);
+            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
+
+            f(manifest_path)
+        })
     }
 }
