@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2021-04-21
+
 ### Fixed
 - Fixed `ERROR: The workspace root package should be a workspace member` when building a contract
   under Windows - [#261](https://github.com/paritytech/cargo-contract/pull/261)
@@ -13,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Remove support for `--binaryen-as-dependency` - [#251](https://github.com/paritytech/cargo-contract/pull/251)
 - Remove support for the deprecated `cargo contract generate-metadata` command - [#265](https://github.com/paritytech/cargo-contract/pull/265)
+- Remove pinned `funty` dependency from "new project" template - [#260](https://github.com/paritytech/cargo-contract/pull/260)
 
 ## [0.11.1] - 2021-04-06
 
