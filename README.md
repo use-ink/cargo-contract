@@ -35,7 +35,6 @@ More relevant links:
 * [Canvas Node](https://github.com/paritytech/canvas-node) ‒ Simple Substrate blockchain which includes smart contract functionality
 
 
-
 ## Installation
 
 * Step 1: `rustup component add rust-src`.
