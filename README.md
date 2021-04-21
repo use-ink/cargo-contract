@@ -79,8 +79,8 @@ deploying the contract on-chain.
 [`rustup`](https://github.com/rust-lang/rustup) installed, the simplest way to
 do so is `cargo +nightly contract build`.
 
-To avoid having to add `+nightly` you can also set `nightly` as the default toolchain
-of a directory by executing `rustup override set nightly` in it.
+To avoid having to always add `+nightly` you can also set `nightly` as the default
+toolchain of a directory by executing `rustup override set nightly` in it.
 
 ##### `cargo contract check`
 
