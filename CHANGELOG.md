@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Remove support for `--binaryen-as-dependency` - [#251](https://github.com/paritytech/cargo-contract/pull/251)
-- Remove support for the deprecated `cargo contract check` command - [#265](https://github.com/paritytech/cargo-contract/pull/265)
+- Remove support for the deprecated `cargo contract generate-metadata` command - [#265](https://github.com/paritytech/cargo-contract/pull/265)
 
 ## [0.11.1] - 2021-04-06
 
