@@ -79,31 +79,13 @@ deploying the contract on-chain.
 [`rustup`](https://github.com/rust-lang/rustup) installed, the simplest way to
 do so is `cargo +nightly contract build`.
 
-To avoid having to add `+nightly` you can also create a `rust-toolchain` file in your local
-directory containing `nightly`. Read more about how to [specify the rustup toolchain](https://github.com/rust-lang/rustup#override-precedence).
+To avoid having to add `+nightly` you can also set `nightly` as the default toolchain
+of a directory by executing `rustup override set nightly` in it.
 
 ##### `cargo contract check`
 
 Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
-
-
-#### Deploy and Instantiate
-
-The `deploy` and `instantiate` subcommands are **disabled by default**, since they
-are not fully stable yet and increase the build time.
-
-If you want to try them, you need to enable the `extrinsics` feature:
-
-```
-cargo install 
-  --git https://github.com/paritytech/cargo-contract 
-  --features extrinsics
-  --force
-```
-
-Once they are stable and the compilation time is acceptable, we will consider
-removing the `extrinsics` feature.
 
 
 ## License
