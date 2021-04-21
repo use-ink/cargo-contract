@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2021-04-21
+
 ### Fixed
 - Fixed `ERROR: The workspace root package should be a workspace member` when building a contract
   under Windows - [#261](https://github.com/paritytech/cargo-contract/pull/261)
