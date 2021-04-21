@@ -378,9 +378,6 @@ enum Command {
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
     #[structopt(name = "build")]
     Build(BuildCommand),
-    /// Command has been deprecated, use `cargo contract build` instead
-    #[structopt(name = "generate-metadata")]
-    GenerateMetadata {},
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[structopt(name = "check")]
     Check(CheckCommand),
@@ -475,9 +472,6 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 Ok(None)
             }
         }
-        Command::GenerateMetadata {} => Err(anyhow::anyhow!(
-            "Command deprecated, use `cargo contract build` instead"
-        )),
         Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
