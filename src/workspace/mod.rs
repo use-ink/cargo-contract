@@ -108,14 +108,24 @@ impl Workspace {
             .members
             .iter_mut()
             .find_map(|(_, (_, manifest))| {
-                if manifest.path().directory() == Some(package_path) {
+                // `package_path` is always absolute and canonicalized. Thus we need to
+                // canonicalize the manifest's directory path as well in order to compare
+                // both of them.
+                let manifest_path = manifest.path().directory()?;
+                let manifest_path = manifest_path
+                    .canonicalize()
+                    .unwrap_or_else(|_| panic!("Cannot canonicalize {}", manifest_path.display()));
+                if manifest_path == package_path {
                     Some(manifest)
                 } else {
                     None
                 }
             })
             .ok_or_else(|| {
-                anyhow::anyhow!("The workspace root package should be a workspace member")
+                anyhow::anyhow!(
+                    "Cannot find package with package path {} in workspace members",
+                    package_path.display(),
+                )
             })?;
         f(manifest)?;
         Ok(self)
