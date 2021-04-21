@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -17,7 +17,6 @@
 use crate::Verbosity;
 use anyhow::{Context, Result};
 use rustc_version::Channel;
-use std::path::PathBuf;
 use std::{ffi::OsStr, path::Path, process::Command};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
@@ -43,14 +42,14 @@ pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
-    verbosity: Option<Verbosity>,
+    verbosity: Verbosity,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
-    let cargo = std::env::var("CARGO").unwrap_or("cargo".to_string());
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
@@ -60,12 +59,12 @@ where
     cmd.arg(command);
     cmd.args(args);
     match verbosity {
-        Some(Verbosity::Quiet) => cmd.arg("--quiet"),
-        Some(Verbosity::Verbose) => cmd.arg("--verbose"),
-        None => &mut cmd,
+        Verbosity::Quiet => cmd.arg("--quiet"),
+        Verbosity::Verbose => cmd.arg("--verbose"),
+        Verbosity::Default => &mut cmd,
     };
 
-    log::info!("invoking cargo: {:?}", cmd);
+    log::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -86,17 +85,31 @@ where
 }
 
 /// Returns the base name of the path.
-pub(crate) fn base_name(path: &PathBuf) -> &str {
+pub(crate) fn base_name(path: &Path) -> &str {
     path.file_name()
         .expect("file name must exist")
         .to_str()
         .expect("must be valid utf-8")
 }
 
+/// Prints to stdout if `verbosity.is_verbose()` is `true`.
+#[macro_export]
+macro_rules! maybe_println {
+    ($verbosity:expr, $($msg:tt)*) => {
+        if $verbosity.is_verbose() {
+            println!($($msg)*);
+        }
+    };
+}
+
 #[cfg(test)]
 pub mod tests {
+    use crate::ManifestPath;
     use std::path::Path;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
+    /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
+    /// Panics if `f` returns an `Err`.
     pub fn with_tmp_dir<F>(f: F)
     where
         F: FnOnce(&Path) -> anyhow::Result<()>,
@@ -108,5 +121,43 @@ pub mod tests {
 
         // catch test panics in order to clean up temp dir which will be very large
         f(tmp_dir.path()).expect("Error executing test with tmp dir")
+    }
+
+    /// Global counter to generate unique contract names in `with_new_contract_project`.
+    ///
+    /// We typically use `with_tmp_dir` to generate temporary folders to build contracts
+    /// in. But for caching purposes our CI uses `CARGO_TARGET_DIR` to overwrite the
+    /// target directory of any contract build -- it is set to a fixed cache directory
+    /// instead.
+    /// This poses a problem since we still want to ensure that each test builds to its
+    /// own, unique target directory -- without interfering with the target directory of
+    /// other tests. In the past this has been a problem when a test tried to create a
+    /// contract with the same contract name as another test -- both were then build
+    /// into the same target directory, sometimes causing test failures for strange reasons.
+    ///
+    /// The fix we decided on is to append a unique number to each contract name which
+    /// is created. This `COUNTER` provides a global counter which is accessed by each test
+    /// (in each thread) to get the current `COUNTER` number and increase it afterwards.
+    ///
+    /// We decided to go for this counter instead of hashing (with e.g. the temp dir) to
+    /// prevent an infinite number of contract artifacts being created in the cache directory.
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    /// Creates a new contract into a temporary directory. The contract's
+    /// `ManifestPath` is passed into `f`.
+    pub fn with_new_contract_project<F>(f: F)
+    where
+        F: FnOnce(ManifestPath) -> anyhow::Result<()>,
+    {
+        with_tmp_dir(|tmp_dir| {
+            let unique_name = format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+
+            crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+                .expect("new project creation failed");
+            let working_dir = tmp_dir.join(unique_name);
+            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
+
+            f(manifest_path)
+        })
     }
 }

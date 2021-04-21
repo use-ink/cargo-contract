@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2021 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -52,11 +52,14 @@ impl Workspace {
                 .packages
                 .iter()
                 .find(|p| p.id == *package_id)
-                .expect(&format!(
-                    "Package '{}' is a member and should be in the packages list",
-                    package_id
-                ));
-            let manifest = Manifest::new(&package.manifest_path)?;
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Package '{}' is a member and should be in the packages list",
+                        package_id
+                    )
+                });
+            let manifest_path = ManifestPath::new(&package.manifest_path)?;
+            let manifest = Manifest::new(manifest_path)?;
             Ok((package_id.clone(), (package.clone(), manifest)))
         };
 
@@ -71,7 +74,7 @@ impl Workspace {
         }
 
         Ok(Workspace {
-            workspace_root: metadata.workspace_root.clone(),
+            workspace_root: metadata.workspace_root.clone().into(),
             root_package: root_package.clone(),
             members,
         })
@@ -96,32 +99,33 @@ impl Workspace {
         Ok(self)
     }
 
-    /// Amend the workspace manifest using the supplied function.
-    pub fn with_workspace_manifest<F>(&mut self, f: F) -> Result<&mut Self>
+    /// Amend the manifest of the package at `package_path` using the supplied function.
+    pub fn with_contract_manifest<F>(&mut self, package_path: &Path, f: F) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
-        let workspace_root = self.workspace_root.clone();
-        let workspace_manifest = self
+        let manifest = self
             .members
             .iter_mut()
             .find_map(|(_, (_, manifest))| {
-                if manifest.path().directory() == Some(&workspace_root) {
+                if manifest.path().directory() == Some(package_path) {
                     Some(manifest)
                 } else {
                     None
                 }
             })
-            .ok_or(anyhow::anyhow!(
-                "The workspace root package should be a workspace member"
-            ))?;
-        f(workspace_manifest)?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("The workspace root package should be a workspace member")
+            })?;
+        f(manifest)?;
         Ok(self)
     }
 
-    /// Generates a package to invoke for generating contract metadata
-    pub(super) fn with_metadata_gen_package(&mut self) -> Result<&mut Self> {
-        self.with_workspace_manifest(|manifest| {
+    /// Generates a package to invoke for generating contract metadata.
+    ///
+    /// The contract metadata will be generated for the package found at `package_path`.
+    pub(super) fn with_metadata_gen_package(&mut self, package_path: PathBuf) -> Result<&mut Self> {
+        self.with_contract_manifest(&package_path, |manifest| {
             manifest.with_metadata_package()?;
             Ok(())
         })
