@@ -39,7 +39,6 @@ SUBCOMMANDS:
     new                  Setup and create a new smart contract project
     build                Compiles the contract, generates metadata, bundles
                          both together in a `<name>.contract` file
-    generate-metadata    Command has been deprecated, use `cargo contract build` instead
     check                Check that the code builds as Wasm; does not output any
                          `<name>.contract` artifact to the `target/` directory
     test                 Test the smart contract off-chain
