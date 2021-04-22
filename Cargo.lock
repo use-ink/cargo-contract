@@ -2353,9 +2353,9 @@ dependencies = [
 
 [[package]]
 name = "pwasm-utils"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51992bc74c0f34f759ff97fb303602e60343afc83693769c91aa17724442809e"
+checksum = "78778a25194f953d1766fc8c6a331ed56f070d09a0511267ee2c150cb71ea8c2"
 dependencies = [
  "byteorder",
  "log",
