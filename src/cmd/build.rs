@@ -843,10 +843,8 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
-            assert_eq!(
-                format!("{:?}", res),
-                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
-            );
+            assert!(format!("{:?}", res)
+                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
             Ok(())
         })
@@ -881,10 +879,8 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
-            assert_eq!(
-                format!("{:?}", res),
-                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
-            );
+            assert!(format!("{:?}", res)
+                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
             Ok(())
         })
