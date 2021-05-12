@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Suggest `binaryen` installation from  GitHub release on outdated version - [#274](https://github.com/paritytech/cargo-contract/pull/274)
+
 ## [0.12.0] - 2021-04-21
 
 ### Fixed

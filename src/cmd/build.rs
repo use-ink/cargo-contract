@@ -437,6 +437,11 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     // $ wasm-opt --version
     // wasm-opt version 99 (version_99-79-gc12cc3f50)
     // ```
+    let github_note = "\n\n\
+        If you tried installing from your system package manager the best\n\
+        way forward is to download a recent binary release directly:\n\n\
+        https://github.com/WebAssembly/binaryen/releases\n\n\
+        Make sure that the `wasm-opt` file from that release is in your `PATH`.";
     let version_stdout = str::from_utf8(&cmd.stdout)
         .expect("Cannot convert stdout output of wasm-opt to string")
         .trim();
@@ -444,8 +449,9 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     let captures = re.captures(version_stdout).ok_or_else(|| {
         anyhow::anyhow!(
             "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.",
-            version_stdout
+            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
+            version_stdout,
+            github_note,
         )
     })?;
     let version_number: u32 = captures
@@ -473,8 +479,9 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
     );
     if version_number < 99 {
         anyhow::bail!(
-            "Your wasm-opt version is {}, but we require a version >= 99.",
-            version_number
+            "Your wasm-opt version is {}, but we require a version >= 99.{}",
+            version_number,
+            github_note,
         );
     }
     Ok(())
@@ -836,10 +843,8 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
-            assert_eq!(
-                format!("{:?}", res),
-                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
-            );
+            assert!(format!("{:?}", res)
+                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
             Ok(())
         })
@@ -874,10 +879,8 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
-            assert_eq!(
-                format!("{:?}", res),
-                "Err(Your wasm-opt version is 98, but we require a version >= 99.)"
-            );
+            assert!(format!("{:?}", res)
+                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
             Ok(())
         })
