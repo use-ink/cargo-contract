@@ -606,6 +606,7 @@ mod tests_ci_only {
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use std::{
+        ffi::OsStr,
         io::Write,
         path::{Path, PathBuf},
     };
@@ -898,6 +899,44 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_ok());
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn contract_lib_name_different_from_package_name_must_build() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let mut manifest =
+                Manifest::new(manifest_path.clone()).expect("manifest creation failed");
+            let _ = manifest
+                .set_lib_name("some_lib_name")
+                .expect("setting lib name failed");
+            let _ = manifest
+                .set_package_name("some_package_name")
+                .expect("setting pacakge name failed");
+            manifest
+                .write(&manifest_path)
+                .expect("writing manifest failed");
+
+            // when
+            let cmd = BuildCommand {
+                manifest_path: Some(manifest_path.into()),
+                build_artifact: BuildArtifacts::All,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+                optimization_passes: None,
+            };
+            let res = cmd.exec().expect("build failed");
+
+            // then
+            assert_eq!(
+                res.dest_wasm
+                    .expect("`dest_wasm` does not exist")
+                    .file_name(),
+                Some(OsStr::new("some_lib_name.wasm"))
+            );
 
             Ok(())
         })

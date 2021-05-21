@@ -45,8 +45,15 @@ impl CrateMetadata {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
-        // Normalize the package name.
+        // Normalize the package and lib name.
         let package_name = root_package.name.replace("-", "_");
+        let lib_name = &root_package
+            .targets
+            .iter()
+            .find(|target| target.kind.iter().any(|t| t == "cdylib"))
+            .expect("lib name not found")
+            .name
+            .replace("-", "_");
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
@@ -58,12 +65,12 @@ impl CrateMetadata {
         let mut original_wasm = target_directory.clone();
         original_wasm.push("wasm32-unknown-unknown");
         original_wasm.push("release");
-        original_wasm.push(package_name.clone());
+        original_wasm.push(lib_name.clone());
         original_wasm.set_extension("wasm");
 
         // {target_dir}/{package_name}.wasm
         let mut dest_wasm = target_directory.clone();
-        dest_wasm.push(package_name.clone());
+        dest_wasm.push(lib_name.clone());
         dest_wasm.set_extension("wasm");
 
         let ink_version = metadata

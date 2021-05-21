@@ -224,6 +224,32 @@ impl Manifest {
             .insert("version".into(), value::Value::String(version.into())))
     }
 
+    /// Set the `lib` name to `name`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_lib_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
+    /// Set the `package` name to `name`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_package_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("package")
+            .ok_or_else(|| anyhow::anyhow!("[package] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[package] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self
