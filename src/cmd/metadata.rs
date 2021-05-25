@@ -401,7 +401,10 @@ mod tests {
             assert_eq!(expected_wasm, wasm.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
-            assert_eq!(crate_metadata.contract_artifact_name, name.as_str().unwrap());
+            assert_eq!(
+                crate_metadata.contract_artifact_name,
+                name.as_str().unwrap()
+            );
             assert_eq!(
                 crate_metadata.root_package.version.to_string(),
                 version.as_str().unwrap()

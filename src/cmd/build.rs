@@ -308,7 +308,10 @@ fn optimize_wasm(
     optimization_passes: OptimizationPasses,
 ) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
-    dest_optimized.set_file_name(format!("{}-opt.wasm", crate_metadata.contract_artifact_name));
+    dest_optimized.set_file_name(format!(
+        "{}-opt.wasm",
+        crate_metadata.contract_artifact_name
+    ));
     let _ = do_optimization(
         crate_metadata.dest_wasm.as_os_str(),
         &dest_optimized.as_os_str(),
