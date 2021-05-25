@@ -28,7 +28,7 @@ use url::Url;
 pub struct CrateMetadata {
     pub manifest_path: ManifestPath,
     pub cargo_meta: cargo_metadata::Metadata,
-    pub package_name: String,
+    pub contract_artifact_name: String,
     pub root_package: Package,
     pub original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
@@ -58,17 +58,19 @@ impl CrateMetadata {
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
         if absolute_manifest_path != absolute_workspace_root {
+            // If the contract is a package in a workspace, we use the package name
+            // as the name of the sub-folder where we put the `.contract` bundle.
             target_directory = target_directory.join(package_name.clone());
         }
 
-        // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
+        // {target_dir}/wasm32-unknown-unknown/release/{lib_name}.wasm
         let mut original_wasm = target_directory.clone();
         original_wasm.push("wasm32-unknown-unknown");
         original_wasm.push("release");
         original_wasm.push(lib_name.clone());
         original_wasm.set_extension("wasm");
 
-        // {target_dir}/{package_name}.wasm
+        // {target_dir}/{lib_name}.wasm
         let mut dest_wasm = target_directory.clone();
         dest_wasm.push(lib_name.clone());
         dest_wasm.set_extension("wasm");
@@ -98,7 +100,7 @@ impl CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
             root_package,
-            package_name,
+            contract_artifact_name: lib_name.to_string(),
             original_wasm: original_wasm.into(),
             dest_wasm: dest_wasm.into(),
             ink_version,

@@ -67,7 +67,7 @@ pub(crate) fn execute(
     let target_directory = crate_metadata.target_directory.clone();
     let out_path_metadata = target_directory.join(METADATA_FILE);
 
-    let fname_bundle = format!("{}.contract", crate_metadata.package_name);
+    let fname_bundle = format!("{}.contract", crate_metadata.contract_artifact_name);
     let out_path_bundle = target_directory.join(fname_bundle);
 
     // build the extended contract project metadata
@@ -401,7 +401,7 @@ mod tests {
             assert_eq!(expected_wasm, wasm.as_str().unwrap());
             assert_eq!(expected_language, language.as_str().unwrap());
             assert_eq!(expected_compiler, compiler.as_str().unwrap());
-            assert_eq!(crate_metadata.package_name, name.as_str().unwrap());
+            assert_eq!(crate_metadata.contract_artifact_name, name.as_str().unwrap());
             assert_eq!(
                 crate_metadata.root_package.version.to_string(),
                 version.as_str().unwrap()
