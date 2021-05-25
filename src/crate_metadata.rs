@@ -60,7 +60,7 @@ impl CrateMetadata {
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
-            target_directory = target_directory.join(package_name.clone());
+            target_directory = target_directory.join(package_name);
         }
 
         // {target_dir}/wasm32-unknown-unknown/release/{lib_name}.wasm
