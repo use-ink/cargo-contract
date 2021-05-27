@@ -99,6 +99,7 @@ test-new-project-template:
 
     - cargo run --all-features -- contract build --manifest-path new_project/Cargo.toml
     - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
+    - cargo run --all-features -- contract test --manifest-path new_project/Cargo.toml
     - cd new_project
 
     - cargo check --verbose
