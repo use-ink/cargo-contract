@@ -23,7 +23,7 @@ env_logger = "0.8.3"
 anyhow = "1.0.40"
 structopt = "0.3.21"
 log = "0.4.14"
-heck = "0.3.2"
+heck = "0.3.3"
 zip = { version = "0.5.12", default-features = false }
 pwasm-utils = "0.18.0"
 parity-wasm = "0.42.2"
