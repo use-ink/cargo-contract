@@ -510,7 +510,7 @@ dependencies = [
  "pwasm-utils",
  "regex",
  "rustc_version",
- "semver 1.0.1",
+ "semver 1.0.3",
  "serde",
  "serde_json",
  "sp-core",
@@ -643,7 +643,7 @@ name = "contract-metadata"
 version = "0.2.0"
 dependencies = [
  "pretty_assertions",
- "semver 1.0.1",
+ "semver 1.0.3",
  "serde",
  "serde_json",
  "url",
@@ -2795,9 +2795,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d023dabf011d5dcb5ac64e3685d97d3b0ef412911077a2851455c6098524a723"
+checksum = "5f3aac57ee7f3272d8395c6e4f502f434f0e289fcd62876f70daa008c20dcabe"
 dependencies = [
  "serde",
 ]
