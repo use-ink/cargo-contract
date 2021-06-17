@@ -314,7 +314,7 @@ fn optimize_wasm(
     ));
     let _ = do_optimization(
         crate_metadata.dest_wasm.as_os_str(),
-        &dest_optimized.as_os_str(),
+        dest_optimized.as_os_str(),
         optimization_passes,
     )?;
 
@@ -530,9 +530,9 @@ pub(crate) fn execute(
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
 ) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
-    assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
+    assert_compatible_ink_dependencies(manifest_path, verbosity)?;
 
     let build = || -> Result<OptimizationResult> {
         maybe_println!(

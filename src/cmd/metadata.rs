@@ -158,7 +158,7 @@ fn extended_metadata(
     let repository = contract_package
         .repository
         .as_ref()
-        .map(|repo| Url::parse(&repo))
+        .map(|repo| Url::parse(repo))
         .transpose()?;
     let homepage = crate_metadata.homepage.clone();
     let license = contract_package.license.clone();

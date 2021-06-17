@@ -146,7 +146,7 @@ fn parse_linker_error(field: &str) -> String {
     let encoded = field
         .strip_prefix(INK_ENFORCE_ERR)
         .expect("error marker must exist as prefix");
-    let hex = serde_hex::from_hex(&encoded).expect("decoding hex failed");
+    let hex = serde_hex::from_hex(encoded).expect("decoding hex failed");
     let decoded = <EnforcedErrors as codec::Decode>::decode(&mut &hex[..]).expect(
         "The `EnforcedError` object could not be decoded. The probable\
         cause is a mismatch between the ink! definition of the type and the\

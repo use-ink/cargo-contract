@@ -338,7 +338,7 @@ impl BuildResult {
         if let Some(dest_wasm) = self.dest_wasm.as_ref() {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
-                util::base_name(&dest_wasm).bold()
+                util::base_name(dest_wasm).bold()
             );
             out.push_str(&wasm);
         }
