@@ -22,7 +22,7 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand};
+use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand, TestCommand};
 
 #[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519, H256};
@@ -383,7 +383,7 @@ enum Command {
     Check(CheckCommand),
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
-    Test {},
+    Test(TestCommand),
     /// Upload the smart contract code to the chain
     #[cfg(feature = "extrinsics")]
     #[structopt(name = "deploy")]
@@ -472,7 +472,14 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 Ok(None)
             }
         }
-        Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
+        Command::Test(test) => {
+            let res = test.exec()?;
+            if res.verbosity.is_verbose() {
+                Ok(Some(res.display()?))
+            } else {
+                Ok(None)
+            }
+        }
         #[cfg(feature = "extrinsics")]
         Command::Deploy {
             extrinsic_opts,

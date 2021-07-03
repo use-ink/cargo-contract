@@ -21,7 +21,11 @@ mod deploy;
 mod instantiate;
 pub mod metadata;
 pub mod new;
+pub mod test;
 
-pub(crate) use self::build::{BuildCommand, CheckCommand};
+pub(crate) use self::{
+    build::{BuildCommand, CheckCommand},
+    test::TestCommand,
+};
 #[cfg(feature = "extrinsics")]
 pub(crate) use self::{deploy::execute_deploy, instantiate::execute_instantiate};
