@@ -1031,9 +1031,6 @@ mod tests_ci_only {
         );
     }
 
-    // We must ignore the test until ink! `3.0.0-rc4` is released, which will
-    // contain `ink_env/ink-debug`.
-    #[ignore]
     #[test]
     fn building_template_in_debug_mode_must_work() {
         with_new_contract_project(|manifest_path| {
@@ -1056,9 +1053,6 @@ mod tests_ci_only {
         })
     }
 
-    // We must ignore the test until ink! `3.0.0-rc4` is released, which will
-    // contain `ink_env/ink-debug`.
-    #[ignore]
     #[test]
     fn building_template_in_release_mode_must_work() {
         with_new_contract_project(|manifest_path| {
