@@ -270,6 +270,44 @@ impl std::str::FromStr for BuildArtifacts {
     }
 }
 
+/// The mode to build the contract in.
+#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
+#[structopt(name = "build-mode")]
+pub enum BuildMode {
+    /// Functionality to output debug messages is build into the contract.
+    #[structopt(name = "debug")]
+    Debug,
+    /// The contract is build without any debugging functionality.
+    #[structopt(name = "release")]
+    Release,
+}
+
+impl Default for BuildMode {
+    fn default() -> BuildMode {
+        BuildMode::Debug
+    }
+}
+
+impl Display for BuildMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        match self {
+            Self::Debug => write!(f, "debug"),
+            Self::Release => write!(f, "release"),
+        }
+    }
+}
+
+impl std::str::FromStr for BuildMode {
+    type Err = String;
+    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
+        match artifact {
+            "debug" => Ok(BuildMode::Debug),
+            "release" => Ok(BuildMode::Release),
+            _ => Err("Could not parse build mode".to_string()),
+        }
+    }
+}
+
 /// Result of the metadata generation process.
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
@@ -280,6 +318,8 @@ pub struct BuildResult {
     pub target_directory: PathBuf,
     /// If existent the result of the optimization.
     pub optimization_result: Option<OptimizationResult>,
+    /// The mode to build the contract in.
+    pub build_mode: BuildMode,
     /// Which build artifacts were generated.
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
@@ -309,10 +349,16 @@ impl BuildResult {
             "optimized file size must be greater 0"
         );
 
+        let build_mode = format!(
+            "The contract was built in {} mode.\n\n",
+            format!("{}", self.build_mode).to_uppercase().bold(),
+        );
+
         if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
-                "{}Your contract's code is ready. You can find it here:\n{}",
+                "{}{}Your contract's code is ready. You can find it here:\n{}",
                 size_diff,
+                build_mode,
                 self.dest_wasm
                     .as_ref()
                     .expect("wasm path must exist")
@@ -324,8 +370,9 @@ impl BuildResult {
         };
 
         let mut out = format!(
-            "{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
             size_diff,
+            build_mode,
             self.target_directory.display().to_string().bold(),
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
