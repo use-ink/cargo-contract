@@ -48,24 +48,14 @@ pub struct BuildCommand {
     /// Path to the Cargo.toml of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    /// Which mode to build the contract in.
+    /// By default the contract is compiled with debug functionality
+    /// included. This enables the contract to output debug messages,
+    /// but increases the contract size and the amount of gas used.
     ///
-    /// - `debug`: The contract will be compiled with debug functionality
-    ///   included. This enables the contract to output debug messages.
-    ///
-    ///   This increases the contract size and the used gas. A production
-    ///   contract should never be build in debug mode!
-    ///
-    /// - `release`: No debug functionality is compiled into the contract.
-    ///
-    /// - The default value is `debug`.
-    #[structopt(
-        long = "mode",
-        default_value = "debug",
-        value_name = "debug | release",
-        verbatim_doc_comment
-    )]
-    build_mode: BuildMode,
+    /// A production contract should always be build in `release` mode!
+    /// Then no debug functionality is compiled into the contract.
+    #[structopt(long = "--release")]
+    build_release: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
@@ -131,10 +121,14 @@ impl BuildCommand {
             }
         };
 
+        let build_mode = match self.build_release {
+            true => BuildMode::Release,
+            false => BuildMode::Debug,
+        };
         execute(
             &manifest_path,
             verbosity,
-            self.build_mode,
+            build_mode,
             self.build_artifact,
             unstable_flags,
             optimization_passes,
@@ -422,6 +416,7 @@ fn do_optimization(
                 err
             )
         })?;
+    // TODO
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
@@ -551,7 +546,7 @@ fn assert_compatible_ink_dependencies(
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
     log::info!("Contract version: {:?}", ink_version);
-    if ink_version <= &Version::parse("3.0.0-rc3").expect("parsing minimum ink! version failed") {
+    if ink_version <= &Version::parse("3.0.0-rc2").expect("parsing minimum ink! version failed") {
         anyhow::bail!(
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
         );
@@ -573,7 +568,9 @@ pub(crate) fn execute(
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     assert_compatible_ink_dependencies(manifest_path, verbosity)?;
-    assert_debug_mode_supported(&crate_metadata.ink_version)?;
+    if build_mode == BuildMode::Debug {
+        assert_debug_mode_supported(&crate_metadata.ink_version)?;
+    }
 
     let build = || -> Result<OptimizationResult> {
         maybe_println!(
@@ -786,7 +783,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
-                build_mode: BuildMode::default(),
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -827,7 +824,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
-                build_mode: BuildMode::default(),
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -989,7 +986,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
-                build_mode: BuildMode::default(),
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,

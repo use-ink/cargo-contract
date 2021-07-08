@@ -271,14 +271,11 @@ impl std::str::FromStr for BuildArtifacts {
 }
 
 /// The mode to build the contract in.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
-#[structopt(name = "build-mode")]
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
-    #[structopt(name = "debug")]
     Debug,
     /// The contract is build without any debugging functionality.
-    #[structopt(name = "release")]
     Release,
 }
 
@@ -293,17 +290,6 @@ impl Display for BuildMode {
         match self {
             Self::Debug => write!(f, "debug"),
             Self::Release => write!(f, "release"),
-        }
-    }
-}
-
-impl std::str::FromStr for BuildMode {
-    type Err = String;
-    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
-        match artifact {
-            "debug" => Ok(BuildMode::Debug),
-            "release" => Ok(BuildMode::Release),
-            _ => Err("Could not parse build mode".to_string()),
         }
     }
 }
