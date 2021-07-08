@@ -546,7 +546,8 @@ fn assert_compatible_ink_dependencies(
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
     log::info!("Contract version: {:?}", ink_version);
-    if ink_version <= &Version::parse("3.0.0-rc2").expect("parsing minimum ink! version failed") {
+    let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
+    if ink_version < &minimum_version {
         anyhow::bail!(
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
         );
