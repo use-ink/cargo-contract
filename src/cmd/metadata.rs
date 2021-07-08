@@ -226,7 +226,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, BuildArtifacts,
-        BuildMode, ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
+        ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
     };
     use contract_metadata::*;
     use serde_json::{Map, Value};
@@ -325,7 +325,7 @@ mod tests {
             let build_result = cmd::build::execute(
                 &test_manifest.manifest_path,
                 Verbosity::Default,
-                BuildMode::default(),
+                false,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
