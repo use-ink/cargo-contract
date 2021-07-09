@@ -27,7 +27,7 @@ heck = "0.3.3"
 zip = { version = "0.5.13", default-features = false }
 pwasm-utils = "0.18.1"
 parity-wasm = "0.42.2"
-cargo_metadata = "0.13.1"
+cargo_metadata = "0.14.0"
 codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
 which = "4.1.0"
 colored = "2.0.0"
