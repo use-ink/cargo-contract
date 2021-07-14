@@ -416,7 +416,6 @@ fn do_optimization(
                 err
             )
         })?;
-    // TODO
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
