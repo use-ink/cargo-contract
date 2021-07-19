@@ -757,24 +757,19 @@ mod tests_ci_only {
                 keep_symbols: false,
             };
 
-            // when
             let res = cmd.exec().expect("build failed");
             let optimization = res
                 .optimization_result
                 .expect("no optimization result available");
 
-            // then
-            // we have to truncate here to account for a possible small delta
-            // in the floating point numbers
-            let optimized_size = optimization.optimized_size.trunc();
-            let original_size = optimization.original_size.trunc();
+            // The size does not exactly match the original size even without optimization
+            // passed because there is still some post processing happening.
+            let size_diff = optimization.original_size - optimization.optimized_size;
             assert!(
-                optimized_size == original_size,
-                "The optimized size {:?} differs from the original size {:?}",
-                optimized_size,
-                original_size
+                0.0 < size_diff && size_diff < 10.0,
+                "The optimized size savings are larger than allowed or negative: {}",
+                size_diff,
             );
-
             Ok(())
         })
     }
@@ -798,22 +793,18 @@ mod tests_ci_only {
                 keep_symbols: false,
             };
 
-            // when
             let res = cmd.exec().expect("build failed");
             let optimization = res
                 .optimization_result
                 .expect("no optimization result available");
 
-            // then
-            // we have to truncate here to account for a possible small delta
-            // in the floating point numbers
-            let optimized_size = optimization.optimized_size.trunc();
-            let original_size = optimization.original_size.trunc();
+            // The size does not exactly match the original size even without optimization
+            // passed because there is still some post processing happening.
+            let size_diff = optimization.original_size - optimization.optimized_size;
             assert!(
-                optimized_size < original_size,
-                "The optimized size DOES NOT {:?} differ from the original size {:?}",
-                optimized_size,
-                original_size
+                size_diff > (optimization.original_size / 2.0),
+                "The optimized size savings are to small: {}",
+                size_diff,
             );
 
             Ok(())
