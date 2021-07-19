@@ -86,8 +86,13 @@ pub struct BuildCommand {
     /// - It is possible to define the number of optimization passes in the
     ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
     ///   The CLI argument always takes precedence over the profile value.
-    #[structopt(long = "optimization-passes")]
+    #[structopt(long)]
     optimization_passes: Option<OptimizationPasses>,
+    /// Do not remove symbols (wasm name section) when optimizing.
+    ///
+    /// This is useful if one want to analyze or debug the optimized binary.
+    #[structopt(long)]
+    keep_symbols: bool,
 }
 
 impl BuildCommand {
@@ -118,6 +123,7 @@ impl BuildCommand {
             self.build_artifact,
             unstable_flags,
             optimization_passes,
+            self.keep_symbols,
         )
     }
 }
@@ -146,6 +152,7 @@ impl CheckCommand {
             BuildArtifacts::CheckOnly,
             unstable_flags,
             OptimizationPasses::Zero,
+            false,
         )
     }
 }
@@ -260,13 +267,15 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 /// Strips all custom sections.
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
+/// The name section is already stripped by wasm-opt.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        !matches!(
-            section,
-            Section::Custom(_) | Section::Name(_) | Section::Reloc(_)
-        )
-    });
+    module.sections_mut().retain(|section|
+        match section {
+            Section::Reloc(_) => false,
+            Section::Custom(custom) if custom.name() != "name" => false,
+            _ => true,
+        }
+    )
 }
 
 /// Performs required post-processing steps on the wasm artifact.
@@ -306,6 +315,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
     optimization_passes: OptimizationPasses,
+    keep_symbols: bool,
 ) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!(
@@ -316,6 +326,7 @@ fn optimize_wasm(
         crate_metadata.dest_wasm.as_os_str(),
         dest_optimized.as_os_str(),
         optimization_passes,
+        keep_symbols,
     )?;
 
     if !dest_optimized.exists() {
@@ -348,6 +359,7 @@ fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
     optimization_level: OptimizationPasses,
+    keep_symbols: bool,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     let which = which::which("wasm-opt");
@@ -379,7 +391,8 @@ fn do_optimization(
         "Optimization level passed to wasm-opt: {}",
         optimization_level
     );
-    let output = Command::new(wasm_opt_path)
+    let mut command = Command::new(wasm_opt_path);
+    command
         .arg(dest_wasm)
         .arg(format!("-O{}", optimization_level))
         .arg("-o")
@@ -387,15 +400,17 @@ fn do_optimization(
         // the memory in our module is imported, `wasm-opt` needs to be told that
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
-        .arg("--zero-filled-memory")
-        .output()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Executing {} failed with {:?}",
-                wasm_opt_path.display(),
-                err
-            )
-        })?;
+        .arg("--zero-filled-memory");
+    if keep_symbols {
+        command.arg("-g");
+    }
+    let output = command.output().map_err(|err| {
+        anyhow::anyhow!(
+            "Executing {} failed with {:?}",
+            wasm_opt_path.display(),
+            err
+        )
+    })?;
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
@@ -529,6 +544,7 @@ pub(crate) fn execute(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
+    keep_symbols: bool,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
@@ -557,7 +573,8 @@ pub(crate) fn execute(
             format!("[3/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        let optimization_result = optimize_wasm(&crate_metadata, optimization_passes)?;
+        let optimization_result =
+            optimize_wasm(&crate_metadata, optimization_passes, keep_symbols)?;
 
         Ok(optimization_result)
     };
