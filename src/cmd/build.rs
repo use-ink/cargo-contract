@@ -681,6 +681,7 @@ mod tests_ci_only {
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                false,
             )
             .expect("build failed");
 
@@ -720,6 +721,7 @@ mod tests_ci_only {
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                false,
             )
             .expect("build failed");
 
@@ -752,6 +754,7 @@ mod tests_ci_only {
 
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
+                keep_symbols: false,
             };
 
             // when
@@ -792,6 +795,7 @@ mod tests_ci_only {
 
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
+                keep_symbols: false,
             };
 
             // when
@@ -951,6 +955,7 @@ mod tests_ci_only {
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
+                keep_symbols: false,
             };
             let res = cmd.exec().expect("build failed");
 
