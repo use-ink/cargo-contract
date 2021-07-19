@@ -288,14 +288,20 @@ fn strip_exports(module: &mut Module) {
     }
 }
 
+/// Load and parse a wasm file from disk.
+fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
+    let path = path.as_ref();
+    parity_wasm::deserialize_file(path).context(format!(
+        "Loading of wasm module at '{}' failed",
+        path.display(),
+    ))
+}
+
 /// Performs required post-processing steps on the wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // Deserialize wasm module from a file.
     let mut module =
-        parity_wasm::deserialize_file(&crate_metadata.original_wasm).context(format!(
-            "Loading original wasm file '{}'",
-            crate_metadata.original_wasm.display()
-        ))?;
+        load_module(&crate_metadata.original_wasm).context("Loading of original wasm failed")?;
 
     strip_exports(&mut module);
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
@@ -621,7 +627,7 @@ pub(crate) fn execute(
 mod tests_ci_only {
     use super::{assert_compatible_ink_dependencies, check_wasm_opt_version_compatibility};
     use crate::{
-        cmd::BuildCommand,
+        cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
         BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
@@ -650,6 +656,13 @@ mod tests_ci_only {
         manifest
             .write(&manifest_path)
             .expect("writing manifest failed");
+    }
+
+    fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
+        load_module(p)
+            .unwrap()
+            .custom_sections()
+            .any(|e| e.name() == "name")
     }
 
     /// Creates an executable `wasm-opt-mocked` file which outputs
@@ -703,6 +716,10 @@ mod tests_ci_only {
 
             // our optimized contract template should always be below 3k.
             assert!(optimized_size < 3.0);
+
+            // we specified that debug symbols should be removed
+            // original code should have some but the optimized version should have them removed
+            assert!(!has_debug_symbols(&res.dest_wasm.unwrap()));
 
             Ok(())
         })
@@ -957,6 +974,26 @@ mod tests_ci_only {
                     .file_name(),
                 Some(OsStr::new("some_lib_name.wasm"))
             );
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn keep_debug_symbols() {
+        with_new_contract_project(|manifest_path| {
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                BuildArtifacts::CodeOnly,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                true,
+            )
+            .expect("build failed");
+
+            // we specified that debug symbols should be kept
+            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
 
             Ok(())
         })
