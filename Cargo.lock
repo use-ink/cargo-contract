@@ -507,7 +507,6 @@ dependencies = [
  "parity-wasm 0.42.2",
  "platforms",
  "pretty_assertions",
- "pwasm-utils",
  "regex",
  "rustc_version",
  "semver",
@@ -2330,17 +2329,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
 dependencies = [
  "unicode-xid",
-]
-
-[[package]]
-name = "pwasm-utils"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c1a2f10b47d446372a4f397c58b329aaea72b2daf9395a623a411cb8ccb54f"
-dependencies = [
- "byteorder",
- "log",
- "parity-wasm 0.42.2",
 ]
 
 [[package]]

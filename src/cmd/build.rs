@@ -23,7 +23,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
-use parity_wasm::elements::{External, MemoryType, Module, Section};
+use parity_wasm::elements::{External, Internal, MemoryType, Module, Section};
 use regex::Regex;
 use std::{
     convert::TryFrom,
@@ -269,13 +269,23 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 /// Presently all custom sections are not required so they can be stripped safely.
 /// The name section is already stripped by wasm-opt.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section|
-        match section {
-            Section::Reloc(_) => false,
-            Section::Custom(custom) if custom.name() != "name" => false,
-            _ => true,
-        }
-    )
+    module.sections_mut().retain(|section| match section {
+        Section::Reloc(_) => false,
+        Section::Custom(custom) if custom.name() != "name" => false,
+        _ => true,
+    })
+}
+
+/// A contract should export nothing but the "call" and "deploy" functions.
+///
+/// Any elements referenced by these exports become orphaned and are removed by wasm-opt.
+fn strip_exports(module: &mut Module) {
+    module.export_section_mut().map(|section| {
+        section.entries_mut().retain(|entry| {
+            matches!(entry.internal(), Internal::Function(_))
+                && (entry.field() == "call" || entry.field() == "deploy")
+        })
+    });
 }
 
 /// Performs required post-processing steps on the wasm artifact.
@@ -287,13 +297,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
             crate_metadata.original_wasm.display()
         ))?;
 
-    // Perform optimization.
-    //
-    // In practice only tree-shaking is performed, i.e transitively removing all symbols that are
-    // NOT used by the specified entrypoints.
-    if pwasm_utils::optimize(&mut module, ["call", "deploy"].to_vec()).is_err() {
-        anyhow::bail!("Optimizer failed");
-    }
+    strip_exports(&mut module);
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
