@@ -280,12 +280,12 @@ fn strip_custom_sections(module: &mut Module) {
 ///
 /// Any elements referenced by these exports become orphaned and are removed by wasm-opt.
 fn strip_exports(module: &mut Module) {
-    module.export_section_mut().map(|section| {
+    if let Some(section) = module.export_section_mut() {
         section.entries_mut().retain(|entry| {
             matches!(entry.internal(), Internal::Function(_))
                 && (entry.field() == "call" || entry.field() == "deploy")
         })
-    });
+    }
 }
 
 /// Performs required post-processing steps on the wasm artifact.
