@@ -92,7 +92,7 @@ pub struct BuildCommand {
     ///
     /// This is useful if one wants to analyze or debug the optimized binary.
     #[structopt(long)]
-    keep_symbols: bool,
+    keep_debug_symbols: bool,
 }
 
 impl BuildCommand {
@@ -123,7 +123,7 @@ impl BuildCommand {
             self.build_artifact,
             unstable_flags,
             optimization_passes,
-            self.keep_symbols,
+            self.keep_debug_symbols,
         )
     }
 }
@@ -319,7 +319,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
     optimization_passes: OptimizationPasses,
-    keep_symbols: bool,
+    keep_debug_symbols: bool,
 ) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!(
@@ -330,7 +330,7 @@ fn optimize_wasm(
         crate_metadata.dest_wasm.as_os_str(),
         dest_optimized.as_os_str(),
         optimization_passes,
-        keep_symbols,
+        keep_debug_symbols,
     )?;
 
     if !dest_optimized.exists() {
@@ -363,7 +363,7 @@ fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
     optimization_level: OptimizationPasses,
-    keep_symbols: bool,
+    keep_debug_symbols: bool,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     let which = which::which("wasm-opt");
@@ -405,7 +405,7 @@ fn do_optimization(
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
         .arg("--zero-filled-memory");
-    if keep_symbols {
+    if keep_debug_symbols {
         command.arg("-g");
     }
     let output = command.output().map_err(|err| {
@@ -548,7 +548,7 @@ pub(crate) fn execute(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
-    keep_symbols: bool,
+    keep_debug_symbols: bool,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
@@ -578,7 +578,7 @@ pub(crate) fn execute(
             "Optimizing wasm file".bright_green().bold()
         );
         let optimization_result =
-            optimize_wasm(&crate_metadata, optimization_passes, keep_symbols)?;
+            optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
 
         Ok(optimization_result)
     };
@@ -754,7 +754,7 @@ mod tests_ci_only {
 
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
-                keep_symbols: false,
+                keep_debug_symbols: false,
             };
 
             let res = cmd.exec().expect("build failed");
@@ -790,7 +790,7 @@ mod tests_ci_only {
 
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
-                keep_symbols: false,
+                keep_debug_symbols: false,
             };
 
             let res = cmd.exec().expect("build failed");
@@ -946,7 +946,7 @@ mod tests_ci_only {
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
-                keep_symbols: false,
+                keep_debug_symbols: false,
             };
             let res = cmd.exec().expect("build failed");
 
