@@ -88,9 +88,9 @@ pub struct BuildCommand {
     ///   The CLI argument always takes precedence over the profile value.
     #[structopt(long)]
     optimization_passes: Option<OptimizationPasses>,
-    /// Do not remove symbols (wasm name section) when optimizing.
+    /// Do not remove symbols (Wasm name section) when optimizing.
     ///
-    /// This is useful if one want to analyze or debug the optimized binary.
+    /// This is useful if one wants to analyze or debug the optimized binary.
     #[structopt(long)]
     keep_symbols: bool,
 }
@@ -267,7 +267,7 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 /// Strips all custom sections.
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
-/// The name section is already stripped by wasm-opt.
+/// The name section is already stripped by `wasm-opt`.
 fn strip_custom_sections(module: &mut Module) {
     module.sections_mut().retain(|section| match section {
         Section::Reloc(_) => false,
@@ -278,7 +278,7 @@ fn strip_custom_sections(module: &mut Module) {
 
 /// A contract should export nothing but the "call" and "deploy" functions.
 ///
-/// Any elements referenced by these exports become orphaned and are removed by wasm-opt.
+/// Any elements referenced by these exports become orphaned and are removed by `wasm-opt`.
 fn strip_exports(module: &mut Module) {
     if let Some(section) = module.export_section_mut() {
         section.entries_mut().retain(|entry| {
