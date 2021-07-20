@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use subxt::{balances::Balances, contracts::*, system::System, ClientBuilder, DefaultNodeRuntime};
 
 use crate::{ExtrinsicOpts, HexData};
@@ -43,7 +43,7 @@ pub(crate) fn execute_instantiate(
             .await?;
         let instantiated = events
             .instantiated()?
-            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+            .context("Failed to find Instantiated event")?;
 
         Ok(instantiated.contract)
     })

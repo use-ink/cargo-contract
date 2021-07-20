@@ -188,17 +188,15 @@ impl Manifest {
             .entry("package")
             .or_insert(value::Value::Table(Default::default()))
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("package section should be a table"))?
+            .context("package section should be a table")?
             .entry("metadata")
             .or_insert(value::Value::Table(Default::default()))
             .as_table_mut()
-            .ok_or(anyhow::anyhow!("metadata section should be a table"))?
+            .context("metadata section should be a table")?
             .entry("contract")
             .or_insert(value::Value::Table(Default::default()))
             .as_table_mut()
-            .ok_or(anyhow::anyhow!(
-                "metadata.contract section should be a table"
-            ))?
+            .context("metadata.contract section should be a table")?
             .insert(
                 "optimization-passes".to_string(),
                 value::Value::String(passes.to_string()),

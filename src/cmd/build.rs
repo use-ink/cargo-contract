@@ -643,10 +643,7 @@ mod tests_ci_only {
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
-    fn write_optimization_passes_into_manifest(
-        cargo_toml_path: &PathBuf,
-        passes: OptimizationPasses,
-    ) {
+    fn write_optimization_passes_into_manifest(cargo_toml_path: &Path, passes: OptimizationPasses) {
         let manifest_path =
             ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
         let mut manifest = Manifest::new(manifest_path.clone()).expect("manifest creation failed");
@@ -760,7 +757,7 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             write_optimization_passes_into_manifest(
-                &manifest_path.clone().into(),
+                manifest_path.as_ref(),
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
@@ -798,7 +795,7 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             write_optimization_passes_into_manifest(
-                &manifest_path.clone().into(),
+                manifest_path.as_ref(),
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
