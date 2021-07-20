@@ -278,7 +278,7 @@ fn strip_custom_sections(module: &mut Module) {
 
 /// A contract should export nothing but the "call" and "deploy" functions.
 ///
-/// Any elements referenced by these exports become orphaned and are removed by `wasm-opt`.
+/// Any elements not referenced by these exports become orphaned and are removed by `wasm-opt`.
 fn strip_exports(module: &mut Module) {
     if let Some(section) = module.export_section_mut() {
         section.entries_mut().retain(|entry| {
@@ -820,7 +820,7 @@ mod tests_ci_only {
             let size_diff = optimization.original_size - optimization.optimized_size;
             assert!(
                 size_diff > (optimization.original_size / 2.0),
-                "The optimized size savings are to small: {}",
+                "The optimized size savings are too small: {}",
                 size_diff,
             );
 
