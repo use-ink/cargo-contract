@@ -774,11 +774,13 @@ mod tests_ci_only {
                 keep_debug_symbols: false,
             };
 
+            // when
             let res = cmd.exec().expect("build failed");
             let optimization = res
                 .optimization_result
                 .expect("no optimization result available");
 
+            // then
             // The size does not exactly match the original size even without optimization
             // passed because there is still some post processing happening.
             let size_diff = optimization.original_size - optimization.optimized_size;
@@ -810,11 +812,13 @@ mod tests_ci_only {
                 keep_debug_symbols: false,
             };
 
+            // when
             let res = cmd.exec().expect("build failed");
             let optimization = res
                 .optimization_result
                 .expect("no optimization result available");
 
+            // then
             // The size does not exactly match the original size even without optimization
             // passed because there is still some post processing happening.
             let size_diff = optimization.original_size - optimization.optimized_size;
