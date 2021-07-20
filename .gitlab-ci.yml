@@ -77,7 +77,7 @@ clippy:
   stage:                           check
   <<:                              *docker-env
   script:
-    - cargo clippy --verbose -- -D warnings;
+    - cargo clippy --verbose --all-targets --all-features -- -D warnings;
 
 #### stage:                        test (all features)
 
