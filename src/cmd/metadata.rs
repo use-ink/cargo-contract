@@ -328,6 +328,7 @@ mod tests {
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                false,
             )?;
             let dest_bundle = build_result
                 .metadata_result
