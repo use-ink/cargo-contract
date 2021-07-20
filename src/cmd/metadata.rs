@@ -228,6 +228,7 @@ mod tests {
         cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, BuildArtifacts,
         ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
     };
+    use anyhow::Context;
     use contract_metadata::*;
     use serde_json::{Map, Value};
     use std::{fmt::Write, fs};
@@ -249,9 +250,9 @@ mod tests {
         fn package_mut(&mut self) -> anyhow::Result<&mut value::Table> {
             self.toml
                 .get_mut("package")
-                .ok_or(anyhow::anyhow!("package section not found"))?
+                .context("package section not found")?
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!("package section should be a table"))
+                .context("package section should be a table")
         }
 
         /// Add a key/value to the `[package.metadata.contract.user]` section
@@ -264,19 +265,15 @@ mod tests {
                 .entry("metadata")
                 .or_insert(value::Value::Table(Default::default()))
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!("metadata section should be a table"))?
+                .context("metadata section should be a table")?
                 .entry("contract")
                 .or_insert(value::Value::Table(Default::default()))
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!(
-                    "metadata.contract section should be a table"
-                ))?
+                .context("metadata.contract section should be a table")?
                 .entry("user")
                 .or_insert(value::Value::Table(Default::default()))
                 .as_table_mut()
-                .ok_or(anyhow::anyhow!(
-                    "metadata.contract.user section should be a table"
-                ))?
+                .context("metadata.contract.user section should be a table")?
                 .insert(key.into(), value);
             Ok(())
         }
@@ -393,9 +390,7 @@ mod tests {
                 .insert("some-user-provided-field".into(), "and-its-value".into());
             expected_user_metadata.insert(
                 "more-user-provided-fields".into(),
-                serde_json::Value::Array(
-                    vec!["and".into(), "their".into(), "values".into()].into(),
-                ),
+                serde_json::Value::Array(vec!["and".into(), "their".into(), "values".into()]),
             );
 
             assert_eq!(build_byte_str(&expected_hash.0[..]), hash.as_str().unwrap());
