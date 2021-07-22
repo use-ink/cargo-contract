@@ -6,14 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2021-07-22
+
 ### Added
 - Convenient off-chain testing through `cargo contract test` - [#283](https://github.com/paritytech/cargo-contract/pull/283)
 - Build contracts in debug mode by default, add `--release` flag - [#298](https://github.com/paritytech/cargo-contract/pull/298)
+- Add `--keep-symbols` flag for better Wasm analysis capabilities  - [#302](https://github.com/paritytech/cargo-contract/pull/302)
 
 ### Changed
 - Change default optimizations pass to focus on code size - [#305](https://github.com/paritytech/cargo-contract/pull/305)
 
-## [0.12.1] - 2021-04-25
+## [0.12.1] - 2021-05-25
 
 ### Added
 - Suggest `binaryen` installation from GitHub release on outdated version - [#274](https://github.com/paritytech/cargo-contract/pull/274)
