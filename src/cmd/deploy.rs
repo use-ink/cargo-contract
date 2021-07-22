@@ -66,7 +66,7 @@ pub(crate) fn execute_deploy(
         let events = cli.put_code_and_watch(&signer, &code).await?;
         let code_stored = events
             .code_stored()?
-            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+            .context("Failed to find CodeStored event")?;
 
         Ok(code_stored.code_hash)
     })

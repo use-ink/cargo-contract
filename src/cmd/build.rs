@@ -23,7 +23,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
-use parity_wasm::elements::{External, MemoryType, Module, Section};
+use parity_wasm::elements::{External, Internal, MemoryType, Module, Section};
 use regex::Regex;
 use semver::Version;
 use std::{
@@ -90,13 +90,18 @@ pub struct BuildCommand {
     ///
     /// - `z`, execute default optimization passes, super-focusing on code size
     ///
-    /// - The default value is `3`
+    /// - The default value is `z`
     ///
     /// - It is possible to define the number of optimization passes in the
     ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
     ///   The CLI argument always takes precedence over the profile value.
-    #[structopt(long = "optimization-passes")]
+    #[structopt(long)]
     optimization_passes: Option<OptimizationPasses>,
+    /// Do not remove symbols (Wasm name section) when optimizing.
+    ///
+    /// This is useful if one wants to analyze or debug the optimized binary.
+    #[structopt(long)]
+    keep_debug_symbols: bool,
 }
 
 impl BuildCommand {
@@ -132,6 +137,7 @@ impl BuildCommand {
             self.build_artifact,
             unstable_flags,
             optimization_passes,
+            self.keep_debug_symbols,
         )
     }
 }
@@ -161,6 +167,7 @@ impl CheckCommand {
             BuildArtifacts::CheckOnly,
             unstable_flags,
             OptimizationPasses::Zero,
+            false,
         )
     }
 }
@@ -280,31 +287,43 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 /// Strips all custom sections.
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
+/// The name section is already stripped by `wasm-opt`.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        !matches!(
-            section,
-            Section::Custom(_) | Section::Name(_) | Section::Reloc(_)
-        )
-    });
+    module.sections_mut().retain(|section| match section {
+        Section::Reloc(_) => false,
+        Section::Custom(custom) if custom.name() != "name" => false,
+        _ => true,
+    })
+}
+
+/// A contract should export nothing but the "call" and "deploy" functions.
+///
+/// Any elements not referenced by these exports become orphaned and are removed by `wasm-opt`.
+fn strip_exports(module: &mut Module) {
+    if let Some(section) = module.export_section_mut() {
+        section.entries_mut().retain(|entry| {
+            matches!(entry.internal(), Internal::Function(_))
+                && (entry.field() == "call" || entry.field() == "deploy")
+        })
+    }
+}
+
+/// Load and parse a wasm file from disk.
+fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
+    let path = path.as_ref();
+    parity_wasm::deserialize_file(path).context(format!(
+        "Loading of wasm module at '{}' failed",
+        path.display(),
+    ))
 }
 
 /// Performs required post-processing steps on the wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // Deserialize wasm module from a file.
     let mut module =
-        parity_wasm::deserialize_file(&crate_metadata.original_wasm).context(format!(
-            "Loading original wasm file '{}'",
-            crate_metadata.original_wasm.display()
-        ))?;
+        load_module(&crate_metadata.original_wasm).context("Loading of original wasm failed")?;
 
-    // Perform optimization.
-    //
-    // In practice only tree-shaking is performed, i.e transitively removing all symbols that are
-    // NOT used by the specified entrypoints.
-    if pwasm_utils::optimize(&mut module, ["call", "deploy"].to_vec()).is_err() {
-        anyhow::bail!("Optimizer failed");
-    }
+    strip_exports(&mut module);
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
@@ -326,6 +345,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
     optimization_passes: OptimizationPasses,
+    keep_debug_symbols: bool,
 ) -> Result<OptimizationResult> {
     let mut dest_optimized = crate_metadata.dest_wasm.clone();
     dest_optimized.set_file_name(format!(
@@ -336,6 +356,7 @@ fn optimize_wasm(
         crate_metadata.dest_wasm.as_os_str(),
         dest_optimized.as_os_str(),
         optimization_passes,
+        keep_debug_symbols,
     )?;
 
     if !dest_optimized.exists() {
@@ -368,6 +389,7 @@ fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
     optimization_level: OptimizationPasses,
+    keep_debug_symbols: bool,
 ) -> Result<()> {
     // check `wasm-opt` is installed
     let which = which::which("wasm-opt");
@@ -399,7 +421,8 @@ fn do_optimization(
         "Optimization level passed to wasm-opt: {}",
         optimization_level
     );
-    let output = Command::new(wasm_opt_path)
+    let mut command = Command::new(wasm_opt_path);
+    command
         .arg(dest_wasm)
         .arg(format!("-O{}", optimization_level))
         .arg("-o")
@@ -407,15 +430,17 @@ fn do_optimization(
         // the memory in our module is imported, `wasm-opt` needs to be told that
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
-        .arg("--zero-filled-memory")
-        .output()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Executing {} failed with {:?}",
-                wasm_opt_path.display(),
-                err
-            )
-        })?;
+        .arg("--zero-filled-memory");
+    if keep_debug_symbols {
+        command.arg("-g");
+    }
+    let output = command.output().map_err(|err| {
+        anyhow::anyhow!(
+            "Executing {} failed with {:?}",
+            wasm_opt_path.display(),
+            err
+        )
+    })?;
 
     if !output.status.success() {
         let err = str::from_utf8(&output.stderr)
@@ -564,6 +589,7 @@ pub(crate) fn execute(
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
+    keep_debug_symbols: bool,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
@@ -601,7 +627,8 @@ pub(crate) fn execute(
             format!("[3/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        let optimization_result = optimize_wasm(&crate_metadata, optimization_passes)?;
+        let optimization_result =
+            optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
 
         Ok(optimization_result)
     };
@@ -654,7 +681,7 @@ mod tests_ci_only {
         check_wasm_opt_version_compatibility,
     };
     use crate::{
-        cmd::BuildCommand,
+        cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
         BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, UnstableFlags,
@@ -671,10 +698,7 @@ mod tests_ci_only {
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
-    fn write_optimization_passes_into_manifest(
-        cargo_toml_path: &PathBuf,
-        passes: OptimizationPasses,
-    ) {
+    fn write_optimization_passes_into_manifest(cargo_toml_path: &Path, passes: OptimizationPasses) {
         let manifest_path =
             ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
         let mut manifest = Manifest::new(manifest_path.clone()).expect("manifest creation failed");
@@ -684,6 +708,13 @@ mod tests_ci_only {
         manifest
             .write(&manifest_path)
             .expect("writing manifest failed");
+    }
+
+    fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
+        load_module(p)
+            .unwrap()
+            .custom_sections()
+            .any(|e| e.name() == "name")
     }
 
     /// Creates an executable `wasm-opt-mocked` file which outputs
@@ -716,6 +747,7 @@ mod tests_ci_only {
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                false,
             )
             .expect("build failed");
 
@@ -738,6 +770,10 @@ mod tests_ci_only {
             // our optimized contract template should always be below 3k.
             assert!(optimized_size < 3.0);
 
+            // we specified that debug symbols should be removed
+            // original code should have some but the optimized version should have them removed
+            assert!(!has_debug_symbols(&res.dest_wasm.unwrap()));
+
             Ok(())
         })
     }
@@ -756,6 +792,7 @@ mod tests_ci_only {
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                false,
             )
             .expect("build failed");
 
@@ -777,7 +814,7 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             write_optimization_passes_into_manifest(
-                &manifest_path.clone().into(),
+                manifest_path.as_ref(),
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
@@ -789,6 +826,7 @@ mod tests_ci_only {
 
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
+                keep_debug_symbols: false,
             };
 
             // when
@@ -798,17 +836,14 @@ mod tests_ci_only {
                 .expect("no optimization result available");
 
             // then
-            // we have to truncate here to account for a possible small delta
-            // in the floating point numbers
-            let optimized_size = optimization.optimized_size.trunc();
-            let original_size = optimization.original_size.trunc();
+            // The size does not exactly match the original size even without optimization
+            // passed because there is still some post processing happening.
+            let size_diff = optimization.original_size - optimization.optimized_size;
             assert!(
-                optimized_size == original_size,
-                "The optimized size {:?} differs from the original size {:?}",
-                optimized_size,
-                original_size
+                0.0 < size_diff && size_diff < 10.0,
+                "The optimized size savings are larger than allowed or negative: {}",
+                size_diff,
             );
-
             Ok(())
         })
     }
@@ -818,7 +853,7 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             write_optimization_passes_into_manifest(
-                &manifest_path.clone().into(),
+                manifest_path.as_ref(),
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
@@ -830,6 +865,7 @@ mod tests_ci_only {
 
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
+                keep_debug_symbols: false,
             };
 
             // when
@@ -839,15 +875,13 @@ mod tests_ci_only {
                 .expect("no optimization result available");
 
             // then
-            // we have to truncate here to account for a possible small delta
-            // in the floating point numbers
-            let optimized_size = optimization.optimized_size.trunc();
-            let original_size = optimization.original_size.trunc();
+            // The size does not exactly match the original size even without optimization
+            // passed because there is still some post processing happening.
+            let size_diff = optimization.original_size - optimization.optimized_size;
             assert!(
-                optimized_size < original_size,
-                "The optimized size DOES NOT {:?} differ from the original size {:?}",
-                optimized_size,
-                original_size
+                size_diff > (optimization.original_size / 2.0),
+                "The optimized size savings are too small: {}",
+                size_diff,
             );
 
             Ok(())
@@ -990,6 +1024,7 @@ mod tests_ci_only {
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
+                keep_debug_symbols: false,
             };
             let res = cmd.exec().expect("build failed");
 
@@ -1068,6 +1103,25 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_ok(), "building template in release mode failed!");
+            Ok(())
+        })
+    }
+
+    fn keep_debug_symbols() {
+        with_new_contract_project(|manifest_path| {
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                BuildArtifacts::CodeOnly,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                true,
+            )
+            .expect("build failed");
+
+            // we specified that debug symbols should be kept
+            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
+
             Ok(())
         })
     }

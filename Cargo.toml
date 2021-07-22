@@ -19,15 +19,14 @@ categories = ["command-line-utilities", "development-tools::build-utils", "devel
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates"]
 
 [dependencies]
-env_logger = "0.8.4"
-anyhow = "1.0.41"
+env_logger = "0.9.0"
+anyhow = "1.0.42"
 structopt = "0.3.22"
 log = "0.4.14"
 heck = "0.3.3"
 zip = { version = "0.5.13", default-features = false }
-pwasm-utils = "0.18.1"
 parity-wasm = "0.42.2"
-cargo_metadata = "0.13.1"
+cargo_metadata = "0.14.0"
 codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
 which = "4.1.0"
 colored = "2.0.0"
@@ -54,7 +53,7 @@ hex = { version = "0.4.3", optional = true }
 funty = "=1.1.0"
 
 [build-dependencies]
-anyhow = "1.0.41"
+anyhow = "1.0.42"
 zip = { version = "0.5.13", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"

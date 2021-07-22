@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convenient off-chain testing through `cargo contract test` - [#283](https://github.com/paritytech/cargo-contract/pull/283)
 - Build contracts in debug mode by default, add `--release` flag - [#298](https://github.com/paritytech/cargo-contract/pull/298)
 
+### Changed
+- Change default optimizations pass to focus on code size - [#305](https://github.com/paritytech/cargo-contract/pull/305)
+
 ## [0.12.1] - 2021-04-25
 
 ### Added

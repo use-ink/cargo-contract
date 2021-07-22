@@ -128,7 +128,7 @@ impl Display for OptimizationPasses {
 
 impl Default for OptimizationPasses {
     fn default() -> OptimizationPasses {
-        OptimizationPasses::Three
+        OptimizationPasses::Z
     }
 }
 
