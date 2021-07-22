@@ -1077,6 +1077,7 @@ mod tests_ci_only {
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                Default::default(),
             );
 
             // then
@@ -1099,6 +1100,7 @@ mod tests_ci_only {
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                Default::default(),
             );
 
             // then
@@ -1107,11 +1109,34 @@ mod tests_ci_only {
         })
     }
 
-    fn keep_debug_symbols() {
+    #[test]
+    fn keep_debug_symbols_in_debug_mode() {
         with_new_contract_project(|manifest_path| {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
+                BuildMode::Debug,
+                BuildArtifacts::CodeOnly,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                true,
+            )
+            .expect("build failed");
+
+            // we specified that debug symbols should be kept
+            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn keep_debug_symbols_in_release_mode() {
+        with_new_contract_project(|manifest_path| {
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                BuildMode::Release,
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
