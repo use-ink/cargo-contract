@@ -18,13 +18,14 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{Manifest, ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
+    BuildArtifacts, BuildMode, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
     UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
 use parity_wasm::elements::{External, Internal, MemoryType, Module, Section};
 use regex::Regex;
+use semver::Version;
 use std::{
     convert::TryFrom,
     ffi::OsStr,
@@ -47,6 +48,14 @@ pub struct BuildCommand {
     /// Path to the Cargo.toml of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
+    /// By default the contract is compiled with debug functionality
+    /// included. This enables the contract to output debug messages,
+    /// but increases the contract size and the amount of gas used.
+    ///
+    /// A production contract should always be build in `release` mode!
+    /// Then no debug functionality is compiled into the contract.
+    #[structopt(long = "--release")]
+    build_release: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
@@ -117,9 +126,14 @@ impl BuildCommand {
             }
         };
 
+        let build_mode = match self.build_release {
+            true => BuildMode::Release,
+            false => BuildMode::Debug,
+        };
         execute(
             &manifest_path,
             verbosity,
+            build_mode,
             self.build_artifact,
             unstable_flags,
             optimization_passes,
@@ -149,6 +163,7 @@ impl CheckCommand {
         execute(
             &manifest_path,
             verbosity,
+            BuildMode::Debug,
             BuildArtifacts::CheckOnly,
             unstable_flags,
             OptimizationPasses::Zero,
@@ -176,6 +191,7 @@ impl CheckCommand {
 fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
     command: &str,
+    build_mode: BuildMode,
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
@@ -190,14 +206,18 @@ fn exec_cargo_for_wasm_target(
 
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
-        let args = [
+        let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
+        let mut args = vec![
             "--target=wasm32-unknown-unknown",
             "-Zbuild-std",
             "-Zbuild-std-features=panic_immediate_abort",
             "--no-default-features",
             "--release",
-            &format!("--target-dir={}", target_dir.to_string_lossy()),
+            &target_dir,
         ];
+        if build_mode == BuildMode::Debug {
+            args.push("--features=ink_env/ink-debug");
+        }
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
 
         Ok(())
@@ -545,12 +565,27 @@ fn assert_compatible_ink_dependencies(
     Ok(())
 }
 
+/// Checks whether the supplied `ink_version` already contains the debug feature.
+///
+/// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
+pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
+    log::info!("Contract version: {:?}", ink_version);
+    let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
+    if ink_version < &minimum_version {
+        anyhow::bail!(
+            "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
+        );
+    }
+    Ok(())
+}
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
+    build_mode: BuildMode,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
@@ -559,6 +594,9 @@ pub(crate) fn execute(
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     assert_compatible_ink_dependencies(manifest_path, verbosity)?;
+    if build_mode == BuildMode::Debug {
+        assert_debug_mode_supported(&crate_metadata.ink_version)?;
+    }
 
     let build = || -> Result<OptimizationResult> {
         maybe_println!(
@@ -567,7 +605,13 @@ pub(crate) fn execute(
             format!("[1/{}]", build_artifact.steps()).bold(),
             "Building cargo project".bright_green().bold()
         );
-        exec_cargo_for_wasm_target(&crate_metadata, "build", verbosity, &unstable_flags)?;
+        exec_cargo_for_wasm_target(
+            &crate_metadata,
+            "build",
+            build_mode,
+            verbosity,
+            &unstable_flags,
+        )?;
 
         maybe_println!(
             verbosity,
@@ -591,7 +635,13 @@ pub(crate) fn execute(
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            exec_cargo_for_wasm_target(&crate_metadata, "check", verbosity, &unstable_flags)?;
+            exec_cargo_for_wasm_target(
+                &crate_metadata,
+                "check",
+                BuildMode::Release,
+                verbosity,
+                &unstable_flags,
+            )?;
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -617,6 +667,7 @@ pub(crate) fn execute(
         metadata_result,
         target_directory: crate_metadata.target_directory,
         optimization_result: opt_result,
+        build_mode,
         build_artifact,
         verbosity,
     })
@@ -625,14 +676,18 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use super::{assert_compatible_ink_dependencies, check_wasm_opt_version_compatibility};
+    use super::{
+        assert_compatible_ink_dependencies, assert_debug_mode_supported,
+        check_wasm_opt_version_compatibility,
+    };
     use crate::{
         cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
-        BuildArtifacts, ManifestPath, OptimizationPasses, UnstableFlags, UnstableOptions,
-        Verbosity, VerbosityFlags,
+        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, UnstableFlags,
+        UnstableOptions, Verbosity, VerbosityFlags,
     };
+    use semver::Version;
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use std::{
@@ -688,6 +743,7 @@ mod tests_ci_only {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
+                BuildMode::default(),
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
@@ -732,6 +788,7 @@ mod tests_ci_only {
             super::execute(
                 &manifest_path,
                 Verbosity::Default,
+                BuildMode::default(),
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
@@ -763,6 +820,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -801,6 +859,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -961,6 +1020,7 @@ mod tests_ci_only {
             let cmd = BuildCommand {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
+                build_release: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
@@ -981,11 +1041,102 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn keep_debug_symbols() {
+    pub fn debug_mode_must_be_compatible() {
+        let _ =
+            assert_debug_mode_supported(&Version::parse("3.0.0-rc4").expect("parsing must work"))
+                .expect("debug mode must be compatible");
+        let _ =
+            assert_debug_mode_supported(&Version::parse("4.0.0-rc1").expect("parsing must work"))
+                .expect("debug mode must be compatible");
+        let _ = assert_debug_mode_supported(&Version::parse("5.0.0").expect("parsing must work"))
+            .expect("debug mode must be compatible");
+    }
+
+    #[test]
+    pub fn debug_mode_must_be_incompatible() {
+        let res =
+            assert_debug_mode_supported(&Version::parse("3.0.0-rc3").expect("parsing must work"))
+                .expect_err("assertion must fail");
+        assert_eq!(
+            res.to_string(),
+            "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
+        );
+    }
+
+    #[test]
+    fn building_template_in_debug_mode_must_work() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let build_mode = BuildMode::Debug;
+
+            // when
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                build_mode,
+                BuildArtifacts::All,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                Default::default(),
+            );
+
+            // then
+            assert!(res.is_ok(), "building template in debug mode failed!");
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn building_template_in_release_mode_must_work() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let build_mode = BuildMode::Release;
+
+            // when
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                build_mode,
+                BuildArtifacts::All,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                Default::default(),
+            );
+
+            // then
+            assert!(res.is_ok(), "building template in release mode failed!");
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn keep_debug_symbols_in_debug_mode() {
         with_new_contract_project(|manifest_path| {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
+                BuildMode::Debug,
+                BuildArtifacts::CodeOnly,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                true,
+            )
+            .expect("build failed");
+
+            // we specified that debug symbols should be kept
+            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn keep_debug_symbols_in_release_mode() {
+        with_new_contract_project(|manifest_path| {
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                BuildMode::Release,
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
