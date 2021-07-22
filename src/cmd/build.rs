@@ -81,7 +81,7 @@ pub struct BuildCommand {
     ///
     /// - `z`, execute default optimization passes, super-focusing on code size
     ///
-    /// - The default value is `3`
+    /// - The default value is `z`
     ///
     /// - It is possible to define the number of optimization passes in the
     ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.

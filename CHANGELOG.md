@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Change default optimizations pass to focus on code size - [#305](https://github.com/paritytech/cargo-contract/pull/305)
+
 ## [0.12.1] - 2021-04-25
 
 ### Added
