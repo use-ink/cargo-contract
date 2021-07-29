@@ -60,5 +60,5 @@ jobs:
           mv foobar/lib.rs foobar\srcfoo\lib.rs
           ((Get-Content -path foobar\Cargo.toml -Raw) -replace 'lib.rs','srcfoo/lib.rs') | Set-Content -Path foobar\Cargo.toml
           Get-Content -path foobar\Cargo.toml -Raw
-          cargo run --manifest-path=foobar/Cargo.toml
+          cargo check --manifest-path=foobar/Cargo.toml
           cargo run -- contract build --manifest-path=foobar/Cargo.toml
