@@ -52,11 +52,7 @@ jobs:
         run: |
           wasm-opt --version
           cargo -vV
-          cargo run -- contract --version
-          cargo run -- contract new foobar
-          echo "[workspace]" >> foobar/Cargo.toml
-          cargo run -- contract build --manifest-path=foobar/Cargo.toml
 
       - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
-          cargo test --verbose --workspace --all-features
+          cargo test --verbose --workspace --all-features -- building_contract_with_source_file_in_subfolder_must_work
