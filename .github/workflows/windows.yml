@@ -62,6 +62,5 @@ jobs:
           Get-Content -path foobar\Cargo.toml -Raw
           cargo +nightly check --manifest-path=foobar/Cargo.toml
 
-          cd foobar
-          cargo +nightly run -- contract check
-          cargo +nightly run -- contract build
+          cargo +nightly run -- contract check --manifest-path=foobar/Cargo.toml
+          cargo +nightly run -- contract build --manifest-path=foobar/Cargo.toml
