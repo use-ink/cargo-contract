@@ -56,3 +56,7 @@ jobs:
           cargo run -- contract new foobar
           echo "[workspace]" >> foobar/Cargo.toml
           cargo run -- contract build --manifest-path=foobar/Cargo.toml
+
+      - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
+        run: |
+          cargo test --verbose --workspace --all-features
