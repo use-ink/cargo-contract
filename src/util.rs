@@ -55,6 +55,7 @@ where
     let mut cmd = Command::new(cargo);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        eprintln!("setting current dir to {:?}", path);
         cmd.current_dir(path);
     }
 

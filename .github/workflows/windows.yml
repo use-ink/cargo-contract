@@ -61,4 +61,7 @@ jobs:
           ((Get-Content -path foobar\Cargo.toml -Raw) -replace 'lib.rs','srcfoo/lib.rs') | Set-Content -Path foobar\Cargo.toml
           Get-Content -path foobar\Cargo.toml -Raw
           cargo +nightly check --manifest-path=foobar/Cargo.toml
-          cargo +nightly run -- contract build --manifest-path=foobar/Cargo.toml
+
+          cd foobar
+          cargo +nightly run -- contract check
+          cargo +nightly run -- contract build
