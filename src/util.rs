@@ -120,7 +120,10 @@ pub mod tests {
             .expect("temporary directory creation failed");
 
         // catch test panics in order to clean up temp dir which will be very large
-        let path = tmp_dir.path().canonicalize().expect("canonicalize-ing must work");
+        let path = tmp_dir
+            .path()
+            .canonicalize()
+            .expect("canonicalize-ing must work");
         eprintln!("path: {:?}", path);
         f(&path).expect("Error executing test with tmp dir")
     }
