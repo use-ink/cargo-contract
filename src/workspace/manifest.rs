@@ -248,6 +248,19 @@ impl Manifest {
             .insert("name".into(), value::Value::String(name.into())))
     }
 
+    /// Set the `lib` path to `path`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_lib_path(&mut self, path: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("path".into(), value::Value::String(path.into())))
+    }
+
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self
