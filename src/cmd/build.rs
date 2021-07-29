@@ -195,6 +195,7 @@ fn exec_cargo_for_wasm_target(
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
+    eprintln!("exec_cargo_for_wasm_target");
     util::assert_channel()?;
 
     // set linker args via RUSTFLAGS.
@@ -218,6 +219,7 @@ fn exec_cargo_for_wasm_target(
         if build_mode == BuildMode::Debug {
             args.push("--features=ink_env/ink-debug");
         }
+        eprintln!("invoke cargo");
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
 
         Ok(())
@@ -591,8 +593,10 @@ pub(crate) fn execute(
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
 ) -> Result<BuildResult> {
+    eprintln!("collecting");
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
+    eprintln!("asserting");
     assert_compatible_ink_dependencies(manifest_path, verbosity)?;
     if build_mode == BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
@@ -1130,9 +1134,10 @@ mod tests_ci_only {
             manifest.write(&manifest_path).expect("writing must work");
 
             // when
+            eprintln!("executing");
             let res = super::execute(
                 &manifest_path,
-                Verbosity::Default,
+                Verbosity::Verbose, // Make it Default again
                 BuildMode::default(),
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),

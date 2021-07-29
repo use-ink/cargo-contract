@@ -55,4 +55,4 @@ jobs:
 
       - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
-          cargo test --verbose --workspace --all-features -- building_contract_with_source_file_in_subfolder_must_work
+          RUST_LOG=debug cargo test --verbose --workspace --all-features -- building_contract_with_source_file_in_subfolder_must_work
