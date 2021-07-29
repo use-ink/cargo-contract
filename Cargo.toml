@@ -28,7 +28,7 @@ zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.0"
 codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
-which = "4.1.0"
+which = "4.2.1"
 colored = "2.0.0"
 toml = "0.5.8"
 rustc_version = "0.4.0"
