@@ -1114,14 +1114,8 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             let path = manifest_path.directory().expect("dir must exist");
-            let old_path = path
-                .join(Path::new("lib.rs"))
-                .canonicalize()
-                .expect("canonicalize must work");
-            let new_path = path
-                .join(Path::new("srcfoo/lib.rs"))
-                .canonicalize()
-                .expect("canonicalize must work");
+            let old_path = path.join(Path::new("lib.rs"));
+            let new_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
             let new_dir_path = path.join(Path::new("srcfoo"));
             eprintln!("old path: {:?}", old_path);
             eprintln!("new path: {:?}", new_path);
