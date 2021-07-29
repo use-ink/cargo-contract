@@ -50,6 +50,8 @@ where
     P: AsRef<Path>,
 {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    eprintln!("cargo {:?}", cargo);
+    eprintln!("args {:?}", args);
     let mut cmd = Command::new(cargo);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
@@ -64,6 +66,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
+    eprintln!("invoking cargo {:?}", cmd);
     log::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd

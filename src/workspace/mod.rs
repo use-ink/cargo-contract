@@ -47,6 +47,7 @@ pub struct Workspace {
 impl Workspace {
     /// Create a new Workspace from the supplied cargo metadata.
     pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
+        eprintln!("workspace new");
         let member_manifest = |package_id: &PackageId| -> Result<(PackageId, (Package, Manifest))> {
             let package = metadata
                 .packages
@@ -72,6 +73,7 @@ impl Workspace {
         if !members.contains_key(root_package) {
             anyhow::bail!("The root package should be a workspace member")
         }
+        eprintln!("workspace end");
 
         Ok(Workspace {
             workspace_root: metadata.workspace_root.clone().into(),
@@ -90,6 +92,7 @@ impl Workspace {
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
+        eprintln!("with_root_package_manifest");
         let root_package_manifest = self
             .members
             .get_mut(&self.root_package)

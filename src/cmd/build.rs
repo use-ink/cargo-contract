@@ -206,6 +206,7 @@ fn exec_cargo_for_wasm_target(
     );
 
     let cargo_build = |manifest_path: &ManifestPath| {
+        eprintln!("cargo build");
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
         let mut args = vec![
@@ -221,11 +222,13 @@ fn exec_cargo_for_wasm_target(
         }
         eprintln!("invoke cargo");
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
+        eprintln!("invoked cargo");
 
         Ok(())
     };
 
     if unstable_flags.original_manifest {
+        eprintln!("original manifest");
         maybe_println!(
             verbosity,
             "{} {}",
@@ -235,6 +238,7 @@ fn exec_cargo_for_wasm_target(
         );
         cargo_build(&crate_metadata.manifest_path)?;
     } else {
+        eprintln!("workspace");
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
