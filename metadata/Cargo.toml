@@ -17,7 +17,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "lib.rs"
 
 [dependencies]
-semver = { version = "1.0.3", features = ["serde"] }
+semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.126", default-features = false, features = ["derive"] }
 serde_json = "1.0.66"
 url = { version = "2.2.2", features = ["serde"] }
