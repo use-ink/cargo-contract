@@ -1110,6 +1110,41 @@ mod tests_ci_only {
     }
 
     #[test]
+    fn building_contract_with_source_file_in_subfolder_must_work() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let path = manifest_path.directory().expect("dir must exist");
+            let old_lib_path = path.join(Path::new("lib.rs"));
+            let new_lib_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
+            let new_dir_path = path.join(Path::new("srcfoo"));
+            std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
+            std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
+
+            let mut manifest =
+                Manifest::new(manifest_path.clone()).expect("creating manifest must work");
+            manifest
+                .set_lib_path("srcfoo/lib.rs")
+                .expect("setting lib path must work");
+            manifest.write(&manifest_path).expect("writing must work");
+
+            // when
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                BuildMode::default(),
+                BuildArtifacts::CheckOnly,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                Default::default(),
+            );
+
+            // then
+            assert!(res.is_ok(), "building contract failed!");
+            Ok(())
+        })
+    }
+
+    #[test]
     fn keep_debug_symbols_in_debug_mode() {
         with_new_contract_project(|manifest_path| {
             let res = super::execute(

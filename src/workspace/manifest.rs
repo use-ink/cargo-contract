@@ -19,9 +19,9 @@ use anyhow::{Context, Result};
 use super::{metadata, Profile};
 use crate::OptimizationPasses;
 
-use std::convert::TryFrom;
 use std::{
     collections::HashSet,
+    convert::TryFrom,
     fs,
     path::{Path, PathBuf},
 };
@@ -248,6 +248,19 @@ impl Manifest {
             .insert("name".into(), value::Value::String(name.into())))
     }
 
+    /// Set the `lib` path to `path`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_lib_path(&mut self, path: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("path".into(), value::Value::String(path.into())))
+    }
+
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self
@@ -355,6 +368,10 @@ impl Manifest {
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+            #[cfg(windows)]
+            // On Windows path separators are `\`, hence we need to replace the `/` in
+            // e.g. `src/lib.rs`.
+            let path_str = &path_str.replace("/", "\\");
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);
