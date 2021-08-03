@@ -1133,7 +1133,7 @@ mod tests_ci_only {
             eprintln!("executing");
             let res = super::execute(
                 &manifest_path,
-                Verbosity::Verbose, // Make it Default again
+                Verbosity::default(),
                 BuildMode::default(),
                 BuildArtifacts::CheckOnly,
                 UnstableFlags::default(),
