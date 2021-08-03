@@ -120,11 +120,7 @@ pub mod tests {
             .expect("temporary directory creation failed");
 
         // catch test panics in order to clean up temp dir which will be very large
-        let path = tmp_dir
-            .path()
-            .canonicalize()
-            .expect("canonicalize-ing must work");
-        f(&path).expect("Error executing test with tmp dir")
+        f(&tmp_dir.path().canonicalize().unwrap()).expect("Error executing test with tmp dir")
     }
 
     /// Global counter to generate unique contract names in `with_new_contract_project`.

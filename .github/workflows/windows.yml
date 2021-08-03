@@ -53,15 +53,4 @@ jobs:
           wasm-opt --version
           cargo -vV
 
-          cargo +nightly run -- contract --version
-          cargo +nightly run -- contract new foobar
-          echo "[workspace]" >> foobar/Cargo.toml
-          mkdir foobar\src
-          mv foobar/lib.rs foobar\src\lib.rs
-          ((Get-Content -path foobar\Cargo.toml -Raw) -replace 'lib.rs','src/lib.rs') | Set-Content -Path foobar\Cargo.toml
-          Get-Content -path foobar\Cargo.toml -Raw
-
-          cargo +nightly install --path .
-          cd foobar
-          cargo +nightly contract check
-          cargo +nightly contract build
+          cargo test --verbose --workspace --all-features -- building_contract_with_source_file_in_subfolder_must_work
