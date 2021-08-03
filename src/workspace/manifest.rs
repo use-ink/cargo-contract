@@ -20,8 +20,8 @@ use super::{metadata, Profile};
 use crate::OptimizationPasses;
 
 use std::{
-    convert::TryFrom,
     collections::HashSet,
+    convert::TryFrom,
     fs,
     path::{Path, PathBuf},
 };
