@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed a Windows issue with contract files in sub-folders - [#313](https://github.com/paritytech/cargo-contract/pull/313)
+
 ## [0.13.0] - 2021-07-22
 
 ### Added
