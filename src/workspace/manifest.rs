@@ -371,8 +371,8 @@ impl Manifest {
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);
-                log::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
-                eprintln!("Rewriting {} to '{}'", value_id, lib_abs.display());
+                log::debug!("Rewriting {} to '{}'", value_id, lib_abs.as_os_str());
+                eprintln!("Rewriting {} to '{}'", value_id, lib_abs.as_os_str());
                 *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
             }
             Ok(())
