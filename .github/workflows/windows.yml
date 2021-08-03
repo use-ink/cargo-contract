@@ -63,5 +63,5 @@ jobs:
 
           cargo +nightly install --path .
           cd foobar
-          cargo +nightly run -- contract check
-          cargo +nightly run -- contract build
+          cargo +nightly contract check
+          cargo +nightly contract build
