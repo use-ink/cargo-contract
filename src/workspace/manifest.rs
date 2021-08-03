@@ -372,6 +372,7 @@ impl Manifest {
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);
                 log::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
+                eprintln!("Rewriting {} to '{}'", value_id, lib_abs.display());
                 *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
             }
             Ok(())
@@ -384,9 +385,11 @@ impl Manifest {
 
             match table.get_mut("path") {
                 Some(existing_path) => {
+                    eprintln!("to_absolute {}", existing_path);
                     to_absolute(format!("[{}]/path", table_section), existing_path)
                 }
                 None => {
+                    eprintln!("using default path");
                     let default_path = PathBuf::from(default);
                     if !default_path.exists() {
                         anyhow::bail!(
