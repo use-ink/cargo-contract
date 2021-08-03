@@ -366,22 +366,17 @@ impl Manifest {
             .expect("The manifest path is a file path so has a parent; qed");
 
         let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
-            eprintln!("in to_absolute");
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
             #[cfg(windows)]
-            let path_str_replaced = path_str.replace("/", "\\");
-            #[cfg(windows)]
-            let path_str = path_str_replaced.as_str();
-            eprintln!("path: {:?}", OsString::from(path_str));
+            // On Windows path separators are `\`, hence we need to replace the `/` in
+            // e.g. `src/lib.rs`.
+            let path_str = &path_str.replace("/", "\\");
             let path = PathBuf::from(path_str);
             if path.is_relative() {
-                eprintln!("path is relative");
                 let lib_abs = abs_dir.join(path);
-                eprintln!("--'{:?}'", lib_abs.as_os_str());
                 log::debug!("Rewriting {} to '{}'", value_id, lib_abs.as_os_str().to_string_lossy());
-                eprintln!("--Rewriting {} to '{}'", value_id, lib_abs.as_os_str().to_string_lossy());
                 *existing_path = value::Value::String(lib_abs.as_os_str().to_string_lossy().into())
             }
             Ok(())
