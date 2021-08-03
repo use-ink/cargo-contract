@@ -22,7 +22,6 @@ use crate::OptimizationPasses;
 use std::{
     convert::TryFrom,
     collections::HashSet,
-    ffi::OsString,
     fs,
     path::{Path, PathBuf},
 };
@@ -369,6 +368,10 @@ impl Manifest {
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+            #[cfg(windows)]
+            // On Windows path separators are `\`, hence we need to replace the `/` in
+            // e.g. `src/lib.rs`.
+            let path_str = &path_str.replace("/", "\\");
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);

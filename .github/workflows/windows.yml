@@ -53,4 +53,4 @@ jobs:
           wasm-opt --version
           cargo -vV
 
-          cargo test --verbose --workspace --all-features -- building_contract_with_source_file_in_subfolder_must_work
+          cargo test -- building_contract_with_source_file_in_subfolder_must_work
