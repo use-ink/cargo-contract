@@ -371,7 +371,9 @@ impl Manifest {
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
             #[cfg(windows)]
-            let path_str = path_str.replace("/", "\\").as_str();
+            let path_str_replaced = path_str.replace("/", "\\");
+            #[cfg(windows)]
+            let path_str = path_str_replaced.as_str();
             eprintln!("path: {:?}", OsString::from(path_str));
             let path = PathBuf::from(path_str);
             if path.is_relative() {
