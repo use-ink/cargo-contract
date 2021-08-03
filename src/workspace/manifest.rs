@@ -370,9 +370,10 @@ impl Manifest {
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+            #[cfg(windows)]
+            let path_str = path_str.replace("/", "\\").to_str();
             eprintln!("path: {:?}", OsString::from(path_str));
-            eprintln!("path: {:?}", OsString::from(path_str).as_os_str());
-            let path = PathBuf::from(OsString::from(path_str));
+            let path = PathBuf::from(path_str);
             if path.is_relative() {
                 eprintln!("path is relative");
                 let lib_abs = abs_dir.join(path);
