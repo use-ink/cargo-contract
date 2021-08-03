@@ -1114,13 +1114,11 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             let path = manifest_path.directory().expect("dir must exist");
-            let old_path = path.join(Path::new("lib.rs"));
-            let new_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
+            let old_lib_path = path.join(Path::new("lib.rs"));
+            let new_lib_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
             let new_dir_path = path.join(Path::new("srcfoo"));
-            eprintln!("old path: {:?}", old_path);
-            eprintln!("new path: {:?}", new_path);
             std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
-            std::fs::rename(old_path, new_path).expect("moving must work");
+            std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
 
             let mut manifest =
                 Manifest::new(manifest_path.clone()).expect("creating manifest must work");
@@ -1130,7 +1128,6 @@ mod tests_ci_only {
             manifest.write(&manifest_path).expect("writing must work");
 
             // when
-            eprintln!("executing");
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
