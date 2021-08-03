@@ -195,7 +195,6 @@ fn exec_cargo_for_wasm_target(
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
-    eprintln!("exec_cargo_for_wasm_target");
     util::assert_channel()?;
 
     // set linker args via RUSTFLAGS.
@@ -206,7 +205,6 @@ fn exec_cargo_for_wasm_target(
     );
 
     let cargo_build = |manifest_path: &ManifestPath| {
-        eprintln!("cargo build");
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
         let mut args = vec![
@@ -220,15 +218,12 @@ fn exec_cargo_for_wasm_target(
         if build_mode == BuildMode::Debug {
             args.push("--features=ink_env/ink-debug");
         }
-        eprintln!("invoke cargo");
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
-        eprintln!("invoked cargo");
 
         Ok(())
     };
 
     if unstable_flags.original_manifest {
-        eprintln!("original manifest");
         maybe_println!(
             verbosity,
             "{} {}",
@@ -238,7 +233,6 @@ fn exec_cargo_for_wasm_target(
         );
         cargo_build(&crate_metadata.manifest_path)?;
     } else {
-        eprintln!("workspace");
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
@@ -597,10 +591,8 @@ pub(crate) fn execute(
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
 ) -> Result<BuildResult> {
-    eprintln!("collecting");
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
-    eprintln!("asserting");
     assert_compatible_ink_dependencies(manifest_path, verbosity)?;
     if build_mode == BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;

@@ -389,11 +389,9 @@ impl Manifest {
 
             match table.get_mut("path") {
                 Some(existing_path) => {
-                    eprintln!("to_absolute {}", existing_path);
                     to_absolute(format!("[{}]/path", table_section), existing_path)
                 }
                 None => {
-                    eprintln!("using default path");
                     let default_path = PathBuf::from(default);
                     if !default_path.exists() {
                         anyhow::bail!(
@@ -414,7 +412,6 @@ impl Manifest {
 
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = self.toml.get_mut("lib") {
-            eprintln!("------rewriting path to src/lib.rs");
             rewrite_path(lib, "lib", "src\\lib.rs")?;
         }
 

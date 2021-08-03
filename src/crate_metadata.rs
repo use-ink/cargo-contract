@@ -54,7 +54,6 @@ impl CrateMetadata {
             .expect("lib name not found")
             .name
             .replace("-", "_");
-        eprintln!("lib_name {:?}", lib_name);
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
