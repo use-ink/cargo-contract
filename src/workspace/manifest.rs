@@ -365,14 +365,17 @@ impl Manifest {
             .expect("The manifest path is a file path so has a parent; qed");
 
         let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
+            eprintln!("in to_absolute");
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
             let path = PathBuf::from(path_str);
             if path.is_relative() {
+                eprintln!("path is relative");
                 let lib_abs = abs_dir.join(path);
+                eprintln!("--'{:?}'", lib_abs.as_os_str());
                 log::debug!("Rewriting {} to '{}'", value_id, lib_abs.as_os_str().to_string_lossy());
-                eprintln!("Rewriting {} to '{}'", value_id, lib_abs.as_os_str().to_string_lossy());
+                eprintln!("--Rewriting {} to '{}'", value_id, lib_abs.as_os_str().to_string_lossy());
                 *existing_path = value::Value::String(lib_abs.as_os_str().to_string_lossy().into())
             }
             Ok(())
