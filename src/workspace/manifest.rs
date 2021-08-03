@@ -407,7 +407,8 @@ impl Manifest {
 
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = self.toml.get_mut("lib") {
-            rewrite_path(lib, "lib", "src/lib.rs")?;
+            eprintln!("------rewriting path to src/lib.rs");
+            rewrite_path(lib, "lib", "src\lib.rs")?;
         }
 
         // Rewrite `[[bin]] path = /path/to/main.rs`
