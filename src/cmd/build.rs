@@ -201,7 +201,7 @@ fn exec_cargo_for_wasm_target(
     // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
     std::env::set_var(
         "RUSTFLAGS",
-        "-C link-arg=-z -C link-arg=stack-size=65536 -C link-arg=--import-memory",
+        "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory",
     );
 
     let cargo_build = |manifest_path: &ManifestPath| {
@@ -940,8 +940,13 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
-            assert!(format!("{:?}", res)
-                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
+            assert!(
+                format!("{:?}", res).starts_with(
+                    "Err(Your wasm-opt version is 98, but we require a version >= 99."
+                ),
+                "Expected a different output, found {:?}",
+                res
+            );
 
             Ok(())
         })
