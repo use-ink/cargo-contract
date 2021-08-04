@@ -51,10 +51,8 @@ where
 {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
-    eprintln!("cmd {:?}", cmd);
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
-        eprintln!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
 
@@ -67,7 +65,6 @@ where
     };
 
     log::info!("Invoking cargo: {:?}", cmd);
-    eprintln!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -79,8 +76,6 @@ where
     if output.status.success() {
         Ok(output.stdout)
     } else {
-        eprintln!("output stdout: {:?}", output.stdout);
-        eprintln!("output stderr: {:?}", output.stderr);
         anyhow::bail!(
             "`{:?}` failed with exit code: {:?}",
             cmd,

@@ -66,7 +66,6 @@ pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Res
     );
 
     let stdout = util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity)?;
-    eprintln!("after stdout");
 
     Ok(TestResult { stdout, verbosity })
 }
