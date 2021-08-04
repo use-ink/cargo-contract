@@ -45,12 +45,16 @@ More relevant links:
   * [Homebrew](https://formulae.brew.sh/formula/binaryen): `brew install binaryen`
   * [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
   * Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
-    
+
   There's only an old version in your distributions package manager? Just use a 
   [binary release](https://github.com/WebAssembly/binaryen/releases).
-  
+
 * Step 3: `cargo install --force cargo-contract`
 
+### Docker Image
+If you'd prefer to use Docker instead we have a Docker image [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux)
+which contains the dependencies needed to build `cargo-contract`, as well as
+`cargo-contract` itself. 
 
 ## Usage
 
