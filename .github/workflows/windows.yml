@@ -50,4 +50,4 @@ jobs:
 
       - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
-          cargo test --verbose --all-features --workspace -- --nocapture passing_tests_yield_stdout
+          cargo test --verbose --all-features --workspace -- --nocapture

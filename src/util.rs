@@ -79,6 +79,8 @@ where
     if output.status.success() {
         Ok(output.stdout)
     } else {
+        eprintln!("output stdout: {:?}", output.stdout);
+        eprintln!("output stderr: {:?}", output.stderr);
         anyhow::bail!(
             "`{:?}` failed with exit code: {:?}",
             cmd,
