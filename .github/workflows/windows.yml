@@ -56,6 +56,8 @@ jobs:
           cargo run -- contract new foobar
           echo "[workspace]" >> foobar/Cargo.toml
           cargo run -- contract build --manifest-path=foobar/Cargo.toml
+          cargo run -- contract check --manifest-path=foobar/Cargo.toml
+          cargo run -- contract test --manifest-path=foobar/Cargo.toml
 
       - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
         # The tests take a long time in the GitHub Actions runner (~30 mins),
