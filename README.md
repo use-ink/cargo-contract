@@ -54,7 +54,7 @@ More relevant links:
 ### Docker Image
 If you'd prefer to use Docker instead we have a Docker image [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux)
 which contains the dependencies needed to build `cargo-contract`, as well as
-`cargo-contract` itself. 
+a pre-built `cargo-contract` binary which you can just execute.
 
 ## Usage
 
@@ -101,4 +101,3 @@ The entire code within this repository is licensed under the [GPLv3](LICENSE).
 
 Please [contact us](https://www.parity.io/contact/) if you have questions about
 the licensing of our products.
-
