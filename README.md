@@ -52,6 +52,7 @@ More relevant links:
 * Step 3: `cargo install --force cargo-contract`
 
 ### Docker Image
+
 If you'd prefer to use Docker instead we have a Docker image [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux)
 which contains the dependencies needed to build `cargo-contract`, as well as
 a pre-built `cargo-contract` binary which you can just execute.
