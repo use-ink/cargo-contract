@@ -599,6 +599,8 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
+// TODO: Maybe turn these args into a struct
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
@@ -1217,6 +1219,46 @@ mod tests_ci_only {
             // we specified that debug symbols should be kept
             assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
 
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn outputs_json() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let build_mode = BuildMode::Debug;
+
+            let build_result = crate::BuildResult {
+                dest_wasm: Some(PathBuf::default()),
+                metadata_result: Some(crate::MetadataResult {
+                    dest_metadata: Default::default(),
+                    dest_bundle: Default::default(),
+                }),
+                target_directory: PathBuf::default(),
+                optimization_result: Some(crate::OptimizationResult::default()),
+                build_mode: BuildMode::Debug,
+                build_artifact: BuildArtifacts::All,
+                verbosity: Verbosity::default(),
+                output_type: OutputType::Json,
+            };
+            let j = serde_json::to_string_pretty(&build_result).unwrap();
+
+            // when
+            let res = super::execute(
+                &manifest_path,
+                Verbosity::Default,
+                build_mode,
+                BuildArtifacts::All,
+                UnstableFlags::default(),
+                OptimizationPasses::default(),
+                Default::default(),
+                OutputType::Json,
+            );
+
+            // then
+            assert!(j, res.serialize_json());
+            // assert!(res.is_ok(), "building template in debug mode failed!");
             Ok(())
         })
     }
