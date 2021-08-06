@@ -1224,48 +1224,21 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn outputs_json() {
+    fn build_result_seralization_sanity_check() {
         with_new_contract_project(|manifest_path| {
-            // given
-            let build_mode = BuildMode::Debug;
-            dbg!(&manifest_path);
-
-            let build_result = crate::BuildResult {
-                dest_wasm: Some(PathBuf::default()),
-                metadata_result: Some(crate::MetadataResult {
-                    dest_metadata: Default::default(),
-                    dest_bundle: Default::default(),
-                }),
-                target_directory: PathBuf::default(),
-                optimization_result: Some(crate::OptimizationResult {
-                    dest_wasm: Default::default(),
-                    original_size: Default::default(),
-                    optimized_size: Default::default(),
-                }),
-                build_mode: BuildMode::Debug,
-                build_artifact: BuildArtifacts::All,
-                verbosity: Verbosity::Quiet,
-                output_type: OutputType::Json,
-            };
-
-            let j = serde_json::to_string_pretty(&build_result).unwrap();
-            dbg!(&j);
-
-            // when
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
-                build_mode,
+                BuildMode::Release,
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 Default::default(),
                 OutputType::Json,
-            );
+            )
+            .expect("build failed");
 
-            // then
-            assert_eq!(j, res.unwrap().serialize_json());
-            // assert!(res.is_ok(), "building template in debug mode failed!");
+            assert!(res.serialize_json().is_ok());
             Ok(())
         })
     }
