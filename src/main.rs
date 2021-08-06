@@ -294,6 +294,7 @@ impl Display for BuildMode {
     }
 }
 
+/// The type of output to display at the end of a build.
 pub enum OutputType {
     /// Output build results in a human readable format.
     HumanReadable,
@@ -510,12 +511,9 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::Build(build) => {
             let result = build.exec()?;
 
-            // How should this play with the verbosity argument?
             if matches!(result.output_type, OutputType::Json) {
-                return Ok(Some(result.serialize_json()));
-            }
-
-            if result.verbosity.is_verbose() {
+                Ok(Some(result.serialize_json()))
+            } else if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {
                 Ok(None)

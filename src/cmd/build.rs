@@ -113,7 +113,7 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         // The CLI flag `optimization-passes` overwrites optimization passes which are
         // potentially defined in the `Cargo.toml` profile.
@@ -139,6 +139,11 @@ impl BuildCommand {
             true => OutputType::Json,
             false => OutputType::HumanReadable,
         };
+
+        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
+        if matches!(output_type, OutputType::Json) {
+            verbosity = Verbosity::Quiet;
+        }
 
         execute(
             &manifest_path,
