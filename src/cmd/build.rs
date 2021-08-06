@@ -104,7 +104,7 @@ pub struct BuildCommand {
     keep_debug_symbols: bool,
 
     /// Export the build output in JSON format.
-    #[structopt(long)]
+    #[structopt(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
