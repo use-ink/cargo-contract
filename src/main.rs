@@ -416,9 +416,8 @@ impl BuildResult {
     }
 
     /// Display the build results in a pretty formatted JSON string.
-    pub fn serialize_json(&self) -> String {
-        serde_json::to_string_pretty(self)
-            .expect("Since the built execution finished our BuiltResult must be non-empty.")
+    pub fn serialize_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 }
 
@@ -512,7 +511,7 @@ fn exec(cmd: Command) -> Result<Option<String>> {
             let result = build.exec()?;
 
             if matches!(result.output_type, OutputType::Json) {
-                Ok(Some(result.serialize_json()))
+                Ok(Some(result.serialize_json()?))
             } else if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {
