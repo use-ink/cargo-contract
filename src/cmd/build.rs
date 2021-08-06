@@ -599,7 +599,7 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-// TODO: Maybe turn these args into a struct
+// Maybe turn these args into a struct
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
