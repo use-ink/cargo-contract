@@ -704,7 +704,7 @@ mod tests_ci_only {
         cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
-        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, UnstableFlags,
+        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableFlags,
         UnstableOptions, Verbosity, VerbosityFlags,
     };
     use semver::Version;
@@ -768,6 +768,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 false,
+                OutputType::default(),
             )
             .expect("build failed");
 
@@ -813,6 +814,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 false,
+                OutputType::default(),
             )
             .expect("build failed");
 
@@ -847,6 +849,7 @@ mod tests_ci_only {
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
                 keep_debug_symbols: false,
+                output_json: false,
             };
 
             // when
@@ -886,6 +889,7 @@ mod tests_ci_only {
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
                 keep_debug_symbols: false,
+                output_json: false,
             };
 
             // when
@@ -1050,6 +1054,7 @@ mod tests_ci_only {
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
                 keep_debug_symbols: false,
+                output_json: false,
             };
             let res = cmd.exec().expect("build failed");
 
@@ -1103,6 +1108,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 Default::default(),
+                Default::default(),
             );
 
             // then
@@ -1125,6 +1131,7 @@ mod tests_ci_only {
                 BuildArtifacts::All,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
+                Default::default(),
                 Default::default(),
             );
 
@@ -1161,6 +1168,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 Default::default(),
+                Default::default(),
             );
 
             // then
@@ -1180,6 +1188,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 true,
+                OutputType::default(),
             )
             .expect("build failed");
 
@@ -1201,6 +1210,7 @@ mod tests_ci_only {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 true,
+                OutputType::default(),
             )
             .expect("build failed");
 

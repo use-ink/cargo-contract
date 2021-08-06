@@ -227,7 +227,7 @@ mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
         cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, BuildArtifacts,
-        BuildMode, ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
+        BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableFlags, Verbosity,
     };
     use anyhow::Context;
     use contract_metadata::*;
@@ -328,6 +328,7 @@ mod tests {
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
                 false,
+                OutputType::default(),
             )?;
             let dest_bundle = build_result
                 .metadata_result
