@@ -38,6 +38,7 @@ use url::Url;
 const METADATA_FILE: &str = "metadata.json";
 
 /// Metadata generation result.
+#[derive(serde::Serialize)]
 pub struct MetadataResult {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,

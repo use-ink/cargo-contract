@@ -170,7 +170,7 @@ pub struct VerbosityFlags {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize)]
 pub enum Verbosity {
     /// Use default output
     Default,
@@ -235,7 +235,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt, serde::Serialize)]
 #[structopt(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
@@ -271,7 +271,7 @@ impl std::str::FromStr for BuildArtifacts {
 }
 
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     Debug,
@@ -294,7 +294,21 @@ impl Display for BuildMode {
     }
 }
 
+pub enum OutputType {
+    /// Output build results in a human readable format.
+    HumanReadable,
+    /// Output the build results JSON formatted.
+    Json,
+}
+
+impl Default for OutputType {
+    fn default() -> Self {
+        OutputType::HumanReadable
+    }
+}
+
 /// Result of the metadata generation process.
+#[derive(serde::Serialize)]
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
@@ -310,9 +324,13 @@ pub struct BuildResult {
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
     pub verbosity: Verbosity,
+    /// The type of formatting to use for the built output.
+    #[serde(skip_serializing)]
+    pub output_type: OutputType,
 }
 
 /// Result of the optimization process.
+#[derive(serde::Serialize)]
 pub struct OptimizationResult {
     /// The path of the optimized wasm file.
     pub dest_wasm: PathBuf,
@@ -394,6 +412,12 @@ impl BuildResult {
             .as_ref()
             .expect("optimization result must exist");
         (optimization.original_size, optimization.optimized_size)
+    }
+
+    /// Display the build results in a pretty formatted JSON string.
+    pub fn serialize_json(&self) -> String {
+        serde_json::to_string_pretty(self)
+            .expect("Since the built execution finished our BuiltResult must be non-empty.")
     }
 }
 
@@ -485,6 +509,12 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
+
+            // How should this play with the verbosity argument?
+            if matches!(result.output_type, OutputType::Json) {
+                return Ok(Some(result.serialize_json()));
+            }
+
             if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {

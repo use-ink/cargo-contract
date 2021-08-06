@@ -18,8 +18,8 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{Manifest, ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildMode, BuildResult, OptimizationPasses, OptimizationResult, UnstableFlags,
-    UnstableOptions, Verbosity, VerbosityFlags,
+    BuildArtifacts, BuildMode, BuildResult, OptimizationPasses, OptimizationResult, OutputType,
+    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -102,6 +102,10 @@ pub struct BuildCommand {
     /// This is useful if one wants to analyze or debug the optimized binary.
     #[structopt(long)]
     keep_debug_symbols: bool,
+
+    /// Export the build output in JSON format.
+    #[structopt(long)]
+    output_json: bool,
 }
 
 impl BuildCommand {
@@ -130,6 +134,12 @@ impl BuildCommand {
             true => BuildMode::Release,
             false => BuildMode::Debug,
         };
+
+        let output_type = match self.output_json {
+            true => OutputType::Json,
+            false => OutputType::HumanReadable,
+        };
+
         execute(
             &manifest_path,
             verbosity,
@@ -138,6 +148,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes,
             self.keep_debug_symbols,
+            output_type,
         )
     }
 }
@@ -168,6 +179,7 @@ impl CheckCommand {
             unstable_flags,
             OptimizationPasses::Zero,
             false,
+            OutputType::default(),
         )
     }
 }
@@ -590,6 +602,7 @@ pub(crate) fn execute(
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
+    output_type: OutputType,
 ) -> Result<BuildResult> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
@@ -662,6 +675,7 @@ pub(crate) fn execute(
         }
     };
     let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
+
     Ok(BuildResult {
         dest_wasm,
         metadata_result,
@@ -670,6 +684,7 @@ pub(crate) fn execute(
         build_mode,
         build_artifact,
         verbosity,
+        output_type,
     })
 }
 
