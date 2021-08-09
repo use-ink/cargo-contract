@@ -39,6 +39,18 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+#[derive(Default)]
+pub(crate) struct ExecuteArgs {
+    manifest_path: ManifestPath,
+    verbosity: Verbosity,
+    build_mode: BuildMode,
+    build_artifact: BuildArtifacts,
+    unstable_flags: UnstableFlags,
+    optimization_passes: OptimizationPasses,
+    keep_debug_symbols: bool,
+    output_type: OutputType,
+}
+
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
@@ -145,16 +157,18 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        execute(
-            &manifest_path,
+        let args = ExecuteArgs {
+            manifest_path,
             verbosity,
             build_mode,
-            self.build_artifact,
+            build_artifact: self.build_artifact,
             unstable_flags,
             optimization_passes,
-            self.keep_debug_symbols,
+            keep_debug_symbols: self.keep_debug_symbols,
             output_type,
-        )
+        };
+
+        execute(args)
     }
 }
 
@@ -176,16 +190,19 @@ impl CheckCommand {
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        execute(
-            &manifest_path,
+
+        let args = ExecuteArgs {
+            manifest_path,
             verbosity,
-            BuildMode::Debug,
-            BuildArtifacts::CheckOnly,
+            build_mode: BuildMode::Debug,
+            build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags,
-            OptimizationPasses::Zero,
-            false,
-            OutputType::default(),
-        )
+            optimization_passes: OptimizationPasses::Zero,
+            keep_debug_symbols: false,
+            output_type: OutputType::default(),
+        };
+
+        execute(args)
     }
 }
 
@@ -600,20 +617,21 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 // Maybe turn these args into a struct
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn execute(
-    manifest_path: &ManifestPath,
-    verbosity: Verbosity,
-    build_mode: BuildMode,
-    build_artifact: BuildArtifacts,
-    unstable_flags: UnstableFlags,
-    optimization_passes: OptimizationPasses,
-    keep_debug_symbols: bool,
-    output_type: OutputType,
-) -> Result<BuildResult> {
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+    let ExecuteArgs {
+        manifest_path,
+        verbosity,
+        build_mode,
+        build_artifact,
+        unstable_flags,
+        optimization_passes,
+        keep_debug_symbols,
+        output_type,
+    } = args;
 
-    assert_compatible_ink_dependencies(manifest_path, verbosity)?;
+    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+
+    assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
     if build_mode == BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
