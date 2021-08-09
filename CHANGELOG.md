@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Use new dependency resolver for template contract [#325](https://github.com/paritytech/cargo-contract/pull/325)
+
 ## [0.13.1] - 2021-08-03
 
 ### Fixed
