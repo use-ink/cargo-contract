@@ -39,6 +39,7 @@ use structopt::StructOpt;
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Arguments to use when executing `build` or `check` commands.
 #[derive(Default)]
 pub(crate) struct ExecuteArgs {
     manifest_path: ManifestPath,
@@ -49,6 +50,16 @@ pub(crate) struct ExecuteArgs {
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
     output_type: OutputType,
+}
+
+impl ExecuteArgs {
+    /// Construct a default set of `ExecuteArgs` with the given `ManifestPath`.
+    pub(crate) fn with_manifest(manifest_path: ManifestPath) -> Self {
+        Self {
+            manifest_path,
+            ..Default::default()
+        }
+    }
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -724,8 +735,8 @@ mod tests_ci_only {
         cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
-        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableFlags,
-        UnstableOptions, Verbosity, VerbosityFlags,
+        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions,
+        Verbosity, VerbosityFlags,
     };
     use semver::Version;
     #[cfg(unix)]
@@ -780,17 +791,13 @@ mod tests_ci_only {
     #[test]
     fn build_code_only() {
         with_new_contract_project(|manifest_path| {
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::default(),
-                BuildArtifacts::CodeOnly,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                false,
-                OutputType::default(),
-            )
-            .expect("build failed");
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_artifact: BuildArtifacts::CodeOnly,
+                ..Default::default()
+            };
+
+            let res = super::execute(args).expect("build failed");
 
             // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
             // this dir does not include `/target/` as a path, hence
@@ -824,19 +831,14 @@ mod tests_ci_only {
         with_new_contract_project(|manifest_path| {
             // given
             let project_dir = manifest_path.directory().expect("directory must exist");
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path: manifest_path.clone(),
+                build_artifact: BuildArtifacts::CheckOnly,
+                ..Default::default()
+            };
 
             // when
-            super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::default(),
-                BuildArtifacts::CheckOnly,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                false,
-                OutputType::default(),
-            )
-            .expect("build failed");
+            super::execute(args).expect("build failed");
 
             // then
             assert!(
@@ -1117,19 +1119,14 @@ mod tests_ci_only {
     fn building_template_in_debug_mode_must_work() {
         with_new_contract_project(|manifest_path| {
             // given
-            let build_mode = BuildMode::Debug;
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_mode: BuildMode::Debug,
+                ..Default::default()
+            };
 
             // when
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                build_mode,
-                BuildArtifacts::All,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                Default::default(),
-                Default::default(),
-            );
+            let res = super::execute(args);
 
             // then
             assert!(res.is_ok(), "building template in debug mode failed!");
@@ -1141,19 +1138,14 @@ mod tests_ci_only {
     fn building_template_in_release_mode_must_work() {
         with_new_contract_project(|manifest_path| {
             // given
-            let build_mode = BuildMode::Release;
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_mode: BuildMode::Release,
+                ..Default::default()
+            };
 
             // when
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                build_mode,
-                BuildArtifacts::All,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                Default::default(),
-                Default::default(),
-            );
+            let res = super::execute(args);
 
             // then
             assert!(res.is_ok(), "building template in release mode failed!");
@@ -1179,17 +1171,14 @@ mod tests_ci_only {
                 .expect("setting lib path must work");
             manifest.write(&manifest_path).expect("writing must work");
 
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_artifact: BuildArtifacts::CheckOnly,
+                ..Default::default()
+            };
+
             // when
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::default(),
-                BuildArtifacts::CheckOnly,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                Default::default(),
-                Default::default(),
-            );
+            let res = super::execute(args);
 
             // then
             assert!(res.is_ok(), "building contract failed!");
@@ -1200,17 +1189,15 @@ mod tests_ci_only {
     #[test]
     fn keep_debug_symbols_in_debug_mode() {
         with_new_contract_project(|manifest_path| {
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::Debug,
-                BuildArtifacts::CodeOnly,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                true,
-                OutputType::default(),
-            )
-            .expect("build failed");
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_mode: BuildMode::Debug,
+                build_artifact: BuildArtifacts::CodeOnly,
+                keep_debug_symbols: true,
+                ..Default::default()
+            };
+
+            let res = super::execute(args).expect("build failed");
 
             // we specified that debug symbols should be kept
             assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
@@ -1222,17 +1209,15 @@ mod tests_ci_only {
     #[test]
     fn keep_debug_symbols_in_release_mode() {
         with_new_contract_project(|manifest_path| {
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::Release,
-                BuildArtifacts::CodeOnly,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                true,
-                OutputType::default(),
-            )
-            .expect("build failed");
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_mode: BuildMode::Release,
+                build_artifact: BuildArtifacts::CodeOnly,
+                keep_debug_symbols: true,
+                ..Default::default()
+            };
+
+            let res = super::execute(args).expect("build failed");
 
             // we specified that debug symbols should be kept
             assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
@@ -1244,17 +1229,13 @@ mod tests_ci_only {
     #[test]
     fn build_result_seralization_sanity_check() {
         with_new_contract_project(|manifest_path| {
-            let res = super::execute(
-                &manifest_path,
-                Verbosity::Default,
-                BuildMode::Release,
-                BuildArtifacts::All,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                Default::default(),
-                OutputType::Json,
-            )
-            .expect("build failed");
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                output_type: OutputType::Json,
+                ..Default::default()
+            };
+
+            let res = super::execute(args).expect("build failed");
 
             assert!(res.serialize_json().is_ok());
             Ok(())
