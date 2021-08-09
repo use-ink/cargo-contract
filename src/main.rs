@@ -180,6 +180,12 @@ pub enum Verbosity {
     Verbose,
 }
 
+impl Default for Verbosity {
+    fn default() -> Self {
+        Verbosity::Default
+    }
+}
+
 impl Verbosity {
     /// Returns `true` if output should be printed (i.e. verbose output is set).
     pub(crate) fn is_verbose(&self) -> bool {
@@ -267,6 +273,12 @@ impl std::str::FromStr for BuildArtifacts {
             "code-only" => Ok(BuildArtifacts::CodeOnly),
             _ => Err("Could not parse build artifact".to_string()),
         }
+    }
+}
+
+impl Default for BuildArtifacts {
+    fn default() -> Self {
+        BuildArtifacts::All
     }
 }
 
