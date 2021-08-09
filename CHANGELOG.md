@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+-  Add option for JSON formatted output [#324](https://github.com/paritytech/cargo-contract/pull/324)
+
 ## [0.13.1] - 2021-08-03
 
 ### Fixed
