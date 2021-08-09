@@ -319,12 +319,8 @@ mod tests {
             fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-            let args = crate::cmd::build::ExecuteArgs::with_manifest(test_manifest.manifest_path);
-            // args.manifest_path = test_manifest.manifest_path;
-            // {
-            //     manifest_path: test_manifest.manifest_path,
-            //     ..Default::default()
-            // };
+            let mut args = crate::cmd::build::ExecuteArgs::default();
+            args.manifest_path = test_manifest.manifest_path;
 
             let build_result = cmd::build::execute(args)?;
             let dest_bundle = build_result
