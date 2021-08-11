@@ -579,3 +579,54 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_result_seralization_sanity_check() {
+        // given
+        let raw_result = r#"{
+  "dest_wasm": "/path/to/contract.wasm",
+  "metadata_result": {
+    "dest_metadata": "/path/to/metadata.json",
+    "dest_bundle": "/path/to/contract.contract"
+  },
+  "target_directory": "/path/to/target",
+  "optimization_result": {
+    "dest_wasm": "/path/to/contract.wasm",
+    "original_size": 64.0,
+    "optimized_size": 32.0
+  },
+  "build_mode": "Debug",
+  "build_artifact": "All",
+  "verbosity": "Quiet"
+}"#;
+
+        let build_result = crate::BuildResult {
+            dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
+            metadata_result: Some(crate::cmd::metadata::MetadataResult {
+                dest_metadata: PathBuf::from("/path/to/metadata.json"),
+                dest_bundle: PathBuf::from("/path/to/contract.contract"),
+            }),
+            target_directory: PathBuf::from("/path/to/target"),
+            optimization_result: Some(crate::OptimizationResult {
+                dest_wasm: PathBuf::from("/path/to/contract.wasm"),
+                original_size: 64.0,
+                optimized_size: 32.0,
+            }),
+            build_mode: Default::default(),
+            build_artifact: Default::default(),
+            verbosity: Verbosity::Quiet,
+            output_type: OutputType::Json,
+        };
+
+        // when
+        let serialized_result = build_result.serialize_json();
+
+        // then
+        assert!(serialized_result.is_ok());
+        assert_eq!(serialized_result.unwrap(), raw_result);
+    }
+}

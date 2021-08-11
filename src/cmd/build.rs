@@ -725,8 +725,8 @@ mod tests_ci_only {
         cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
-        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions,
-        Verbosity, VerbosityFlags,
+        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, UnstableOptions, Verbosity,
+        VerbosityFlags,
     };
     use semver::Version;
     #[cfg(unix)]
@@ -1212,25 +1212,6 @@ mod tests_ci_only {
             // we specified that debug symbols should be kept
             assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
 
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn build_result_seralization_sanity_check() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                output_type: OutputType::Json,
-                ..Default::default()
-            };
-
-            // when
-            let res = super::execute(args).expect("build failed");
-
-            // then
-            assert!(res.serialize_json().is_ok());
             Ok(())
         })
     }
