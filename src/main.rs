@@ -337,7 +337,7 @@ pub struct BuildResult {
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
     pub verbosity: Verbosity,
-    /// The type of formatting to use for the built output.
+    /// The type of formatting to use for the build output.
     #[serde(skip_serializing)]
     pub output_type: OutputType,
 }

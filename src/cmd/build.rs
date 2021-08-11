@@ -618,7 +618,6 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-// Maybe turn these args into a struct
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
@@ -1220,14 +1219,17 @@ mod tests_ci_only {
     #[test]
     fn build_result_seralization_sanity_check() {
         with_new_contract_project(|manifest_path| {
+            // given
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 output_type: OutputType::Json,
                 ..Default::default()
             };
 
+            // when
             let res = super::execute(args).expect("build failed");
 
+            // then
             assert!(res.serialize_json().is_ok());
             Ok(())
         })
