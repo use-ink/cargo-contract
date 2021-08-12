@@ -726,8 +726,8 @@ mod tests_ci_only {
         cmd::{build::load_module, BuildCommand},
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
-        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, UnstableOptions, Verbosity,
-        VerbosityFlags,
+        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions,
+        Verbosity, VerbosityFlags,
     };
     use semver::Version;
     #[cfg(unix)]
