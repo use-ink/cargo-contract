@@ -471,6 +471,7 @@ fn do_optimization(
     if keep_debug_symbols {
         command.arg("-g");
     }
+    log::info!("Invoking wasm-opt with {:?}", command);
     let output = command.output().map_err(|err| {
         anyhow::anyhow!(
             "Executing {} failed with {:?}",
