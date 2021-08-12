@@ -38,6 +38,7 @@ use url::Url;
 const METADATA_FILE: &str = "metadata.json";
 
 /// Metadata generation result.
+#[derive(serde::Serialize)]
 pub struct MetadataResult {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
@@ -225,8 +226,7 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 mod tests {
     use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, BuildArtifacts,
-        BuildMode, ManifestPath, OptimizationPasses, UnstableFlags, Verbosity,
+        cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, ManifestPath,
     };
     use anyhow::Context;
     use contract_metadata::*;
@@ -319,15 +319,10 @@ mod tests {
             fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-            let build_result = cmd::build::execute(
-                &test_manifest.manifest_path,
-                Verbosity::Default,
-                BuildMode::default(),
-                BuildArtifacts::All,
-                UnstableFlags::default(),
-                OptimizationPasses::default(),
-                false,
-            )?;
+            let mut args = crate::cmd::build::ExecuteArgs::default();
+            args.manifest_path = test_manifest.manifest_path;
+
+            let build_result = cmd::build::execute(args)?;
             let dest_bundle = build_result
                 .metadata_result
                 .expect("Metadata should be generated")

@@ -170,7 +170,7 @@ pub struct VerbosityFlags {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize)]
 pub enum Verbosity {
     /// Use default output
     Default,
@@ -178,6 +178,12 @@ pub enum Verbosity {
     Quiet,
     /// Use verbose output
     Verbose,
+}
+
+impl Default for Verbosity {
+    fn default() -> Self {
+        Verbosity::Default
+    }
 }
 
 impl Verbosity {
@@ -235,7 +241,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt, serde::Serialize)]
 #[structopt(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
@@ -270,8 +276,14 @@ impl std::str::FromStr for BuildArtifacts {
     }
 }
 
+impl Default for BuildArtifacts {
+    fn default() -> Self {
+        BuildArtifacts::All
+    }
+}
+
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     Debug,
@@ -294,7 +306,22 @@ impl Display for BuildMode {
     }
 }
 
+/// The type of output to display at the end of a build.
+pub enum OutputType {
+    /// Output build results in a human readable format.
+    HumanReadable,
+    /// Output the build results JSON formatted.
+    Json,
+}
+
+impl Default for OutputType {
+    fn default() -> Self {
+        OutputType::HumanReadable
+    }
+}
+
 /// Result of the metadata generation process.
+#[derive(serde::Serialize)]
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
@@ -310,9 +337,13 @@ pub struct BuildResult {
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
     pub verbosity: Verbosity,
+    /// The type of formatting to use for the build output.
+    #[serde(skip_serializing)]
+    pub output_type: OutputType,
 }
 
 /// Result of the optimization process.
+#[derive(serde::Serialize)]
 pub struct OptimizationResult {
     /// The path of the optimized wasm file.
     pub dest_wasm: PathBuf,
@@ -394,6 +425,11 @@ impl BuildResult {
             .as_ref()
             .expect("optimization result must exist");
         (optimization.original_size, optimization.optimized_size)
+    }
+
+    /// Display the build results in a pretty formatted JSON string.
+    pub fn serialize_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 }
 
@@ -485,7 +521,10 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
-            if result.verbosity.is_verbose() {
+
+            if matches!(result.output_type, OutputType::Json) {
+                Ok(Some(result.serialize_json()?))
+            } else if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {
                 Ok(None)
@@ -538,5 +577,56 @@ fn exec(cmd: Command) -> Result<Option<String>> {
             )?;
             Ok(Some(format!("Contract account: {:?}", contract_account)))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_result_seralization_sanity_check() {
+        // given
+        let raw_result = r#"{
+  "dest_wasm": "/path/to/contract.wasm",
+  "metadata_result": {
+    "dest_metadata": "/path/to/metadata.json",
+    "dest_bundle": "/path/to/contract.contract"
+  },
+  "target_directory": "/path/to/target",
+  "optimization_result": {
+    "dest_wasm": "/path/to/contract.wasm",
+    "original_size": 64.0,
+    "optimized_size": 32.0
+  },
+  "build_mode": "Debug",
+  "build_artifact": "All",
+  "verbosity": "Quiet"
+}"#;
+
+        let build_result = crate::BuildResult {
+            dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
+            metadata_result: Some(crate::cmd::metadata::MetadataResult {
+                dest_metadata: PathBuf::from("/path/to/metadata.json"),
+                dest_bundle: PathBuf::from("/path/to/contract.contract"),
+            }),
+            target_directory: PathBuf::from("/path/to/target"),
+            optimization_result: Some(crate::OptimizationResult {
+                dest_wasm: PathBuf::from("/path/to/contract.wasm"),
+                original_size: 64.0,
+                optimized_size: 32.0,
+            }),
+            build_mode: Default::default(),
+            build_artifact: Default::default(),
+            verbosity: Verbosity::Quiet,
+            output_type: OutputType::Json,
+        };
+
+        // when
+        let serialized_result = build_result.serialize_json();
+
+        // then
+        assert!(serialized_result.is_ok());
+        assert_eq!(serialized_result.unwrap(), raw_result);
     }
 }
