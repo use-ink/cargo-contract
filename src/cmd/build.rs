@@ -1215,4 +1215,23 @@ mod tests_ci_only {
             Ok(())
         })
     }
+
+    #[test]
+    fn build_with_json_output_works() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                output_type: OutputType::Json,
+                ..Default::default()
+            };
+
+            // when
+            let res = super::execute(args).expect("build failed");
+
+            // then
+            assert!(res.serialize_json().is_ok());
+            Ok(())
+        })
+    }
 }
