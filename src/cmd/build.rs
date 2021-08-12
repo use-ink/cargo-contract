@@ -744,7 +744,7 @@ mod tests_ci_only {
             let res = super::execute(
                 &manifest_path,
                 Verbosity::Default,
-                BuildMode::default(),
+                BuildMode::Release,
                 BuildArtifacts::CodeOnly,
                 UnstableFlags::default(),
                 OptimizationPasses::default(),
