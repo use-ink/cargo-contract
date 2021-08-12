@@ -210,13 +210,14 @@ fn exec_cargo_for_wasm_target(
         let mut args = vec![
             "--target=wasm32-unknown-unknown",
             "-Zbuild-std",
-            "-Zbuild-std-features=panic_immediate_abort",
             "--no-default-features",
             "--release",
             &target_dir,
         ];
         if build_mode == BuildMode::Debug {
             args.push("--features=ink_env/ink-debug");
+        } else {
+            args.push("-Zbuild-std-features=panic_immediate_abort");
         }
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
 
