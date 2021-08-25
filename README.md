@@ -53,9 +53,23 @@ More relevant links:
 
 ### Docker Image
 
-If you'd prefer to use Docker instead we have a Docker image [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux)
-which contains the dependencies needed to build `cargo-contract`, as well as
-a pre-built `cargo-contract` binary which you can just execute.
+If you prefer to use Docker instead we have a Docker image
+[available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux):
+
+```bash
+# Pull the latest image
+docker pull  paritytech/contracts-ci-linux:production
+
+# Create a new contract in your current directory
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
+  cargo +nightly contract new --target-dir /sources my_contract
+
+# Build the contract. This will create the contract file under
+# `my_contract/target/ink/my_contract.contract`.
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
+  cargo +nightly contract build --manifest-path=/sources/my_contract/Cargo.toml
+```
+
 
 ## Usage
 
