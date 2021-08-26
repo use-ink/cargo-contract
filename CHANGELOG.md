@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Update `cargo contract new` template dependencies to ink! `rc4` - [#332](https://github.com/paritytech/cargo-contract/pull/332)
+
 ## [0.14.0] - 2021-08-12
 
 ### Added
