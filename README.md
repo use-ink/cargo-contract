@@ -58,15 +58,15 @@ If you prefer to use Docker instead we have a Docker image
 
 ```bash
 # Pull the latest image
-docker pull  paritytech/contracts-ci-linux:production
+docker pull  paritytech/contracts-ci-linux
 
 # Create a new contract in your current directory
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
   cargo +nightly contract new --target-dir /sources my_contract
 
 # Build the contract. This will create the contract file under
 # `my_contract/target/ink/my_contract.contract`.
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
   cargo +nightly contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
