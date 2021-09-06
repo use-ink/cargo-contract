@@ -57,10 +57,10 @@ If you prefer to use Docker instead we have a Docker image
 [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux):
 
 ```bash
-# Pull the latest image
+# Pull the latest image.
 docker pull  paritytech/contracts-ci-linux
 
-# Create a new contract in your current directory
+# Create a new contract in your current directory.
 docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
   cargo +nightly contract new --target-dir /sources my_contract
 
