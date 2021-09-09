@@ -594,7 +594,7 @@ dependencies = [
  "ink_env",
  "ink_lang",
  "ink_metadata",
- "ink_primitives 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives",
  "ink_storage",
  "itertools 0.9.0",
  "jsonrpsee",
@@ -1790,8 +1790,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de7684a210829f47a9e49a1500ff39f2e7ab13ffbb18e6f2d37ab88258dfab15"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1799,15 +1798,14 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0357f166ff1b09a631e5b44b692c69ed5ddd2c4d063f8923b21c169a607c226f"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "arrayref",
  "cfg-if 1.0.0",
  "derive_more",
  "ink_allocator",
- "ink_prelude 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude",
+ "ink_primitives",
  "num-traits",
  "parity-scale-codec 2.2.0",
  "paste 1.0.5",
@@ -1818,14 +1816,13 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1f00e630fca0c3c742b19442d0ac368338e99c3cc6c67a09a86d1144b6477ff"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "derive_more",
  "ink_env",
  "ink_lang_macro",
- "ink_prelude 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage",
  "parity-scale-codec 2.2.0",
  "static_assertions",
@@ -1834,8 +1831,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5ee2177ac0844b4a35f12bf76de4aa155f4a27e54124fbc4aef4e636a03644c"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1854,8 +1850,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bba0258bfabda79197a561cd9030804fb9cc65ff0f77ff83527f2eb61743f87"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "blake2",
  "either",
@@ -1869,12 +1864,11 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d858cb965aae55220c2704a1e638ebd1f6ddd9771ff444d538cb077eee66ffcc"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
- "ink_primitives 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_primitives",
  "parity-scale-codec 2.2.0",
  "proc-macro2",
  "syn",
@@ -1887,8 +1881,8 @@ source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21
 dependencies = [
  "derive_more",
  "impl-serde",
- "ink_prelude 3.0.0-rc4 (git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info)",
- "ink_primitives 3.0.0-rc4 (git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info)",
+ "ink_prelude",
+ "ink_primitives",
  "scale-info",
  "serde",
 ]
@@ -1896,15 +1890,6 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d71c2a09306902b63d343ebd26c20fb4319f86f7a15e13a7eed5c216405734e2"
-dependencies = [
- "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "ink_prelude"
-version = "3.0.0-rc4"
 source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "cfg-if 1.0.0",
@@ -1913,34 +1898,23 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ab6d9e021fa0f814d6290e1798c4284f416118b7d25ae2ee37653640bf3fb9c"
-dependencies = [
- "ink_prelude 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
- "parity-scale-codec 2.2.0",
-]
-
-[[package]]
-name = "ink_primitives"
-version = "3.0.0-rc4"
 source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
- "ink_prelude 3.0.0-rc4 (git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info)",
+ "ink_prelude",
  "parity-scale-codec 2.2.0",
 ]
 
 [[package]]
 name = "ink_storage"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1be2c48fc103c54d68b518b4fa95a41db33dfb3c86e86ad809f316e1301479d"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "array-init",
  "cfg-if 1.0.0",
  "derive_more",
  "ink_env",
- "ink_prelude 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.0-rc4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage_derive",
  "parity-scale-codec 2.2.0",
 ]
@@ -1948,8 +1922,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.0-rc4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c491eabbaec4dbb023dd94ca5d076a081c5c06655fb9295d67e3e90ee2b8146"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#21840d49e3f4ed05443f9358dc5be2bccd72c06a"
 dependencies = [
  "proc-macro2",
  "quote",
