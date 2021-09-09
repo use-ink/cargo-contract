@@ -23,10 +23,8 @@ pub(crate) use self::{
     build::{BuildCommand, CheckCommand},
     test::TestCommand,
 };
-#[cfg(feature = "extrinsics")]
 mod extrinsics;
 
-#[cfg(feature = "extrinsics")]
 pub(crate) use self::extrinsics::{
     call::CallCommand, deploy::DeployCommand, instantiate::InstantiateCommand,
 };

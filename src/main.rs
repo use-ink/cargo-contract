@@ -38,11 +38,8 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-#[cfg(feature = "extrinsics")]
 use crate::cmd::{CallCommand, DeployCommand, InstantiateCommand};
-#[cfg(feature = "extrinsics")]
 use sp_core::{crypto::Pair, sr25519};
-#[cfg(feature = "extrinsics")]
 use subxt::PairSigner;
 
 #[derive(Debug, StructOpt)]
@@ -67,7 +64,6 @@ pub(crate) struct ContractArgs {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct HexData(pub Vec<u8>);
 
-#[cfg(feature = "extrinsics")]
 impl std::str::FromStr for HexData {
     type Err = hex::FromHexError;
 
@@ -77,7 +73,6 @@ impl std::str::FromStr for HexData {
 }
 
 /// Arguments required for creating and sending an extrinsic to a substrate node
-#[cfg(feature = "extrinsics")]
 #[derive(Clone, Debug, StructOpt)]
 pub(crate) struct ExtrinsicOpts {
     /// Websockets url of a substrate node
@@ -98,7 +93,6 @@ pub(crate) struct ExtrinsicOpts {
     verbosity: VerbosityFlags,
 }
 
-#[cfg(feature = "extrinsics")]
 impl ExtrinsicOpts {
     pub fn signer(&self) -> Result<PairSigner<subxt::ContractsTemplateRuntime, sr25519::Pair>> {
         let pair =
@@ -467,13 +461,10 @@ enum Command {
     #[structopt(name = "test")]
     Test(TestCommand),
     /// Upload the smart contract code to the chain
-    #[cfg(feature = "extrinsics")]
     #[structopt(name = "deploy")]
     Deploy(DeployCommand),
     /// Instantiate a deployed smart contract
-    #[cfg(feature = "extrinsics")]
     Instantiate(InstantiateCommand),
-    #[cfg(feature = "extrinsics")]
     Call(CallCommand),
 }
 
@@ -534,17 +525,14 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 Ok(None)
             }
         }
-        #[cfg(feature = "extrinsics")]
         Command::Deploy(deploy) => {
             let code_hash = deploy.exec()?;
             Ok(format!("Code hash: {:#x}", code_hash))
         }
-        #[cfg(feature = "extrinsics")]
         Command::Instantiate(instantiate) => {
             let contract_account = instantiate.run()?;
             Ok(format!("Contract account: {}", contract_account))
         }
-        #[cfg(feature = "extrinsics")]
         Command::Call(call) => call.run(),
     }
 }

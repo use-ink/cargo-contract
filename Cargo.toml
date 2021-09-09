@@ -42,22 +42,22 @@ url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.1"
 regex = "1.4"
 
-# dependencies for optional extrinsics feature
-async-std = { version = "1.10.0", optional = true }
-ink_metadata = { version = "3.0.0-rc4", default-features = false, features = ["derive"], optional = true }
-scale-info = { version = "1.0", default-features = false, features = ["derive"], optional = true }
-sp-core = { version = "2.0.1", optional = true }
-subxt = { version = "0.14.0", package = "substrate-subxt", optional = true }
-futures = { version = "0.3.17", optional = true }
-hex = { version = "0.4.3", optional = true }
-jsonrpsee = { version = "0.1.0", optional = true }
-sp-rpc = { version = "2.0.0", optional = true }
-nom = { version = "6.0.0", optional = true }
-indexmap = { version = "1.6.0", optional = true }
-thiserror = { version = "1.0.21", optional = true }
-escape8259 = { version = "0.5.0", optional = true }
-itertools = { version = "0.9.0", optional = true }
-bat = { version = "0.16.0", optional = true }
+# dependencies for extrinsics (deploying and calling a contract)
+async-std = { version = "1.10.0" }
+ink_metadata = { version = "3.0.0-rc4", default-features = false, features = ["derive"] }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+sp-core = { version = "2.0.1" }
+subxt = { version = "0.14.0", package = "substrate-subxt" }
+futures = { version = "0.3.17" }
+hex = { version = "0.4.3" }
+jsonrpsee = { version = "0.1.0" }
+sp-rpc = { version = "2.0.0" }
+nom = { version = "6.0.0" }
+indexmap = { version = "1.6.0" }
+thiserror = { version = "1.0.21" }
+escape8259 = { version = "0.5.0" }
+itertools = { version = "0.9.0" }
+bat = { version = "0.16.0" }
 
 # Should be removed once bitvecto-rs/bitvec#105 is resolved
 funty = "=1.1.0"
@@ -84,27 +84,6 @@ ink_lang = { version = "3.0.0-rc4", default-features = false }
 
 [features]
 default = []
-
-# Enable this for (experimental) commands to deploy, instantiate and call contracts.
-#
-# Disabled by default
-extrinsics = [
-    "ink_metadata",
-    "scale-info",
-    "sp-core",
-    "subxt",
-    "async-std",
-    "futures",
-    "jsonrpsee",
-    "sp-rpc",
-    "hex",
-    "nom",
-    "indexmap",
-    "thiserror",
-    "escape8259",
-    "itertools",
-    "bat",
-]
 
 # Enable this to execute long running tests, which usually are only run on the CI server
 #

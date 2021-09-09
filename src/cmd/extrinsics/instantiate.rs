@@ -81,7 +81,6 @@ impl InstantiateCommand {
     }
 }
 
-#[cfg(feature = "extrinsics")]
 fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::Hash> {
     let bytes = decode_hex(input)?;
     if bytes.len() != 32 {
