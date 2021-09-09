@@ -32,7 +32,7 @@ More relevant links:
 * Talk to us on [Element][b2] or [Discord][c2]
 * [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
 * [Canvas UI](https://paritytech.github.io/canvas-ui/#/upload) ‒ Frontend for contract deployment and interaction
-* [Canvas Node](https://github.com/paritytech/canvas-node) ‒ Simple Substrate blockchain which includes smart contract functionality
+* [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
 
 
 ## Installation
