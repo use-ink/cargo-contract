@@ -1844,7 +1844,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1852,7 +1852,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1876,7 +1876,7 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -1892,7 +1892,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1911,7 +1911,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "blake2",
  "either",
@@ -1925,7 +1925,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
@@ -1938,7 +1938,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1951,7 +1951,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1959,7 +1959,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
@@ -1969,7 +1969,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "array-init",
  "cfg-if 1.0.0",
@@ -1987,7 +1987,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e99c6bdbfa042a05d6f509c1a297bc792f75411"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3574,7 +3574,7 @@ dependencies = [
 [[package]]
 name = "sp-application-crypto"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -3599,7 +3599,7 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "integer-sqrt",
  "num-traits",
@@ -3613,7 +3613,7 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "base58",
  "blake2-rfc",
@@ -3668,7 +3668,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3678,7 +3678,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -3689,7 +3689,7 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "futures",
  "hash-db",
@@ -3714,7 +3714,7 @@ dependencies = [
 [[package]]
 name = "sp-keystore"
 version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "async-trait",
  "derive_more",
@@ -3730,7 +3730,7 @@ dependencies = [
 [[package]]
 name = "sp-maybe-compressed-blob"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "zstd",
 ]
@@ -3738,7 +3738,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "backtrace",
 ]
@@ -3746,7 +3746,7 @@ dependencies = [
 [[package]]
 name = "sp-rpc"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "rustc-hash",
  "serde",
@@ -3756,7 +3756,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "either",
  "hash256-std-hasher",
@@ -3777,7 +3777,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -3794,7 +3794,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "Inflector",
  "proc-macro-crate 1.0.0",
@@ -3806,7 +3806,7 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "hash-db",
  "log",
@@ -3835,12 +3835,12 @@ checksum = "35391ea974fa5ee869cb094d5b437688fbf3d8127d64d1b9fed5822a1ed39b12"
 [[package]]
 name = "sp-std"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 
 [[package]]
 name = "sp-storage"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -3853,7 +3853,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "erased-serde",
  "log",
@@ -3871,7 +3871,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "hash-db",
  "memory-db",
@@ -3885,7 +3885,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -3900,7 +3900,7 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "parity-scale-codec",
  "proc-macro2",
@@ -3911,7 +3911,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/#267dac2afdef51554eeb881fac0d844dd2761c92"
+source = "git+https://github.com/paritytech/substrate/#88c64e06471cc12aa9b25290f24d5566bcb5dd82"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
