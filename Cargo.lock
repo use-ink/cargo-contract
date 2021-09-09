@@ -567,7 +567,7 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.0",
- "scale-info 1.0.0",
+ "scale-info",
  "semver 1.0.4",
  "serde",
  "serde_json",
@@ -1338,11 +1338,12 @@ dependencies = [
 [[package]]
 name = "frame-metadata"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/frame-metadata/#39fe3d8f279a37c7c414bf37db281a35e0ccd520"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96616f82e069102b95a72c87de4c84d2f87ef7f0f20630e78ce3824436483110"
 dependencies = [
  "cfg-if 1.0.0",
  "parity-scale-codec",
- "scale-info 1.0.0",
+ "scale-info",
  "serde",
 ]
 
@@ -1865,7 +1866,7 @@ dependencies = [
  "parity-scale-codec",
  "paste",
  "rand 0.8.4",
- "scale-info 1.0.0",
+ "scale-info",
  "sha2 0.9.8",
  "sha3",
  "sp-arithmetic 3.0.0",
@@ -1943,7 +1944,7 @@ dependencies = [
  "impl-serde",
  "ink_prelude",
  "ink_primitives",
- "scale-info 1.0.0",
+ "scale-info",
  "serde",
 ]
 
@@ -1962,7 +1963,7 @@ source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#8e
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
- "scale-info 1.0.0",
+ "scale-info",
 ]
 
 [[package]]
@@ -1980,7 +1981,7 @@ dependencies = [
  "ink_primitives",
  "ink_storage_derive",
  "parity-scale-codec",
- "scale-info 1.0.0",
+ "scale-info",
 ]
 
 [[package]]
@@ -3267,18 +3268,6 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cf40f28c3eca6a9abe66aa368d7475f6c92a626fb5737d131c82c0170b24f36"
-dependencies = [
- "bitvec",
- "cfg-if 1.0.0",
- "derive_more",
- "parity-scale-codec",
-]
-
-[[package]]
-name = "scale-info"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c55b744399c25532d63a0d2789b109df8d46fc93752d46b0782991a931a782f"
@@ -4009,7 +3998,7 @@ dependencies = [
 [[package]]
 name = "substrate-subxt"
 version = "0.15.0"
-source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#2d7bed8f348ee84fb4238a52c45cb6bcb338c4bf"
+source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#13f69a3cc7fa0f19eed31b01929dd11d1e1a5ac6"
 dependencies = [
  "async-trait",
  "chameleon",
@@ -4024,7 +4013,7 @@ dependencies = [
  "log",
  "num-traits",
  "parity-scale-codec",
- "scale-info 1.0.0",
+ "scale-info",
  "serde",
  "serde_json",
  "sp-core",
@@ -4045,7 +4034,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#2d7bed8f348ee84fb4238a52c45cb6bcb338c4bf"
+source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#13f69a3cc7fa0f19eed31b01929dd11d1e1a5ac6"
 dependencies = [
  "async-trait",
  "darling",
@@ -4056,7 +4045,7 @@ dependencies = [
  "proc-macro-error 1.0.4",
  "proc-macro2",
  "quote",
- "scale-info 0.12.0",
+ "scale-info",
  "syn",
 ]
 
