@@ -27,7 +27,7 @@ heck = "0.3.3"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.0"
-codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.2.0", features = ["derive"] }
 which = "4.2.2"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -40,47 +40,45 @@ serde_json = "1.0.67"
 tempfile = "3.2.0"
 url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.1"
-regex = "1.4"
+regex = "1.5.4"
 
 # dependencies for extrinsics (deploying and calling a contract)
-async-std = { version = "1.10.0" }
-ink_metadata = { version = "3.0.0-rc4", default-features = false, features = ["derive"] }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
-sp-core = { version = "2.0.1" }
-subxt = { version = "0.14.0", package = "substrate-subxt" }
-futures = { version = "0.3.17" }
-hex = { version = "0.4.3" }
-jsonrpsee = { version = "0.1.0" }
-sp-rpc = { version = "2.0.0" }
-nom = { version = "6.0.0" }
-indexmap = { version = "1.6.0" }
-thiserror = { version = "1.0.21" }
-escape8259 = { version = "0.5.0" }
-itertools = { version = "0.9.0" }
-bat = { version = "0.16.0" }
-
-# Should be removed once bitvecto-rs/bitvec#105 is resolved
-funty = "=1.1.0"
+async-std = "1.10.0"
+ink_metadata = { version = "3.0.0-rc5", default-features = false, features = ["derive"] }
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+sp-core = { package = "sp-core", git = "https://github.com/paritytech/substrate/" }
+# todo: [AJ] see if we can/should remove this dependency by copying the required type(s)
+sp-rpc = { package = "sp-rpc", git = "https://github.com/paritytech/substrate/" }
+subxt = { git = "https://github.com/paritytech/substrate-subxt", branch = "aj-metadata-vnext", package = "substrate-subxt" }
+futures = "0.3.17"
+hex = "0.4.3"
+jsonrpsee = "0.3.0"
+nom = "7.0.0"
+indexmap = "1.7.0"
+thiserror = "1.0.29"
+escape8259 = "0.5.1"
+itertools = "0.10.1"
+bat = "0.18.3"
 
 [build-dependencies]
 anyhow = "1.0.43"
 zip = { version = "0.5.13", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
-platforms = "1.1"
+platforms = "1.1.0"
 
 [dev-dependencies]
-assert_cmd = "1.0.1"
+assert_cmd = "2.0.1"
 assert_matches = "1.5.0"
 pretty_assertions = "0.7.2"
 wabt = "0.10.0"
-regex = "1.4.1"
-predicates = "1.0.5"
+regex = "1.5.4"
+predicates = "2.0.2"
 
-ink_primitives = { version = "3.0.0-rc4", default-features = false }
-ink_env = { version = "3.0.0-rc4", default-features = false }
-ink_storage = { version = "3.0.0-rc4", default-features = false }
-ink_lang = { version = "3.0.0-rc4", default-features = false }
+ink_primitives = { version = "3.0.0-rc5", default-features = false }
+ink_env = { version = "3.0.0-rc5", default-features = false }
+ink_storage = { version = "3.0.0-rc5", default-features = false }
+ink_lang = { version = "3.0.0-rc5", default-features = false }
 
 [features]
 default = []
