@@ -1,7 +1,7 @@
 [package]
 name = "{{name}}"
 version = "0.1.0"
-authors = ["[your_name] <[your_email]>"]
+authors = ["[your_name] <[your_email]>"]scale
 edition = "2018"
 resolver = "2"
 
@@ -13,7 +13,7 @@ ink_storage = { version = "3.0.0-rc4", default-features = false }
 ink_lang = { version = "3.0.0-rc4", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
-scale-info = { version = "0.6.0", default-features = false, features = ["derive"], optional = true }
+scale-info = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 
 [lib]
 name = "{{name}}"
