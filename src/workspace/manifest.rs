@@ -17,9 +17,11 @@
 use anyhow::{Context, Result};
 
 use super::{metadata, Profile};
-use std::convert::TryFrom;
+use crate::OptimizationPasses;
+
 use std::{
     collections::HashSet,
+    convert::TryFrom,
     fs,
     path::{Path, PathBuf},
 };
@@ -160,6 +162,105 @@ impl Manifest {
         Ok(self)
     }
 
+    /// Extract `optimization-passes` from `[package.metadata.contract]`
+    pub fn get_profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+        self.toml
+            .get("package")?
+            .as_table()?
+            .get("metadata")?
+            .as_table()?
+            .get("contract")?
+            .as_table()?
+            .get("optimization-passes")
+            .map(|val| val.to_string())
+            .map(Into::into)
+    }
+
+    /// Set `optimization-passes` in `[package.metadata.contract]`
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_profile_optimization_passes(
+        &mut self,
+        passes: OptimizationPasses,
+    ) -> Result<Option<value::Value>> {
+        Ok(self
+            .toml
+            .entry("package")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("package section should be a table")?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata section should be a table")?
+            .entry("contract")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata.contract section should be a table")?
+            .insert(
+                "optimization-passes".to_string(),
+                value::Value::String(passes.to_string()),
+            ))
+    }
+
+    /// Set the dependency version of `package` to `version`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_dependency_version(
+        &mut self,
+        dependency: &str,
+        version: &str,
+    ) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("dependencies")
+            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+            .get_mut(dependency)
+            .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("{} dependency should be a table", dependency))?
+            .insert("version".into(), value::Value::String(version.into())))
+    }
+
+    /// Set the `lib` name to `name`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_lib_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
+    /// Set the `package` name to `name`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_package_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("package")
+            .ok_or_else(|| anyhow::anyhow!("[package] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[package] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
+    /// Set the `lib` path to `path`.
+    #[cfg(feature = "test-ci-only")]
+    #[cfg(test)]
+    pub fn set_lib_path(&mut self, path: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("path".into(), value::Value::String(path.into())))
+    }
+
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self
@@ -267,6 +368,10 @@ impl Manifest {
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+            #[cfg(windows)]
+            // On Windows path separators are `\`, hence we need to replace the `/` in
+            // e.g. `src/lib.rs`.
+            let path_str = &path_str.replace("/", "\\");
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);

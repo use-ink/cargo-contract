@@ -73,6 +73,12 @@ fmt:
   script:
     - cargo fmt --verbose --all -- --check
 
+clippy:
+  stage:                           check
+  <<:                              *docker-env
+  script:
+    - cargo clippy --verbose --all-targets --all-features -- -D warnings;
+
 #### stage:                        test (all features)
 
 test:
@@ -80,6 +86,26 @@ test:
   <<:                              *docker-env
   script:
     - cargo test --verbose --workspace --all-features
+
+test-new-project-template:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo run -- contract new new_project
+
+    # needed because otherwise:
+    # `error: current package believes it's in a workspace when it's not`
+    - echo "[workspace]" >> new_project/Cargo.toml
+
+    - cargo run --all-features -- contract build --manifest-path new_project/Cargo.toml
+    - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
+    - cargo run --all-features -- contract test --manifest-path new_project/Cargo.toml
+    - cd new_project
+
+    - cargo check --verbose
+    - cargo test --verbose --all
+    - cargo fmt --verbose --all -- --check
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
 #### stage:                        build (default features)
 

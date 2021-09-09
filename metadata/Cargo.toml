@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 
@@ -17,10 +17,10 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "lib.rs"
 
 [dependencies]
-semver = { version = "0.11.0", features = ["serde"] }
-serde = { version = "1.0.124", default-features = false, features = ["derive"] }
-serde_json = "1.0.64"
-url = { version = "2.2.1", features = ["serde"] }
+semver = { version = "1.0.4", features = ["serde"] }
+serde = { version = "1.0.130", default-features = false, features = ["derive"] }
+serde_json = "1.0.67"
+url = { version = "2.2.2", features = ["serde"] }
 
 [dev-dependencies]
-pretty_assertions = "0.7.1"
+pretty_assertions = "0.7.2"

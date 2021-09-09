@@ -17,8 +17,12 @@
 pub mod build;
 pub mod metadata;
 pub mod new;
+pub mod test;
 
-pub(crate) use self::build::{BuildCommand, CheckCommand};
+pub(crate) use self::{
+    build::{BuildCommand, CheckCommand},
+    test::TestCommand,
+};
 #[cfg(feature = "extrinsics")]
 mod extrinsics;
 

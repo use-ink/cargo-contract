@@ -25,11 +25,13 @@ mod workspace;
 
 use self::workspace::ManifestPath;
 
-use crate::cmd::{BuildCommand, CheckCommand};
+use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand, TestCommand};
 
 use std::{
-    convert::{TryFrom, TryInto},
+    convert::TryFrom,
+    fmt::{Display, Formatter, Result as DisplayResult},
     path::PathBuf,
+    str::FromStr,
 };
 
 use anyhow::{Error, Result};
@@ -45,9 +47,11 @@ use subxt::PairSigner;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
+#[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
 pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[structopt(name = "contract")]
+    #[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
     #[structopt(setting = clap::AppSettings::UnifiedHelpMessage)]
     #[structopt(setting = clap::AppSettings::DeriveDisplayOrder)]
     #[structopt(setting = clap::AppSettings::DontCollapseArgsInUsage)]
@@ -109,7 +113,66 @@ impl ExtrinsicOpts {
     }
 }
 
-#[derive(Clone, Copy, Debug, StructOpt)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OptimizationPasses {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    S,
+    Z,
+}
+
+impl Display for OptimizationPasses {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let out = match self {
+            OptimizationPasses::Zero => "0",
+            OptimizationPasses::One => "1",
+            OptimizationPasses::Two => "2",
+            OptimizationPasses::Three => "3",
+            OptimizationPasses::Four => "4",
+            OptimizationPasses::S => "s",
+            OptimizationPasses::Z => "z",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Z
+    }
+}
+
+impl std::str::FromStr for OptimizationPasses {
+    type Err = Error;
+
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
+        // We need to replace " here, since the input string could come
+        // from either the CLI or the `Cargo.toml` profile section.
+        // If it is from the profile it could e.g. be "3" or 3.
+        let normalized_input = input.replace("\"", "").to_lowercase();
+        match normalized_input.as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!("Unknown optimization passes for option {}", input),
+        }
+    }
+}
+
+impl From<std::string::String> for OptimizationPasses {
+    fn from(str: String) -> Self {
+        OptimizationPasses::from_str(&str).expect("conversion failed")
+    }
+}
+
+#[derive(Default, Clone, Debug, StructOpt)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
     #[structopt(long)]
@@ -120,7 +183,7 @@ pub struct VerbosityFlags {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize)]
 pub enum Verbosity {
     /// Use default output
     Default,
@@ -128,6 +191,12 @@ pub enum Verbosity {
     Quiet,
     /// Use verbose output
     Verbose,
+}
+
+impl Default for Verbosity {
+    fn default() -> Self {
+        Verbosity::Default
+    }
 }
 
 impl Verbosity {
@@ -153,7 +222,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
     }
 }
 
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, StructOpt)]
 struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
     #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
@@ -185,7 +254,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt, serde::Serialize)]
 #[structopt(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
@@ -220,26 +289,77 @@ impl std::str::FromStr for BuildArtifacts {
     }
 }
 
+impl Default for BuildArtifacts {
+    fn default() -> Self {
+        BuildArtifacts::All
+    }
+}
+
+/// The mode to build the contract in.
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+pub enum BuildMode {
+    /// Functionality to output debug messages is build into the contract.
+    Debug,
+    /// The contract is build without any debugging functionality.
+    Release,
+}
+
+impl Default for BuildMode {
+    fn default() -> BuildMode {
+        BuildMode::Debug
+    }
+}
+
+impl Display for BuildMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        match self {
+            Self::Debug => write!(f, "debug"),
+            Self::Release => write!(f, "release"),
+        }
+    }
+}
+
+/// The type of output to display at the end of a build.
+pub enum OutputType {
+    /// Output build results in a human readable format.
+    HumanReadable,
+    /// Output the build results JSON formatted.
+    Json,
+}
+
+impl Default for OutputType {
+    fn default() -> Self {
+        OutputType::HumanReadable
+    }
+}
+
 /// Result of the metadata generation process.
+#[derive(serde::Serialize)]
 pub struct BuildResult {
-    /// Path to the resulting metadata file.
-    pub dest_metadata: Option<PathBuf>,
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
-    /// Path to the bundled file.
-    pub dest_bundle: Option<PathBuf>,
+    /// Result of the metadata generation.
+    pub metadata_result: Option<MetadataResult>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
     /// If existent the result of the optimization.
     pub optimization_result: Option<OptimizationResult>,
+    /// The mode to build the contract in.
+    pub build_mode: BuildMode,
     /// Which build artifacts were generated.
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
     pub verbosity: Verbosity,
+    /// The type of formatting to use for the build output.
+    #[serde(skip_serializing)]
+    pub output_type: OutputType,
 }
 
 /// Result of the optimization process.
+#[derive(serde::Serialize)]
 pub struct OptimizationResult {
+    /// The path of the optimized wasm file.
+    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.
@@ -259,10 +379,16 @@ impl BuildResult {
             "optimized file size must be greater 0"
         );
 
+        let build_mode = format!(
+            "The contract was built in {} mode.\n\n",
+            format!("{}", self.build_mode).to_uppercase().bold(),
+        );
+
         if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
-                "{}Your contract's code is ready. You can find it here:\n{}",
+                "{}{}Your contract's code is ready. You can find it here:\n{}",
                 size_diff,
+                build_mode,
                 self.dest_wasm
                     .as_ref()
                     .expect("wasm path must exist")
@@ -274,28 +400,29 @@ impl BuildResult {
         };
 
         let mut out = format!(
-            "{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
             size_diff,
+            build_mode,
             self.target_directory.display().to_string().bold(),
         );
-        if let Some(dest_bundle) = self.dest_bundle.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
                 "  - {} (code + metadata)\n",
-                util::base_name(&dest_bundle).bold()
+                util::base_name(&metadata_result.dest_bundle).bold()
             );
             out.push_str(&bundle);
         }
         if let Some(dest_wasm) = self.dest_wasm.as_ref() {
             let wasm = format!(
                 "  - {} (the contract's code)\n",
-                util::base_name(&dest_wasm).bold()
+                util::base_name(dest_wasm).bold()
             );
             out.push_str(&wasm);
         }
-        if let Some(dest_metadata) = self.dest_metadata.as_ref() {
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
             let metadata = format!(
                 "  - {} (the contract's metadata)",
-                util::base_name(&dest_metadata).bold()
+                util::base_name(&metadata_result.dest_metadata).bold()
             );
             out.push_str(&metadata);
         }
@@ -311,6 +438,11 @@ impl BuildResult {
             .as_ref()
             .expect("optimization result must exist");
         (optimization.original_size, optimization.optimized_size)
+    }
+
+    /// Display the build results in a pretty formatted JSON string.
+    pub fn serialize_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 }
 
@@ -328,15 +460,12 @@ enum Command {
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
     #[structopt(name = "build")]
     Build(BuildCommand),
-    /// Command has been deprecated, use `cargo contract build` instead
-    #[structopt(name = "generate-metadata")]
-    GenerateMetadata {},
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[structopt(name = "check")]
     Check(CheckCommand),
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
-    Test {},
+    Test(TestCommand),
     /// Upload the smart contract code to the chain
     #[cfg(feature = "extrinsics")]
     #[structopt(name = "deploy")]
@@ -374,7 +503,10 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
         Command::Build(build) => {
             let result = build.exec()?;
-            if result.verbosity.is_verbose() {
+
+            if matches!(result.output_type, OutputType::Json) {
+                Ok(Some(result.serialize_json()?))
+            } else if result.verbosity.is_verbose() {
                 Ok(Some(result.display()))
             } else {
                 Ok(None)
@@ -394,10 +526,14 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 Ok(None)
             }
         }
-        Command::GenerateMetadata {} => Err(anyhow::anyhow!(
-            "Command deprecated, use `cargo contract build` instead"
-        )),
-        Command::Test {} => Err(anyhow::anyhow!("Command unimplemented")),
+        Command::Test(test) => {
+            let res = test.exec()?;
+            if res.verbosity.is_verbose() {
+                Ok(Some(res.display()?))
+            } else {
+                Ok(None)
+            }
+        }
         #[cfg(feature = "extrinsics")]
         Command::Deploy(deploy) => {
             let code_hash = deploy.exec()?;
@@ -410,5 +546,56 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         }
         #[cfg(feature = "extrinsics")]
         Command::Call(call) => call.run(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_result_seralization_sanity_check() {
+        // given
+        let raw_result = r#"{
+  "dest_wasm": "/path/to/contract.wasm",
+  "metadata_result": {
+    "dest_metadata": "/path/to/metadata.json",
+    "dest_bundle": "/path/to/contract.contract"
+  },
+  "target_directory": "/path/to/target",
+  "optimization_result": {
+    "dest_wasm": "/path/to/contract.wasm",
+    "original_size": 64.0,
+    "optimized_size": 32.0
+  },
+  "build_mode": "Debug",
+  "build_artifact": "All",
+  "verbosity": "Quiet"
+}"#;
+
+        let build_result = crate::BuildResult {
+            dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
+            metadata_result: Some(crate::cmd::metadata::MetadataResult {
+                dest_metadata: PathBuf::from("/path/to/metadata.json"),
+                dest_bundle: PathBuf::from("/path/to/contract.contract"),
+            }),
+            target_directory: PathBuf::from("/path/to/target"),
+            optimization_result: Some(crate::OptimizationResult {
+                dest_wasm: PathBuf::from("/path/to/contract.wasm"),
+                original_size: 64.0,
+                optimized_size: 32.0,
+            }),
+            build_mode: Default::default(),
+            build_artifact: Default::default(),
+            verbosity: Verbosity::Quiet,
+            output_type: OutputType::Json,
+        };
+
+        // when
+        let serialized_result = build_result.serialize_json();
+
+        // then
+        assert!(serialized_result.is_ok());
+        assert_eq!(serialized_result.unwrap(), raw_result);
     }
 }

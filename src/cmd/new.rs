@@ -108,12 +108,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::tests::with_tmp_dir;
+    use crate::util::tests::{with_new_contract_project, with_tmp_dir};
 
     #[test]
     fn rejects_hyphenated_name() {
-        with_tmp_dir(|path| {
-            let result = execute("rejects-hyphenated-name", Some(path));
+        with_new_contract_project(|manifest_path| {
+            let result = execute("rejects-hyphenated-name", Some(manifest_path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -125,8 +125,8 @@ mod tests {
 
     #[test]
     fn rejects_name_with_period() {
-        with_tmp_dir(|path| {
-            let result = execute("../xxx", Some(path));
+        with_new_contract_project(|manifest_path| {
+            let result = execute("../xxx", Some(manifest_path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -138,8 +138,8 @@ mod tests {
 
     #[test]
     fn rejects_name_beginning_with_number() {
-        with_tmp_dir(|path| {
-            let result = execute("1xxx", Some(path));
+        with_new_contract_project(|manifest_path| {
+            let result = execute("1xxx", Some(manifest_path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),

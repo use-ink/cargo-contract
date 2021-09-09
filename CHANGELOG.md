@@ -6,6 +6,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Update `cargo contract new` template dependencies to ink! `rc4` - [#332](https://github.com/paritytech/cargo-contract/pull/332)
+
+## [0.14.0] - 2021-08-12
+
+### Added
+-  Add option for JSON formatted output - [#324](https://github.com/paritytech/cargo-contract/pull/324)
+
+### Changed
+- Use new dependency resolver for template contract - [#325](https://github.com/paritytech/cargo-contract/pull/325)
+- Do not strip out panic messages in debug builds - [#326](https://github.com/paritytech/cargo-contract/pull/326)
+
+## [0.13.1] - 2021-08-03
+
+### Fixed
+- Fixed a Windows issue with contract files in sub-folders - [#313](https://github.com/paritytech/cargo-contract/pull/313)
+
+## [0.13.0] - 2021-07-22
+
+### Added
+- Convenient off-chain testing through `cargo contract test` - [#283](https://github.com/paritytech/cargo-contract/pull/283)
+- Build contracts in debug mode by default, add `--release` flag - [#298](https://github.com/paritytech/cargo-contract/pull/298)
+- Add `--keep-symbols` flag for better Wasm analysis capabilities  - [#302](https://github.com/paritytech/cargo-contract/pull/302)
+
+### Changed
+- Change default optimizations pass to focus on code size - [#305](https://github.com/paritytech/cargo-contract/pull/305)
+
+## [0.12.1] - 2021-05-25
+
+### Added
+- Suggest `binaryen` installation from GitHub release on outdated version - [#274](https://github.com/paritytech/cargo-contract/pull/274)
+
+### Fixed
+- Always use library targets name for contract artifacts - [#277](https://github.com/paritytech/cargo-contract/pull/277)
+
+## [0.12.0] - 2021-04-21
+
+### Fixed
+- Fixed `ERROR: The workspace root package should be a workspace member` when building a contract
+  under Windows - [#261](https://github.com/paritytech/cargo-contract/pull/261)
+
+### Removed
+- Remove support for `--binaryen-as-dependency` - [#251](https://github.com/paritytech/cargo-contract/pull/251)
+- Remove support for the deprecated `cargo contract generate-metadata` command - [#265](https://github.com/paritytech/cargo-contract/pull/265)
+- Remove pinned `funty` dependency from "new project" template - [#260](https://github.com/paritytech/cargo-contract/pull/260)
+
+## [0.11.1] - 2021-04-06
+
+### Fixed
+- Fix `wasm-opt --version` parsing - [#248](https://github.com/paritytech/cargo-contract/pull/248)
+
+## [0.11.0] - 2021-03-31
+
+### Added
+- Improve error output for `wasm-opt` interaction - [#244](https://github.com/paritytech/cargo-contract/pull/244)
+- Check optimized Wasm output file exists - [#243](https://github.com/paritytech/cargo-contract/pull/243)
+- Detect `wasm-opt` version compatibility and improve error messages - [#242](https://github.com/paritytech/cargo-contract/pull/242)
+- Detect version mismatches of `parity-scale-codec` in contract and ink! dependency - [#237](https://github.com/paritytech/cargo-contract/pull/237)
+- Support specifying `optimization-passes` in the release profile - [#231](https://github.com/paritytech/cargo-contract/pull/231)
+- Support specifying `optimization-passes` on the CLI - [#216](https://github.com/paritytech/cargo-contract/pull/216)
+- Use `ink::test` attribute in "new project" template - [#190](https://github.com/paritytech/cargo-contract/pull/190)
+
+### Fixed
+- Only allow new contract names beginning with an alphabetic character - [#219](https://github.com/paritytech/cargo-contract/pull/219)
+- Upgrade `cargo-metadata` and fix usages - [#210](https://github.com/paritytech/cargo-contract/pull/210)
+
 ## [0.10.0] - 2021-03-02
 
 ### Fixed
