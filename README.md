@@ -70,7 +70,8 @@ docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production 
   cargo +nightly contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
-If you want to reproduce other steps of CI process you can use the following [guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
+If you want to reproduce other steps of CI process you can use the following
+[guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
 
 ## Usage
 
