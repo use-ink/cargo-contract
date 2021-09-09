@@ -75,10 +75,10 @@ wabt = "0.10.0"
 regex = "1.5.4"
 predicates = "2.0.2"
 
-ink_primitives = { version = "3.0.0-rc5", default-features = false }
-ink_env = { version = "3.0.0-rc5", default-features = false }
-ink_storage = { version = "3.0.0-rc5", default-features = false }
-ink_lang = { version = "3.0.0-rc5", default-features = false }
+ink_primitives = { version = "3.0.0-rc5" }
+ink_env = { version = "3.0.0-rc5" }
+ink_storage = { version = "3.0.0-rc5" }
+ink_lang = { version = "3.0.0-rc5" }
 
 [features]
 default = []
