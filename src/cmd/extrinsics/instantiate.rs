@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::display_events;
+use super::{display_events, runtime_api::ContractsRuntime};
 use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
 use structopt::StructOpt;
 use subxt::{
-    balances::Balances, contracts::*, system::System, ClientBuilder, ContractsTemplateRuntime,
+    ClientBuilder,
+    Runtime,
 };
 
 #[derive(Debug, StructOpt)]
@@ -33,13 +34,13 @@ pub struct InstantiateCommand {
     extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[structopt(name = "endowment", long, default_value = "0")]
-    endowment: <ContractsTemplateRuntime as Balances>::Balance,
+    endowment: super::Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
     /// The hash of the smart contract code already uploaded to the chain
     #[structopt(long, parse(try_from_str = parse_code_hash))]
-    code_hash: <ContractsTemplateRuntime as System>::Hash,
+    code_hash: <ContractsTemplateRuntime as Runtime>::Hash,
 }
 
 impl InstantiateCommand {
@@ -48,13 +49,13 @@ impl InstantiateCommand {
     ///
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<<ContractsTemplateRuntime as System>::Address> {
+    pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::Address> {
         let metadata = super::load_metadata()?;
         let transcoder = super::ContractMessageTranscoder::new(&metadata);
         let data = transcoder.encode(&self.name, &self.args)?;
 
         async_std::task::block_on(async move {
-            let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+            let cli = ClientBuilder::new()
                 .set_url(self.extrinsic_opts.url.to_string())
                 .build()
                 .await?;
@@ -81,7 +82,7 @@ impl InstantiateCommand {
     }
 }
 
-fn parse_code_hash(input: &str) -> Result<<ContractsTemplateRuntime as System>::Hash> {
+fn parse_code_hash(input: &str) -> Result<<ContractsRuntime as Runtime>::Hash> {
     let bytes = decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")

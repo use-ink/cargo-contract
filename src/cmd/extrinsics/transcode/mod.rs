@@ -27,9 +27,9 @@ use self::{
 
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::Input;
+use codec::Input;
 use scale_info::{
-    form::{CompactForm, Form},
+    form::{PortableForm, Form},
     Field, TypeDefComposite,
 };
 use std::fmt::{self, Debug, Display, Formatter};
@@ -82,20 +82,20 @@ impl<'a> ContractMessageTranscoder<'a> {
         Ok(encoded)
     }
 
-    fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<CompactForm>> {
+    fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<PortableForm>> {
         self.metadata.spec().constructors().iter()
     }
 
-    fn messages(&self) -> impl Iterator<Item = &MessageSpec<CompactForm>> {
+    fn messages(&self) -> impl Iterator<Item = &MessageSpec<PortableForm>> {
         self.metadata.spec().messages().iter()
     }
 
-    fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<CompactForm>> {
+    fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<PortableForm>> {
         self.messages()
             .find(|msg| msg.name().contains(&name.to_string()))
     }
 
-    fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<CompactForm>> {
+    fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<PortableForm>> {
         self.constructors()
             .find(|msg| msg.name().contains(&name.to_string()))
     }
@@ -144,14 +144,14 @@ impl<'a> ContractMessageTranscoder<'a> {
 #[derive(Debug)]
 pub enum CompositeTypeFields {
     StructNamedFields(Vec<CompositeTypeNamedField>),
-    TupleStructUnnamedFields(Vec<Field<CompactForm>>),
+    TupleStructUnnamedFields(Vec<Field<PortableForm>>),
     NoFields,
 }
 
 #[derive(Debug)]
 pub struct CompositeTypeNamedField {
-    name: <CompactForm as Form>::String,
-    field: Field<CompactForm>,
+    name: <PortableForm as Form>::String,
+    field: Field<PortableForm>,
 }
 
 impl CompositeTypeNamedField {
@@ -159,13 +159,13 @@ impl CompositeTypeNamedField {
         &self.name
     }
 
-    pub fn field(&self) -> &Field<CompactForm> {
+    pub fn field(&self) -> &Field<PortableForm> {
         &self.field
     }
 }
 
 impl CompositeTypeFields {
-    pub fn from_type_def(type_def: &TypeDefComposite<CompactForm>) -> Result<Self> {
+    pub fn from_type_def(type_def: &TypeDefComposite<PortableForm>) -> Result<Self> {
         if type_def.fields().is_empty() {
             Ok(Self::NoFields)
         } else if type_def.fields().iter().all(|f| f.name().is_some()) {
@@ -208,7 +208,7 @@ impl Display for ContractEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale::Encode;
+    use codec::Encode;
     use scon::Value;
     use std::str::FromStr;
 

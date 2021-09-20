@@ -20,20 +20,20 @@ use super::{
     CompositeTypeFields,
 };
 use anyhow::Result;
-use scale::{Compact, Decode, Input};
+use codec::{Compact, Decode, Input};
 use scale_info::{
-    form::{CompactForm, Form},
-    Field, RegistryReadOnly, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    form::{PortableForm, Form},
+    Field, PortableRegistry, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
 
 pub struct Decoder<'a> {
-    registry: &'a RegistryReadOnly,
+    registry: &'a PortableRegistry,
     env_types: &'a EnvTypesTranscoder,
 }
 
 impl<'a> Decoder<'a> {
-    pub fn new(registry: &'a RegistryReadOnly, env_types: &'a EnvTypesTranscoder) -> Self {
+    pub fn new(registry: &'a PortableRegistry, env_types: &'a EnvTypesTranscoder) -> Self {
         Self {
             registry,
             env_types,
@@ -68,7 +68,7 @@ impl<'a> Decoder<'a> {
 
     fn decode_seq(
         &self,
-        ty: &<CompactForm as Form>::Type,
+        ty: &<PortableForm as Form>::Type,
         len: usize,
         decoder: &Decoder,
         input: &mut &[u8],
@@ -97,16 +97,16 @@ pub trait DecodeValue {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        ty: &Type<CompactForm>,
+        ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value>;
 }
 
-impl DecodeValue for TypeDef<CompactForm> {
+impl DecodeValue for TypeDef<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        ty: &Type<CompactForm>,
+        ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         match self {
@@ -120,11 +120,11 @@ impl DecodeValue for TypeDef<CompactForm> {
     }
 }
 
-impl DecodeValue for TypeDefComposite<CompactForm> {
+impl DecodeValue for TypeDefComposite<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        ty: &Type<CompactForm>,
+        ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let struct_type = CompositeTypeFields::from_type_def(&self)?;
@@ -155,11 +155,11 @@ impl DecodeValue for TypeDefComposite<CompactForm> {
     }
 }
 
-impl DecodeValue for TypeDefTuple<CompactForm> {
+impl DecodeValue for TypeDefTuple<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        _: &Type<CompactForm>,
+        _: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let mut tuple = Vec::new();
@@ -174,11 +174,11 @@ impl DecodeValue for TypeDefTuple<CompactForm> {
     }
 }
 
-impl DecodeValue for TypeDefVariant<CompactForm> {
+impl DecodeValue for TypeDefVariant<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        ty: &Type<CompactForm>,
+        ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
@@ -193,11 +193,11 @@ impl DecodeValue for TypeDefVariant<CompactForm> {
     }
 }
 
-impl DecodeValue for Variant<CompactForm> {
+impl DecodeValue for Variant<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        ty: &Type<CompactForm>,
+        ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let mut named = Vec::new();
@@ -225,33 +225,33 @@ impl DecodeValue for Variant<CompactForm> {
     }
 }
 
-impl DecodeValue for Field<CompactForm> {
+impl DecodeValue for Field<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        _: &Type<CompactForm>,
+        _: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         decoder.decode(self, input)
     }
 }
 
-impl DecodeValue for TypeDefArray<CompactForm> {
+impl DecodeValue for TypeDefArray<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        _: &Type<CompactForm>,
+        _: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         decoder.decode_seq(self.type_param(), self.len() as usize, decoder, input)
     }
 }
 
-impl DecodeValue for TypeDefSequence<CompactForm> {
+impl DecodeValue for TypeDefSequence<PortableForm> {
     fn decode_value(
         &self,
         decoder: &Decoder,
-        _: &Type<CompactForm>,
+        _: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let len = <Compact<u32>>::decode(input)?;
@@ -260,7 +260,7 @@ impl DecodeValue for TypeDefSequence<CompactForm> {
 }
 
 impl DecodeValue for TypeDefPrimitive {
-    fn decode_value(&self, _: &Decoder, _: &Type<CompactForm>, input: &mut &[u8]) -> Result<Value> {
+    fn decode_value(&self, _: &Decoder, _: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
         fn decode_uint<T>(input: &mut &[u8]) -> Result<Value>
         where
             T: Decode + Into<u128>,

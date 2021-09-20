@@ -22,19 +22,19 @@ use super::{
 };
 
 use anyhow::Result;
-use scale::Output;
-use scale_info::RegistryReadOnly;
+use codec::Output;
+use scale_info::PortableRegistry;
 use std::fmt::Debug;
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
 pub struct Transcoder<'a> {
-    registry: &'a RegistryReadOnly,
+    registry: &'a PortableRegistry,
     env_types: EnvTypesTranscoder,
 }
 
 impl<'a> Transcoder<'a> {
-    pub fn new(registry: &'a RegistryReadOnly) -> Self {
+    pub fn new(registry: &'a PortableRegistry) -> Self {
         Self {
             registry,
             env_types: EnvTypesTranscoder::new(registry),
@@ -64,17 +64,17 @@ mod tests {
     use super::super::scon::{Tuple, Value};
     use super::*;
     use anyhow::Context;
-    use scale::Encode;
+    use codec::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
     use std::num::NonZeroU32;
 
-    fn registry_with_type<T>() -> Result<(RegistryReadOnly, NonZeroU32)>
+    fn registry_with_type<T>() -> Result<(PortableRegistry, NonZeroU32)>
     where
         T: scale_info::TypeInfo + 'static,
     {
         let mut registry = Registry::new();
         let type_id = registry.register_type(&MetaType::new::<T>());
-        let registry: RegistryReadOnly = registry.into();
+        let registry: PortableRegistry = registry.into();
 
         Ok((registry, type_id.id()))
     }

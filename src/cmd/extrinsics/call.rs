@@ -14,19 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, load_metadata, pretty_print, ContractMessageTranscoder};
+use super::{display_events, load_metadata, pretty_print, ContractMessageTranscoder, runtime_api::{ContractsRuntime, api}};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
-use jsonrpsee::common::Params;
+use jsonrpsee_types::{
+    JsonValue, to_json_value,
+    traits::Client,
+};
+use jsonrpsee_ws_client::WsClientBuilder;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
 use subxt::{
-    balances::Balances, contracts::*, system::*, ClientBuilder, ContractsTemplateRuntime,
-    ExtrinsicSuccess, Signer,
+    ClientBuilder,
+    ExtrinsicSuccess, Runtime, Signer, subxt,
 };
 
 #[derive(Debug, StructOpt)]
@@ -43,10 +47,10 @@ pub struct CallCommand {
     gas_limit: u64,
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, default_value = "0")]
-    value: <ContractsTemplateRuntime as Balances>::Balance,
+    value: u128,
     /// The address of the the contract to call.
     #[structopt(name = "contract", long, env = "CONTRACT")]
-    contract: <ContractsTemplateRuntime as System>::AccountId,
+    contract: <ContractsRuntime as Runtime>::AccountId,
     /// Perform the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
     #[structopt(name = "rpc", long)]
     rpc: bool,
@@ -81,7 +85,9 @@ impl CallCommand {
 
     async fn call_rpc(&self, data: Vec<u8>) -> Result<RpcContractExecResult> {
         let url = self.extrinsic_opts.url.to_string();
-        let cli = jsonrpsee::ws_client(&url).await?;
+        let cli = WsClientBuilder::default()
+            .build(&url)
+            .await?;
         let signer = self.extrinsic_opts.signer()?;
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
@@ -90,13 +96,13 @@ impl CallCommand {
             gas_limit: NumberOrHex::Number(self.gas_limit),
             input_data: Bytes(data),
         };
-        let params = Params::Array(vec![serde_json::to_value(call_request)?]);
+        let params = &[to_json_value(call_request)?];
         let result: RpcContractExecResult = cli.request("contracts_call", params).await?;
         Ok(result)
     }
 
-    async fn call(&self, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsTemplateRuntime>> {
-        let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+    async fn call(&self, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
+        let cli = ClientBuilder::new()
             .set_url(&self.extrinsic_opts.url.to_string())
             .build()
             .await?;
@@ -113,8 +119,8 @@ impl CallCommand {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcCallRequest {
-    origin: <ContractsTemplateRuntime as System>::AccountId,
-    dest: <ContractsTemplateRuntime as System>::AccountId,
+    origin: <ContractsRuntime as Runtime>::AccountId,
+    dest: <ContractsRuntime as Runtime>::AccountId,
     // Should be <ContractsTemplateRuntime as Balances>::Balance, which is u128.
     // However the max unsigned integer supported by serde is `u64`
     value: u64,

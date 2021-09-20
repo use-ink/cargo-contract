@@ -46,13 +46,17 @@ regex = "1.5.4"
 async-std = "1.10.0"
 ink_metadata = { version = "3.0.0-rc5", default-features = false, features = ["derive"] }
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+sp-arithmetic = { package = "sp-arithmetic", git = "https://github.com/paritytech/substrate/" }
 sp-core = { package = "sp-core", git = "https://github.com/paritytech/substrate/" }
+sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/" }
+sp-runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate/" }
 # todo: [AJ] see if we can/should remove this dependency by copying the required type(s)
 sp-rpc = { package = "sp-rpc", git = "https://github.com/paritytech/substrate/" }
 subxt = { git = "https://github.com/paritytech/substrate-subxt", branch = "aj-metadata-vnext", package = "substrate-subxt" }
 futures = "0.3.17"
 hex = "0.4.3"
-jsonrpsee = "0.3.0"
+jsonrpsee-types = "0.3.0"
+jsonrpsee-ws-client = { version = "0.3.0", default-features = false }
 nom = "7.0.0"
 indexmap = "1.7.0"
 thiserror = "1.0.29"

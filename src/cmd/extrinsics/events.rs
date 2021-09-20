@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{pretty_print, ContractMessageTranscoder};
+use super::{pretty_print, ContractMessageTranscoder, runtime_api::{ContractsRuntime, api}};
 use crate::Verbosity;
 
 use colored::Colorize;
 use std::fmt::{Display, Formatter, Result};
 use subxt::{
-    balances, contracts, system, ContractsTemplateRuntime as Runtime, Event, ExtrinsicSuccess,
+    Event, ExtrinsicSuccess,
     RawEvent,
 };
 
 pub fn display_events(
-    result: &ExtrinsicSuccess<Runtime>,
+    result: &ExtrinsicSuccess<ContractsRuntime>,
     transcoder: &ContractMessageTranscoder,
     verbosity: Verbosity,
 ) {
@@ -80,7 +80,7 @@ pub fn display_events(
 /// Returns true iff the module and event name match.
 fn display_matching_event<E, F, D>(raw_event: &RawEvent, new_display: F, indent: bool) -> bool
 where
-    E: Event<Runtime>,
+    E: Event,
     F: FnOnce(E) -> D,
     D: Display,
 {
@@ -105,7 +105,7 @@ where
 }
 
 /// Wraps ExtrinsicSuccessEvent for Display impl
-struct DisplayExtrinsicSuccessEvent(system::ExtrinsicSuccessEvent<Runtime>);
+struct DisplayExtrinsicSuccessEvent(api::system::events::ExtrinsicSuccess);
 
 impl Display for DisplayExtrinsicSuccessEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -114,42 +114,42 @@ impl Display for DisplayExtrinsicSuccessEvent {
 }
 
 /// Wraps ExtrinsicFailedEvent for Display impl
-struct DisplayExtrinsicFailedEvent(system::ExtrinsicFailedEvent<Runtime>);
+struct DisplayExtrinsicFailedEvent(api::system::events::ExtrinsicFailed);
 
 impl Display for DisplayExtrinsicFailedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("error", &format!("{:?}", self.0.error));
+        builder.field("error", &format!("{:?}", self.0.0));
         builder.finish()
     }
 }
 
 /// Wraps NewAccountEvent for Display impl
-struct DisplayNewAccountEvent(system::NewAccountEvent<Runtime>);
+struct DisplayNewAccountEvent(api::system::events::NewAccount);
 
 impl Display for DisplayNewAccountEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("account", &self.0.account);
+        builder.field("account", &self.0.0);
         builder.finish()
     }
 }
 
 /// Wraps balances::TransferEvent for Display impl
-struct DisplayTransferEvent(balances::TransferEvent<Runtime>);
+struct DisplayTransferEvent(api::balances::events::Transfer);
 
 impl Display for DisplayTransferEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("from", &self.0.from);
-        builder.field("to", &self.0.to);
-        builder.field("amount", &self.0.amount);
+        builder.field("from", &self.0.0);
+        builder.field("to", &self.0.1);
+        builder.field("amount", &self.0.2);
         builder.finish()
     }
 }
 
 /// Wraps contracts::CodeStored for Display impl
-struct DisplayCodeStoredEvent(contracts::CodeStoredEvent<Runtime>);
+struct DisplayCodeStoredEvent(api::contracts::CodeStoredEvent<ContractsRuntime>);
 
 impl Display for DisplayCodeStoredEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -160,7 +160,7 @@ impl Display for DisplayCodeStoredEvent {
 }
 
 /// Wraps contracts::InstantiatedEvent for Display impl
-struct DisplayInstantiatedEvent(contracts::InstantiatedEvent<Runtime>);
+struct DisplayInstantiatedEvent(api::contracts::InstantiatedEvent<ContractsRuntime>);
 
 impl Display for DisplayInstantiatedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -173,7 +173,7 @@ impl Display for DisplayInstantiatedEvent {
 
 /// Wraps contracts::ContractExecutionEvent<Runtime> for Display impl and decodes contract events.
 struct DisplayContractExecution<'a> {
-    event: contracts::ContractExecutionEvent<Runtime>,
+    event: api::contracts::ContractExecutionEvent,
     transcoder: &'a ContractMessageTranscoder<'a>,
 }
 

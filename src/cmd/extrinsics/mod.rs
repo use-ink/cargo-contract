@@ -18,14 +18,17 @@ pub mod call;
 pub mod deploy;
 mod events;
 pub mod instantiate;
+mod runtime_api;
 mod transcode;
 
 use anyhow::Result;
 use bat::PrettyPrinter;
 use std::{fmt::Display, fs::File};
 
-use self::{events::display_events, transcode::ContractMessageTranscoder};
+use self::{events::display_events, transcode::ContractMessageTranscoder, runtime_api::{api, ContractsRuntime}};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
+
+type Balance = u128;
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let manifest_path = ManifestPath::default();

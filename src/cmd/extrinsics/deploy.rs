@@ -18,7 +18,7 @@ use anyhow::{Context, Result};
 use sp_core::H256;
 use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{contracts::*, ClientBuilder, ContractsTemplateRuntime};
+use subxt::{ClientBuilder};
 
 use super::{display_events, load_metadata, ContractMessageTranscoder};
 use crate::{crate_metadata, ExtrinsicOpts};

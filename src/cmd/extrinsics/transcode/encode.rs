@@ -21,10 +21,10 @@ use super::{
 };
 use anyhow::Result;
 use itertools::Itertools;
-use scale::{Compact, Encode, Output};
+use codec::{Compact, Encode, Output};
 use scale_info::{
-    form::{CompactForm, Form},
-    Field, RegistryReadOnly, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
+    form::{PortableForm, Form},
+    Field, PortableRegistry, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
 };
 use std::{
@@ -35,12 +35,12 @@ use std::{
 };
 
 pub struct Encoder<'a> {
-    registry: &'a RegistryReadOnly,
+    registry: &'a PortableRegistry,
     env_types: &'a EnvTypesTranscoder,
 }
 
 impl<'a> Encoder<'a> {
-    pub fn new(registry: &'a RegistryReadOnly, env_types: &'a EnvTypesTranscoder) -> Self {
+    pub fn new(registry: &'a PortableRegistry, env_types: &'a EnvTypesTranscoder) -> Self {
         Self {
             registry,
             env_types,
@@ -77,7 +77,7 @@ impl<'a> Encoder<'a> {
 
     pub fn encode_seq<O: Output + Debug>(
         &self,
-        ty: &<CompactForm as Form>::Type,
+        ty: &<PortableForm as Form>::Type,
         value: &Value,
         encode_len: bool,
         output: &mut O,
@@ -118,7 +118,7 @@ pub trait EncodeValue {
     ) -> Result<()>;
 }
 
-impl EncodeValue for TypeDef<CompactForm> {
+impl EncodeValue for TypeDef<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -136,7 +136,7 @@ impl EncodeValue for TypeDef<CompactForm> {
     }
 }
 
-impl EncodeValue for TypeDefComposite<CompactForm> {
+impl EncodeValue for TypeDefComposite<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -179,7 +179,7 @@ impl EncodeValue for TypeDefComposite<CompactForm> {
     }
 }
 
-impl EncodeValue for TypeDefTuple<CompactForm> {
+impl EncodeValue for TypeDefTuple<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -207,7 +207,7 @@ impl EncodeValue for TypeDefTuple<CompactForm> {
     }
 }
 
-impl EncodeValue for TypeDefVariant<CompactForm> {
+impl EncodeValue for TypeDefVariant<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -239,7 +239,7 @@ impl EncodeValue for TypeDefVariant<CompactForm> {
     }
 }
 
-impl EncodeValue for Variant<CompactForm> {
+impl EncodeValue for Variant<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -266,7 +266,7 @@ impl EncodeValue for Variant<CompactForm> {
     }
 }
 
-impl EncodeValue for Field<CompactForm> {
+impl EncodeValue for Field<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -277,7 +277,7 @@ impl EncodeValue for Field<CompactForm> {
     }
 }
 
-impl EncodeValue for TypeDefArray<CompactForm> {
+impl EncodeValue for TypeDefArray<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,
@@ -288,7 +288,7 @@ impl EncodeValue for TypeDefArray<CompactForm> {
     }
 }
 
-impl EncodeValue for TypeDefSequence<CompactForm> {
+impl EncodeValue for TypeDefSequence<PortableForm> {
     fn encode_value_to<O: Output + Debug>(
         &self,
         encoder: &Encoder,

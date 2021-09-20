@@ -17,8 +17,8 @@
 use super::scon::Value;
 use anyhow::Result;
 use ink_metadata::TypeSpec;
-use scale::{Decode, Encode, Output};
-use scale_info::{form::CompactForm, Field, IntoCompact, Path, RegistryReadOnly, TypeInfo};
+use codec::{Decode, Encode, Output};
+use scale_info::{form::PortableForm, Field, IntoPortable, Path, PortableRegistry, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, num::NonZeroU32, str::FromStr};
 
@@ -29,9 +29,11 @@ pub struct EnvTypesTranscoder {
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(registry: &RegistryReadOnly) -> Self {
+    pub fn new(registry: &PortableRegistry) -> Self {
         let mut transcoders = HashMap::new();
         let types_by_path = registry
+            .types()
+            .iter()
             .enumerate()
             .map(|(id, ty)| (ty.path().clone().into(), id))
             .collect::<TypesByPath>();
@@ -128,8 +130,8 @@ trait CustomTypeTranscoder {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PathKey(Vec<String>);
 
-impl From<Path<CompactForm>> for PathKey {
-    fn from(path: Path<CompactForm>) -> Self {
+impl From<Path<PortableForm>> for PathKey {
+    fn from(path: Path<PortableForm>) -> Self {
         PathKey(path.segments().to_vec())
     }
 }
@@ -173,8 +175,8 @@ impl TypeLookupId {
     }
 }
 
-impl From<&TypeSpec<CompactForm>> for TypeLookupId {
-    fn from(type_spec: &TypeSpec<CompactForm>) -> Self {
+impl From<&TypeSpec<PortableForm>> for TypeLookupId {
+    fn from(type_spec: &TypeSpec<PortableForm>) -> Self {
         Self {
             type_id: type_spec.ty().id(),
             maybe_alias: type_spec.display_name().segments().iter().last().cloned(),
@@ -182,8 +184,8 @@ impl From<&TypeSpec<CompactForm>> for TypeLookupId {
     }
 }
 
-impl From<&Field<CompactForm>> for TypeLookupId {
-    fn from(field: &Field<CompactForm>) -> Self {
+impl From<&Field<PortableForm>> for TypeLookupId {
+    fn from(field: &Field<PortableForm>) -> Self {
         Self {
             type_id: field.ty().id(),
             maybe_alias: field.type_name().split("::").last().map(ToOwned::to_owned),
