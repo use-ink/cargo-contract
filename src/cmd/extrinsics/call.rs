@@ -28,10 +28,7 @@ use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{
-    ClientBuilder,
-    ExtrinsicSuccess, Runtime, Signer, subxt,
-};
+use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer, subxt, PairSigner};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -88,7 +85,7 @@ impl CallCommand {
         let cli = WsClientBuilder::default()
             .build(&url)
             .await?;
-        let signer = self.extrinsic_opts.signer()?;
+        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
@@ -97,7 +94,7 @@ impl CallCommand {
             input_data: Bytes(data),
         };
         let params = &[to_json_value(call_request)?];
-        let result: RpcContractExecResult = cli.request("contracts_call", params).await?;
+        let result: RpcContractExecResult = cli.request("contracts_call", params.into()).await?;
         Ok(result)
     }
 

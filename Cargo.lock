@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1856,7 +1856,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1880,7 +1880,7 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -1896,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1908,28 +1908,26 @@ dependencies = [
  "parity-scale-codec",
  "proc-macro2",
  "quote",
- "regex",
  "syn",
 ]
 
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "blake2",
  "either",
  "itertools",
  "proc-macro2",
  "quote",
- "regex",
  "syn",
 ]
 
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
@@ -1942,7 +1940,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1955,7 +1953,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1963,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
@@ -1973,7 +1971,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "array-init",
  "cfg-if 1.0.0",
@@ -1991,7 +1989,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#076c8262282536d5ec002e6295c00dfd4f51c5b9"
+source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#0bff439e6f9ba85d4801c4903f64e67c97d21a64"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4476,8 +4474,8 @@ version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
- "cfg-if 1.0.0",
- "rand 0.8.4",
+ "cfg-if 0.1.10",
+ "rand 0.7.3",
  "static_assertions",
 ]
 

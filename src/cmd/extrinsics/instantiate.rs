@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, runtime_api::ContractsRuntime};
+use super::{display_events, runtime_api::{api, ContractsRuntime}};
 use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
 use structopt::StructOpt;
@@ -40,7 +40,7 @@ pub struct InstantiateCommand {
     gas_limit: u64,
     /// The hash of the smart contract code already uploaded to the chain
     #[structopt(long, parse(try_from_str = parse_code_hash))]
-    code_hash: <ContractsTemplateRuntime as Runtime>::Hash,
+    code_hash: <ContractsRuntime as Runtime>::Hash,
 }
 
 impl InstantiateCommand {
@@ -59,22 +59,22 @@ impl InstantiateCommand {
                 .set_url(self.extrinsic_opts.url.to_string())
                 .build()
                 .await?;
+            let api = api::RuntimeApi::new(cli);
             let signer = self.extrinsic_opts.signer()?;
 
-            let events = cli
-                .instantiate_and_watch(
-                    &signer,
+            let extrinsic = api.tx.contracts
+                .instantiate(
                     self.endowment,
                     self.gas_limit,
-                    &self.code_hash,
-                    &data,
-                )
-                .await?;
+                    self.code_hash,
+                    data,
+                );
+            let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
-            display_events(&events, &transcoder, self.extrinsic_opts.verbosity()?);
+            display_events(&result, &transcoder, self.extrinsic_opts.verbosity()?);
 
-            let instantiated = events
-                .instantiated()?
+            let instantiated = result
+                .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
             Ok(instantiated.contract)

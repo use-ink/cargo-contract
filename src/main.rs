@@ -94,11 +94,9 @@ pub(crate) struct ExtrinsicOpts {
 }
 
 impl ExtrinsicOpts {
-    pub fn signer(&self) -> Result<PairSigner<subxt::ContractsTemplateRuntime, sr25519::Pair>> {
-        let pair =
-            sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-                .map_err(|_| anyhow::anyhow!("Secret string error"))?;
-        Ok(PairSigner::new(pair))
+    pub fn signer(&self) -> Result<sr25519::Pair> {
+        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+            .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
 
     /// Returns the verbosity

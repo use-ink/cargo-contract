@@ -68,7 +68,7 @@ impl DeployCommand {
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
         async_std::task::block_on(async move {
-            let cli = ClientBuilder::<ContractsTemplateRuntime>::new()
+            let cli = ClientBuilder::new()
                 .set_url(&self.extrinsic_opts.url.to_string())
                 .build()
                 .await?;

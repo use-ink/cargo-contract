@@ -27,6 +27,8 @@ use std::{fmt::Display, fs::File};
 
 use self::{events::display_events, transcode::ContractMessageTranscoder, runtime_api::{api, ContractsRuntime}};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
+use subxt::PairSigner;
+use sp_core::sr25519;
 
 type Balance = u128;
 
@@ -65,4 +67,8 @@ where
         .grid(false);
     let _ = pretty_printer.print();
     Ok(())
+}
+
+pub fn pair_signer(pair: sr25519::Pair) -> PairSigner<runtime_api::ContractsRuntime, sr25519::Pair> {
+    PairSigner::new(pair)
 }

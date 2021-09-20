@@ -34,8 +34,7 @@ impl EnvTypesTranscoder {
         let types_by_path = registry
             .types()
             .iter()
-            .enumerate()
-            .map(|(id, ty)| (ty.path().clone().into(), id))
+            .map(|ty| (PathKey(ty.ty().path().segments().to_vec()), ty.id()))
             .collect::<TypesByPath>();
         log::debug!("Types by path: {:?}", types_by_path);
         Self::register_transcoder(&types_by_path, &mut transcoders, AccountId);
@@ -136,13 +135,13 @@ impl From<Path<PortableForm>> for PathKey {
     }
 }
 
-type TypesByPath = HashMap<PathKey, NonZeroU32>;
+type TypesByPath = HashMap<PathKey, u32>;
 
 /// Unique identifier for a type used in a contract
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct TypeLookupId {
     /// The lookup id of the type in the `scale-info` type registry
-    type_id: NonZeroU32,
+    type_id: u32,
     /// The display name of the type, required to identify type aliases e.g. `type Balance = u128`
     maybe_alias: Option<String>,
 }
@@ -161,7 +160,7 @@ impl TypeLookupId {
         let path = type_info
             .path()
             .clone()
-            .into_compact(&mut Default::default());
+            .into_portable(&mut Default::default());
 
         type_lookup.get(&path.into()).map(|type_id| Self {
             type_id: *type_id,
@@ -170,7 +169,7 @@ impl TypeLookupId {
     }
 
     /// Returns the type identifier for resolving the type from the registry.
-    pub fn type_id(&self) -> NonZeroU32 {
+    pub fn type_id(&self) -> u32 {
         self.type_id
     }
 }
@@ -188,13 +187,13 @@ impl From<&Field<PortableForm>> for TypeLookupId {
     fn from(field: &Field<PortableForm>) -> Self {
         Self {
             type_id: field.ty().id(),
-            maybe_alias: field.type_name().split("::").last().map(ToOwned::to_owned),
+            maybe_alias: field.type_name().and_then(|n| n.split("::").last().map(ToOwned::to_owned)),
         }
     }
 }
 
-impl From<NonZeroU32> for TypeLookupId {
-    fn from(type_id: NonZeroU32) -> Self {
+impl From<u32> for TypeLookupId {
+    fn from(type_id: u32) -> Self {
         Self {
             type_id,
             maybe_alias: None,

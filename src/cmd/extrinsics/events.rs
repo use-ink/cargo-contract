@@ -36,7 +36,7 @@ pub fn display_events(
     for event in &result.events {
         print!(
             "{}::{} ",
-            event.module.bold(),
+            event.pallet.bold(),
             event.variant.bright_cyan().bold(),
         );
 
@@ -60,7 +60,7 @@ pub fn display_events(
         }
         if display_matching_event(
             event,
-            |event| DisplayContractExecution { transcoder, event },
+            |event| DisplayContractEmitted { transcoder, event },
             true,
         ) {
             continue;
@@ -68,7 +68,7 @@ pub fn display_events(
         println!();
         log::info!(
             "{}::{} event has no matching custom display",
-            event.module,
+            event.pallet,
             event.variant
         );
     }
@@ -84,7 +84,7 @@ where
     F: FnOnce(E) -> D,
     D: Display,
 {
-    if raw_event.module != E::MODULE || raw_event.variant != E::EVENT {
+    if raw_event.pallet != E::PALLET || raw_event.variant != E::EVENT {
         return false;
     }
 
@@ -149,35 +149,35 @@ impl Display for DisplayTransferEvent {
 }
 
 /// Wraps contracts::CodeStored for Display impl
-struct DisplayCodeStoredEvent(api::contracts::CodeStoredEvent<ContractsRuntime>);
+struct DisplayCodeStoredEvent(api::contracts::events::CodeStored);
 
 impl Display for DisplayCodeStoredEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("code_hash", &self.0.code_hash);
+        builder.field("code_hash", &self.0.0);
         builder.finish()
     }
 }
 
 /// Wraps contracts::InstantiatedEvent for Display impl
-struct DisplayInstantiatedEvent(api::contracts::InstantiatedEvent<ContractsRuntime>);
+struct DisplayInstantiatedEvent(api::contracts::events::Instantiated);
 
 impl Display for DisplayInstantiatedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("caller", &self.0.caller);
-        builder.field("contract", &self.0.contract);
+        builder.field("caller", &self.0.0);
+        builder.field("contract", &self.0.1);
         builder.finish()
     }
 }
 
-/// Wraps contracts::ContractExecutionEvent<Runtime> for Display impl and decodes contract events.
-struct DisplayContractExecution<'a> {
-    event: api::contracts::ContractExecutionEvent,
+/// Wraps contracts::events::ContractEmitted for Display impl and decodes contract events.
+struct DisplayContractEmitted<'a> {
+    event: api::contracts::events::ContractEmitted,
     transcoder: &'a ContractMessageTranscoder<'a>,
 }
 
-impl<'a> Display for DisplayContractExecution<'a> {
+impl<'a> Display for DisplayContractEmitted<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
         builder.field("caller", &self.event.caller);
