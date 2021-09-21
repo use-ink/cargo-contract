@@ -22,11 +22,7 @@ use super::{
 use anyhow::Result;
 use itertools::Itertools;
 use codec::{Compact, Encode, Output};
-use scale_info::{
-    form::{PortableForm, Form},
-    Field, PortableRegistry, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
-};
+use scale_info::{form::{PortableForm, Form}, PortableRegistry, TypeDef, TypeDefComposite, TypeDefPrimitive, TypeDefTuple, TypeDefVariant, TypeDefCompact};
 use std::{
     convert::{TryFrom, TryInto},
     error::Error,
@@ -68,14 +64,144 @@ impl<'a> Encoder<'a> {
             ty
         );
         if !self.env_types.try_encode(&type_id, &value, output)? {
-            ty.type_def()
-                .encode_value_to(&self, value, output)
-                .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))?;
+            self.encode_type(ty.type_def(), value, output)
+                .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty.path(), e))?
         }
         Ok(())
     }
 
-    pub fn encode_seq<O: Output + Debug>(
+    fn encode_type<O: Output + Debug>(
+        &self,
+        type_def: &TypeDef<PortableForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        match type_def {
+            TypeDef::Composite(composite) => self.encode_composite(composite, value, output),
+            TypeDef::Variant(variant) => self.encode_variant_type(variant, value, output),
+            TypeDef::Array(array) => self.encode_seq(array.type_param(), value, false, output),
+            TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
+            TypeDef::Sequence(sequence) => self.encode_seq(sequence.type_param(), value, true, output),
+            TypeDef::Primitive(primitive) => self.encode_primitive(primitive, value, output),
+            TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
+            TypeDef::BitSequence(_) => todo!(),
+        }
+    }
+
+    fn encode_composite<O: Output + Debug>(
+        &self,
+        composite: &TypeDefComposite<PortableForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        let struct_type = CompositeTypeFields::from_type_def(composite)?;
+
+        match value {
+            Value::Map(map) => {
+                // todo: should lookup via name so that order does not matter
+                for (field, value) in composite.fields().iter().zip(map.values()) {
+                    self.encode(field.ty().id(), value, output)?;
+                }
+                Ok(())
+            }
+            Value::Tuple(tuple) => match struct_type {
+                CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                    for (field, value) in fields.iter().zip(tuple.values()) {
+                        self.encode(field.ty().id(), value, output)?;
+                    }
+                    Ok(())
+                }
+                CompositeTypeFields::NoFields => Ok(()),
+                CompositeTypeFields::StructNamedFields(_) => {
+                    return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
+                }
+            },
+            v => {
+                if let Ok(single_field) = composite.fields().iter().exactly_one() {
+                    self.encode(single_field.ty().id(), value, output)
+                } else {
+                    Err(anyhow::anyhow!(
+                        "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
+                        v
+                    ))
+                }
+            }
+        }
+    }
+
+    fn encode_tuple<O: Output + Debug>(
+        &self,
+        tuple: &TypeDefTuple<PortableForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        match value {
+            Value::Tuple(tuple_val) => {
+                for (field_type, value) in tuple.fields().iter().zip(tuple_val.values()) {
+                    self.encode(field_type.id(), value, output)?;
+                }
+                Ok(())
+            }
+            v => {
+                if let Ok(single_field) = tuple.fields().iter().exactly_one() {
+                    self.encode(single_field.id(), value, output)
+                } else {
+                    Err(anyhow::anyhow!(
+                        "Expected a Tuple or a single Value for a tuple data type, found {:?}",
+                        v
+                    ))
+                }
+            }
+        }
+    }
+
+    fn encode_variant_type<O: Output + Debug>(
+        &self,
+        variant_def: &TypeDefVariant<PortableForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
+        let variant_ident = match value {
+            Value::Map(map) => map
+                .ident()
+                .ok_or(anyhow::anyhow!("Missing enum variant identifier for map")),
+            Value::Tuple(tuple) => tuple
+                .ident()
+                .ok_or(anyhow::anyhow!("Missing enum variant identifier for tuple")),
+            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
+        }?;
+
+        let (index, variant) = variant_def
+            .variants()
+            .iter()
+            .find_position(|v| v.name() == &variant_ident)
+            .ok_or(anyhow::anyhow!("No variant '{}' found", variant_ident))?;
+
+        let index: u8 = index
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
+        output.push_byte(index);
+
+        match value {
+            Value::Map(_map) => {
+                // todo: should lookup via name so that order does not matter
+                // for (field, value) in self.fields().iter().zip(map.values()) {
+                //     field.encode_value_to(registry, value, output)?;
+                // }
+                // Ok(())
+                todo!()
+            }
+            Value::Tuple(tuple) => {
+                for (field, value) in variant.fields().iter().zip(tuple.values()) {
+                    self.encode(field.ty().id(), value, output)?;
+                }
+                Ok(())
+            }
+            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
+        }
+    }
+
+    fn encode_seq<O: Output + Debug>(
         &self,
         ty: &<PortableForm as Form>::Type,
         value: &Value,
@@ -92,7 +218,7 @@ impl<'a> Encoder<'a> {
                     Compact(values.len() as u32).encode_to(output);
                 }
                 for value in values.elems() {
-                    ty.type_def().encode_value_to(&self, value, output)?;
+                    self.encode_type(ty.type_def(), value, output)?;
                 }
             }
             Value::Bytes(bytes) => {
@@ -107,264 +233,14 @@ impl<'a> Encoder<'a> {
         }
         Ok(())
     }
-}
 
-pub trait EncodeValue {
-    fn encode_value_to<O: Output + Debug>(
+    fn encode_primitive<O: Output + Debug>(
         &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()>;
-}
-
-impl EncodeValue for TypeDef<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
+        primitive: &TypeDefPrimitive,
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        match self {
-            TypeDef::Composite(composite) => composite.encode_value_to(encoder, value, output),
-            TypeDef::Variant(variant) => variant.encode_value_to(encoder, value, output),
-            TypeDef::Array(array) => array.encode_value_to(encoder, value, output),
-            TypeDef::Tuple(tuple) => tuple.encode_value_to(encoder, value, output),
-            TypeDef::Sequence(sequence) => sequence.encode_value_to(encoder, value, output),
-            TypeDef::Primitive(primitive) => primitive.encode_value_to(encoder, value, output),
-        }
-    }
-}
-
-impl EncodeValue for TypeDefComposite<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        let struct_type = CompositeTypeFields::from_type_def(&self)?;
-
-        match value {
-            Value::Map(map) => {
-                // todo: should lookup via name so that order does not matter
-                for (field, value) in self.fields().iter().zip(map.values()) {
-                    field.encode_value_to(encoder, value, output)?;
-                }
-                Ok(())
-            }
-            Value::Tuple(tuple) => match struct_type {
-                CompositeTypeFields::TupleStructUnnamedFields(fields) => {
-                    for (field, value) in fields.iter().zip(tuple.values()) {
-                        field.encode_value_to(encoder, value, output)?;
-                    }
-                    Ok(())
-                }
-                CompositeTypeFields::NoFields => Ok(()),
-                CompositeTypeFields::StructNamedFields(_) => {
-                    return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
-                }
-            },
-            v => {
-                if let Ok(single_field) = self.fields().iter().exactly_one() {
-                    single_field.encode_value_to(encoder, value, output)
-                } else {
-                    Err(anyhow::anyhow!(
-                        "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
-                        v
-                    ))
-                }
-            }
-        }
-    }
-}
-
-impl EncodeValue for TypeDefTuple<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        match value {
-            Value::Tuple(tuple) => {
-                for (field_type, value) in self.fields().iter().zip(tuple.values()) {
-                    encoder.encode(field_type.id(), value, output)?;
-                }
-                Ok(())
-            }
-            v => {
-                if let Ok(single_field) = self.fields().iter().exactly_one() {
-                    encoder.encode(single_field.id(), value, output)
-                } else {
-                    Err(anyhow::anyhow!(
-                        "Expected a Tuple or a single Value for a tuple data type, found {:?}",
-                        v
-                    ))
-                }
-            }
-        }
-    }
-}
-
-impl EncodeValue for TypeDefVariant<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        let variant_ident = match value {
-            Value::Map(map) => map
-                .ident()
-                .ok_or(anyhow::anyhow!("Missing enum variant identifier for map")),
-            Value::Tuple(tuple) => tuple
-                .ident()
-                .ok_or(anyhow::anyhow!("Missing enum variant identifier for tuple")),
-            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
-        }?;
-
-        let (index, variant) = self
-            .variants()
-            .iter()
-            .find_position(|v| v.name() == &variant_ident)
-            .ok_or(anyhow::anyhow!("No variant '{}' found", variant_ident))?;
-
-        let index: u8 = index
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
-        output.push_byte(index);
-
-        variant.encode_value_to(encoder, value, output)
-    }
-}
-
-impl EncodeValue for Variant<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        match value {
-            Value::Map(_map) => {
-                // todo: should lookup via name so that order does not matter
-                // for (field, value) in self.fields().iter().zip(map.values()) {
-                //     field.encode_value_to(registry, value, output)?;
-                // }
-                // Ok(())
-                todo!()
-            }
-            Value::Tuple(tuple) => {
-                for (field, value) in self.fields().iter().zip(tuple.values()) {
-                    field.encode_value_to(encoder, value, output)?;
-                }
-                Ok(())
-            }
-            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
-        }
-    }
-}
-
-impl EncodeValue for Field<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        encoder.encode(self, value, output)
-    }
-}
-
-impl EncodeValue for TypeDefArray<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        encoder.encode_seq(self.type_param(), value, false, output)
-    }
-}
-
-impl EncodeValue for TypeDefSequence<PortableForm> {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        encoder: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        encoder.encode_seq(self.type_param(), value, true, output)
-    }
-}
-
-impl EncodeValue for TypeDefPrimitive {
-    fn encode_value_to<O: Output + Debug>(
-        &self,
-        _: &Encoder,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
-        where
-            T: TryFrom<u128> + FromStr + Encode,
-            <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-            <T as FromStr>::Err: Error + Send + Sync + 'static,
-            O: Output,
-        {
-            match value {
-                Value::UInt(i) => {
-                    let u: T = (*i).try_into()?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                Value::String(s) => {
-                    let sanitized = s.replace(&['_', ','][..], "");
-                    let u = T::from_str(&sanitized)?;
-                    u.encode_to(output);
-                    Ok(())
-                }
-                _ => Err(anyhow::anyhow!(
-                    "Expected a {} or a String value, got {}",
-                    expected,
-                    value
-                )),
-            }
-        }
-        fn encode_int<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
-        where
-            T: TryFrom<i128> + TryFrom<u128> + FromStr + Encode,
-            <T as TryFrom<i128>>::Error: Error + Send + Sync + 'static,
-            <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-            <T as FromStr>::Err: Error + Send + Sync + 'static,
-            O: Output,
-        {
-            let int = match value {
-                Value::Int(i) => {
-                    let i: T = (*i).try_into()?;
-                    Ok(i)
-                }
-                Value::UInt(u) => {
-                    let i: T = (*u).try_into()?;
-                    Ok(i)
-                }
-                Value::String(s) => {
-                    let sanitized = s.replace(&['_', ','][..], "");
-                    let i = T::from_str(&sanitized)?;
-                    Ok(i)
-                }
-                _ => Err(anyhow::anyhow!(
-                    "Expected a {} or a String value, got {}",
-                    expected,
-                    value
-                )),
-            }?;
-            int.encode_to(output);
-            Ok(())
-        }
-
-        match self {
+        match primitive {
             TypeDefPrimitive::Bool => {
                 if let Value::Bool(b) = value {
                     b.encode_to(output);
@@ -396,4 +272,96 @@ impl EncodeValue for TypeDefPrimitive {
             TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
         }
     }
+
+    fn encode_compact<O: Output + Debug>(&self, compact: &TypeDefCompact<PortableForm>, value: &Value, output: &mut O) -> Result<()> {
+        let ty = self
+            .registry
+            .resolve(compact.type_param().id())
+            .ok_or(anyhow::anyhow!(
+                "Failed to resolve type with id '{:?}'",
+                compact.type_param().id()
+            ))?;
+        match ty.type_def() {
+            TypeDef::Primitive(primitive) => {
+                match primitive {
+                    // todo: [AJ] extract function here?
+                    TypeDefPrimitive::U8 => Ok(Compact(uint_from_value::<u8>(value, "u8")?).encode_to(output)),
+                    TypeDefPrimitive::U16 => Ok(Compact(uint_from_value::<u16>(value, "u16")?).encode_to(output)),
+                    TypeDefPrimitive::U32 => Ok(Compact(uint_from_value::<u32>(value, "u32")?).encode_to(output)),
+                    TypeDefPrimitive::U64 => Ok(Compact(uint_from_value::<u64>(value, "u64")?).encode_to(output)),
+                    TypeDefPrimitive::U128 => Ok(Compact(uint_from_value::<u128>(value, "u128")?).encode_to(output)),
+                    _ => Err(anyhow::anyhow!("Compact encoding not supported for {:?}", primitive)),
+                }
+            }
+            _ => unimplemented!("Only primitive unsigned ints support compact encoding for now")
+        }
+    }
+}
+
+fn uint_from_value<T>(value: &Value, expected: &str) -> Result<T>
+    where
+        T: TryFrom<u128> + FromStr,
+        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+        <T as FromStr>::Err: Error + Send + Sync + 'static,
+{
+    match value {
+        Value::UInt(i) => {
+            let uint = (*i).try_into()?;
+            Ok(uint)
+        }
+        Value::String(s) => {
+            let sanitized = s.replace(&['_', ','][..], "");
+            let uint = T::from_str(&sanitized)?;
+            Ok(uint)
+        }
+        _ => Err(anyhow::anyhow!(
+            "Expected a {} or a String value, got {}",
+            expected,
+            value
+        )),
+    }
+}
+
+fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
+    where
+        T: TryFrom<u128> + FromStr + Encode,
+        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+        <T as FromStr>::Err: Error + Send + Sync + 'static,
+        O: Output,
+{
+    let uint: T = uint_from_value(value, expected)?;
+    uint.encode_to(output);
+    Ok(())
+}
+
+fn encode_int<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
+    where
+        T: TryFrom<i128> + TryFrom<u128> + FromStr + Encode,
+        <T as TryFrom<i128>>::Error: Error + Send + Sync + 'static,
+        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+        <T as FromStr>::Err: Error + Send + Sync + 'static,
+        O: Output,
+{
+    let int = match value {
+        Value::Int(i) => {
+            let i: T = (*i).try_into()?;
+            Ok(i)
+        }
+        Value::UInt(u) => {
+            let i: T = (*u).try_into()?;
+            Ok(i)
+        }
+        Value::String(s) => {
+            let sanitized = s.replace(&['_', ','][..], "");
+            let i = T::from_str(&sanitized)?;
+            Ok(i)
+        }
+        _ => Err(anyhow::anyhow!(
+                    "Expected a {} or a String value, got {}",
+                    expected,
+                    value
+                )),
+    }?;
+    int.encode_to(output);
+    Ok(())
 }
