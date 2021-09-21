@@ -40,7 +40,6 @@ use structopt::{clap, StructOpt};
 
 use crate::cmd::{CallCommand, DeployCommand, InstantiateCommand};
 use sp_core::{crypto::Pair, sr25519};
-use subxt::PairSigner;
 
 #[derive(Debug, StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -525,13 +524,16 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         }
         Command::Deploy(deploy) => {
             let code_hash = deploy.exec()?;
-            Ok(format!("Code hash: {:#x}", code_hash))
+            Ok(Some(format!("Code hash: {:#x}", code_hash)))
         }
         Command::Instantiate(instantiate) => {
             let contract_account = instantiate.run()?;
-            Ok(format!("Contract account: {}", contract_account))
+            Ok(Some(format!("Contract account: {}", contract_account)))
         }
-        Command::Call(call) => call.run(),
+        Command::Call(call) => {
+            call.run()?;
+            Ok(None)
+        },
     }
 }
 

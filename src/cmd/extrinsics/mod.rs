@@ -25,7 +25,7 @@ use anyhow::Result;
 use bat::PrettyPrinter;
 use std::{fmt::Display, fs::File};
 
-use self::{events::display_events, transcode::ContractMessageTranscoder, runtime_api::{api, ContractsRuntime}};
+use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use subxt::PairSigner;
 use sp_core::sr25519;

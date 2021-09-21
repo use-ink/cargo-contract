@@ -60,7 +60,7 @@ impl InstantiateCommand {
                 .build()
                 .await?;
             let api = api::RuntimeApi::new(cli);
-            let signer = self.extrinsic_opts.signer()?;
+            let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
             let extrinsic = api.tx.contracts
                 .instantiate(

@@ -20,7 +20,7 @@ use ink_metadata::TypeSpec;
 use codec::{Decode, Encode, Output};
 use scale_info::{form::PortableForm, Field, IntoPortable, Path, PortableRegistry, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
-use std::{boxed::Box, collections::HashMap, convert::TryFrom, num::NonZeroU32, str::FromStr};
+use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
 
 /// Provides custom encoding and decoding for predefined environment types.
 pub struct EnvTypesTranscoder {

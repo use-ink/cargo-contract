@@ -14,14 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use sp_keyring::AccountKeyring;
-use sp_runtime::{
-    traits::BlakeTwo256,
-    AccountId32,
-    MultiAddress,
-};
-
-use subxt::{Runtime, subxt};
+use sp_runtime::traits::BlakeTwo256;
+use subxt::{Runtime, StorageEntry, subxt};
 
 // todo: [AJ] use current file location as relative path for this file?
 // todo: [AJ] regenerate metadata for contract template node (it will likely be smaller)
@@ -55,4 +49,14 @@ impl Runtime for ContractsRuntime {
     type Signature = sp_runtime::MultiSignature;
     type Extrinsic = sp_runtime::OpaqueExtrinsic;
     type AccountData = api::system::storage::Account;
+}
+
+impl subxt::AccountData<ContractsRuntime> for api::system::storage::Account {
+    fn new(account_id: <ContractsRuntime as Runtime>::AccountId) -> Self {
+        Self(account_id.into())
+    }
+
+    fn nonce(result: &<Self as StorageEntry>::Value) -> <ContractsRuntime as Runtime>::Index {
+        result.nonce
+    }
 }

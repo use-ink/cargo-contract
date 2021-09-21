@@ -19,7 +19,7 @@ use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
 use jsonrpsee_types::{
-    JsonValue, to_json_value,
+    to_json_value,
     traits::Client,
 };
 use jsonrpsee_ws_client::WsClientBuilder;
@@ -28,7 +28,7 @@ use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer, subxt, PairSigner};
+use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -93,7 +93,7 @@ impl CallCommand {
             gas_limit: NumberOrHex::Number(self.gas_limit),
             input_data: Bytes(data),
         };
-        let params = &[to_json_value(call_request)?];
+        let params = vec![to_json_value(call_request)?];
         let result: RpcContractExecResult = cli.request("contracts_call", params.into()).await?;
         Ok(result)
     }
@@ -103,12 +103,19 @@ impl CallCommand {
             .set_url(&self.extrinsic_opts.url.to_string())
             .build()
             .await?;
-        let signer = self.extrinsic_opts.signer()?;
+        let api = api::RuntimeApi::new(cli);
+        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let extrinsic_success = cli
-            .call_and_watch(&signer, &self.contract, self.value, self.gas_limit, &data)
-            .await?;
-        Ok(extrinsic_success)
+        let extrinsic = api.tx.contracts
+            .call(
+                self.contract.clone().into(),
+                self.value,
+                self.gas_limit,
+                data,
+            );
+        let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
+
+        Ok(result)
     }
 }
 

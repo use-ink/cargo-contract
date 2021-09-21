@@ -18,7 +18,7 @@ use super::{
     decode::Decoder,
     encode::Encoder,
     env_types::{EnvTypesTranscoder, TypeLookupId},
-    scon::{Map, Value},
+    scon::Value,
 };
 
 use anyhow::Result;
