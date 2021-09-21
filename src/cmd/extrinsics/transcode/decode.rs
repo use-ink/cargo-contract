@@ -21,11 +21,7 @@ use super::{
 };
 use anyhow::Result;
 use codec::{Compact, Decode, Input};
-use scale_info::{
-    form::{PortableForm, Form},
-    Field, PortableRegistry, Type, TypeDef, TypeDefArray, TypeDefComposite, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeDefVariant, Variant,
-};
+use scale_info::{form::{PortableForm, Form}, PortableRegistry, Type, TypeDef, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefCompact};
 
 pub struct Decoder<'a> {
     registry: &'a PortableRegistry,
@@ -61,7 +57,7 @@ impl<'a> Decoder<'a> {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
             // No custom decoder registered so attempt default decoding.
-            Ok(None) => ty.type_def().decode_value(self, &ty, input),
+            Ok(None) => self.decode_type(&ty, input),
             Err(e) => Err(e),
         }
     }
@@ -70,7 +66,6 @@ impl<'a> Decoder<'a> {
         &self,
         ty: &<PortableForm as Form>::Type,
         len: usize,
-        decoder: &Decoder,
         input: &mut &[u8],
     ) -> Result<Value> {
         let ty = self
@@ -85,64 +80,68 @@ impl<'a> Decoder<'a> {
         } else {
             let mut elems = Vec::new();
             while elems.len() < len as usize {
-                let elem = ty.type_def().decode_value(decoder, ty, input)?;
+                let elem = self.decode_type(ty, input)?;
                 elems.push(elem)
             }
             Ok(Value::Seq(elems.into()))
         }
     }
-}
 
-pub trait DecodeValue {
-    fn decode_value(
+    fn decode_type(
         &self,
-        decoder: &Decoder,
-        ty: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value>;
-}
-
-impl DecodeValue for TypeDef<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
         ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        match self {
-            TypeDef::Composite(composite) => composite.decode_value(decoder, ty, input),
-            TypeDef::Tuple(tuple) => tuple.decode_value(decoder, ty, input),
-            TypeDef::Variant(variant) => variant.decode_value(decoder, ty, input),
-            TypeDef::Array(array) => array.decode_value(decoder, ty, input),
-            TypeDef::Sequence(sequence) => sequence.decode_value(decoder, ty, input),
-            TypeDef::Primitive(primitive) => primitive.decode_value(decoder, ty, input),
+        match ty.type_def() {
+            TypeDef::Composite(composite) =>
+                self.decode_composite(ty, composite, input),
+            TypeDef::Tuple(tuple) => {
+                let mut elems = Vec::new();
+                for field_type in tuple.fields() {
+                    let value = self.decode(field_type.id(), input)?;
+                    elems.push(value);
+                }
+                Ok(Value::Tuple(Tuple::new(
+                    None,
+                    elems.into_iter().collect::<Vec<_>>(),
+                )))
+            },
+            TypeDef::Variant(variant) =>
+                self.decode_variant_type(variant, input),
+            TypeDef::Array(array) =>
+                self.decode_seq(array.type_param(), array.len() as usize, input),
+            TypeDef::Sequence(sequence) => {
+                let len = <Compact<u32>>::decode(input)?;
+                self.decode_seq(sequence.type_param(), len.0 as usize, input)
+            },
+            TypeDef::Primitive(primitive) => self.decode_primitive(primitive, input),
+            TypeDef::Compact(compact) => self.decode_compact(compact, input),
+            TypeDef::BitSequence(_) => todo!("BitSequence")
         }
     }
-}
 
-impl DecodeValue for TypeDefComposite<PortableForm> {
-    fn decode_value(
+    fn decode_composite(
         &self,
-        decoder: &Decoder,
         ty: &Type<PortableForm>,
+        composite: &TypeDefComposite<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        let struct_type = CompositeTypeFields::from_type_def(&self)?;
+        let struct_type = CompositeTypeFields::from_type_def(&composite)?;
         let ident = ty.path().segments().last().map(|s| s.as_str());
 
         match struct_type {
             CompositeTypeFields::StructNamedFields(fields) => {
                 let mut map = Vec::new();
                 for field in fields {
-                    let value = field.field().decode_value(decoder, ty, input)?;
+                    let value = self.decode(field.field(), input)?;
                     map.push((Value::String(field.name().to_string()), value));
                 }
                 Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
             }
             CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                 let mut tuple = Vec::new();
-                for field in fields {
-                    let value = field.decode_value(decoder, ty, input)?;
+                for field in &fields {
+                    let value = self.decode(field, input)?;
                     tuple.push(value);
                 }
                 Ok(Value::Tuple(Tuple::new(
@@ -153,57 +152,25 @@ impl DecodeValue for TypeDefComposite<PortableForm> {
             CompositeTypeFields::NoFields => Ok(Value::Tuple(Tuple::new(ident, Vec::new()))),
         }
     }
-}
 
-impl DecodeValue for TypeDefTuple<PortableForm> {
-    fn decode_value(
+    fn decode_variant_type(
         &self,
-        decoder: &Decoder,
-        _: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
-        let mut tuple = Vec::new();
-        for field_type in self.fields() {
-            let value = decoder.decode(field_type.id(), input)?;
-            tuple.push(value);
-        }
-        Ok(Value::Tuple(Tuple::new(
-            None,
-            tuple.into_iter().collect::<Vec<_>>(),
-        )))
-    }
-}
-
-impl DecodeValue for TypeDefVariant<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
-        ty: &Type<PortableForm>,
+        variant_type: &TypeDefVariant<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
-        let variant = self
+        let variant = variant_type
             .variants()
             .get(discriminant as usize)
             .ok_or(anyhow::anyhow!(
                 "No variant found with discriminant {}",
                 discriminant
             ))?;
-        variant.decode_value(decoder, ty, input)
-    }
-}
 
-impl DecodeValue for Variant<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
-        ty: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
-        for field in self.fields() {
-            let value = field.decode_value(decoder, ty, input)?;
+        for field in variant.fields() {
+            let value = self.decode(field, input)?;
             if let Some(name) = field.name() {
                 named.push((Value::String(name.to_owned()), value));
             } else {
@@ -216,67 +183,16 @@ impl DecodeValue for Variant<PortableForm> {
             ))
         } else if !named.is_empty() {
             Ok(Value::Map(Map::new(
-                Some(self.name()),
+                Some(variant.name()),
                 named.into_iter().collect(),
             )))
         } else {
-            Ok(Value::Tuple(Tuple::new(Some(self.name()), unnamed)))
+            Ok(Value::Tuple(Tuple::new(Some(variant.name()), unnamed)))
         }
     }
-}
 
-impl DecodeValue for Field<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
-        _: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
-        decoder.decode(self, input)
-    }
-}
-
-impl DecodeValue for TypeDefArray<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
-        _: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
-        decoder.decode_seq(self.type_param(), self.len() as usize, decoder, input)
-    }
-}
-
-impl DecodeValue for TypeDefSequence<PortableForm> {
-    fn decode_value(
-        &self,
-        decoder: &Decoder,
-        _: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
-        let len = <Compact<u32>>::decode(input)?;
-        decoder.decode_seq(self.type_param(), len.0 as usize, decoder, input)
-    }
-}
-
-impl DecodeValue for TypeDefPrimitive {
-    fn decode_value(&self, _: &Decoder, _: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
-        fn decode_uint<T>(input: &mut &[u8]) -> Result<Value>
-        where
-            T: Decode + Into<u128>,
-        {
-            let decoded = T::decode(input)?;
-            Ok(Value::UInt(decoded.into()))
-        }
-        fn decode_int<T>(input: &mut &[u8]) -> Result<Value>
-        where
-            T: Decode + Into<i128>,
-        {
-            let decoded = T::decode(input)?;
-            Ok(Value::Int(decoded.into()))
-        }
-
-        match self {
+    fn decode_primitive(&self, primitive: &TypeDefPrimitive, input: &mut &[u8]) -> Result<Value> {
+        match primitive {
             TypeDefPrimitive::Bool => Ok(Value::Bool(bool::decode(input)?)),
             TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
             TypeDefPrimitive::Str => Ok(Value::String(String::decode(input)?)),
@@ -294,4 +210,45 @@ impl DecodeValue for TypeDefPrimitive {
             TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
         }
     }
+
+    fn decode_compact(&self, compact: &TypeDefCompact<PortableForm>, input: &mut &[u8]) -> Result<Value> {
+        let type_id = compact.type_param().id();
+        let ty = self
+            .registry
+            .resolve(type_id)
+            .ok_or(anyhow::anyhow!(
+                "Failed to resolve type with id `{:?}`",
+                type_id
+            ))?;
+        match ty.type_def() {
+            TypeDef::Primitive(primitive) => {
+                match primitive {
+                    TypeDefPrimitive::U8 => decode_uint::<u8>(input),
+                    TypeDefPrimitive::U16 => decode_uint::<u16>(input),
+                    TypeDefPrimitive::U32 => decode_uint::<u32>(input),
+                    TypeDefPrimitive::U64 => decode_uint::<u64>(input),
+                    TypeDefPrimitive::U128 => decode_uint::<u128>(input),
+                    _ => Err(anyhow::anyhow!("Compact {:?} not supported", primitive)),
+                }
+            }
+            _ => todo!("Compact impls")
+        }
+
+    }
+}
+
+fn decode_uint<T>(input: &mut &[u8]) -> Result<Value>
+where
+    T: Decode + Into<u128>,
+{
+    let decoded = T::decode(input)?;
+    Ok(Value::UInt(decoded.into()))
+}
+
+fn decode_int<T>(input: &mut &[u8]) -> Result<Value>
+where
+    T: Decode + Into<i128>,
+{
+    let decoded = T::decode(input)?;
+    Ok(Value::Int(decoded.into()))
 }
