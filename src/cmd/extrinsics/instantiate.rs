@@ -24,20 +24,27 @@ use subxt::{
 };
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "instantiate", about = "Instantiate a contract")]
-pub struct InstantiateCommand {
+pub struct InstantiateArgs {
     /// The name of the contract constructor to call
-    name: String,
+    pub(super) name: String,
     /// The constructor arguments, encoded as strings
-    args: Vec<String>,
+    pub(super) args: Vec<String>,
     #[structopt(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    pub(super) extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[structopt(name = "endowment", long, default_value = "0")]
-    endowment: super::Balance,
+    pub(super) endowment: super::Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
-    gas_limit: u64,
+    pub(super) gas_limit: u64,
+    // todo: [AJ] add salt
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "instantiate", about = "Instantiate a contract")]
+pub struct InstantiateCommand {
+    #[structopt(flatten)]
+    instantiate: InstantiateArgs,
     /// The hash of the smart contract code already uploaded to the chain
     #[structopt(long, parse(try_from_str = parse_code_hash))]
     code_hash: <ContractsRuntime as Runtime>::Hash,
@@ -49,35 +56,36 @@ impl InstantiateCommand {
     ///
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::Address> {
+    pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::AccountId> {
         let metadata = super::load_metadata()?;
         let transcoder = super::ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.name, &self.args)?;
+        let data = transcoder.encode(&self.instantiate.name, &self.instantiate.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()
-                .set_url(self.extrinsic_opts.url.to_string())
+                .set_url(self.instantiate.extrinsic_opts.url.to_string())
                 .build()
                 .await?;
             let api = api::RuntimeApi::new(cli);
-            let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+            let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
             let extrinsic = api.tx.contracts
                 .instantiate(
-                    self.endowment,
-                    self.gas_limit,
+                    self.instantiate.endowment,
+                    self.instantiate.gas_limit,
                     self.code_hash,
                     data,
+                    vec![] // todo: [AJ] salt
                 );
             let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
-            display_events(&result, &transcoder, self.extrinsic_opts.verbosity()?);
+            display_events(&result, &transcoder, self.instantiate.extrinsic_opts.verbosity()?);
 
             let instantiated = result
                 .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
-            Ok(instantiated.contract)
+            Ok(instantiated.0)
         })
     }
 }
@@ -95,7 +103,7 @@ fn parse_code_hash(input: &str) -> Result<<ContractsRuntime as Runtime>::Hash> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd::DeployCommand, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags};
+    use crate::{cmd::InstantiateWithCode, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags};
     use assert_matches::assert_matches;
     use std::{fs, io::Write};
 
@@ -123,7 +131,7 @@ mod tests {
                 password: None,
                 verbosity: VerbosityFlags::quiet(),
             };
-            let deploy = DeployCommand {
+            let deploy = InstantiateWithCode {
                 extrinsic_opts: extrinsic_opts.clone(),
                 wasm_path: Some(wasm_path),
             };
@@ -135,7 +143,7 @@ mod tests {
                 gas_limit: 500_000_000,
                 code_hash,
                 name: String::new(), // todo: does this invoke the default constructor?
-                args: Vec::new(),
+                instantiate: Vec::new(),
             };
             let result = cmd.run();
 

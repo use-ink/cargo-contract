@@ -18,22 +18,22 @@ use anyhow::{Context, Result};
 use sp_core::H256;
 use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{ClientBuilder};
+use subxt::{ClientBuilder, Runtime};
 
-use super::{display_events, load_metadata, ContractMessageTranscoder};
-use crate::{crate_metadata, ExtrinsicOpts};
+use super::{display_events, load_metadata, ContractMessageTranscoder, instantiate::InstantiateArgs, runtime_api::{api, ContractsRuntime}};
+use crate::crate_metadata;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "deploy", about = "Upload contract wasm")]
-pub struct DeployCommand {
-    #[structopt(flatten)]
-    pub(super) extrinsic_opts: ExtrinsicOpts,
+pub struct InstantiateWithCode {
     /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`
     #[structopt(parse(from_os_str))]
     pub(super) wasm_path: Option<PathBuf>,
+    #[structopt(flatten)]
+    instantiate: InstantiateArgs,
 }
 
-impl DeployCommand {
+impl InstantiateWithCode {
     /// Load the wasm blob from the specified path.
     ///
     /// Defaults to the target contract wasm in the current project, inferred via the crate metadata.
@@ -62,27 +62,41 @@ impl DeployCommand {
     ///
     /// Creates an extrinsic with the `Contracts::put_code` Call, submits via RPC, then waits for
     /// the `ContractsEvent::CodeStored` event.
-    pub fn exec(&self) -> Result<H256> {
+    pub fn exec(&self) -> Result<(H256, <ContractsRuntime as Runtime>::AccountId)> {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
+        let data = transcoder.encode(&self.instantiate.name, &self.instantiate.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()
-                .set_url(&self.extrinsic_opts.url.to_string())
+                .set_url(&self.instantiate.extrinsic_opts.url.to_string())
                 .build()
                 .await?;
-            let signer = self.extrinsic_opts.signer()?;
+            let api = api::RuntimeApi::new(cli);
+            let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let events = cli.put_code_and_watch(&signer, &code).await?;
+            let extrinsic = api.tx.contracts
+                .instantiate_with_code(
+                    self.instantiate.endowment,
+                    self.instantiate.gas_limit,
+                    code,
+                    data,
+                    vec![], // todo! [AJ] add salt
+                );
+            let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
-            display_events(&events, &transcoder, self.extrinsic_opts.verbosity()?);
+            display_events(&result, &transcoder, self.instantiate.extrinsic_opts.verbosity()?);
 
-            let code_stored = events
-                .code_stored()?
+            let code_stored = result
+                .find_event::<api::contracts::events::CodeStored>()?
                 .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
 
-            Ok(code_stored.code_hash)
+            let instantiated = result
+                .find_event::<api::contracts::events::Instantiated>()?
+                .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+
+            Ok((code_stored.0, instantiated.0))
         })
     }
 }
@@ -119,7 +133,7 @@ mod tests {
                 password: None,
                 verbosity: VerbosityFlags::quiet(),
             };
-            let cmd = DeployCommand {
+            let cmd = InstantiateWithCode {
                 extrinsic_opts,
                 wasm_path: Some(wasm_path),
             };

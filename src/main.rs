@@ -38,7 +38,7 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-use crate::cmd::{CallCommand, DeployCommand, InstantiateCommand};
+use crate::cmd::{CallCommand, InstantiateWithCode, InstantiateCommand};
 use sp_core::{crypto::Pair, sr25519};
 
 #[derive(Debug, StructOpt)]
@@ -459,7 +459,7 @@ enum Command {
     Test(TestCommand),
     /// Upload the smart contract code to the chain
     #[structopt(name = "deploy")]
-    Deploy(DeployCommand),
+    Deploy(InstantiateWithCode),
     /// Instantiate a deployed smart contract
     Instantiate(InstantiateCommand),
     Call(CallCommand),
@@ -523,8 +523,8 @@ fn exec(cmd: Command) -> Result<Option<String>> {
             }
         }
         Command::Deploy(deploy) => {
-            let code_hash = deploy.exec()?;
-            Ok(Some(format!("Code hash: {:#x}", code_hash)))
+            let (code_hash, contract) = deploy.exec()?;
+            Ok(Some(format!("Code hash: {:#x}, Contract account: {}", code_hash, contract)))
         }
         Command::Instantiate(instantiate) => {
             let contract_account = instantiate.run()?;

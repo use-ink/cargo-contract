@@ -180,10 +180,10 @@ struct DisplayContractEmitted<'a> {
 impl<'a> Display for DisplayContractEmitted<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("caller", &self.event.caller);
+        builder.field("caller", &self.event.0);
         match self
             .transcoder
-            .decode_contract_event(&mut &self.event.data[..])
+            .decode_contract_event(&mut &self.event.1[..])
         {
             Ok(contract_event) => {
                 builder.field("event", &contract_event);

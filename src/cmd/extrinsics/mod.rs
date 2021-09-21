@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod call;
-pub mod deploy;
+pub mod instantiate_with_code;
 mod events;
 pub mod instantiate;
 mod runtime_api;
