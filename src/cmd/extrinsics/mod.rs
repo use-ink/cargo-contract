@@ -21,7 +21,7 @@ pub mod instantiate_with_code;
 mod runtime_api;
 mod transcode;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bat::PrettyPrinter;
 use std::{fmt::Display, fs::File};
 
@@ -43,7 +43,9 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
             crate_metadata.metadata_path()
         }
     };
-    let metadata = serde_json::from_reader(File::open(path)?)?;
+    let metadata_path = File::open(&path)
+        .context(format!("Failed to open metadata file {}", path.display()))?;
+    let metadata = serde_json::from_reader(metadata_path)?;
     Ok(metadata)
 }
 

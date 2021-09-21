@@ -116,7 +116,7 @@ impl CrateMetadata {
 
     /// Get the path of the contract metadata file
     pub fn metadata_path(&self) -> PathBuf {
-        self.cargo_meta.target_directory.join(METADATA_FILE).into()
+        self.target_directory.join(METADATA_FILE).into()
     }
 }
 
