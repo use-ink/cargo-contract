@@ -72,7 +72,7 @@ impl InstantiateWithCode {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.instantiate.name, &self.instantiate.args)?;
+        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()

@@ -26,7 +26,8 @@ use subxt::{ClientBuilder, Runtime};
 #[derive(Debug, StructOpt)]
 pub struct InstantiateArgs {
     /// The name of the contract constructor to call
-    pub(super) name: String,
+    #[structopt(name = "constructor", long, default_value = "new")]
+    pub(super) constructor: String,
     /// The constructor arguments, encoded as strings
     pub(super) args: Vec<String>,
     #[structopt(flatten)]
@@ -59,7 +60,7 @@ impl InstantiateCommand {
     pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::AccountId> {
         let metadata = super::load_metadata()?;
         let transcoder = super::ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.instantiate.name, &self.instantiate.args)?;
+        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.args)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()
