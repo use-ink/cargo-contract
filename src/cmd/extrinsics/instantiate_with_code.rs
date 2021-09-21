@@ -20,7 +20,13 @@ use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
 use subxt::{ClientBuilder, Runtime};
 
-use super::{display_events, load_metadata, ContractMessageTranscoder, instantiate::InstantiateArgs, runtime_api::{api, ContractsRuntime}};
+use super::{
+    display_events,
+    instantiate::InstantiateArgs,
+    load_metadata,
+    runtime_api::{api, ContractsRuntime},
+    ContractMessageTranscoder,
+};
 use crate::crate_metadata;
 
 #[derive(Debug, StructOpt)]
@@ -76,17 +82,20 @@ impl InstantiateWithCode {
             let api = api::RuntimeApi::new(cli);
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let extrinsic = api.tx.contracts
-                .instantiate_with_code(
-                    self.instantiate.endowment,
-                    self.instantiate.gas_limit,
-                    code,
-                    data,
-                    vec![], // todo! [AJ] add salt
-                );
+            let extrinsic = api.tx.contracts.instantiate_with_code(
+                self.instantiate.endowment,
+                self.instantiate.gas_limit,
+                code,
+                data,
+                vec![], // todo! [AJ] add salt
+            );
             let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
-            display_events(&result, &transcoder, self.instantiate.extrinsic_opts.verbosity()?);
+            display_events(
+                &result,
+                &transcoder,
+                self.instantiate.extrinsic_opts.verbosity()?,
+            );
 
             let code_stored = result
                 .find_event::<api::contracts::events::CodeStored>()?

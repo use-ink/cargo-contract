@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use sp_runtime::traits::BlakeTwo256;
-use subxt::{Runtime, StorageEntry, subxt};
+use subxt::{subxt, Runtime, StorageEntry};
 
 // todo: [AJ] use current file location as relative path for this file?
 // todo: [AJ] regenerate metadata for contract template node (it will likely be smaller)

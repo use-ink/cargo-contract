@@ -38,7 +38,7 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-use crate::cmd::{CallCommand, InstantiateWithCode, InstantiateCommand};
+use crate::cmd::{CallCommand, InstantiateCommand, InstantiateWithCode};
 use sp_core::{crypto::Pair, sr25519};
 
 #[derive(Debug, StructOpt)]
@@ -524,7 +524,10 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         }
         Command::Deploy(deploy) => {
             let (code_hash, contract) = deploy.exec()?;
-            Ok(Some(format!("Code hash: {:#x}, Contract account: {}", code_hash, contract)))
+            Ok(Some(format!(
+                "Code hash: {:#x}, Contract account: {}",
+                code_hash, contract
+            )))
         }
         Command::Instantiate(instantiate) => {
             let contract_account = instantiate.run()?;
@@ -533,7 +536,7 @@ fn exec(cmd: Command) -> Result<Option<String>> {
         Command::Call(call) => {
             call.run()?;
             Ok(None)
-        },
+        }
     }
 }
 

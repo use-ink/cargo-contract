@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, load_metadata, pretty_print, ContractMessageTranscoder, runtime_api::{ContractsRuntime, api}};
+use super::{
+    display_events, load_metadata, pretty_print,
+    runtime_api::{api, ContractsRuntime},
+    ContractMessageTranscoder,
+};
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
-use jsonrpsee_types::{
-    to_json_value,
-    traits::Client,
-};
+use jsonrpsee_types::{to_json_value, traits::Client};
 use jsonrpsee_ws_client::WsClientBuilder;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
@@ -82,9 +83,7 @@ impl CallCommand {
 
     async fn call_rpc(&self, data: Vec<u8>) -> Result<RpcContractExecResult> {
         let url = self.extrinsic_opts.url.to_string();
-        let cli = WsClientBuilder::default()
-            .build(&url)
-            .await?;
+        let cli = WsClientBuilder::default().build(&url).await?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
@@ -106,13 +105,12 @@ impl CallCommand {
         let api = api::RuntimeApi::new(cli);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let extrinsic = api.tx.contracts
-            .call(
-                self.contract.clone().into(),
-                self.value,
-                self.gas_limit,
-                data,
-            );
+        let extrinsic = api.tx.contracts.call(
+            self.contract.clone().into(),
+            self.value,
+            self.gas_limit,
+            data,
+        );
         let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
         Ok(result)

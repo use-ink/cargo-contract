@@ -20,9 +20,13 @@ use super::{
     CompositeTypeFields,
 };
 use anyhow::Result;
-use itertools::Itertools;
 use codec::{Compact, Encode, Output};
-use scale_info::{form::{PortableForm, Form}, PortableRegistry, TypeDef, TypeDefComposite, TypeDefPrimitive, TypeDefTuple, TypeDefVariant, TypeDefCompact};
+use itertools::Itertools;
+use scale_info::{
+    form::{Form, PortableForm},
+    PortableRegistry, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive, TypeDefTuple,
+    TypeDefVariant,
+};
 use std::{
     convert::{TryFrom, TryInto},
     error::Error,
@@ -81,7 +85,9 @@ impl<'a> Encoder<'a> {
             TypeDef::Variant(variant) => self.encode_variant_type(variant, value, output),
             TypeDef::Array(array) => self.encode_seq(array.type_param(), value, false, output),
             TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
-            TypeDef::Sequence(sequence) => self.encode_seq(sequence.type_param(), value, true, output),
+            TypeDef::Sequence(sequence) => {
+                self.encode_seq(sequence.type_param(), value, true, output)
+            }
             TypeDef::Primitive(primitive) => self.encode_primitive(primitive, value, output),
             TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
             TypeDef::BitSequence(_) => todo!(),
@@ -273,7 +279,12 @@ impl<'a> Encoder<'a> {
         }
     }
 
-    fn encode_compact<O: Output + Debug>(&self, compact: &TypeDefCompact<PortableForm>, value: &Value, output: &mut O) -> Result<()> {
+    fn encode_compact<O: Output + Debug>(
+        &self,
+        compact: &TypeDefCompact<PortableForm>,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()> {
         let ty = self
             .registry
             .resolve(compact.type_param().id())
@@ -285,24 +296,37 @@ impl<'a> Encoder<'a> {
             TypeDef::Primitive(primitive) => {
                 match primitive {
                     // todo: [AJ] extract function here?
-                    TypeDefPrimitive::U8 => Ok(Compact(uint_from_value::<u8>(value, "u8")?).encode_to(output)),
-                    TypeDefPrimitive::U16 => Ok(Compact(uint_from_value::<u16>(value, "u16")?).encode_to(output)),
-                    TypeDefPrimitive::U32 => Ok(Compact(uint_from_value::<u32>(value, "u32")?).encode_to(output)),
-                    TypeDefPrimitive::U64 => Ok(Compact(uint_from_value::<u64>(value, "u64")?).encode_to(output)),
-                    TypeDefPrimitive::U128 => Ok(Compact(uint_from_value::<u128>(value, "u128")?).encode_to(output)),
-                    _ => Err(anyhow::anyhow!("Compact encoding not supported for {:?}", primitive)),
+                    TypeDefPrimitive::U8 => {
+                        Ok(Compact(uint_from_value::<u8>(value, "u8")?).encode_to(output))
+                    }
+                    TypeDefPrimitive::U16 => {
+                        Ok(Compact(uint_from_value::<u16>(value, "u16")?).encode_to(output))
+                    }
+                    TypeDefPrimitive::U32 => {
+                        Ok(Compact(uint_from_value::<u32>(value, "u32")?).encode_to(output))
+                    }
+                    TypeDefPrimitive::U64 => {
+                        Ok(Compact(uint_from_value::<u64>(value, "u64")?).encode_to(output))
+                    }
+                    TypeDefPrimitive::U128 => {
+                        Ok(Compact(uint_from_value::<u128>(value, "u128")?).encode_to(output))
+                    }
+                    _ => Err(anyhow::anyhow!(
+                        "Compact encoding not supported for {:?}",
+                        primitive
+                    )),
                 }
             }
-            _ => unimplemented!("Only primitive unsigned ints support compact encoding for now")
+            _ => unimplemented!("Only primitive unsigned ints support compact encoding for now"),
         }
     }
 }
 
 fn uint_from_value<T>(value: &Value, expected: &str) -> Result<T>
-    where
-        T: TryFrom<u128> + FromStr,
-        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-        <T as FromStr>::Err: Error + Send + Sync + 'static,
+where
+    T: TryFrom<u128> + FromStr,
+    <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+    <T as FromStr>::Err: Error + Send + Sync + 'static,
 {
     match value {
         Value::UInt(i) => {
@@ -323,11 +347,11 @@ fn uint_from_value<T>(value: &Value, expected: &str) -> Result<T>
 }
 
 fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
-    where
-        T: TryFrom<u128> + FromStr + Encode,
-        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-        <T as FromStr>::Err: Error + Send + Sync + 'static,
-        O: Output,
+where
+    T: TryFrom<u128> + FromStr + Encode,
+    <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+    <T as FromStr>::Err: Error + Send + Sync + 'static,
+    O: Output,
 {
     let uint: T = uint_from_value(value, expected)?;
     uint.encode_to(output);
@@ -335,12 +359,12 @@ fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()
 }
 
 fn encode_int<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
-    where
-        T: TryFrom<i128> + TryFrom<u128> + FromStr + Encode,
-        <T as TryFrom<i128>>::Error: Error + Send + Sync + 'static,
-        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-        <T as FromStr>::Err: Error + Send + Sync + 'static,
-        O: Output,
+where
+    T: TryFrom<i128> + TryFrom<u128> + FromStr + Encode,
+    <T as TryFrom<i128>>::Error: Error + Send + Sync + 'static,
+    <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+    <T as FromStr>::Err: Error + Send + Sync + 'static,
+    O: Output,
 {
     let int = match value {
         Value::Int(i) => {
@@ -357,10 +381,10 @@ fn encode_int<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
             Ok(i)
         }
         _ => Err(anyhow::anyhow!(
-                    "Expected a {} or a String value, got {}",
-                    expected,
-                    value
-                )),
+            "Expected a {} or a String value, got {}",
+            expected,
+            value
+        )),
     }?;
     int.encode_to(output);
     Ok(())

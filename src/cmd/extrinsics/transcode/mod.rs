@@ -26,10 +26,10 @@ use self::{
 };
 
 use anyhow::Result;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use codec::Input;
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale_info::{
-    form::{PortableForm, Form},
+    form::{Form, PortableForm},
     Field, TypeDefComposite,
 };
 use std::fmt::{self, Debug, Display, Formatter};

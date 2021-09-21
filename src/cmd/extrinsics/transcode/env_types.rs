@@ -16,8 +16,8 @@
 
 use super::scon::Value;
 use anyhow::Result;
-use ink_metadata::TypeSpec;
 use codec::{Decode, Encode, Output};
+use ink_metadata::TypeSpec;
 use scale_info::{form::PortableForm, Field, IntoPortable, Path, PortableRegistry, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
@@ -187,7 +187,9 @@ impl From<&Field<PortableForm>> for TypeLookupId {
     fn from(field: &Field<PortableForm>) -> Self {
         Self {
             type_id: field.ty().id(),
-            maybe_alias: field.type_name().and_then(|n| n.split("::").last().map(ToOwned::to_owned)),
+            maybe_alias: field
+                .type_name()
+                .and_then(|n| n.split("::").last().map(ToOwned::to_owned)),
         }
     }
 }

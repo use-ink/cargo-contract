@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, runtime_api::{api, ContractsRuntime}};
+use super::{
+    display_events,
+    runtime_api::{api, ContractsRuntime},
+};
 use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
 use structopt::StructOpt;
-use subxt::{
-    ClientBuilder,
-    Runtime,
-};
+use subxt::{ClientBuilder, Runtime};
 
 #[derive(Debug, StructOpt)]
 pub struct InstantiateArgs {
@@ -69,17 +69,20 @@ impl InstantiateCommand {
             let api = api::RuntimeApi::new(cli);
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let extrinsic = api.tx.contracts
-                .instantiate(
-                    self.instantiate.endowment,
-                    self.instantiate.gas_limit,
-                    self.code_hash,
-                    data,
-                    vec![] // todo: [AJ] salt
-                );
+            let extrinsic = api.tx.contracts.instantiate(
+                self.instantiate.endowment,
+                self.instantiate.gas_limit,
+                self.code_hash,
+                data,
+                vec![], // todo: [AJ] salt
+            );
             let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
-            display_events(&result, &transcoder, self.instantiate.extrinsic_opts.verbosity()?);
+            display_events(
+                &result,
+                &transcoder,
+                self.instantiate.extrinsic_opts.verbosity()?,
+            );
 
             let instantiated = result
                 .find_event::<api::contracts::events::Instantiated>()?
@@ -103,7 +106,9 @@ fn parse_code_hash(input: &str) -> Result<<ContractsRuntime as Runtime>::Hash> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cmd::InstantiateWithCode, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags};
+    use crate::{
+        cmd::InstantiateWithCode, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags,
+    };
     use assert_matches::assert_matches;
     use std::{fs, io::Write};
 

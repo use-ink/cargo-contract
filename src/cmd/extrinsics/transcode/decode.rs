@@ -21,7 +21,11 @@ use super::{
 };
 use anyhow::Result;
 use codec::{Compact, Decode, Input};
-use scale_info::{form::{PortableForm, Form}, PortableRegistry, Type, TypeDef, TypeDefComposite, TypeDefVariant, TypeDefPrimitive, TypeDefCompact};
+use scale_info::{
+    form::{Form, PortableForm},
+    PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive,
+    TypeDefVariant,
+};
 
 pub struct Decoder<'a> {
     registry: &'a PortableRegistry,
@@ -87,14 +91,9 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    fn decode_type(
-        &self,
-        ty: &Type<PortableForm>,
-        input: &mut &[u8],
-    ) -> Result<Value> {
+    fn decode_type(&self, ty: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
         match ty.type_def() {
-            TypeDef::Composite(composite) =>
-                self.decode_composite(ty, composite, input),
+            TypeDef::Composite(composite) => self.decode_composite(ty, composite, input),
             TypeDef::Tuple(tuple) => {
                 let mut elems = Vec::new();
                 for field_type in tuple.fields() {
@@ -105,18 +104,18 @@ impl<'a> Decoder<'a> {
                     None,
                     elems.into_iter().collect::<Vec<_>>(),
                 )))
-            },
-            TypeDef::Variant(variant) =>
-                self.decode_variant_type(variant, input),
-            TypeDef::Array(array) =>
-                self.decode_seq(array.type_param(), array.len() as usize, input),
+            }
+            TypeDef::Variant(variant) => self.decode_variant_type(variant, input),
+            TypeDef::Array(array) => {
+                self.decode_seq(array.type_param(), array.len() as usize, input)
+            }
             TypeDef::Sequence(sequence) => {
                 let len = <Compact<u32>>::decode(input)?;
                 self.decode_seq(sequence.type_param(), len.0 as usize, input)
-            },
+            }
             TypeDef::Primitive(primitive) => self.decode_primitive(primitive, input),
             TypeDef::Compact(compact) => self.decode_compact(compact, input),
-            TypeDef::BitSequence(_) => todo!("BitSequence")
+            TypeDef::BitSequence(_) => todo!("BitSequence"),
         }
     }
 
@@ -211,29 +210,27 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    fn decode_compact(&self, compact: &TypeDefCompact<PortableForm>, input: &mut &[u8]) -> Result<Value> {
+    fn decode_compact(
+        &self,
+        compact: &TypeDefCompact<PortableForm>,
+        input: &mut &[u8],
+    ) -> Result<Value> {
         let type_id = compact.type_param().id();
-        let ty = self
-            .registry
-            .resolve(type_id)
-            .ok_or(anyhow::anyhow!(
-                "Failed to resolve type with id `{:?}`",
-                type_id
-            ))?;
+        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id `{:?}`",
+            type_id
+        ))?;
         match ty.type_def() {
-            TypeDef::Primitive(primitive) => {
-                match primitive {
-                    TypeDefPrimitive::U8 => decode_uint::<u8>(input),
-                    TypeDefPrimitive::U16 => decode_uint::<u16>(input),
-                    TypeDefPrimitive::U32 => decode_uint::<u32>(input),
-                    TypeDefPrimitive::U64 => decode_uint::<u64>(input),
-                    TypeDefPrimitive::U128 => decode_uint::<u128>(input),
-                    _ => Err(anyhow::anyhow!("Compact {:?} not supported", primitive)),
-                }
-            }
-            _ => todo!("Compact impls")
+            TypeDef::Primitive(primitive) => match primitive {
+                TypeDefPrimitive::U8 => decode_uint::<u8>(input),
+                TypeDefPrimitive::U16 => decode_uint::<u16>(input),
+                TypeDefPrimitive::U32 => decode_uint::<u32>(input),
+                TypeDefPrimitive::U64 => decode_uint::<u64>(input),
+                TypeDefPrimitive::U128 => decode_uint::<u128>(input),
+                _ => Err(anyhow::anyhow!("Compact {:?} not supported", primitive)),
+            },
+            _ => todo!("Compact impls"),
         }
-
     }
 }
 

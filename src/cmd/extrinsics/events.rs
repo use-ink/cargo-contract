@@ -14,15 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{pretty_print, ContractMessageTranscoder, runtime_api::{ContractsRuntime, api}};
+use super::{
+    pretty_print,
+    runtime_api::{api, ContractsRuntime},
+    ContractMessageTranscoder,
+};
 use crate::Verbosity;
 
 use colored::Colorize;
 use std::fmt::{Display, Formatter, Result};
-use subxt::{
-    Event, ExtrinsicSuccess,
-    RawEvent,
-};
+use subxt::{Event, ExtrinsicSuccess, RawEvent};
 
 pub fn display_events(
     result: &ExtrinsicSuccess<ContractsRuntime>,
@@ -119,7 +120,7 @@ struct DisplayExtrinsicFailedEvent(api::system::events::ExtrinsicFailed);
 impl Display for DisplayExtrinsicFailedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("error", &format!("{:?}", self.0.0));
+        builder.field("error", &format!("{:?}", self.0 .0));
         builder.finish()
     }
 }
@@ -130,7 +131,7 @@ struct DisplayNewAccountEvent(api::system::events::NewAccount);
 impl Display for DisplayNewAccountEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("account", &self.0.0);
+        builder.field("account", &self.0 .0);
         builder.finish()
     }
 }
@@ -141,9 +142,9 @@ struct DisplayTransferEvent(api::balances::events::Transfer);
 impl Display for DisplayTransferEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("from", &self.0.0);
-        builder.field("to", &self.0.1);
-        builder.field("amount", &self.0.2);
+        builder.field("from", &self.0 .0);
+        builder.field("to", &self.0 .1);
+        builder.field("amount", &self.0 .2);
         builder.finish()
     }
 }
@@ -154,7 +155,7 @@ struct DisplayCodeStoredEvent(api::contracts::events::CodeStored);
 impl Display for DisplayCodeStoredEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("code_hash", &self.0.0);
+        builder.field("code_hash", &self.0 .0);
         builder.finish()
     }
 }
@@ -165,8 +166,8 @@ struct DisplayInstantiatedEvent(api::contracts::events::Instantiated);
 impl Display for DisplayInstantiatedEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_struct("");
-        builder.field("caller", &self.0.0);
-        builder.field("contract", &self.0.1);
+        builder.field("caller", &self.0 .0);
+        builder.field("contract", &self.0 .1);
         builder.finish()
     }
 }
