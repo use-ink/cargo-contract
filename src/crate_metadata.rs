@@ -83,8 +83,9 @@ impl CrateMetadata {
                 .find_map(|package| {
                     if package.name == crate_name {
                         Some(
-                            Version::parse(&package.version.to_string())
-                                .unwrap_or_else(|e| panic!("Invalid {} version string: {}", crate_name, e)),
+                            Version::parse(&package.version.to_string()).unwrap_or_else(|e| {
+                                panic!("Invalid {} version string: {}", crate_name, e)
+                            }),
                         )
                     } else {
                         None

@@ -553,7 +553,13 @@ mod tests {
         .unwrap()
         .clone();
 
-        let metadata = ContractMetadata::new(Version::new(0, 1, 0), source, contract, Some(user), abi_json);
+        let metadata = ContractMetadata::new(
+            Version::new(0, 1, 0),
+            source,
+            contract,
+            Some(user),
+            abi_json,
+        );
         let json = serde_json::to_value(&metadata).unwrap();
 
         let expected = json! {
@@ -618,7 +624,8 @@ mod tests {
         .unwrap()
         .clone();
 
-        let metadata = ContractMetadata::new(Version::new(0, 1, 0), source, contract, None, abi_json);
+        let metadata =
+            ContractMetadata::new(Version::new(0, 1, 0), source, contract, None, abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
 
         let expected = json! {
