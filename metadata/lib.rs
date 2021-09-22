@@ -52,13 +52,12 @@
 //! let json = serde_json::to_value(&metadata).unwrap();
 //! ```
 
+pub use semver::Version;
+
 use core::fmt::{Display, Formatter, Result as DisplayResult, Write};
-use semver::Version;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use url::Url;
-
-const METADATA_VERSION: &str = "0.1.0";
 
 /// Smart contract metadata.
 #[derive(Clone, Debug, Serialize)]
@@ -77,14 +76,12 @@ pub struct ContractMetadata {
 impl ContractMetadata {
     /// Construct new contract metadata.
     pub fn new(
+        metadata_version: semver::Version,
         source: Source,
         contract: Contract,
         user: Option<User>,
         abi: Map<String, Value>,
     ) -> Self {
-        let metadata_version = semver::Version::parse(METADATA_VERSION)
-            .expect("METADATA_VERSION is a valid semver string");
-
         Self {
             metadata_version,
             source,
