@@ -84,7 +84,7 @@ impl CrateMetadata {
                     if package.name == crate_name {
                         Some(
                             Version::parse(&package.version.to_string())
-                                .expect(&format!("Invalid {} version string", crate_name)),
+                                .unwrap_or_else(|| panic!("Invalid {} version string", crate_name)),
                         )
                     } else {
                         None
