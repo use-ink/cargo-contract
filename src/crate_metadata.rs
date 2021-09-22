@@ -33,6 +33,7 @@ pub struct CrateMetadata {
     pub original_wasm: PathBuf,
     pub dest_wasm: PathBuf,
     pub ink_version: Version,
+    pub ink_metadata_version: Version,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
@@ -75,20 +76,25 @@ impl CrateMetadata {
         dest_wasm.push(lib_name.clone());
         dest_wasm.set_extension("wasm");
 
-        let ink_version = metadata
-            .packages
-            .iter()
-            .find_map(|package| {
-                if package.name == "ink_lang" {
-                    Some(
-                        Version::parse(&package.version.to_string())
-                            .expect("Invalid ink_lang version string"),
-                    )
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
+        let crate_version = |crate_name| {
+            metadata
+                .packages
+                .iter()
+                .find_map(|package| {
+                    if package.name == crate_name {
+                        Some(
+                            Version::parse(&package.version.to_string())
+                                .expect(&format!("Invalid {} version string", crate_name)),
+                        )
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| anyhow::anyhow!("No '{}' dependency found", crate_name))
+        };
+
+        let ink_version = crate_version("ink_lang")?;
+        let ink_metadata_version = crate_version("ink_metadata")?;
 
         let ExtraMetadata {
             documentation,
@@ -104,6 +110,7 @@ impl CrateMetadata {
             original_wasm: original_wasm.into(),
             dest_wasm: dest_wasm.into(),
             ink_version,
+            ink_metadata_version,
             documentation,
             homepage,
             user,

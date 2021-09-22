@@ -51,6 +51,7 @@ struct ExtendedMetadataResult {
     source: Source,
     contract: Contract,
     user: Option<User>,
+    metadata_version: Version,
 }
 
 /// Generates a file with metadata describing the ABI of the smart-contract.
@@ -76,6 +77,7 @@ pub(crate) fn execute(
         source,
         contract,
         user,
+        metadata_version,
     } = extended_metadata(crate_metadata, final_contract_wasm)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
@@ -101,7 +103,7 @@ pub(crate) fn execute(
         )?;
 
         let ink_meta: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
-        let metadata = ContractMetadata::new(source, contract, user, ink_meta);
+        let metadata = ContractMetadata::new(metadata_version, source, contract, user, ink_meta);
         {
             let mut metadata = metadata.clone();
             metadata.remove_source_wasm_attribute();
@@ -149,6 +151,7 @@ fn extended_metadata(
 ) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
     let ink_version = &crate_metadata.ink_version;
+    let metadata_version = crate_metadata.ink_metadata_version.clone();
     let rust_version = Version::parse(&rustc_version::version()?.to_string())?;
     let contract_name = contract_package.name.clone();
     let contract_version = Version::parse(&contract_package.version.to_string())?;
@@ -209,6 +212,7 @@ fn extended_metadata(
         source,
         contract,
         user,
+        metadata_version,
     })
 }
 
