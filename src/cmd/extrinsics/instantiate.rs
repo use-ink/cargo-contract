@@ -28,8 +28,9 @@ pub struct InstantiateArgs {
     /// The name of the contract constructor to call
     #[structopt(name = "constructor", long, default_value = "new")]
     pub(super) constructor: String,
-    /// The constructor arguments, encoded as strings
-    pub(super) args: Vec<String>,
+    /// The constructor parameters, encoded as strings
+    #[structopt(name = "params", long, default_value = "new")]
+    pub(super) params: Vec<String>,
     #[structopt(flatten)]
     pub(super) extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
@@ -60,7 +61,7 @@ impl InstantiateCommand {
     pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::AccountId> {
         let metadata = super::load_metadata()?;
         let transcoder = super::ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.args)?;
+        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.params)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()

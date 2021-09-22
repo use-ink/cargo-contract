@@ -32,11 +32,11 @@ use crate::crate_metadata;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "deploy", about = "Upload contract wasm")]
 pub struct InstantiateWithCode {
+    #[structopt(flatten)]
+    instantiate: InstantiateArgs,
     /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`
     #[structopt(parse(from_os_str))]
     pub(super) wasm_path: Option<PathBuf>,
-    #[structopt(flatten)]
-    instantiate: InstantiateArgs,
 }
 
 impl InstantiateWithCode {
@@ -72,7 +72,7 @@ impl InstantiateWithCode {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.args)?;
+        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.params)?;
 
         async_std::task::block_on(async move {
             let cli = ClientBuilder::new()
