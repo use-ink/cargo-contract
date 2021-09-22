@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update `cargo contract new` template dependencies to ink! `rc4` - [#332](https://github.com/paritytech/cargo-contract/pull/332)
 - Update `cargo contract new` template dependencies to ink! `rc5` - [#335](https://github.com/paritytech/cargo-contract/pull/335)
+- Populate `metadataVersion` field with `ink_metadata` crate version - [#347](https://github.com/paritytech/cargo-contract/pull/347)
 
 ## [0.14.0] - 2021-08-12
 
