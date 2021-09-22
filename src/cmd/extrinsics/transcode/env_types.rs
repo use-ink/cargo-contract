@@ -235,6 +235,7 @@ impl CustomTypeTranscoder for AccountId {
     }
 }
 
+// todo: [AJ] implement Balance custom
 struct Balance;
 
 impl EnvType for Balance {
@@ -243,11 +244,11 @@ impl EnvType for Balance {
 }
 
 impl CustomTypeTranscoder for Balance {
-    fn encode(&self, value: &Value) -> Result<Vec<u8>> {
+    fn encode(&self, _value: &Value) -> Result<Vec<u8>> {
         unimplemented!()
     }
 
-    fn decode(&self, input: &mut &[u8]) -> Result<Value> {
+    fn decode(&self, _input: &mut &[u8]) -> Result<Value> {
         unimplemented!()
     }
 }
