@@ -61,7 +61,7 @@ platforms = "1.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-pretty_assertions = "0.7.2"
+pretty_assertions = "1.0.0"
 wabt = "0.10.0"
 
 [features]
