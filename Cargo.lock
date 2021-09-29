@@ -593,7 +593,6 @@ dependencies = [
  "sp-arithmetic 4.0.0-dev",
  "sp-core",
  "sp-keyring",
- "sp-rpc",
  "sp-runtime",
  "structopt",
  "substrate-build-script-utils",
@@ -3861,16 +3860,6 @@ version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate/?branch=master#0a785f1221f5d143ae4487147183d66bad0f9837"
 dependencies = [
  "backtrace",
-]
-
-[[package]]
-name = "sp-rpc"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate/?branch=master#0a785f1221f5d143ae4487147183d66bad0f9837"
-dependencies = [
- "rustc-hash",
- "serde",
- "sp-core",
 ]
 
 [[package]]
