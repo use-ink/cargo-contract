@@ -26,10 +26,9 @@ use jsonrpsee_types::{to_json_value, traits::Client};
 use jsonrpsee_ws_client::WsClientBuilder;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
-use sp_rpc::number::NumberOrHex;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer};
+use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer, rpc::NumberOrHex};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]

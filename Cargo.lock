@@ -4142,7 +4142,7 @@ dependencies = [
 [[package]]
 name = "substrate-subxt"
 version = "0.15.0"
-source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#20aee212c38ced4f98b8151436a34b86f422f787"
+source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#3de28154098d83827066a6afa739215b41284f07"
 dependencies = [
  "async-trait",
  "chameleon",
@@ -4176,7 +4176,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#20aee212c38ced4f98b8151436a34b86f422f787"
+source = "git+https://github.com/paritytech/substrate-subxt?branch=aj-metadata-vnext#3de28154098d83827066a6afa739215b41284f07"
 dependencies = [
  "async-trait",
  "darling",
