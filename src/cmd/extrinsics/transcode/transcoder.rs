@@ -17,14 +17,20 @@
 use super::{
     decode::Decoder,
     encode::Encoder,
-    env_types::{EnvTypesTranscoder, TypeLookupId},
+    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, TypeLookupId, TypesByPath, PathKey},
     scon::Value,
 };
 
 use anyhow::Result;
 use codec::Output;
-use scale_info::PortableRegistry;
-use std::fmt::Debug;
+use scale_info::{
+    PortableRegistry,
+    TypeInfo,
+};
+use std::{
+    collections::HashMap,
+    fmt::Debug
+};
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
@@ -34,10 +40,10 @@ pub struct Transcoder<'a> {
 }
 
 impl<'a> Transcoder<'a> {
-    pub fn new(registry: &'a PortableRegistry) -> Self {
+    pub fn new(registry: &'a PortableRegistry, env_types: EnvTypesTranscoder) -> Self {
         Self {
             registry,
-            env_types: EnvTypesTranscoder::new(registry),
+            env_types,
         }
     }
 
@@ -63,6 +69,68 @@ impl<'a> Transcoder<'a> {
         T: Into<TypeLookupId>,
     {
         self.decoder().decode(ty, input)
+    }
+}
+
+/// Construct a [`Transcoder`], allows registering custom transcoders for certain types.
+pub struct TranscoderBuilder<'a> {
+    registry: &'a PortableRegistry,
+    types_by_path: TypesByPath,
+    transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>,
+}
+
+impl<'a> TranscoderBuilder<'a> {
+    pub fn new(registry: &'a PortableRegistry) -> Self {
+        let types_by_path = registry
+            .types()
+            .iter()
+            .map(|ty| (PathKey::from(ty.ty().path()), ty.id()))
+            .collect::<TypesByPath>();
+        Self {
+            registry,
+            types_by_path,
+            transcoders: HashMap::new(),
+        }
+    }
+
+    pub fn register_custom_type<T, U>(self, alias: &'static str, transcoder: U) -> Self
+        where
+            T: TypeInfo + 'static,
+            U: CustomTypeTranscoder,
+    {
+        let mut this = self;
+
+        let type_id = TypeLookupId::from_type::<T>(alias, &self.types_by_path);
+        match type_id {
+            Some(type_id) => {
+                let existing = this.transcoders.insert(type_id.clone(), Box::new(transcoder));
+                log::debug!(
+                    "Registered environment type `{}` with id {:?}",
+                    alias,
+                    type_id
+                );
+                if existing.is_some() {
+                    panic!(
+                        "Attempted to register transcoder with existing type id {:?}",
+                        type_id
+                    );
+                }
+            }
+            None => {
+                // if the type is not present in the registry, it just means it has not been used.
+                log::info!(
+                    "No matching type in registry for `{}` with id {:?}",
+                    alias,
+                    type_id
+                );
+            }
+        }
+        this
+    }
+
+    pub fn done(self) -> Transcoder<'a> {
+        let env_types_transcoder = EnvTypesTranscoder::new(self.transcoders);
+        Transcoder::new(self.registry, env_types_transcoder)
     }
 }
 

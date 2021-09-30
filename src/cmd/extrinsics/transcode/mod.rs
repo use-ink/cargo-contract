@@ -22,7 +22,7 @@ mod transcoder;
 
 pub use self::{
     scon::{Map, Value},
-    transcoder::Transcoder,
+    transcoder::{Transcoder, TranscoderBuilder}
 };
 
 use anyhow::Result;
@@ -30,7 +30,7 @@ use codec::Input;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale_info::{
     form::{Form, PortableForm},
-    Field, TypeDefComposite,
+    Field,
 };
 use std::fmt::{self, Debug, Display, Formatter};
 
@@ -43,9 +43,12 @@ pub struct ContractMessageTranscoder<'a> {
 
 impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
+        let transcoder = TranscoderBuilder::new(metadata.registry())
+            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>("AccountId", env_types::AccountId)
+            .done();
         Self {
             metadata,
-            transcoder: Transcoder::new(metadata.registry()),
+            transcoder,
         }
     }
 

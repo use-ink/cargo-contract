@@ -18,7 +18,7 @@ use super::scon::Value;
 use anyhow::Result;
 use codec::{Decode, Encode, Output};
 use ink_metadata::TypeSpec;
-use scale_info::{form::PortableForm, Field, IntoPortable, Path, PortableRegistry, TypeInfo};
+use scale_info::{form::PortableForm, Field, IntoPortable, Path, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
 
@@ -29,42 +29,8 @@ pub struct EnvTypesTranscoder {
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(registry: &PortableRegistry) -> Self {
-        let mut transcoders = HashMap::new();
-        let types_by_path = registry
-            .types()
-            .iter()
-            .map(|ty| (PathKey(ty.ty().path().segments().to_vec()), ty.id()))
-            .collect::<TypesByPath>();
-        log::debug!("Types by path: {:?}", types_by_path);
-        Self::register_transcoder(&types_by_path, &mut transcoders, AccountId);
-        Self::register_transcoder(&types_by_path, &mut transcoders, Balance);
+    pub fn new(transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>) -> Self {
         Self { transcoders }
-    }
-
-    fn register_transcoder<T>(
-        type_lookup: &TypesByPath,
-        transcoders: &mut HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>,
-        transcoder: T,
-    ) where
-        T: EnvType + CustomTypeTranscoder + 'static,
-    {
-        let type_id = TypeLookupId::from_env_type::<T>(type_lookup);
-
-        if let Some(type_id) = type_id {
-            let existing = transcoders.insert(type_id.clone(), Box::new(transcoder));
-            log::debug!(
-                "Registered environment type `{}` with id {:?}",
-                T::ALIAS,
-                type_id
-            );
-            if existing.is_some() {
-                panic!(
-                    "Attempted to register transcoder with existing type id {:?}",
-                    type_id
-                );
-            }
-        }
     }
 
     /// If the given `TypeLookupId`` is for an environment type with custom
@@ -86,7 +52,7 @@ impl EnvTypesTranscoder {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
                 log::debug!("Encoding type {:?} with custom encoder", type_id);
-                let encoded_env_type = transcoder.encode(value)?;
+                let encoded_env_type = transcoder.encode_value(value)?;
                 output.write(&encoded_env_type);
                 Ok(true)
             }
@@ -105,7 +71,7 @@ impl EnvTypesTranscoder {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
                 log::debug!("Decoding type {:?} with custom decoder", type_id);
-                let decoded = transcoder.decode(input)?;
+                let decoded = transcoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
             None => Ok(None),
@@ -113,29 +79,22 @@ impl EnvTypesTranscoder {
     }
 }
 
-pub trait EnvType {
-    type Type: TypeInfo;
-    /// The name of the given environment type assigned by the `ink!` language macro.
-    /// e.g. `Balance`, `AccountId` etc. are aliases to their underlying environment types.
-    const ALIAS: &'static str;
-}
-
 /// Implement this trait to define custom transcoding for a type in a `scale-info` type registry.
-trait CustomTypeTranscoder {
-    fn encode(&self, value: &Value) -> Result<Vec<u8>>;
-    fn decode(&self, input: &mut &[u8]) -> Result<Value>;
+pub trait CustomTypeTranscoder {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PathKey(Vec<String>);
 
-impl From<Path<PortableForm>> for PathKey {
-    fn from(path: Path<PortableForm>) -> Self {
+impl From<&Path<PortableForm>> for PathKey {
+    fn from(path: &Path<PortableForm>) -> Self {
         PathKey(path.segments().to_vec())
     }
 }
 
-type TypesByPath = HashMap<PathKey, u32>;
+pub type TypesByPath = HashMap<PathKey, u32>;
 
 /// Unique identifier for a type used in a contract
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
@@ -147,16 +106,15 @@ pub struct TypeLookupId {
 }
 
 impl TypeLookupId {
-    /// Create a new `EnvTypeId` for the given `EnvType`, for the supplied type registry.
+    /// Create a new `TypeLookupId` for the given type, for the supplied type registry.
     ///
     /// Returns `None` if there is no matching type found in the registry. This is expected when the
-    /// specified type is not used in a contract: it won't appear in the registry.
-    ///
-    pub fn from_env_type<T>(type_lookup: &TypesByPath) -> Option<Self>
+    /// specified type is not used: it won't appear in the registry.
+    pub fn from_type<T>(alias: &'static str, type_lookup: &TypesByPath) -> Option<Self>
     where
-        T: EnvType,
+        T: TypeInfo,
     {
-        let type_info = T::Type::type_info();
+        let type_info = T::type_info();
         let path = type_info
             .path()
             .clone()
@@ -164,7 +122,7 @@ impl TypeLookupId {
 
         type_lookup.get(&path.into()).map(|type_id| Self {
             type_id: *type_id,
-            maybe_alias: Some(T::ALIAS.to_owned()),
+            maybe_alias: Some(alias.to_owned()),
         })
     }
 
@@ -203,15 +161,10 @@ impl From<u32> for TypeLookupId {
     }
 }
 
-struct AccountId;
-
-impl EnvType for AccountId {
-    type Type = <ink_env::DefaultEnvironment as ink_env::Environment>::AccountId;
-    const ALIAS: &'static str = "AccountId";
-}
+pub struct AccountId;
 
 impl CustomTypeTranscoder for AccountId {
-    fn encode(&self, value: &Value) -> Result<Vec<u8>> {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
         let account_id = match value {
             Value::Literal(literal) => AccountId32::from_str(literal).map_err(|e| {
                 anyhow::anyhow!("Error parsing AccountId from literal `{}`: {}", literal, e)
@@ -229,26 +182,8 @@ impl CustomTypeTranscoder for AccountId {
         Ok(account_id.encode())
     }
 
-    fn decode(&self, input: &mut &[u8]) -> Result<Value> {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let account_id = AccountId32::decode(input)?;
         Ok(Value::Literal(account_id.to_ss58check()))
-    }
-}
-
-// todo: [AJ] implement Balance custom
-struct Balance;
-
-impl EnvType for Balance {
-    type Type = <ink_env::DefaultEnvironment as ink_env::Environment>::Balance;
-    const ALIAS: &'static str = "Balance";
-}
-
-impl CustomTypeTranscoder for Balance {
-    fn encode(&self, _value: &Value) -> Result<Vec<u8>> {
-        unimplemented!()
-    }
-
-    fn decode(&self, _input: &mut &[u8]) -> Result<Value> {
-        unimplemented!()
     }
 }
