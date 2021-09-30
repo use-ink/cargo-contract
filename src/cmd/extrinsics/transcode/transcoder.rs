@@ -68,7 +68,7 @@ impl<'a> Transcoder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::scon::{Tuple, Value, Map};
+    use super::super::scon::{Map, Tuple, Value};
     use super::*;
     use anyhow::Context;
     use codec::Encode;

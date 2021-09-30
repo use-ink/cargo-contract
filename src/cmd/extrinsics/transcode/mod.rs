@@ -172,13 +172,18 @@ impl CompositeTypeFields {
             let fields = fields
                 .into_iter()
                 .map(|field| CompositeTypeNamedField {
-                    name: field.name().expect("All fields have a name; qed").to_owned(),
+                    name: field
+                        .name()
+                        .expect("All fields have a name; qed")
+                        .to_owned(),
                     field: field.clone(),
                 })
                 .collect();
             Ok(Self::StructNamedFields(fields))
         } else if fields.iter().all(|f| f.name().is_none()) {
-            Ok(Self::TupleStructUnnamedFields(fields.iter().cloned().collect()))
+            Ok(Self::TupleStructUnnamedFields(
+                fields.iter().cloned().collect(),
+            ))
         } else {
             Err(anyhow::anyhow!(
                 "Struct fields should either be all named or all unnamed"

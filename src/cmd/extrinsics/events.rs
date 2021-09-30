@@ -24,7 +24,7 @@ use crate::Verbosity;
 use anyhow::Result;
 use colored::Colorize;
 use std::fmt::{Display, Formatter, Result as FmtResult};
-use subxt::{self, Event, ExtrinsicSuccess, RawEvent, };
+use subxt::{self, Event, ExtrinsicSuccess, RawEvent};
 
 pub fn display_events(
     result: &ExtrinsicSuccess<ContractsRuntime>,
@@ -57,7 +57,11 @@ pub fn display_events(
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_ident = Some(event_metadata.variant().name().as_str());
         let event_fields = event_metadata.variant().fields();
-        let decoded_event = events_transcoder.decoder().decode_composite(event_ident, event_fields, &mut &event.data[..])?;
+        let decoded_event = events_transcoder.decoder().decode_composite(
+            event_ident,
+            event_fields,
+            &mut &event.data[..],
+        )?;
 
         print!("{}", decoded_event);
         println!();

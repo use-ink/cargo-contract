@@ -43,8 +43,8 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
             crate_metadata.metadata_path()
         }
     };
-    let metadata_path = File::open(&path)
-        .context(format!("Failed to open metadata file {}", path.display()))?;
+    let metadata_path =
+        File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
     let metadata = serde_json::from_reader(metadata_path)?;
     Ok(metadata)
 }

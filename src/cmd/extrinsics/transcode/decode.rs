@@ -23,8 +23,8 @@ use anyhow::Result;
 use codec::{Compact, Decode, Input};
 use scale_info::{
     form::{Form, PortableForm},
-    PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive,
-    TypeDefVariant, Field,
+    Field, PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive,
+    TypeDefVariant,
 };
 
 pub struct Decoder<'a> {
@@ -96,7 +96,7 @@ impl<'a> Decoder<'a> {
             TypeDef::Composite(composite) => {
                 let ident = ty.path().segments().last().map(|s| s.as_str());
                 self.decode_composite(ident, composite.fields(), input)
-            },
+            }
             TypeDef::Tuple(tuple) => {
                 let mut elems = Vec::new();
                 for field_type in tuple.fields() {

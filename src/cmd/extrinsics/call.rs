@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{ClientBuilder, Client, ExtrinsicSuccess, Runtime, Signer, rpc::NumberOrHex};
+use subxt::{rpc::NumberOrHex, Client, ClientBuilder, ExtrinsicSuccess, Runtime, Signer};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -83,7 +83,12 @@ impl CallCommand {
                 let result = self.call(cli, call_data).await?;
                 Ok::<_, anyhow::Error>((result, metadata))
             })?;
-            display_events(&result, &transcoder, &metadata, self.extrinsic_opts.verbosity()?);
+            display_events(
+                &result,
+                &transcoder,
+                &metadata,
+                self.extrinsic_opts.verbosity()?,
+            );
             Ok("".into())
         }
     }
@@ -104,7 +109,11 @@ impl CallCommand {
         Ok(result)
     }
 
-    async fn call(&self, cli: Client<ContractsRuntime>, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
+    async fn call(
+        &self,
+        cli: Client<ContractsRuntime>,
+        data: Vec<u8>,
+    ) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
         let api = api::RuntimeApi::new(cli);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
