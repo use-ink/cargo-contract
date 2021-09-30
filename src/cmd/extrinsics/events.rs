@@ -17,22 +17,27 @@
 use super::{
     pretty_print,
     runtime_api::{api, ContractsRuntime},
-    ContractMessageTranscoder,
+    transcode::{ContractMessageTranscoder, Transcoder},
 };
 use crate::Verbosity;
 
+use anyhow::Result;
 use colored::Colorize;
-use std::fmt::{Display, Formatter, Result};
-use subxt::{Event, ExtrinsicSuccess, RawEvent};
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use subxt::{self, Event, ExtrinsicSuccess, RawEvent, };
 
 pub fn display_events(
     result: &ExtrinsicSuccess<ContractsRuntime>,
     transcoder: &ContractMessageTranscoder,
+    subxt_metadata: &subxt::Metadata,
     verbosity: Verbosity,
-) {
+) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
-        return;
+        return Ok(());
     }
+
+    let runtime_metadata = &subxt_metadata.runtime_metadata();
+    let events_transcoder = Transcoder::new(&subxt_metadata.runtime_metadata().types);
 
     for event in &result.events {
         print!(
@@ -41,24 +46,6 @@ pub fn display_events(
             event.variant.bright_cyan().bold(),
         );
 
-        if display_matching_event(event, |e| DisplayExtrinsicSuccessEvent(e), false) {
-            continue;
-        }
-        if display_matching_event(event, |e| DisplayExtrinsicFailedEvent(e), false) {
-            continue;
-        }
-        if display_matching_event(event, |e| DisplayTransferEvent(e), true) {
-            continue;
-        }
-        if display_matching_event(event, |e| DisplayNewAccountEvent(e), false) {
-            continue;
-        }
-        if display_matching_event(event, |e| DisplayCodeStoredEvent(e), true) {
-            continue;
-        }
-        if display_matching_event(event, |e| DisplayInstantiatedEvent(e), true) {
-            continue;
-        }
         if display_matching_event(
             event,
             |event| DisplayContractEmitted { transcoder, event },
@@ -66,6 +53,13 @@ pub fn display_events(
         ) {
             continue;
         }
+
+        let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
+        let event_ident = Some(event_metadata.variant().name().as_str());
+        let event_fields = event_metadata.variant().fields();
+        let decoded_event = events_transcoder.decoder().decode_composite(event_ident, event_fields, &mut &event.data[..])?;
+
+        print!("{}", decoded_event);
         println!();
         log::info!(
             "{}::{} event has no matching custom display",
@@ -74,6 +68,7 @@ pub fn display_events(
         );
     }
     println!();
+    Ok(())
 }
 
 /// Prints the details for the given event if it matches.
@@ -105,73 +100,6 @@ where
     true
 }
 
-/// Wraps ExtrinsicSuccessEvent for Display impl
-struct DisplayExtrinsicSuccessEvent(api::system::events::ExtrinsicSuccess);
-
-impl Display for DisplayExtrinsicSuccessEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "")
-    }
-}
-
-/// Wraps ExtrinsicFailedEvent for Display impl
-struct DisplayExtrinsicFailedEvent(api::system::events::ExtrinsicFailed);
-
-impl Display for DisplayExtrinsicFailedEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("error", &format!("{:?}", self.0 .0));
-        builder.finish()
-    }
-}
-
-/// Wraps NewAccountEvent for Display impl
-struct DisplayNewAccountEvent(api::system::events::NewAccount);
-
-impl Display for DisplayNewAccountEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("account", &self.0 .0);
-        builder.finish()
-    }
-}
-
-/// Wraps balances::TransferEvent for Display impl
-struct DisplayTransferEvent(api::balances::events::Transfer);
-
-impl Display for DisplayTransferEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("from", &self.0 .0);
-        builder.field("to", &self.0 .1);
-        builder.field("amount", &self.0 .2);
-        builder.finish()
-    }
-}
-
-/// Wraps contracts::CodeStored for Display impl
-struct DisplayCodeStoredEvent(api::contracts::events::CodeStored);
-
-impl Display for DisplayCodeStoredEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("code_hash", &self.0 .0);
-        builder.finish()
-    }
-}
-
-/// Wraps contracts::InstantiatedEvent for Display impl
-struct DisplayInstantiatedEvent(api::contracts::events::Instantiated);
-
-impl Display for DisplayInstantiatedEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut builder = f.debug_struct("");
-        builder.field("caller", &self.0 .0);
-        builder.field("contract", &self.0 .1);
-        builder.finish()
-    }
-}
-
 /// Wraps contracts::events::ContractEmitted for Display impl and decodes contract events.
 struct DisplayContractEmitted<'a> {
     event: api::contracts::events::ContractEmitted,
@@ -179,7 +107,7 @@ struct DisplayContractEmitted<'a> {
 }
 
 impl<'a> Display for DisplayContractEmitted<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let mut builder = f.debug_struct("");
         builder.field("caller", &self.event.0);
         match self

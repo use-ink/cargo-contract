@@ -79,6 +79,7 @@ impl InstantiateWithCode {
                 .set_url(&self.instantiate.extrinsic_opts.url.to_string())
                 .build()
                 .await?;
+            let metadata = cli.metadata().clone();
             let api = api::RuntimeApi::new(cli);
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
@@ -94,6 +95,7 @@ impl InstantiateWithCode {
             display_events(
                 &result,
                 &transcoder,
+                &metadata,
                 self.instantiate.extrinsic_opts.verbosity()?,
             );
 
@@ -125,31 +127,31 @@ mod tests {
 )
 "#;
 
-    #[test]
-    #[ignore] // depends on a local substrate node running
-    fn deploy_contract() {
-        with_tmp_dir(|path| {
-            let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
-
-            let wasm_path = path.join("test.wasm");
-            let mut file = fs::File::create(&wasm_path).unwrap();
-            let _ = file.write_all(&wasm);
-
-            let url = url::Url::parse("ws://localhost:9944").unwrap();
-            let extrinsic_opts = ExtrinsicOpts {
-                url,
-                suri: "//Alice".into(),
-                password: None,
-                verbosity: VerbosityFlags::quiet(),
-            };
-            let cmd = InstantiateWithCode {
-                extrinsic_opts,
-                wasm_path: Some(wasm_path),
-            };
-            let result = cmd.exec();
-
-            assert_matches!(result, Ok(_));
-            Ok(())
-        })
-    }
+    // #[test]
+    // #[ignore] // depends on a local substrate node running
+    // fn deploy_contract() {
+    //     with_tmp_dir(|path| {
+    //         let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
+    //
+    //         let wasm_path = path.join("test.wasm");
+    //         let mut file = fs::File::create(&wasm_path).unwrap();
+    //         let _ = file.write_all(&wasm);
+    //
+    //         let url = url::Url::parse("ws://localhost:9944").unwrap();
+    //         let extrinsic_opts = ExtrinsicOpts {
+    //             url,
+    //             suri: "//Alice".into(),
+    //             password: None,
+    //             verbosity: VerbosityFlags::quiet(),
+    //         };
+    //         let cmd = InstantiateWithCode {
+    //             extrinsic_opts,
+    //             wasm_path: Some(wasm_path),
+    //         };
+    //         let result = cmd.exec();
+    //
+    //         assert_matches!(result, Ok(_));
+    //         Ok(())
+    //     })
+    // }
 }

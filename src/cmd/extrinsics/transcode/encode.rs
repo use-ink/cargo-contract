@@ -100,7 +100,7 @@ impl<'a> Encoder<'a> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        let struct_type = CompositeTypeFields::from_type_def(composite)?;
+        let struct_type = CompositeTypeFields::from_fields(composite.fields())?;
 
         match value {
             Value::Map(map) => {

@@ -22,13 +22,13 @@ use super::{
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
-use jsonrpsee_types::{to_json_value, traits::Client};
+use jsonrpsee_types::{to_json_value, traits::Client as _};
 use jsonrpsee_ws_client::WsClientBuilder;
 use serde::{Deserialize, Serialize};
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{ClientBuilder, ExtrinsicSuccess, Runtime, Signer, rpc::NumberOrHex};
+use subxt::{ClientBuilder, Client, ExtrinsicSuccess, Runtime, Signer, rpc::NumberOrHex};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -74,8 +74,16 @@ impl CallCommand {
                 }
             }
         } else {
-            let result = async_std::task::block_on(self.call(call_data))?;
-            display_events(&result, &transcoder, self.extrinsic_opts.verbosity()?);
+            let (result, metadata) = async_std::task::block_on(async {
+                let cli = ClientBuilder::new()
+                    .set_url(&self.extrinsic_opts.url.to_string())
+                    .build()
+                    .await?;
+                let metadata = cli.metadata().clone();
+                let result = self.call(cli, call_data).await?;
+                Ok::<_, anyhow::Error>((result, metadata))
+            })?;
+            display_events(&result, &transcoder, &metadata, self.extrinsic_opts.verbosity()?);
             Ok("".into())
         }
     }
@@ -96,11 +104,7 @@ impl CallCommand {
         Ok(result)
     }
 
-    async fn call(&self, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
-        let cli = ClientBuilder::new()
-            .set_url(&self.extrinsic_opts.url.to_string())
-            .build()
-            .await?;
+    async fn call(&self, cli: Client<ContractsRuntime>, data: Vec<u8>) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
         let api = api::RuntimeApi::new(cli);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 

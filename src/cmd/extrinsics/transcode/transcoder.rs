@@ -41,6 +41,10 @@ impl<'a> Transcoder<'a> {
         }
     }
 
+    pub fn encoder(&self) -> Encoder {
+        Encoder::new(self.registry, &self.env_types)
+    }
+
     pub fn encode<T, O>(&self, ty: T, value: &Value, output: &mut O) -> Result<()>
     where
         T: Into<TypeLookupId>,
@@ -50,12 +54,15 @@ impl<'a> Transcoder<'a> {
         encoder.encode(ty, &value, output)
     }
 
+    pub fn decoder(&self) -> Decoder {
+        Decoder::new(self.registry, &self.env_types)
+    }
+
     pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
     where
         T: Into<TypeLookupId>,
     {
-        let decoder = Decoder::new(self.registry, &self.env_types);
-        decoder.decode(ty, input)
+        self.decoder().decode(ty, input)
     }
 }
 
@@ -66,9 +73,8 @@ mod tests {
     use anyhow::Context;
     use codec::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
-    use std::num::NonZeroU32;
 
-    fn registry_with_type<T>() -> Result<(PortableRegistry, NonZeroU32)>
+    fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
     where
         T: scale_info::TypeInfo + 'static,
     {

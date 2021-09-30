@@ -24,7 +24,7 @@ use codec::{Compact, Decode, Input};
 use scale_info::{
     form::{Form, PortableForm},
     PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive,
-    TypeDefVariant,
+    TypeDefVariant, Field,
 };
 
 pub struct Decoder<'a> {
@@ -93,7 +93,10 @@ impl<'a> Decoder<'a> {
 
     fn decode_type(&self, ty: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
         match ty.type_def() {
-            TypeDef::Composite(composite) => self.decode_composite(ty, composite, input),
+            TypeDef::Composite(composite) => {
+                let ident = ty.path().segments().last().map(|s| s.as_str());
+                self.decode_composite(ident, composite.fields(), input)
+            },
             TypeDef::Tuple(tuple) => {
                 let mut elems = Vec::new();
                 for field_type in tuple.fields() {
@@ -119,14 +122,13 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    fn decode_composite(
+    pub fn decode_composite(
         &self,
-        ty: &Type<PortableForm>,
-        composite: &TypeDefComposite<PortableForm>,
+        ident: Option<&str>,
+        fields: &[Field<PortableForm>],
         input: &mut &[u8],
     ) -> Result<Value> {
-        let struct_type = CompositeTypeFields::from_type_def(&composite)?;
-        let ident = ty.path().segments().last().map(|s| s.as_str());
+        let struct_type = CompositeTypeFields::from_fields(fields)?;
 
         match struct_type {
             CompositeTypeFields::StructNamedFields(fields) => {

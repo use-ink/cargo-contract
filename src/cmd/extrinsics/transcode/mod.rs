@@ -20,7 +20,7 @@ mod env_types;
 mod scon;
 mod transcoder;
 
-use self::{
+pub use self::{
     scon::{Map, Value},
     transcoder::Transcoder,
 };
@@ -165,21 +165,20 @@ impl CompositeTypeNamedField {
 }
 
 impl CompositeTypeFields {
-    pub fn from_type_def(type_def: &TypeDefComposite<PortableForm>) -> Result<Self> {
-        if type_def.fields().is_empty() {
+    pub fn from_fields(fields: &[Field<PortableForm>]) -> Result<Self> {
+        if fields.iter().next().is_none() {
             Ok(Self::NoFields)
-        } else if type_def.fields().iter().all(|f| f.name().is_some()) {
-            let fields = type_def
-                .fields()
-                .iter()
-                .map(|f| CompositeTypeNamedField {
-                    name: f.name().expect("All fields have a name; qed").to_owned(),
-                    field: f.clone(),
+        } else if fields.iter().all(|f| f.name().is_some()) {
+            let fields = fields
+                .into_iter()
+                .map(|field| CompositeTypeNamedField {
+                    name: field.name().expect("All fields have a name; qed").to_owned(),
+                    field: field.clone(),
                 })
                 .collect();
             Ok(Self::StructNamedFields(fields))
-        } else if type_def.fields().iter().all(|f| f.name().is_none()) {
-            Ok(Self::TupleStructUnnamedFields(type_def.fields().to_vec()))
+        } else if fields.iter().all(|f| f.name().is_none()) {
+            Ok(Self::TupleStructUnnamedFields(fields.iter().cloned().collect()))
         } else {
             Err(anyhow::anyhow!(
                 "Struct fields should either be all named or all unnamed"
