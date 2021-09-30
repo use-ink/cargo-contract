@@ -40,30 +40,30 @@ pub fn display_events(
     let events_transcoder = Transcoder::new(&subxt_metadata.runtime_metadata().types);
 
     for event in &result.events {
-        print!(
-            "{}::{} ",
-            event.pallet.bold(),
-            event.variant.bright_cyan().bold(),
-        );
+        // print!(
+        //     "{}::{} ",
+        //     event.pallet.bold(),
+        //     event.variant.bright_cyan().bold(),
+        // );
 
-        if display_matching_event(
-            event,
-            |event| DisplayContractEmitted { transcoder, event },
-            true,
-        ) {
-            continue;
-        }
+        // if display_matching_event(
+        //     event,
+        //     |event| DisplayContractEmitted { transcoder, event },
+        //     true,
+        // ) {
+        //     continue;
+        // }
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
-        let event_ident = Some(event_metadata.variant().name().as_str());
+        let event_ident = format!("{}::{}", event.pallet, event.variant);
         let event_fields = event_metadata.variant().fields();
         let decoded_event = events_transcoder.decoder().decode_composite(
-            event_ident,
+            Some(event_ident.as_str()),
             event_fields,
             &mut &event.data[..],
         )?;
 
-        print!("{}", decoded_event);
+        pretty_print(decoded_event, true);
         println!();
         log::info!(
             "{}::{} event has no matching custom display",
