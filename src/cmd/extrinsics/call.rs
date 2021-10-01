@@ -21,10 +21,11 @@ use super::{
 };
 use crate::ExtrinsicOpts;
 use anyhow::Result;
+use pallet_contracts_primitives::ContractExecResult;
 use colored::Colorize;
 use jsonrpsee_types::{to_json_value, traits::Client as _};
 use jsonrpsee_ws_client::WsClientBuilder;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
@@ -61,18 +62,12 @@ impl CallCommand {
 
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
-            match result {
-                RpcContractExecResult::Success {
-                    data, gas_consumed, ..
-                } => {
-                    let value = transcoder.decode_return(&self.name, data.0)?;
-                    pretty_print(value, false)?;
-                    Ok(format!("{} {}", "Gas consumed:".bold(), gas_consumed))
-                }
-                RpcContractExecResult::Error(()) => {
-                    Err(anyhow::anyhow!("Failed to execute call via rpc"))
-                }
-            }
+            let exec_return_value =
+                result.result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
+            let value = transcoder.decode_return(&self.name, exec_return_value.data.0)?;
+            pretty_print(value, false)?;
+            Ok(format!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed))
+            // todo: [AJ] print debug message etc.
         } else {
             let (result, metadata) = async_std::task::block_on(async {
                 let cli = ClientBuilder::new()
@@ -93,19 +88,19 @@ impl CallCommand {
         }
     }
 
-    async fn call_rpc(&self, data: Vec<u8>) -> Result<RpcContractExecResult> {
+    async fn call_rpc(&self, data: Vec<u8>) -> Result<ContractExecResult> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
-            value: self.value.try_into()?, // value must be <= u64.max_value() for now
+            value: NumberOrHex::Number(self.value.try_into()?), // value must be <= u64.max_value() for now
             gas_limit: NumberOrHex::Number(self.gas_limit),
             input_data: Bytes(data),
         };
         let params = vec![to_json_value(call_request)?];
-        let result: RpcContractExecResult = cli.request("contracts_call", params.into()).await?;
+        let result: ContractExecResult = cli.request("contracts_call", params.into()).await?;
         Ok(result)
     }
 
@@ -123,39 +118,22 @@ impl CallCommand {
             self.gas_limit,
             data,
         );
+        log::debug!("calling contract {:?}", self.contract);
         let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
 
         Ok(result)
     }
 }
 
-/// Call request type for serialization copied from pallet-contracts-rpc
+/// A struct that encodes RPC parameters required for a call to a smart-contract.
+///
+/// Copied from pallet-contracts-rpc
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcCallRequest {
     origin: <ContractsRuntime as Runtime>::AccountId,
     dest: <ContractsRuntime as Runtime>::AccountId,
-    // Should be <ContractsTemplateRuntime as Balances>::Balance, which is u128.
-    // However the max unsigned integer supported by serde is `u64`
-    value: u64,
+    value: NumberOrHex,
     gas_limit: NumberOrHex,
     input_data: Bytes,
-}
-
-/// Result of contract execution copied from pallet-contracts-rpc
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "camelCase")]
-pub enum RpcContractExecResult {
-    /// Successful execution
-    Success {
-        /// The return flags
-        flags: u32,
-        /// Output data
-        data: Bytes,
-        /// How much gas was consumed by the call.
-        gas_consumed: u64,
-    },
-    /// Error execution
-    Error(()),
 }

@@ -40,20 +40,7 @@ pub fn display_events(
         .done();
 
     for event in &result.events {
-        // todo display contract emitted events and special type formatting
-        // print!(
-        //     "{}::{} ",
-        //     event.pallet.bold(),
-        //     event.variant.bright_cyan().bold(),
-        // );
-
-        // if display_matching_event(
-        //     event,
-        //     |event| DisplayContractEmitted { transcoder, event },
-        //     true,
-        // ) {
-        //     continue;
-        // }
+        log::debug!("displaying event {}::{}", event.pallet, event.variant);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_ident = format!("{}::{}", event.pallet, event.variant);
@@ -73,6 +60,7 @@ pub fn display_events(
                         .map(|(key, value)| {
                             if key == &Value::String("data".into()) {
                                 if let Value::Bytes(bytes) = value {
+                                    log::debug!("Decoding contract event bytes {:?}", bytes);
                                     let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
                                     Ok((key.clone(), contract_event))
                                 } else {
@@ -94,11 +82,6 @@ pub fn display_events(
 
         pretty_print(display_event, true)?;
         println!();
-        log::info!(
-            "{}::{} event has no matching custom display",
-            event.pallet,
-            event.variant
-        );
     }
     println!();
     Ok(())
