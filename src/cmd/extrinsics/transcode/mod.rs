@@ -16,13 +16,13 @@
 
 mod decode;
 mod encode;
-mod env_types;
+pub mod env_types;
 mod scon;
 mod transcoder;
 
 pub use self::{
     scon::{Map, Value},
-    transcoder::{Transcoder, TranscoderBuilder}
+    transcoder::{Transcoder, TranscoderBuilder},
 };
 
 use anyhow::Result;

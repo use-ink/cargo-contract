@@ -17,7 +17,7 @@
 use super::{
     pretty_print,
     runtime_api::{api, ContractsRuntime},
-    transcode::{ContractMessageTranscoder, Transcoder, TranscoderBuilder},
+    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
 use crate::Verbosity;
 
@@ -36,13 +36,12 @@ pub fn display_events(
         return Ok(());
     }
 
-    let runtime_metadata = &subxt_metadata.runtime_metadata();
-    let events_transcoder = TranscoderBuilder::new(&subxt_metadata.runtime_metadata().types)
+    let runtime_metadata = subxt_metadata.runtime_metadata();
+    let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
         .register_custom_type::<sp_runtime::AccountId32, _>("AccountId", env_types::AccountId)
         .done();
 
     for event in &result.events {
-
         // todo display contract emitted events and special type formatting
         // print!(
         //     "{}::{} ",

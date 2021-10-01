@@ -17,20 +17,14 @@
 use super::{
     decode::Decoder,
     encode::Encoder,
-    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, TypeLookupId, TypesByPath, PathKey},
+    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypeLookupId, TypesByPath},
     scon::Value,
 };
 
 use anyhow::Result;
 use codec::Output;
-use scale_info::{
-    PortableRegistry,
-    TypeInfo,
-};
-use std::{
-    collections::HashMap,
-    fmt::Debug
-};
+use scale_info::{PortableRegistry, TypeInfo};
+use std::{collections::HashMap, fmt::Debug};
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
@@ -94,16 +88,17 @@ impl<'a> TranscoderBuilder<'a> {
     }
 
     pub fn register_custom_type<T, U>(self, alias: &'static str, transcoder: U) -> Self
-        where
-            T: TypeInfo + 'static,
-            U: CustomTypeTranscoder,
+    where
+        T: TypeInfo + 'static,
+        U: CustomTypeTranscoder + 'static,
     {
         let mut this = self;
-
-        let type_id = TypeLookupId::from_type::<T>(alias, &self.types_by_path);
+        let type_id = TypeLookupId::from_type::<T>(alias, &this.types_by_path);
         match type_id {
             Some(type_id) => {
-                let existing = this.transcoders.insert(type_id.clone(), Box::new(transcoder));
+                let existing = this
+                    .transcoders
+                    .insert(type_id.clone(), Box::new(transcoder));
                 log::debug!(
                     "Registered environment type `{}` with id {:?}",
                     alias,

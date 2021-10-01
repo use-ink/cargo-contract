@@ -23,8 +23,7 @@ use anyhow::Result;
 use codec::{Compact, Decode, Input};
 use scale_info::{
     form::{Form, PortableForm},
-    Field, PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefPrimitive,
-    TypeDefVariant,
+    Field, PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefPrimitive, TypeDefVariant,
 };
 
 pub struct Decoder<'a> {

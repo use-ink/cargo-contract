@@ -119,8 +119,9 @@ impl TypeLookupId {
             .path()
             .clone()
             .into_portable(&mut Default::default());
+        let path_key = PathKey::from(&path);
 
-        type_lookup.get(&path.into()).map(|type_id| Self {
+        type_lookup.get(&path_key).map(|type_id| Self {
             type_id: *type_id,
             maybe_alias: Some(alias.to_owned()),
         })
