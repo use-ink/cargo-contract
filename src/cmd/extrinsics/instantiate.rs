@@ -86,7 +86,7 @@ impl InstantiateCommand {
                 &transcoder,
                 &metadata,
                 self.instantiate.extrinsic_opts.verbosity()?,
-            );
+            )?;
 
             let instantiated = result
                 .find_event::<api::contracts::events::Instantiated>()?

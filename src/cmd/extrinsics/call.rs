@@ -88,7 +88,7 @@ impl CallCommand {
                 &transcoder,
                 &metadata,
                 self.extrinsic_opts.verbosity()?,
-            );
+            )?;
             Ok("".into())
         }
     }

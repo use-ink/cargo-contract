@@ -50,8 +50,7 @@ impl<'a> Transcoder<'a> {
         T: Into<TypeLookupId>,
         O: Output + Debug,
     {
-        let encoder = Encoder::new(self.registry, &self.env_types);
-        encoder.encode(ty, &value, output)
+        self.encoder().encode(ty, &value, output)
     }
 
     pub fn decoder(&self) -> Decoder {

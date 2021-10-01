@@ -97,7 +97,7 @@ impl InstantiateWithCode {
                 &transcoder,
                 &metadata,
                 self.instantiate.extrinsic_opts.verbosity()?,
-            );
+            )?;
 
             let code_stored = result
                 .find_event::<api::contracts::events::CodeStored>()?

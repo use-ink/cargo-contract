@@ -66,7 +66,7 @@ pub fn display_events(
             &mut &event.data[..],
         )?;
 
-        pretty_print(decoded_event, true);
+        pretty_print(decoded_event, true)?;
         println!();
         log::info!(
             "{}::{} event has no matching custom display",
