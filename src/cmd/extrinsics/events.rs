@@ -16,8 +16,8 @@
 
 use super::{
     pretty_print,
-    runtime_api::{api, ContractsRuntime},
-    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
+    runtime_api::{api::contracts::events::ContractEmitted, ContractsRuntime},
+    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
 };
 use crate::Verbosity;
 
@@ -66,7 +66,35 @@ pub fn display_events(
             &mut &event.data[..],
         )?;
 
-        pretty_print(decoded_event, true)?;
+        let display_event =
+            // decode the contract event if it is `ContractEmitted`
+            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
+                if let Value::Map(map) = decoded_event {
+                    let fields_with_decoded_contract_event = map
+                        .iter()
+                        .map(|(key, value)| {
+                            if key == &Value::String("data".into()) {
+                                if let Value::Bytes(bytes) = value {
+                                    let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
+                                    Ok((key.clone(), contract_event))
+                                } else {
+                                    Err(anyhow::anyhow!("ContractEmitted::data should be `Vec<u8>`"))
+                                }
+                            } else {
+                                Ok((key.clone(), value.clone()))
+                            }
+                        })
+                        .collect::<Result<_>>()?;
+                    Ok(Value::Map(fields_with_decoded_contract_event))
+                } else {
+                    // todo: [AJ] possibly handle legacy tuple struct for older version of contracts pallet?
+                    Err(anyhow::anyhow!("ContractEmitted should be a struct with named fields"))
+                }
+            } else {
+                Ok(decoded_event)
+            }?;
+
+        pretty_print(display_event, true)?;
         println!();
         log::info!(
             "{}::{} event has no matching custom display",
@@ -76,59 +104,4 @@ pub fn display_events(
     }
     println!();
     Ok(())
-}
-
-/// Prints the details for the given event if it matches.
-///
-/// Returns true iff the module and event name match.
-fn display_matching_event<E, F, D>(raw_event: &RawEvent, new_display: F, indent: bool) -> bool
-where
-    E: Event,
-    F: FnOnce(E) -> D,
-    D: Display,
-{
-    if raw_event.pallet != E::PALLET || raw_event.variant != E::EVENT {
-        return false;
-    }
-
-    match E::decode(&mut &raw_event.data[..]) {
-        Ok(event) => {
-            let display_event = new_display(event);
-            let _ = pretty_print(display_event, indent);
-        }
-        Err(err) => {
-            print!(
-                "{} {}",
-                "Error decoding event:".bright_red().bold(),
-                format!("{}", err),
-            );
-        }
-    }
-    true
-}
-
-/// Wraps contracts::events::ContractEmitted for Display impl and decodes contract events.
-struct DisplayContractEmitted<'a> {
-    event: api::contracts::events::ContractEmitted,
-    transcoder: &'a ContractMessageTranscoder<'a>,
-}
-
-impl<'a> Display for DisplayContractEmitted<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let mut builder = f.debug_struct("");
-        builder.field("caller", &self.event.0);
-        match self
-            .transcoder
-            .decode_contract_event(&mut &self.event.1[..])
-        {
-            Ok(contract_event) => {
-                builder.field("event", &contract_event);
-            }
-            Err(err) => {
-                log::error!("Error decoding contract event: {}", err);
-                builder.field("event", &"Failed to decode contract event, see logs");
-            }
-        }
-        builder.finish()
-    }
 }

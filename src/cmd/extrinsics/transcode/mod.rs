@@ -103,7 +103,7 @@ impl<'a> ContractMessageTranscoder<'a> {
             .find(|msg| msg.name().contains(&name.to_string()))
     }
 
-    pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<ContractEvent> {
+    pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
         let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
@@ -125,10 +125,7 @@ impl<'a> ContractMessageTranscoder<'a> {
         let name = event_spec.name().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
-        Ok(ContractEvent {
-            name,
-            value: Value::Map(map),
-        })
+        Ok(Value::Map(map))
     }
 
     pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
@@ -192,23 +189,6 @@ impl CompositeTypeFields {
                 "Struct fields should either be all named or all unnamed"
             ))
         }
-    }
-}
-
-pub struct ContractEvent {
-    pub name: String,
-    pub value: Value,
-}
-
-impl Debug for ContractEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <Self as Display>::fmt(&self, f)
-    }
-}
-
-impl Display for ContractEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <Value as Display>::fmt(&self.value, f)
     }
 }
 
