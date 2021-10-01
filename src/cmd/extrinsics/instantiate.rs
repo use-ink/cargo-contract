@@ -92,7 +92,7 @@ impl InstantiateCommand {
                 .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
-            Ok(instantiated.0)
+            Ok(instantiated.1)
         })
     }
 }
