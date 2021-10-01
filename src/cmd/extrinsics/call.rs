@@ -21,10 +21,10 @@ use super::{
 };
 use crate::ExtrinsicOpts;
 use anyhow::Result;
-use pallet_contracts_primitives::ContractExecResult;
 use colored::Colorize;
 use jsonrpsee_types::{to_json_value, traits::Client as _};
 use jsonrpsee_ws_client::WsClientBuilder;
+use pallet_contracts_primitives::ContractExecResult;
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
@@ -62,11 +62,16 @@ impl CallCommand {
 
         if self.rpc {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
-            let exec_return_value =
-                result.result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
+            let exec_return_value = result
+                .result
+                .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
             let value = transcoder.decode_return(&self.name, exec_return_value.data.0)?;
             pretty_print(value, false)?;
-            Ok(format!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed))
+            Ok(format!(
+                "{:?} {}",
+                "Gas consumed:".bold(),
+                result.gas_consumed
+            ))
             // todo: [AJ] print debug message etc.
         } else {
             let (result, metadata) = async_std::task::block_on(async {
