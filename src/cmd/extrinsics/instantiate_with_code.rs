@@ -107,7 +107,7 @@ impl InstantiateWithCode {
                 .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
-            Ok((code_stored.0, instantiated.0))
+            Ok((code_stored.0, instantiated.1))
         })
     }
 }
