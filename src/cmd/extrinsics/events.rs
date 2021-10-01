@@ -22,9 +22,7 @@ use super::{
 use crate::Verbosity;
 
 use anyhow::Result;
-use colored::Colorize;
-use std::fmt::{Display, Formatter, Result as FmtResult};
-use subxt::{self, Event, ExtrinsicSuccess, RawEvent};
+use subxt::{self, Event, ExtrinsicSuccess};
 
 pub fn display_events(
     result: &ExtrinsicSuccess<ContractsRuntime>,

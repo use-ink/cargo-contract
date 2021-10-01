@@ -32,7 +32,7 @@ use scale_info::{
     form::{Form, PortableForm},
     Field,
 };
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::Debug;
 
 /// Encode strings to SCALE encoded smart contract calls.
 /// Decode SCALE encoded smart contract events and return values into `Value` objects.
