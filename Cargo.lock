@@ -1831,7 +1831,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1839,7 +1839,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1863,7 +1863,7 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -1879,7 +1879,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1897,7 +1897,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "blake2",
  "either",
@@ -1910,7 +1910,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
@@ -1923,7 +1923,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1936,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -1944,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "ink_prelude",
  "parity-scale-codec",
@@ -1954,7 +1954,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "array-init",
  "cfg-if 1.0.0",
@@ -1972,7 +1972,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.0-rc5"
-source = "git+https://github.com/paritytech/ink/?branch=aj-upgrade-scale-info#c18b1a426c333ea4923ceacd706eeb6e78528d40"
+source = "git+https://github.com/paritytech/ink/?branch=master#ff723b17ae47ce2f46982151f6a4a1bc89acb2a2"
 dependencies = [
  "proc-macro2",
  "quote",

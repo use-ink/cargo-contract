@@ -36,8 +36,8 @@ std = [
 ink-as-dependency = []
 
 [patch.crates-io]
-ink_primitives = { git = "https://github.com/paritytech/ink/", branch = "aj-upgrade-scale-info", package = "ink_primitives" }
-ink_metadata = { git = "https://github.com/paritytech/ink/", branch = "aj-upgrade-scale-info", package = "ink_metadata" }
-ink_env = { git = "https://github.com/paritytech/ink/", branch = "aj-upgrade-scale-info", package = "ink_env" }
-ink_storage = { git = "https://github.com/paritytech/ink/", branch = "aj-upgrade-scale-info", package = "ink_storage" }
-ink_lang = { git = "https://github.com/paritytech/ink/", branch = "aj-upgrade-scale-info", package = "ink_lang" }
+ink_primitives = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_primitives" }
+ink_metadata = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_metadata" }
+ink_env = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_env" }
+ink_storage = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_storage" }
+ink_lang = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_lang" }
