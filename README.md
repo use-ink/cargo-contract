@@ -11,7 +11,7 @@
 [b1]: https://img.shields.io/badge/matrix-chat-brightgreen.svg?style=flat
 [b2]: https://riot.im/app/#/room/#ink:matrix.parity.io
 [c1]: https://img.shields.io/discord/722223075629727774?style=flat-square&label=discord
-[c2]: https://discord.gg/ztCASQE
+[c2]: https://discord.com/invite/wGUDt2p
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
 
@@ -29,7 +29,7 @@
 </div>
 
 More relevant links:
-* Talk to us on [Element][b2] or [Discord][c2]
+* Talk to us on [Element][b2] or on [Discord][c2] in the [`ink_smart-contracts`](https://discord.com/channels/722223075629727774/765280480609828864) channel
 * [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
 * [Canvas UI](https://paritytech.github.io/canvas-ui/#/upload) ‒ Frontend for contract deployment and interaction
 * [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
