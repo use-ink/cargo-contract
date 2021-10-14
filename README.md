@@ -49,7 +49,7 @@ More relevant links:
   There's only an old version in your distributions package manager? Just use a 
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
-* Step 3: `cargo install --force cargo-contract`
+* Step 3: `cargo install --force cargo-contract`.
 
 ### Installation using Docker Image
 
