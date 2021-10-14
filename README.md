@@ -22,7 +22,7 @@
 
 <br/>
 
-[Guided Tutorial for Beginners](https://substrate.dev/substrate-contracts-workshop/#/0/building-your-contract)&nbsp;&nbsp;•&nbsp;&nbsp; 
+[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp; 
 [ink! Documentation Portal](https://paritytech.github.io/ink-docs)
 
 <br/>
