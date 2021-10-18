@@ -33,7 +33,7 @@ colored = "2.0.0"
 toml = "0.5.8"
 rustc_version = "0.4.0"
 blake2 = "0.9.2"
-contract-metadata = { version = "0.3.0", path = "./metadata" }
+contract-metadata = { version = "0.3.1", path = "./metadata" }
 semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 serde_json = "1.0.68"
