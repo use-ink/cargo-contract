@@ -1,7 +1,7 @@
 extern crate contract;
 
 extern "Rust" {
-	fn __ink_generate_metadata() -> ink_metadata::InkProject;
+	fn __ink_generate_metadata() -> ink_metadata::MetadataVersioned;
 }
 
 fn main() -> Result<(), std::io::Error> {
