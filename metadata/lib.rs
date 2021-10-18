@@ -553,7 +553,6 @@ mod tests {
 
         let expected = json! {
             {
-                "metadataVersion": "0.1.0",
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
@@ -618,18 +617,17 @@ mod tests {
 
         let expected = json! {
             {
-                "metadataVersion": "0.1.0",
-                "source": {
-                    "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "language": "ink! 2.1.0",
-                    "compiler": "rustc 1.46.0-nightly"
-                },
                 "contract": {
                     "name": "incrementer",
                     "version": "2.1.0",
                     "authors": [
                       "Parity Technologies <admin@parity.io>"
                     ],
+                },
+                "source": {
+                    "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "language": "ink! 2.1.0",
+                    "compiler": "rustc 1.46.0-nightly"
                 },
                 // these fields are part of the flattened raw json for the contract ABI
                 "spec": {},
