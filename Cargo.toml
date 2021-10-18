@@ -21,7 +21,7 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 [dependencies]
 env_logger = "0.9.0"
 anyhow = "1.0.44"
-structopt = "0.3.23"
+structopt = "0.3.25"
 log = "0.4.14"
 heck = "0.3.3"
 zip = { version = "0.5.13", default-features = false }
@@ -61,7 +61,7 @@ platforms = "1.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-pretty_assertions = "0.7.2"
+pretty_assertions = "1.0.0"
 wabt = "0.10.0"
 
 [features]
