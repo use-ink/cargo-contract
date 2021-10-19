@@ -11,7 +11,7 @@
 [b1]: https://img.shields.io/badge/matrix-chat-brightgreen.svg?style=flat
 [b2]: https://riot.im/app/#/room/#ink:matrix.parity.io
 [c1]: https://img.shields.io/discord/722223075629727774?style=flat-square&label=discord
-[c2]: https://discord.gg/ztCASQE
+[c2]: https://discord.com/invite/wGUDt2p
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
 
@@ -22,14 +22,14 @@
 
 <br/>
 
-[Guided Tutorial for Beginners](https://substrate.dev/substrate-contracts-workshop/#/0/building-your-contract)&nbsp;&nbsp;•&nbsp;&nbsp; 
+[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp; 
 [ink! Documentation Portal](https://paritytech.github.io/ink-docs)
 
 <br/>
 </div>
 
 More relevant links:
-* Talk to us on [Element][b2] or [Discord][c2]
+* Talk to us on [Element][b2] or on [Discord][c2] in the [`ink_smart-contracts`](https://discord.com/channels/722223075629727774/765280480609828864) channel
 * [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
 * [Canvas UI](https://paritytech.github.io/canvas-ui/#/upload) ‒ Frontend for contract deployment and interaction
 * [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
@@ -49,27 +49,29 @@ More relevant links:
   There's only an old version in your distributions package manager? Just use a 
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
-* Step 3: `cargo install --force cargo-contract`
+* Step 3: `cargo install --force cargo-contract`.
 
-### Docker Image
+### Installation using Docker Image
 
 If you prefer to use Docker instead we have a Docker image
 [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux):
 
 ```bash
-# Pull the latest image.
-docker pull  paritytech/contracts-ci-linux
+# Pull the latest stable image.
+docker pull paritytech/contracts-ci-linux:production
 
 # Create a new contract in your current directory.
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
   cargo +nightly contract new --target-dir /sources my_contract
 
 # Build the contract. This will create the contract file under
 # `my_contract/target/ink/my_contract.contract`.
-docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux \
+docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
   cargo +nightly contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
+If you want to reproduce other steps of CI process you can use the following
+[guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
 
 ## Usage
 
