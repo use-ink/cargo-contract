@@ -97,10 +97,3 @@ test-ci-only = []
 # Enable this to execute tests which depend on a locally running contracts enabed chain
 # e.g.https://github.com/paritytech/canvas-node
 integration-tests = []
-
-[patch.crates-io]
-ink_primitives = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_primitives" }
-ink_metadata = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_metadata" }
-ink_env = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_env" }
-ink_storage = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_storage" }
-ink_lang = { git = "https://github.com/paritytech/ink/", branch = "master", package = "ink_lang" }
