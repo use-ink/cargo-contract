@@ -73,6 +73,6 @@ where
 
 pub fn pair_signer(
     pair: sr25519::Pair,
-) -> PairSigner<runtime_api::ContractsRuntime, sr25519::Pair> {
+) -> PairSigner<runtime_api::api::DefaultConfig, sr25519::Pair> {
     PairSigner::new(pair)
 }

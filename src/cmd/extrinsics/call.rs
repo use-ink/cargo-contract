@@ -16,7 +16,7 @@
 
 use super::{
     display_events, load_metadata, pretty_print,
-    runtime_api::{api, ContractsRuntime},
+    runtime_api::api::{self, DefaultConfig},
     ContractMessageTranscoder,
 };
 use crate::ExtrinsicOpts;
@@ -29,7 +29,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, Client, ClientBuilder, ExtrinsicSuccess, Runtime, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, ExtrinsicSuccess, Config, Signer};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -48,7 +48,7 @@ pub struct CallCommand {
     value: u128,
     /// The address of the the contract to call.
     #[structopt(name = "contract", long, env = "CONTRACT")]
-    contract: <ContractsRuntime as Runtime>::AccountId,
+    contract: <DefaultConfig as Config>::AccountId,
     /// Perform the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
     #[structopt(name = "rpc", long)]
     rpc: bool,
@@ -75,12 +75,13 @@ impl CallCommand {
             // todo: [AJ] print debug message etc.
         } else {
             let (result, metadata) = async_std::task::block_on(async {
-                let cli = ClientBuilder::new()
+                let api = ClientBuilder::new()
                     .set_url(&self.extrinsic_opts.url.to_string())
                     .build()
-                    .await?;
-                let metadata = cli.metadata().clone();
-                let result = self.call(cli, call_data).await?;
+                    .await?
+                    .to_runtime_api::<api::RuntimeApi<api::DefaultConfig>>();
+                let metadata = api.client.metadata().clone();
+                let result = self.call(api, call_data).await?;
                 Ok::<_, anyhow::Error>((result, metadata))
             })?;
             display_events(
@@ -111,20 +112,18 @@ impl CallCommand {
 
     async fn call(
         &self,
-        cli: Client<ContractsRuntime>,
+        api: api::RuntimeApi<DefaultConfig>,
         data: Vec<u8>,
-    ) -> Result<ExtrinsicSuccess<ContractsRuntime>> {
-        let api = api::RuntimeApi::new(cli);
+    ) -> Result<ExtrinsicSuccess<DefaultConfig>> {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let extrinsic = api.tx.contracts.call(
+        log::debug!("calling contract {:?}", self.contract);
+        let result = api.tx().contracts().call(
             self.contract.clone().into(),
             self.value,
             self.gas_limit,
             data,
-        );
-        log::debug!("calling contract {:?}", self.contract);
-        let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
+        ).sign_and_submit_then_watch(&signer).await?;
 
         Ok(result)
     }
@@ -136,8 +135,8 @@ impl CallCommand {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcCallRequest {
-    origin: <ContractsRuntime as Runtime>::AccountId,
-    dest: <ContractsRuntime as Runtime>::AccountId,
+    origin: <DefaultConfig as Config>::AccountId,
+    dest: <DefaultConfig as Config>::AccountId,
     value: NumberOrHex,
     gas_limit: NumberOrHex,
     input_data: Bytes,

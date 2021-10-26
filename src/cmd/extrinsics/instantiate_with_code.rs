@@ -18,13 +18,13 @@ use anyhow::{Context, Result};
 use sp_core::H256;
 use std::{fs, io::Read, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{ClientBuilder, Runtime};
+use subxt::{ClientBuilder, Config};
 
 use super::{
     display_events,
     instantiate::InstantiateArgs,
     load_metadata,
-    runtime_api::{api, ContractsRuntime},
+    runtime_api::api::{self, DefaultConfig},
     ContractMessageTranscoder,
 };
 use crate::crate_metadata;
@@ -68,22 +68,23 @@ impl InstantiateWithCode {
     ///
     /// Creates an extrinsic with the `Contracts::put_code` Call, submits via RPC, then waits for
     /// the `ContractsEvent::CodeStored` event.
-    pub fn exec(&self) -> Result<(H256, <ContractsRuntime as Runtime>::AccountId)> {
+    pub fn exec(&self) -> Result<(H256, <DefaultConfig as Config>::AccountId)> {
         let code = self.load_contract_code()?;
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
         let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.params)?;
 
         async_std::task::block_on(async move {
-            let cli = ClientBuilder::new()
+            let api = ClientBuilder::new()
                 .set_url(&self.instantiate.extrinsic_opts.url.to_string())
                 .build()
-                .await?;
-            let metadata = cli.metadata().clone();
-            let api = api::RuntimeApi::new(cli);
+                .await?
+                .to_runtime_api::<api::RuntimeApi<DefaultConfig>>();
+
+            let metadata = api.client.metadata().clone();
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let extrinsic = api.tx.contracts.instantiate_with_code(
+            let extrinsic = api.tx().contracts().instantiate_with_code(
                 self.instantiate.endowment,
                 self.instantiate.gas_limit,
                 code,

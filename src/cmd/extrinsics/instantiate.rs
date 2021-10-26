@@ -16,12 +16,15 @@
 
 use super::{
     display_events,
-    runtime_api::{api, ContractsRuntime},
+    runtime_api::api::{
+        self,
+        DefaultConfig,
+    },
 };
 use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
 use structopt::StructOpt;
-use subxt::{ClientBuilder, Runtime};
+use subxt::{ClientBuilder, Config};
 
 #[derive(Debug, StructOpt)]
 pub struct InstantiateArgs {
@@ -49,7 +52,7 @@ pub struct InstantiateCommand {
     instantiate: InstantiateArgs,
     /// The hash of the smart contract code already uploaded to the chain
     #[structopt(long, parse(try_from_str = parse_code_hash))]
-    code_hash: <ContractsRuntime as Runtime>::Hash,
+    code_hash: <DefaultConfig as Config>::Hash,
 }
 
 impl InstantiateCommand {
@@ -58,28 +61,28 @@ impl InstantiateCommand {
     ///
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<<ContractsRuntime as Runtime>::AccountId> {
+    pub fn run(&self) -> Result<<DefaultConfig as Config>::AccountId> {
         let metadata = super::load_metadata()?;
         let transcoder = super::ContractMessageTranscoder::new(&metadata);
         let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.params)?;
 
         async_std::task::block_on(async move {
-            let cli = ClientBuilder::new()
+            let api = ClientBuilder::new()
                 .set_url(self.instantiate.extrinsic_opts.url.to_string())
                 .build()
-                .await?;
-            let metadata = cli.metadata().clone();
-            let api = api::RuntimeApi::new(cli);
+                .await?
+                .to_runtime_api::<api::RuntimeApi<DefaultConfig>>();
+
+            let metadata = api.client.metadata().clone();
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let extrinsic = api.tx.contracts.instantiate(
+            let result = api.tx().contracts().instantiate(
                 self.instantiate.endowment,
                 self.instantiate.gas_limit,
                 self.code_hash,
                 data,
                 vec![], // todo: [AJ] salt
-            );
-            let result = extrinsic.sign_and_submit_then_watch(&signer).await?;
+            ).sign_and_submit_then_watch(&signer).await?;
 
             display_events(
                 &result,
@@ -97,7 +100,7 @@ impl InstantiateCommand {
     }
 }
 
-fn parse_code_hash(input: &str) -> Result<<ContractsRuntime as Runtime>::Hash> {
+fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let bytes = decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")

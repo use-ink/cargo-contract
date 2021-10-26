@@ -16,7 +16,10 @@
 
 use super::{
     pretty_print,
-    runtime_api::{api::contracts::events::ContractEmitted, ContractsRuntime},
+    runtime_api::api::{
+        DefaultConfig,
+        contracts::events::ContractEmitted,
+    },
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
 };
 use crate::Verbosity;
@@ -25,7 +28,7 @@ use anyhow::Result;
 use subxt::{self, Event, ExtrinsicSuccess};
 
 pub fn display_events(
-    result: &ExtrinsicSuccess<ContractsRuntime>,
+    result: &ExtrinsicSuccess<DefaultConfig>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: Verbosity,
