@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{Manifest, ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildMode, BuildResult, OptimizationPasses, OptimizationResult, OutputType,
+    BuildArtifacts, BuildMode, Network, BuildResult, OptimizationPasses, OptimizationResult, OutputType,
     UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
@@ -46,6 +46,7 @@ pub(crate) struct ExecuteArgs {
     pub(crate) manifest_path: ManifestPath,
     verbosity: Verbosity,
     build_mode: BuildMode,
+    network: Network,
     build_artifact: BuildArtifacts,
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
@@ -152,6 +153,11 @@ impl BuildCommand {
             false => BuildMode::Debug,
         };
 
+        let network = match self.build_offline {
+            true => Network::Offline,
+            false => Network::Online,
+        };
+
         let output_type = match self.output_json {
             true => OutputType::Json,
             false => OutputType::HumanReadable,
@@ -166,6 +172,7 @@ impl BuildCommand {
             manifest_path,
             verbosity,
             build_mode,
+            network,
             build_artifact: self.build_artifact,
             unstable_flags,
             optimization_passes,
@@ -200,6 +207,7 @@ impl CheckCommand {
             manifest_path,
             verbosity,
             build_mode: BuildMode::Debug,
+            network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags,
             optimization_passes: OptimizationPasses::Zero,
@@ -231,6 +239,7 @@ fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
     command: &str,
     build_mode: BuildMode,
+    network: Network,
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
@@ -253,6 +262,9 @@ fn exec_cargo_for_wasm_target(
             "--release",
             &target_dir,
         ];
+        if network == Network::Offline {
+            args.push("--offline");
+        }
         if build_mode == BuildMode::Debug {
             args.push("--features=ink_env/ink-debug");
         } else {
@@ -628,6 +640,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         manifest_path,
         verbosity,
         build_mode,
+        network,
         build_artifact,
         unstable_flags,
         optimization_passes,
@@ -653,6 +666,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &crate_metadata,
             "build",
             build_mode,
+            network,
             verbosity,
             &unstable_flags,
         )?;
@@ -683,6 +697,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 &crate_metadata,
                 "check",
                 BuildMode::Release,
+                network,
                 verbosity,
                 &unstable_flags,
             )?;

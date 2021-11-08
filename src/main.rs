@@ -306,6 +306,30 @@ impl Display for BuildMode {
     }
 }
 
+/// USe network to build contracts or cached dependencies only.
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+pub enum Network {
+    /// Use network
+    Online,
+    /// Use cached dependencies.
+    Offline,
+}
+
+impl Default for Network {
+    fn default() -> Network {
+        Network::Online
+    }
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        match self {
+            Self::Online => write!(f, ""),
+            Self::Offline => write!(f, "offline"),
+        }
+    }
+}
+
 /// The type of output to display at the end of a build.
 pub enum OutputType {
     /// Output build results in a human readable format.
