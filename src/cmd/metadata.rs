@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util,
     workspace::{ManifestPath, Workspace},
-    UnstableFlags, Verbosity, Network
+    Network, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
@@ -96,7 +96,7 @@ pub(crate) fn execute(
                 &manifest_path.cargo_arg(),
                 &target_dir_arg,
                 "--release",
-                &network.to_string()
+                &network.to_string(),
             ],
             crate_metadata.manifest_path.directory(),
             verbosity,

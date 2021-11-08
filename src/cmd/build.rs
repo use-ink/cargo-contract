@@ -18,8 +18,8 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util, validate_wasm,
     workspace::{Manifest, ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildMode, Network, BuildResult, OptimizationPasses, OptimizationResult, OutputType,
-    UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
+    BuildArtifacts, BuildMode, BuildResult, Network, OptimizationPasses, OptimizationResult,
+    OutputType, UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
