@@ -876,6 +876,7 @@ mod tests_ci_only {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
                 build_release: false,
+                build_offline: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -916,6 +917,7 @@ mod tests_ci_only {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
                 build_release: false,
+                build_offline: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
 
@@ -1083,6 +1085,7 @@ mod tests_ci_only {
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
                 build_release: false,
+                build_offline: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
