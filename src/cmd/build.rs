@@ -70,6 +70,9 @@ pub struct BuildCommand {
     /// Then no debug functionality is compiled into the contract.
     #[structopt(long = "--release")]
     build_release: bool,
+    /// Build offline
+    #[structopt(long = "--offline")]
+    build_offline: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
