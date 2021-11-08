@@ -713,6 +713,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
+                network,
                 verbosity,
                 build_artifact.steps(),
                 &unstable_flags,

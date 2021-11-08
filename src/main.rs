@@ -306,7 +306,7 @@ impl Display for BuildMode {
     }
 }
 
-/// USe network to build contracts or cached dependencies only.
+/// Use network connection to build contracts and generate metadata or use cached dependencies only.
 #[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
 pub enum Network {
     /// Use network
@@ -325,7 +325,7 @@ impl Display for Network {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         match self {
             Self::Online => write!(f, ""),
-            Self::Offline => write!(f, "offline"),
+            Self::Offline => write!(f, "--offline"),
         }
     }
 }

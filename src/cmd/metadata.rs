@@ -18,7 +18,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     maybe_println, util,
     workspace::{ManifestPath, Workspace},
-    UnstableFlags, Verbosity,
+    UnstableFlags, Verbosity, Network
 };
 
 use anyhow::Result;
@@ -59,6 +59,7 @@ struct ExtendedMetadataResult {
 pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
+    network: Network,
     verbosity: Verbosity,
     total_steps: usize,
     unstable_options: &UnstableFlags,
@@ -95,6 +96,7 @@ pub(crate) fn execute(
                 &manifest_path.cargo_arg(),
                 &target_dir_arg,
                 "--release",
+                &network.to_string()
             ],
             crate_metadata.manifest_path.directory(),
             verbosity,
