@@ -20,14 +20,14 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 
 [dependencies]
 env_logger = "0.9.0"
-anyhow = "1.0.44"
+anyhow = "1.0.45"
 structopt = "0.3.25"
 log = "0.4.14"
 heck = "0.3.3"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
-cargo_metadata = "0.14.0"
-codec = { package = "parity-scale-codec", version = "2.2.0", features = ["derive"] }
+cargo_metadata = "0.14.1"
+codec = { package = "parity-scale-codec", version = "2.1", features = ["derive"] }
 which = "4.2.2"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -36,7 +36,7 @@ blake2 = "0.9.2"
 contract-metadata = { version = "0.4.0", path = "./metadata" }
 semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
-serde_json = "1.0.68"
+serde_json = "1.0.69"
 tempfile = "3.2.0"
 url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.1"
@@ -65,7 +65,7 @@ itertools = "0.10.1"
 bat = { version = "0.18.3", default-features = false, features = ["regex-onig"] }
 
 [build-dependencies]
-anyhow = "1.0.44"
+anyhow = "1.0.45"
 zip = { version = "0.5.13", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
