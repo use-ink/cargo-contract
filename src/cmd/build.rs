@@ -52,6 +52,7 @@ pub(crate) struct ExecuteArgs {
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
     output_type: OutputType,
+    metadata_contract_path: Option<ManifestPath>,
 }
 
 /// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
@@ -124,6 +125,15 @@ pub struct BuildCommand {
     /// Export the build output in JSON format.
     #[structopt(long, conflicts_with = "verbose")]
     output_json: bool,
+
+    /// Path to the Cargo.toml of a contract which should be used for the metadata.
+    ///
+    /// By default this will always be the contract which is actually compiled.
+    /// In some cases (proxy contracts) though it can be helpful to assemble a
+    /// contract bundle with the Wasm bytecode of one contract and the metadata
+    /// of another contract.
+    #[structopt(long, parse(from_os_str))]
+    metadata_contract_path: Option<PathBuf>,
 }
 
 impl BuildCommand {
@@ -168,6 +178,8 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
+        let metadata_contract_path =
+            ManifestPath::try_from(self.metadata_contract_path.as_ref()).ok();
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
@@ -178,6 +190,7 @@ impl BuildCommand {
             optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
             output_type,
+            metadata_contract_path,
         };
 
         execute(args)
@@ -213,6 +226,7 @@ impl CheckCommand {
             optimization_passes: OptimizationPasses::Zero,
             keep_debug_symbols: false,
             output_type: OutputType::default(),
+            metadata_contract_path: None,
         };
 
         execute(args)
@@ -645,9 +659,10 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         optimization_passes,
         keep_debug_symbols,
         output_type,
+        metadata_contract_path,
     } = args;
 
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let mut crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
     assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
     if build_mode == BuildMode::Debug {
@@ -709,6 +724,21 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::All => {
             let optimization_result = build()?;
 
+            if let Some(metadata_contract) = metadata_contract_path {
+                let target_dir = crate_metadata.target_directory.clone();
+                let dest_wasm = crate_metadata.dest_wasm.clone();
+                let contract_artifact_name = crate_metadata.contract_artifact_name.clone();
+
+                let mut crate_metadata_other_contract =
+                    CrateMetadata::collect(&ManifestPath::new(metadata_contract).expect(""))?;
+
+                crate_metadata_other_contract.target_directory = target_dir;
+                crate_metadata_other_contract.dest_wasm = dest_wasm;
+                crate_metadata_other_contract.contract_artifact_name = contract_artifact_name;
+
+                crate_metadata = crate_metadata_other_contract;
+            };
+
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
@@ -743,16 +773,19 @@ mod tests_ci_only {
     };
     use crate::{
         cmd::{build::load_module, BuildCommand},
+        crate_metadata,
         util::tests::{with_new_contract_project, with_tmp_dir},
         workspace::Manifest,
         BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions,
         Verbosity, VerbosityFlags,
     };
     use semver::Version;
+    use serde_json::{Map, Value};
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use std::{
         ffi::OsStr,
+        fs,
         io::Write,
         path::{Path, PathBuf},
     };
@@ -879,6 +912,7 @@ mod tests_ci_only {
                 build_offline: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
+                metadata_contract_path: None,
 
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
@@ -920,6 +954,7 @@ mod tests_ci_only {
                 build_offline: false,
                 verbosity: VerbosityFlags::default(),
                 unstable_options: UnstableOptions::default(),
+                metadata_contract_path: None,
 
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
@@ -1091,6 +1126,7 @@ mod tests_ci_only {
                 optimization_passes: None,
                 keep_debug_symbols: false,
                 output_json: false,
+                metadata_contract_path: None,
             };
             let res = cmd.exec().expect("build failed");
 
@@ -1255,6 +1291,66 @@ mod tests_ci_only {
 
             // then
             assert!(res.serialize_json().is_ok());
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn build_with_metadata_from_other_contract() {
+        with_new_contract_project(|manifest_path_a| {
+            with_new_contract_project(|manifest_path_b| {
+                // given
+                // the contract names are uniquely generated for each `with_new_contract_project`
+                let metadata_a = crate_metadata::CrateMetadata::collect(&manifest_path_a)
+                    .expect("metadata collection failed");
+                let contract_name_a = metadata_a.contract_artifact_name;
+
+                let metadata_b = crate_metadata::CrateMetadata::collect(&manifest_path_b)
+                    .expect("metadata collection failed");
+                let contract_name_b = metadata_b.contract_artifact_name;
+
+                // when
+                // we specify that the metadata of contract `a` should be used when building
+                // contract `b`.
+                let args = crate::cmd::build::ExecuteArgs {
+                    manifest_path: manifest_path_b,
+                    metadata_contract_path: Some(manifest_path_a),
+                    ..Default::default()
+                };
+                let build_res = super::execute(args).expect("build failed");
+                let metadata_res = build_res
+                    .metadata_result
+                    .expect("metadata result not found");
+
+                // then
+                let metadata_json: Map<String, Value> =
+                    serde_json::from_slice(&fs::read(&metadata_res.dest_bundle)?)?;
+                let contract = metadata_json.get("contract").expect("contract not found");
+                let contract_name_in_metadata = contract
+                    .get("name")
+                    .expect("contract.name not found")
+                    .as_str()
+                    .expect("contract.name conversion to string failed");
+
+                // the contract name in the metadata has to be from contract `a`, since
+                // we specified that the metadata of that contract should be used instead.
+                assert_eq!(contract_name_a, contract_name_in_metadata);
+                assert_ne!(contract_name_in_metadata, contract_name_b);
+
+                // the contract `b` must be used in all contract artifacts file paths
+                assert!(metadata_res
+                    .dest_bundle
+                    .ends_with(format!("{}.contract", contract_name_b)));
+                assert!(build_res
+                    .dest_wasm
+                    .expect("must exist")
+                    .ends_with(format!("{}.wasm", contract_name_b)));
+                assert!(metadata_res
+                    .dest_metadata
+                    .ends_with(format!("{}/target/ink/metadata.json", contract_name_b)));
+
+                Ok(())
+            });
             Ok(())
         })
     }
