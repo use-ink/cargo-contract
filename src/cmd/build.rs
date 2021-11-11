@@ -249,7 +249,7 @@ fn exec_cargo_for_wasm_target(
     // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
     std::env::set_var(
         "RUSTFLAGS",
-        "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clto -Clinker-plugin-lto",
+        "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto",
     );
 
     let cargo_build = |manifest_path: &ManifestPath| {
