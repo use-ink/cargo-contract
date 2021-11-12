@@ -178,8 +178,10 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        let metadata_contract_path =
-            ManifestPath::try_from(self.metadata_contract_path.as_ref()).ok();
+        let metadata_contract_path = self.metadata_contract_path.as_ref().map(|_| {
+            ManifestPath::try_from(self.metadata_contract_path.as_ref())
+                .expect("conversion of metadata contract path failed")
+        });
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
