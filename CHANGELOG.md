@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+-  Added possibility to build a contract with the metadata of another contract - [#359](https://github.com/paritytech/cargo-contract/pull/359)
+
 ## [0.15.0] - 2021-10-18
 
 ### Changed
