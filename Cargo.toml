@@ -39,7 +39,7 @@ serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 serde_json = "1.0.69"
 tempfile = "3.2.0"
 url = { version = "2.2.2", features = ["serde"] }
-impl-serde = "0.3.1"
+impl-serde = "0.3.2"
 regex = "1.4"
 
 # dependencies for optional extrinsics feature
