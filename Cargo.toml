@@ -36,10 +36,10 @@ blake2 = "0.9.2"
 contract-metadata = { version = "0.4.0", path = "./metadata" }
 semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
-serde_json = "1.0.69"
+serde_json = "1.0.70"
 tempfile = "3.2.0"
 url = { version = "2.2.2", features = ["serde"] }
-impl-serde = "0.3.1"
+impl-serde = "0.3.2"
 regex = "1.4"
 
 # dependencies for optional extrinsics feature
