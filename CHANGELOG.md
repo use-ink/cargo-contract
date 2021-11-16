@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Use of `-Clinker-plugin-lto` flag(reduces the size of the contract) if `lto` is enabled - [#358](https://github.com/paritytech/cargo-contract/pull/358)
+
 ## [0.15.0] - 2021-10-18
 
 ### Changed
