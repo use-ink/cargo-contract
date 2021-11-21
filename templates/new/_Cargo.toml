@@ -2,8 +2,8 @@
 name = "{{name}}"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
-edition = "2018"
-resolver = "2"
+edition = "2021"
+rust-version = "1.56.1"
 
 [dependencies]
 ink_primitives = { version = "3.0.0-rc6", default-features = false }

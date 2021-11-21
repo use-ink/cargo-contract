@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Migrated to 2021 edition, enforcing MSRV of `1.56.1`. [#360](https://github.com/paritytech/cargo-contract/pull/360)
 
 ### Changed
 - Use of `-Clinker-plugin-lto` flag(reduces the size of the contract) if `lto` is enabled - [#358](https://github.com/paritytech/cargo-contract/pull/358)
