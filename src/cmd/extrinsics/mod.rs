@@ -45,7 +45,10 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     };
     let metadata_path =
         File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata = serde_json::from_reader(metadata_path)?;
+    let metadata = serde_json::from_reader(metadata_path).context(format!(
+        "Failed to deserialize metadata file {}",
+        path.display()
+    ))?;
     Ok(metadata)
 }
 
