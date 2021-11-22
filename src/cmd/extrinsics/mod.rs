@@ -21,7 +21,7 @@ pub mod instantiate_with_code;
 mod runtime_api;
 mod transcode;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use bat::PrettyPrinter;
 use std::{fmt::Display, fs::File};
 
@@ -45,11 +45,21 @@ pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     };
     let metadata_path =
         File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata = serde_json::from_reader(metadata_path).context(format!(
-        "Failed to deserialize metadata file {}",
-        path.display()
-    ))?;
-    Ok(metadata)
+    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(metadata_path)
+        .context(format!(
+            "Failed to deserialize metadata file {}",
+            path.display()
+        ))?;
+    let ink_metadata =
+        serde_json::from_value(serde_json::Value::Object(metadata.abi)).context(format!(
+            "Failed to deserialize ink project metadata from file {}",
+            path.display()
+        ))?;
+    if let ink_metadata::MetadataVersioned::V1(ink_project) = ink_metadata {
+        Ok(ink_project)
+    } else {
+        Err(anyhow!("Unsupported ink metadata version. Expected V1"))
+    }
 }
 
 pub fn pretty_print<V>(value: V, indentation: bool) -> Result<()>

@@ -52,14 +52,19 @@
 //! let json = serde_json::to_value(&metadata).unwrap();
 //! ```
 
-use core::fmt::{Display, Formatter, Result as DisplayResult, Write};
+mod byte_str;
+
 use semver::Version;
-use serde::{Serialize, Serializer};
+use serde::{de, Deserialize, Serialize, Serializer};
 use serde_json::{Map, Value};
+use std::{
+    fmt::{Display, Formatter, Result as DisplayResult},
+    str::FromStr,
+};
 use url::Url;
 
 /// Smart contract metadata.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContractMetadata {
     pub source: Source,
     pub contract: Contract,
@@ -92,19 +97,16 @@ impl ContractMetadata {
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodeHash(pub [u8; 32]);
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct CodeHash(
+    #[serde(
+        serialize_with = "byte_str::serialize_as_byte_str",
+        deserialize_with = "byte_str::deserialize_from_byte_str_array"
+    )]
+    pub [u8; 32],
+);
 
-impl Serialize for CodeHash {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_as_byte_str(&self.0[..], serializer)
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
     pub hash: CodeHash,
     pub language: SourceLanguage,
@@ -131,8 +133,12 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SourceWasm {
+    #[serde(
+        serialize_with = "byte_str::serialize_as_byte_str",
+        deserialize_with = "byte_str::deserialize_from_byte_str"
+    )]
     wasm: Vec<u8>,
 }
 
@@ -140,15 +146,6 @@ impl SourceWasm {
     /// Constructs a new `SourceWasm`.
     pub fn new(wasm: Vec<u8>) -> Self {
         SourceWasm { wasm }
-    }
-}
-
-impl Serialize for SourceWasm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_as_byte_str(&self.wasm[..], serializer)
     }
 }
 
@@ -185,9 +182,52 @@ impl Serialize for SourceLanguage {
     }
 }
 
+impl<'de> Deserialize<'de> for SourceLanguage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
 impl Display for SourceLanguage {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "{} {}", self.language, self.version)
+    }
+}
+
+impl FromStr for SourceLanguage {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+
+        let language = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(FromStr::from_str)?;
+
+        let version = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(|v| {
+                <Version as FromStr>::from_str(v)
+                    .map_err(|e| format!("Error parsing version {}", e))
+            })?;
+
+        Ok(Self { language, version })
     }
 }
 
@@ -209,6 +249,19 @@ impl Display for Language {
     }
 }
 
+impl FromStr for Language {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ink!" => Ok(Self::Ink),
+            "Solidity" => Ok(Self::Solidity),
+            "AssemblyScript" => Ok(Self::AssemblyScript),
+            _ => Err(format!("Invalid language '{}'", s)),
+        }
+    }
+}
+
 /// A compiler used to compile a smart contract.
 #[derive(Clone, Debug)]
 pub struct SourceCompiler {
@@ -222,12 +275,55 @@ impl Display for SourceCompiler {
     }
 }
 
+impl FromStr for SourceCompiler {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+
+        let compiler = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(FromStr::from_str)?;
+
+        let version = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(|v| {
+                <Version as FromStr>::from_str(v)
+                    .map_err(|e| format!("Error parsing version {}", e))
+            })?;
+
+        Ok(Self { compiler, version })
+    }
+}
+
 impl Serialize for SourceCompiler {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for SourceCompiler {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
     }
 }
 
@@ -238,7 +334,7 @@ impl SourceCompiler {
 }
 
 /// Compilers used to compile a smart contract.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Compiler {
     RustC,
     Solang,
@@ -253,8 +349,20 @@ impl Display for Compiler {
     }
 }
 
+impl FromStr for Compiler {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "rustc" => Ok(Self::RustC),
+            "solang" => Ok(Self::Solang),
+            _ => Err(format!("Invalid compiler '{}'", s)),
+        }
+    }
+}
+
 /// Metadata about a smart contract.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Contract {
     pub name: String,
     pub version: Version,
@@ -278,7 +386,7 @@ impl Contract {
 }
 
 /// Additional user defined metadata, can be any valid json.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
     #[serde(flatten)]
     json: Map<String, Value>,
@@ -435,23 +543,6 @@ impl ContractBuilder {
             ))
         }
     }
-}
-
-/// Serializes the given bytes as byte string.
-fn serialize_as_byte_str<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    if bytes.is_empty() {
-        // Return empty string without prepended `0x`.
-        return serializer.serialize_str("");
-    }
-    let mut hex = String::with_capacity(bytes.len() * 2 + 2);
-    write!(hex, "0x").expect("failed writing to string");
-    for byte in bytes {
-        write!(hex, "{:02x}", byte).expect("failed writing to string");
-    }
-    serializer.serialize_str(&hex)
 }
 
 #[cfg(test)]
