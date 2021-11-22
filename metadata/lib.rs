@@ -61,13 +61,13 @@ use url::Url;
 /// Smart contract metadata.
 #[derive(Clone, Debug, Serialize)]
 pub struct ContractMetadata {
-    source: Source,
-    contract: Contract,
+    pub source: Source,
+    pub contract: Contract,
     #[serde(skip_serializing_if = "Option::is_none")]
-    user: Option<User>,
+    pub user: Option<User>,
     /// Raw JSON of the contract abi metadata, generated during contract compilation.
     #[serde(flatten)]
-    abi: Map<String, Value>,
+    pub abi: Map<String, Value>,
 }
 
 impl ContractMetadata {
@@ -106,11 +106,11 @@ impl Serialize for CodeHash {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Source {
-    hash: CodeHash,
-    language: SourceLanguage,
-    compiler: SourceCompiler,
+    pub hash: CodeHash,
+    pub language: SourceLanguage,
+    pub compiler: SourceCompiler,
     #[serde(skip_serializing_if = "Option::is_none")]
-    wasm: Option<SourceWasm>,
+    pub wasm: Option<SourceWasm>,
 }
 
 impl Source {
@@ -165,8 +165,8 @@ impl Display for SourceWasm {
 /// The language and version in which a smart contract is written.
 #[derive(Clone, Debug)]
 pub struct SourceLanguage {
-    language: Language,
-    version: Version,
+    pub language: Language,
+    pub version: Version,
 }
 
 impl SourceLanguage {
@@ -212,8 +212,8 @@ impl Display for Language {
 /// A compiler used to compile a smart contract.
 #[derive(Clone, Debug)]
 pub struct SourceCompiler {
-    compiler: Compiler,
-    version: Version,
+    pub compiler: Compiler,
+    pub version: Version,
 }
 
 impl Display for SourceCompiler {
@@ -256,19 +256,19 @@ impl Display for Compiler {
 /// Metadata about a smart contract.
 #[derive(Clone, Debug, Serialize)]
 pub struct Contract {
-    name: String,
-    version: Version,
-    authors: Vec<String>,
+    pub name: String,
+    pub version: Version,
+    pub authors: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    documentation: Option<Url>,
+    pub documentation: Option<Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    repository: Option<Url>,
+    pub repository: Option<Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    homepage: Option<Url>,
+    pub homepage: Option<Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    license: Option<String>,
+    pub license: Option<String>,
 }
 
 impl Contract {
