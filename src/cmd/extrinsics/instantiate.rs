@@ -16,10 +16,7 @@
 
 use super::{
     display_events,
-    runtime_api::api::{
-        self,
-        DefaultConfig,
-    },
+    runtime_api::api::{self, DefaultConfig},
 };
 use crate::{util::decode_hex, ExtrinsicOpts};
 use anyhow::Result;
@@ -76,13 +73,18 @@ impl InstantiateCommand {
             let metadata = api.client.metadata().clone();
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let result = api.tx().contracts().instantiate(
-                self.instantiate.endowment,
-                self.instantiate.gas_limit,
-                self.code_hash,
-                data,
-                vec![], // todo: [AJ] salt
-            ).sign_and_submit_then_watch(&signer).await?;
+            let result = api
+                .tx()
+                .contracts()
+                .instantiate(
+                    self.instantiate.endowment,
+                    self.instantiate.gas_limit,
+                    self.code_hash,
+                    data,
+                    vec![], // todo: [AJ] salt
+                )
+                .sign_and_submit_then_watch(&signer)
+                .await?;
 
             display_events(
                 &result,

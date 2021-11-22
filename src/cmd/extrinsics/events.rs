@@ -16,10 +16,7 @@
 
 use super::{
     pretty_print,
-    runtime_api::api::{
-        DefaultConfig,
-        contracts::events::ContractEmitted,
-    },
+    runtime_api::api::{contracts::events::ContractEmitted, DefaultConfig},
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
 };
 use crate::Verbosity;

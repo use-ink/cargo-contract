@@ -29,7 +29,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, ExtrinsicSuccess, Config, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, ExtrinsicSuccess, Signer};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -118,12 +118,17 @@ impl CallCommand {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         log::debug!("calling contract {:?}", self.contract);
-        let result = api.tx().contracts().call(
-            self.contract.clone().into(),
-            self.value,
-            self.gas_limit,
-            data,
-        ).sign_and_submit_then_watch(&signer).await?;
+        let result = api
+            .tx()
+            .contracts()
+            .call(
+                self.contract.clone().into(),
+                self.value,
+                self.gas_limit,
+                data,
+            )
+            .sign_and_submit_then_watch(&signer)
+            .await?;
 
         Ok(result)
     }

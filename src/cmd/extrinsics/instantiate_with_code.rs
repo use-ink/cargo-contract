@@ -84,13 +84,18 @@ impl InstantiateWithCode {
             let metadata = api.client.metadata().clone();
             let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
 
-            let result = api.tx().contracts().instantiate_with_code(
-                self.instantiate.endowment,
-                self.instantiate.gas_limit,
-                code,
-                data,
-                vec![], // todo! [AJ] add salt
-            ).sign_and_submit_then_watch(&signer).await?;
+            let result = api
+                .tx()
+                .contracts()
+                .instantiate_with_code(
+                    self.instantiate.endowment,
+                    self.instantiate.gas_limit,
+                    code,
+                    data,
+                    vec![], // todo! [AJ] add salt
+                )
+                .sign_and_submit_then_watch(&signer)
+                .await?;
 
             display_events(
                 &result,
