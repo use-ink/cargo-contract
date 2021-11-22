@@ -134,25 +134,25 @@ impl Source {
 
 /// The bytes of the compiled Wasm smart contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SourceWasm {
+pub struct SourceWasm(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
         deserialize_with = "byte_str::deserialize_from_byte_str"
     )]
-    wasm: Vec<u8>,
-}
+    pub Vec<u8>,
+);
 
 impl SourceWasm {
     /// Constructs a new `SourceWasm`.
     pub fn new(wasm: Vec<u8>) -> Self {
-        SourceWasm { wasm }
+        SourceWasm(wasm)
     }
 }
 
 impl Display for SourceWasm {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
-        for byte in &self.wasm {
+        for byte in &self.0 {
             write!(f, "{:02x}", byte).expect("failed writing to string");
         }
         write!(f, "")
