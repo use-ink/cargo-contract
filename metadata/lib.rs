@@ -755,4 +755,52 @@ mod tests {
 
         assert_eq!(json, expected);
     }
+
+    #[test]
+    fn decoding_works() {
+        let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
+        let compiler =
+            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let contract = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .description("increment a value".to_string())
+            .documentation(Url::parse("http://docs.rs/").unwrap())
+            .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+            .homepage(Url::parse("http://example.com/").unwrap())
+            .license("Apache-2.0".to_string())
+            .build()
+            .unwrap();
+
+        let user_json = json! {
+            {
+                "more-user-provided-fields": [
+                  "and",
+                  "their",
+                  "values"
+                ],
+                "some-user-provided-field": "and-its-value"
+            }
+        };
+        let user = User::new(user_json.as_object().unwrap().clone());
+        let abi_json = json! {
+            {
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        }
+            .as_object()
+            .unwrap()
+            .clone();
+
+        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let json = serde_json::to_value(&metadata).unwrap();
+
+        let decoded = serde_json::from_value::<ContractMetadata>(json);
+        assert!(decoded.is_ok())
+    }
 }
