@@ -640,6 +640,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 name = "contract-metadata"
 version = "0.4.0"
 dependencies = [
+ "impl-serde",
  "pretty_assertions",
  "semver",
  "serde",
