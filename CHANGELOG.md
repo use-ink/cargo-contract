@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Use of `-Clinker-plugin-lto` flag(reduces the size of the contract) if `lto` is enabled - [#358](https://github.com/paritytech/cargo-contract/pull/358)
+- Deserialize metadata - [#368](https://github.com/paritytech/cargo-contract/pull/368)
 
 ### Added
 - Disabled overflow checks in the `cargo contract new` template - [#372](https://github.com/paritytech/cargo-contract/pull/372)
