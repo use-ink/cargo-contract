@@ -793,9 +793,9 @@ mod tests {
                 "types": []
             }
         }
-            .as_object()
-            .unwrap()
-            .clone();
+        .as_object()
+        .unwrap()
+        .clone();
 
         let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
