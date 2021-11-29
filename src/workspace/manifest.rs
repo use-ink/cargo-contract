@@ -283,10 +283,10 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Set empty `[workspace]` section if it is not exist
+    /// Set empty `[workspace]` section if it does not exist.
     ///
-    /// It allows ignore `workspace` from parent `Cargo.toml`.
-    /// It can reduce the size of the contract in some cases.
+    /// Ignores the `workspace` from the parent `Cargo.toml`.
+    /// This can reduce the size of the contract in some cases.
     pub fn with_workspace(&mut self) -> Result<&mut Self> {
         if let toml::map::Entry::Vacant(value) = self.toml.entry("workspace") {
             value.insert(value::Value::Table(Default::default()));
