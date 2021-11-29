@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-// todo: [AJ] use current file location as relative path for this file?
-// todo: [AJ] regenerate metadata for contract template node (it will likely be smaller)
+// todo: [AJ] regenerate metadata for contract template node? (it will likely be smaller)
 #[subxt::subxt(runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale")]
 pub mod api {}

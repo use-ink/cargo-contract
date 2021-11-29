@@ -39,6 +39,10 @@ pub struct InstantiateArgs {
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
     pub(super) gas_limit: u64,
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// consumed.
+    #[structopt(long)]
+    pub(super) storage_deposit_limit: Option<u128>,
     // todo: [AJ] add salt
 }
 
@@ -79,6 +83,7 @@ impl InstantiateCommand {
                 .instantiate(
                     self.instantiate.endowment,
                     self.instantiate.gas_limit,
+                    self.instantiate.storage_deposit_limit,
                     self.code_hash,
                     data,
                     vec![], // todo: [AJ] salt
@@ -97,7 +102,7 @@ impl InstantiateCommand {
                 .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
-            Ok(instantiated.1)
+            Ok(instantiated.contract)
         })
     }
 }

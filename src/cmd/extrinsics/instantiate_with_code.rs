@@ -90,6 +90,7 @@ impl InstantiateWithCode {
                 .instantiate_with_code(
                     self.instantiate.endowment,
                     self.instantiate.gas_limit,
+                    self.instantiate.storage_deposit_limit,
                     code,
                     data,
                     vec![], // todo! [AJ] add salt
@@ -112,7 +113,7 @@ impl InstantiateWithCode {
                 .find_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
-            Ok((code_stored.0, instantiated.1))
+            Ok((code_stored.code_hash, instantiated.contract))
         })
     }
 }

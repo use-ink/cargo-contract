@@ -43,6 +43,10 @@ pub struct CallCommand {
     /// Maximum amount of gas to be used for this command.
     #[structopt(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// consumed.
+    #[structopt(long)]
+    storage_deposit_limit: Option<u128>,
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, default_value = "0")]
     value: u128,
@@ -125,6 +129,7 @@ impl CallCommand {
                 self.contract.clone().into(),
                 self.value,
                 self.gas_limit,
+                self.storage_deposit_limit,
                 data,
             )
             .sign_and_submit_then_watch(&signer)
