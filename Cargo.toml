@@ -50,7 +50,7 @@ futures = { version = "0.3.18", optional = true }
 hex = { version = "0.4.3", optional = true }
 
 # Should be removed once bitvecto-rs/bitvec#105 is resolved
-funty = "=1.1.0"
+funty = "=2.0.0"
 
 [build-dependencies]
 anyhow = "1.0.50"
