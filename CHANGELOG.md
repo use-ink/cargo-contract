@@ -6,12 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2021-11-25
+
 ### Changed
-- Use of `-Clinker-plugin-lto` flag(reduces the size of the contract) if `lto` is enabled - [#358](https://github.com/paritytech/cargo-contract/pull/358)
+- Updated `cargo contract new` template dependencies to ink! `3.0.0-rc7` - [#374](https://github.com/paritytech/cargo-contract/pull/374)
+- Disabled overflow checks in the `cargo contract new` template - [#372](https://github.com/paritytech/cargo-contract/pull/372)
+- Use `-Clinker-plugin-lto` if `lto` is enabled (reduces the size of a contract) - [#358](https://github.com/paritytech/cargo-contract/pull/358)
 - Deserialize metadata - [#368](https://github.com/paritytech/cargo-contract/pull/368)
 
 ### Added
-- Disabled overflow checks in the `cargo contract new` template - [#372](https://github.com/paritytech/cargo-contract/pull/372)
+- Added a `--offline` flag to build contracts without network access - [#356](https://github.com/paritytech/cargo-contract/pull/356)
 
 ## [0.15.0] - 2021-10-18
 
