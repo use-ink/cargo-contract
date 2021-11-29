@@ -70,12 +70,12 @@ where
         }
 
         fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-            let mut result = from_hex(v).map_err(E::custom)?;
+            let result = from_hex(v).map_err(E::custom)?;
             if result.len() != 32 {
                 Err(E::custom("Expected exactly 32 bytes"))
             } else {
                 let mut arr = [0u8; 32];
-                arr.copy_from_slice(&mut result[..]);
+                arr.copy_from_slice(&result[..]);
                 Ok(arr)
             }
         }

@@ -66,11 +66,14 @@ use url::Url;
 /// Smart contract metadata.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContractMetadata {
+    /// Information about the contract's Wasm code.
     pub source: Source,
+    /// Metadata about the contract.
     pub contract: Contract,
+    /// Additional user-defined metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<User>,
-    /// Raw JSON of the contract abi metadata, generated during contract compilation.
+    /// Raw JSON of the contract's abi metadata, generated during contract compilation.
     #[serde(flatten)]
     pub abi: Map<String, Value>,
 }
@@ -103,14 +106,21 @@ pub struct CodeHash(
         serialize_with = "byte_str::serialize_as_byte_str",
         deserialize_with = "byte_str::deserialize_from_byte_str_array"
     )]
+    /// The raw bytes of the hash.
     pub [u8; 32],
 );
 
+/// Information about the contract's Wasm code.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
+    /// The hash of the contract's Wasm code.
     pub hash: CodeHash,
+    /// The language used to write the contract.
     pub language: SourceLanguage,
+    /// The compiler used to compile the contract.
     pub compiler: SourceCompiler,
+    /// The actual Wasm code of the contract, for optionally bundling the code
+    /// with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wasm: Option<SourceWasm>,
 }
@@ -134,25 +144,26 @@ impl Source {
 
 /// The bytes of the compiled Wasm smart contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SourceWasm {
+pub struct SourceWasm(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
         deserialize_with = "byte_str::deserialize_from_byte_str"
     )]
-    wasm: Vec<u8>,
-}
+    /// The raw bytes of the Wasm code.
+    pub Vec<u8>,
+);
 
 impl SourceWasm {
     /// Constructs a new `SourceWasm`.
     pub fn new(wasm: Vec<u8>) -> Self {
-        SourceWasm { wasm }
+        SourceWasm(wasm)
     }
 }
 
 impl Display for SourceWasm {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
-        for byte in &self.wasm {
+        for byte in &self.0 {
             write!(f, "{:02x}", byte).expect("failed writing to string");
         }
         write!(f, "")
@@ -162,7 +173,9 @@ impl Display for SourceWasm {
 /// The language and version in which a smart contract is written.
 #[derive(Clone, Debug)]
 pub struct SourceLanguage {
+    /// The language used to write the contract.
     pub language: Language,
+    /// The version of the language used to write the contract.
     pub version: Version,
 }
 
@@ -265,7 +278,9 @@ impl FromStr for Language {
 /// A compiler used to compile a smart contract.
 #[derive(Clone, Debug)]
 pub struct SourceCompiler {
+    /// The compiler used to compile the smart contract.
     pub compiler: Compiler,
+    /// The version of the compiler used to compile the smart contract.
     pub version: Version,
 }
 
@@ -336,7 +351,9 @@ impl SourceCompiler {
 /// Compilers used to compile a smart contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Compiler {
+    /// The rust compiler.
     RustC,
+    /// The solang compiler.
     Solang,
 }
 
@@ -364,17 +381,25 @@ impl FromStr for Compiler {
 /// Metadata about a smart contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Contract {
+    /// The name of the smart contract.
     pub name: String,
+    /// The version of the smart contract.
     pub version: Version,
+    /// The authors of the smart contract.
     pub authors: Vec<String>,
+    /// The description of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Link to the documentation of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub documentation: Option<Url>,
+    /// Link to the code repository of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub repository: Option<Url>,
+    /// Link to the homepage of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub homepage: Option<Url>,
+    /// The license of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
 }
@@ -388,8 +413,9 @@ impl Contract {
 /// Additional user defined metadata, can be any valid json.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
+    /// Raw json of user defined metadata.
     #[serde(flatten)]
-    json: Map<String, Value>,
+    pub json: Map<String, Value>,
 }
 
 impl User {
@@ -728,5 +754,53 @@ mod tests {
         };
 
         assert_eq!(json, expected);
+    }
+
+    #[test]
+    fn decoding_works() {
+        let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
+        let compiler =
+            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let contract = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .description("increment a value".to_string())
+            .documentation(Url::parse("http://docs.rs/").unwrap())
+            .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+            .homepage(Url::parse("http://example.com/").unwrap())
+            .license("Apache-2.0".to_string())
+            .build()
+            .unwrap();
+
+        let user_json = json! {
+            {
+                "more-user-provided-fields": [
+                  "and",
+                  "their",
+                  "values"
+                ],
+                "some-user-provided-field": "and-its-value"
+            }
+        };
+        let user = User::new(user_json.as_object().unwrap().clone());
+        let abi_json = json! {
+            {
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let json = serde_json::to_value(&metadata).unwrap();
+
+        let decoded = serde_json::from_value::<ContractMetadata>(json);
+        assert!(decoded.is_ok())
     }
 }
