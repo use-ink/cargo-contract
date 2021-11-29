@@ -283,6 +283,17 @@ impl Manifest {
         Ok(self)
     }
 
+    /// Set empty `[workspace]` section if it does not exist.
+    ///
+    /// Ignores the `workspace` from the parent `Cargo.toml`.
+    /// This can reduce the size of the contract in some cases.
+    pub fn with_workspace(&mut self) -> Result<&mut Self> {
+        if let toml::map::Entry::Vacant(value) = self.toml.entry("workspace") {
+            value.insert(value::Value::Table(Default::default()));
+        }
+        Ok(self)
+    }
+
     /// Get mutable reference to `[profile.release]` section
     fn get_profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
         let profile = self
