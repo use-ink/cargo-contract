@@ -234,6 +234,8 @@ impl CheckCommand {
 /// Preferred default `[profile.release]` settings will be added if they are missing, existing
 /// user-defined settings will be preserved.
 ///
+/// The `[workspace]` will be added if it is missing to ignore `workspace` from parent `Cargo.toml`.
+///
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
 fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
@@ -289,7 +291,8 @@ fn exec_cargo_for_wasm_target(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_removed_crate_type("rlib")?
-                    .with_profile_release_defaults(Profile::default_contract_release())?;
+                    .with_profile_release_defaults(Profile::default_contract_release())?
+                    .with_workspace()?;
                 Ok(())
             })?
             .using_temp(cargo_build)?;
