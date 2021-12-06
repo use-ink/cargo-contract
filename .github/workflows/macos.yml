@@ -31,6 +31,12 @@ jobs:
           url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-macos.tar.gz"
           pathInArchive: "binaryen-/bin/wasm-opt"
 
+      - uses: engineerd/configurator@v0.0.6
+        with:
+          name: "libbinaryen.dylib"
+          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-macos.tar.gz"
+          pathInArchive: "binaryen-/lib/libbinaryen.dylib"
+
       - name: Checkout sources & submodules
         uses: actions/checkout@master
         with:
