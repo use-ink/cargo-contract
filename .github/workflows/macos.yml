@@ -25,17 +25,14 @@ jobs:
       RUST_BACKTRACE: full
     steps:
 
-      - uses: actions/setup-node@v2
-        with:
-          cache: 'npm'
-
-      - run: npm install wasm-opt -g
-
       - name: Checkout sources & submodules
         uses: actions/checkout@master
         with:
           fetch-depth: 1
           submodules: recursive
+
+      - uses: actions/setup-node@v2
+      - run: npm install wasm-opt -g
 
       - name: Install toolchain
         id: toolchain
