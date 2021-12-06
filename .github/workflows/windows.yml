@@ -45,8 +45,8 @@ jobs:
           components: rust-src
           override: true
 
-      - name:                      Rust Cache
-        uses:                      Swatinem/rust-cache@v1.2.0
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.2.0
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
