@@ -25,17 +25,11 @@ jobs:
       RUST_BACKTRACE: full
     steps:
 
-      - uses: engineerd/configurator@v0.0.6
+      - uses: actions/setup-node@v2
         with:
-          name: "wasm-opt"
-          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-macos.tar.gz"
-          pathInArchive: "binaryen-/bin/wasm-opt"
+          cache: 'npm'
 
-      - uses: engineerd/configurator@v0.0.6
-        with:
-          name: "lib/libbinaryen.dylib"
-          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-macos.tar.gz"
-          pathInArchive: "binaryen-/lib/libbinaryen.dylib"
+      - run: npm install wasm-opt -g
 
       - name: Checkout sources & submodules
         uses: actions/checkout@master
