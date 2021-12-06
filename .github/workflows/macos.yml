@@ -27,9 +27,9 @@ jobs:
 
       - uses: engineerd/configurator@v0.0.6
         with:
-          name: "wasm-opt.exe"
+          name: "wasm-opt"
           url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-macos.tar.gz"
-          pathInArchive: "binaryen-/bin/wasm-opt.exe"
+          pathInArchive: "binaryen-/bin/wasm-opt"
 
       - name: Checkout sources & submodules
         uses: actions/checkout@master
