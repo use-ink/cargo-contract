@@ -1,4 +1,4 @@
-name: continuous-intergration/windows
+name: continuous-intergration/macos
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          - windows-latest
+          - macos-latest
         toolchain:
           - nightly
     runs-on: ${{ matrix.platform }}
@@ -25,17 +25,14 @@ jobs:
       RUST_BACKTRACE: full
     steps:
 
-      - uses: engineerd/configurator@v0.0.6
-        with:
-          name: "wasm-opt.exe"
-          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-windows.tar.gz"
-          pathInArchive: "binaryen-/bin/wasm-opt.exe"
-
       - name: Checkout sources & submodules
         uses: actions/checkout@master
         with:
           fetch-depth: 1
           submodules: recursive
+
+      - uses: actions/setup-node@v2
+      - run: npm install wasm-opt -g
 
       - name: Install toolchain
         id: toolchain
