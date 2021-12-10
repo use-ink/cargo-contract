@@ -28,7 +28,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, TransactionEvents, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, Signer, TransactionEvents};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<u128>;
 
