@@ -96,6 +96,9 @@ impl InstantiateWithCode {
                     vec![], // todo! [AJ] add salt
                 )
                 .sign_and_submit_then_watch(&signer)
+                .await?
+                // todo: should we have optimistic fast mode just for InBlock?
+                .wait_for_finalized_success()
                 .await?;
 
             display_events(
@@ -106,11 +109,11 @@ impl InstantiateWithCode {
             )?;
 
             let code_stored = result
-                .find_event::<api::contracts::events::CodeStored>()?
+                .find_first_event::<api::contracts::events::CodeStored>()?
                 .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
 
             let instantiated = result
-                .find_event::<api::contracts::events::Instantiated>()?
+                .find_first_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
             Ok((code_stored.code_hash, instantiated.contract))

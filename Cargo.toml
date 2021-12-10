@@ -52,7 +52,7 @@ sp-core = { package = "sp-core", git = "https://github.com/paritytech/substrate/
 sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/substrate/", branch = "master" }
 sp-runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate/", branch = "master" }
 pallet-contracts-primitives = { package = "pallet-contracts-primitives", git = "https://github.com/paritytech/substrate/", branch = "master" }
-subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }
+subxt = { git = "https://github.com/paritytech/subxt", branch = "aj-export-transaction-events" }
 futures = "0.3.17"
 hex = "0.4.3"
 jsonrpsee-types = "0.3.0"

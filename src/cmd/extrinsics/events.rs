@@ -22,10 +22,10 @@ use super::{
 use crate::Verbosity;
 
 use anyhow::Result;
-use subxt::{self, Event, ExtrinsicSuccess};
+use subxt::{self, Event, TransactionEvents};
 
 pub fn display_events(
-    result: &ExtrinsicSuccess<DefaultConfig>,
+    result: &TransactionEvents<DefaultConfig>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: Verbosity,
@@ -39,7 +39,7 @@ pub fn display_events(
         .register_custom_type::<sp_runtime::AccountId32, _>("AccountId", env_types::AccountId)
         .done();
 
-    for event in &result.events {
+    for event in result.as_slice() {
         log::debug!("displaying event {}::{}", event.pallet, event.variant);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;

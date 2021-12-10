@@ -24,12 +24,13 @@ use anyhow::Result;
 use colored::Colorize;
 use jsonrpsee_types::{to_json_value, traits::Client as _};
 use jsonrpsee_ws_client::WsClientBuilder;
-use pallet_contracts_primitives::ContractExecResult;
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, ExtrinsicSuccess, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, TransactionEvents, Signer};
+
+type ContractExecResult = pallet_contracts_primitives::ContractExecResult<u128>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -118,7 +119,7 @@ impl CallCommand {
         &self,
         api: api::RuntimeApi<DefaultConfig>,
         data: Vec<u8>,
-    ) -> Result<ExtrinsicSuccess<DefaultConfig>> {
+    ) -> Result<TransactionEvents<DefaultConfig>> {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         log::debug!("calling contract {:?}", self.contract);
@@ -133,6 +134,8 @@ impl CallCommand {
                 data,
             )
             .sign_and_submit_then_watch(&signer)
+            .await?
+            .wait_for_finalized_success()
             .await?;
 
         Ok(result)

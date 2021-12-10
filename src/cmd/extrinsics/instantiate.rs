@@ -89,6 +89,9 @@ impl InstantiateCommand {
                     vec![], // todo: [AJ] salt
                 )
                 .sign_and_submit_then_watch(&signer)
+                .await?
+                // todo: should we have optimistic fast mode just for InBlock?
+                .wait_for_finalized_success()
                 .await?;
 
             display_events(
@@ -99,7 +102,7 @@ impl InstantiateCommand {
             )?;
 
             let instantiated = result
-                .find_event::<api::contracts::events::Instantiated>()?
+                .find_first_event::<api::contracts::events::Instantiated>()?
                 .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
 
             Ok(instantiated.contract)
