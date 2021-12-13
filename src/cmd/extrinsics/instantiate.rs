@@ -19,7 +19,7 @@ use super::{
     runtime_api::api::{self, DefaultConfig},
     Balance, ContractMessageTranscoder,
 };
-use crate::{util::decode_hex, ExtrinsicOpts, Verbosity};
+use crate::{crate_metadata, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -98,20 +98,25 @@ impl InstantiateCommand {
         let url = self.extrinsic_opts.url.clone();
         let verbosity = self.extrinsic_opts.verbosity()?;
 
+        fn load_code(wasm_path: &PathBuf) -> Result<Code> {
+            log::info!("Contract code path: {}", wasm_path.display());
+            let code = fs::read(&wasm_path)
+                .context(format!("Failed to read from {}", wasm_path.display()))?;
+            Ok(Code::Upload(code.into()))
+        }
+
         let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-            (Some(wasm_path), None) => {
-                log::info!("Contract code path: {}", wasm_path.display());
-                let code = fs::read(&wasm_path)
-                    .context(format!("Failed to read from {}", wasm_path.display()))?;
-                Ok(Code::Upload(code.into()))
-            }
-            (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
             (Some(_), Some(_)) => Err(anyhow::anyhow!(
                 "Specify either `--wasm-path` or `--code-hash` but not both"
             )),
-            (None, None) => Err(anyhow::anyhow!(
-                "Specify one of `--wasm-path` or `--code-hash`"
-            )),
+            (Some(wasm_path), None) => load_code(wasm_path),
+            (None, None) => {
+                // default to the target contract wasm in the current project,
+                // inferred via the crate metadata.
+                let metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
+                load_code(&metadata.dest_wasm)
+            }
+            (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
         }?;
 
         let args = InstantiateArgs {
