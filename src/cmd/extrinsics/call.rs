@@ -72,11 +72,12 @@ impl CallCommand {
                 .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
             let value = transcoder.decode_return(&self.name, exec_return_value.data.0)?;
             pretty_print(value, false)?;
-            Ok(format!(
+            println!(
                 "{:?} {}",
                 "Gas consumed:".bold(),
                 result.gas_consumed
-            ))
+            );
+            Ok(())
             // todo: [AJ] print debug message etc.
         } else {
             let (result, metadata) = async_std::task::block_on(async {
@@ -93,9 +94,9 @@ impl CallCommand {
                 &result,
                 &transcoder,
                 &metadata,
-                self.extrinsic_opts.verbosity()?,
+                &self.extrinsic_opts.verbosity()?,
             )?;
-            Ok("".into())
+            Ok(())
         }
     }
 
@@ -108,6 +109,7 @@ impl CallCommand {
             dest: self.contract.clone(),
             value: NumberOrHex::Number(self.value.try_into()?), // value must be <= u64.max_value() for now
             gas_limit: NumberOrHex::Number(self.gas_limit),
+            storage_deposit_limit: None, // todo: [AJ] call storage_deposit_limit
             input_data: Bytes(data),
         };
         let params = vec![to_json_value(call_request)?];
