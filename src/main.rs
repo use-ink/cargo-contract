@@ -512,7 +512,7 @@ fn exec(cmd: Command) -> Result<()> {
             cmd::new::execute(name, target_dir.as_ref())?;
             println!("Created contract {}", name);
             Ok(())
-        },
+        }
         Command::Build(build) => {
             let result = build.exec()?;
 
@@ -541,12 +541,8 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Instantiate(instantiate) => {
-            instantiate.run()
-        }
-        Command::Call(call) => {
-            call.run()
-        }
+        Command::Instantiate(instantiate) => instantiate.run(),
+        Command::Call(call) => call.run(),
     }
 }
 

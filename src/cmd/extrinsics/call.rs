@@ -17,20 +17,22 @@
 use super::{
     display_events, load_metadata, pretty_print,
     runtime_api::api::{self, DefaultConfig},
-    ContractMessageTranscoder,
+    Balance, ContractMessageTranscoder,
 };
 use crate::ExtrinsicOpts;
 use anyhow::Result;
 use colored::Colorize;
-use jsonrpsee_types::{to_json_value, traits::Client as _};
-use jsonrpsee_ws_client::WsClientBuilder;
+use jsonrpsee::{
+    types::{to_json_value, traits::Client as _},
+    ws_client::WsClientBuilder,
+};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, Signer, TransactionEvents};
 
-type ContractExecResult = pallet_contracts_primitives::ContractExecResult<u128>;
+type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
@@ -47,10 +49,10 @@ pub struct CallCommand {
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
     #[structopt(long)]
-    storage_deposit_limit: Option<u128>,
+    storage_deposit_limit: Option<Balance>,
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, default_value = "0")]
-    value: u128,
+    value: Balance,
     /// The address of the the contract to call.
     #[structopt(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
@@ -72,11 +74,7 @@ impl CallCommand {
                 .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
             let value = transcoder.decode_return(&self.name, exec_return_value.data.0)?;
             pretty_print(value, false)?;
-            println!(
-                "{:?} {}",
-                "Gas consumed:".bold(),
-                result.gas_consumed
-            );
+            println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
             Ok(())
             // todo: [AJ] print debug message etc.
         } else {
@@ -113,7 +111,7 @@ impl CallCommand {
             input_data: Bytes(data),
         };
         let params = vec![to_json_value(call_request)?];
-        let result: ContractExecResult = cli.request("contracts_call", params.into()).await?;
+        let result: ContractExecResult = cli.request("contracts_call", Some(params.into())).await?;
         Ok(result)
     }
 

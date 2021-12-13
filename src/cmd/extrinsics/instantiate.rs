@@ -15,28 +15,26 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    ContractMessageTranscoder,
     display_events,
     runtime_api::api::{self, DefaultConfig},
+    Balance, ContractMessageTranscoder,
 };
 use crate::{util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
+use jsonrpsee::{
+    types::{to_json_value, traits::Client as _},
+    ws_client::WsClientBuilder,
+};
 use serde::Serialize;
 use sp_core::Bytes;
+use std::{fs, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{
-    ClientBuilder, Config,
-    rpc::NumberOrHex,
-};
-use std::{
-    fs,
-    path::PathBuf,
-};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, Signer};
 
-type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
-type ContractInstantiateResult = pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
+type ContractInstantiateResult =
+    pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
 
 #[derive(Debug, StructOpt)]
 pub struct InstantiateCommand {
@@ -107,15 +105,13 @@ impl InstantiateCommand {
                     .context(format!("Failed to read from {}", wasm_path.display()))?;
                 Ok(Code::Upload(code.into()))
             }
-            (None, Some(code_hash)) => {
-                Ok(Code::Existing(*code_hash))
-            }
-            (Some(_), Some(_)) => {
-                Err(anyhow::anyhow!("Specify either `--wasm-path` or `--code-hash` but not both"))
-            }
-            (None, None) => {
-                Err(anyhow::anyhow!("Specify one of `--wasm-path` or `--code-hash`"))
-            }
+            (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
+            (Some(_), Some(_)) => Err(anyhow::anyhow!(
+                "Specify either `--wasm-path` or `--code-hash` but not both"
+            )),
+            (None, None) => Err(anyhow::anyhow!(
+                "Specify one of `--wasm-path` or `--code-hash`"
+            )),
         }?;
 
         let args = InstantiateArgs {
@@ -124,7 +120,7 @@ impl InstantiateCommand {
             storage_deposit_limit: self.storage_deposit_limit,
             data,
             // todo: [AJ] add salt
-            salt: vec![]
+            salt: vec![],
         };
 
         let exec = Exec {
@@ -135,9 +131,7 @@ impl InstantiateCommand {
             transcoder,
         };
 
-        async_std::task::block_on(async move {
-            exec.exec(code, self.dry_run).await
-        })
+        async_std::task::block_on(async move { exec.exec(code, self.dry_run).await })
     }
 }
 
@@ -170,17 +164,21 @@ impl<'a> Exec<'a> {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
-            return Ok(())
+            println!("{:?}", result); // todo: [AJ] extract relevant info?
+            return Ok(());
         }
 
         match code {
             Code::Upload(code) => {
                 let (code_hash, contract_account) = self.instantiate_with_code(code).await?;
-                // todo: print result
-            },
+                // todo: [AJ] prettify output
+                println!("Code hash: {}", code_hash);
+                println!("Contract account: {}", contract_account);
+            }
             Code::Existing(code_hash) => {
                 let contract_account = self.instantiate(code_hash).await?;
-                // todo: print result
+                // todo: [AJ] prettify output
+                println!("Contract account: {}", contract_account);
             }
         }
         Ok(())
@@ -207,12 +205,7 @@ impl<'a> Exec<'a> {
 
         let metadata = api.client.metadata();
 
-        display_events(
-            &result,
-            &self.transcoder,
-            metadata,
-            &self.verbosity,
-        )?;
+        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let code_stored = result
             .find_first_event::<api::contracts::events::CodeStored>()?
@@ -244,12 +237,7 @@ impl<'a> Exec<'a> {
             .await?;
 
         let metadata = api.client.metadata();
-        display_events(
-            &result,
-            &self.transcoder,
-            metadata,
-            &self.verbosity,
-        )?;
+        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let instantiated = result
             .find_first_event::<api::contracts::events::Instantiated>()?
@@ -259,7 +247,22 @@ impl<'a> Exec<'a> {
     }
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
-        todo!()
+        let url = self.url.to_string();
+        let cli = WsClientBuilder::default().build(&url).await?;
+        let call_request = InstantiateRequest {
+            origin: self.signer.account_id().clone(),
+            value: NumberOrHex::Hex(self.args.value.into()),
+            gas_limit: NumberOrHex::Number(self.args.gas_limit),
+            storage_deposit_limit: None, // todo: [AJ] call storage_deposit_limit
+            code,
+            data: self.args.data.clone().into(),
+            salt: self.args.salt.clone().into(),
+        };
+        let params = vec![to_json_value(call_request)?];
+        let result: ContractInstantiateResult = cli
+            .request("contracts_instantiate", Some(params.into()))
+            .await?;
+        Ok(result)
     }
 }
 

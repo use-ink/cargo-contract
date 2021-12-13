@@ -55,8 +55,7 @@ pallet-contracts-primitives = { package = "pallet-contracts-primitives", git = "
 subxt = { git = "https://github.com/paritytech/subxt", branch = "aj-export-transaction-events" }
 futures = "0.3.17"
 hex = "0.4.3"
-jsonrpsee-types = "0.3.0"
-jsonrpsee-ws-client = { version = "0.3.0", default-features = false }
+jsonrpsee = { version = "0.5.1", features = ["ws-client"] }
 nom = "7.0.0"
 indexmap = "1.7.0"
 thiserror = "1.0.29"
@@ -84,11 +83,6 @@ ink_storage = { version = "3.0.0-rc6" }
 ink_lang = { version = "3.0.0-rc6" }
 
 [features]
-default = ["tokio1"]
-# jsonrpsee can be configured to use tokio02 or tokio1.
-tokio02 = ["jsonrpsee-ws-client/tokio02"]
-tokio1 = ["jsonrpsee-ws-client/tokio1"]
-
 # Enable this to execute long running tests, which usually are only run on the CI server
 #
 # Disabled by default
