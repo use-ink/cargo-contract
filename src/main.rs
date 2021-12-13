@@ -38,7 +38,7 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-use crate::cmd::{CallCommand, InstantiateCommand, InstantiateWithCode};
+use crate::cmd::{CallCommand, InstantiateCommand};
 use sp_core::{crypto::Pair, sr25519};
 
 #[derive(Debug, StructOpt)]
@@ -481,11 +481,11 @@ enum Command {
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test(TestCommand),
-    /// Upload the smart contract code to the chain
-    #[structopt(name = "deploy")]
-    Deploy(InstantiateWithCode),
-    /// Instantiate a deployed smart contract
+    /// Instantiate a contract
+    #[structopt(name = "instantiate")]
     Instantiate(InstantiateCommand),
+    /// Call a contract
+    #[structopt(name = "call")]
     Call(CallCommand),
 }
 
@@ -494,11 +494,7 @@ fn main() {
 
     let Opts::Contract(args) = Opts::from_args();
     match exec(args.cmd) {
-        Ok(maybe_msg) => {
-            if let Some(msg) = maybe_msg {
-                println!("\t{}", msg)
-            }
-        }
+        Ok(()) => {}
         Err(err) => {
             eprintln!(
                 "{} {}",
@@ -510,19 +506,22 @@ fn main() {
     }
 }
 
-fn exec(cmd: Command) -> Result<Option<String>> {
+fn exec(cmd: Command) -> Result<()> {
     match &cmd {
-        Command::New { name, target_dir } => cmd::new::execute(name, target_dir.as_ref()),
+        Command::New { name, target_dir } => {
+            cmd::new::execute(name, target_dir.as_ref());
+            println!("Created contract {}", name);
+            Ok(())
+        },
         Command::Build(build) => {
             let result = build.exec()?;
 
             if matches!(result.output_type, OutputType::Json) {
-                Ok(Some(result.serialize_json()?))
+                println!("{}", result.serialize_json()?)
             } else if result.verbosity.is_verbose() {
-                Ok(Some(result.display()))
-            } else {
-                Ok(None)
+                println!("{}", result.display())
             }
+            Ok(())
         }
         Command::Check(check) => {
             let res = check.exec()?;
@@ -531,35 +530,22 @@ fn exec(cmd: Command) -> Result<Option<String>> {
                 "no dest_wasm must be on the generation result"
             );
             if res.verbosity.is_verbose() {
-                Ok(Some(
-                    "\nYour contract's code was built successfully.".to_string(),
-                ))
-            } else {
-                Ok(None)
+                println!("\nYour contract's code was built successfully.")
             }
+            Ok(())
         }
         Command::Test(test) => {
             let res = test.exec()?;
             if res.verbosity.is_verbose() {
-                Ok(Some(res.display()?))
-            } else {
-                Ok(None)
+                println!("{}", res.display()?)
             }
-        }
-        Command::Deploy(deploy) => {
-            let (code_hash, contract) = deploy.exec()?;
-            Ok(Some(format!(
-                "Code hash: {:#x}, Contract account: {}",
-                code_hash, contract
-            )))
+            Ok(())
         }
         Command::Instantiate(instantiate) => {
-            let contract_account = instantiate.run()?;
-            Ok(Some(format!("Contract account: {}", contract_account)))
+            instantiate.run()
         }
         Command::Call(call) => {
-            call.run()?;
-            Ok(None)
+            call.run()
         }
     }
 }

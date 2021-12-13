@@ -15,16 +15,31 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    ContractMessageTranscoder,
     display_events,
     runtime_api::api::{self, DefaultConfig},
 };
-use crate::{util::decode_hex, ExtrinsicOpts};
-use anyhow::Result;
+use crate::{util::decode_hex, ExtrinsicOpts, Verbosity};
+use anyhow::{Context, Result};
+use serde::Serialize;
+use sp_core::Bytes;
 use structopt::StructOpt;
-use subxt::{ClientBuilder, Config};
+use subxt::{
+    ClientBuilder, Config,
+    rpc::NumberOrHex,
+};
+use std::{
+    fs,
+    path::PathBuf,
+};
+
+type Balance = u128;
+type CodeHash = <DefaultConfig as Config>::Hash;
+type ContractAccount = <DefaultConfig as Config>::AccountId;
+type ContractInstantiateResult = pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
 
 #[derive(Debug, StructOpt)]
-pub struct InstantiateArgs {
+pub struct InstantiateCommand {
     /// The name of the contract constructor to call
     #[structopt(name = "constructor", long, default_value = "new")]
     pub(super) constructor: String,
@@ -35,81 +50,32 @@ pub struct InstantiateArgs {
     pub(super) extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[structopt(name = "endowment", long, default_value = "0")]
-    pub(super) endowment: super::Balance,
+    pub(super) value: super::Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
     pub(super) gas_limit: u64,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
     #[structopt(long)]
-    pub(super) storage_deposit_limit: Option<u128>,
+    pub(super) storage_deposit_limit: Option<Balance>,
+    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
+    /// Use to instantiate contracts which have not yet been uploaded.
+    /// If the contract has already been uploaded use `--code_hash` instead.
+    #[structopt(parse(from_os_str))]
+    pub(super) wasm_path: Option<PathBuf>,
     // todo: [AJ] add salt
-}
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "instantiate", about = "Instantiate a contract")]
-pub struct InstantiateCommand {
-    #[structopt(flatten)]
-    instantiate: InstantiateArgs,
-    /// The hash of the smart contract code already uploaded to the chain
+    /// The hash of the smart contract code already uploaded to the chain.
+    /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
+    /// first.
     #[structopt(long, parse(try_from_str = parse_code_hash))]
-    code_hash: <DefaultConfig as Config>::Hash,
+    code_hash: Option<<DefaultConfig as Config>::Hash>,
+    /// Dry-run instantiate via RPC, instead of as an extrinsic.
+    /// The contract will not be instantiated.
+    #[structopt(long)]
+    dry_run: bool,
 }
 
-impl InstantiateCommand {
-    /// Instantiate a contract stored at the supplied code hash.
-    /// Returns the account id of the instantiated contract if successful.
-    ///
-    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
-    /// the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<<DefaultConfig as Config>::AccountId> {
-        let metadata = super::load_metadata()?;
-        let transcoder = super::ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.instantiate.constructor, &self.instantiate.params)?;
-
-        async_std::task::block_on(async move {
-            let api = ClientBuilder::new()
-                .set_url(self.instantiate.extrinsic_opts.url.to_string())
-                .build()
-                .await?
-                .to_runtime_api::<api::RuntimeApi<DefaultConfig>>();
-
-            let metadata = api.client.metadata().clone();
-            let signer = super::pair_signer(self.instantiate.extrinsic_opts.signer()?);
-
-            let result = api
-                .tx()
-                .contracts()
-                .instantiate(
-                    self.instantiate.endowment,
-                    self.instantiate.gas_limit,
-                    self.instantiate.storage_deposit_limit,
-                    self.code_hash,
-                    data,
-                    vec![], // todo: [AJ] salt
-                )
-                .sign_and_submit_then_watch(&signer)
-                .await?
-                // todo: should we have optimistic fast mode just for InBlock?
-                .wait_for_finalized_success()
-                .await?;
-
-            display_events(
-                &result,
-                &transcoder,
-                &metadata,
-                self.instantiate.extrinsic_opts.verbosity()?,
-            )?;
-
-            let instantiated = result
-                .find_first_event::<api::contracts::events::Instantiated>()?
-                .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
-
-            Ok(instantiated.contract)
-        })
-    }
-}
-
+/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
 fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let bytes = decode_hex(input)?;
     if bytes.len() != 32 {
@@ -120,59 +86,209 @@ fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
+impl InstantiateCommand {
+    /// Instantiate a contract stored at the supplied code hash.
+    /// Returns the account id of the instantiated contract if successful.
+    ///
+    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
+    /// the `ContractsEvent::Instantiated` event.
+    pub fn run(&self) -> Result<()> {
+        let metadata = super::load_metadata()?;
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let data = transcoder.encode(&self.constructor, &self.params)?;
+        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let url = self.extrinsic_opts.url.clone();
+        let verbosity = self.extrinsic_opts.verbosity()?;
+
+        let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
+            (Some(wasm_path), None) => {
+                log::info!("Contract code path: {}", wasm_path.display());
+                let code = fs::read(&wasm_path)
+                    .context(format!("Failed to read from {}", wasm_path.display()))?;
+                Ok(Code::Upload(code.into()))
+            }
+            (None, Some(code_hash)) => {
+                Ok(Code::Existing(*code_hash))
+            }
+            (Some(_), Some(_)) => {
+                Err(anyhow::anyhow!("Specify either `--wasm-path` or `--code-hash` but not both"))
+            }
+            (None, None) => {
+                Err(anyhow::anyhow!("Specify one of `--wasm-path` or `--code-hash`"))
+            }
+        }?;
+
+        let args = InstantiateArgs {
+            value: self.value,
+            gas_limit: self.gas_limit,
+            storage_deposit_limit: self.storage_deposit_limit,
+            data,
+            // todo: [AJ] add salt
+            salt: vec![]
+        };
+
+        let exec = Exec {
+            args,
+            url,
+            verbosity,
+            signer,
+            transcoder,
+        };
+
+        async_std::task::block_on(async move {
+            exec.exec(code, self.dry_run).await
+        })
+    }
+}
+
+struct InstantiateArgs {
+    value: super::Balance,
+    gas_limit: u64,
+    storage_deposit_limit: Option<Balance>,
+    data: Vec<u8>,
+    salt: Vec<u8>,
+}
+
+pub struct Exec<'a> {
+    args: InstantiateArgs,
+    verbosity: Verbosity,
+    url: url::Url,
+    signer: subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>,
+    transcoder: ContractMessageTranscoder<'a>,
+}
+
+impl<'a> Exec<'a> {
+    async fn subxt_api(&self) -> Result<api::RuntimeApi<DefaultConfig>> {
+        let api = ClientBuilder::new()
+            .set_url(self.url.to_string())
+            .build()
+            .await?
+            .to_runtime_api::<api::RuntimeApi<DefaultConfig>>();
+        Ok(api)
+    }
+
+    async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
+        if dry_run {
+            let result = self.instantiate_dry_run(code).await?;
+            return Ok(())
+        }
+
+        match code {
+            Code::Upload(code) => {
+                let (code_hash, contract_account) = self.instantiate_with_code(code).await?;
+                // todo: print result
+            },
+            Code::Existing(code_hash) => {
+                let contract_account = self.instantiate(code_hash).await?;
+                // todo: print result
+            }
+        }
+        Ok(())
+    }
+
+    async fn instantiate_with_code(&self, code: Bytes) -> Result<(CodeHash, ContractAccount)> {
+        let api = self.subxt_api().await?;
+        let result = api
+            .tx()
+            .contracts()
+            .instantiate_with_code(
+                self.args.value,
+                self.args.gas_limit,
+                self.args.storage_deposit_limit,
+                code.to_vec(),
+                self.args.data.clone(),
+                vec![], // todo! [AJ] add salt
+            )
+            .sign_and_submit_then_watch(&self.signer)
+            .await?
+            // todo: should we have optimistic fast mode just for InBlock?
+            .wait_for_finalized_success()
+            .await?;
+
+        let metadata = api.client.metadata();
+
+        display_events(
+            &result,
+            &self.transcoder,
+            metadata,
+            &self.verbosity,
+        )?;
+
+        let code_stored = result
+            .find_first_event::<api::contracts::events::CodeStored>()?
+            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+        let instantiated = result
+            .find_first_event::<api::contracts::events::Instantiated>()?
+            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+
+        Ok((code_stored.code_hash, instantiated.contract))
+    }
+
+    async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
+        let api = self.subxt_api().await?;
+        let result = api
+            .tx()
+            .contracts()
+            .instantiate(
+                self.args.value,
+                self.args.gas_limit,
+                self.args.storage_deposit_limit,
+                code_hash,
+                self.args.data.clone(),
+                vec![], // todo! [AJ] add salt
+            )
+            .sign_and_submit_then_watch(&self.signer)
+            .await?
+            // todo: should we have optimistic fast mode just for InBlock?
+            .wait_for_finalized_success()
+            .await?;
+
+        let metadata = api.client.metadata();
+        display_events(
+            &result,
+            &self.transcoder,
+            metadata,
+            &self.verbosity,
+        )?;
+
+        let instantiated = result
+            .find_first_event::<api::contracts::events::Instantiated>()?
+            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+
+        Ok(instantiated.contract)
+    }
+
+    async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
+        todo!()
+    }
+}
+
+/// A struct that encodes RPC parameters required to instantiate a new smart-contract.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstantiateRequest {
+    origin: <DefaultConfig as Config>::AccountId,
+    value: NumberOrHex,
+    gas_limit: NumberOrHex,
+    storage_deposit_limit: Option<NumberOrHex>,
+    code: Code,
+    data: Bytes,
+    salt: Bytes,
+}
+
+/// Reference to an existing code hash or a new wasm module.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+enum Code {
+    /// A wasm module as raw bytes.
+    Upload(Bytes),
+    /// The code hash of an on-chain wasm blob.
+    Existing(<DefaultConfig as Config>::Hash),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        cmd::InstantiateWithCode, util::tests::with_tmp_dir, ExtrinsicOpts, VerbosityFlags,
-    };
-    use assert_matches::assert_matches;
-    use std::{fs, io::Write};
-
-    const CONTRACT: &str = r#"
-(module
-    (func (export "call"))
-    (func (export "deploy"))
-)
-"#;
-
-    // #[test]
-    // #[ignore] // depends on a local substrate node running
-    // fn instantiate_contract() {
-    //     with_tmp_dir(|path| {
-    //         let wasm = wabt::wat2wasm(CONTRACT).expect("invalid wabt");
-    //
-    //         let wasm_path = path.join("test.wasm");
-    //         let mut file = fs::File::create(&wasm_path).unwrap();
-    //         let _ = file.write_all(&wasm);
-    //
-    //         let url = url::Url::parse("ws://localhost:9944").unwrap();
-    //         let extrinsic_opts = ExtrinsicOpts {
-    //             url,
-    //             suri: "//Alice".into(),
-    //             password: None,
-    //             verbosity: VerbosityFlags::quiet(),
-    //         };
-    //         let deploy = InstantiateWithCode {
-    //             extrinsic_opts: extrinsic_opts.clone(),
-    //             wasm_path: Some(wasm_path),
-    //         };
-    //         let code_hash = deploy.exec().expect("Deploy should succeed");
-    //
-    //         let cmd = InstantiateCommand {
-    //             extrinsic_opts,
-    //             endowment: 100000000000000,
-    //             gas_limit: 500_000_000,
-    //             code_hash,
-    //             name: String::new(), // todo: does this invoke the default constructor?
-    //             instantiate: Vec::new(),
-    //         };
-    //         let result = cmd.run();
-    //
-    //         assert_matches!(result, Ok(_));
-    //         Ok(())
-    //     })
-    // }
 
     #[test]
     fn parse_code_hash_works() {

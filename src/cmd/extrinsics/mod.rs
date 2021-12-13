@@ -17,7 +17,6 @@
 pub mod call;
 mod events;
 pub mod instantiate;
-pub mod instantiate_with_code;
 mod runtime_api;
 mod transcode;
 

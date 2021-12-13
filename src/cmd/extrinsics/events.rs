@@ -28,7 +28,7 @@ pub fn display_events(
     result: &TransactionEvents<DefaultConfig>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
-    verbosity: Verbosity,
+    verbosity: &Verbosity,
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
         return Ok(());

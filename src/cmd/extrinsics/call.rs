@@ -60,7 +60,7 @@ pub struct CallCommand {
 }
 
 impl CallCommand {
-    pub fn run(&self) -> Result<String> {
+    pub fn run(&self) -> Result<()> {
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
         let call_data = transcoder.encode(&self.name, &self.args)?;
@@ -152,5 +152,6 @@ pub struct RpcCallRequest {
     dest: <DefaultConfig as Config>::AccountId,
     value: NumberOrHex,
     gas_limit: NumberOrHex,
+    storage_deposit_limit: Option<NumberOrHex>,
     input_data: Bytes,
 }
