@@ -47,7 +47,7 @@ pub struct InstantiateCommand {
     #[structopt(flatten)]
     pub(super) extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
-    #[structopt(name = "endowment", long, default_value = "0")]
+    #[structopt(name = "value", long, default_value = "0")]
     pub(super) value: super::Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
