@@ -3873,7 +3873,7 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 [[package]]
 name = "subxt"
 version = "0.15.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj-export-transaction-events#0fc631b3cf971c7b81f1b6220efbde741827418f"
+source = "git+https://github.com/paritytech/subxt?branch=aj-config#0936887da8a250aafa6d89ae05011f2255a23c59"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -3899,7 +3899,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.2.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj-export-transaction-events#0fc631b3cf971c7b81f1b6220efbde741827418f"
+source = "git+https://github.com/paritytech/subxt?branch=aj-config#0936887da8a250aafa6d89ae05011f2255a23c59"
 dependencies = [
  "async-trait",
  "darling",
@@ -3917,7 +3917,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj-export-transaction-events#0fc631b3cf971c7b81f1b6220efbde741827418f"
+source = "git+https://github.com/paritytech/subxt?branch=aj-config#0936887da8a250aafa6d89ae05011f2255a23c59"
 dependencies = [
  "async-trait",
  "darling",
