@@ -15,7 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, pretty_print, Balance, ContractMessageTranscoder, RuntimeApi,
+    display_events, load_metadata, pretty_print, Balance, ContractMessageTranscoder, PairSigner,
+    RuntimeApi,
 };
 use crate::ExtrinsicOpts;
 use anyhow::Result;
@@ -26,9 +27,9 @@ use jsonrpsee::{
 };
 use serde::Serialize;
 use sp_core::Bytes;
-use std::{convert::TryInto, fmt::Debug};
+use std::fmt::Debug;
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer, TransactionEvents};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
@@ -66,61 +67,61 @@ impl CallCommand {
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
+        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        if self.dry_run {
-            let result = async_std::task::block_on(self.call_rpc(call_data))?;
-            let exec_return_value = result
-                .result
-                .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-            let value = transcoder.decode_return(&self.message, exec_return_value.data.0)?;
-            pretty_print(value, false)?;
-            println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
-            Ok(())
-            // todo: [AJ] print debug message etc.
-        } else {
-            let (result, metadata) = async_std::task::block_on(async {
-                let api = ClientBuilder::new()
-                    .set_url(&self.extrinsic_opts.url.to_string())
-                    .build()
-                    .await?
-                    .to_runtime_api::<RuntimeApi>();
-                let metadata = api.client.metadata().clone();
-                let result = self.call(api, call_data).await?;
-                Ok::<_, anyhow::Error>((result, metadata))
-            })?;
-            display_events(
-                &result,
-                &transcoder,
-                &metadata,
-                &self.extrinsic_opts.verbosity()?,
-            )?;
-            Ok(())
-        }
+        async_std::task::block_on(async {
+            if self.dry_run {
+                self.call_rpc(call_data, &signer, &transcoder).await
+            } else {
+                self.call(call_data, &signer, &transcoder).await
+            }
+        })
     }
 
-    async fn call_rpc(&self, data: Vec<u8>) -> Result<ContractExecResult> {
+    async fn call_rpc<'a>(
+        &self,
+        data: Vec<u8>,
+        signer: &PairSigner,
+        transcoder: &ContractMessageTranscoder<'a>,
+    ) -> Result<()> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let storage_deposit_limit = self
+            .storage_deposit_limit
+            .as_ref()
+            .map(|limit| NumberOrHex::Hex((*limit).into()));
         let call_request = RpcCallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
-            value: NumberOrHex::Number(self.value.try_into()?), // value must be <= u64.max_value() for now
+            value: NumberOrHex::Hex(self.value.into()),
             gas_limit: NumberOrHex::Number(self.gas_limit),
-            storage_deposit_limit: None, // todo: [AJ] call storage_deposit_limit
+            storage_deposit_limit,
             input_data: Bytes(data),
         };
         let params = vec![to_json_value(call_request)?];
         let result: ContractExecResult = cli.request("contracts_call", Some(params.into())).await?;
-        Ok(result)
+
+        let exec_return_value = result
+            .result
+            .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
+        let value = transcoder.decode_return(&self.message, exec_return_value.data.0)?;
+        pretty_print(value, false)?;
+        println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
+        Ok(())
     }
 
-    async fn call(
+    async fn call<'a>(
         &self,
-        api: RuntimeApi,
         data: Vec<u8>,
-    ) -> Result<TransactionEvents<DefaultConfig>> {
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        signer: &PairSigner,
+        transcoder: &ContractMessageTranscoder<'a>,
+    ) -> Result<()> {
+        let url = self.extrinsic_opts.url.to_string();
+        let api = ClientBuilder::new()
+            .set_url(&url)
+            .build()
+            .await?
+            .to_runtime_api::<RuntimeApi>();
 
         log::debug!("calling contract {:?}", self.contract);
         let result = api
@@ -133,12 +134,17 @@ impl CallCommand {
                 self.storage_deposit_limit,
                 data,
             )
-            .sign_and_submit_then_watch(&signer)
+            .sign_and_submit_then_watch(signer)
             .await?
             .wait_for_finalized_success()
             .await?;
 
-        Ok(result)
+        display_events(
+            &result,
+            &transcoder,
+            api.client.metadata(),
+            &self.extrinsic_opts.verbosity()?,
+        )
     }
 }
 

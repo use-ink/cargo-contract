@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, runtime_api::api, Balance, ContractMessageTranscoder, RuntimeApi, SignedExtra,
+    display_events, runtime_api::api, Balance, ContractMessageTranscoder, PairSigner, RuntimeApi
 };
 use crate::{crate_metadata, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
@@ -149,7 +149,7 @@ pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: url::Url,
-    signer: subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>,
+    signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
 }
 

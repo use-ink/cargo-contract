@@ -27,9 +27,10 @@ use std::{fmt::Display, fs::File};
 use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use sp_core::sr25519;
-use subxt::{DefaultConfig, PairSigner};
+use subxt::DefaultConfig;
 
 type Balance = u128;
+type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>;
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
@@ -87,6 +88,6 @@ where
 
 pub fn pair_signer(
     pair: sr25519::Pair,
-) -> PairSigner<subxt::DefaultConfig, SignedExtra, sr25519::Pair> {
+) -> PairSigner {
     PairSigner::new(pair)
 }
