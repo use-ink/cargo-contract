@@ -16,13 +16,13 @@
 
 use super::{
     pretty_print,
-    runtime_api::api::{contracts::events::ContractEmitted, DefaultConfig},
+    runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
 };
 use crate::Verbosity;
 
 use anyhow::Result;
-use subxt::{self, Event, TransactionEvents};
+use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
     result: &TransactionEvents<DefaultConfig>,

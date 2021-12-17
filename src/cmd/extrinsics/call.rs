@@ -15,9 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, pretty_print,
-    runtime_api::api::{self, DefaultConfig},
-    Balance, ContractMessageTranscoder,
+    display_events, load_metadata, pretty_print, Balance, ContractMessageTranscoder, RuntimeApi,
 };
 use crate::ExtrinsicOpts;
 use anyhow::Result;
@@ -30,7 +28,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{convert::TryInto, fmt::Debug};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, Signer, TransactionEvents};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer, TransactionEvents};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
@@ -83,7 +81,7 @@ impl CallCommand {
                     .set_url(&self.extrinsic_opts.url.to_string())
                     .build()
                     .await?
-                    .to_runtime_api::<api::RuntimeApi<api::DefaultConfig>>();
+                    .to_runtime_api::<RuntimeApi>();
                 let metadata = api.client.metadata().clone();
                 let result = self.call(api, call_data).await?;
                 Ok::<_, anyhow::Error>((result, metadata))
@@ -117,7 +115,7 @@ impl CallCommand {
 
     async fn call(
         &self,
-        api: api::RuntimeApi<DefaultConfig>,
+        api: RuntimeApi,
         data: Vec<u8>,
     ) -> Result<TransactionEvents<DefaultConfig>> {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);

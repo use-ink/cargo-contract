@@ -15,9 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events,
-    runtime_api::api::{self, DefaultConfig},
-    Balance, ContractMessageTranscoder,
+    display_events, runtime_api::api, Balance, ContractMessageTranscoder, RuntimeApi, SignedExtra,
 };
 use crate::{crate_metadata, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
@@ -29,7 +27,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{fs, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
@@ -152,17 +150,17 @@ pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: url::Url,
-    signer: subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>,
+    signer: subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>,
     transcoder: ContractMessageTranscoder<'a>,
 }
 
 impl<'a> Exec<'a> {
-    async fn subxt_api(&self) -> Result<api::RuntimeApi<DefaultConfig>> {
+    async fn subxt_api(&self) -> Result<RuntimeApi> {
         let api = ClientBuilder::new()
             .set_url(self.url.to_string())
             .build()
             .await?
-            .to_runtime_api::<api::RuntimeApi<DefaultConfig>>();
+            .to_runtime_api::<RuntimeApi>();
         Ok(api)
     }
 

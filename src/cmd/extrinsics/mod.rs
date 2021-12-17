@@ -27,9 +27,11 @@ use std::{fmt::Display, fs::File};
 use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use sp_core::sr25519;
-use subxt::PairSigner;
+use subxt::{DefaultConfig, PairSigner};
 
 type Balance = u128;
+type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
+type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
 pub fn load_metadata() -> Result<ink_metadata::InkProject> {
     let manifest_path = ManifestPath::default();
@@ -85,6 +87,6 @@ where
 
 pub fn pair_signer(
     pair: sr25519::Pair,
-) -> PairSigner<runtime_api::api::DefaultConfig, sr25519::Pair> {
+) -> PairSigner<subxt::DefaultConfig, SignedExtra, sr25519::Pair> {
     PairSigner::new(pair)
 }
