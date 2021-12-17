@@ -51,37 +51,26 @@ pub fn display_events(
             &mut &event.data[..],
         )?;
 
-        let display_event =
-            // decode the contract event if it is `ContractEmitted`
-            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
-                if let Value::Map(map) = decoded_event {
-                    let fields_with_decoded_contract_event = map
-                        .iter()
-                        .map(|(key, value)| {
-                            if key == &Value::String("data".into()) {
-                                if let Value::Bytes(bytes) = value {
-                                    log::debug!("Decoding contract event bytes {:?}", bytes);
-                                    let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
-                                    Ok((key.clone(), contract_event))
-                                } else {
-                                    Err(anyhow::anyhow!("ContractEmitted::data should be `Vec<u8>`"))
-                                }
-                            } else {
-                                Ok((key.clone(), value.clone()))
-                            }
-                        })
-                        .collect::<Result<_>>()?;
-                    Ok(Value::Map(fields_with_decoded_contract_event))
+        pretty_print(&decoded_event, true)?;
+        println!();
+
+        // decode and display contract events
+        if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
+            if let Value::Map(map) = decoded_event {
+                if let Some(Value::Bytes(bytes)) = map.get(&Value::String("data".into())) {
+                    log::debug!("Decoding contract event bytes {:?}", bytes);
+                    let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
+                    pretty_print(contract_event, true)?;
+                    println!()
                 } else {
-                    // todo: [AJ] possibly handle legacy tuple struct for older version of contracts pallet?
-                    Err(anyhow::anyhow!("ContractEmitted should be a struct with named fields"))
+                    return Err(anyhow::anyhow!("ContractEmitted::data should be `Vec<u8>`"));
                 }
             } else {
-                Ok(decoded_event)
-            }?;
-
-        pretty_print(display_event, true)?;
-        println!();
+                return Err(anyhow::anyhow!(
+                    "ContractEmitted should be a struct with named fields"
+                ));
+            }
+        }
     }
     println!();
     Ok(())

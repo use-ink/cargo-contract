@@ -86,8 +86,6 @@ where
     Ok(())
 }
 
-pub fn pair_signer(
-    pair: sr25519::Pair,
-) -> PairSigner {
+pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
     PairSigner::new(pair)
 }
