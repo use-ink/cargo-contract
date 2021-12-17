@@ -38,27 +38,27 @@ type ContractInstantiateResult =
 pub struct InstantiateCommand {
     /// The name of the contract constructor to call
     #[structopt(name = "constructor", long, default_value = "new")]
-    pub(super) constructor: String,
-    /// The constructor parameters, encoded as strings
-    #[structopt(name = "params", long, default_value = "new")]
-    pub(super) params: Vec<String>,
+    constructor: String,
+    /// The constructor arguments, encoded as strings
+    #[structopt(long)]
+    args: Vec<String>,
     #[structopt(flatten)]
-    pub(super) extrinsic_opts: ExtrinsicOpts,
+    extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[structopt(name = "value", long, default_value = "0")]
-    pub(super) value: super::Balance,
+    value: super::Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
-    pub(super) gas_limit: u64,
+    gas_limit: u64,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
     #[structopt(long)]
-    pub(super) storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<Balance>,
     /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
     /// Use to instantiate contracts which have not yet been uploaded.
     /// If the contract has already been uploaded use `--code_hash` instead.
     #[structopt(parse(from_os_str))]
-    pub(super) wasm_path: Option<PathBuf>,
+    wasm_path: Option<PathBuf>,
     // todo: [AJ] add salt
     /// The hash of the smart contract code already uploaded to the chain.
     /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
@@ -91,7 +91,7 @@ impl InstantiateCommand {
     pub fn run(&self) -> Result<()> {
         let metadata = super::load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
-        let data = transcoder.encode(&self.constructor, &self.params)?;
+        let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url.clone();
         let verbosity = self.extrinsic_opts.verbosity()?;

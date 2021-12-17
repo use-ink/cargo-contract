@@ -38,6 +38,7 @@ pub struct CallCommand {
     /// The name of the contract message to call.
     name: String,
     /// The arguments of the contract message to call.
+    #[structopt(long)]
     args: Vec<String>,
     #[structopt(flatten)]
     extrinsic_opts: ExtrinsicOpts,
