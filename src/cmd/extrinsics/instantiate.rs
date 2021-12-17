@@ -36,6 +36,16 @@ type ContractInstantiateResult =
 
 #[derive(Debug, StructOpt)]
 pub struct InstantiateCommand {
+    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
+    /// Use to instantiate contracts which have not yet been uploaded.
+    /// If the contract has already been uploaded use `--code_hash` instead.
+    #[structopt(parse(from_os_str))]
+    wasm_path: Option<PathBuf>,
+    /// The hash of the smart contract code already uploaded to the chain.
+    /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
+    /// first.
+    #[structopt(long, parse(try_from_str = parse_code_hash))]
+    code_hash: Option<<DefaultConfig as Config>::Hash>,
     /// The name of the contract constructor to call
     #[structopt(name = "constructor", long, default_value = "new")]
     constructor: String,
@@ -54,20 +64,9 @@ pub struct InstantiateCommand {
     /// consumed.
     #[structopt(long)]
     storage_deposit_limit: Option<Balance>,
-    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    /// Use to instantiate contracts which have not yet been uploaded.
-    /// If the contract has already been uploaded use `--code_hash` instead.
-    #[structopt(parse(from_os_str))]
-    wasm_path: Option<PathBuf>,
-    // todo: [AJ] add salt
-    /// The hash of the smart contract code already uploaded to the chain.
-    /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
-    /// first.
-    #[structopt(long, parse(try_from_str = parse_code_hash))]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
     /// Dry-run instantiate via RPC, instead of as an extrinsic.
     /// The contract will not be instantiated.
-    #[structopt(long)]
+    #[structopt(long, short = "rpc")]
     dry_run: bool,
 }
 

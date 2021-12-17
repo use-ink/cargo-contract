@@ -35,8 +35,12 @@ type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balanc
 #[derive(Debug, StructOpt)]
 #[structopt(name = "call", about = "Call a contract")]
 pub struct CallCommand {
+    /// The address of the the contract to call.
+    #[structopt(name = "contract", long, env = "CONTRACT")]
+    contract: <DefaultConfig as Config>::AccountId,
     /// The name of the contract message to call.
-    name: String,
+    #[structopt(long, short)]
+    message: String,
     /// The arguments of the contract message to call.
     #[structopt(long)]
     args: Vec<String>,
@@ -52,26 +56,23 @@ pub struct CallCommand {
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, default_value = "0")]
     value: Balance,
-    /// The address of the the contract to call.
-    #[structopt(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
-    /// Perform the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
-    #[structopt(name = "rpc", long)]
-    rpc: bool,
+    /// Dry-run the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
+    #[structopt(long, short = "rpc")]
+    dry_run: bool,
 }
 
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
         let metadata = load_metadata()?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
-        let call_data = transcoder.encode(&self.name, &self.args)?;
+        let call_data = transcoder.encode(&self.message, &self.args)?;
 
-        if self.rpc {
+        if self.dry_run {
             let result = async_std::task::block_on(self.call_rpc(call_data))?;
             let exec_return_value = result
                 .result
                 .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-            let value = transcoder.decode_return(&self.name, exec_return_value.data.0)?;
+            let value = transcoder.decode_return(&self.message, exec_return_value.data.0)?;
             pretty_print(value, false)?;
             println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
             Ok(())
