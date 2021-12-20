@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod call;
+mod call;
 mod events;
-pub mod instantiate;
+mod instantiate;
 mod runtime_api;
 mod transcode;
+mod upload;
 
 use anyhow::{anyhow, Context, Result};
 use bat::PrettyPrinter;
@@ -28,6 +29,10 @@ use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use sp_core::sr25519;
 use subxt::DefaultConfig;
+
+pub use call::CallCommand;
+pub use instantiate::InstantiateCommand;
+pub use upload::UploadCommand;
 
 type Balance = u128;
 type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>;
