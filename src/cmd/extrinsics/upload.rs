@@ -15,11 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, pretty_print, Balance, ContractMessageTranscoder, PairSigner,
+    display_events, load_metadata, pretty_print, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
     RuntimeApi,
 };
-use crate::ExtrinsicOpts;
-use anyhow::Result;
+use crate::{
+    crate_metadata::CrateMetadata,
+    ExtrinsicOpts,
+};
+use anyhow::{Context, Result};
 use colored::Colorize;
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -34,7 +37,7 @@ use std::{
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
-type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
+type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "upload", about = "Upload a contract's code")]
@@ -42,32 +45,38 @@ pub struct UploadCommand {
     /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
     #[structopt(parse(from_os_str))]
     wasm_path: Option<PathBuf>,
-    /// Dry-run the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
+    /// Dry-run the code upload via rpc, instead of as an extrinsic. Code will not be uploaded.
     #[structopt(long, short = "rpc")]
     dry_run: bool,
 }
 
 impl UploadCommand {
     pub fn run(&self) -> Result<()> {
-        let metadata = load_metadata()?;
-        let transcoder = ContractMessageTranscoder::new(&metadata);
-        let call_data = transcoder.encode(&self.message, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+
+        let wasm_path = self.wasm_path.unwrap_or_else(|| {
+            // default to the target contract wasm in the current project,
+            // inferred via the crate metadata.
+            let metadata = CrateMetadata::collect(&Default::default())?;
+        });
+
+        log::info!("Contract code path: {}", wasm_path.display());
+        let code = std::fs::read(&wasm_path)
+            .context(format!("Failed to read from {}", wasm_path.display()))?;
 
         async_std::task::block_on(async {
             if self.dry_run {
-                self.call_rpc(call_data, &signer, &transcoder).await
+                self.upload_code_rpc(code, &signer).await
             } else {
-                self.call(call_data, &signer, &transcoder).await
+                self.upload_code(code, &signer).await
             }
         })
     }
 
-    async fn call_rpc<'a>(
+    async fn upload_code_rpc(
         &self,
-        data: Vec<u8>,
+        code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'a>,
     ) -> Result<()> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
@@ -75,31 +84,26 @@ impl UploadCommand {
             .storage_deposit_limit
             .as_ref()
             .map(|limit| NumberOrHex::Hex((*limit).into()));
-        let call_request = RpcCallRequest {
+        let call_request = CodeUploadRequest {
             origin: signer.account_id().clone(),
-            dest: self.contract.clone(),
-            value: NumberOrHex::Hex(self.value.into()),
-            gas_limit: NumberOrHex::Number(self.gas_limit),
+            code: Bytes(code),
             storage_deposit_limit,
-            input_data: Bytes(data),
         };
         let params = vec![to_json_value(call_request)?];
-        let result: ContractExecResult = cli.request("contracts_call", Some(params.into())).await?;
+        let result: CodeUploadResult = cli.request("contracts_call", Some(params.into())).await?;
 
         let exec_return_value = result
             .result
             .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-        let value = transcoder.decode_return(&self.message, exec_return_value.data.0)?;
-        pretty_print(value, false)?;
-        println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
+        // todo: [AJ] pretty print code upload result
+        println!("{:?}", exec_return_value);
         Ok(())
     }
 
-    async fn call<'a>(
+    async fn upload_code<'a>(
         &self,
-        data: Vec<u8>,
+        code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'a>,
     ) -> Result<()> {
         let url = self.extrinsic_opts.url.to_string();
         let api = ClientBuilder::new()
@@ -112,12 +116,9 @@ impl UploadCommand {
         let result = api
             .tx()
             .contracts()
-            .call(
-                self.contract.clone().into(),
-                self.value,
-                self.gas_limit,
+            .upload_code(
+                code,
                 self.storage_deposit_limit,
-                data,
             )
             .sign_and_submit_then_watch(signer)
             .await?
@@ -134,16 +135,11 @@ impl UploadCommand {
     }
 }
 
-/// A struct that encodes RPC parameters required for a call to a smart-contract.
-///
-/// Copied from pallet-contracts-rpc
+/// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcCallRequest {
+pub struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
-    dest: <DefaultConfig as Config>::AccountId,
-    value: NumberOrHex,
-    gas_limit: NumberOrHex,
+    code: Bytes,
     storage_deposit_limit: Option<NumberOrHex>,
-    input_data: Bytes,
 }

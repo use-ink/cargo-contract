@@ -38,7 +38,7 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-use crate::cmd::{CallCommand, InstantiateCommand};
+use crate::cmd::{CallCommand, InstantiateCommand, UploadCommand};
 use sp_core::{crypto::Pair, sr25519};
 
 #[derive(Debug, StructOpt)]
@@ -484,6 +484,9 @@ enum Command {
     /// Test the smart contract off-chain
     #[structopt(name = "test")]
     Test(TestCommand),
+    /// Upload contract code
+    #[structopt(name = "upload")]
+    Upload(UploadCommand),
     /// Instantiate a contract
     #[structopt(name = "instantiate")]
     Instantiate(InstantiateCommand),

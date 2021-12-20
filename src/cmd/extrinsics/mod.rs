@@ -28,13 +28,15 @@ use std::{fmt::Display, fs::File};
 use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
 use sp_core::sr25519;
-use subxt::DefaultConfig;
+use subxt::{Config, DefaultConfig};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use upload::UploadCommand;
 
 type Balance = u128;
+type CodeHash = <DefaultConfig as Config>::Hash;
+type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>;
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;

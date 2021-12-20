@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, runtime_api::api, Balance, ContractMessageTranscoder, PairSigner, RuntimeApi,
+    display_events, runtime_api::api, CodeHash, ContractAccount, Balance, ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
 use crate::{crate_metadata, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
@@ -29,8 +29,6 @@ use std::{fs, path::PathBuf};
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
-type CodeHash = <DefaultConfig as Config>::Hash;
-type ContractAccount = <DefaultConfig as Config>::AccountId;
 type ContractInstantiateResult =
     pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
 
