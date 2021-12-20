@@ -22,7 +22,7 @@ use crate::{
 };
 
 use anyhow::Result;
-use blake2::digest::{Update as _, VariableOutput as _};
+use blake2::digest::{consts::U32, Digest as _};
 use colored::Colorize;
 use contract_metadata::{
     CodeHash, Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
@@ -216,11 +216,10 @@ fn extended_metadata(
 
 /// Returns the blake2 hash of the submitted slice.
 fn blake2_hash(code: &[u8]) -> CodeHash {
-    let mut output = [0u8; 32];
-    let mut blake2 = blake2::VarBlake2b::new_keyed(&[], 32);
+    let mut blake2 = blake2::Blake2b::<U32>::new();
     blake2.update(code);
-    blake2.finalize_variable(|result| output.copy_from_slice(result));
-    CodeHash(output)
+    let result = blake2.finalize();
+    CodeHash(result.into())
 }
 
 #[cfg(feature = "test-ci-only")]
