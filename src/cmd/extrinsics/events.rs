@@ -29,6 +29,7 @@ pub fn display_events(
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: &Verbosity,
+    indentation: bool,
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
         return Ok(());
@@ -52,7 +53,7 @@ pub fn display_events(
             &mut &event.data[..],
         )?;
 
-        pretty_print(&decoded_event, true)?;
+        pretty_print(&decoded_event, indentation)?;
         println!();
 
         // decode and display contract events
@@ -61,7 +62,7 @@ pub fn display_events(
                 if let Some(Value::Bytes(bytes)) = map.get(&Value::String("data".into())) {
                     log::debug!("Decoding contract event bytes {:?}", bytes);
                     let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
-                    pretty_print(contract_event, true)?;
+                    pretty_print(contract_event, indentation)?;
                     println!()
                 } else {
                     return Err(anyhow::anyhow!("ContractEmitted::data should be `Vec<u8>`"));

@@ -144,6 +144,7 @@ impl CallCommand {
             &transcoder,
             api.client.metadata(),
             &self.extrinsic_opts.verbosity()?,
+            self.extrinsic_opts.pretty_print,
         )
     }
 }

@@ -129,6 +129,7 @@ impl InstantiateCommand {
             args,
             url,
             verbosity,
+            pretty_print: self.extrinsic_opts.pretty_print,
             signer,
             transcoder,
         };
@@ -148,6 +149,7 @@ struct InstantiateArgs {
 pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
+    pretty_print: bool,
     url: url::Url,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
@@ -207,7 +209,13 @@ impl<'a> Exec<'a> {
 
         let metadata = api.client.metadata();
 
-        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
+        display_events(
+            &result,
+            &self.transcoder,
+            metadata,
+            &self.verbosity,
+            self.pretty_print,
+        )?;
 
         let code_stored = result
             .find_first_event::<api::contracts::events::CodeStored>()?
@@ -239,7 +247,13 @@ impl<'a> Exec<'a> {
             .await?;
 
         let metadata = api.client.metadata();
-        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
+        display_events(
+            &result,
+            &self.transcoder,
+            metadata,
+            &self.verbosity,
+            self.pretty_print,
+        )?;
 
         let instantiated = result
             .find_first_event::<api::contracts::events::Instantiated>()?
