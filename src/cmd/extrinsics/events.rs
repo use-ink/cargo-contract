@@ -36,7 +36,8 @@ pub fn display_events(
 
     let runtime_metadata = subxt_metadata.runtime_metadata();
     let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
-        .register_custom_type::<sp_runtime::AccountId32, _>("AccountId", env_types::AccountId)
+        .register_custom_type::<sp_runtime::AccountId32, _>(Some("AccountId"), env_types::AccountId)
+        .register_custom_type::<sp_runtime::AccountId32, _>(None, env_types::AccountId)
         .done();
 
     for event in result.as_slice() {

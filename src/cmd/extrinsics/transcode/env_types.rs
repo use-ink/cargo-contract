@@ -70,11 +70,14 @@ impl EnvTypesTranscoder {
     pub fn try_decode(&self, type_id: &TypeLookupId, input: &mut &[u8]) -> Result<Option<Value>> {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
-                log::debug!("Decoding type {:?} with custom decoder", type_id);
+                log::debug!("Decoding type {:?} with custom decoder", type_id.type_id());
                 let decoded = transcoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
-            None => Ok(None),
+            None => {
+                log::debug!("No custom decoder found for type {:?}", type_id.type_id());
+                Ok(None)
+            }
         }
     }
 }
@@ -87,6 +90,20 @@ pub trait CustomTypeTranscoder {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PathKey(Vec<String>);
+
+impl PathKey {
+    pub fn from_type<T>() -> Self
+    where
+        T: TypeInfo,
+    {
+        let type_info = T::type_info();
+        let path = type_info
+            .path()
+            .clone()
+            .into_portable(&mut Default::default());
+        PathKey::from(&path)
+    }
+}
 
 impl From<&Path<PortableForm>> for PathKey {
     fn from(path: &Path<PortableForm>) -> Self {
@@ -106,25 +123,12 @@ pub struct TypeLookupId {
 }
 
 impl TypeLookupId {
-    /// Create a new `TypeLookupId` for the given type, for the supplied type registry.
-    ///
-    /// Returns `None` if there is no matching type found in the registry. This is expected when the
-    /// specified type is not used: it won't appear in the registry.
-    pub fn from_type<T>(alias: &'static str, type_lookup: &TypesByPath) -> Option<Self>
-    where
-        T: TypeInfo,
-    {
-        let type_info = T::type_info();
-        let path = type_info
-            .path()
-            .clone()
-            .into_portable(&mut Default::default());
-        let path_key = PathKey::from(&path);
-
-        type_lookup.get(&path_key).map(|type_id| Self {
-            type_id: *type_id,
-            maybe_alias: Some(alias.to_owned()),
-        })
+    /// Create a new `TypeLookupId`
+    pub fn new(type_id: u32, maybe_alias: Option<String>) -> Self {
+        Self {
+            type_id,
+            maybe_alias,
+        }
     }
 
     /// Returns the type identifier for resolving the type from the registry.

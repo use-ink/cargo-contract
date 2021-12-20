@@ -86,23 +86,25 @@ impl<'a> TranscoderBuilder<'a> {
         }
     }
 
-    pub fn register_custom_type<T, U>(self, alias: &'static str, transcoder: U) -> Self
+    pub fn register_custom_type<T, U>(self, alias: Option<&'static str>, transcoder: U) -> Self
     where
         T: TypeInfo + 'static,
         U: CustomTypeTranscoder + 'static,
     {
         let mut this = self;
-        let type_id = TypeLookupId::from_type::<T>(alias, &this.types_by_path);
+
+        let path_key = PathKey::from_type::<T>();
+        let type_id = this
+            .types_by_path
+            .get(&path_key)
+            .map(|type_id| TypeLookupId::new(*type_id, alias.map(ToOwned::to_owned)));
+
         match type_id {
             Some(type_id) => {
                 let existing = this
                     .transcoders
                     .insert(type_id.clone(), Box::new(transcoder));
-                log::debug!(
-                    "Registered environment type `{}` with id {:?}",
-                    alias,
-                    type_id
-                );
+                log::debug!("Registered environment type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
                         "Attempted to register transcoder with existing type id {:?}",
@@ -112,11 +114,7 @@ impl<'a> TranscoderBuilder<'a> {
             }
             None => {
                 // if the type is not present in the registry, it just means it has not been used.
-                log::info!(
-                    "No matching type in registry for `{}` with id {:?}",
-                    alias,
-                    type_id
-                );
+                log::info!("No matching type in registry for path {:?}.", path_key);
             }
         }
         this
