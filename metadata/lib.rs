@@ -52,22 +52,30 @@
 //! let json = serde_json::to_value(&metadata).unwrap();
 //! ```
 
-use core::fmt::{Display, Formatter, Result as DisplayResult, Write};
+mod byte_str;
+
 use semver::Version;
-use serde::{Serialize, Serializer};
+use serde::{de, Deserialize, Serialize, Serializer};
 use serde_json::{Map, Value};
+use std::{
+    fmt::{Display, Formatter, Result as DisplayResult},
+    str::FromStr,
+};
 use url::Url;
 
 /// Smart contract metadata.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContractMetadata {
-    source: Source,
-    contract: Contract,
+    /// Information about the contract's Wasm code.
+    pub source: Source,
+    /// Metadata about the contract.
+    pub contract: Contract,
+    /// Additional user-defined metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
-    user: Option<User>,
-    /// Raw JSON of the contract abi metadata, generated during contract compilation.
+    pub user: Option<User>,
+    /// Raw JSON of the contract's abi metadata, generated during contract compilation.
     #[serde(flatten)]
-    abi: Map<String, Value>,
+    pub abi: Map<String, Value>,
 }
 
 impl ContractMetadata {
@@ -92,25 +100,29 @@ impl ContractMetadata {
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodeHash(pub [u8; 32]);
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct CodeHash(
+    #[serde(
+        serialize_with = "byte_str::serialize_as_byte_str",
+        deserialize_with = "byte_str::deserialize_from_byte_str_array"
+    )]
+    /// The raw bytes of the hash.
+    pub [u8; 32],
+);
 
-impl Serialize for CodeHash {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_as_byte_str(&self.0[..], serializer)
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
+/// Information about the contract's Wasm code.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
-    hash: CodeHash,
-    language: SourceLanguage,
-    compiler: SourceCompiler,
+    /// The hash of the contract's Wasm code.
+    pub hash: CodeHash,
+    /// The language used to write the contract.
+    pub language: SourceLanguage,
+    /// The compiler used to compile the contract.
+    pub compiler: SourceCompiler,
+    /// The actual Wasm code of the contract, for optionally bundling the code
+    /// with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
-    wasm: Option<SourceWasm>,
+    pub wasm: Option<SourceWasm>,
 }
 
 impl Source {
@@ -131,31 +143,27 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
-#[derive(Clone, Debug)]
-pub struct SourceWasm {
-    wasm: Vec<u8>,
-}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SourceWasm(
+    #[serde(
+        serialize_with = "byte_str::serialize_as_byte_str",
+        deserialize_with = "byte_str::deserialize_from_byte_str"
+    )]
+    /// The raw bytes of the Wasm code.
+    pub Vec<u8>,
+);
 
 impl SourceWasm {
     /// Constructs a new `SourceWasm`.
     pub fn new(wasm: Vec<u8>) -> Self {
-        SourceWasm { wasm }
-    }
-}
-
-impl Serialize for SourceWasm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_as_byte_str(&self.wasm[..], serializer)
+        SourceWasm(wasm)
     }
 }
 
 impl Display for SourceWasm {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
-        for byte in &self.wasm {
+        for byte in &self.0 {
             write!(f, "{:02x}", byte).expect("failed writing to string");
         }
         write!(f, "")
@@ -165,8 +173,10 @@ impl Display for SourceWasm {
 /// The language and version in which a smart contract is written.
 #[derive(Clone, Debug)]
 pub struct SourceLanguage {
-    language: Language,
-    version: Version,
+    /// The language used to write the contract.
+    pub language: Language,
+    /// The version of the language used to write the contract.
+    pub version: Version,
 }
 
 impl SourceLanguage {
@@ -185,9 +195,52 @@ impl Serialize for SourceLanguage {
     }
 }
 
+impl<'de> Deserialize<'de> for SourceLanguage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
 impl Display for SourceLanguage {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "{} {}", self.language, self.version)
+    }
+}
+
+impl FromStr for SourceLanguage {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+
+        let language = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(FromStr::from_str)?;
+
+        let version = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(|v| {
+                <Version as FromStr>::from_str(v)
+                    .map_err(|e| format!("Error parsing version {}", e))
+            })?;
+
+        Ok(Self { language, version })
     }
 }
 
@@ -209,16 +262,64 @@ impl Display for Language {
     }
 }
 
+impl FromStr for Language {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ink!" => Ok(Self::Ink),
+            "Solidity" => Ok(Self::Solidity),
+            "AssemblyScript" => Ok(Self::AssemblyScript),
+            _ => Err(format!("Invalid language '{}'", s)),
+        }
+    }
+}
+
 /// A compiler used to compile a smart contract.
 #[derive(Clone, Debug)]
 pub struct SourceCompiler {
-    compiler: Compiler,
-    version: Version,
+    /// The compiler used to compile the smart contract.
+    pub compiler: Compiler,
+    /// The version of the compiler used to compile the smart contract.
+    pub version: Version,
 }
 
 impl Display for SourceCompiler {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "{} {}", self.compiler, self.version)
+    }
+}
+
+impl FromStr for SourceCompiler {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+
+        let compiler = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(FromStr::from_str)?;
+
+        let version = parts
+            .next()
+            .ok_or_else(|| {
+                format!(
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
+                    s
+                )
+            })
+            .and_then(|v| {
+                <Version as FromStr>::from_str(v)
+                    .map_err(|e| format!("Error parsing version {}", e))
+            })?;
+
+        Ok(Self { compiler, version })
     }
 }
 
@@ -231,6 +332,16 @@ impl Serialize for SourceCompiler {
     }
 }
 
+impl<'de> Deserialize<'de> for SourceCompiler {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
 impl SourceCompiler {
     pub fn new(compiler: Compiler, version: Version) -> Self {
         SourceCompiler { compiler, version }
@@ -238,9 +349,11 @@ impl SourceCompiler {
 }
 
 /// Compilers used to compile a smart contract.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Compiler {
+    /// The rust compiler.
     RustC,
+    /// The solang compiler.
     Solang,
 }
 
@@ -253,22 +366,42 @@ impl Display for Compiler {
     }
 }
 
+impl FromStr for Compiler {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "rustc" => Ok(Self::RustC),
+            "solang" => Ok(Self::Solang),
+            _ => Err(format!("Invalid compiler '{}'", s)),
+        }
+    }
+}
+
 /// Metadata about a smart contract.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Contract {
-    name: String,
-    version: Version,
-    authors: Vec<String>,
+    /// The name of the smart contract.
+    pub name: String,
+    /// The version of the smart contract.
+    pub version: Version,
+    /// The authors of the smart contract.
+    pub authors: Vec<String>,
+    /// The description of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
+    /// Link to the documentation of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    documentation: Option<Url>,
+    pub documentation: Option<Url>,
+    /// Link to the code repository of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    repository: Option<Url>,
+    pub repository: Option<Url>,
+    /// Link to the homepage of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    homepage: Option<Url>,
+    pub homepage: Option<Url>,
+    /// The license of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    license: Option<String>,
+    pub license: Option<String>,
 }
 
 impl Contract {
@@ -278,10 +411,11 @@ impl Contract {
 }
 
 /// Additional user defined metadata, can be any valid json.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
+    /// Raw json of user defined metadata.
     #[serde(flatten)]
-    json: Map<String, Value>,
+    pub json: Map<String, Value>,
 }
 
 impl User {
@@ -435,23 +569,6 @@ impl ContractBuilder {
             ))
         }
     }
-}
-
-/// Serializes the given bytes as byte string.
-fn serialize_as_byte_str<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    if bytes.is_empty() {
-        // Return empty string without prepended `0x`.
-        return serializer.serialize_str("");
-    }
-    let mut hex = String::with_capacity(bytes.len() * 2 + 2);
-    write!(hex, "0x").expect("failed writing to string");
-    for byte in bytes {
-        write!(hex, "{:02x}", byte).expect("failed writing to string");
-    }
-    serializer.serialize_str(&hex)
 }
 
 #[cfg(test)]
@@ -637,5 +754,53 @@ mod tests {
         };
 
         assert_eq!(json, expected);
+    }
+
+    #[test]
+    fn decoding_works() {
+        let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
+        let compiler =
+            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let contract = Contract::builder()
+            .name("incrementer".to_string())
+            .version(Version::new(2, 1, 0))
+            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .description("increment a value".to_string())
+            .documentation(Url::parse("http://docs.rs/").unwrap())
+            .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+            .homepage(Url::parse("http://example.com/").unwrap())
+            .license("Apache-2.0".to_string())
+            .build()
+            .unwrap();
+
+        let user_json = json! {
+            {
+                "more-user-provided-fields": [
+                  "and",
+                  "their",
+                  "values"
+                ],
+                "some-user-provided-field": "and-its-value"
+            }
+        };
+        let user = User::new(user_json.as_object().unwrap().clone());
+        let abi_json = json! {
+            {
+                "spec": {},
+                "storage": {},
+                "types": []
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let json = serde_json::to_value(&metadata).unwrap();
+
+        let decoded = serde_json::from_value::<ContractMetadata>(json);
+        assert!(decoded.is_ok())
     }
 }
