@@ -23,7 +23,7 @@ mod upload;
 
 use anyhow::{anyhow, Context, Result};
 use bat::PrettyPrinter;
-use std::{fmt::Display, fs::File};
+use std::{fmt::Display, fs::File, path::PathBuf};
 
 use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
@@ -41,20 +41,14 @@ type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
-pub fn load_metadata() -> Result<ink_metadata::InkProject> {
-    let manifest_path = ManifestPath::default();
-    // todo: add metadata path option
-    let metadata_path: Option<std::path::PathBuf> = None;
-    let path = match metadata_path {
-        Some(path) => path,
-        None => {
-            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-            crate_metadata.metadata_path()
-        }
-    };
-    let metadata_path =
+pub fn load_metadata(manifest_path: Option<PathBuf>) -> Result<ink_metadata::InkProject> {
+    let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let path = crate_metadata.metadata_path();
+
+    let file =
         File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(metadata_path)
+    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
         .context(format!(
             "Failed to deserialize metadata file {}",
             path.display()

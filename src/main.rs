@@ -547,6 +547,7 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
+        Command::Upload(upload) => upload.run(),
         Command::Instantiate(instantiate) => instantiate.run(),
         Command::Call(call) => call.run(),
     }
