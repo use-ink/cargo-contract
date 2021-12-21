@@ -18,7 +18,7 @@ use super::{
     display_events, runtime_api::api, Balance, CodeHash, ContractAccount,
     ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
-use crate::{crate_metadata, util::decode_hex, ExtrinsicOpts, Verbosity};
+use crate::{util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -87,8 +87,8 @@ impl InstantiateCommand {
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<()> {
-        let metadata = super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let (crate_metadata, contract_metadata) = super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url.clone();
@@ -109,8 +109,7 @@ impl InstantiateCommand {
             (None, None) => {
                 // default to the target contract wasm in the current project,
                 // inferred via the crate metadata.
-                let metadata = crate_metadata::CrateMetadata::collect(&Default::default())?;
-                load_code(&metadata.dest_wasm)
+                load_code(&crate_metadata.dest_wasm)
             }
             (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
         }?;

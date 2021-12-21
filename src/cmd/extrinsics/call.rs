@@ -64,8 +64,8 @@ pub struct CallCommand {
 
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
-        let metadata = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let (_, contract_metadata) = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 

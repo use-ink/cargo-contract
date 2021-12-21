@@ -41,8 +41,8 @@ type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
-pub fn load_metadata(manifest_path: Option<&PathBuf>) -> Result<ink_metadata::InkProject> {
-    let manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+pub fn load_metadata(manifest_path: Option<&PathBuf>) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
+    let manifest_path = ManifestPath::try_from(manifest_path)?;
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     let path = crate_metadata.metadata_path();
 
@@ -57,7 +57,7 @@ pub fn load_metadata(manifest_path: Option<&PathBuf>) -> Result<ink_metadata::In
             path.display()
         ))?;
     if let ink_metadata::MetadataVersioned::V1(ink_project) = ink_metadata {
-        Ok(ink_project)
+        Ok((crate_metadata, ink_project))
     } else {
         Err(anyhow!("Unsupported ink metadata version. Expected V1"))
     }

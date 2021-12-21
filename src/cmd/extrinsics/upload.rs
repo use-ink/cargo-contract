@@ -15,10 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
+    display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
     RuntimeApi,
 };
-use crate::{crate_metadata::CrateMetadata, ExtrinsicOpts};
+use crate::ExtrinsicOpts;
 use anyhow::{Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -51,14 +51,13 @@ pub struct UploadCommand {
 
 impl UploadCommand {
     pub fn run(&self) -> Result<()> {
-        let metadata = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let (crate_metadata, contract_metadata) = super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let wasm_path = match &self.wasm_path {
             Some(wasm_path) => wasm_path.clone(),
             None => {
-                let crate_metadata = CrateMetadata::collect(&Default::default())?;
                 crate_metadata.dest_wasm
             }
         };
