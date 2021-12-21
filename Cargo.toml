@@ -45,8 +45,8 @@ regex = "1.5.4"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "3.0.0-rc7", default-features = false, features = ["derive"] }
-ink_env = { version = "3.0.0-rc7", default-features = false }
+ink_metadata = { version = "3.0.0-rc7", features = ["derive"] }
+ink_env = "3.0.0-rc7"
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 sp-arithmetic = { package = "sp-arithmetic", git = "https://github.com/paritytech/substrate/", branch = "master" }
 sp-core = { package = "sp-core", git = "https://github.com/paritytech/substrate/", branch = "master" }
