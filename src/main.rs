@@ -74,6 +74,9 @@ impl std::str::FromStr for HexData {
 /// Arguments required for creating and sending an extrinsic to a substrate node
 #[derive(Clone, Debug, StructOpt)]
 pub(crate) struct ExtrinsicOpts {
+    /// Path to the Cargo.toml of the contract
+    #[structopt(long, parse(from_os_str))]
+    manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node
     #[structopt(
         name = "url",

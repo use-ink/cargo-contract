@@ -87,7 +87,7 @@ impl InstantiateCommand {
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<()> {
-        let metadata = super::load_metadata()?;
+        let metadata = super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);

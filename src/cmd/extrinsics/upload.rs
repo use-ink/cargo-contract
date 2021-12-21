@@ -51,7 +51,7 @@ pub struct UploadCommand {
 
 impl UploadCommand {
     pub fn run(&self) -> Result<()> {
-        let metadata = load_metadata()?;
+        let metadata = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&metadata);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
@@ -89,7 +89,9 @@ impl UploadCommand {
             storage_deposit_limit,
         };
         let params = vec![to_json_value(call_request)?];
-        let result: CodeUploadResult = cli.request("contracts_upload_code", Some(params.into())).await?;
+        let result: CodeUploadResult = cli
+            .request("contracts_upload_code", Some(params.into()))
+            .await?;
 
         let exec_return_value =
             result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
