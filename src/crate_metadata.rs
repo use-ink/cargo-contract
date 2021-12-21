@@ -122,7 +122,10 @@ impl CrateMetadata {
 
 /// Get the result of `cargo metadata`, together with the root package id.
 fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Package)> {
-    log::info!("Fetching cargo metadata for {}", manifest_path.as_ref().to_string_lossy());
+    log::info!(
+        "Fetching cargo metadata for {}",
+        manifest_path.as_ref().to_string_lossy()
+    );
     let mut cmd = MetadataCommand::new();
     let metadata = cmd
         .manifest_path(manifest_path.as_ref())

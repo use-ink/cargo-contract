@@ -41,7 +41,9 @@ type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
-pub fn load_metadata(manifest_path: Option<&PathBuf>) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
+pub fn load_metadata(
+    manifest_path: Option<&PathBuf>,
+) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
     let manifest_path = ManifestPath::try_from(manifest_path)?;
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     let path = crate_metadata.metadata_path();

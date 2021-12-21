@@ -14,10 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
-    RuntimeApi,
-};
+use super::{display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi};
 use crate::ExtrinsicOpts;
 use anyhow::{Context, Result};
 use jsonrpsee::{
@@ -51,15 +48,14 @@ pub struct UploadCommand {
 
 impl UploadCommand {
     pub fn run(&self) -> Result<()> {
-        let (crate_metadata, contract_metadata) = super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let (crate_metadata, contract_metadata) =
+            super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let wasm_path = match &self.wasm_path {
             Some(wasm_path) => wasm_path.clone(),
-            None => {
-                crate_metadata.dest_wasm
-            }
+            None => crate_metadata.dest_wasm,
         };
 
         log::info!("Contract code path: {}", wasm_path.display());
