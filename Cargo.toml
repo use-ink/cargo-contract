@@ -54,14 +54,14 @@ sp-keyring = { package = "sp-keyring", git = "https://github.com/paritytech/subs
 sp-runtime = { package = "sp-runtime", git = "https://github.com/paritytech/substrate/", branch = "master" }
 pallet-contracts-primitives = { package = "pallet-contracts-primitives", git = "https://github.com/paritytech/substrate/", branch = "master" }
 subxt = { git = "https://github.com/paritytech/subxt", branch = "aj-config" }
-futures = "0.3.17"
+futures = "0.3.19"
 hex = "0.4.3"
-jsonrpsee = { version = "0.5.1", features = ["ws-client"] }
-nom = "7.0.0"
+jsonrpsee = { version = "0.6.1", features = ["ws-client"] }
+nom = "7.1.0"
 indexmap = "1.7.0"
-thiserror = "1.0.29"
+thiserror = "1.0.30"
 escape8259 = "0.5.1"
-itertools = "0.10.1"
+itertools = "0.10.3"
 bat = { version = "0.18.3", default-features = false, features = ["regex-onig"] }
 
 [build-dependencies]
@@ -72,16 +72,16 @@ substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.1"
+assert_cmd = "2.0.2"
 assert_matches = "1.5.0"
 pretty_assertions = "1.0.0"
 wabt = "0.10.0"
 regex = "1.5.4"
-predicates = "2.0.2"
+predicates = "2.1.0"
 
-ink_primitives = { version = "3.0.0-rc7" }
-ink_storage = { version = "3.0.0-rc7" }
-ink_lang = { version = "3.0.0-rc7" }
+ink_primitives = "3.0.0-rc7"
+ink_storage = "3.0.0-rc7"
+ink_lang = "3.0.0-rc7"
 
 [features]
 # Enable this to execute long running tests, which usually are only run on the CI server
