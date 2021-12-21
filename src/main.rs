@@ -146,7 +146,7 @@ impl std::str::FromStr for OptimizationPasses {
         // We need to replace " here, since the input string could come
         // from either the CLI or the `Cargo.toml` profile section.
         // If it is from the profile it could e.g. be "3" or 3.
-        let normalized_input = input.replace("\"", "").to_lowercase();
+        let normalized_input = input.replace('"', "").to_lowercase();
         match normalized_input.as_str() {
             "0" => Ok(OptimizationPasses::Zero),
             "1" => Ok(OptimizationPasses::One),

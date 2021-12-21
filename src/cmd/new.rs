@@ -21,7 +21,7 @@ use std::{
 };
 
 use anyhow::Result;
-use heck::CamelCase as _;
+use heck::ToUpperCamelCase as _;
 
 pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<()>
 where
@@ -64,7 +64,7 @@ where
 
         // replace template placeholders
         let contents = contents.replace("{{name}}", name);
-        let contents = contents.replace("{{camel_name}}", &name.to_camel_case());
+        let contents = contents.replace("{{camel_name}}", &name.to_upper_camel_case());
 
         let outpath = out_dir.join(file.name());
 

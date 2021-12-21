@@ -48,14 +48,14 @@ impl CrateMetadata {
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the package and lib name.
-        let package_name = root_package.name.replace("-", "_");
+        let package_name = root_package.name.replace('-', "_");
         let lib_name = &root_package
             .targets
             .iter()
             .find(|target| target.kind.iter().any(|t| t == "cdylib"))
             .expect("lib name not found")
             .name
-            .replace("-", "_");
+            .replace('-', "_");
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
