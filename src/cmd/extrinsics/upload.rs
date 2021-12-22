@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi, runtime_api::api};
+use super::{
+    display_events, runtime_api::api, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
+    RuntimeApi,
+};
 use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::{Context, Result};
 use jsonrpsee::{
@@ -25,9 +28,10 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{fmt::Debug, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer, TransactionEvents};
 
 type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
+type CodeUploadReturnValue = pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "upload", about = "Upload a contract's code")]
@@ -64,14 +68,31 @@ impl UploadCommand {
 
         async_std::task::block_on(async {
             if self.dry_run {
-                self.upload_code_rpc(code, &signer).await
+                let result = self.upload_code_rpc(code, &signer).await?;
+
+                name_value_println!("Code hash", format!("{:?}", result.code_hash));
+                name_value_println!("Deposit", format!("{:?}", result.deposit));
+
+                Ok(())
             } else {
-                self.upload_code(code, &signer, &transcoder).await
+                let result = self.upload_code(code, &signer, &transcoder).await?;
+
+                let code_stored = result
+                    .find_first_event::<api::contracts::events::CodeStored>()?
+                    .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+
+                name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
+
+                Ok(())
             }
         })
     }
 
-    async fn upload_code_rpc<'a>(&self, code: Vec<u8>, signer: &PairSigner) -> Result<()> {
+    async fn upload_code_rpc<'a>(
+        &self,
+        code: Vec<u8>,
+        signer: &PairSigner,
+    ) -> Result<CodeUploadReturnValue> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
@@ -84,16 +105,12 @@ impl UploadCommand {
             storage_deposit_limit,
         };
         let params = vec![to_json_value(call_request)?];
+
         let result: CodeUploadResult = cli
             .request("contracts_upload_code", Some(params.into()))
             .await?;
 
-        let exec_return_value =
-            result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-
-        name_value_println!("Code hash", format!("{:?}", exec_return_value.code_hash));
-        name_value_println!("Deposit", format!("{:?}", exec_return_value.deposit));
-        Ok(())
+        result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))
     }
 
     async fn upload_code<'a>(
@@ -101,7 +118,7 @@ impl UploadCommand {
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'a>,
-    ) -> Result<()> {
+    ) -> Result<TransactionEvents<DefaultConfig>> {
         let url = self.extrinsic_opts.url.to_string();
         let api = ClientBuilder::new()
             .set_url(&url)
@@ -126,13 +143,7 @@ impl UploadCommand {
             self.extrinsic_opts.pretty_print,
         )?;
 
-        let code_stored = result
-            .find_first_event::<api::contracts::events::CodeStored>()?
-            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
-
-        name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
-
-        Ok(())
+        Ok(result)
     }
 }
 
