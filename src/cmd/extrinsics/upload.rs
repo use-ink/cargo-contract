@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi};
+use super::{display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi, runtime_api::api};
 use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::{Context, Result};
 use jsonrpsee::{
@@ -124,7 +124,15 @@ impl UploadCommand {
             api.client.metadata(),
             &self.extrinsic_opts.verbosity()?,
             self.extrinsic_opts.pretty_print,
-        )
+        )?;
+
+        let code_stored = result
+            .find_first_event::<api::contracts::events::CodeStored>()?
+            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+
+        name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
+
+        Ok(())
     }
 }
 
