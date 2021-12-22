@@ -15,9 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{display_events, Balance, CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi};
-use crate::ExtrinsicOpts;
+use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::{Context, Result};
-use colored::Colorize;
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
     ws_client::WsClientBuilder,
@@ -91,16 +90,9 @@ impl UploadCommand {
 
         let exec_return_value =
             result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-        println!(
-            "{:>12} {:?}",
-            "Code hash".bright_purple().bold(),
-            exec_return_value.code_hash
-        );
-        println!(
-            "{:>12} {:?}",
-            "Deposit".bright_purple().bold(),
-            exec_return_value.deposit
-        );
+
+        name_value_println!("Code hash", format!("{:?}", exec_return_value.code_hash));
+        name_value_println!("Deposit", format!("{:?}", exec_return_value.deposit));
         Ok(())
     }
 

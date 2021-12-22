@@ -106,9 +106,22 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 macro_rules! maybe_println {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
-            println!($($msg)*);
+            ::std::println!($($msg)*);
         }
     };
+}
+
+/// Pretty print name value, name right aligned with colour.
+#[macro_export]
+macro_rules! name_value_println {
+    ($name:tt, $value:expr) => {{
+        use colored::Colorize as _;
+        ::std::println!(
+            "{:>12} {}",
+            $name.bright_purple().bold(),
+            $value.bright_white(),
+        );
+    }};
 }
 
 #[cfg(test)]
