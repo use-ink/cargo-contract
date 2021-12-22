@@ -63,6 +63,10 @@ pub struct InstantiateCommand {
     /// consumed.
     #[structopt(long)]
     storage_deposit_limit: Option<Balance>,
+    /// A salt used in the address derivation of the new contract. Use to create multiple instances
+    /// of the same contract code from the same account.
+    #[structopt(long, parse(try_from_str = parse_hex_bytes))]
+    salt: Option<Bytes>,
     /// Dry-run instantiate via RPC, instead of as an extrinsic.
     /// The contract will not be instantiated.
     #[structopt(long, short = "rpc")]
@@ -78,6 +82,12 @@ fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     Ok(arr.into())
+}
+
+/// Parse hex encoded bytes.
+fn parse_hex_bytes(input: &str) -> Result<Bytes> {
+    let bytes = decode_hex(input)?;
+    Ok(bytes.into())
 }
 
 impl InstantiateCommand {
@@ -114,14 +124,14 @@ impl InstantiateCommand {
             }
             (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
         }?;
+        let salt = self.salt.clone().unwrap_or_else(|| Bytes(Vec::new()));
 
         let args = InstantiateArgs {
             value: self.value,
             gas_limit: self.gas_limit,
             storage_deposit_limit: self.storage_deposit_limit,
             data,
-            // todo: [AJ] add salt
-            salt: vec![],
+            salt,
         };
 
         let exec = Exec {
@@ -142,7 +152,7 @@ struct InstantiateArgs {
     gas_limit: u64,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Bytes,
 }
 
 pub struct Exec<'a> {
@@ -174,7 +184,6 @@ impl<'a> Exec<'a> {
                     name_value_println!("Result", String::from("Success!"));
                     name_value_println!("Contract", ret_val.account_id.to_ss58check());
                     name_value_println!("Reverted", format!("{:?}", ret_val.result.did_revert()));
-                    // todo: decode return value data?
                     name_value_println!("Data", format!("{:?}", ret_val.result.data));
                 }
                 Err(err) => {
@@ -213,7 +222,7 @@ impl<'a> Exec<'a> {
                 self.args.storage_deposit_limit,
                 code.to_vec(),
                 self.args.data.clone(),
-                vec![], // todo! [AJ] add salt
+                self.args.salt.0.clone(),
             )
             .sign_and_submit_then_watch(&self.signer)
             .await?
@@ -252,7 +261,7 @@ impl<'a> Exec<'a> {
                 self.args.storage_deposit_limit,
                 code_hash,
                 self.args.data.clone(),
-                vec![], // todo! [AJ] add salt
+                self.args.salt.0.clone(),
             )
             .sign_and_submit_then_watch(&self.signer)
             .await?
@@ -286,7 +295,7 @@ impl<'a> Exec<'a> {
             storage_deposit_limit: None, // todo: [AJ] call storage_deposit_limit
             code,
             data: self.args.data.clone().into(),
-            salt: self.args.salt.clone().into(),
+            salt: self.args.salt.clone(),
         };
         let params = vec![to_json_value(call_request)?];
         let result: ContractInstantiateResult = cli
