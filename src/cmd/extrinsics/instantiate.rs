@@ -18,14 +18,14 @@ use super::{
     display_events, runtime_api::api, Balance, CodeHash, ContractAccount,
     ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
-use crate::{util::decode_hex, ExtrinsicOpts, Verbosity};
+use crate::{name_value_println, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
     ws_client::WsClientBuilder,
 };
 use serde::Serialize;
-use sp_core::Bytes;
+use sp_core::{crypto::Ss58Codec, Bytes};
 use std::{fs, path::PathBuf};
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
@@ -167,21 +167,36 @@ impl<'a> Exec<'a> {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
-            println!("{:?}", result); // todo: [AJ] extract relevant info?
+            let debug_message = std::str::from_utf8(&result.debug_message)
+                .context("Error decoding UTF8 debug message bytes")?;
+            match result.result {
+                Ok(ret_val) => {
+                    name_value_println!("Result", String::from("Success!"));
+                    name_value_println!("Contract", ret_val.account_id.to_ss58check());
+                    name_value_println!("Reverted", format!("{:?}", ret_val.result.did_revert()));
+                    // todo: decode return value data?
+                    name_value_println!("Data", format!("{:?}", ret_val.result.data));
+                }
+                Err(err) => {
+                    name_value_println!("Result", format!("Error: {:?}", err));
+                }
+            }
+            name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed));
+            name_value_println!("Gas Required", format!("{:?}", result.gas_required));
+            name_value_println!("Storage Deposit", format!("{:?}", result.storage_deposit));
+            name_value_println!("Debug Message", format!("'{}'", debug_message));
             return Ok(());
         }
 
         match code {
             Code::Upload(code) => {
                 let (code_hash, contract_account) = self.instantiate_with_code(code).await?;
-                // todo: [AJ] prettify output
-                println!("Code hash: {}", code_hash);
-                println!("Contract account: {}", contract_account);
+                name_value_println!("Code hash", format!("{:?}", code_hash));
+                name_value_println!("Contract", contract_account.to_ss58check());
             }
             Code::Existing(code_hash) => {
                 let contract_account = self.instantiate(code_hash).await?;
-                // todo: [AJ] prettify output
-                println!("Contract account: {}", contract_account);
+                name_value_println!("Contract", contract_account.to_ss58check());
             }
         }
         Ok(())

@@ -117,7 +117,7 @@ macro_rules! name_value_println {
     ($name:tt, $value:expr) => {{
         use colored::Colorize as _;
         ::std::println!(
-            "{:>12} {}",
+            "{:>16} {}",
             $name.bright_purple().bold(),
             $value.bright_white(),
         );
