@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    pretty_print,
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
 };
@@ -47,13 +46,17 @@ pub fn display_events(
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_ident = format!("{}::{}", event.pallet, event.variant);
         let event_fields = event_metadata.variant().fields();
+
+        // todo: print event name, print event fields per line indented, possibly display only fields we are interested in...
+
         let decoded_event = events_transcoder.decoder().decode_composite(
             Some(event_ident.as_str()),
             event_fields,
             &mut &event.data[..],
         )?;
 
-        pretty_print(&decoded_event, indentation)?;
+
+
         println!();
 
         // decode and display contract events

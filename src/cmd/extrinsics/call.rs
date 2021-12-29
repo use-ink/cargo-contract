@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, pretty_print, Balance, ContractMessageTranscoder, PairSigner,
+    display_events, load_metadata, Balance, ContractMessageTranscoder, PairSigner,
     RuntimeApi,
 };
 use crate::ExtrinsicOpts;

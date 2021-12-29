@@ -22,8 +22,7 @@ mod transcode;
 mod upload;
 
 use anyhow::{anyhow, Context, Result};
-use bat::PrettyPrinter;
-use std::{fmt::Display, fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf};
 
 use self::{events::display_events, transcode::ContractMessageTranscoder};
 use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
@@ -63,28 +62,6 @@ pub fn load_metadata(
     } else {
         Err(anyhow!("Unsupported ink metadata version. Expected V1"))
     }
-}
-
-pub fn pretty_print<V>(value: V, indentation: bool) -> Result<()>
-where
-    V: Display,
-{
-    let content = if indentation {
-        format!("{:#}", value)
-    } else {
-        format!("{}", value)
-    };
-    let mut pretty_printer = PrettyPrinter::new();
-    pretty_printer
-        .input_from_bytes(content.as_bytes())
-        .language("rust")
-        .tab_width(Some(4))
-        .true_color(false)
-        .header(false)
-        .line_numbers(false)
-        .grid(false);
-    let _ = pretty_printer.print();
-    Ok(())
 }
 
 pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
