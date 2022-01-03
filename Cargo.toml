@@ -36,7 +36,7 @@ rustc_version = "0.4.0"
 blake2 = "0.10.0"
 contract-metadata = { version = "0.5.0", path = "./metadata" }
 semver = { version = "1.0.4", features = ["serde"] }
-serde = { version = "1.0.132", default-features = false, features = ["derive"] }
+serde = { version = "1.0.133", default-features = false, features = ["derive"] }
 serde_json = "1.0.73"
 tempfile = "3.2.0"
 url = { version = "2.2.2", features = ["serde"] }
