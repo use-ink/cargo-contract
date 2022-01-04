@@ -21,6 +21,7 @@ use super::{
 use crate::Verbosity;
 
 use anyhow::Result;
+use codec::Input;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
@@ -50,17 +51,18 @@ pub fn display_events(
         println!("Event: {} {}", event.pallet, event.variant);
         let event_data = &mut &event.data[..];
         for field in event_fields {
-            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
-                if field.name() == Some(&"data".to_string()) {
-                    let contract_event = transcoder.decode_contract_event(event_data)?;
-                    println!("Event: {:?}", contract_event);
+            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) && field.name() == Some(&"data".to_string()) {
+                // data is a byte vec so the first byte is the length.
+                let _data_len = event_data.read_byte()?;
+                let contract_event = transcoder.decode_contract_event(event_data)?;
+                println!("Event: {}", contract_event);
+            } else {
+                if let Some(name) = field.name() {
+                    print!("{}: ", name);
                 }
+                let decoded_field = events_transcoder.decode(field, event_data)?;
+                println!("{}", decoded_field)
             }
-            if let Some(name) = field.name() {
-                print!("{}: ", name);
-            }
-            let decoded_field = events_transcoder.decode(field, event_data)?;
-            println!("{:?}", decoded_field)
         }
 
         println!();
