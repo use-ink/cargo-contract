@@ -225,12 +225,7 @@ impl<'a> Exec<'a> {
 
         let metadata = api.client.metadata();
 
-        display_events(
-            &result,
-            &self.transcoder,
-            metadata,
-            &self.verbosity,
-        )?;
+        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let code_stored = result
             .find_first_event::<api::contracts::events::CodeStored>()?
@@ -262,12 +257,7 @@ impl<'a> Exec<'a> {
             .await?;
 
         let metadata = api.client.metadata();
-        display_events(
-            &result,
-            &self.transcoder,
-            metadata,
-            &self.verbosity,
-        )?;
+        display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let instantiated = result
             .find_first_event::<api::contracts::events::Instantiated>()?

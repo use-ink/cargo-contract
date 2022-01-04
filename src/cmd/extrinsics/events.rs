@@ -51,7 +51,9 @@ pub fn display_events(
         println!("Event: {} {}", event.pallet, event.variant);
         let event_data = &mut &event.data[..];
         for field in event_fields {
-            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) && field.name() == Some(&"data".to_string()) {
+            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
+                && field.name() == Some(&"data".to_string())
+            {
                 // data is a byte vec so the first byte is the length.
                 let _data_len = event_data.read_byte()?;
                 let contract_event = transcoder.decode_contract_event(event_data)?;
