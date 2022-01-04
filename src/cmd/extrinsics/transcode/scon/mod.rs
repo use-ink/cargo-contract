@@ -121,10 +121,6 @@ impl Map {
         self.ident.clone()
     }
 
-    pub fn get(&self, value: &Value) -> Option<&Value> {
-        self.map.get(value)
-    }
-
     /// Iterate all key-value pairs.
     pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + DoubleEndedIterator {
         self.map.iter()

@@ -16,7 +16,7 @@
 
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
-    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder, Value},
+    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
 use crate::Verbosity;
 
@@ -28,7 +28,6 @@ pub fn display_events(
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: &Verbosity,
-    indentation: bool,
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
         return Ok(());
@@ -44,36 +43,27 @@ pub fn display_events(
         log::debug!("displaying event {}::{}", event.pallet, event.variant);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
-        let event_ident = format!("{}::{}", event.pallet, event.variant);
         let event_fields = event_metadata.variant().fields();
 
-        // todo: print event name, print event fields per line indented, possibly display only fields we are interested in...
+        // todo: print event fields per line indented, possibly display only fields we are interested in...
 
-        let decoded_event = events_transcoder.decoder().decode_composite(
-            Some(event_ident.as_str()),
-            event_fields,
-            &mut &event.data[..],
-        )?;
+        println!("Event: {} {}", event.pallet, event.variant);
+        let event_data = &mut &event.data[..];
+        for field in event_fields {
+            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
+                if field.name() == Some(&"data".to_string()) {
+                    let contract_event = transcoder.decode_contract_event(event_data)?;
+                    println!("Event: {:?}", contract_event);
+                }
+            }
+            if let Some(name) = field.name() {
+                print!("{}: ", name);
+            }
+            let decoded_field = events_transcoder.decode(field, event_data)?;
+            println!("{:?}", decoded_field)
+        }
 
         println!();
-
-        // decode and display contract events
-        if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant) {
-            if let Value::Map(map) = decoded_event {
-                if let Some(Value::Bytes(bytes)) = map.get(&Value::String("data".into())) {
-                    log::debug!("Decoding contract event bytes {:?}", bytes);
-                    let contract_event = transcoder.decode_contract_event(&mut bytes.bytes())?;
-                    pretty_print(contract_event, indentation)?;
-                    println!()
-                } else {
-                    return Err(anyhow::anyhow!("ContractEmitted::data should be `Vec<u8>`"));
-                }
-            } else {
-                return Err(anyhow::anyhow!(
-                    "ContractEmitted should be a struct with named fields"
-                ));
-            }
-        }
     }
     println!();
     Ok(())

@@ -93,9 +93,6 @@ pub(crate) struct ExtrinsicOpts {
     password: Option<String>,
     #[structopt(flatten)]
     verbosity: VerbosityFlags,
-    /// Format events with indentation over multiple lines.
-    #[structopt(long)]
-    pretty_print: bool,
 }
 
 impl ExtrinsicOpts {

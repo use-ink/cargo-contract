@@ -138,7 +138,6 @@ impl InstantiateCommand {
             args,
             url,
             verbosity,
-            pretty_print: self.extrinsic_opts.pretty_print,
             signer,
             transcoder,
         };
@@ -158,7 +157,6 @@ struct InstantiateArgs {
 pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
-    pretty_print: bool,
     url: url::Url,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
@@ -232,7 +230,6 @@ impl<'a> Exec<'a> {
             &self.transcoder,
             metadata,
             &self.verbosity,
-            self.pretty_print,
         )?;
 
         let code_stored = result
@@ -270,7 +267,6 @@ impl<'a> Exec<'a> {
             &self.transcoder,
             metadata,
             &self.verbosity,
-            self.pretty_print,
         )?;
 
         let instantiated = result
