@@ -55,8 +55,6 @@ pub fn display_events(
             &mut &event.data[..],
         )?;
 
-
-
         println!();
 
         // decode and display contract events

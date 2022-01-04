@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, runtime_api::api, Balance, CodeHash, ContractAccount,
-    ContractMessageTranscoder, PairSigner, RuntimeApi,
+    display_contract_exec_result, display_events, runtime_api::api, Balance, CodeHash,
+    ContractAccount, ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
 use crate::{name_value_println, util::decode_hex, ExtrinsicOpts, Verbosity};
 use anyhow::{Context, Result};
@@ -177,10 +177,8 @@ impl<'a> Exec<'a> {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
-            let debug_message = std::str::from_utf8(&result.debug_message)
-                .context("Error decoding UTF8 debug message bytes")?;
             match result.result {
-                Ok(ret_val) => {
+                Ok(ref ret_val) => {
                     name_value_println!("Result", String::from("Success!"));
                     name_value_println!("Contract", ret_val.account_id.to_ss58check());
                     name_value_println!("Reverted", format!("{:?}", ret_val.result.did_revert()));
@@ -190,10 +188,7 @@ impl<'a> Exec<'a> {
                     name_value_println!("Result", format!("Error: {:?}", err));
                 }
             }
-            name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed));
-            name_value_println!("Gas Required", format!("{:?}", result.gas_required));
-            name_value_println!("Storage Deposit", format!("{:?}", result.storage_deposit));
-            name_value_println!("Debug Message", format!("'{}'", debug_message));
+            display_contract_exec_result(&result)?;
             return Ok(());
         }
 

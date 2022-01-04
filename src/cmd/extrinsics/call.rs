@@ -15,12 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, load_metadata, Balance, ContractMessageTranscoder, PairSigner,
-    RuntimeApi,
+    display_contract_exec_result, display_events, load_metadata, Balance,
+    ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
-use crate::ExtrinsicOpts;
+use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::Result;
-use colored::Colorize;
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
     ws_client::WsClientBuilder,
@@ -101,12 +100,18 @@ impl CallCommand {
         let params = vec![to_json_value(call_request)?];
         let result: ContractExecResult = cli.request("contracts_call", Some(params.into())).await?;
 
-        let exec_return_value = result
-            .result
-            .map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))?;
-        let value = transcoder.decode_return(&self.message, exec_return_value.data.0)?;
-        pretty_print(value, false)?;
-        println!("{:?} {}", "Gas consumed:".bold(), result.gas_consumed);
+        match result.result {
+            Ok(ref ret_val) => {
+                let value = transcoder.decode_return(&self.message, &mut &ret_val.data.0[..])?;
+                name_value_println!("Result", String::from("Success!"));
+                name_value_println!("Reverted", format!("{:?}", ret_val.did_revert()));
+                name_value_println!("Data", format!("{:?}", value));
+            }
+            Err(err) => {
+                name_value_println!("Result", format!("Error: {:?}", err));
+            }
+        }
+        display_contract_exec_result(&result)?;
         Ok(())
     }
 

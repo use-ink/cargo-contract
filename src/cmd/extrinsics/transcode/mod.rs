@@ -129,13 +129,13 @@ impl<'a> ContractMessageTranscoder<'a> {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: Vec<u8>) -> Result<Value> {
+    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
             "Failed to find message spec with name '{}'",
             name
         ))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.transcoder.decode(return_ty.ty().id(), &mut &data[..])
+            self.transcoder.decode(return_ty.ty().id(), data)
         } else {
             Ok(Value::Unit)
         }

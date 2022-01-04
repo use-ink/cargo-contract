@@ -25,7 +25,8 @@ use anyhow::{anyhow, Context, Result};
 use std::{fs::File, path::PathBuf};
 
 use self::{events::display_events, transcode::ContractMessageTranscoder};
-use crate::{crate_metadata::CrateMetadata, workspace::ManifestPath};
+use crate::{crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath};
+use pallet_contracts_primitives::ContractResult;
 use sp_core::sr25519;
 use subxt::{Config, DefaultConfig};
 
@@ -40,6 +41,8 @@ type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
+/// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo
+/// [`CrateMetadata`] along with the contract metadata [`ink_metadata::InkProject`].
 pub fn load_metadata(
     manifest_path: Option<&PathBuf>,
 ) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
@@ -64,6 +67,18 @@ pub fn load_metadata(
     }
 }
 
+/// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
 pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
     PairSigner::new(pair)
+}
+
+/// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
+pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> Result<()> {
+    let debug_message = std::str::from_utf8(&result.debug_message)
+        .context("Error decoding UTF8 debug message bytes")?;
+    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed));
+    name_value_println!("Gas Required", format!("{:?}", result.gas_required));
+    name_value_println!("Storage Deposit", format!("{:?}", result.storage_deposit));
+    name_value_println!("Debug Message", format!("'{}'", debug_message));
+    Ok(())
 }
