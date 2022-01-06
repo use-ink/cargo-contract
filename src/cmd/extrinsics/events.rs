@@ -19,6 +19,7 @@ use super::{
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
 use crate::Verbosity;
+use colored::Colorize as _;
 
 use anyhow::Result;
 use codec::Input;
@@ -48,8 +49,9 @@ pub fn display_events(
 
         // todo: print event fields per line indented, possibly display only fields we are interested in...
 
-        println!("Event: {} {}", event.pallet, event.variant);
+        println!("{:>16} {} ➜ {}", "Event".bright_green().bold(), event.pallet.bright_white(), event.variant.bright_white().bold());
         let event_data = &mut &event.data[..];
+        let mut unnamed_field_name = 0;
         for field in event_fields {
             if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
                 && field.name() == Some(&"data".to_string())
@@ -57,17 +59,18 @@ pub fn display_events(
                 // data is a byte vec so the first byte is the length.
                 let _data_len = event_data.read_byte()?;
                 let contract_event = transcoder.decode_contract_event(event_data)?;
-                println!("Event: {}", contract_event);
+                println!("{:>13}{}", "", format!("{}: {}", "data".bright_white(), contract_event));
             } else {
-                if let Some(name) = field.name() {
-                    print!("{}: ", name);
-                }
+                let field_name = field.name().cloned().unwrap_or_else(|| {
+                    let name = unnamed_field_name.to_string();
+                    unnamed_field_name += 1;
+                    name
+                });
+
                 let decoded_field = events_transcoder.decode(field, event_data)?;
-                println!("{}", decoded_field)
+                println!("{:13}{}", "", format!("{}: {}", field_name.bright_white(), decoded_field));
             }
         }
-
-        println!();
     }
     println!();
     Ok(())
