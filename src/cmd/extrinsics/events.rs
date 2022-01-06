@@ -18,7 +18,7 @@ use super::{
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
-use crate::Verbosity;
+use crate::{Verbosity, maybe_println};
 use colored::Colorize as _;
 
 use anyhow::Result;
@@ -33,6 +33,10 @@ pub fn display_events(
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
         return Ok(());
+    }
+
+    if matches!(verbosity, Verbosity::Verbose) {
+        println!("VERBOSE")
     }
 
     let runtime_metadata = subxt_metadata.runtime_metadata();
@@ -59,7 +63,7 @@ pub fn display_events(
                 // data is a byte vec so the first byte is the length.
                 let _data_len = event_data.read_byte()?;
                 let contract_event = transcoder.decode_contract_event(event_data)?;
-                println!("{:>13}{}", "", format!("{}: {}", "data".bright_white(), contract_event));
+                maybe_println!(verbosity, "{:>13}{}", "", format!("{}: {}", "data".bright_white(), contract_event));
             } else {
                 let field_name = field.name().cloned().unwrap_or_else(|| {
                     let name = unnamed_field_name.to_string();
@@ -68,7 +72,7 @@ pub fn display_events(
                 });
 
                 let decoded_field = events_transcoder.decode(field, event_data)?;
-                println!("{:13}{}", "", format!("{}: {}", field_name.bright_white(), decoded_field));
+                maybe_println!(verbosity, "{:13}{}", "", format!("{}: {}", field_name.bright_white(), decoded_field));
             }
         }
     }
