@@ -18,7 +18,7 @@ use super::{
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
-use crate::{Verbosity, maybe_println, DEFAULT_KEY_COL_WIDTH};
+use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
@@ -55,7 +55,13 @@ pub fn display_events(
 
         // todo: print event fields per line indented, possibly display only fields we are interested in...
 
-        println!("{:>width$} {} ➜ {}", "Event".bright_green().bold(), event.pallet.bright_white(), event.variant.bright_white().bold(), width = DEFAULT_KEY_COL_WIDTH);
+        println!(
+            "{:>width$} {} ➜ {}",
+            "Event".bright_green().bold(),
+            event.pallet.bright_white(),
+            event.variant.bright_white().bold(),
+            width = DEFAULT_KEY_COL_WIDTH
+        );
         let event_data = &mut &event.data[..];
         let mut unnamed_field_name = 0;
         for field in event_fields {
@@ -65,7 +71,13 @@ pub fn display_events(
                 // data is a byte vec so the first byte is the length.
                 let _data_len = event_data.read_byte()?;
                 let contract_event = transcoder.decode_contract_event(event_data)?;
-                maybe_println!(verbosity, "{:width$}{}", "", format!("{}: {}", "data".bright_white(), contract_event), width = EVENT_FIELD_INDENT);
+                maybe_println!(
+                    verbosity,
+                    "{:width$}{}",
+                    "",
+                    format!("{}: {}", "data".bright_white(), contract_event),
+                    width = EVENT_FIELD_INDENT
+                );
             } else {
                 let field_name = field.name().cloned().unwrap_or_else(|| {
                     let name = unnamed_field_name.to_string();
@@ -74,7 +86,13 @@ pub fn display_events(
                 });
 
                 let decoded_field = events_transcoder.decode(field, event_data)?;
-                maybe_println!(verbosity, "{:width$}{}", "", format!("{}: {}", field_name.bright_white(), decoded_field), width = EVENT_FIELD_INDENT);
+                maybe_println!(
+                    verbosity,
+                    "{:width$}{}",
+                    "",
+                    format!("{}: {}", field_name.bright_white(), decoded_field),
+                    width = EVENT_FIELD_INDENT
+                );
             }
         }
     }

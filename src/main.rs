@@ -24,9 +24,12 @@ mod validate_wasm;
 mod workspace;
 
 use self::{
-    cmd::{metadata::MetadataResult, BuildCommand, CheckCommand, TestCommand, CallCommand, InstantiateCommand, UploadCommand},
-    workspace::ManifestPath,
+    cmd::{
+        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, InstantiateCommand,
+        TestCommand, UploadCommand,
+    },
     util::DEFAULT_KEY_COL_WIDTH,
+    workspace::ManifestPath,
 };
 
 use std::{

@@ -79,9 +79,25 @@ pub const EXEC_RESULT_MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> Result<()> {
     let debug_message = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?;
-    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), EXEC_RESULT_MAX_KEY_COL_WIDTH);
-    name_value_println!("Gas Required", format!("{:?}", result.gas_required), EXEC_RESULT_MAX_KEY_COL_WIDTH);
-    name_value_println!(STORAGE_DEPOSIT_KEY, format!("{:?}", result.storage_deposit), EXEC_RESULT_MAX_KEY_COL_WIDTH);
-    name_value_println!("Debug Message", format!("'{}'", debug_message), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+    name_value_println!(
+        "Gas Consumed",
+        format!("{:?}", result.gas_consumed),
+        EXEC_RESULT_MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Gas Required",
+        format!("{:?}", result.gas_required),
+        EXEC_RESULT_MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        STORAGE_DEPOSIT_KEY,
+        format!("{:?}", result.storage_deposit),
+        EXEC_RESULT_MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Debug Message",
+        format!("'{}'", debug_message),
+        EXEC_RESULT_MAX_KEY_COL_WIDTH
+    );
     Ok(())
 }
