@@ -53,8 +53,6 @@ pub fn display_events(
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_fields = event_metadata.variant().fields();
 
-        // todo: print event fields per line indented, possibly display only fields we are interested in...
-
         println!(
             "{:>width$} {} ➜ {}",
             "Event".bright_green().bold(),

@@ -290,11 +290,15 @@ impl<'a> Exec<'a> {
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
         let url = self.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
+        let storage_deposit_limit = self
+            .storage_deposit_limit
+            .as_ref()
+            .map(|limit| NumberOrHex::Hex((*limit).into()));
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
             value: NumberOrHex::Hex(self.args.value.into()),
             gas_limit: NumberOrHex::Number(self.args.gas_limit),
-            storage_deposit_limit: None, // todo: [AJ] call storage_deposit_limit
+            storage_deposit_limit,
             code,
             data: self.args.data.clone().into(),
             salt: self.args.salt.clone(),
