@@ -23,9 +23,11 @@ mod util;
 mod validate_wasm;
 mod workspace;
 
-use self::workspace::ManifestPath;
-
-use crate::cmd::{metadata::MetadataResult, BuildCommand, CheckCommand, TestCommand};
+use self::{
+    cmd::{metadata::MetadataResult, BuildCommand, CheckCommand, TestCommand, CallCommand, InstantiateCommand, UploadCommand},
+    workspace::ManifestPath,
+    util::DEFAULT_KEY_COL_WIDTH,
+};
 
 use std::{
     convert::TryFrom,
@@ -38,7 +40,6 @@ use anyhow::{Error, Result};
 use colored::Colorize;
 use structopt::{clap, StructOpt};
 
-use crate::cmd::{CallCommand, InstantiateCommand, UploadCommand};
 use sp_core::{crypto::Pair, sr25519};
 
 #[derive(Debug, StructOpt)]

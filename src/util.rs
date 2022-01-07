@@ -111,17 +111,23 @@ macro_rules! maybe_println {
     };
 }
 
+pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]
 macro_rules! name_value_println {
-    ($name:tt, $value:expr) => {{
+    ($name:tt, $value:expr, $width:expr) => {{
         use colored::Colorize as _;
         ::std::println!(
-            "{:>16} {}",
+            "{:>width$} {}",
             $name.bright_purple().bold(),
             $value.bright_white(),
+            width = $width,
         );
     }};
+    ($name:tt, $value:expr) => {
+        $crate::name_value_println!($name, $value, $crate::DEFAULT_KEY_COL_WIDTH)
+    };
 }
 
 #[cfg(test)]

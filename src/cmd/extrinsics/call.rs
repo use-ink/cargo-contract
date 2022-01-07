@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, load_metadata, Balance,
+    display_contract_exec_result, display_events, load_metadata, EXEC_RESULT_MAX_KEY_COL_WIDTH, Balance,
     ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
 use crate::{name_value_println, ExtrinsicOpts};
@@ -103,12 +103,12 @@ impl CallCommand {
         match result.result {
             Ok(ref ret_val) => {
                 let value = transcoder.decode_return(&self.message, &mut &ret_val.data.0[..])?;
-                name_value_println!("Result", String::from("Success!"));
-                name_value_println!("Reverted", format!("{:?}", ret_val.did_revert()));
-                name_value_println!("Data", format!("{:?}", value));
+                name_value_println!("Result", String::from("Success!"), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                name_value_println!("Reverted", format!("{:?}", ret_val.did_revert()), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                name_value_println!("Data", format!("{:?}", value), EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
             Err(err) => {
-                name_value_println!("Result", format!("Error: {:?}", err));
+                name_value_println!("Result", format!("Error: {:?}", err), EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
         }
         display_contract_exec_result(&result)?;

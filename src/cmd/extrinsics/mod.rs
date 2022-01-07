@@ -72,13 +72,16 @@ pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
     PairSigner::new(pair)
 }
 
+const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
+pub const EXEC_RESULT_MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
+
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> Result<()> {
     let debug_message = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?;
-    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed));
-    name_value_println!("Gas Required", format!("{:?}", result.gas_required));
-    name_value_println!("Storage Deposit", format!("{:?}", result.storage_deposit));
-    name_value_println!("Debug Message", format!("'{}'", debug_message));
+    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+    name_value_println!("Gas Required", format!("{:?}", result.gas_required), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+    name_value_println!(STORAGE_DEPOSIT_KEY, format!("{:?}", result.storage_deposit), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+    name_value_println!("Debug Message", format!("'{}'", debug_message), EXEC_RESULT_MAX_KEY_COL_WIDTH);
     Ok(())
 }

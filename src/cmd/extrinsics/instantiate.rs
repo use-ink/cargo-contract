@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, runtime_api::api, Balance, CodeHash,
+    display_contract_exec_result, display_events, EXEC_RESULT_MAX_KEY_COL_WIDTH, runtime_api::api, Balance, CodeHash,
     ContractAccount, ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
 use crate::{name_value_println, util::decode_hex, ExtrinsicOpts, Verbosity};
@@ -177,13 +177,13 @@ impl<'a> Exec<'a> {
             let result = self.instantiate_dry_run(code).await?;
             match result.result {
                 Ok(ref ret_val) => {
-                    name_value_println!("Result", String::from("Success!"));
-                    name_value_println!("Contract", ret_val.account_id.to_ss58check());
-                    name_value_println!("Reverted", format!("{:?}", ret_val.result.did_revert()));
-                    name_value_println!("Data", format!("{:?}", ret_val.result.data));
+                    name_value_println!("Result", String::from("Success!"), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    name_value_println!("Contract", ret_val.account_id.to_ss58check(), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    name_value_println!("Reverted", format!("{:?}", ret_val.result.did_revert()), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    name_value_println!("Data", format!("{:?}", ret_val.result.data), EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
                 Err(err) => {
-                    name_value_println!("Result", format!("Error: {:?}", err));
+                    name_value_println!("Result", format!("Error: {:?}", err), EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)?;
