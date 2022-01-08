@@ -296,21 +296,20 @@ impl<'a> Encoder<'a> {
         match ty.type_def() {
             TypeDef::Primitive(primitive) => {
                 match primitive {
-                    // todo: [AJ] extract function here?
                     TypeDefPrimitive::U8 => {
-                        Ok(Compact(uint_from_value::<u8>(value, "u8")?).encode_to(output))
+                        encode_compact_uint::<u8, _>(value, "u8", output)
                     }
                     TypeDefPrimitive::U16 => {
-                        Ok(Compact(uint_from_value::<u16>(value, "u16")?).encode_to(output))
+                        encode_compact_uint::<u16, _>(value, "u16", output)
                     }
                     TypeDefPrimitive::U32 => {
-                        Ok(Compact(uint_from_value::<u32>(value, "u32")?).encode_to(output))
+                        encode_compact_uint::<u32, _>(value, "u32", output)
                     }
                     TypeDefPrimitive::U64 => {
-                        Ok(Compact(uint_from_value::<u64>(value, "u64")?).encode_to(output))
+                        encode_compact_uint::<u64, _>(value, "u64", output)
                     }
                     TypeDefPrimitive::U128 => {
-                        Ok(Compact(uint_from_value::<u128>(value, "u128")?).encode_to(output))
+                        encode_compact_uint::<u128, _>(value, "u128", output)
                     }
                     _ => Err(anyhow::anyhow!(
                         "Compact encoding not supported for {:?}",
@@ -356,6 +355,18 @@ where
 {
     let uint: T = uint_from_value(value, expected)?;
     uint.encode_to(output);
+    Ok(())
+}
+
+fn encode_compact_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
+    where
+        T: TryFrom<u128> + FromStr + Encode,
+        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
+        <T as FromStr>::Err: Error + Send + Sync + 'static,
+        O: Output,
+{
+    let uint: T = uint_from_value(value, expected)?;
+    Compact(uint).encode_to(output);
     Ok(())
 }
 
