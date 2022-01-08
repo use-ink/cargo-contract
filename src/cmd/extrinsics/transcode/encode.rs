@@ -317,6 +317,7 @@ impl<'a> Encoder<'a> {
                     )),
                 }
             }
+            // todo: handle composite types with single field compact primitive.
             _ => unimplemented!("Only primitive unsigned ints support compact encoding for now"),
         }
     }
