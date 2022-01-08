@@ -240,7 +240,6 @@ impl<'a> Exec<'a> {
             )
             .sign_and_submit_then_watch(&self.signer)
             .await?
-            // todo: should we have optimistic fast mode just for InBlock?
             .wait_for_finalized_success()
             .await?;
 
@@ -273,7 +272,6 @@ impl<'a> Exec<'a> {
             )
             .sign_and_submit_then_watch(&self.signer)
             .await?
-            // todo: should we have optimistic fast mode just for InBlock?
             .wait_for_finalized_success()
             .await?;
 
