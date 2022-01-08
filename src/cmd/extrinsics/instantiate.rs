@@ -289,6 +289,7 @@ impl<'a> Exec<'a> {
         let url = self.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
+            .args
             .storage_deposit_limit
             .as_ref()
             .map(|limit| NumberOrHex::Hex((*limit).into()));
