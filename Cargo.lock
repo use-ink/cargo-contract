@@ -345,9 +345,9 @@ dependencies = [
 
 [[package]]
 name = "blake2"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "456792aca5c9ce59bb1e02d4d02fed75ae146ccc13bfe4c3b306bb3305f0be63"
+checksum = "b94ba84325db59637ffc528bbe8c7f86c02c57cff5c0e2b9b00f9a851f42f309"
 dependencies = [
  "digest 0.10.1",
 ]
