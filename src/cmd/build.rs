@@ -1042,8 +1042,10 @@ mod tests_ci_only {
             let res = check_wasm_opt_version_compatibility(&path);
 
             // then
-            eprintln!("error: {:?}", res);
             assert!(res.is_err());
+
+            // this println is here to debug a spuriously failing CI at the following assert.
+            eprintln!("error: {:?}", res);
             assert!(format!("{:?}", res)
                 .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
