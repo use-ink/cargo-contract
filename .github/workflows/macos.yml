@@ -48,6 +48,8 @@ jobs:
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
+          cc --version
+          clang --version
           wasm-opt --version
           cargo -vV
           cargo run -- contract --version
