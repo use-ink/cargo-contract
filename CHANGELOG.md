@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - Migrated to 2021 edition, enforcing MSRV of `1.56.1`. [#360](https://github.com/paritytech/cargo-contract/pull/360)
 
+### Changed
+- Reverted the disabled overflow checks in the `cargo contract new` template - [#376](https://github.com/paritytech/cargo-contract/pull/376)
+
 ## [0.16.0] - 2021-11-25
 
 ### Changed
