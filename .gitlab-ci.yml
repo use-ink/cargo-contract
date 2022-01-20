@@ -85,7 +85,7 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - cargo test --verbose --workspace --all-features
+    - RUSTC_WRAPPER="" cargo test --verbose --workspace --all-features
 
 test-new-project-template:
   stage:                           test
