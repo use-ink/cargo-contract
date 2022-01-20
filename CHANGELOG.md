@@ -5,10 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Migrated to 2021 edition, enforcing MSRV of `1.56.1`. [#360](https://github.com/paritytech/cargo-contract/pull/360)
+
+## [0.17.0] - 2022-01-19
 
 ### Changed
+- Updated `cargo contract new` template dependencies to ink! `3.0.0-rc8` - [#402](https://github.com/paritytech/cargo-contract/pull/402)
 - Reverted the disabled overflow checks in the `cargo contract new` template - [#376](https://github.com/paritytech/cargo-contract/pull/376)
+- Migrated to 2021 edition, enforcing MSRV of `1.56.1` - [#360](https://github.com/paritytech/cargo-contract/pull/360)
+
+### Added
+- For contract size optimization added `workspace` section to override parent `workspace` - [#378](https://github.com/paritytech/cargo-contract/pull/378)
 
 ## [0.16.0] - 2021-11-25
 
