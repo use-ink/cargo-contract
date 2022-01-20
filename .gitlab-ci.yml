@@ -85,7 +85,11 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - RUSTC_WRAPPER="" cargo test --verbose --workspace --all-features
+    - rustup update
+    - rustup show
+    - unset CARGO_HOME
+    - unset CARGO_TARGET_DIR
+    - RUSTC_WRAPPER="" cargo +nightly test --verbose --workspace --all-features
 
 test-new-project-template:
   stage:                           test
