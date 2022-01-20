@@ -85,6 +85,7 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
+    - rm -rf /ci-cache/cargo-contract/targets/master/
     - cargo test --verbose --workspace --all-features
 
 test-new-project-template:
