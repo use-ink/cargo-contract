@@ -974,31 +974,6 @@ mod tests_ci_only {
         })
     }
 
-    #[test]
-    fn detect_mismatching_parity_scale_codec_dependencies() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            // the manifest path
-
-            // at the time of writing this test ink! already uses `parity-scale-codec`
-            // in a version > 2, hence 1 is an incompatible version.
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            manifest
-                .set_dependency_version("scale", "1.0.0")
-                .expect("setting `scale` version failed");
-            manifest
-                .write(&manifest_path)
-                .expect("writing manifest failed");
-
-            // when
-            let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
-
-            // then
-            assert!(res.is_err());
-            Ok(())
-        })
-    }
-
     #[cfg(unix)]
     #[test]
     fn incompatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
