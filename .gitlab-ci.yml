@@ -85,7 +85,8 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - cargo test --verbose --workspace --all-features
+    - rustup override set nightly-2022-01-19
+    - cargo +nightly test --verbose --workspace --all-features
 
 test-new-project-template:
   stage:                           test
