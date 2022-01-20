@@ -77,6 +77,7 @@ clippy:
   stage:                           check
   <<:                              *docker-env
   script:
+    - rm -rf /ci-cache/cargo-contract/targets/master/
     - cargo clippy --verbose --all-targets --all-features -- -D warnings;
 
 #### stage:                        test (all features)
@@ -85,7 +86,6 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - rm -rf /ci-cache/cargo-contract/targets/master/
     - cargo test --verbose --workspace --all-features
 
 test-new-project-template:
