@@ -6,7 +6,6 @@
 
 
 stages:
-  - check
   - test
   - build
 
@@ -62,21 +61,6 @@ workflow:
   tags:
     - linux-docker
 
-
-#### stage:                        check
-# be aware that the used image has cargo-contract installed
-
-fmt:
-  stage:                           check
-  <<:                              *docker-env
-  script:
-    - cargo fmt --verbose --all -- --check
-
-clippy:
-  stage:                           check
-  <<:                              *docker-env
-  script:
-    - cargo clippy --verbose --all-targets --all-features -- -D warnings;
 
 #### stage:                        test (all features)
 
