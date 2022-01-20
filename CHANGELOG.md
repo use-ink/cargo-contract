@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - For contract size optimization added `workspace` section to override parent `workspace` - [#378](https://github.com/paritytech/cargo-contract/pull/378)
 
+### Changed
+- Reverted the disabled overflow checks in the `cargo contract new` template - [#376](https://github.com/paritytech/cargo-contract/pull/376)
+
 ## [0.16.0] - 2021-11-25
 
 ### Changed
