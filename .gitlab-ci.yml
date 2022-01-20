@@ -86,7 +86,6 @@ test:
   script:
     - unset CARGO_HOME
     - unset CARGO_TARGET_DIR
-    - rustup override set nightly-2022-01-19
     - rustup show
     - RUSTC_WRAPPER="" cargo +nightly test --verbose --workspace --all-features
 
