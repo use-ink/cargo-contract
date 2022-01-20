@@ -65,9 +65,6 @@ pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Res
         "Running tests".bright_green().bold()
     );
 
-    // We need to make sure that `RUSTFLAGS` are not set in the CI here.
-    // `cargo-contract` sets them when building contracts.
-    std::env::set_var("RUSTFLAGS", "");
     let stdout = util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity)?;
 
     Ok(TestResult { stdout, verbosity })
