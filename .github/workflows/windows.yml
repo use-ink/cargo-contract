@@ -60,9 +60,11 @@ jobs:
           cargo run -- contract check --manifest-path=foobar/Cargo.toml
           cargo run -- contract test --manifest-path=foobar/Cargo.toml
 
-      - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
-        # The tests take a long time in the GitHub Actions runner (~30 mins),
-        # hence we run them only on `master`.
-        if: github.ref == 'refs/heads/master'
-        run: |
-          cargo test --verbose --workspace --all-features
+      # This stage has to be deactivated until https://github.com/Vurich/crunchy/pull/10
+      # is merged and released.
+      # - name: Run tests on {{ matrix.platform }}-${{ matrix.toolchain }}
+      #  # The tests take a long time in the GitHub Actions runner (~30 mins),
+      #  # hence we run them only on `master`.
+      #  if: github.ref == 'refs/heads/master'
+      #  run: |
+      #    cargo test --verbose --workspace --all-features

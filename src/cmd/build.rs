@@ -515,18 +515,27 @@ fn do_optimization(
 ///
 /// Currently this must be a version >= 99.
 fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
-    let cmd = Command::new(wasm_opt_path)
-        .arg("--version")
-        .output()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Executing `{:?} --version` failed with {:?}",
-                wasm_opt_path.display(),
-                err
-            )
-        })?;
-    if !cmd.status.success() {
-        let err = str::from_utf8(&cmd.stderr)
+    let mut cmd_res = Command::new(wasm_opt_path).arg("--version").output();
+
+    // The following condition is a workaround for a spurious CI failure:
+    // ```
+    // Executing `"/tmp/cargo-contract.test.GGnC0p/wasm-opt-mocked" --version` failed with
+    // Os { code: 26, kind: ExecutableFileBusy, message: "Text file busy" }
+    // ```
+    if cmd_res.is_err() && format!("{:?}", cmd_res).contains("ExecutableFileBusy") {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        cmd_res = Command::new(wasm_opt_path).arg("--version").output();
+    }
+
+    let res = cmd_res.map_err(|err| {
+        anyhow::anyhow!(
+            "Executing `{:?} --version` failed with {:?}",
+            wasm_opt_path.display(),
+            err
+        )
+    })?;
+    if !res.status.success() {
+        let err = str::from_utf8(&res.stderr)
             .expect("Cannot convert stderr output of wasm-opt to string")
             .trim();
         anyhow::bail!(
@@ -545,7 +554,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
         way forward is to download a recent binary release directly:\n\n\
         https://github.com/WebAssembly/binaryen/releases\n\n\
         Make sure that the `wasm-opt` file from that release is in your `PATH`.";
-    let version_stdout = str::from_utf8(&cmd.stdout)
+    let version_stdout = str::from_utf8(&res.stdout)
         .expect("Cannot convert stdout output of wasm-opt to string")
         .trim();
     let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
@@ -1043,6 +1052,9 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_err());
+
+            // this println is here to debug a spuriously failing CI at the following assert.
+            eprintln!("error: {:?}", res);
             assert!(format!("{:?}", res)
                 .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
 
