@@ -294,39 +294,37 @@ impl<'a> Encoder<'a> {
                 compact.type_param().id()
             ))?;
         match ty.type_def() {
-            TypeDef::Primitive(primitive) => {
-                match primitive {
-                    TypeDefPrimitive::U8 => {
-                        let uint = uint_from_value::<u8>(value, "u8")?;
-                        Compact(uint).encode_to(output);
-                        Ok(())
-                    }
-                    TypeDefPrimitive::U16 => {
-                        let uint = uint_from_value::<u16>(value, "u16")?;
-                        Compact(uint).encode_to(output);
-                        Ok(())
-                    }
-                    TypeDefPrimitive::U32 => {
-                        let uint = uint_from_value::<u32>(value, "u32")?;
-                        Compact(uint).encode_to(output);
-                        Ok(())
-                    }
-                    TypeDefPrimitive::U64 => {
-                        let uint = uint_from_value::<u64>(value, "u64")?;
-                        Compact(uint).encode_to(output);
-                        Ok(())
-                    }
-                    TypeDefPrimitive::U128 => {
-                        let uint = uint_from_value::<u128>(value, "u128")?;
-                        Compact(uint).encode_to(output);
-                        Ok(())
-                    }
-                    _ => Err(anyhow::anyhow!(
-                        "Compact encoding not supported for {:?}",
-                        primitive
-                    )),
+            TypeDef::Primitive(primitive) => match primitive {
+                TypeDefPrimitive::U8 => {
+                    let uint = uint_from_value::<u8>(value, "u8")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
                 }
-            }
+                TypeDefPrimitive::U16 => {
+                    let uint = uint_from_value::<u16>(value, "u16")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U32 => {
+                    let uint = uint_from_value::<u32>(value, "u32")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U64 => {
+                    let uint = uint_from_value::<u64>(value, "u64")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U128 => {
+                    let uint = uint_from_value::<u128>(value, "u128")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                _ => Err(anyhow::anyhow!(
+                    "Compact encoding not supported for {:?}",
+                    primitive
+                )),
+            },
             // todo: handle composite types with single field compact primitive.
             _ => unimplemented!("Only primitive unsigned ints support compact encoding for now"),
         }
