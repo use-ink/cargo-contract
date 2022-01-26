@@ -297,19 +297,29 @@ impl<'a> Encoder<'a> {
             TypeDef::Primitive(primitive) => {
                 match primitive {
                     TypeDefPrimitive::U8 => {
-                        encode_compact_uint::<u8, _>(value, "u8", output)
+                        let uint = uint_from_value::<u8>(value, "u8")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
                     }
                     TypeDefPrimitive::U16 => {
-                        encode_compact_uint::<u16, _>(value, "u16", output)
+                        let uint = uint_from_value::<u16>(value, "u16")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
                     }
                     TypeDefPrimitive::U32 => {
-                        encode_compact_uint::<u32, _>(value, "u32", output)
+                        let uint = uint_from_value::<u32>(value, "u32")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
                     }
                     TypeDefPrimitive::U64 => {
-                        encode_compact_uint::<u64, _>(value, "u64", output)
+                        let uint = uint_from_value::<u64>(value, "u64")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
                     }
                     TypeDefPrimitive::U128 => {
-                        encode_compact_uint::<u128, _>(value, "u128", output)
+                        let uint = uint_from_value::<u128>(value, "u128")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
                     }
                     _ => Err(anyhow::anyhow!(
                         "Compact encoding not supported for {:?}",
@@ -356,18 +366,6 @@ where
 {
     let uint: T = uint_from_value(value, expected)?;
     uint.encode_to(output);
-    Ok(())
-}
-
-fn encode_compact_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
-    where
-        T: TryFrom<u128> + FromStr + Encode,
-        <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
-        <T as FromStr>::Err: Error + Send + Sync + 'static,
-        O: Output,
-{
-    let uint: T = uint_from_value(value, expected)?;
-    Compact(uint).encode_to(output);
     Ok(())
 }
 
