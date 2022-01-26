@@ -1,4 +1,3 @@
-
 <div align="center">
     <img src="./.images/cargo-contract.svg" alt="cargo-contract" height="170" />
 
