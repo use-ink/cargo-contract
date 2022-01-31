@@ -70,7 +70,6 @@ impl<'a> Encoder<'a> {
         if !self.env_types.try_encode(&type_id, &value, output)? {
             self.encode_type(ty.type_def(), value, output)
                 .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e))?
-            // todo: [AJ] improve error message here to specify which arg and which type it should be.
         }
         Ok(())
     }
