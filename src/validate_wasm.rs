@@ -37,7 +37,7 @@ const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
 /// [here](https://github.com/paritytech/ink/blob/master/crates/lang/codegen/src/generator/cross_calling.rs).
 /// This type must be compatible with the ink! version in order to decode
 /// the error encoded in the marker.
-#[derive(codec::Encode, codec::Decode)]
+#[derive(scale::Encode, scale::Decode)]
 pub enum EnforcedErrors {
     /// The below error represents calling a `&mut self` message in a context that
     /// only allows for `&self` messages. This may happen under certain circumstances
@@ -147,7 +147,7 @@ fn parse_linker_error(field: &str) -> String {
         .strip_prefix(INK_ENFORCE_ERR)
         .expect("error marker must exist as prefix");
     let hex = serde_hex::from_hex(encoded).expect("decoding hex failed");
-    let decoded = <EnforcedErrors as codec::Decode>::decode(&mut &hex[..]).expect(
+    let decoded = <EnforcedErrors as scale::Decode>::decode(&mut &hex[..]).expect(
         "The `EnforcedError` object could not be decoded. The probable\
         cause is a mismatch between the ink! definition of the type and the\
         local `cargo-contract` definition.",
@@ -171,7 +171,7 @@ fn parse_linker_error(field: &str) -> String {
                 with the scope in which it is called. The receiver is `{}`.",
                 trait_ident,
                 message_ident,
-                serde_hex::to_hex(&codec::Encode::encode(&message_selector), false),
+                serde_hex::to_hex(&scale::Encode::encode(&message_selector), false),
                 receiver
             )
         }
@@ -186,7 +186,7 @@ fn parse_linker_error(field: &str) -> String {
                 Constructor never need to be forwarded, please check if this is the case.",
                 trait_ident,
                 constructor_ident,
-                serde_hex::to_hex(&codec::Encode::encode(&constructor_selector), false)
+                serde_hex::to_hex(&scale::Encode::encode(&constructor_selector), false)
             )
         }
     }

@@ -22,7 +22,7 @@ use super::{
 };
 
 use anyhow::Result;
-use codec::Output;
+use scale::Output;
 use scale_info::{PortableRegistry, TypeInfo};
 use std::{collections::HashMap, fmt::Debug};
 
@@ -131,7 +131,7 @@ mod tests {
     use super::super::scon::{Map, Tuple, Value};
     use super::*;
     use anyhow::Context;
-    use codec::Encode;
+    use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
@@ -150,7 +150,7 @@ mod tests {
         T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
-        let transcoder = Transcoder::new(&registry);
+        let transcoder = Transcoder::new(&registry, Default::default());
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
         let (registry, ty) = registry_with_type::<char>()?;
-        let transcoder = Transcoder::new(&registry);
+        let transcoder = Transcoder::new(&registry, Default::default());
         let encoded = u32::from('c').encode();
 
         assert!(transcoder
@@ -482,7 +482,7 @@ mod tests {
         }
 
         let (registry, ty) = registry_with_type::<S>()?;
-        let transcoder = Transcoder::new(&registry);
+        let transcoder = Transcoder::new(&registry, Default::default());
 
         let input = r#"S( aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty )"#;
         let value = input.parse::<Value>()?;

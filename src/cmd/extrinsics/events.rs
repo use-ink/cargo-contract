@@ -22,7 +22,7 @@ use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
-use codec::Input;
+use scale::Input;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(

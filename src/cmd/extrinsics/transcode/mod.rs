@@ -26,7 +26,7 @@ pub use self::{
 };
 
 use anyhow::Result;
-use codec::Input;
+use scale::Input;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
 use scale_info::{
     form::{Form, PortableForm},
@@ -196,7 +196,7 @@ impl CompositeTypeFields {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use codec::Encode;
+    use scale::Encode;
     use scon::Value;
     use std::str::FromStr;
 
@@ -289,7 +289,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
         let encoded = true.encode();
-        let decoded = transcoder.decode_return("get", encoded)?;
+        let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
 
         assert_eq!(Value::Bool(true), decoded);
         Ok(())

@@ -20,7 +20,7 @@ use super::{
     CompositeTypeFields,
 };
 use anyhow::Result;
-use codec::{Compact, Encode, Output};
+use scale::{Compact, Encode, Output};
 use itertools::Itertools;
 use scale_info::{
     form::{Form, PortableForm},
