@@ -117,7 +117,7 @@ impl<'a> Decoder<'a> {
             }
             TypeDef::Primitive(primitive) => self.decode_primitive(primitive, input),
             TypeDef::Compact(compact) => self.decode_compact(compact, input),
-            TypeDef::BitSequence(_) => todo!("BitSequence"),
+            TypeDef::BitSequence(_) => Err(anyhow::anyhow!("bitvec decoding not yet supported")),
         }
     }
 

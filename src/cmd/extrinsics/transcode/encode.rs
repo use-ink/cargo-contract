@@ -91,7 +91,7 @@ impl<'a> Encoder<'a> {
             }
             TypeDef::Primitive(primitive) => self.encode_primitive(primitive, value, output),
             TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
-            TypeDef::BitSequence(_) => todo!(),
+            TypeDef::BitSequence(_) => Err(anyhow::anyhow!("bitvec encoding not yet supported")),
         }
     }
 
