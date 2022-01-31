@@ -244,9 +244,14 @@ mod tests {
 
     fn generate_metadata() -> ink_metadata::InkProject {
         extern "Rust" {
-            fn __ink_generate_metadata() -> ink_metadata::InkProject;
+            fn __ink_generate_metadata() -> ink_metadata::MetadataVersioned;
         }
-        unsafe { __ink_generate_metadata() }
+        let metadata_versioned = unsafe { __ink_generate_metadata() };
+        if let ink_metadata::MetadataVersioned::V1(ink_project) = metadata_versioned {
+            ink_project
+        } else {
+            panic!("Expected metadata V1");
+        }
     }
 
     #[test]
