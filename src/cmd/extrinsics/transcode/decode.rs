@@ -216,21 +216,43 @@ impl<'a> Decoder<'a> {
         compact: &TypeDefCompact<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
+        let mut decode_compact_primitive = |primitive: &TypeDefPrimitive| match primitive {
+            TypeDefPrimitive::U8 => Ok(Value::UInt(Compact::<u8>::decode(input)?.0.into())),
+            TypeDefPrimitive::U16 => Ok(Value::UInt(Compact::<u16>::decode(input)?.0.into())),
+            TypeDefPrimitive::U32 => Ok(Value::UInt(Compact::<u32>::decode(input)?.0.into())),
+            TypeDefPrimitive::U64 => Ok(Value::UInt(Compact::<u64>::decode(input)?.0.into())),
+            TypeDefPrimitive::U128 => Ok(Value::UInt(Compact::<u128>::decode(input)?.into())),
+            prim => Err(anyhow::anyhow!(
+                "{:?} not supported. Expected unsigned int primitive.",
+                prim
+            )),
+        };
+
         let type_id = compact.type_param().id();
-        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
-            "Failed to resolve type with id `{:?}`",
-            type_id
-        ))?;
+        let ty = self
+            .registry
+            .resolve(type_id)
+            .ok_or_else(|| anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id))?;
         match ty.type_def() {
-            TypeDef::Primitive(primitive) => match primitive {
-                TypeDefPrimitive::U8 => decode_uint::<u8>(input),
-                TypeDefPrimitive::U16 => decode_uint::<u16>(input),
-                TypeDefPrimitive::U32 => decode_uint::<u32>(input),
-                TypeDefPrimitive::U64 => decode_uint::<u64>(input),
-                TypeDefPrimitive::U128 => decode_uint::<u128>(input),
-                _ => Err(anyhow::anyhow!("Compact {:?} not supported", primitive)),
+            TypeDef::Primitive(primitive) => decode_compact_primitive(primitive),
+            TypeDef::Composite(composite) => match composite.fields() {
+                [field] => {
+                    let field_ty = self.registry.resolve(field.ty().id()).ok_or_else(|| {
+                        anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
+                    })?;
+                    if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                        decode_compact_primitive(primitive)
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "Composite type must have a single primitive field"
+                        ))
+                    }
+                }
+                _ => Err(anyhow::anyhow!("Composite type must have a single field")),
             },
-            _ => todo!("Compact impls"),
+            _ => Err(anyhow::anyhow!(
+                "Compact type must be a primitive or a composite type"
+            )),
         }
     }
 }
