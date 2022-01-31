@@ -359,6 +359,36 @@ mod tests {
     }
 
     #[test]
+    fn transcode_composite_struct_out_of_order_fields() -> Result<()> {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: u32,
+            b: String,
+            c: [u8; 4],
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S(b: "ink!", a: 1,  c: 0xDEADBEEF)"#,
+            Value::Map(
+                vec![
+                    (Value::String("a".to_string()), Value::UInt(1)),
+                    (
+                        Value::String("b".to_string()),
+                        Value::String("ink!".to_string()),
+                    ),
+                    (
+                        Value::String("c".to_string()),
+                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    ),
+                ]
+                    .into_iter()
+                    .collect(),
+            ),
+        )
+    }
+
+    #[test]
     fn transcode_composite_tuple_struct() -> Result<()> {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
