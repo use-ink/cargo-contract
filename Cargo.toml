@@ -45,8 +45,8 @@ regex = "1.5.4"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "3.0.0-rc7", features = ["derive"] }
-ink_env = "3.0.0-rc7"
+ink_metadata = { version = "3.0.0-rc8", features = ["derive"] }
+ink_env = "3.0.0-rc8"
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 sp-arithmetic = "4.0.0"
 sp-core = "4.0.0"
@@ -78,9 +78,9 @@ wabt = "0.10.0"
 regex = "1.5.4"
 predicates = "2.1.0"
 
-ink_primitives = "3.0.0-rc7"
-ink_storage = "3.0.0-rc7"
-ink_lang = "3.0.0-rc7"
+ink_primitives = "3.0.0-rc8"
+ink_storage = "3.0.0-rc8"
+ink_lang = "3.0.0-rc8"
 
 [features]
 # Enable this to execute long running tests, which usually are only run on the CI server
