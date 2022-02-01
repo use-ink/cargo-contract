@@ -96,12 +96,12 @@ impl<'a> ContractMessageTranscoder<'a> {
 
     fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<PortableForm>> {
         self.messages()
-            .find(|msg| msg.name().contains(&name.to_string()))
+            .find(|msg| msg.label().contains(&name.to_string()))
     }
 
     fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<PortableForm>> {
         self.constructors()
-            .find(|msg| msg.name().contains(&name.to_string()))
+            .find(|msg| msg.label().contains(&name.to_string()))
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
@@ -118,12 +118,12 @@ impl<'a> ContractMessageTranscoder<'a> {
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
-            let name = arg.name().to_string();
+            let name = arg.label().to_string();
             let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
         }
 
-        let name = event_spec.name().to_string();
+        let name = event_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
         Ok(Value::Map(map))
@@ -247,7 +247,7 @@ mod tests {
             fn __ink_generate_metadata() -> ink_metadata::MetadataVersioned;
         }
         let metadata_versioned = unsafe { __ink_generate_metadata() };
-        if let ink_metadata::MetadataVersioned::V1(ink_project) = metadata_versioned {
+        if let ink_metadata::MetadataVersioned::V3(ink_project) = metadata_versioned {
             ink_project
         } else {
             panic!("Expected metadata V1");
