@@ -60,7 +60,7 @@ pub fn load_metadata(
             "Failed to deserialize ink project metadata from file {}",
             path.display()
         ))?;
-    if let ink_metadata::MetadataVersioned::V1(ink_project) = ink_metadata {
+    if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
         Ok((crate_metadata, ink_project))
     } else {
         Err(anyhow!("Unsupported ink metadata version. Expected V1"))
