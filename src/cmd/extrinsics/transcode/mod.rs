@@ -250,7 +250,7 @@ mod tests {
         if let ink_metadata::MetadataVersioned::V3(ink_project) = metadata_versioned {
             ink_project
         } else {
-            panic!("Expected metadata V1");
+            panic!("Expected metadata V3");
         }
     }
 
