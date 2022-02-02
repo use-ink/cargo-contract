@@ -117,6 +117,7 @@ impl Map {
         }
     }
 
+    /// Return the identifier of the [`Map`].
     pub fn ident(&self) -> Option<String> {
         self.ident.clone()
     }
@@ -126,9 +127,14 @@ impl Map {
         self.map.iter()
     }
 
-    /// Returns an iterator over the map's values
+    /// Return an iterator over the map's values
     pub fn values(&self) -> impl Iterator<Item = &Value> {
         self.map.values()
+    }
+
+    /// Return a reference to the value stored for string key, if it is present, else None.
+    pub fn get_by_str(&self, key: &str) -> Option<&Value> {
+        self.map.get(&Value::String(key.to_string()))
     }
 }
 

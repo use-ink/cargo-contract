@@ -103,13 +103,25 @@ impl<'a> Encoder<'a> {
         let struct_type = CompositeTypeFields::from_fields(composite.fields())?;
 
         match value {
-            Value::Map(map) => {
-                // todo: should lookup via name so that order does not matter
-                for (field, value) in composite.fields().iter().zip(map.values()) {
-                    self.encode(field.ty().id(), value, output)?;
+            Value::Map(map) => match struct_type {
+                CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                    for (field, value) in fields.iter().zip(map.values()) {
+                        self.encode(field.ty().id(), value, output)?;
+                    }
+                    Ok(())
                 }
-                Ok(())
-            }
+                CompositeTypeFields::NoFields => Ok(()),
+                CompositeTypeFields::StructNamedFields(named_fields) => {
+                    for named_field in named_fields {
+                        let field_name = named_field.name();
+                        let value = map.get_by_str(field_name).ok_or_else(|| {
+                            anyhow::anyhow!("Missing a field named `{}`", field_name)
+                        })?;
+                        self.encode(named_field.field().ty().id(), &value, output)?;
+                    }
+                    Ok(())
+                }
+            },
             Value::Tuple(tuple) => match struct_type {
                 CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                     for (field, value) in fields.iter().zip(tuple.values()) {
