@@ -20,8 +20,8 @@ use super::{
     CompositeTypeFields,
 };
 use anyhow::Result;
-use scale::{Compact, Encode, Output};
 use itertools::Itertools;
+use scale::{Compact, Encode, Output};
 use scale_info::{
     form::{Form, PortableForm},
     PortableRegistry, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive, TypeDefTuple,
@@ -117,7 +117,10 @@ impl<'a> Encoder<'a> {
                         let value = map.get_by_str(field_name).ok_or_else(|| {
                             anyhow::anyhow!("Missing a field named `{}`", field_name)
                         })?;
-                        self.encode(named_field.field().ty().id(), &value, output)?;
+                        self.encode(named_field.field().ty().id(), &value, output)
+                            .map_err(|e| {
+                                anyhow::anyhow!("Error encoding field `{}`: {}", field_name, e)
+                            })?;
                     }
                     Ok(())
                 }
