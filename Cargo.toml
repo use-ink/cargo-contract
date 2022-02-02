@@ -83,6 +83,11 @@ ink_storage = "3.0.0-rc8"
 ink_lang = "3.0.0-rc8"
 
 [features]
+# This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
+# generation code with `#[cfg(feature = "std")]`.
+default = ["std"]
+std = []
+
 # Enable this to execute long running tests, which usually are only run on the CI server
 #
 # Disabled by default
