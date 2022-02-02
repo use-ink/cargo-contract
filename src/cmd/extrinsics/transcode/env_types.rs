@@ -16,8 +16,8 @@
 
 use super::scon::Value;
 use anyhow::Result;
-use scale::{Decode, Encode, Output};
 use ink_metadata::TypeSpec;
+use scale::{Decode, Encode, Output};
 use scale_info::{form::PortableForm, Field, IntoPortable, Path, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
