@@ -25,16 +25,16 @@ use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
 pub struct EnvTypesTranscoder {
-    transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>,
+    transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>,
 }
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>) -> Self {
+    pub fn new(transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>) -> Self {
         Self { transcoders }
     }
 
-    /// If the given `TypeLookupId`` is for an environment type with custom
+    /// If the given `TypeLookup`` is for an environment type with custom
     /// encoding, encodes the given value with the custom encoder and returns
     /// `true`. Otherwise returns `false`.
     ///
@@ -43,11 +43,12 @@ impl EnvTypesTranscoder {
     /// - If the custom encoding fails.
     pub fn try_encode<O>(
         &self,
-        type_id: &TypeLookupId,
+        type_id: &TypeLookup,
         value: &Value,
         output: &mut O,
     ) -> Result<bool>
     where
+        T: Into<TypeLookup>,
         O: Output,
     {
         match self.transcoders.get(&type_id) {
@@ -68,7 +69,7 @@ impl EnvTypesTranscoder {
     /// # Errors
     ///
     /// - If the custom decoding fails.
-    pub fn try_decode(&self, type_id: &TypeLookupId, input: &mut &[u8]) -> Result<Option<Value>> {
+    pub fn try_decode(&self, type_id: &TypeLookup, input: &mut &[u8]) -> Result<Option<Value>> {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
                 log::debug!("Decoding type {:?} with custom decoder", type_id.type_id());
@@ -114,17 +115,18 @@ impl From<&Path<PortableForm>> for PathKey {
 
 pub type TypesByPath = HashMap<PathKey, u32>;
 
-/// Unique identifier for a type used in a contract
+/// Lookup a custom type transcoder based on its type id and a possible alias via which the type is
+/// used.
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct TypeLookupId {
-    /// The lookup id of the type in the `scale-info` type registry
+pub struct TypeLookup {
+    /// The id of the type in the `scale-info` type registry.
     type_id: u32,
     /// The display name of the type, required to identify type aliases e.g. `type Balance = u128`
     maybe_alias: Option<String>,
 }
 
-impl TypeLookupId {
-    /// Create a new `TypeLookupId`
+impl TypeLookup {
+    /// Create a new `TypeLookup`
     pub fn new(type_id: u32, maybe_alias: Option<String>) -> Self {
         Self {
             type_id,
@@ -138,7 +140,7 @@ impl TypeLookupId {
     }
 }
 
-impl From<&TypeSpec<PortableForm>> for TypeLookupId {
+impl From<&TypeSpec<PortableForm>> for TypeLookup {
     fn from(type_spec: &TypeSpec<PortableForm>) -> Self {
         Self {
             type_id: type_spec.ty().id(),
@@ -147,7 +149,7 @@ impl From<&TypeSpec<PortableForm>> for TypeLookupId {
     }
 }
 
-impl From<&Field<PortableForm>> for TypeLookupId {
+impl From<&Field<PortableForm>> for TypeLookup {
     fn from(field: &Field<PortableForm>) -> Self {
         Self {
             type_id: field.ty().id(),
@@ -158,7 +160,7 @@ impl From<&Field<PortableForm>> for TypeLookupId {
     }
 }
 
-impl From<u32> for TypeLookupId {
+impl From<u32> for TypeLookup {
     fn from(type_id: u32) -> Self {
         Self {
             type_id,

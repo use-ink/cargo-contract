@@ -17,7 +17,7 @@
 use super::{
     decode::Decoder,
     encode::Encoder,
-    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypeLookupId, TypesByPath},
+    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypeLookup, TypesByPath},
     scon::Value,
 };
 
@@ -47,7 +47,7 @@ impl<'a> Transcoder<'a> {
 
     pub fn encode<T, O>(&self, ty: T, value: &Value, output: &mut O) -> Result<()>
     where
-        T: Into<TypeLookupId>,
+        T: Into<TypeLookup>,
         O: Output + Debug,
     {
         self.encoder().encode(ty, &value, output)
@@ -59,7 +59,7 @@ impl<'a> Transcoder<'a> {
 
     pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
     where
-        T: Into<TypeLookupId>,
+        T: Into<TypeLookup>,
     {
         self.decoder().decode(ty, input)
     }
@@ -69,7 +69,7 @@ impl<'a> Transcoder<'a> {
 pub struct TranscoderBuilder<'a> {
     registry: &'a PortableRegistry,
     types_by_path: TypesByPath,
-    transcoders: HashMap<TypeLookupId, Box<dyn CustomTypeTranscoder>>,
+    transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>,
 }
 
 impl<'a> TranscoderBuilder<'a> {
@@ -97,7 +97,7 @@ impl<'a> TranscoderBuilder<'a> {
         let type_id = this
             .types_by_path
             .get(&path_key)
-            .map(|type_id| TypeLookupId::new(*type_id, alias.map(ToOwned::to_owned)));
+            .map(|type_id| TypeLookup::new(*type_id, alias.map(ToOwned::to_owned)));
 
         match type_id {
             Some(type_id) => {
@@ -130,6 +130,7 @@ impl<'a> TranscoderBuilder<'a> {
 mod tests {
     use super::super::scon::{Map, Tuple, Value};
     use super::*;
+    use crate::cmd::extrinsics::transcode;
     use anyhow::Context;
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
@@ -150,7 +151,16 @@ mod tests {
         T: scale_info::TypeInfo + 'static,
     {
         let (registry, ty) = registry_with_type::<T>()?;
-        let transcoder = Transcoder::new(&registry, Default::default());
+        let transcoder = TranscoderBuilder::new(&registry)
+            .register_custom_type::<sp_runtime::AccountId32, _>(
+                Some("AccountId"),
+                transcode::env_types::AccountId,
+            )
+            .register_custom_type::<sp_runtime::AccountId32, _>(
+                None,
+                transcode::env_types::AccountId,
+            )
+            .done();
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
         let mut output = Vec::new();
@@ -382,8 +392,8 @@ mod tests {
                         Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
                     ),
                 ]
-                    .into_iter()
-                    .collect(),
+                .into_iter()
+                .collect(),
             ),
         )
     }
@@ -469,12 +479,12 @@ mod tests {
     fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
         env_logger::init();
 
-        type AccountId = ink_env::AccountId;
+        type AccountId = sp_runtime::AccountId32;
 
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            no_alias: ink_env::AccountId,
+            no_alias: sp_runtime::AccountId32,
             aliased: AccountId,
         }
 
@@ -503,7 +513,7 @@ mod tests {
 
     #[test]
     fn transcode_account_id_custom_encoding_fails_with_non_matching_type_name() -> Result<()> {
-        type SomeOtherAlias = ink_env::AccountId;
+        type SomeOtherAlias = sp_runtime::AccountId32;
 
         #[allow(dead_code)]
         #[derive(TypeInfo)]
@@ -512,7 +522,8 @@ mod tests {
         }
 
         let (registry, ty) = registry_with_type::<S>()?;
-        let transcoder = Transcoder::new(&registry, Default::default());
+        let env_types = EnvTypesTranscoder::new(&registry, Default::default());
+        let transcoder = Transcoder::new(&registry, env_types);
 
         let input = r#"S( aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty )"#;
         let value = input.parse::<Value>()?;

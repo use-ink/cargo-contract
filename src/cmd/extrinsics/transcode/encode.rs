@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    env_types::{EnvTypesTranscoder, TypeLookupId},
+    env_types::{EnvTypesTranscoder, TypeLookup},
     scon::Value,
     CompositeTypeFields,
 };

@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    env_types::{EnvTypesTranscoder, TypeLookupId},
+    env_types::{EnvTypesTranscoder, TypeLookup},
     scon::{Map, Tuple, Value},
     CompositeTypeFields,
 };
@@ -41,7 +41,7 @@ impl<'a> Decoder<'a> {
 
     pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
     where
-        T: Into<TypeLookupId>,
+        T: Into<TypeLookup>,
     {
         let type_id = ty.into();
         let ty = self
