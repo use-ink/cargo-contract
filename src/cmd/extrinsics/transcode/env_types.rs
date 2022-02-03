@@ -16,39 +16,31 @@
 
 use super::scon::Value;
 use anyhow::Result;
-use ink_metadata::TypeSpec;
 use scale::{Decode, Encode, Output};
-use scale_info::{form::PortableForm, Field, IntoPortable, Path, TypeInfo};
+use scale_info::{form::PortableForm, IntoPortable, Path, TypeInfo};
 use sp_core::crypto::{AccountId32, Ss58Codec};
 use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
 
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
 pub struct EnvTypesTranscoder {
-    transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>,
+    transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>,
 }
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>) -> Self {
+    pub fn new(transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>) -> Self {
         Self { transcoders }
     }
 
-    /// If the given `TypeLookup`` is for an environment type with custom
-    /// encoding, encodes the given value with the custom encoder and returns
-    /// `true`. Otherwise returns `false`.
+    /// If the given type id is for a type with custom encoding, encodes the given value with the
+    /// custom encoder and returns `true`. Otherwise returns `false`.
     ///
     /// # Errors
     ///
     /// - If the custom encoding fails.
-    pub fn try_encode<O>(
-        &self,
-        type_id: &TypeLookup,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<bool>
+    pub fn try_encode<O>(&self, type_id: u32, value: &Value, output: &mut O) -> Result<bool>
     where
-        T: Into<TypeLookup>,
         O: Output,
     {
         match self.transcoders.get(&type_id) {
@@ -69,15 +61,15 @@ impl EnvTypesTranscoder {
     /// # Errors
     ///
     /// - If the custom decoding fails.
-    pub fn try_decode(&self, type_id: &TypeLookup, input: &mut &[u8]) -> Result<Option<Value>> {
+    pub fn try_decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Option<Value>> {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
-                log::debug!("Decoding type {:?} with custom decoder", type_id.type_id());
+                log::debug!("Decoding type {:?} with custom decoder", type_id);
                 let decoded = transcoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
             None => {
-                log::debug!("No custom decoder found for type {:?}", type_id.type_id());
+                log::debug!("No custom decoder found for type {:?}", type_id);
                 Ok(None)
             }
         }
@@ -86,6 +78,7 @@ impl EnvTypesTranscoder {
 
 /// Implement this trait to define custom transcoding for a type in a `scale-info` type registry.
 pub trait CustomTypeTranscoder {
+    fn aliases(&self) -> &[&str];
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
@@ -115,63 +108,12 @@ impl From<&Path<PortableForm>> for PathKey {
 
 pub type TypesByPath = HashMap<PathKey, u32>;
 
-/// Lookup a custom type transcoder based on its type id and a possible alias via which the type is
-/// used.
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct TypeLookup {
-    /// The id of the type in the `scale-info` type registry.
-    type_id: u32,
-    /// The display name of the type, required to identify type aliases e.g. `type Balance = u128`
-    maybe_alias: Option<String>,
-}
-
-impl TypeLookup {
-    /// Create a new `TypeLookup`
-    pub fn new(type_id: u32, maybe_alias: Option<String>) -> Self {
-        Self {
-            type_id,
-            maybe_alias,
-        }
-    }
-
-    /// Returns the type identifier for resolving the type from the registry.
-    pub fn type_id(&self) -> u32 {
-        self.type_id
-    }
-}
-
-impl From<&TypeSpec<PortableForm>> for TypeLookup {
-    fn from(type_spec: &TypeSpec<PortableForm>) -> Self {
-        Self {
-            type_id: type_spec.ty().id(),
-            maybe_alias: type_spec.display_name().segments().iter().last().cloned(),
-        }
-    }
-}
-
-impl From<&Field<PortableForm>> for TypeLookup {
-    fn from(field: &Field<PortableForm>) -> Self {
-        Self {
-            type_id: field.ty().id(),
-            maybe_alias: field
-                .type_name()
-                .and_then(|n| n.split("::").last().map(ToOwned::to_owned)),
-        }
-    }
-}
-
-impl From<u32> for TypeLookup {
-    fn from(type_id: u32) -> Self {
-        Self {
-            type_id,
-            maybe_alias: None,
-        }
-    }
-}
-
 pub struct AccountId;
 
 impl CustomTypeTranscoder for AccountId {
+    fn aliases(&self) -> &[&'static str] {
+        &["AccountId"]
+    }
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
         let account_id = match value {
             Value::Literal(literal) => AccountId32::from_str(literal).map_err(|e| {

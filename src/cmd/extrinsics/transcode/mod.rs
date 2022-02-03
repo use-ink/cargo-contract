@@ -44,8 +44,7 @@ pub struct ContractMessageTranscoder<'a> {
 impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
-            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(None, env_types::AccountId)
-            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(Some("AccountId"), env_types::AccountId)
+            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
             .done();
         Self {
             metadata,
@@ -81,7 +80,8 @@ impl<'a> ContractMessageTranscoder<'a> {
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let value = arg.as_ref().parse::<scon::Value>()?;
-            self.transcoder.encode(spec.ty(), &value, &mut encoded)?;
+            self.transcoder
+                .encode(spec.ty().ty().id(), &value, &mut encoded)?;
         }
         Ok(encoded)
     }

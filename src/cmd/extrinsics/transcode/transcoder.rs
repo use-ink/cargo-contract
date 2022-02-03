@@ -17,7 +17,7 @@
 use super::{
     decode::Decoder,
     encode::Encoder,
-    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypeLookup, TypesByPath},
+    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypesByPath},
     scon::Value,
 };
 
@@ -45,23 +45,19 @@ impl<'a> Transcoder<'a> {
         Encoder::new(self.registry, &self.env_types)
     }
 
-    pub fn encode<T, O>(&self, ty: T, value: &Value, output: &mut O) -> Result<()>
+    pub fn encode<O>(&self, type_id: u32, value: &Value, output: &mut O) -> Result<()>
     where
-        T: Into<TypeLookup>,
         O: Output + Debug,
     {
-        self.encoder().encode(ty, &value, output)
+        self.encoder().encode(type_id, &value, output)
     }
 
     pub fn decoder(&self) -> Decoder {
         Decoder::new(self.registry, &self.env_types)
     }
 
-    pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
-    where
-        T: Into<TypeLookup>,
-    {
-        self.decoder().decode(ty, input)
+    pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
+        self.decoder().decode(type_id, input)
     }
 }
 
@@ -69,7 +65,7 @@ impl<'a> Transcoder<'a> {
 pub struct TranscoderBuilder<'a> {
     registry: &'a PortableRegistry,
     types_by_path: TypesByPath,
-    transcoders: HashMap<TypeLookup, Box<dyn CustomTypeTranscoder>>,
+    transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>,
 }
 
 impl<'a> TranscoderBuilder<'a> {
@@ -86,7 +82,7 @@ impl<'a> TranscoderBuilder<'a> {
         }
     }
 
-    pub fn register_custom_type<T, U>(self, alias: Option<&'static str>, transcoder: U) -> Self
+    pub fn register_custom_type<T, U>(self, transcoder: U) -> Self
     where
         T: TypeInfo + 'static,
         U: CustomTypeTranscoder + 'static,
@@ -94,16 +90,11 @@ impl<'a> TranscoderBuilder<'a> {
         let mut this = self;
 
         let path_key = PathKey::from_type::<T>();
-        let type_id = this
-            .types_by_path
-            .get(&path_key)
-            .map(|type_id| TypeLookup::new(*type_id, alias.map(ToOwned::to_owned)));
+        let type_id = this.types_by_path.get(&path_key);
 
         match type_id {
             Some(type_id) => {
-                let existing = this
-                    .transcoders
-                    .insert(type_id.clone(), Box::new(transcoder));
+                let existing = this.transcoders.insert(*type_id, Box::new(transcoder));
                 log::debug!("Registered environment type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
@@ -152,14 +143,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
         let transcoder = TranscoderBuilder::new(&registry)
-            .register_custom_type::<sp_runtime::AccountId32, _>(
-                Some("AccountId"),
-                transcode::env_types::AccountId,
-            )
-            .register_custom_type::<sp_runtime::AccountId32, _>(
-                None,
-                transcode::env_types::AccountId,
-            )
+            .register_custom_type::<sp_runtime::AccountId32, _>(transcode::env_types::AccountId)
             .done();
 
         let value = input.parse::<Value>().context("Invalid SON value")?;
@@ -522,8 +506,7 @@ mod tests {
         }
 
         let (registry, ty) = registry_with_type::<S>()?;
-        let env_types = EnvTypesTranscoder::new(&registry, Default::default());
-        let transcoder = Transcoder::new(&registry, env_types);
+        let transcoder = Transcoder::new(&registry, Default::default());
 
         let input = r#"S( aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty )"#;
         let value = input.parse::<Value>()?;

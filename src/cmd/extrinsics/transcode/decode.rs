@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    env_types::{EnvTypesTranscoder, TypeLookup},
+    env_types::EnvTypesTranscoder,
     scon::{Map, Tuple, Value},
     CompositeTypeFields,
 };
@@ -39,24 +39,17 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    pub fn decode<T>(&self, ty: T, input: &mut &[u8]) -> Result<Value>
-    where
-        T: Into<TypeLookup>,
-    {
-        let type_id = ty.into();
-        let ty = self
-            .registry
-            .resolve(type_id.type_id())
-            .ok_or(anyhow::anyhow!(
-                "Failed to resolve type with id `{:?}`",
-                type_id
-            ))?;
+    pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
+        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id `{:?}`",
+            type_id
+        ))?;
         log::debug!(
             "Decoding input with type id `{:?}` and definition `{:?}`",
             type_id,
-            ty
+            ty.type_def()
         );
-        match self.env_types.try_decode(&type_id, input) {
+        match self.env_types.try_decode(type_id, input) {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
             // No custom decoder registered so attempt default decoding.
@@ -133,7 +126,7 @@ impl<'a> Decoder<'a> {
             CompositeTypeFields::StructNamedFields(fields) => {
                 let mut map = Vec::new();
                 for field in fields {
-                    let value = self.decode(field.field(), input)?;
+                    let value = self.decode(field.field().ty().id(), input)?;
                     map.push((Value::String(field.name().to_string()), value));
                 }
                 Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
@@ -141,7 +134,7 @@ impl<'a> Decoder<'a> {
             CompositeTypeFields::TupleStructUnnamedFields(fields) => {
                 let mut tuple = Vec::new();
                 for field in &fields {
-                    let value = self.decode(field, input)?;
+                    let value = self.decode(field.ty().id(), input)?;
                     tuple.push(value);
                 }
                 Ok(Value::Tuple(Tuple::new(
@@ -170,7 +163,7 @@ impl<'a> Decoder<'a> {
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
         for field in variant.fields() {
-            let value = self.decode(field, input)?;
+            let value = self.decode(field.ty().id(), input)?;
             if let Some(name) = field.name() {
                 named.push((Value::String(name.to_owned()), value));
             } else {

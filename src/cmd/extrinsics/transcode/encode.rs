@@ -14,11 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    env_types::{EnvTypesTranscoder, TypeLookup},
-    scon::Value,
-    CompositeTypeFields,
-};
+use super::{env_types::EnvTypesTranscoder, scon::Value, CompositeTypeFields};
 use anyhow::Result;
 use itertools::Itertools;
 use scale::{Compact, Encode, Output};
@@ -47,27 +43,22 @@ impl<'a> Encoder<'a> {
         }
     }
 
-    pub fn encode<T, O>(&self, ty: T, value: &Value, output: &mut O) -> Result<()>
+    pub fn encode<O>(&self, type_id: u32, value: &Value, output: &mut O) -> Result<()>
     where
-        T: Into<TypeLookupId>,
         O: Output + Debug,
     {
-        let type_id = ty.into();
-        let ty = self
-            .registry
-            .resolve(type_id.type_id())
-            .ok_or(anyhow::anyhow!(
-                "Failed to resolve type with id '{:?}'",
-                type_id
-            ))?;
+        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
+            "Failed to resolve type with id '{:?}'",
+            type_id
+        ))?;
 
         log::debug!(
             "Encoding value `{:?}` with type id `{:?}` and definition `{:?}`",
             value,
             type_id,
-            ty
+            ty.type_def(),
         );
-        if !self.env_types.try_encode(&type_id, &value, output)? {
+        if !self.env_types.try_encode(type_id, &value, output)? {
             self.encode_type(ty.type_def(), value, output)
                 .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e))?
         }

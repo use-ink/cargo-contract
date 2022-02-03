@@ -41,8 +41,7 @@ pub fn display_events(
 
     let runtime_metadata = subxt_metadata.runtime_metadata();
     let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
-        .register_custom_type::<sp_runtime::AccountId32, _>(Some("AccountId"), env_types::AccountId)
-        .register_custom_type::<sp_runtime::AccountId32, _>(None, env_types::AccountId)
+        .register_custom_type::<sp_runtime::AccountId32, _>(env_types::AccountId)
         .done();
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
@@ -83,7 +82,7 @@ pub fn display_events(
                     name
                 });
 
-                let decoded_field = events_transcoder.decode(field, event_data)?;
+                let decoded_field = events_transcoder.decode(field.ty().id(), event_data)?;
                 maybe_println!(
                     verbosity,
                     "{:width$}{}",
