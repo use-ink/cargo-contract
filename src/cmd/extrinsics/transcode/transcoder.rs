@@ -428,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn transcode_variant() -> Result<()> {
+    fn transcode_enum_variant_tuple() -> Result<()> {
         #[derive(TypeInfo)]
         #[allow(dead_code)]
         enum E {
@@ -442,6 +442,50 @@ mod tests {
             Value::Tuple(Tuple::new(
                 Some("A"),
                 vec![Value::UInt(1), Value::String("2".into())],
+            )),
+        )
+    }
+
+    #[test]
+    fn transcode_enum_variant_map() -> Result<()> {
+        #[derive(TypeInfo)]
+        #[allow(dead_code)]
+        enum E {
+            A { a: u32, b: bool },
+        }
+
+        transcode_roundtrip::<E>(
+            r#"A { a: 33, b: false }"#,
+            Value::Map(Map::new(
+                Some("A"),
+                vec![
+                    (Value::String("a".to_string()), Value::UInt(33)),
+                    (Value::String("b".to_string()), Value::Bool(false)),
+                ]
+                .into_iter()
+                .collect(),
+            )),
+        )
+    }
+
+    #[test]
+    fn transcode_enum_variant_map_out_of_order_fields() -> Result<()> {
+        #[derive(TypeInfo)]
+        #[allow(dead_code)]
+        enum E {
+            A { a: u32, b: bool },
+        }
+
+        transcode_roundtrip::<E>(
+            r#"A { a: 33, b: false }"#,
+            Value::Map(Map::new(
+                Some("A"),
+                vec![
+                    (Value::String("a".to_string()), Value::UInt(33)),
+                    (Value::String("b".to_string()), Value::Bool(false)),
+                ]
+                .into_iter()
+                .collect(),
             )),
         )
     }

@@ -20,7 +20,7 @@ use itertools::Itertools;
 use scale::{Compact, Encode, Output};
 use scale_info::{
     form::{Form, PortableForm},
-    PortableRegistry, TypeDef, TypeDefCompact, TypeDefComposite, TypeDefPrimitive, TypeDefTuple,
+    Field, PortableRegistry, TypeDef, TypeDefCompact, TypeDefPrimitive, TypeDefTuple,
     TypeDefVariant,
 };
 use std::{
@@ -72,7 +72,9 @@ impl<'a> Encoder<'a> {
         output: &mut O,
     ) -> Result<()> {
         match type_def {
-            TypeDef::Composite(composite) => self.encode_composite(composite, value, output),
+            TypeDef::Composite(composite) => {
+                self.encode_composite(composite.fields(), value, output)
+            }
             TypeDef::Variant(variant) => self.encode_variant_type(variant, value, output),
             TypeDef::Array(array) => self.encode_seq(array.type_param(), value, false, output),
             TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
@@ -87,11 +89,11 @@ impl<'a> Encoder<'a> {
 
     fn encode_composite<O: Output + Debug>(
         &self,
-        composite: &TypeDefComposite<PortableForm>,
+        fields: &[Field<PortableForm>],
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        let struct_type = CompositeTypeFields::from_fields(composite.fields())?;
+        let struct_type = CompositeTypeFields::from_fields(fields)?;
 
         match value {
             Value::Map(map) => match struct_type {
@@ -129,7 +131,7 @@ impl<'a> Encoder<'a> {
                 }
             },
             v => {
-                if let Ok(single_field) = composite.fields().iter().exactly_one() {
+                if let Ok(single_field) = fields.iter().exactly_one() {
                     self.encode(single_field.ty().id(), value, output)
                 } else {
                     Err(anyhow::anyhow!(
@@ -194,23 +196,7 @@ impl<'a> Encoder<'a> {
             .map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
         output.push_byte(index);
 
-        match value {
-            Value::Map(_map) => {
-                // todo: should lookup via name so that order does not matter
-                // for (field, value) in self.fields().iter().zip(map.values()) {
-                //     field.encode_value_to(registry, value, output)?;
-                // }
-                // Ok(())
-                todo!()
-            }
-            Value::Tuple(tuple) => {
-                for (field, value) in variant.fields().iter().zip(tuple.values()) {
-                    self.encode(field.ty().id(), value, output)?;
-                }
-                Ok(())
-            }
-            v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
-        }
+        self.encode_composite(variant.fields(), value, output)
     }
 
     fn encode_seq<O: Output + Debug>(
