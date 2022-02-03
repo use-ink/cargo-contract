@@ -540,23 +540,41 @@ mod tests {
     }
 
     #[test]
-    fn transcode_account_id_custom_encoding_fails_with_non_matching_type_name() -> Result<()> {
-        type SomeOtherAlias = sp_runtime::AccountId32;
+    fn transcode_compact_primitives() -> Result<()> {
+        transcode_roundtrip::<scale::Compact<u8>>(r#"33"#, Value::UInt(33))?;
+
+        transcode_roundtrip::<scale::Compact<u16>>(r#"33"#, Value::UInt(33))?;
+
+        transcode_roundtrip::<scale::Compact<u32>>(r#"33"#, Value::UInt(33))?;
+
+        transcode_roundtrip::<scale::Compact<u64>>(r#"33"#, Value::UInt(33))?;
+
+        transcode_roundtrip::<scale::Compact<u128>>(r#"33"#, Value::UInt(33))
+    }
+
+    #[test]
+    fn transcode_compact_struct() -> Result<()> {
+        #[derive(scale::Encode, scale::CompactAs, TypeInfo)]
+        struct CompactStruct(u32);
 
         #[allow(dead_code)]
-        #[derive(TypeInfo)]
+        #[derive(scale::Encode, TypeInfo)]
         struct S {
-            aliased: SomeOtherAlias,
+            #[codec(compact)]
+            a: CompactStruct,
         }
 
-        let (registry, ty) = registry_with_type::<S>()?;
-        let transcoder = Transcoder::new(&registry, Default::default());
-
-        let input = r#"S( aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty )"#;
-        let value = input.parse::<Value>()?;
-        let mut output = Vec::new();
-        assert!(transcoder.encode(ty, &value, &mut output).is_err());
-
-        Ok(())
+        transcode_roundtrip::<S>(
+            r#"S { a: CompactStruct(33) }"#,
+            Value::Map(Map::new(
+                Some("S"),
+                vec![(
+                    Value::String("a".to_string()),
+                    Value::Tuple(Tuple::new(Some("CompactStruct"), vec![Value::UInt(33)])),
+                )]
+                .into_iter()
+                .collect(),
+            )),
+        )
     }
 }

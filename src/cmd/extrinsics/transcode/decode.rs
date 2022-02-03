@@ -230,7 +230,8 @@ impl<'a> Decoder<'a> {
             TypeDef::Primitive(primitive) => decode_compact_primitive(primitive),
             TypeDef::Composite(composite) => match composite.fields() {
                 [field] => {
-                    let field_ty = self.registry.resolve(field.ty().id()).ok_or_else(|| {
+                    let type_id = field.ty().id();
+                    let field_ty = self.registry.resolve(type_id).ok_or_else(|| {
                         anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
                     })?;
                     if let TypeDef::Primitive(primitive) = field_ty.type_def() {
