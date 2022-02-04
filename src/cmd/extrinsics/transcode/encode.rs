@@ -277,37 +277,38 @@ impl<'a> Encoder<'a> {
         value: &Value,
         output: &mut O,
     ) -> Result<()> {
-        let mut encode_compact_primitive = |primitive: &TypeDefPrimitive| match primitive {
-            TypeDefPrimitive::U8 => {
-                let uint = uint_from_value::<u8>(value, "u8")?;
-                Compact(uint).encode_to(output);
-                Ok(())
-            }
-            TypeDefPrimitive::U16 => {
-                let uint = uint_from_value::<u16>(value, "u16")?;
-                Compact(uint).encode_to(output);
-                Ok(())
-            }
-            TypeDefPrimitive::U32 => {
-                let uint = uint_from_value::<u32>(value, "u32")?;
-                Compact(uint).encode_to(output);
-                Ok(())
-            }
-            TypeDefPrimitive::U64 => {
-                let uint = uint_from_value::<u64>(value, "u64")?;
-                Compact(uint).encode_to(output);
-                Ok(())
-            }
-            TypeDefPrimitive::U128 => {
-                let uint = uint_from_value::<u128>(value, "u128")?;
-                Compact(uint).encode_to(output);
-                Ok(())
-            }
-            _ => Err(anyhow::anyhow!(
+        let mut encode_compact_primitive =
+            |primitive: &TypeDefPrimitive, value: &Value| match primitive {
+                TypeDefPrimitive::U8 => {
+                    let uint = uint_from_value::<u8>(value, "u8")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U16 => {
+                    let uint = uint_from_value::<u16>(value, "u16")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U32 => {
+                    let uint = uint_from_value::<u32>(value, "u32")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U64 => {
+                    let uint = uint_from_value::<u64>(value, "u64")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                TypeDefPrimitive::U128 => {
+                    let uint = uint_from_value::<u128>(value, "u128")?;
+                    Compact(uint).encode_to(output);
+                    Ok(())
+                }
+                _ => Err(anyhow::anyhow!(
                     "Compact encoding not supported for {:?}",
                     primitive
                 )),
-        };
+            };
 
         let ty = self
             .registry
@@ -317,7 +318,7 @@ impl<'a> Encoder<'a> {
                 compact.type_param().id()
             ))?;
         match ty.type_def() {
-            TypeDef::Primitive(primitive) => encode_compact_primitive(primitive),
+            TypeDef::Primitive(primitive) => encode_compact_primitive(primitive, value),
             TypeDef::Composite(composite) => match composite.fields() {
                 [field] => {
                     let type_id = field.ty().id();
@@ -325,7 +326,22 @@ impl<'a> Encoder<'a> {
                         anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
                     })?;
                     if let TypeDef::Primitive(primitive) = field_ty.type_def() {
-                        encode_compact_primitive(primitive)
+                        let field_values: Vec<_> = match value {
+                            Value::Map(map) => Ok(map.values().collect()),
+                            Value::Tuple(tuple) => Ok(tuple.values().collect()),
+                            x => Err(anyhow::anyhow!(
+                                "Compact composite value must be a Map or a Tuple. Found {}",
+                                x
+                            )),
+                        }?;
+                        if field_values.len() == 1 {
+                            let field_value = field_values[0];
+                            encode_compact_primitive(primitive, field_value)
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "Compact composite value must have a single field"
+                            ))
+                        }
                     } else {
                         Err(anyhow::anyhow!(
                             "Composite type must have a single primitive field"

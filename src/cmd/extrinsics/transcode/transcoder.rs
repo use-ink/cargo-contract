@@ -146,7 +146,7 @@ mod tests {
             .register_custom_type::<sp_runtime::AccountId32, _>(transcode::env_types::AccountId)
             .done();
 
-        let value = input.parse::<Value>().context("Invalid SON value")?;
+        let value = input.parse::<Value>().context("Invalid SCON value")?;
         let mut output = Vec::new();
         transcoder.encode(ty, &value, &mut output)?;
         let decoded = transcoder.decode(ty, &mut &output[..])?;
@@ -301,7 +301,7 @@ mod tests {
             a: u32,
             b: String,
             c: [u8; 4],
-            // nested struct
+            // recursive struct ref
             d: Vec<S>,
         }
 
@@ -349,6 +349,35 @@ mod tests {
                 .into_iter()
                 .collect(),
             ),
+        )
+    }
+
+    #[test]
+    fn transcode_composite_struct_nested() -> Result<()> {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            nested: Nested,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct Nested(u32);
+
+        transcode_roundtrip::<S>(
+            r#"S { nested: Nested(33) }"#,
+            Value::Map(Map::new(
+                Some("S"),
+                vec![(
+                    Value::String("nested".to_string()),
+                    Value::Tuple(Tuple::new(
+                        Some("Nested"),
+                        vec![Value::UInt(33)].into_iter().collect(),
+                    )),
+                )]
+                .into_iter()
+                .collect(),
+            )),
         )
     }
 
@@ -554,6 +583,8 @@ mod tests {
 
     #[test]
     fn transcode_compact_struct() -> Result<()> {
+        env_logger::try_init()?;
+
         #[derive(scale::Encode, scale::CompactAs, TypeInfo)]
         struct CompactStruct(u32);
 
