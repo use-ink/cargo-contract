@@ -49,16 +49,16 @@ ink_metadata = { version = "3.0.0-rc8", features = ["derive"] }
 ink_env = "3.0.0-rc8"
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 sp-arithmetic = "4.0.0"
-sp-core = "4.0.0"
+sp-core = "5.0.0"
 sp-keyring = "4.0.0"
-sp-runtime = "4.0.0"
-pallet-contracts-primitives = { package = "pallet-contracts-primitives", git = "https://github.com/paritytech/substrate/", branch = "master" }
-subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }
+sp-runtime = "5.0.0"
+pallet-contracts-primitives = "5.0.0"
+subxt = { git = "https://github.com/paritytech/subxt", branch = "aj/update-substrate" }
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.6.1", features = ["ws-client"] }
 nom = "7.1.0"
-indexmap = "1.7.0"
+indexmap = "1.8.0"
 thiserror = "1.0.30"
 escape8259 = "0.5.1"
 itertools = "0.10.3"
@@ -71,12 +71,12 @@ substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.2"
+assert_cmd = "2.0.4"
 assert_matches = "1.5.0"
-pretty_assertions = "1.0.0"
+pretty_assertions = "1.1.0"
 wabt = "0.10.0"
 regex = "1.5.4"
-predicates = "2.1.0"
+predicates = "2.1.1"
 
 ink_primitives = "3.0.0-rc8"
 ink_storage = "3.0.0-rc8"
