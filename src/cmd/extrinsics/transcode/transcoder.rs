@@ -583,8 +583,6 @@ mod tests {
 
     #[test]
     fn transcode_compact_struct() -> Result<()> {
-        env_logger::try_init()?;
-
         #[derive(scale::Encode, scale::CompactAs, TypeInfo)]
         struct CompactStruct(u32);
 

@@ -47,7 +47,7 @@ impl<'a> Decoder<'a> {
         log::debug!(
             "Decoding input with type id `{:?}` and definition `{:?}`",
             type_id,
-            ty.type_def()
+            ty
         );
         match self.env_types.try_decode(type_id, input) {
             // Value was decoded with custom decoder for type.
@@ -84,10 +84,9 @@ impl<'a> Decoder<'a> {
     }
 
     fn decode_type(&self, ty: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
-        let ident = ty.path().segments().last().map(|s| s.as_str());
-        log::debug!("Decoding type with ident {:?}", ident);
         match ty.type_def() {
             TypeDef::Composite(composite) => {
+                let ident = ty.path().segments().last().map(|s| s.as_str());
                 self.decode_composite(ident, composite.fields(), input)
             }
             TypeDef::Tuple(tuple) => {
@@ -110,7 +109,7 @@ impl<'a> Decoder<'a> {
                 self.decode_seq(sequence.type_param(), len.0 as usize, input)
             }
             TypeDef::Primitive(primitive) => self.decode_primitive(primitive, input),
-            TypeDef::Compact(compact) => self.decode_compact(ident, compact, input),
+            TypeDef::Compact(compact) => self.decode_compact(compact, input),
             TypeDef::BitSequence(_) => Err(anyhow::anyhow!("bitvec decoding not yet supported")),
         }
     }
@@ -207,7 +206,6 @@ impl<'a> Decoder<'a> {
 
     fn decode_compact(
         &self,
-        ident: Option<&str>,
         compact: &TypeDefCompact<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
@@ -237,15 +235,16 @@ impl<'a> Decoder<'a> {
                         anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
                     })?;
                     if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                        let struct_ident = ty.path().segments().last().map(|s| s.as_str());
                         let field_value = decode_compact_primitive(primitive)?;
                         let compact_composite = match field.name() {
                             Some(name) => Value::Map(Map::new(
-                                ident,
+                                struct_ident,
                                 vec![(Value::String(name.to_string()), field_value)]
                                     .into_iter()
                                     .collect(),
                             )),
-                            None => Value::Tuple(Tuple::new(ident, vec![field_value])),
+                            None => Value::Tuple(Tuple::new(struct_ident, vec![field_value])),
                         };
                         Ok(compact_composite)
                     } else {
