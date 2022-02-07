@@ -119,10 +119,9 @@ impl<'a> TranscoderBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::scon::{Map, Tuple, Value};
+    use super::super::scon::{self, Map, Tuple, Value};
     use super::*;
     use crate::cmd::extrinsics::transcode;
-    use anyhow::Context;
     use scale::Encode;
     use scale_info::{MetaType, Registry, TypeInfo};
 
@@ -146,7 +145,8 @@ mod tests {
             .register_custom_type::<sp_runtime::AccountId32, _>(transcode::env_types::AccountId)
             .done();
 
-        let value = input.parse::<Value>().context("Invalid SCON value")?;
+        let value = scon::parse_value(input)?;
+
         let mut output = Vec::new();
         transcoder.encode(ty, &value, &mut output)?;
         let decoded = transcoder.decode(ty, &mut &output[..])?;

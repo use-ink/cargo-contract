@@ -26,8 +26,9 @@ use std::{
     hash::{Hash, Hasher},
     iter::FromIterator,
     ops::{Index, IndexMut},
-    str::FromStr,
 };
+
+pub use self::parse::parse_value;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Value {
@@ -42,14 +43,6 @@ pub enum Value {
     Bytes(Bytes),
     Literal(String),
     Unit,
-}
-
-impl FromStr for Value {
-    type Err = nom::Err<parse::SconParseError>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse::parse_value(s)
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -21,48 +21,19 @@ use nom::{
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
     combinator::{map, map_res, opt, recognize, value, verify},
-    error::{ErrorKind, FromExternalError, ParseError},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
-    IResult,
+    IResult, Parser,
 };
-use std::{fmt::Debug, num::ParseIntError};
+use nom_supreme::{error::ErrorTree, ParserExt};
 
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum SconParseError {
-    #[error("bad integer")]
-    BadInt(#[from] ParseIntError),
-    #[error("bad escape sequence")]
-    BadEscape,
-    #[error("hex string parse error")]
-    BadHex(#[from] hex::FromHexError),
-    #[error("parser error")]
-    Nom(String, ErrorKind),
-}
-
-impl<I> FromExternalError<I, ParseIntError> for SconParseError {
-    fn from_external_error(_input: I, _kind: ErrorKind, e: ParseIntError) -> Self {
-        e.into()
-    }
-}
-
-impl ParseError<&str> for SconParseError {
-    fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
-        SconParseError::Nom(input.to_string(), kind)
-    }
-
-    fn append(_: &str, _: ErrorKind, other: Self) -> Self {
-        other
-    }
-}
-
-fn scon_string(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
     // Note: we don't enforce that escape codes are valid here.
     // There must be a decoder later on.
-    fn escape_code(input: &str) -> IResult<&str, &str, SconParseError> {
+    fn escape_code(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
         recognize(pair(
             tag("\\"),
             alt((
@@ -76,24 +47,42 @@ fn scon_string(input: &str) -> IResult<&str, Value, SconParseError> {
                 tag("t"),
                 tag("u"),
             )),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     // Zero or more text characters
-    fn string_body(input: &str) -> IResult<&str, &str, SconParseError> {
-        recognize(many0(alt((nonescaped_string, escape_code))))(input)
+    fn string_body(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+        recognize(many0(alt((nonescaped_string, escape_code)))).parse(input)
     }
 
-    fn string_literal(input: &str) -> IResult<&str, String, SconParseError> {
-        let (remain, raw_string) = delimited(tag("\""), string_body, tag("\""))(input)?;
+    #[derive(Debug)]
+    struct UnescapeError(String);
+    impl std::error::Error for UnescapeError {}
 
-        match unescape(raw_string) {
-            Ok(s) => Ok((remain, s)),
-            Err(_) => Err(nom::Err::Failure(SconParseError::BadEscape)),
+    impl std::fmt::Display for UnescapeError {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "Error unescaping string '{}'", self.0)
         }
     }
 
-    map(string_literal, |s| Value::String(s))(input)
+    string_body
+        .delimited_by(tag("\""))
+        .map_res::<_, _, UnescapeError>(|s| {
+            let unescaped = unescape(s).map_err(|_| UnescapeError(s.to_string()))?;
+            Ok(Value::String(unescaped))
+        })
+        .parse(input)
+
+    // fn string_literal(input: &str) -> IResult<&str, String, ErrorTree<&str>> {
+    //     // let (remain, raw_string) = delimited(tag("\""), string_body, tag("\"")).parse(input)?;
+    //     string_body
+    //         .delimited_by(tag("\""))
+    //         .map(|s| unescape(s).map_err(|e| anyhow::anyhow!("Error unescaping '{}': {:?}", s, e)))
+    //         .parse(input)
+    // }
+    //
+    // map(string_literal, |s| Value::String(s)).parse(input)
 }
 
 // A character that is:
@@ -107,53 +96,56 @@ fn is_nonescaped_string_char(c: char) -> bool {
 }
 
 // One or more unescaped text characters
-fn nonescaped_string(input: &str) -> IResult<&str, &str, SconParseError> {
-    take_while1(is_nonescaped_string_char)(input)
+fn nonescaped_string(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+    take_while1(is_nonescaped_string_char).parse(input)
 }
 
-fn rust_ident(input: &str) -> IResult<&str, &str, SconParseError> {
+fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
     recognize(pair(
         verify(anychar, |&c| c.is_alphabetic() || c == '_'),
         many0_count(preceded(opt(char('_')), alphanumeric1)),
-    ))(input)
+    ))
+    .parse(input)
 }
 
-fn digit1to9(input: &str) -> IResult<&str, char, SconParseError> {
-    one_of("123456789")(input)
+fn digit1to9(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
+    one_of("123456789").parse(input)
 }
 
 // unsigned_integer = zero / ( digit1-9 *DIGIT )
-fn uint(input: &str) -> IResult<&str, &str, SconParseError> {
-    alt((tag("0"), recognize(pair(digit1to9, digit0))))(input)
+fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+    alt((tag("0"), recognize(pair(digit1to9, digit0)))).parse(input)
 }
 
-fn scon_integer(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let signed = recognize(pair(char('-'), uint));
 
     alt((
         map_res(signed, |s| s.parse::<i128>().map(Value::Int)),
         map_res(uint, |s| s.parse::<u128>().map(Value::UInt)),
-    ))(input)
+    ))
+    .parse(input)
 }
 
-fn scon_unit(input: &str) -> IResult<&str, Value, SconParseError> {
-    let (i, _) = tag("()")(input)?;
+fn scon_unit(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
+    let (i, _) = tag("()").parse(input)?;
     Ok((i, Value::Unit))
 }
 
-fn scon_bool(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_bool(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     alt((
         value(Value::Bool(false), tag("false")),
         value(Value::Bool(true), tag("true")),
-    ))(input)
+    ))
+    .parse(input)
 }
 
-fn scon_char(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let parse_char = delimited(tag("'"), anychar, tag("'"));
-    map(parse_char, |c| Value::Char(c))(input)
+    map(parse_char, |c| Value::Char(c)).parse(input)
 }
 
-fn scon_seq(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_seq(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
     let parser = delimited(
@@ -161,10 +153,10 @@ fn scon_seq(input: &str) -> IResult<&str, Value, SconParseError> {
         separated_list0(ws(tag(",")), scon_value),
         opt_trailing_comma_close,
     );
-    map(parser, |v| Value::Seq(v.into()))(input)
+    map(parser, |v| Value::Seq(v.into())).parse(input)
 }
 
-fn scon_tuple(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
@@ -176,18 +168,20 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, SconParseError> {
 
     map(parser, |(ident, v)| {
         Value::Tuple(Tuple::new(ident, v.into_iter().collect()))
-    })(input)
+    })
+    .parse(input)
 }
 
 /// Parse a rust ident on its own which could represent a struct with no fields or a enum unit
 /// variant e.g. "None"
-fn scon_unit_tuple(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_unit_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     map(rust_ident, |ident| {
         Value::Tuple(Tuple::new(Some(ident), Vec::new()))
-    })(input)
+    })
+    .parse(input)
 }
 
-fn scon_map(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_map(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let ident_key = map(rust_ident, |s| Value::String(s.into()));
     let scon_map_key = ws(alt((ident_key, scon_string, scon_integer)));
 
@@ -206,22 +200,26 @@ fn scon_map(input: &str) -> IResult<&str, Value, SconParseError> {
 
     map(parser, |(ident, v)| {
         Value::Map(Map::new(ident, v.into_iter().collect()))
-    })(input)
+    })
+    .parse(input)
 }
 
-fn scon_bytes(input: &str) -> IResult<&str, Value, SconParseError> {
-    let (rest, byte_str) = preceded(tag("0x"), hex_digit1)(input)?;
-    let bytes = Bytes::from_hex_string(byte_str).map_err(|e| nom::Err::Failure(e.into()))?;
-    Ok((rest, Value::Bytes(bytes)))
+fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
+    preceded(tag("0x"), hex_digit1)
+        .map_res::<_, _, hex::FromHexError>(|byte_str| {
+            let bytes = Bytes::from_hex_string(byte_str)?;
+            Ok(Value::Bytes(bytes))
+        })
+        .parse(input)
 }
 
 /// Parse any alphanumeric literal with more than 39 characters (the length of `u128::MAX`)
 ///
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
-fn scon_literal(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_literal(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     const MAX_UINT_LEN: usize = 39;
     let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN));
-    map(parser, |literal: &str| Value::Literal(literal.to_string()))(input)
+    map(parser, |literal: &str| Value::Literal(literal.to_string())).parse(input)
 }
 
 fn ws<F, I, O, E>(f: F) -> impl FnMut(I) -> IResult<I, O, E>
@@ -234,7 +232,7 @@ where
     delimited(multispace0, f, multispace0)
 }
 
-fn scon_value(input: &str) -> IResult<&str, Value, SconParseError> {
+fn scon_value(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     ws(alt((
         scon_unit,
         scon_bytes,
@@ -247,12 +245,15 @@ fn scon_value(input: &str) -> IResult<&str, Value, SconParseError> {
         scon_bool,
         scon_char,
         scon_unit_tuple,
-    )))(input)
+    )))
+    .context("Value")
+    .parse(input)
 }
 
-/// Attempt to parse a SON value
-pub fn parse_value(input: &str) -> Result<Value, nom::Err<SconParseError>> {
-    let (_, value) = scon_value(input)?;
+/// Attempt to parse a SCON value
+pub fn parse_value(input: &str) -> anyhow::Result<Value> {
+    let (_, value) =
+        scon_value(input).map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
     Ok(value)
 }
 
@@ -262,68 +263,82 @@ mod tests {
     use assert_matches::assert_matches;
 
     fn assert_scon_value(input: &str, expected: Value) {
-        assert_eq!(scon_value(input), Ok(("", expected)));
+        assert_eq!(scon_value(input).unwrap(), ("", expected));
+    }
+
+    #[test]
+    fn test_parse_value() {
+        assert_eq!(parse_value("true").unwrap(), Value::Bool(true))
     }
 
     #[test]
     fn test_unit() {
-        assert_eq!(scon_value("()"), Ok(("", Value::Unit)));
+        assert_eq!(scon_value("()").unwrap(), ("", Value::Unit));
     }
 
     #[test]
     fn test_bool() {
-        assert_eq!(scon_bool("false"), Ok(("", Value::Bool(false))));
-        assert_eq!(scon_bool("true"), Ok(("", Value::Bool(true))));
+        assert_eq!(scon_bool("false").unwrap(), ("", Value::Bool(false)));
+        assert_eq!(scon_bool("true").unwrap(), ("", Value::Bool(true)));
         assert!(scon_bool("foo").is_err());
     }
 
     #[test]
     fn test_integer() {
-        assert_eq!(scon_integer("42"), Ok(("", Value::UInt(42))));
-        assert_eq!(scon_integer("-123"), Ok(("", Value::Int(-123))));
-        assert_eq!(scon_integer("0"), Ok(("", Value::UInt(0))));
-        assert_eq!(scon_integer("01"), Ok(("1", Value::UInt(0))));
+        assert_eq!(scon_integer("42").unwrap(), ("", Value::UInt(42)));
+        assert_eq!(scon_integer("-123").unwrap(), ("", Value::Int(-123)));
+        assert_eq!(scon_integer("0").unwrap(), ("", Value::UInt(0)));
+        assert_eq!(scon_integer("01").unwrap(), ("1", Value::UInt(0)));
         assert_eq!(
-            scon_integer("340282366920938463463374607431768211455"),
-            Ok(("", Value::UInt(340282366920938463463374607431768211455)))
+            scon_integer("340282366920938463463374607431768211455").unwrap(),
+            ("", Value::UInt(340282366920938463463374607431768211455))
         );
-        assert_matches!(scon_integer("abc123"), Err(nom::Err::Failure(SconParseError::BadInt(_))));
+        assert_matches!(scon_integer("abc123"), Err(nom::Err::Failure(_)));
         // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
     }
 
     #[test]
     fn test_string() {
         // Plain Unicode strings with no escaping
-        assert_eq!(scon_string(r#""""#), Ok(("", Value::String("".into()))));
         assert_eq!(
-            scon_string(r#""Hello""#),
-            Ok(("", Value::String("Hello".into())))
+            scon_string(r#""""#).unwrap(),
+            ("", Value::String("".into()))
         );
-        assert_eq!(scon_string(r#""の""#), Ok(("", Value::String("の".into()))));
-        assert_eq!(scon_string(r#""𝄞""#), Ok(("", Value::String("𝄞".into()))));
+        assert_eq!(
+            scon_string(r#""Hello""#).unwrap(),
+            ("", Value::String("Hello".into()))
+        );
+        assert_eq!(
+            scon_string(r#""の""#).unwrap(),
+            ("", Value::String("の".into()))
+        );
+        assert_eq!(
+            scon_string(r#""𝄞""#).unwrap(),
+            ("", Value::String("𝄞".into()))
+        );
 
         // valid 2-character escapes
         assert_eq!(
-            scon_string(r#""  \\  ""#),
-            Ok(("", Value::String("  \\  ".into())))
+            scon_string(r#""  \\  ""#).unwrap(),
+            ("", Value::String("  \\  ".into()))
         );
         assert_eq!(
-            scon_string(r#""  \"  ""#),
-            Ok(("", Value::String("  \"  ".into())))
+            scon_string(r#""  \"  ""#).unwrap(),
+            ("", Value::String("  \"  ".into()))
         );
 
         // valid 6-character escapes
         assert_eq!(
-            scon_string(r#""\u0000""#),
-            Ok(("", Value::String("\x00".into())))
+            scon_string(r#""\u0000""#).unwrap(),
+            ("", Value::String("\x00".into()))
         );
         assert_eq!(
-            scon_string(r#""\u00DF""#),
-            Ok(("", Value::String("ß".into())))
+            scon_string(r#""\u00DF""#).unwrap(),
+            ("", Value::String("ß".into()))
         );
         assert_eq!(
-            scon_string(r#""\uD834\uDD1E""#),
-            Ok(("", Value::String("𝄞".into())))
+            scon_string(r#""\uD834\uDD1E""#).unwrap(),
+            ("", Value::String("𝄞".into()))
         );
 
         // Invalid because surrogate characters must come in pairs
@@ -341,60 +356,57 @@ mod tests {
         assert!(scon_string(r#""\""#).is_err());
 
         // Parses correctly but has escape errors due to incomplete surrogate pair.
-        assert_eq!(
-            scon_string(r#""\ud800""#),
-            Err(nom::Err::Failure(SconParseError::BadEscape))
-        );
+        assert_matches!(scon_string(r#""\ud800""#), Err(nom::Err::Error(_)));
     }
 
     #[test]
     fn test_seq() {
-        assert_eq!(scon_value("[ ]"), Ok(("", Value::Seq(vec![].into()))));
+        assert_eq!(scon_value("[ ]").unwrap(), ("", Value::Seq(vec![].into())));
         assert_eq!(
-            scon_value("[ 1 ]"),
-            Ok(("", Value::Seq(vec![Value::UInt(1)].into())))
+            scon_value("[ 1 ]").unwrap(),
+            ("", Value::Seq(vec![Value::UInt(1)].into()))
         );
 
         let expected = Value::Seq(vec![Value::UInt(1), Value::String("x".into())].into());
-        assert_eq!(scon_value(r#" [ 1 , "x" ] "#), Ok(("", expected)));
+        assert_eq!(scon_value(r#" [ 1 , "x" ] "#).unwrap(), ("", expected));
 
         let trailing = r#"["a", "b",]"#;
         assert_eq!(
-            scon_value(trailing),
-            Ok((
+            scon_value(trailing).unwrap(),
+            (
                 "",
                 Value::Seq(vec![Value::String("a".into()), Value::String("b".into())].into())
-            ))
+            )
         );
     }
 
     #[test]
     fn test_rust_ident() {
-        assert_eq!(rust_ident("a"), Ok(("", "a")));
-        assert_eq!(rust_ident("a:"), Ok((":", "a")));
-        assert_eq!(rust_ident("Ok"), Ok(("", "Ok")));
-        assert_eq!(rust_ident("_ok"), Ok(("", "_ok")));
-        assert_eq!(rust_ident("im_ok"), Ok(("", "im_ok")));
-        // assert_eq!(rust_ident("im_ok_"), Ok(("", "im_ok_"))); // todo
-        assert_eq!(rust_ident("im_ok_123abc"), Ok(("", "im_ok_123abc")));
+        assert_eq!(rust_ident("a").unwrap(), ("", "a"));
+        assert_eq!(rust_ident("a:").unwrap(), (":", "a"));
+        assert_eq!(rust_ident("Ok").unwrap(), ("", "Ok"));
+        assert_eq!(rust_ident("_ok").unwrap(), ("", "_ok"));
+        assert_eq!(rust_ident("im_ok").unwrap(), ("", "im_ok"));
+        // assert_eq!(rust_ident("im_ok_").unwrap(), ("", "im_ok_")); // todo
+        assert_eq!(rust_ident("im_ok_123abc").unwrap(), ("", "im_ok_123abc"));
         assert!(rust_ident("1notok").is_err());
     }
 
     #[test]
     fn test_literal() {
         assert_eq!(
-            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"),
-            Ok((
+            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY").unwrap(),
+            (
                 "",
                 Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into())
-            ))
+            )
         );
         assert_eq!(
-            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"),
-            Ok((
+            scon_literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY").unwrap(),
+            (
                 "",
                 Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into())
-            ))
+            )
         );
 
         assert_scon_value(
@@ -406,19 +418,19 @@ mod tests {
     #[test]
     fn test_map() {
         assert_eq!(
-            scon_value("Foo {}"),
-            Ok(("", Value::Map(Map::new(Some("Foo"), Default::default()))))
+            scon_value("Foo {}").unwrap(),
+            ("", Value::Map(Map::new(Some("Foo"), Default::default())))
         );
         assert_eq!(
-            scon_value("Foo{}"),
-            Ok(("", Value::Map(Map::new(Some("Foo"), Default::default()))))
+            scon_value("Foo{}").unwrap(),
+            ("", Value::Map(Map::new(Some("Foo"), Default::default())))
         );
 
-        assert_eq!(rust_ident("a:"), Ok((":", "a")));
+        assert_eq!(rust_ident("a:").unwrap(), (":", "a"));
 
         assert_eq!(
-            scon_value(r#"(a: 1)"#),
-            Ok((
+            scon_value(r#"(a: 1)"#).unwrap(),
+            (
                 "",
                 Value::Map(Map::new(
                     None,
@@ -426,12 +438,12 @@ mod tests {
                         .into_iter()
                         .collect()
                 ))
-            ))
+            )
         );
 
         assert_eq!(
-            scon_value(r#"A (a: 1, b: "bar")"#),
-            Ok((
+            scon_value(r#"A (a: 1, b: "bar")"#).unwrap(),
+            (
                 "",
                 Value::Map(Map::new(
                     Some("A"),
@@ -442,12 +454,12 @@ mod tests {
                     .into_iter()
                     .collect()
                 ))
-            ))
+            )
         );
 
         assert_eq!(
-            scon_value(r#"B(a: 1)"#),
-            Ok((
+            scon_value(r#"B(a: 1)"#).unwrap(),
+            (
                 "",
                 Value::Map(Map::new(
                     Some("B"),
@@ -455,12 +467,12 @@ mod tests {
                         .into_iter()
                         .collect()
                 ))
-            ))
+            )
         );
 
         assert_eq!(
-            scon_value(r#"Struct { a : 1 }"#),
-            Ok((
+            scon_value(r#"Struct { a : 1 }"#).unwrap(),
+            (
                 "",
                 Value::Map(Map::new(
                     Some("Struct"),
@@ -468,7 +480,7 @@ mod tests {
                         .into_iter()
                         .collect()
                 ))
-            ))
+            )
         );
 
         let map = r#"Mixed {
@@ -478,8 +490,8 @@ mod tests {
         }"#;
 
         assert_eq!(
-            scon_value(map),
-            Ok((
+            scon_value(map).unwrap(),
+            (
                 "",
                 Value::Map(Map::new(
                     Some("Struct"),
@@ -492,7 +504,7 @@ mod tests {
                     .into_iter()
                     .collect()
                 ))
-            ))
+            )
         );
     }
 
