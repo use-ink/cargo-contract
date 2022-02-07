@@ -29,7 +29,7 @@ use nom::{
 use std::{fmt::Debug, num::ParseIntError};
 
 #[derive(thiserror::Error, Debug, PartialEq)]
-pub enum SonParseError {
+pub enum SconParseError {
     #[error("bad integer")]
     BadInt(#[from] ParseIntError),
     #[error("bad escape sequence")]
@@ -40,15 +40,15 @@ pub enum SonParseError {
     Nom(String, ErrorKind),
 }
 
-impl<I> FromExternalError<I, ParseIntError> for SonParseError {
+impl<I> FromExternalError<I, ParseIntError> for SconParseError {
     fn from_external_error(_input: I, _kind: ErrorKind, e: ParseIntError) -> Self {
         e.into()
     }
 }
 
-impl ParseError<&str> for SonParseError {
+impl ParseError<&str> for SconParseError {
     fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
-        SonParseError::Nom(input.to_string(), kind)
+        SconParseError::Nom(input.to_string(), kind)
     }
 
     fn append(_: &str, _: ErrorKind, other: Self) -> Self {
@@ -56,13 +56,13 @@ impl ParseError<&str> for SonParseError {
     }
 }
 
-fn scon_string(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_string(input: &str) -> IResult<&str, Value, SconParseError> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
     // Note: we don't enforce that escape codes are valid here.
     // There must be a decoder later on.
-    fn escape_code(input: &str) -> IResult<&str, &str, SonParseError> {
+    fn escape_code(input: &str) -> IResult<&str, &str, SconParseError> {
         recognize(pair(
             tag("\\"),
             alt((
@@ -80,16 +80,16 @@ fn scon_string(input: &str) -> IResult<&str, Value, SonParseError> {
     }
 
     // Zero or more text characters
-    fn string_body(input: &str) -> IResult<&str, &str, SonParseError> {
+    fn string_body(input: &str) -> IResult<&str, &str, SconParseError> {
         recognize(many0(alt((nonescaped_string, escape_code))))(input)
     }
 
-    fn string_literal(input: &str) -> IResult<&str, String, SonParseError> {
+    fn string_literal(input: &str) -> IResult<&str, String, SconParseError> {
         let (remain, raw_string) = delimited(tag("\""), string_body, tag("\""))(input)?;
 
         match unescape(raw_string) {
             Ok(s) => Ok((remain, s)),
-            Err(_) => Err(nom::Err::Failure(SonParseError::BadEscape)),
+            Err(_) => Err(nom::Err::Failure(SconParseError::BadEscape)),
         }
     }
 
@@ -107,27 +107,27 @@ fn is_nonescaped_string_char(c: char) -> bool {
 }
 
 // One or more unescaped text characters
-fn nonescaped_string(input: &str) -> IResult<&str, &str, SonParseError> {
+fn nonescaped_string(input: &str) -> IResult<&str, &str, SconParseError> {
     take_while1(is_nonescaped_string_char)(input)
 }
 
-fn rust_ident(input: &str) -> IResult<&str, &str, SonParseError> {
+fn rust_ident(input: &str) -> IResult<&str, &str, SconParseError> {
     recognize(pair(
         verify(anychar, |&c| c.is_alphabetic() || c == '_'),
         many0_count(preceded(opt(char('_')), alphanumeric1)),
     ))(input)
 }
 
-fn digit1to9(input: &str) -> IResult<&str, char, SonParseError> {
+fn digit1to9(input: &str) -> IResult<&str, char, SconParseError> {
     one_of("123456789")(input)
 }
 
 // unsigned_integer = zero / ( digit1-9 *DIGIT )
-fn uint(input: &str) -> IResult<&str, &str, SonParseError> {
+fn uint(input: &str) -> IResult<&str, &str, SconParseError> {
     alt((tag("0"), recognize(pair(digit1to9, digit0))))(input)
 }
 
-fn scon_integer(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_integer(input: &str) -> IResult<&str, Value, SconParseError> {
     let signed = recognize(pair(char('-'), uint));
 
     alt((
@@ -136,24 +136,24 @@ fn scon_integer(input: &str) -> IResult<&str, Value, SonParseError> {
     ))(input)
 }
 
-fn scon_unit(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_unit(input: &str) -> IResult<&str, Value, SconParseError> {
     let (i, _) = tag("()")(input)?;
     Ok((i, Value::Unit))
 }
 
-fn scon_bool(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_bool(input: &str) -> IResult<&str, Value, SconParseError> {
     alt((
         value(Value::Bool(false), tag("false")),
         value(Value::Bool(true), tag("true")),
     ))(input)
 }
 
-fn scon_char(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_char(input: &str) -> IResult<&str, Value, SconParseError> {
     let parse_char = delimited(tag("'"), anychar, tag("'"));
     map(parse_char, |c| Value::Char(c))(input)
 }
 
-fn scon_seq(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_seq(input: &str) -> IResult<&str, Value, SconParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
 
     let parser = delimited(
@@ -164,7 +164,7 @@ fn scon_seq(input: &str) -> IResult<&str, Value, SonParseError> {
     map(parser, |v| Value::Seq(v.into()))(input)
 }
 
-fn scon_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_tuple(input: &str) -> IResult<&str, Value, SconParseError> {
     let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
     let tuple_body = delimited(
         ws(tag("(")),
@@ -181,13 +181,13 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
 
 /// Parse a rust ident on its own which could represent a struct with no fields or a enum unit
 /// variant e.g. "None"
-fn scon_unit_tuple(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_unit_tuple(input: &str) -> IResult<&str, Value, SconParseError> {
     map(rust_ident, |ident| {
         Value::Tuple(Tuple::new(Some(ident), Vec::new()))
     })(input)
 }
 
-fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_map(input: &str) -> IResult<&str, Value, SconParseError> {
     let ident_key = map(rust_ident, |s| Value::String(s.into()));
     let scon_map_key = ws(alt((ident_key, scon_string, scon_integer)));
 
@@ -209,7 +209,7 @@ fn scon_map(input: &str) -> IResult<&str, Value, SonParseError> {
     })(input)
 }
 
-fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_bytes(input: &str) -> IResult<&str, Value, SconParseError> {
     let (rest, byte_str) = preceded(tag("0x"), hex_digit1)(input)?;
     let bytes = Bytes::from_hex_string(byte_str).map_err(|e| nom::Err::Failure(e.into()))?;
     Ok((rest, Value::Bytes(bytes)))
@@ -218,7 +218,7 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, SonParseError> {
 /// Parse any alphanumeric literal with more than 39 characters (the length of `u128::MAX`)
 ///
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
-fn scon_literal(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_literal(input: &str) -> IResult<&str, Value, SconParseError> {
     const MAX_UINT_LEN: usize = 39;
     let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN));
     map(parser, |literal: &str| Value::Literal(literal.to_string()))(input)
@@ -234,7 +234,7 @@ where
     delimited(multispace0, f, multispace0)
 }
 
-fn scon_value(input: &str) -> IResult<&str, Value, SonParseError> {
+fn scon_value(input: &str) -> IResult<&str, Value, SconParseError> {
     ws(alt((
         scon_unit,
         scon_bytes,
@@ -251,7 +251,7 @@ fn scon_value(input: &str) -> IResult<&str, Value, SonParseError> {
 }
 
 /// Attempt to parse a SON value
-pub fn parse_value(input: &str) -> Result<Value, nom::Err<SonParseError>> {
+pub fn parse_value(input: &str) -> Result<Value, nom::Err<SconParseError>> {
     let (_, value) = scon_value(input)?;
     Ok(value)
 }
@@ -286,8 +286,7 @@ mod tests {
             scon_integer("340282366920938463463374607431768211455"),
             Ok(("", Value::UInt(340282366920938463463374607431768211455)))
         );
-        // todo
-        // assert!(matches!(scon_integer("abc123"), Err(nom::Err::Failure(RonParseError::BadInt(_)))));
+        // assert!(matches!(scon_integer("abc123"), Err(nom::Err::Failure(SconParseError::BadInt(_)))));
         // // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
     }
 
@@ -343,7 +342,7 @@ mod tests {
         // Parses correctly but has escape errors due to incomplete surrogate pair.
         assert_eq!(
             scon_string(r#""\ud800""#),
-            Err(nom::Err::Failure(SonParseError::BadEscape))
+            Err(nom::Err::Failure(SconParseError::BadEscape))
         );
     }
 

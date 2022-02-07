@@ -45,7 +45,7 @@ pub enum Value {
 }
 
 impl FromStr for Value {
-    type Err = nom::Err<parse::SonParseError>;
+    type Err = nom::Err<parse::SconParseError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         parse::parse_value(s)
