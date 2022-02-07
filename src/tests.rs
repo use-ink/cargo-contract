@@ -111,6 +111,8 @@ impl ContractsNodeProcess {
     }
 }
 
+// todo: make this test work again...
+
 /// Sanity test the whole lifecycle of:
 ///   new -> build -> generate-metadata - deploy -> instantiate -> call
 ///
