@@ -259,6 +259,7 @@ pub fn parse_value(input: &str) -> Result<Value, nom::Err<SconParseError>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
 
     fn assert_scon_value(input: &str, expected: Value) {
         assert_eq!(scon_value(input), Ok(("", expected)));
@@ -286,8 +287,8 @@ mod tests {
             scon_integer("340282366920938463463374607431768211455"),
             Ok(("", Value::UInt(340282366920938463463374607431768211455)))
         );
-        // assert!(matches!(scon_integer("abc123"), Err(nom::Err::Failure(SconParseError::BadInt(_)))));
-        // // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
+        assert_matches!(scon_integer("abc123"), Err(nom::Err::Failure(SconParseError::BadInt(_))));
+        // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
     }
 
     #[test]
