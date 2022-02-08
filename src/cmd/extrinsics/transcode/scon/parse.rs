@@ -19,10 +19,13 @@ use escape8259::unescape;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    multi::{many0, many0_count, separated_list0},
-    sequence::{delimited, pair, preceded, separated_pair, tuple},
-    IResult, Parser,
+    character::complete::{
+        alphanumeric1, anychar, char, digit0, hex_digit1, multispace0,
+        one_of,
+    },
+    multi::{many0, separated_list0},
+    sequence::{delimited, pair, separated_pair, tuple},
+    AsChar, IResult, Parser,
 };
 use nom_supreme::{error::ErrorTree, ParserExt};
 
@@ -105,12 +108,11 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 }
 
 fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-    pair(
-        anychar.verify(|&c| c.is_alphabetic() || c == '_'),
-        many0_count(preceded(char('_').opt(), alphanumeric1)),
-    )
-    .recognize()
-    .parse(input)
+    let alpha_or_underscore = anychar.verify(|c: &char| c.is_alpha() || *c == '_');
+
+    take_while1(|c: char| c.is_alphanumeric() || c == '_')
+        .preceded_by(alpha_or_underscore.peek())
+        .parse(input)
 }
 
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
@@ -263,7 +265,10 @@ mod tests {
             ("", Value::UInt(340282366920938463463374607431768211455))
         );
         // too many digits
-        assert_matches!(scon_integer("3402823669209384634633746074317682114550"), Err(nom::Err::Error(_)));
+        assert_matches!(
+            scon_integer("3402823669209384634633746074317682114550"),
+            Err(nom::Err::Error(_))
+        );
         assert_matches!(scon_integer("abc123"), Err(nom::Err::Error(_)));
     }
 
@@ -357,7 +362,7 @@ mod tests {
         assert_eq!(rust_ident("Ok").unwrap(), ("", "Ok"));
         assert_eq!(rust_ident("_ok").unwrap(), ("", "_ok"));
         assert_eq!(rust_ident("im_ok").unwrap(), ("", "im_ok"));
-        // assert_eq!(rust_ident("im_ok_").unwrap(), ("", "im_ok_")); // todo
+        assert_eq!(rust_ident("im_ok_").unwrap(), ("", "im_ok_"));
         assert_eq!(rust_ident("im_ok_123abc").unwrap(), ("", "im_ok_123abc"));
         assert!(rust_ident("1notok").is_err());
     }
@@ -464,7 +469,7 @@ mod tests {
             (
                 "",
                 Value::Map(Map::new(
-                    Some("Struct"),
+                    Some("Mixed"),
                     vec![
                         (Value::UInt(1), Value::String("a".into())),
                         (Value::String("b".into()), Value::UInt(2)),
