@@ -183,7 +183,8 @@ fn scon_map(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 }
 
 fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    preceded(tag("0x"), hex_digit1)
+    tag("0x")
+        .precedes(hex_digit1)
         .map_res::<_, _, hex::FromHexError>(|byte_str| {
             let bytes = Bytes::from_hex_string(byte_str)?;
             Ok(Value::Bytes(bytes))
