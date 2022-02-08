@@ -140,25 +140,19 @@ fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 fn scon_seq(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     separated_list0(ws(char(',')), scon_value)
         .preceded_by(ws(char('[')))
-        .terminated(pair(opt(ws(tag(","))), ws(char(']'))))
+        .terminated(pair(opt(ws(char(','))), ws(char(']'))))
         .map(|seq| Value::Seq(seq.into()))
         .parse(input)
 }
 
 fn scon_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag(")")));
-    let tuple_body = delimited(
-        ws(tag("(")),
-        separated_list0(ws(tag(",")), scon_value),
-        opt_trailing_comma_close,
-    );
+    let tuple_body = separated_list0(ws(char(',')), scon_value)
+        .preceded_by(ws(char('(')))
+        .terminated(pair(ws(char(',')).opt(), ws(char(')'))));
 
-    let parser = tuple((opt(ws(rust_ident)), tuple_body));
-
-    map(parser, |(ident, v)| {
-        Value::Tuple(Tuple::new(ident, v.into_iter().collect()))
-    })
-    .parse(input)
+    tuple((opt(ws(rust_ident)), tuple_body))
+        .map(|(ident, v)| Value::Tuple(Tuple::new(ident, v.into_iter().collect())))
+        .parse(input)
 }
 
 /// Parse a rust ident on its own which could represent a struct with no fields or a enum unit
