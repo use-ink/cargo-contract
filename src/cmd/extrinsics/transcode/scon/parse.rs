@@ -26,6 +26,31 @@ use nom::{
 };
 use nom_supreme::{error::ErrorTree, ParserExt};
 
+/// Attempt to parse a SCON value
+pub fn parse_value(input: &str) -> anyhow::Result<Value> {
+    let (_, value) =
+        scon_value(input).map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
+    Ok(value)
+}
+
+fn scon_value(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
+    ws(alt((
+        scon_unit,
+        scon_bytes,
+        scon_seq,
+        scon_tuple,
+        scon_map,
+        scon_string,
+        scon_literal,
+        scon_integer,
+        scon_bool,
+        scon_char,
+        scon_unit_tuple,
+    )))
+    .context("Value")
+    .parse(input)
+}
+
 fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
@@ -215,31 +240,6 @@ where
     E: nom::error::ParseError<I>,
 {
     delimited(multispace0, f, multispace0)
-}
-
-fn scon_value(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    ws(alt((
-        scon_unit,
-        scon_bytes,
-        scon_seq,
-        scon_tuple,
-        scon_map,
-        scon_string,
-        scon_literal,
-        scon_integer,
-        scon_bool,
-        scon_char,
-        scon_unit_tuple,
-    )))
-    .context("Value")
-    .parse(input)
-}
-
-/// Attempt to parse a SCON value
-pub fn parse_value(input: &str) -> anyhow::Result<Value> {
-    let (_, value) =
-        scon_value(input).map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
-    Ok(value)
 }
 
 #[cfg(test)]
