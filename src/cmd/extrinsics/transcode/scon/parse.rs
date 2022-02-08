@@ -34,7 +34,7 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     // Note: we don't enforce that escape codes are valid here.
     // There must be a decoder later on.
     fn escape_code(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-        recognize(pair(
+        pair(
             tag("\\"),
             alt((
                 tag("\""),
@@ -47,13 +47,16 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
                 tag("t"),
                 tag("u"),
             )),
-        ))
+        )
+        .recognize()
         .parse(input)
     }
 
     // Zero or more text characters
     fn string_body(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-        recognize(many0(alt((nonescaped_string, escape_code)))).parse(input)
+        many0(alt((nonescaped_string, escape_code)))
+            .recognize()
+            .parse(input)
     }
 
     #[derive(Debug)]
@@ -91,10 +94,11 @@ fn nonescaped_string(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
 }
 
 fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-    recognize(pair(
+    pair(
         verify(anychar, |&c| c.is_alphabetic() || c == '_'),
         many0_count(preceded(opt(char('_')), alphanumeric1)),
-    ))
+    )
+    .recognize()
     .parse(input)
 }
 
@@ -197,7 +201,8 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     const MAX_UINT_LEN: usize = 39;
-    recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN))
+    verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN)
+        .recognize()
         .map(|literal: &str| Value::Literal(literal.to_string()))
         .parse(input)
 }
