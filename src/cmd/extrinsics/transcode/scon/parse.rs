@@ -73,16 +73,6 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
             Ok(Value::String(unescaped))
         })
         .parse(input)
-
-    // fn string_literal(input: &str) -> IResult<&str, String, ErrorTree<&str>> {
-    //     // let (remain, raw_string) = delimited(tag("\""), string_body, tag("\"")).parse(input)?;
-    //     string_body
-    //         .delimited_by(tag("\""))
-    //         .map(|s| unescape(s).map_err(|e| anyhow::anyhow!("Error unescaping '{}': {:?}", s, e)))
-    //         .parse(input)
-    // }
-    //
-    // map(string_literal, |s| Value::String(s)).parse(input)
 }
 
 // A character that is:
@@ -112,7 +102,6 @@ fn digit1to9(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
     one_of("123456789").parse(input)
 }
 
-// unsigned_integer = zero / ( digit1-9 *DIGIT )
 fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
     alt((tag("0"), recognize(pair(digit1to9, digit0)))).parse(input)
 }
@@ -142,8 +131,7 @@ fn scon_bool(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 }
 
 fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let parse_char = delimited(tag("'"), anychar, tag("'"));
-    map(parse_char, |c| Value::Char(c)).parse(input)
+    anychar.delimited_by(char('\'')).map(|c| Value::Char(c)).parse(input)
 }
 
 fn scon_seq(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
