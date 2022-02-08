@@ -126,7 +126,7 @@ fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .map_res(|s: &str| s.parse::<i128>())
         .map(Value::Int);
 
-    alt((unsigned_int, signed_int)).parse(input)
+    alt((signed_int, unsigned_int)).parse(input)
 }
 
 fn scon_unit(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
@@ -262,8 +262,9 @@ mod tests {
             scon_integer("340282366920938463463374607431768211455").unwrap(),
             ("", Value::UInt(340282366920938463463374607431768211455))
         );
-        assert_matches!(scon_integer("abc123"), Err(nom::Err::Failure(_)));
-        // assert!(matches!(scon_integer("340282366920938463463374607431768211455"), Err(nom::Err::Failure(_))));
+        // too many digits
+        assert_matches!(scon_integer("3402823669209384634633746074317682114550"), Err(nom::Err::Error(_)));
+        assert_matches!(scon_integer("abc123"), Err(nom::Err::Error(_)));
     }
 
     #[test]
