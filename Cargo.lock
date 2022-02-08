@@ -1305,25 +1305,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "h2"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f072413d126e57991455e0a922b31e4c8ba7c2ffbebf6b78b4f8521397d65cd"
-dependencies = [
- "bytes",
- "fnv",
- "futures-core",
- "futures-sink",
- "futures-util",
- "http",
- "indexmap",
- "slab",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1464,34 +1445,16 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2",
  "http",
  "http-body",
  "httparse",
  "httpdate",
  "itoa 0.4.8",
  "pin-project-lite",
- "socket2",
  "tokio",
  "tower-service",
  "tracing",
  "want",
-]
-
-[[package]]
-name = "hyper-rustls"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d87c48c02e0dc5e3b849a2041db3029fd066650f8f717c07bf8ed78ccb895cac"
-dependencies = [
- "http",
- "hyper",
- "log",
- "rustls",
- "rustls-native-certs",
- "tokio",
- "tokio-rustls",
- "webpki-roots",
 ]
 
 [[package]]
@@ -1793,7 +1756,7 @@ checksum = "ceafa2f3d8cb796bf63364691fb875b079814064306cfd4cb067f95f800a673f"
 dependencies = [
  "jsonrpsee-types 0.6.1",
  "jsonrpsee-utils",
- "jsonrpsee-ws-client 0.6.1",
+ "jsonrpsee-ws-client",
 ]
 
 [[package]]
@@ -1802,10 +1765,8 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05fd8cd6c6b1bbd06881d2cf88f1fc83cc36c98f2219090f839115fb4a956cb9"
 dependencies = [
+ "jsonrpsee-client-transport",
  "jsonrpsee-core",
- "jsonrpsee-http-client",
- "jsonrpsee-types 0.8.0",
- "jsonrpsee-ws-client 0.8.0",
 ]
 
 [[package]]
@@ -1847,25 +1808,6 @@ dependencies = [
  "serde",
  "serde_json",
  "soketto",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-http-client"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dce69e96aa236cc2e3a20467420b31cbc8464703aa95bc33a163d25b0f56023"
-dependencies = [
- "async-trait",
- "hyper",
- "hyper-rustls",
- "jsonrpsee-core",
- "jsonrpsee-types 0.8.0",
- "rustc-hash",
- "serde",
- "serde_json",
  "thiserror",
  "tokio",
  "tracing",
@@ -1937,17 +1879,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "webpki-roots",
-]
-
-[[package]]
-name = "jsonrpsee-ws-client"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aff425cee7c779e33920913bc695447416078ee6d119f443f3060feffa4e86b5"
-dependencies = [
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
- "jsonrpsee-types 0.8.0",
 ]
 
 [[package]]
@@ -3906,8 +3837,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj/update-substrate#2c34de709385a36b8dd18db8efe090d957508e00"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bd89701863271876fecd8e3abae2c639f7a6b94bf316468d14c33b198e6ecf9"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -3928,13 +3860,13 @@ dependencies = [
  "sp-version",
  "subxt-macro",
  "thiserror",
- "url",
 ]
 
 [[package]]
 name = "subxt-codegen"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj/update-substrate#2c34de709385a36b8dd18db8efe090d957508e00"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a543285728058f878d45f652c1d3c6653dc126dffe678bc1fbe0021d82f853d8"
 dependencies = [
  "async-trait",
  "darling",
@@ -3951,8 +3883,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/subxt?branch=aj/update-substrate#2c34de709385a36b8dd18db8efe090d957508e00"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4780536dce546910bd9fb691397434c4267885f25bc8870697cce5e210621966"
 dependencies = [
  "async-trait",
  "darling",
@@ -4123,9 +4056,7 @@ version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbbf1c778ec206785635ce8ad57fe52b3009ae9e0c9f574a728f3049d3e55838"
 dependencies = [
- "bytes",
  "libc",
- "memchr",
  "mio",
  "num_cpus",
  "pin-project-lite",
