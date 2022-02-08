@@ -164,26 +164,22 @@ fn scon_unit_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 }
 
 fn scon_map(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let ident_key = map(rust_ident, |s| Value::String(s.into()));
-    let scon_map_key = ws(alt((ident_key, scon_string, scon_integer)));
-
     let opening = alt((tag("("), tag("{")));
     let closing = alt((tag(")"), tag("}")));
-    let entry = separated_pair(scon_map_key, ws(tag(":")), scon_value);
 
-    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(closing));
-    let map_body = delimited(
-        ws(opening),
-        separated_list0(ws(tag(",")), entry),
-        opt_trailing_comma_close,
-    );
+    let ident_key = rust_ident.map(|s| Value::String(s.into()));
+    let scon_map_key = ws(alt((ident_key, scon_string, scon_integer)));
 
-    let parser = tuple((opt(ws(rust_ident)), map_body));
+    let map_body = separated_list0(
+        ws(char(',')),
+        separated_pair(scon_map_key, ws(char(':')), scon_value),
+    )
+    .preceded_by(ws(opening))
+    .terminated(pair(ws(char(',')).opt(), ws(closing)));
 
-    map(parser, |(ident, v)| {
-        Value::Map(Map::new(ident, v.into_iter().collect()))
-    })
-    .parse(input)
+    tuple((ws(rust_ident).opt(), map_body))
+        .map(|(ident, v)| Value::Map(Map::new(ident, v.into_iter().collect())))
+        .parse(input)
 }
 
 fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
