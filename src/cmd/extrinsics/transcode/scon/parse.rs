@@ -20,7 +20,6 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    combinator::{opt, verify},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult, Parser,
@@ -95,8 +94,8 @@ fn nonescaped_string(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
 
 fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
     pair(
-        verify(anychar, |&c| c.is_alphabetic() || c == '_'),
-        many0_count(preceded(opt(char('_')), alphanumeric1)),
+        anychar.verify(|&c| c.is_alphabetic() || c == '_'),
+        many0_count(preceded(char('_').opt(), alphanumeric1)),
     )
     .recognize()
     .parse(input)
@@ -144,7 +143,7 @@ fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 fn scon_seq(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     separated_list0(ws(char(',')), scon_value)
         .preceded_by(ws(char('[')))
-        .terminated(pair(opt(ws(char(','))), ws(char(']'))))
+        .terminated(pair(ws(char(',')).opt(), ws(char(']'))))
         .map(|seq| Value::Seq(seq.into()))
         .parse(input)
 }
@@ -154,7 +153,7 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .preceded_by(ws(char('(')))
         .terminated(pair(ws(char(',')).opt(), ws(char(')'))));
 
-    tuple((opt(ws(rust_ident)), tuple_body))
+    tuple((ws(rust_ident).opt(), tuple_body))
         .map(|(ident, v)| Value::Tuple(Tuple::new(ident, v.into_iter().collect())))
         .parse(input)
 }
@@ -201,7 +200,8 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     const MAX_UINT_LEN: usize = 39;
-    verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN)
+    alphanumeric1
+        .verify(|s: &&str| s.len() > MAX_UINT_LEN)
         .recognize()
         .map(|literal: &str| Value::Literal(literal.to_string()))
         .parse(input)
