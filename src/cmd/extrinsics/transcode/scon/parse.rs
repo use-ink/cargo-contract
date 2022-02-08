@@ -131,18 +131,18 @@ fn scon_bool(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 }
 
 fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    anychar.delimited_by(char('\'')).map(|c| Value::Char(c)).parse(input)
+    anychar
+        .delimited_by(char('\''))
+        .map(|c| Value::Char(c))
+        .parse(input)
 }
 
 fn scon_seq(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let opt_trailing_comma_close = pair(opt(ws(tag(","))), ws(tag("]")));
-
-    let parser = delimited(
-        ws(tag("[")),
-        separated_list0(ws(tag(",")), scon_value),
-        opt_trailing_comma_close,
-    );
-    map(parser, |v| Value::Seq(v.into())).parse(input)
+    separated_list0(ws(char(',')), scon_value)
+        .preceded_by(ws(char('[')))
+        .terminated(pair(opt(ws(tag(","))), ws(char(']'))))
+        .map(|seq| Value::Seq(seq.into()))
+        .parse(input)
 }
 
 fn scon_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
