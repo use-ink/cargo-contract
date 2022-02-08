@@ -20,7 +20,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    combinator::{opt, recognize, value, verify},
+    combinator::{opt, value, verify},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult, Parser,
@@ -107,7 +107,7 @@ fn digit1to9(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
 }
 
 fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-    alt((tag("0"), recognize(pair(digit1to9, digit0)))).parse(input)
+    alt((tag("0"), pair(digit1to9, digit0).recognize())).parse(input)
 }
 
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
