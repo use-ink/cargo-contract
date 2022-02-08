@@ -20,7 +20,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    combinator::{map, opt, recognize, value, verify},
+    combinator::{opt, recognize, value, verify},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult, Parser,
@@ -197,8 +197,9 @@ fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     const MAX_UINT_LEN: usize = 39;
-    let parser = recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN));
-    map(parser, |literal: &str| Value::Literal(literal.to_string())).parse(input)
+    recognize(verify(alphanumeric1, |s: &str| s.len() > MAX_UINT_LEN))
+        .map(|literal: &str| Value::Literal(literal.to_string()))
+        .parse(input)
 }
 
 fn ws<F, I, O, E>(f: F) -> impl FnMut(I) -> IResult<I, O, E>
