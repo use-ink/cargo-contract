@@ -20,7 +20,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    combinator::{map, map_res, opt, recognize, value, verify},
+    combinator::{map, opt, recognize, value, verify},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult, Parser,
@@ -118,13 +118,14 @@ fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
 }
 
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let signed = recognize(pair(char('-'), uint));
+    let unsigned_int = uint.map_res(|s| s.parse::<u128>()).map(Value::UInt);
+    let signed_int = uint
+        .preceded_by(char('-'))
+        .recognize()
+        .map_res(|s| s.parse::<i128>())
+        .map(Value::Int);
 
-    alt((
-        map_res(signed, |s| s.parse::<i128>().map(Value::Int)),
-        map_res(uint, |s| s.parse::<u128>().map(Value::UInt)),
-    ))
-    .parse(input)
+    alt((unsigned_int, signed_int)).parse(input)
 }
 
 fn scon_unit(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
