@@ -63,38 +63,36 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     }
 
     // One or more unescaped text characters
-    let nonescaped_string =
-        take_while1(|c| {
-            let cv = c as u32;
-            // A character that is:
-            // NOT a control character (0x00 - 0x1F)
-            // NOT a quote character (0x22)
-            // NOT a backslash character (0x5C)
-            // Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust char)
-            (cv >= 0x20) && (cv != 0x22) && (cv != 0x5C)
-        });
+    let nonescaped_string = take_while1(|c| {
+        let cv = c as u32;
+        // A character that is:
+        // NOT a control character (0x00 - 0x1F)
+        // NOT a quote character (0x22)
+        // NOT a backslash character (0x5C)
+        // Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust char)
+        (cv >= 0x20) && (cv != 0x22) && (cv != 0x5C)
+    });
 
     // There are only two types of escape allowed by RFC 8259.
     // - single-character escapes \" \\ \/ \b \f \n \r \t
     // - general-purpose \uXXXX
     // Note: we don't enforce that escape codes are valid here.
     // There must be a decoder later on.
-    let escape_code =
-        pair(
+    let escape_code = pair(
+        tag("\\"),
+        alt((
+            tag("\""),
             tag("\\"),
-            alt((
-                tag("\""),
-                tag("\\"),
-                tag("/"),
-                tag("b"),
-                tag("f"),
-                tag("n"),
-                tag("r"),
-                tag("t"),
-                tag("u"),
-            )),
-        )
-        .recognize();
+            tag("/"),
+            tag("b"),
+            tag("f"),
+            tag("n"),
+            tag("r"),
+            tag("t"),
+            tag("u"),
+        )),
+    )
+    .recognize();
 
     many0(alt((nonescaped_string, escape_code)))
         .recognize()
@@ -115,20 +113,17 @@ fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
     .parse(input)
 }
 
-fn digit1to9(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
-    one_of("123456789").parse(input)
-}
-
-fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-    alt((tag("0"), pair(digit1to9, digit0).recognize())).parse(input)
-}
-
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    let unsigned_int = uint.map_res(|s| s.parse::<u128>()).map(Value::UInt);
+    fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+        let digit1to9 = one_of("123456789");
+        alt((tag("0"), pair(digit1to9, digit0).recognize())).parse(input)
+    }
+
+    let unsigned_int = uint.map_res(|s: &str| s.parse::<u128>()).map(Value::UInt);
     let signed_int = uint
         .preceded_by(char('-'))
         .recognize()
-        .map_res(|s| s.parse::<i128>())
+        .map_res(|s: &str| s.parse::<i128>())
         .map(Value::Int);
 
     alt((unsigned_int, signed_int)).parse(input)
