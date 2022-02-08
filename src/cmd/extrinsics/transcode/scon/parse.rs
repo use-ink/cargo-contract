@@ -20,7 +20,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
-    combinator::{opt, value, verify},
+    combinator::{opt, verify},
     multi::{many0, many0_count, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult, Parser,
@@ -128,8 +128,8 @@ fn scon_unit(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 
 fn scon_bool(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     alt((
-        value(Value::Bool(false), tag("false")),
-        value(Value::Bool(true), tag("true")),
+        tag("false").value(Value::Bool(false)),
+        tag("true").value(Value::Bool(true)),
     ))
     .parse(input)
 }
