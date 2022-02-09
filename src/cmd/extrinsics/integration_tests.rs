@@ -166,7 +166,7 @@ async fn build_upload_instantiate_call() {
 
     // find the code hash in the output
     let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
-    let caps = regex.captures(&stdout).expect("Failed to find codehash");
+    let caps = regex.captures(stdout).expect("Failed to find codehash");
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
@@ -186,7 +186,7 @@ async fn build_upload_instantiate_call() {
     // find the contract address in the output
     let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
     let caps = regex
-        .captures(&stdout)
+        .captures(stdout)
         .expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(48, contract_account.len(), "{:?}", stdout);

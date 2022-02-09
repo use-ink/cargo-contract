@@ -440,7 +440,7 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 Some("S"),
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
+                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())],
             )),
         )
     }
@@ -451,7 +451,7 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 None,
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())].into(),
+                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())],
             )),
         )
     }
@@ -523,7 +523,7 @@ mod tests {
     fn transcode_option() -> Result<()> {
         transcode_roundtrip::<Option<u32>>(
             r#"Some(32)"#,
-            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32).into()])),
+            Value::Tuple(Tuple::new(Some("Some"), vec![Value::UInt(32)])),
         )?;
 
         transcode_roundtrip::<Option<u32>>(
