@@ -19,7 +19,7 @@ use escape8259::unescape;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
+    character::complete::{alphanumeric1, anychar, char, digit1, hex_digit1, multispace0},
     multi::{many0, separated_list0},
     sequence::{delimited, pair, separated_pair, tuple},
     AsChar, IResult, Parser,
@@ -112,20 +112,19 @@ fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
         .parse(input)
 }
 
+/// Parse a signed or unsigned integer literal, supports optional Rust style underscore separators.
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    fn uint(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
-        let digit1to9 = one_of("123456789");
-        alt((tag("0"), pair(digit1to9, digit0).recognize())).parse(input)
-    }
-
-    let unsigned_int = uint.map_res(|s: &str| s.parse::<u128>()).map(Value::UInt);
-    let signed_int = uint
-        .preceded_by(char('-'))
-        .recognize()
-        .map_res(|s: &str| s.parse::<i128>())
-        .map(Value::Int);
-
-    alt((signed_int, unsigned_int)).parse(input)
+    pair(char('-').opt(), separated_list0(char('_'), digit1))
+        .map_res(|(sign, parts)| {
+            let digits = parts.join("");
+            if let Some(sign) = sign {
+                let s = format!("{}{}", sign, digits);
+                s.parse::<i128>().map(Value::Int)
+            } else {
+                digits.parse::<u128>().map(Value::UInt)
+            }
+        })
+        .parse(input)
 }
 
 fn scon_unit(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
@@ -256,11 +255,26 @@ mod tests {
         assert_eq!(scon_integer("42").unwrap(), ("", Value::UInt(42)));
         assert_eq!(scon_integer("-123").unwrap(), ("", Value::Int(-123)));
         assert_eq!(scon_integer("0").unwrap(), ("", Value::UInt(0)));
-        assert_eq!(scon_integer("01").unwrap(), ("1", Value::UInt(0)));
+        assert_eq!(scon_integer("01").unwrap(), ("", Value::UInt(1)));
         assert_eq!(
             scon_integer("340282366920938463463374607431768211455").unwrap(),
             ("", Value::UInt(340282366920938463463374607431768211455))
         );
+
+        // underscore separators
+        assert_eq!(
+            scon_integer("1_000_000").unwrap(),
+            ("", Value::UInt(1_000_000))
+        );
+        assert_eq!(
+            scon_integer("-2_000_000").unwrap(),
+            ("", Value::Int(-2_000_000))
+        );
+        assert_eq!(
+            scon_integer("340_282_366_920_938_463_463_374_607_431_768_211_455").unwrap(),
+            ("", Value::UInt(340282366920938463463374607431768211455))
+        );
+
         // too many digits
         assert_matches!(
             scon_integer("3402823669209384634633746074317682114550"),
