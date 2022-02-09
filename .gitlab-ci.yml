@@ -36,7 +36,6 @@ workflow:
 .docker-env:                       &docker-env
   image:                           "${CI_IMAGE}"
   before_script:
-    - rustup override set nightly-2022-01-21
     - cargo -vV
     - rustc -vV
     - rustup show
