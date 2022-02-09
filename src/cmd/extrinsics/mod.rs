@@ -113,3 +113,33 @@ pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> R
     );
     Ok(())
 }
+
+/// Displays details of a Runtime module error.
+///
+/// # Note
+///
+/// This is currently based on the static metadata rather than the metadata fetched at runtime.
+/// It means that the displayed error could be incorrect if the pallet has a different index on the
+/// target chain to that in the static metadata. See https://github.com/paritytech/subxt/issues/443
+async fn wait_for_success_and_handle_error<'client, T>(
+    tx_progress: subxt::TransactionProgress<'client, T, runtime_api::api::DispatchError>,
+) -> Result<subxt::TransactionEvents<T>>
+where
+    T: Config,
+{
+    tx_progress
+        .wait_for_finalized_success()
+        .await
+        .map_err(|e| match e {
+            subxt::Error::Runtime(err) => {
+                let details = err.inner().details().unwrap();
+                anyhow!(
+                    "Runtime: {} -> {}: {}",
+                    details.pallet,
+                    details.error,
+                    details.docs
+                )
+            }
+            err => err.into(),
+        })
+}

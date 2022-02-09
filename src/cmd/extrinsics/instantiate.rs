@@ -15,12 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, parse_balance, runtime_api::api, Balance,
-    CodeHash, ContractAccount, ContractMessageTranscoder, PairSigner, RuntimeApi,
-    EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    display_contract_exec_result, display_events, parse_balance, runtime_api::api,
+    wait_for_success_and_handle_error, Balance, CodeHash, ContractAccount,
+    ContractMessageTranscoder, PairSigner, RuntimeApi, EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{name_value_println, util::decode_hex, ExtrinsicOpts, Verbosity};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
     ws_client::WsClientBuilder,
@@ -117,7 +117,7 @@ impl InstantiateCommand {
         }
 
         let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-            (Some(_), Some(_)) => Err(anyhow::anyhow!(
+            (Some(_), Some(_)) => Err(anyhow!(
                 "Specify either `--wasm-path` or `--code-hash` but not both"
             )),
             (Some(wasm_path), None) => load_code(wasm_path),
@@ -230,7 +230,7 @@ impl<'a> Exec<'a> {
 
     async fn instantiate_with_code(&self, code: Bytes) -> Result<(CodeHash, ContractAccount)> {
         let api = self.subxt_api().await?;
-        let result = api
+        let tx_progress = api
             .tx()
             .contracts()
             .instantiate_with_code(
@@ -242,9 +242,9 @@ impl<'a> Exec<'a> {
                 self.args.salt.0.clone(),
             )
             .sign_and_submit_then_watch(&self.signer)
-            .await?
-            .wait_for_finalized_success()
             .await?;
+
+        let result = wait_for_success_and_handle_error(tx_progress).await?;
 
         let metadata = api.client.metadata();
 
@@ -252,17 +252,17 @@ impl<'a> Exec<'a> {
 
         let code_stored = result
             .find_first_event::<api::contracts::events::CodeStored>()?
-            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+            .ok_or(anyhow!("Failed to find CodeStored event"))?;
         let instantiated = result
             .find_first_event::<api::contracts::events::Instantiated>()?
-            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+            .ok_or(anyhow!("Failed to find Instantiated event"))?;
 
         Ok((code_stored.code_hash, instantiated.contract))
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
         let api = self.subxt_api().await?;
-        let result = api
+        let tx_progress = api
             .tx()
             .contracts()
             .instantiate(
@@ -274,16 +274,16 @@ impl<'a> Exec<'a> {
                 self.args.salt.0.clone(),
             )
             .sign_and_submit_then_watch(&self.signer)
-            .await?
-            .wait_for_finalized_success()
             .await?;
+
+        let result = wait_for_success_and_handle_error(tx_progress).await?;
 
         let metadata = api.client.metadata();
         display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let instantiated = result
             .find_first_event::<api::contracts::events::Instantiated>()?
-            .ok_or(anyhow::anyhow!("Failed to find Instantiated event"))?;
+            .ok_or(anyhow!("Failed to find Instantiated event"))?;
 
         Ok(instantiated.contract)
     }
