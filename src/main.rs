@@ -16,9 +16,6 @@
 
 mod cmd;
 mod crate_metadata;
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-mod tests;
 mod util;
 mod validate_wasm;
 mod workspace;

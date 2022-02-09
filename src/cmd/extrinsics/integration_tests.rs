@@ -17,9 +17,9 @@
 use anyhow::Result;
 use predicates::prelude::*;
 use std::{ffi::OsStr, path::Path, process, str, thread, time};
-use subxt::{Client, ClientBuilder, ContractsTemplateRuntime};
+use subxt::{Client, ClientBuilder};
 
-const CONTRACTS_NODE: &str = "canvas";
+const CONTRACTS_NODE: &str = "substrate-contracts-node";
 
 /// Create a `cargo contract` command
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
@@ -33,7 +33,7 @@ fn cargo_contract(path: &Path) -> assert_cmd::Command {
 struct ContractsNodeProcess {
     proc: process::Child,
     tmp_dir: tempfile::TempDir,
-    client: Client<ContractsTemplateRuntime>,
+    client: Client<subxt::DefaultConfig>,
 }
 
 impl Drop for ContractsNodeProcess {
@@ -66,7 +66,7 @@ impl ContractsNodeProcess {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = ClientBuilder::<ContractsTemplateRuntime>::new()
+            let result = ClientBuilder::new()
                 .build()
                 .await;
             if let Ok(client) = result {
@@ -111,17 +111,16 @@ impl ContractsNodeProcess {
     }
 }
 
-// todo: make this test work again...
-
 /// Sanity test the whole lifecycle of:
-///   new -> build -> generate-metadata - deploy -> instantiate -> call
+///   new -> build -> upload -> instantiate -> call
 ///
 /// # Note
 ///
-/// Requires [canvas-node](https://github.com/paritytech/canvas-node) to be installed and available
-/// on the `PATH`, and the no other process running using the default port `9944`.
+/// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the default
+/// port `9944`.
 #[async_std::test]
-async fn build_deploy_instantiate_call() {
+async fn build_upload_instantiate_call() {
     env_logger::try_init().ok();
 
     let tmp_dir = tempfile::Builder::new()
@@ -156,39 +155,29 @@ async fn build_deploy_instantiate_call() {
         .assert()
         .success();
 
-    log::info!(
-        "Generating metadata for the contract in {}",
-        project_path.to_string_lossy()
-    );
-    cargo_contract(project_path.as_path())
-        .arg("generate-metadata")
-        .assert()
-        .success();
-
-    log::info!("Uploading the code to the contracts dev chain");
+    log::info!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
-        .arg("deploy")
+        .arg("upload")
         .args(&["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "deploy failed: {}", stderr);
+    assert!(output.status.success(), "upload code failed: {}", stderr);
 
-    // Expected output:
-    //   Code hash: 0x13118a4b9c3e3929f449051a023a64e6eaed7065843b1e719956df9dec68756a
-    let regex = regex::Regex::new("Code hash: 0x([0-9A-Fa-f]+)").unwrap();
-    let caps = regex.captures(&stdout).unwrap();
+    // find the code hash in the output
+    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
+    let caps = regex.captures(&stdout).expect("Failed to find codehash");
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
     log::info!("Instantiating the contract with code hash `{}`", code_hash);
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
-        .args(&["new", "true"])
+        .args(&["--constructor", "new"])
+        .args(&["--args", "true"])
         .args(&["--code-hash", code_hash])
-        .args(&["--endowment", "100000000000000"])
         .args(&["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
@@ -196,20 +185,19 @@ async fn build_deploy_instantiate_call() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "instantiate failed: {}", stderr);
 
-    // Expected output:
-    //   Contract account: 5134f8a2fbfb03d09b19b8697b75dd72c5a5f41f69f095c6758e11f6f2e198d1 (5DuBUJbn...)
-    let regex = regex::Regex::new("Contract account: ([0-9A-Za-z]+)").unwrap();
-    let caps = regex.captures(&stdout).unwrap();
+    // find the contract address in the output
+    let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
+    let caps = regex.captures(&stdout).expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(48, contract_account.len(), "{:?}", stdout);
 
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())
             .arg("call")
-            .arg("get")
-            .arg("--rpc")
+            .args(&["--message", "get"])
             .args(&["--contract", contract_account])
             .args(&["--suri", "//Alice"])
+            .arg("--dry-run")
             .assert()
             .stdout(predicate::str::contains(expected.to_string()));
     };
@@ -220,7 +208,7 @@ async fn build_deploy_instantiate_call() {
     log::info!("Calling flip on the contract `{}`", contract_account);
     cargo_contract(project_path.as_path())
         .arg("call")
-        .arg("flip")
+        .args(&["--message", "flip"])
         .args(&["--contract", contract_account])
         .args(&["--suri", "//Alice"])
         .assert()
