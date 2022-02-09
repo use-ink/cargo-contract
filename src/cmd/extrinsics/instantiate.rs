@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, runtime_api::api, Balance, CodeHash,
-    ContractAccount, ContractMessageTranscoder, PairSigner, RuntimeApi,
+    display_contract_exec_result, display_events, parse_balance, runtime_api::api, Balance,
+    CodeHash, ContractAccount, ContractMessageTranscoder, PairSigner, RuntimeApi,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{name_value_println, util::decode_hex, ExtrinsicOpts, Verbosity};
@@ -58,14 +58,14 @@ pub struct InstantiateCommand {
     #[structopt(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
-    #[structopt(name = "value", long, default_value = "0")]
-    value: super::Balance,
+    #[structopt(name = "value", long, default_value = "0", parse(try_from_str = parse_balance))]
+    value: Balance,
     /// Maximum amount of gas to be used for this command
     #[structopt(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[structopt(long)]
+    #[structopt(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
     /// of the same contract code from the same account.

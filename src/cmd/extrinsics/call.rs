@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, load_metadata, Balance,
+    display_contract_exec_result, display_events, load_metadata, parse_balance, Balance,
     ContractMessageTranscoder, PairSigner, RuntimeApi, EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{name_value_println, ExtrinsicOpts};
@@ -51,10 +51,10 @@ pub struct CallCommand {
     gas_limit: u64,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[structopt(long)]
+    #[structopt(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
     /// The value to be transferred as part of the call.
-    #[structopt(name = "value", long, default_value = "0")]
+    #[structopt(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
     /// Dry-run the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
     #[structopt(long, short = "rpc")]

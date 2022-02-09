@@ -71,6 +71,14 @@ pub fn load_metadata(
     }
 }
 
+/// Parse Rust style integer balance literals which can contain underscores.
+fn parse_balance(input: &str) -> Result<Balance> {
+    input
+        .replace('_', "")
+        .parse::<Balance>()
+        .map_err(Into::into)
+}
+
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
 pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
     PairSigner::new(pair)

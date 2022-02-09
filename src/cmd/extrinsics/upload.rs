@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, runtime_api::api, Balance, CodeHash, ContractMessageTranscoder, PairSigner,
-    RuntimeApi,
+    display_events, parse_balance, runtime_api::api, Balance, CodeHash, ContractMessageTranscoder,
+    PairSigner, RuntimeApi,
 };
 use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::{Context, Result};
@@ -43,7 +43,7 @@ pub struct UploadCommand {
     extrinsic_opts: ExtrinsicOpts,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[structopt(long)]
+    #[structopt(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
     /// Dry-run the code upload via rpc, instead of as an extrinsic. Code will not be uploaded.
     #[structopt(long, short = "rpc")]
