@@ -47,7 +47,7 @@ impl<'a> Encoder<'a> {
     where
         O: Output + Debug,
     {
-        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
+        let ty = self.registry.resolve(type_id).ok_or_else(|| anyhow::anyhow!(
             "Failed to resolve type with id '{:?}'",
             type_id
         ))?;
@@ -58,7 +58,7 @@ impl<'a> Encoder<'a> {
             type_id,
             ty.type_def(),
         );
-        if !self.env_types.try_encode(type_id, &value, output)? {
+        if !self.env_types.try_encode(type_id, value, output)? {
             self.encode_type(ty.type_def(), value, output)
                 .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e))?
         }
@@ -97,20 +97,20 @@ impl<'a> Encoder<'a> {
 
         match value {
             Value::Map(map) => match struct_type {
-                CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                CompositeTypeFields::Unnamed(fields) => {
                     for (field, value) in fields.iter().zip(map.values()) {
                         self.encode(field.ty().id(), value, output)?;
                     }
                     Ok(())
                 }
                 CompositeTypeFields::NoFields => Ok(()),
-                CompositeTypeFields::StructNamedFields(named_fields) => {
+                CompositeTypeFields::Named(named_fields) => {
                     for named_field in named_fields {
                         let field_name = named_field.name();
                         let value = map.get_by_str(field_name).ok_or_else(|| {
                             anyhow::anyhow!("Missing a field named `{}`", field_name)
                         })?;
-                        self.encode(named_field.field().ty().id(), &value, output)
+                        self.encode(named_field.field().ty().id(), value, output)
                             .map_err(|e| {
                                 anyhow::anyhow!("Error encoding field `{}`: {}", field_name, e)
                             })?;
@@ -119,14 +119,14 @@ impl<'a> Encoder<'a> {
                 }
             },
             Value::Tuple(tuple) => match struct_type {
-                CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+                CompositeTypeFields::Unnamed(fields) => {
                     for (field, value) in fields.iter().zip(tuple.values()) {
                         self.encode(field.ty().id(), value, output)?;
                     }
                     Ok(())
                 }
                 CompositeTypeFields::NoFields => Ok(()),
-                CompositeTypeFields::StructNamedFields(_) => {
+                CompositeTypeFields::Named(_) => {
                     return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
                 }
             },
@@ -189,7 +189,7 @@ impl<'a> Encoder<'a> {
             .variants()
             .iter()
             .find_position(|v| v.name() == &variant_ident)
-            .ok_or(anyhow::anyhow!("No variant '{}' found", variant_ident))?;
+            .ok_or_else(|| anyhow::anyhow!("No variant '{}' found", variant_ident))?;
 
         let index: u8 = index
             .try_into()
@@ -209,7 +209,7 @@ impl<'a> Encoder<'a> {
         let ty = self
             .registry
             .resolve(ty.id())
-            .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+            .ok_or_else(|| anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
         match value {
             Value::Seq(values) => {
                 if encode_len {
@@ -313,7 +313,7 @@ impl<'a> Encoder<'a> {
         let ty = self
             .registry
             .resolve(compact.type_param().id())
-            .ok_or(anyhow::anyhow!(
+            .ok_or_else(|| anyhow::anyhow!(
                 "Failed to resolve type with id '{:?}'",
                 compact.type_param().id()
             ))?;

@@ -137,7 +137,7 @@ impl UploadCommand {
 
         display_events(
             &result,
-            &transcoder,
+            transcoder,
             api.client.metadata(),
             &self.extrinsic_opts.verbosity()?,
         )?;

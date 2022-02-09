@@ -147,7 +147,7 @@ fn scon_bool(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
 fn scon_char(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     anychar
         .delimited_by(char('\''))
-        .map(|c| Value::Char(c))
+        .map(Value::Char)
         .parse(input)
 }
 

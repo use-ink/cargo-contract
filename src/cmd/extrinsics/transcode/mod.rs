@@ -111,7 +111,7 @@ impl<'a> ContractMessageTranscoder<'a> {
             .spec()
             .events()
             .get(variant_index as usize)
-            .ok_or(anyhow::anyhow!(
+            .ok_or_else(|| anyhow::anyhow!(
                 "Event variant {} not found in contract metadata",
                 variant_index
             ))?;
@@ -130,7 +130,7 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
-        let msg_spec = self.find_message_spec(name).ok_or(anyhow::anyhow!(
+        let msg_spec = self.find_message_spec(name).ok_or_else(|| anyhow::anyhow!(
             "Failed to find message spec with name '{}'",
             name
         ))?;
@@ -144,8 +144,8 @@ impl<'a> ContractMessageTranscoder<'a> {
 
 #[derive(Debug)]
 pub enum CompositeTypeFields {
-    StructNamedFields(Vec<CompositeTypeNamedField>),
-    TupleStructUnnamedFields(Vec<Field<PortableForm>>),
+    Named(Vec<CompositeTypeNamedField>),
+    Unnamed(Vec<Field<PortableForm>>),
     NoFields,
 }
 
@@ -171,7 +171,7 @@ impl CompositeTypeFields {
             Ok(Self::NoFields)
         } else if fields.iter().all(|f| f.name().is_some()) {
             let fields = fields
-                .into_iter()
+                .iter()
                 .map(|field| CompositeTypeNamedField {
                     name: field
                         .name()
@@ -180,11 +180,9 @@ impl CompositeTypeFields {
                     field: field.clone(),
                 })
                 .collect();
-            Ok(Self::StructNamedFields(fields))
+            Ok(Self::Named(fields))
         } else if fields.iter().all(|f| f.name().is_none()) {
-            Ok(Self::TupleStructUnnamedFields(
-                fields.iter().cloned().collect(),
-            ))
+            Ok(Self::Unnamed(fields.to_vec()))
         } else {
             Err(anyhow::anyhow!(
                 "Struct fields should either be all named or all unnamed"

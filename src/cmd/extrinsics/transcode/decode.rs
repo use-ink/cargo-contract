@@ -40,7 +40,7 @@ impl<'a> Decoder<'a> {
     }
 
     pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
-        let ty = self.registry.resolve(type_id).ok_or(anyhow::anyhow!(
+        let ty = self.registry.resolve(type_id).ok_or_else(|| anyhow::anyhow!(
             "Failed to resolve type with id `{:?}`",
             type_id
         ))?;
@@ -53,7 +53,7 @@ impl<'a> Decoder<'a> {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
             // No custom decoder registered so attempt default decoding.
-            Ok(None) => self.decode_type(&ty, input),
+            Ok(None) => self.decode_type(ty, input),
             Err(e) => Err(e),
         }
     }
@@ -67,7 +67,7 @@ impl<'a> Decoder<'a> {
         let ty = self
             .registry
             .resolve(ty.id())
-            .ok_or(anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+            .ok_or_else(|| anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
 
         if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
             let mut bytes = vec![0u8; len];
@@ -123,7 +123,7 @@ impl<'a> Decoder<'a> {
         let struct_type = CompositeTypeFields::from_fields(fields)?;
 
         match struct_type {
-            CompositeTypeFields::StructNamedFields(fields) => {
+            CompositeTypeFields::Named(fields) => {
                 let mut map = Vec::new();
                 for field in fields {
                     let value = self.decode(field.field().ty().id(), input)?;
@@ -131,7 +131,7 @@ impl<'a> Decoder<'a> {
                 }
                 Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
             }
-            CompositeTypeFields::TupleStructUnnamedFields(fields) => {
+            CompositeTypeFields::Unnamed(fields) => {
                 let mut tuple = Vec::new();
                 for field in &fields {
                     let value = self.decode(field.ty().id(), input)?;
@@ -155,7 +155,7 @@ impl<'a> Decoder<'a> {
         let variant = variant_type
             .variants()
             .get(discriminant as usize)
-            .ok_or(anyhow::anyhow!(
+            .ok_or_else(|| anyhow::anyhow!(
                 "No variant found with discriminant {}",
                 discriminant
             ))?;

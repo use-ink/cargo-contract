@@ -49,7 +49,7 @@ impl<'a> Transcoder<'a> {
     where
         O: Output + Debug,
     {
-        self.encoder().encode(type_id, &value, output)
+        self.encoder().encode(type_id, value, output)
     }
 
     pub fn decoder(&self) -> Decoder {

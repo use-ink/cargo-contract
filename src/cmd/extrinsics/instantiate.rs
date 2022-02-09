@@ -27,7 +27,7 @@ use jsonrpsee::{
 };
 use serde::Serialize;
 use sp_core::{crypto::Ss58Codec, Bytes};
-use std::{fs, path::PathBuf};
+use std::{fs, path::{Path, PathBuf}};
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
@@ -106,7 +106,7 @@ impl InstantiateCommand {
         let url = self.extrinsic_opts.url.clone();
         let verbosity = self.extrinsic_opts.verbosity()?;
 
-        fn load_code(wasm_path: &PathBuf) -> Result<Code> {
+        fn load_code(wasm_path: &Path) -> Result<Code> {
             log::info!("Contract code path: {}", wasm_path.display());
             let code = fs::read(&wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
