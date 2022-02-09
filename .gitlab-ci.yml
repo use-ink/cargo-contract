@@ -40,7 +40,7 @@ workflow:
     - rustc -vV
     - rustup show
     - bash --version
-    - ./scripts/pre_cache.sh
+    - ./scripts/ci/pre_cache.sh
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - sccache -s
