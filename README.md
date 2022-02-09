@@ -51,7 +51,7 @@ More relevant links:
 
 * Step 3: `cargo install --force cargo-contract`.
 
-You can always update the toolchain to the latest version by running the Step 3.
+You can always update the `cargo-contract` binary to the latest version by running the Step 3.
 
 ### Installation using Docker Image
 
