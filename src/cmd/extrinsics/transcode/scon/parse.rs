@@ -114,7 +114,8 @@ fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
 
 /// Parse a signed or unsigned integer literal, supports optional Rust style underscore separators.
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
-    pair(char('-').opt(), separated_list0(char('_'), digit1))
+    let sign = alt((char('+'), char('-')));
+    pair(sign.opt(), separated_list0(char('_'), digit1))
         .map_res(|(sign, parts)| {
             let digits = parts.join("");
             if let Some(sign) = sign {
@@ -254,6 +255,7 @@ mod tests {
     fn test_integer() {
         assert_eq!(scon_integer("42").unwrap(), ("", Value::UInt(42)));
         assert_eq!(scon_integer("-123").unwrap(), ("", Value::Int(-123)));
+        assert_eq!(scon_integer("+456").unwrap(), ("", Value::Int(456)));
         assert_eq!(scon_integer("0").unwrap(), ("", Value::UInt(0)));
         assert_eq!(scon_integer("01").unwrap(), ("", Value::UInt(1)));
         assert_eq!(
@@ -269,6 +271,10 @@ mod tests {
         assert_eq!(
             scon_integer("-2_000_000").unwrap(),
             ("", Value::Int(-2_000_000))
+        );
+        assert_eq!(
+            scon_integer("+3_000_000").unwrap(),
+            ("", Value::Int(3_000_000))
         );
         assert_eq!(
             scon_integer("340_282_366_920_938_463_463_374_607_431_768_211_455").unwrap(),
