@@ -78,7 +78,6 @@ clippy:
   <<:                              *docker-env
   script:
     - cargo clippy --verbose --all-targets --all-features -- -D warnings;
-  allow_failure:                   true
 
 #### stage:                        test (all features)
 
