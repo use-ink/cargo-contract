@@ -111,10 +111,12 @@ impl<'a> ContractMessageTranscoder<'a> {
             .spec()
             .events()
             .get(variant_index as usize)
-            .ok_or_else(|| anyhow::anyhow!(
-                "Event variant {} not found in contract metadata",
-                variant_index
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Event variant {} not found in contract metadata",
+                    variant_index
+                )
+            })?;
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
@@ -130,10 +132,9 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
-        let msg_spec = self.find_message_spec(name).ok_or_else(|| anyhow::anyhow!(
-            "Failed to find message spec with name '{}'",
-            name
-        ))?;
+        let msg_spec = self
+            .find_message_spec(name)
+            .ok_or_else(|| anyhow::anyhow!("Failed to find message spec with name '{}'", name))?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
             self.transcoder.decode(return_ty.ty().id(), data)
         } else {

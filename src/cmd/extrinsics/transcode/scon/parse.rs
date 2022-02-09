@@ -19,10 +19,7 @@ use escape8259::unescape;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{
-        alphanumeric1, anychar, char, digit0, hex_digit1, multispace0,
-        one_of,
-    },
+    character::complete::{alphanumeric1, anychar, char, digit0, hex_digit1, multispace0, one_of},
     multi::{many0, separated_list0},
     sequence::{delimited, pair, separated_pair, tuple},
     AsChar, IResult, Parser,

@@ -47,10 +47,10 @@ impl<'a> Encoder<'a> {
     where
         O: Output + Debug,
     {
-        let ty = self.registry.resolve(type_id).ok_or_else(|| anyhow::anyhow!(
-            "Failed to resolve type with id '{:?}'",
-            type_id
-        ))?;
+        let ty = self
+            .registry
+            .resolve(type_id)
+            .ok_or_else(|| anyhow::anyhow!("Failed to resolve type with id '{:?}'", type_id))?;
 
         log::debug!(
             "Encoding value `{:?}` with type id `{:?}` and definition `{:?}`",
@@ -313,10 +313,12 @@ impl<'a> Encoder<'a> {
         let ty = self
             .registry
             .resolve(compact.type_param().id())
-            .ok_or_else(|| anyhow::anyhow!(
-                "Failed to resolve type with id '{:?}'",
-                compact.type_param().id()
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Failed to resolve type with id '{:?}'",
+                    compact.type_param().id()
+                )
+            })?;
         match ty.type_def() {
             TypeDef::Primitive(primitive) => encode_compact_primitive(primitive, value),
             TypeDef::Composite(composite) => match composite.fields() {

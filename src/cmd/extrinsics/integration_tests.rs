@@ -66,9 +66,7 @@ impl ContractsNodeProcess {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = ClientBuilder::new()
-                .build()
-                .await;
+            let result = ClientBuilder::new().build().await;
             if let Ok(client) = result {
                 break Ok(client);
             }
@@ -187,7 +185,9 @@ async fn build_upload_instantiate_call() {
 
     // find the contract address in the output
     let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
-    let caps = regex.captures(&stdout).expect("contract account regex capture");
+    let caps = regex
+        .captures(&stdout)
+        .expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(48, contract_account.len(), "{:?}", stdout);
 

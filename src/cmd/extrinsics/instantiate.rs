@@ -27,7 +27,10 @@ use jsonrpsee::{
 };
 use serde::Serialize;
 use sp_core::{crypto::Ss58Codec, Bytes};
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 

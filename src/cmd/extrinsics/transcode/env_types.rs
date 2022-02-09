@@ -125,9 +125,11 @@ impl CustomTypeTranscoder for AccountId {
             Value::Bytes(bytes) => AccountId32::try_from(bytes.bytes()).map_err(|_| {
                 anyhow::anyhow!("Error converting bytes `{:?}` to AccountId", bytes)
             })?,
-            _ => return Err(anyhow::anyhow!(
-                "Expected a string or a literal for an AccountId"
-            )),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string or a literal for an AccountId"
+                ))
+            }
         };
         Ok(account_id.encode())
     }

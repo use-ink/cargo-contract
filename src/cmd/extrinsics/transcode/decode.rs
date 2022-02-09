@@ -40,10 +40,10 @@ impl<'a> Decoder<'a> {
     }
 
     pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
-        let ty = self.registry.resolve(type_id).ok_or_else(|| anyhow::anyhow!(
-            "Failed to resolve type with id `{:?}`",
-            type_id
-        ))?;
+        let ty = self
+            .registry
+            .resolve(type_id)
+            .ok_or_else(|| anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id))?;
         log::debug!(
             "Decoding input with type id `{:?}` and definition `{:?}`",
             type_id,
@@ -155,10 +155,9 @@ impl<'a> Decoder<'a> {
         let variant = variant_type
             .variants()
             .get(discriminant as usize)
-            .ok_or_else(|| anyhow::anyhow!(
-                "No variant found with discriminant {}",
-                discriminant
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("No variant found with discriminant {}", discriminant)
+            })?;
 
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
