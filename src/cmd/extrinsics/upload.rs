@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, parse_balance, runtime_api::api, Balance, CodeHash, ContractMessageTranscoder,
-    PairSigner, RuntimeApi,
+    display_events, parse_balance, runtime_api::api, wait_for_success_and_handle_error, Balance,
+    CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi,
 };
 use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::{Context, Result};
@@ -126,14 +126,14 @@ impl UploadCommand {
             .await?
             .to_runtime_api::<RuntimeApi>();
 
-        let result = api
+        let tx_progress = api
             .tx()
             .contracts()
             .upload_code(code, self.storage_deposit_limit)
             .sign_and_submit_then_watch(signer)
-            .await?
-            .wait_for_finalized_success()
             .await?;
+
+        let result = wait_for_success_and_handle_error(tx_progress).await?;
 
         display_events(
             &result,

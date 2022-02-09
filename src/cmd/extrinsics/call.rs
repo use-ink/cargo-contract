@@ -15,8 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, load_metadata, parse_balance, Balance,
-    ContractMessageTranscoder, PairSigner, RuntimeApi, EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    display_contract_exec_result, display_events, load_metadata, parse_balance,
+    wait_for_success_and_handle_error, Balance, ContractMessageTranscoder, PairSigner, RuntimeApi,
+    EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{name_value_println, ExtrinsicOpts};
 use anyhow::Result;
@@ -145,7 +146,7 @@ impl CallCommand {
             .to_runtime_api::<RuntimeApi>();
 
         log::debug!("calling contract {:?}", self.contract);
-        let result = api
+        let tx_progress = api
             .tx()
             .contracts()
             .call(
@@ -156,9 +157,9 @@ impl CallCommand {
                 data,
             )
             .sign_and_submit_then_watch(signer)
-            .await?
-            .wait_for_finalized_success()
             .await?;
+
+        let result = wait_for_success_and_handle_error(tx_progress).await?;
 
         display_events(
             &result,
