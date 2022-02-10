@@ -1,5 +1,4 @@
 # Extrinsics
-____
 `cargo-contract` provides CLI support for uploading, instantiating and calling your contracts directly from the command 
 line.
 
@@ -13,7 +12,7 @@ The Secret URI used for signing the extrinsic. For development chains, the well 
 seed phrase. See usage of [`subkey`](https://docs.substrate.io/v3/tools/subkey/) for examples, and docs for the expected
 values in the [parsing code](https://docs.rs/sp-core/latest/sp_core/crypto/trait.Pair.html#method.from_string_with_seed).
 
-:warning: **IMPORTANT** :warning:
+:warning: **WARNING** :warning:
 
 It is strongly recommended NOT to use secret keys from actual value bearing chains on the command line, since they are
 visible on screen and are often saved to the command line shell's history. For now this tool should only be used for
