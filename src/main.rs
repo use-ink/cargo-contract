@@ -94,6 +94,9 @@ pub(crate) struct ExtrinsicOpts {
     password: Option<String>,
     #[structopt(flatten)]
     verbosity: VerbosityFlags,
+    /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
+    #[structopt(long, short = "rpc")]
+    dry_run: bool,
 }
 
 impl ExtrinsicOpts {

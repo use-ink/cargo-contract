@@ -112,6 +112,18 @@ artifact to the `target/` directory.
 
 Runs test suites defined for a smart contract off-chain.
 
+##### `cargo contract upload`
+
+Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+
+##### `cargo contract instantiate`
+
+Create an instance of a contract on chain. See [extrinsics](docs/extrinsics.md).
+
+##### `cargo contract call`
+
+Invoke a message on an existing contract on chain. See [extrinsics](docs/extrinsics.md).
+
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE).

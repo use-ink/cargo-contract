@@ -71,10 +71,6 @@ pub struct InstantiateCommand {
     /// of the same contract code from the same account.
     #[structopt(long, parse(try_from_str = parse_hex_bytes))]
     salt: Option<Bytes>,
-    /// Dry-run instantiate via RPC, instead of as an extrinsic.
-    /// The contract will not be instantiated.
-    #[structopt(long, short = "rpc")]
-    dry_run: bool,
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
@@ -146,7 +142,7 @@ impl InstantiateCommand {
             transcoder,
         };
 
-        async_std::task::block_on(async move { exec.exec(code, self.dry_run).await })
+        async_std::task::block_on(async move { exec.exec(code, self.extrinsic_opts.dry_run).await })
     }
 }
 

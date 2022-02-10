@@ -57,9 +57,6 @@ pub struct CallCommand {
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
-    /// Dry-run the call via rpc, instead of as an extrinsic. Contract state will not be mutated.
-    #[structopt(long, short = "rpc")]
-    dry_run: bool,
 }
 
 impl CallCommand {
@@ -70,7 +67,7 @@ impl CallCommand {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         async_std::task::block_on(async {
-            if self.dry_run {
+            if self.extrinsic_opts.dry_run {
                 self.call_rpc(call_data, &signer, &transcoder).await
             } else {
                 self.call(call_data, &signer, &transcoder).await

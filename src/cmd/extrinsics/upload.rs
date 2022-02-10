@@ -45,9 +45,6 @@ pub struct UploadCommand {
     /// consumed.
     #[structopt(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
-    /// Dry-run the code upload via rpc, instead of as an extrinsic. Code will not be uploaded.
-    #[structopt(long, short = "rpc")]
-    dry_run: bool,
 }
 
 impl UploadCommand {
@@ -67,7 +64,7 @@ impl UploadCommand {
             .context(format!("Failed to read from {}", wasm_path.display()))?;
 
         async_std::task::block_on(async {
-            if self.dry_run {
+            if self.extrinsic_opts.dry_run {
                 let result = self.upload_code_rpc(code, &signer).await?;
 
                 name_value_println!("Code hash", format!("{:?}", result.code_hash));

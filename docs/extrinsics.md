@@ -37,6 +37,12 @@ its project directory.
 *Optional*. The websockets url of an RPC node on the target chain. Defaults to a locally running node at 
 "ws://localhost:9944".
 
+```
+---dry-run
+```
+*Optional*. All extrinsic commands can be run without altering the chain state. Useful for testing if a command will be
+successful, estimating gas costs or querying the result of `ink!` readonly messages.
+
 ## Commands
 
 ### `upload`
