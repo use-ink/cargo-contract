@@ -76,10 +76,29 @@ cargo contract instantiate \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
 ```
 - `--constructor` the name of the contract constructor method to invoke.
-- `--args` accepts a space separated list of values, encoded in order as the arguments of the `ink!` constructor. 
+- `--args` accepts a space separated list of values, encoded in order as the arguments of the constructor to invoke. 
 - `--code-hash` the hash of the uploaded code, returned from a call to `contract upload` or a previous
 `contract instantiate`
 
 ### `call`
+
+Invoke a message on an instance of a contract via the [`call`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L359)
+dispatchable.
+
+e.g.
+```
+cargo contract call \
+       --contract 5FKy7RwXBCCACCEPjM5WugkhUd787FjdgieTkdj7TPngJzxN \
+       --message transfer \
+       --args 5FKy7RwXBCCACCEPjM5WugkhUd787FjdgieTkdj7TPngJzxN 1000 \
+       --suri //Alice
+```
+
+- `--contract` the account id of the contract to invoke, returned after a successful `contract instantiate`.
+- `--message` the name of the contract message to invoke.
+- `--args` accepts a space separated list of values, encoded in order as the arguments of the message to invoke. 
+
+
+
 
 
