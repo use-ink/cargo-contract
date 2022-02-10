@@ -54,6 +54,12 @@ pub fn load_metadata(
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
     let path = crate_metadata.metadata_path();
 
+    if !path.exists() {
+        return Err(anyhow!(
+            "Metadata file not found. Try building with `cargo contract build`."
+        ));
+    }
+
     let file =
         File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
     let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file).context(
