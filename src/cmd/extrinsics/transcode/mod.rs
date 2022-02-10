@@ -14,6 +14,73 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+//! For interacting with contracts from the command line, arguments need to be "transcoded" from
+//! the string representation to the SCALE encoded representation.
+//!
+//! e.g. `"false" -> 0x00`
+//!
+//! And for displaying SCALE encoded data from events and RPC responses, it must be "transcoded"
+//! in the other direction from the SCALE encoded representation to a human readable string.
+//!
+//! e.g. `0x00 -> "false"`
+//!
+//! Transcoding depends on [`scale-info`](https://github.com/paritytech/scale-info/) metadata in
+//! order to dynamically determine the expected types.
+//!
+//! # Encoding
+//!
+//! First the string is parsed into an intermediate [`Value`]:
+//!
+//! `"false" -> Value::Bool(false)`
+//!
+//! This value is then matched with the metadata for the expected type in that context. e.g. the
+//! [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
+//! accepts a `bool` argument to its `new` constructor, which will be reflected in the contract
+//! metadata as [`scale_info::TypeDefPrimitive::Bool`].
+//!
+//! ```no_compile
+//! #[ink(constructor)]
+//! pub fn new(init_value: bool) -> Self {
+//!     Self { value: init_value }
+//! }
+//! ```
+//!
+//! The parsed `Value::Bool(false)` argument value is then matched with the
+//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely encoded
+//! as a `bool`, resulting in `0x00`, which can then be appended as data to the message to invoke
+//! the constructor.
+//!
+//! # Decoding
+//!
+//! First the type of the SCALE encoded data is determined from the metadata. e.g. the return type
+//! of a message when it is invoked as a "dry run" over RPC:
+//!
+//! ```no_compile
+//! #[ink(message)]
+//! pub fn get(&self) -> bool {
+//!     self.value
+//! }
+//! ```
+//!
+//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so that when
+//! the raw data is received it can be decoded into the correct [`Value`], which is then converted
+//! to a string for displaying to the user:
+//!
+//! `0x00 -> Value::Bool(false) -> "false"`
+//!
+//! # SCALE Object Notation (SCON)
+//!
+//! Complex types can be represented as strings using `SCON` for human-computer interaction. It is
+//! intended to be similar to Rust syntax for instantiating types. e.g.
+//!
+//! `Foo { a: false, b: [0, 1, 2], c: "bar", d: (0, 1) }`
+//!
+//! This string could be parsed into a [`Value::Map`] and together with
+//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded bytes.
+//!
+//! As with the example for the primitive `bool` above, this works in the other direction for
+//! decoding SCALE encoded bytes and converting them into a human readable string.
+
 mod decode;
 mod encode;
 pub mod env_types;
