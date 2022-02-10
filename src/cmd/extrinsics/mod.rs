@@ -29,9 +29,13 @@ use anyhow::{anyhow, Context, Result};
 use std::{fs::File, path::PathBuf};
 
 use self::{events::display_events, transcode::ContractMessageTranscoder};
-use crate::{crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath};
+use crate::{
+    crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath, Verbosity,
+    VerbosityFlags,
+};
 use pallet_contracts_primitives::ContractResult;
-use sp_core::sr25519;
+use sp_core::{crypto::Pair, sr25519};
+use structopt::StructOpt;
 use subxt::{Config, DefaultConfig};
 
 pub use call::CallCommand;
@@ -44,6 +48,49 @@ type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>;
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
+
+/// Arguments required for creating and sending an extrinsic to a substrate node
+#[derive(Clone, Debug, StructOpt)]
+pub struct ExtrinsicOpts {
+    /// Path to the Cargo.toml of the contract
+    #[structopt(long, parse(from_os_str))]
+    manifest_path: Option<PathBuf>,
+    /// Websockets url of a substrate node
+    #[structopt(
+        name = "url",
+        long,
+        parse(try_from_str),
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// Secret key URI for the account deploying the contract.
+    #[structopt(name = "suri", long, short)]
+    suri: String,
+    /// Password for the secret key
+    #[structopt(name = "password", long, short)]
+    password: Option<String>,
+    #[structopt(flatten)]
+    verbosity: VerbosityFlags,
+    /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
+    #[structopt(long, short = "rpc")]
+    dry_run: bool,
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// consumed.
+    #[structopt(long, parse(try_from_str = parse_balance))]
+    storage_deposit_limit: Option<Balance>,
+}
+
+impl ExtrinsicOpts {
+    pub fn signer(&self) -> Result<sr25519::Pair> {
+        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    }
+
+    /// Returns the verbosity
+    pub fn verbosity(&self) -> Result<Verbosity> {
+        TryFrom::try_from(&self.verbosity)
+    }
+}
 
 /// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo
 /// [`CrateMetadata`] along with the contract metadata [`ink_metadata::InkProject`].

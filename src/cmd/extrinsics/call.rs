@@ -16,10 +16,10 @@
 
 use super::{
     display_contract_exec_result, display_events, load_metadata, parse_balance,
-    wait_for_success_and_handle_error, Balance, ContractMessageTranscoder, PairSigner, RuntimeApi,
-    EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    wait_for_success_and_handle_error, Balance, ContractMessageTranscoder, ExtrinsicOpts,
+    PairSigner, RuntimeApi, EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
-use crate::{name_value_println, ExtrinsicOpts};
+use crate::name_value_println;
 use anyhow::Result;
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -50,10 +50,6 @@ pub struct CallCommand {
     /// Maximum amount of gas to be used for this command.
     #[structopt(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage
-    /// consumed.
-    #[structopt(long, parse(try_from_str = parse_balance))]
-    storage_deposit_limit: Option<Balance>,
     /// The value to be transferred as part of the call.
     #[structopt(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
@@ -84,6 +80,7 @@ impl CallCommand {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
+            .extrinsic_opts
             .storage_deposit_limit
             .as_ref()
             .map(|limit| NumberOrHex::Hex((*limit).into()));
@@ -150,7 +147,7 @@ impl CallCommand {
                 self.contract.clone().into(),
                 self.value,
                 self.gas_limit,
-                self.storage_deposit_limit,
+                self.extrinsic_opts.storage_deposit_limit,
                 data,
             )
             .sign_and_submit_then_watch(signer)

@@ -15,10 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, parse_balance, runtime_api::api, wait_for_success_and_handle_error, Balance,
-    CodeHash, ContractMessageTranscoder, PairSigner, RuntimeApi,
+    display_events, runtime_api::api, wait_for_success_and_handle_error, Balance, CodeHash,
+    ContractMessageTranscoder, ExtrinsicOpts, PairSigner, RuntimeApi,
 };
-use crate::{name_value_println, ExtrinsicOpts};
+use crate::name_value_println;
 use anyhow::{Context, Result};
 use jsonrpsee::{
     types::{to_json_value, traits::Client as _},
@@ -41,10 +41,6 @@ pub struct UploadCommand {
     wasm_path: Option<PathBuf>,
     #[structopt(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage
-    /// consumed.
-    #[structopt(long, parse(try_from_str = parse_balance))]
-    storage_deposit_limit: Option<Balance>,
 }
 
 impl UploadCommand {
@@ -93,6 +89,7 @@ impl UploadCommand {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
+            .extrinsic_opts
             .storage_deposit_limit
             .as_ref()
             .map(|limit| NumberOrHex::Hex((*limit).into()));
@@ -126,7 +123,7 @@ impl UploadCommand {
         let tx_progress = api
             .tx()
             .contracts()
-            .upload_code(code, self.storage_deposit_limit)
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit)
             .sign_and_submit_then_watch(signer)
             .await?;
 

@@ -43,9 +43,16 @@ its project directory.
 *Optional*. All extrinsic commands can be run without altering the chain state. Useful for testing if a command will be
 successful, estimating gas costs or querying the result of `ink!` readonly messages.
 
+```
+--storage-deposit-limit
+```
+*Optional*. The maximum amount of balance that can be charged from the caller to pay for the storage consumed.
+
 ## Commands
 
 ### `upload`
+
+Assumes that `cargo contract build` has already been run to produce the contract artifacts.
 
 ### `instantiate`
 
