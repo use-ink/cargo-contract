@@ -41,7 +41,7 @@ type ContractInstantiateResult =
 pub struct InstantiateCommand {
     /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
     /// Use to instantiate contracts which have not yet been uploaded.
-    /// If the contract has already been uploaded use `--code_hash` instead.
+    /// If the contract has already been uploaded use `--code-hash` instead.
     #[structopt(parse(from_os_str))]
     wasm_path: Option<PathBuf>,
     /// The hash of the smart contract code already uploaded to the chain.
