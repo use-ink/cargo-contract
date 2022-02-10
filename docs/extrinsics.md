@@ -52,9 +52,33 @@ successful, estimating gas costs or querying the result of `ink!` readonly messa
 
 ### `upload`
 
+Upload the Wasm code of the contract to the target chain. Invokes the [`upload_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L509)
+dispatchable.
+
+e.g. `cargo contract upload --suri //Alice`
+
 Assumes that `cargo contract build` has already been run to produce the contract artifacts.
 
 ### `instantiate`
+
+Create an instance of a contract on chain. If the code has already been uploaded via `upload`, specify the resulting 
+`--code-hash` which will result in a call to [`instantiate`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L460).
+If no `--code-hash` is specified it will attempt to both upload the code and instantiate via the 
+[`instantiate_with_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L419) 
+dispatchable.
+
+e.g.
+```
+cargo contract instantiate \
+       --constructor new \
+       --args false \
+       --suri //Alice \
+       --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
+```
+- `--constructor` the name of the contract constructor method to invoke.
+- `--args` accepts a space separated list of values, encoded in order as the arguments of the `ink!` constructor. 
+- `--code-hash` the hash of the uploaded code, returned from a call to `contract upload` or a previous
+`contract instantiate`
 
 ### `call`
 
