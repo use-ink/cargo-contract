@@ -247,13 +247,6 @@ fn exec_cargo_for_wasm_target(
 ) -> Result<()> {
     util::assert_channel()?;
 
-    // set linker args via RUSTFLAGS.
-    // Currently will override user defined RUSTFLAGS from .cargo/config. See https://github.com/paritytech/cargo-contract/issues/98.
-    std::env::set_var(
-        "RUSTFLAGS",
-        "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto",
-    );
-
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -272,7 +265,11 @@ fn exec_cargo_for_wasm_target(
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
         }
-        util::invoke_cargo(command, &args, manifest_path.directory(), verbosity)?;
+        let env = Some(vec![(
+            "RUSTFLAGS",
+            "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto",
+        )]);
+        util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
         Ok(())
     };
@@ -298,8 +295,36 @@ fn exec_cargo_for_wasm_target(
             .using_temp(cargo_build)?;
     }
 
-    // clear RUSTFLAGS
-    std::env::remove_var("RUSTFLAGS");
+    Ok(())
+}
+
+/// Executes `cargo dylint` with the ink! linting driver that is built during
+/// the `build.rs`.
+///
+/// We create a temporary folder, extract the linting driver there and run
+/// `cargo dylint` with it.
+fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract-dylint_")
+        .tempdir()?;
+    log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
+
+    let template = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
+    crate::util::unzip(template, tmp_dir.path().to_path_buf(), None)?;
+
+    let manifest_path = crate_metadata.manifest_path.cargo_arg();
+    let args = vec!["ink_linting", &manifest_path];
+    let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
+    let env = vec![
+        ("DYLINT_LIBRARY_PATH", tmp_dir_path.as_ref()),
+        ("DYLINT_DRIVER_PATH", tmp_dir_path.as_ref()),
+    ];
+    let working_dir = crate_metadata
+        .manifest_path
+        .directory()
+        .unwrap_or_else(|| Path::new("."))
+        .canonicalize()?;
+    util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, Some(env))?;
 
     Ok(())
 }
@@ -615,16 +640,15 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity).map_err(
-            |_| {
+        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, None)
+            .map_err(|_| {
                 anyhow::anyhow!(
                     "Mismatching versions of `{}` were found!\n\
                      Please ensure that your contract and your ink! dependencies use a compatible \
                      version of this package.",
                     dependency
                 )
-            },
-        )?;
+            })?;
     }
     Ok(())
 }
@@ -671,6 +695,14 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             verbosity,
             " {} {}",
             format!("[1/{}]", build_artifact.steps()).bold(),
+            "Checking ink! linting rules".bright_green().bold()
+        );
+        exec_cargo_dylint(&crate_metadata, verbosity)?;
+
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("[2/{}]", build_artifact.steps()).bold(),
             "Building cargo project".bright_green().bold()
         );
         exec_cargo_for_wasm_target(
@@ -685,7 +717,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[2/{}]", build_artifact.steps()).bold(),
+            format!("[3/{}]", build_artifact.steps()).bold(),
             "Post processing wasm file".bright_green().bold()
         );
         post_process_wasm(&crate_metadata)?;
@@ -693,7 +725,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[3/{}]", build_artifact.steps()).bold(),
+            format!("[4/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
         let optimization_result =
@@ -704,6 +736,20 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[1/{}]", build_artifact.steps()).bold(),
+                "Checking ink! linting rules".bright_green().bold()
+            );
+            exec_cargo_dylint(&crate_metadata, verbosity)?;
+
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[2/{}]", build_artifact.steps()).bold(),
+                "Executing `cargo check`".bright_green().bold()
+            );
             exec_cargo_for_wasm_target(
                 &crate_metadata,
                 "check",
@@ -1270,6 +1316,71 @@ mod tests_ci_only {
 
             // then
             assert!(res.serialize_json().is_ok());
+            Ok(())
+        })
+    }
+
+    // This test has to be ignored until the next ink! rc.
+    // Before that we don't have the `__ink_dylint_…` markers available
+    // to actually run `dylint`.
+    #[test]
+    #[ignore]
+    fn dylint_must_find_issue() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let contract = r#"
+            #![cfg_attr(not(feature = "std"), no_std)]
+
+            use ink_lang as ink;
+
+            #[ink::contract]
+            mod fail_mapping_01 {
+                use ink_storage::{traits::SpreadAllocate, Mapping};
+
+                #[ink(storage)]
+                #[derive(SpreadAllocate)]
+                pub struct MyContract {
+                    balances: Mapping<AccountId, Balance>,
+                }
+
+                impl MyContract {
+                    #[ink(constructor)]
+                    pub fn new() -> Self {
+                        Self {
+                            balances: Default::default(),
+                        }
+                    }
+
+                    /// Returns the total token supply.
+                    #[ink(message)]
+                    pub fn get(&self) {
+                        // ...
+                    }
+                }
+            }"#;
+            let project_dir = manifest_path.directory().expect("directory must exist");
+            let lib = project_dir.join("lib.rs");
+            std::fs::write(&lib, contract)?;
+
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                build_artifact: BuildArtifacts::CheckOnly,
+                ..Default::default()
+            };
+
+            // when
+            let res = super::execute(args);
+
+            // then
+            match res {
+                Err(err) => {
+                    eprintln!("err: {:?}", err);
+                    assert!(err.to_string().contains(
+                        "help: add an `initialize_contract` function in this constructor"
+                    ));
+                }
+                _ => panic!("build succeeded, but must fail!"),
+            };
             Ok(())
         })
     }

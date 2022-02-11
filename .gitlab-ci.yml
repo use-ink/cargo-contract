@@ -39,11 +39,17 @@ workflow:
     - cargo -vV
     - rustc -vV
     - rustup show
+    - cargo dylint --version
     - bash --version
     - ./scripts/ci/pre_cache.sh
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - sccache -s
+
+    # needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
+    # this is unfortunate, since it disables `sccache` for this entire file.
+    - unset RUSTC_WRAPPER
+
     - git show
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -80,6 +86,26 @@ clippy:
     - cargo clippy --verbose --all-targets --all-features -- -D warnings;
 
 #### stage:                        test (all features)
+
+test-dylint:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cd ink_linting/
+
+    # Installing these components here is necessary because
+    # `ink_linting/` has a fixed `rust-toolchain` file.
+    # We can't move this line to the Docker container, since
+    # that would then make it impossible to upgrade the
+    # `ink_linting/rust-toolchain` file while still having
+    # this CI job succeed.
+    - rustup component add rustfmt clippy rust-src
+
+    - cargo check --verbose
+    - cargo fmt --verbose --all -- --check
+    - cargo clippy --verbose -- -D warnings;
+
+    - cargo test --verbose --workspace --all-features
 
 test:
   stage:                           test

@@ -50,6 +50,8 @@ jobs:
         run: |
           wasm-opt --version
           cargo -vV
+          cargo install cargo-dylint dylint-link
+          cargo dylint --version
           cargo run -- contract --version
           cargo run -- contract new foobar
           echo "[workspace]" >> foobar/Cargo.toml

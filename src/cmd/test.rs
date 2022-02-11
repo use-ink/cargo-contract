@@ -65,7 +65,7 @@ pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Res
         "Running tests".bright_green().bold()
     );
 
-    let stdout = util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity)?;
+    let stdout = util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity, None)?;
 
     Ok(TestResult { stdout, verbosity })
 }

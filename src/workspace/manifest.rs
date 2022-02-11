@@ -53,7 +53,15 @@ impl ManifestPath {
 
     /// Create an arg `--manifest-path=` for `cargo` command
     pub fn cargo_arg(&self) -> String {
-        format!("--manifest-path={}", self.path.to_string_lossy())
+        format!(
+            "--manifest-path={}",
+            self.path
+                .canonicalize()
+                .unwrap_or_else(|err| {
+                    panic!("Failed to canonicalize {:?}: {:?}", self.path, err);
+                })
+                .to_string_lossy()
+        )
     }
 
     /// The directory path of the manifest path.

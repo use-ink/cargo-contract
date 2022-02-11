@@ -2,8 +2,8 @@
 name = "contract-metadata"
 version = "0.5.1"
 authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2021"
 rust-version = "1.56.1"
+edition = "2021"
 
 license = "Apache-2.0"
 readme = "README.md"

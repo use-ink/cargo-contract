@@ -16,8 +16,15 @@
 
 use crate::Verbosity;
 use anyhow::{Context, Result};
+use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
-use std::{ffi::OsStr, path::Path, process::Command};
+use std::{
+    ffi::OsStr,
+    fs,
+    io::{Cursor, Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 /// Check whether the current rust channel is valid: `nightly` is recommended.
 pub fn assert_channel() -> Result<()> {
@@ -43,6 +50,7 @@ pub(crate) fn invoke_cargo<I, S, P>(
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
+    env: Option<Vec<(&str, &str)>>,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
@@ -51,6 +59,22 @@ where
 {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
+
+    if command == "dylint" {
+        // We need to remove those environment in case `cargo dylint` is invoked.
+        // This is because the ink! dylint driver crate found in `dylint` uses a
+        // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By
+        // removing this env variable we avoid issues with different Rust toolchains
+        // interfering with each other.
+        cmd.env_remove("CARGO_TARGET_DIR");
+    }
+
+    env.unwrap_or_default()
+        .iter()
+        .for_each(|(env_var, env_key)| {
+            cmd.env(env_var, env_key);
+        });
+
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
@@ -60,7 +84,14 @@ where
     cmd.args(args);
     match verbosity {
         Verbosity::Quiet => cmd.arg("--quiet"),
-        Verbosity::Verbose => cmd.arg("--verbose"),
+        Verbosity::Verbose => {
+            // `dylint` is verbose by default, it doesn't have a `--verbose` argument.
+            if command != "dylint" {
+                cmd.arg("--verbose")
+            } else {
+                &mut cmd
+            }
+        }
         Verbosity::Default => &mut cmd,
     };
 
@@ -188,4 +219,67 @@ pub mod tests {
             f(manifest_path)
         })
     }
+}
+
+// Unzips the file at `template` to `out_dir`.
+//
+// In case `name` is set the zip file is treated as if it were a template for a new
+// contract. Replacements in `Cargo.toml` for `name`-placeholders are attempted in
+// that case.
+pub fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
+    let mut cursor = Cursor::new(Vec::new());
+    cursor.write_all(template)?;
+    cursor.seek(SeekFrom::Start(0))?;
+
+    let mut archive = zip::ZipArchive::new(cursor)?;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let outpath = out_dir.join(file.name());
+
+        if (*file.name()).ends_with('/') {
+            fs::create_dir_all(&outpath)?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(&p)?;
+                }
+            }
+            let mut outfile = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(outpath.clone())
+                .map_err(|e| {
+                    if e.kind() == std::io::ErrorKind::AlreadyExists {
+                        anyhow::anyhow!("File {} already exists", file.name(),)
+                    } else {
+                        anyhow::anyhow!(e)
+                    }
+                })?;
+
+            if let Some(name) = name {
+                let mut contents = String::new();
+                file.read_to_string(&mut contents)?;
+                let contents = contents.replace("{{name}}", name);
+                let contents = contents.replace("{{camel_name}}", &name.to_upper_camel_case());
+                outfile.write_all(contents.as_bytes())?;
+            } else {
+                let mut v = Vec::new();
+                file.read_to_end(&mut v)?;
+                outfile.write_all(v.as_slice())?;
+            }
+        }
+
+        // Get and set permissions
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if let Some(mode) = file.unix_mode() {
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
+            }
+        }
+    }
+
+    Ok(())
 }
