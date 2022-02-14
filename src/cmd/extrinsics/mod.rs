@@ -167,14 +167,18 @@ pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> R
     Ok(())
 }
 
-/// Displays details of a Runtime module error.
+/// Wait for the transaction to be included successfully into a block.
 ///
-/// # Note
+/// # Errors
 ///
-/// This is currently based on the static metadata rather than the metadata fetched at runtime.
-/// It means that the displayed error could be incorrect if the pallet has a different index on the
-/// target chain to that in the static metadata. See
-/// <https://github.com/paritytech/subxt/issues/443>
+/// If a runtime Module error occurs, this will only display the pallet and error indices. Dynamic
+/// lookups of the actual error will be available once the following issue is resolved:
+/// <https://github.com/paritytech/subxt/issues/443>.
+///
+/// # Finality
+///
+/// Currently this will report success once the transaction is included in a block. In the future
+/// there could be a flag to wait for finality before reporting success.
 async fn wait_for_success_and_handle_error<T>(
     tx_progress: subxt::TransactionProgress<'_, T, runtime_api::api::DispatchError>,
 ) -> Result<subxt::TransactionEvents<T>>
@@ -186,16 +190,5 @@ where
         .await?
         .wait_for_success()
         .await
-        .map_err(|e| match e {
-            subxt::Error::Runtime(err) => {
-                let details = err.inner().details().unwrap();
-                anyhow!(
-                    "Runtime: {} -> {}: {}",
-                    details.pallet,
-                    details.error,
-                    details.docs
-                )
-            }
-            err => err.into(),
-        })
+        .map_err(Into::into)
 }
