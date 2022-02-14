@@ -25,7 +25,7 @@ bearing chains.
 *Optional*. The password for the `--suri`, see https://docs.substrate.io/v3/tools/subkey/#password-protected-keys.
 
 ```
---manfest-path
+--manifest-path
 ```
 *Optional*. The path to the `Cargo.toml` of the contract crate. Use this to run commands on a contract from outside of 
 its project directory.
