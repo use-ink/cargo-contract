@@ -110,7 +110,7 @@ impl CallCommand {
                 );
                 name_value_println!(
                     "Data",
-                    format!("{:?}", value),
+                    format!("{}", value),
                     EXEC_RESULT_MAX_KEY_COL_WIDTH
                 );
             }
