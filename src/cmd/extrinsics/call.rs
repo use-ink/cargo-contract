@@ -108,11 +108,7 @@ impl CallCommand {
                     format!("{:?}", ret_val.did_revert()),
                     EXEC_RESULT_MAX_KEY_COL_WIDTH
                 );
-                name_value_println!(
-                    "Data",
-                    format!("{}", value),
-                    EXEC_RESULT_MAX_KEY_COL_WIDTH
-                );
+                name_value_println!("Data", format!("{}", value), EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
             Err(err) => {
                 name_value_println!(
