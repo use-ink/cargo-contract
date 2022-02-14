@@ -68,7 +68,7 @@ where
 
         let outpath = out_dir.join(file.name());
 
-        if (&*file.name()).ends_with('/') {
+        if (*file.name()).ends_with('/') {
             fs::create_dir_all(&outpath)?;
         } else {
             if let Some(p) = outpath.parent() {

@@ -71,11 +71,11 @@ impl CallCommand {
         })
     }
 
-    async fn call_rpc<'a>(
+    async fn call_rpc(
         &self,
         data: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'a>,
+        transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
@@ -126,11 +126,11 @@ impl CallCommand {
         Ok(())
     }
 
-    async fn call<'a>(
+    async fn call(
         &self,
         data: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'a>,
+        transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         let url = self.extrinsic_opts.url.to_string();
         let api = ClientBuilder::new()

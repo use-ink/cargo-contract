@@ -81,7 +81,7 @@ impl UploadCommand {
         })
     }
 
-    async fn upload_code_rpc<'a>(
+    async fn upload_code_rpc(
         &self,
         code: Vec<u8>,
         signer: &PairSigner,
@@ -107,11 +107,11 @@ impl UploadCommand {
         result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))
     }
 
-    async fn upload_code<'a>(
+    async fn upload_code(
         &self,
         code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'a>,
+        transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<TransactionEvents<DefaultConfig>> {
         let url = self.extrinsic_opts.url.to_string();
         let api = ClientBuilder::new()
