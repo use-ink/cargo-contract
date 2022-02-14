@@ -142,8 +142,9 @@ pub const EXEC_RESULT_MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> Result<()> {
-    let debug_message = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?;
+    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
+        .context("Error decoding UTF8 debug message bytes")?
+        .lines();
     name_value_println!(
         "Gas Consumed",
         format!("{:?}", result.gas_consumed),
@@ -159,11 +160,23 @@ pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> R
         format!("{:?}", result.storage_deposit),
         EXEC_RESULT_MAX_KEY_COL_WIDTH
     );
-    name_value_println!(
-        "Debug Message",
-        format!("'{}'", debug_message),
-        EXEC_RESULT_MAX_KEY_COL_WIDTH
-    );
+
+    // print debug messages aligned, only first line has key
+    if let Some(debug_message) = debug_message_lines.next() {
+        name_value_println!(
+            "Debug Message",
+            format!("{}", debug_message),
+            EXEC_RESULT_MAX_KEY_COL_WIDTH
+        );
+    }
+
+    for debug_message in debug_message_lines {
+        name_value_println!(
+            "",
+            format!("{}", debug_message),
+            EXEC_RESULT_MAX_KEY_COL_WIDTH
+        );
+    }
     Ok(())
 }
 
