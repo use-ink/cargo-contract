@@ -182,7 +182,9 @@ where
     T: Config,
 {
     tx_progress
-        .wait_for_finalized_success()
+        .wait_for_in_block()
+        .await?
+        .wait_for_success()
         .await
         .map_err(|e| match e {
             subxt::Error::Runtime(err) => {
