@@ -92,13 +92,41 @@ pub(crate) fn base_name(path: &Path) -> &str {
         .expect("must be valid utf-8")
 }
 
+/// Decode hex string with or without 0x prefix
+pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
+    if input.starts_with("0x") {
+        hex::decode(input.trim_start_matches("0x"))
+    } else {
+        hex::decode(input)
+    }
+}
+
 /// Prints to stdout if `verbosity.is_verbose()` is `true`.
 #[macro_export]
 macro_rules! maybe_println {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
-            println!($($msg)*);
+            ::std::println!($($msg)*);
         }
+    };
+}
+
+pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+
+/// Pretty print name value, name right aligned with colour.
+#[macro_export]
+macro_rules! name_value_println {
+    ($name:tt, $value:expr, $width:expr) => {{
+        use colored::Colorize as _;
+        ::std::println!(
+            "{:>width$} {}",
+            $name.bright_purple().bold(),
+            $value.bright_white(),
+            width = $width,
+        );
+    }};
+    ($name:tt, $value:expr) => {
+        $crate::name_value_println!($name, $value, $crate::DEFAULT_KEY_COL_WIDTH)
     };
 }
 

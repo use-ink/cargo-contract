@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2020 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -14,15 +14,5 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod build;
-pub mod metadata;
-pub mod new;
-pub mod test;
-
-pub(crate) use self::{
-    build::{BuildCommand, CheckCommand},
-    test::TestCommand,
-};
-mod extrinsics;
-
-pub(crate) use self::extrinsics::{CallCommand, InstantiateCommand, UploadCommand};
+#[subxt::subxt(runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale")]
+pub mod api {}

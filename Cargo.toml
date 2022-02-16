@@ -28,7 +28,7 @@ heck = "0.4.0"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.1"
-codec = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
+scale = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
 which = "4.2.4"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -43,14 +43,24 @@ url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.2"
 regex = "1.5.4"
 
-# dependencies for optional extrinsics feature
-async-std = { version = "1.10.0", optional = true }
-sp-core = { version = "2.0.1", optional = true }
-subxt = { version = "0.14.0", package = "substrate-subxt", optional = true }
-futures = { version = "0.3.21", optional = true }
-hex = { version = "0.4.3", optional = true }
-
-funty = "2.0.0"
+# dependencies for extrinsics (deploying and calling a contract)
+async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
+ink_metadata = { version = "3.0.0-rc8", features = ["derive"] }
+ink_env = "3.0.0-rc8"
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+sp-core = "5.0.0"
+sp-runtime = "5.0.0"
+pallet-contracts-primitives = "5.0.0"
+subxt = "0.17.0"
+futures = "0.3.19"
+hex = "0.4.3"
+jsonrpsee = { version = "0.6.1", features = ["ws-client"] }
+nom = "7.1.0"
+nom-supreme = "0.6.0"
+indexmap = "1.8.0"
+thiserror = "1.0.30"
+escape8259 = "0.5.1"
+itertools = "0.10.3"
 
 [build-dependencies]
 anyhow = "1.0.53"
@@ -60,19 +70,28 @@ substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
 
 [dev-dependencies]
+assert_cmd = "2.0.4"
 assert_matches = "1.5.0"
 pretty_assertions = "1.1.0"
 wabt = "0.10.0"
+regex = "1.5.4"
+predicates = "2.1.1"
+
+ink_primitives = "3.0.0-rc8"
+ink_storage = "3.0.0-rc8"
+ink_lang = "3.0.0-rc8"
 
 [features]
-default = []
-
-# Enable this for (experimental) commands to deploy, instantiate and call contracts.
-#
-# Disabled by default
-extrinsics = ["sp-core", "subxt", "async-std", "futures", "hex"]
+# This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
+# generation code with `#[cfg(feature = "std")]`.
+default = ["std"]
+std = []
 
 # Enable this to execute long running tests, which usually are only run on the CI server
 #
 # Disabled by default
 test-ci-only = []
+
+# Enable this to execute tests which depend on a locally running contracts enabed chain
+# e.g.https://github.com/paritytech/canvas-node
+integration-tests = []
