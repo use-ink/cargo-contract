@@ -32,28 +32,39 @@ jobs:
           pathInArchive: "binaryen-/bin/wasm-opt.exe"
 
       - name: Checkout sources & submodules
-        uses: actions/checkout@master
+        uses: actions/checkout@v2.4.0
         with:
           fetch-depth: 1
           submodules: recursive
 
       - name: Install toolchain
         id: toolchain
-        uses: actions-rs/toolchain@master
+        uses: actions-rs/toolchain@v1.0.7
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
           override: true
 
+      - name: Install cargo-dylint
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-dylint
+          version: 1
+
+      - name: Install dylint-link
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: dylint-link
+          version: 1
+
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v1.2.0
+        uses: Swatinem/rust-cache@v1.3.0
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
           wasm-opt --version
           cargo -vV
-          cargo install cargo-dylint dylint-link
           cargo dylint --version
           cargo run -- contract --version
           cargo run -- contract new foobar
