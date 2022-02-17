@@ -27,7 +27,7 @@ log = "0.4.14"
 heck = "0.4.0"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
-cargo_metadata = "0.14.1"
+cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
 which = "4.2.4"
 colored = "2.0.0"
