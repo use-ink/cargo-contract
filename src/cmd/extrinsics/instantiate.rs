@@ -22,10 +22,7 @@ use super::{
 };
 use crate::{name_value_println, util::decode_hex, Verbosity};
 use anyhow::{anyhow, Context, Result};
-use jsonrpsee::{
-    types::{to_json_value, traits::Client as _},
-    ws_client::WsClientBuilder,
-};
+use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::{crypto::Ss58Codec, Bytes};
 use std::{
@@ -298,10 +295,9 @@ impl<'a> Exec<'a> {
             data: self.args.data.clone().into(),
             salt: self.args.salt.clone(),
         };
-        let params = vec![to_json_value(call_request)?];
-        let result: ContractInstantiateResult = cli
-            .request("contracts_instantiate", Some(params.into()))
-            .await?;
+        let params = rpc_params![call_request];
+        let result: ContractInstantiateResult =
+            cli.request("contracts_instantiate", params).await?;
         Ok(result)
     }
 }

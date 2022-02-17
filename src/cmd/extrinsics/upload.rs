@@ -20,10 +20,7 @@ use super::{
 };
 use crate::name_value_println;
 use anyhow::{Context, Result};
-use jsonrpsee::{
-    types::{to_json_value, traits::Client as _},
-    ws_client::WsClientBuilder,
-};
+use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{fmt::Debug, path::PathBuf};
@@ -98,11 +95,9 @@ impl UploadCommand {
             code: Bytes(code),
             storage_deposit_limit,
         };
-        let params = vec![to_json_value(call_request)?];
+        let params = rpc_params!(call_request);
 
-        let result: CodeUploadResult = cli
-            .request("contracts_upload_code", Some(params.into()))
-            .await?;
+        let result: CodeUploadResult = cli.request("contracts_upload_code", params).await?;
 
         result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))
     }
