@@ -302,7 +302,7 @@ impl<'a> Exec<'a> {
     }
 }
 
-/// A struct that encodes RPC parameters required to instantiate a new smart-contract.
+/// A struct that encodes RPC parameters required to instantiate a new smart contract.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct InstantiateRequest {

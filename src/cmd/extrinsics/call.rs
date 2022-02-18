@@ -157,9 +157,9 @@ impl CallCommand {
     }
 }
 
-/// A struct that encodes RPC parameters required for a call to a smart-contract.
+/// A struct that encodes RPC parameters required for a call to a smart contract.
 ///
-/// Copied from pallet-contracts-rpc
+/// Copied from `pallet-contracts-rpc`.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcCallRequest {

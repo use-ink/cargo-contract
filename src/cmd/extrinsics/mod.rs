@@ -49,13 +49,13 @@ type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519
 type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
-/// Arguments required for creating and sending an extrinsic to a substrate node
+/// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, StructOpt)]
 pub struct ExtrinsicOpts {
-    /// Path to the Cargo.toml of the contract
+    /// Path to the `Cargo.toml` of the contract.
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node
+    /// Websockets url of a substrate node.
     #[structopt(
         name = "url",
         long,
@@ -66,7 +66,7 @@ pub struct ExtrinsicOpts {
     /// Secret key URI for the account deploying the contract.
     #[structopt(name = "suri", long, short)]
     suri: String,
-    /// Password for the secret key
+    /// Password for the secret key.
     #[structopt(name = "password", long, short)]
     password: Option<String>,
     #[structopt(flatten)]

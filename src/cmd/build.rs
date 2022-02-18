@@ -54,13 +54,13 @@ pub(crate) struct ExecuteArgs {
     output_type: OutputType,
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "build")]
 pub struct BuildCommand {
-    /// Path to the Cargo.toml of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// By default the contract is compiled with debug functionality
@@ -91,7 +91,7 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
-    /// Number of optimization passes, passed as an argument to wasm-opt.
+    /// Number of optimization passes, passed as an argument to `wasm-opt`.
     ///
     /// - `0`: execute no optimization passes
     ///
@@ -187,7 +187,7 @@ impl BuildCommand {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "check")]
 pub struct CheckCommand {
-    /// Path to the Cargo.toml of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     #[structopt(flatten)]
@@ -226,9 +226,9 @@ impl CheckCommand {
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
 /// which reduces the size of the Wasm binary by not including panic strings and formatting code.
 ///
-/// # Cargo.toml optimizations
+/// # `Cargo.toml` optimizations
 ///
-/// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
+/// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to minimize
 /// the final Wasm binary size.
 ///
 /// Preferred default `[profile.release]` settings will be added if they are missing, existing
@@ -510,7 +510,7 @@ fn do_optimization(
     Ok(())
 }
 
-/// Checks if the wasm-opt binary under `wasm_opt_path` returns a version
+/// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
 /// compatible with `cargo-contract`.
 ///
 /// Currently this must be a version >= 99.
@@ -643,7 +643,7 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {

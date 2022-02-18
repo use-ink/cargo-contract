@@ -20,7 +20,7 @@ use colored::Colorize;
 use std::{convert::TryFrom, path::PathBuf};
 use structopt::StructOpt;
 
-/// Executes smart-contract tests off-chain by delegating to `cargo test`.
+/// Executes smart contract tests off-chain by delegating to `cargo test`.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "test")]
 pub struct TestCommand {

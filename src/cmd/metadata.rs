@@ -53,7 +53,7 @@ struct ExtendedMetadataResult {
     user: Option<User>,
 }
 
-/// Generates a file with metadata describing the ABI of the smart-contract.
+/// Generates a file with metadata describing the ABI of the smart contract.
 ///
 /// It does so by generating and invoking a temporary workspace member.
 pub(crate) fn execute(
