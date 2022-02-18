@@ -10,7 +10,7 @@ repository = "https://github.com/paritytech/cargo-contract"
 documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
-keywords = ["parity", "blockchain"]
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [lib]
