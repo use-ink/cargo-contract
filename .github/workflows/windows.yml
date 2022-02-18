@@ -32,14 +32,14 @@ jobs:
           pathInArchive: "binaryen-/bin/wasm-opt.exe"
 
       - name: Checkout sources & submodules
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v2
         with:
           fetch-depth: 1
           submodules: recursive
 
       - name: Install toolchain
         id: toolchain
-        uses: actions-rs/toolchain@v1.0.7
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
