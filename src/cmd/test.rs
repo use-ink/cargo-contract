@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@ use colored::Colorize;
 use std::{convert::TryFrom, path::PathBuf};
 use structopt::StructOpt;
 
-/// Executes smart-contract tests off-chain by delegating to `cargo test`.
+/// Executes smart contract tests off-chain by delegating to `cargo test`.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "test")]
 pub struct TestCommand {

@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -85,7 +85,7 @@ impl Workspace {
     /// # Note
     ///
     /// The root package is the current workspace package being built, not to be confused with
-    /// the workspace root (where the top level workspace Cargo.toml is defined).
+    /// the workspace root (where the top level workspace `Cargo.toml` is defined).
     pub fn with_root_package_manifest<F>(&mut self, f: F) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,

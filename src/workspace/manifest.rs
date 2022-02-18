@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -31,14 +31,14 @@ const MANIFEST_FILE: &str = "Cargo.toml";
 const LEGACY_METADATA_PACKAGE_PATH: &str = ".ink/abi_gen";
 const METADATA_PACKAGE_PATH: &str = ".ink/metadata_gen";
 
-/// Path to a Cargo.toml file
+/// Path to a `Cargo.toml` file
 #[derive(Clone, Debug)]
 pub struct ManifestPath {
     path: PathBuf,
 }
 
 impl ManifestPath {
-    /// Create a new ManifestPath, errors if not path to `Cargo.toml`
+    /// Create a new [`ManifestPath`], errors if not path to `Cargo.toml`
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let manifest = path.as_ref();
         if let Some(file_name) = manifest.file_name() {
