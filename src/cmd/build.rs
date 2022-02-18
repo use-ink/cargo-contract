@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -54,13 +54,13 @@ pub(crate) struct ExecuteArgs {
     output_type: OutputType,
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 #[derive(Debug, StructOpt)]
 #[structopt(name = "build")]
 pub struct BuildCommand {
-    /// Path to the Cargo.toml of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// By default the contract is compiled with debug functionality
@@ -91,7 +91,7 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[structopt(flatten)]
     unstable_options: UnstableOptions,
-    /// Number of optimization passes, passed as an argument to wasm-opt.
+    /// Number of optimization passes, passed as an argument to `wasm-opt`.
     ///
     /// - `0`: execute no optimization passes
     ///
@@ -187,7 +187,7 @@ impl BuildCommand {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "check")]
 pub struct CheckCommand {
-    /// Path to the Cargo.toml of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build
     #[structopt(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     #[structopt(flatten)]
@@ -226,9 +226,9 @@ impl CheckCommand {
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
 /// which reduces the size of the Wasm binary by not including panic strings and formatting code.
 ///
-/// # Cargo.toml optimizations
+/// # `Cargo.toml` optimizations
 ///
-/// The original Cargo.toml will be amended to remove the `rlib` crate type in order to minimize
+/// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to minimize
 /// the final Wasm binary size.
 ///
 /// Preferred default `[profile.release]` settings will be added if they are missing, existing
@@ -329,7 +329,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     Ok(())
 }
 
-/// Ensures the wasm memory import of a given module has the maximum number of pages.
+/// Ensures the Wasm memory import of a given module has the maximum number of pages.
 ///
 /// Iterates over the import section, finds the memory import entry if any and adjusts the maximum
 /// limit.
@@ -388,7 +388,7 @@ fn strip_exports(module: &mut Module) {
     }
 }
 
-/// Load and parse a wasm file from disk.
+/// Load and parse a Wasm file from disk.
 fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
     let path = path.as_ref();
     parity_wasm::deserialize_file(path).context(format!(
@@ -397,9 +397,9 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
     ))
 }
 
-/// Performs required post-processing steps on the wasm artifact.
+/// Performs required post-processing steps on the Wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
-    // Deserialize wasm module from a file.
+    // Deserialize Wasm module from a file.
     let mut module =
         load_module(&crate_metadata.original_wasm).context("Loading of original wasm failed")?;
 
@@ -418,9 +418,9 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
-/// Attempts to perform optional wasm optimization using `binaryen`.
+/// Attempts to perform optional Wasm optimization using `binaryen`.
 ///
-/// The intention is to reduce the size of bloated wasm binaries as a result of missing
+/// The intention is to reduce the size of bloated Wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
@@ -464,7 +464,7 @@ fn optimize_wasm(
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized wasm is written to `dest_optimized`.
+/// If successful, the optimized Wasm is written to `dest_optimized`.
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,
@@ -535,7 +535,7 @@ fn do_optimization(
     Ok(())
 }
 
-/// Checks if the wasm-opt binary under `wasm_opt_path` returns a version
+/// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
 /// compatible with `cargo-contract`.
 ///
 /// Currently this must be a version >= 99.
@@ -667,7 +667,7 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Executes build of the smart-contract which produces a wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {

@@ -21,10 +21,7 @@ use super::{
 };
 use crate::name_value_println;
 use anyhow::Result;
-use jsonrpsee::{
-    types::{to_json_value, traits::Client as _},
-    ws_client::WsClientBuilder,
-};
+use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::fmt::Debug;
@@ -92,8 +89,8 @@ impl CallCommand {
             storage_deposit_limit,
             input_data: Bytes(data),
         };
-        let params = vec![to_json_value(call_request)?];
-        let result: ContractExecResult = cli.request("contracts_call", Some(params.into())).await?;
+        let params = rpc_params![call_request];
+        let result: ContractExecResult = cli.request("contracts_call", params).await?;
 
         match result.result {
             Ok(ref ret_val) => {
@@ -160,9 +157,9 @@ impl CallCommand {
     }
 }
 
-/// A struct that encodes RPC parameters required for a call to a smart-contract.
+/// A struct that encodes RPC parameters required for a call to a smart contract.
 ///
-/// Copied from pallet-contracts-rpc
+/// Copied from `pallet-contracts-rpc`.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcCallRequest {

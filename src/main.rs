@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -339,7 +339,7 @@ pub struct BuildResult {
 /// Result of the optimization process.
 #[derive(serde::Serialize)]
 pub struct OptimizationResult {
-    /// The path of the optimized wasm file.
+    /// The path of the optimized Wasm file.
     pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,

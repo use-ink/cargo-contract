@@ -2,7 +2,6 @@
 name = "contract-metadata"
 version = "0.5.1"
 authors = ["Parity Technologies <admin@parity.io>"]
-rust-version = "1.56.1"
 edition = "2021"
 
 license = "Apache-2.0"
@@ -11,7 +10,7 @@ repository = "https://github.com/paritytech/cargo-contract"
 documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
-keywords = ["parity", "blockchain"]
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [lib]

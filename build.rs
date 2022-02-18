@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -206,7 +206,7 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
         let path = entry.path();
         let mut name = path.strip_prefix(&src_dir)?.to_path_buf();
 
-        // Cargo.toml files cause the folder to excluded from `cargo package` so need to be renamed
+        // `Cargo.toml` files cause the folder to excluded from `cargo package` so need to be renamed
         if name.file_name() == Some(OsStr::new("_Cargo.toml")) {
             name.set_file_name("Cargo.toml");
         }

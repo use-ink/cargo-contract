@@ -22,10 +22,7 @@ use super::{
 };
 use crate::{name_value_println, util::decode_hex, Verbosity};
 use anyhow::{anyhow, Context, Result};
-use jsonrpsee::{
-    types::{to_json_value, traits::Client as _},
-    ws_client::WsClientBuilder,
-};
+use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::{crypto::Ss58Codec, Bytes};
 use std::{
@@ -40,7 +37,7 @@ type ContractInstantiateResult =
 
 #[derive(Debug, StructOpt)]
 pub struct InstantiateCommand {
-    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
+    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
     /// Use to instantiate contracts which have not yet been uploaded.
     /// If the contract has already been uploaded use `--code-hash` instead.
     #[structopt(parse(from_os_str))]
@@ -298,15 +295,14 @@ impl<'a> Exec<'a> {
             data: self.args.data.clone().into(),
             salt: self.args.salt.clone(),
         };
-        let params = vec![to_json_value(call_request)?];
-        let result: ContractInstantiateResult = cli
-            .request("contracts_instantiate", Some(params.into()))
-            .await?;
+        let params = rpc_params![call_request];
+        let result: ContractInstantiateResult =
+            cli.request("contracts_instantiate", params).await?;
         Ok(result)
     }
 }
 
-/// A struct that encodes RPC parameters required to instantiate a new smart-contract.
+/// A struct that encodes RPC parameters required to instantiate a new smart contract.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct InstantiateRequest {
@@ -319,13 +315,13 @@ struct InstantiateRequest {
     salt: Bytes,
 }
 
-/// Reference to an existing code hash or a new wasm module.
+/// Reference to an existing code hash or a new Wasm module.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 enum Code {
-    /// A wasm module as raw bytes.
+    /// A Wasm module as raw bytes.
     Upload(Bytes),
-    /// The code hash of an on-chain wasm blob.
+    /// The code hash of an on-chain Wasm blob.
     Existing(<DefaultConfig as Config>::Hash),
 }
 
