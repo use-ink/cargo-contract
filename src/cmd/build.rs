@@ -304,6 +304,8 @@ fn exec_cargo_for_wasm_target(
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
+    check_dylint_requirements(crate_metadata.manifest_path.directory().unwrap())?;
+
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract-dylint_")
         .tempdir()?;
@@ -325,6 +327,52 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         .unwrap_or_else(|| Path::new("."))
         .canonicalize()?;
     util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, Some(env))?;
+
+    Ok(())
+}
+
+/// Checks if all requirements for `dylint` are installed.
+///
+/// Those are an installed version of `cargo-dylint` and `dylint-link`.
+fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
+    let execute_cmd = |cmd: &mut Command| {
+        // when testing this function we set the `PATH` to the `working_dir`
+        // so that we can have mocked binaries in there which are executed
+        // instead of the real ones.
+        #[cfg(test)]
+        cmd.env("PATH", _working_dir);
+
+        cmd.stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap_or_else(|_| panic!("Error executing `{:?}`", cmd))
+            .wait()
+            .map(|res| res.success())
+            .unwrap_or_else(|err| panic!("Error executing `{:?}`: {:?}", cmd, err))
+    };
+
+    // when testing this function we should never fall back to a `cargo` specified
+    // in the env variable, as this would mess with the mocked binaries.
+    #[cfg(not(test))]
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    #[cfg(test)]
+    let cargo = "cargo";
+
+    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
+        anyhow::bail!("cargo-dylint was not found!\n\
+            Make sure it is installed and the binary is in your PATH environment.\n\n\
+            You can install it by executing `cargo install cargo-dylint`."
+            .to_string()
+            .bright_yellow());
+    }
+
+    if !execute_cmd(Command::new("dylint-link").arg("--version")) {
+        anyhow::bail!("dylint-link was not found!\n\
+            Make sure it is installed and the binary is in your PATH environment.\n\n\
+            You can install it by executing `cargo install dylint-link`."
+            .to_string()
+            .bright_yellow());
+    }
 
     Ok(())
 }
@@ -836,6 +884,20 @@ mod tests_ci_only {
             .any(|e| e.name() == "name")
     }
 
+    /// Creates an executable file at `path` with the content `content`.
+    ///
+    /// Currently works only on `unix`.
+    #[cfg(unix)]
+    fn create_executable(path: &Path, content: &str) {
+        {
+            let mut file = std::fs::File::create(&path).unwrap();
+            file.write_all(content.as_bytes())
+                .expect("writing of executable failed");
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+            .expect("setting permissions failed");
+    }
+
     /// Creates an executable `wasm-opt-mocked` file which outputs
     /// "wasm-opt version `version`".
     ///
@@ -845,15 +907,9 @@ mod tests_ci_only {
     #[cfg(unix)]
     fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> PathBuf {
         let path = tmp_dir.join("wasm-opt-mocked");
-        {
-            let mut file = std::fs::File::create(&path).unwrap();
-            let version = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
-            file.write_all(version.as_bytes())
-                .expect("writing wasm-opt-mocked failed");
-        }
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-            .expect("setting permissions failed");
-        path
+        let content = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
+        create_executable(&path, &content);
+        path.to_path_buf()
     }
 
     #[test]
@@ -1381,6 +1437,60 @@ mod tests_ci_only {
                 }
                 _ => panic!("build succeeded, but must fail!"),
             };
+            Ok(())
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_dylint_link_installation_must_be_detected() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let manifest_dir = manifest_path.directory().unwrap();
+
+            // mock an existing `cargo dylint` installation.
+            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 0");
+
+            // mock non-existing `dylint-link` binary
+            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 1");
+
+            // when
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                ..Default::default()
+            };
+            let res = super::execute(args).map(|_| ()).unwrap_err();
+
+            // then
+            assert!(format!("{:?}", res).contains("dylint-link was not found!"));
+
+            Ok(())
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_cargo_dylint_installation_must_be_detected() {
+        with_new_contract_project(|manifest_path| {
+            // given
+            let manifest_dir = manifest_path.directory().unwrap();
+
+            // mock existing `dylint-link` binary
+            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
+
+            // mock a non-existing `cargo dylint` installation.
+            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+
+            // when
+            let args = crate::cmd::build::ExecuteArgs {
+                manifest_path,
+                ..Default::default()
+            };
+            let res = super::execute(args).map(|_| ()).unwrap_err();
+
+            // then
+            assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
+
             Ok(())
         })
     }
