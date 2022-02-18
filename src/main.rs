@@ -339,7 +339,7 @@ pub struct BuildResult {
 /// Result of the optimization process.
 #[derive(serde::Serialize)]
 pub struct OptimizationResult {
-    /// The path of the optimized wasm file.
+    /// The path of the optimized Wasm file.
     pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,

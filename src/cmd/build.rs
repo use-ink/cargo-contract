@@ -304,7 +304,7 @@ fn exec_cargo_for_wasm_target(
     Ok(())
 }
 
-/// Ensures the wasm memory import of a given module has the maximum number of pages.
+/// Ensures the Wasm memory import of a given module has the maximum number of pages.
 ///
 /// Iterates over the import section, finds the memory import entry if any and adjusts the maximum
 /// limit.
@@ -363,7 +363,7 @@ fn strip_exports(module: &mut Module) {
     }
 }
 
-/// Load and parse a wasm file from disk.
+/// Load and parse a Wasm file from disk.
 fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
     let path = path.as_ref();
     parity_wasm::deserialize_file(path).context(format!(
@@ -372,9 +372,9 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
     ))
 }
 
-/// Performs required post-processing steps on the wasm artifact.
+/// Performs required post-processing steps on the Wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
-    // Deserialize wasm module from a file.
+    // Deserialize Wasm module from a file.
     let mut module =
         load_module(&crate_metadata.original_wasm).context("Loading of original wasm failed")?;
 
@@ -393,9 +393,9 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
-/// Attempts to perform optional wasm optimization using `binaryen`.
+/// Attempts to perform optional Wasm optimization using `binaryen`.
 ///
-/// The intention is to reduce the size of bloated wasm binaries as a result of missing
+/// The intention is to reduce the size of bloated Wasm binaries as a result of missing
 /// optimizations (or bugs?) between Rust and Wasm.
 fn optimize_wasm(
     crate_metadata: &CrateMetadata,
@@ -439,7 +439,7 @@ fn optimize_wasm(
 /// The supplied `optimization_level` denotes the number of optimization passes,
 /// resulting in potentially a lot of time spent optimizing.
 ///
-/// If successful, the optimized wasm is written to `dest_optimized`.
+/// If successful, the optimized Wasm is written to `dest_optimized`.
 fn do_optimization(
     dest_wasm: &OsStr,
     dest_optimized: &OsStr,

@@ -33,7 +33,7 @@ type CodeUploadReturnValue = pallet_contracts_primitives::CodeUploadReturnValue<
 #[derive(Debug, StructOpt)]
 #[structopt(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
-    /// Path to wasm contract code, defaults to `./target/ink/<name>.wasm`.
+    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
     #[structopt(parse(from_os_str))]
     wasm_path: Option<PathBuf>,
     #[structopt(flatten)]
