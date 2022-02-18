@@ -340,7 +340,11 @@ fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
         // so that we can have mocked binaries in there which are executed
         // instead of the real ones.
         #[cfg(test)]
-        cmd.env("PATH", _working_dir);
+        {
+            let path_env = std::env::var("PATH").unwrap();
+            let path_env = format!("{}:{}", _working_dir.to_string_lossy(), path_env);
+            cmd.env("PATH", path_env);
+        }
 
         cmd.stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
