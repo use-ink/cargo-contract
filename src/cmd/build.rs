@@ -909,7 +909,7 @@ mod tests_ci_only {
         let path = tmp_dir.join("wasm-opt-mocked");
         let content = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
         create_executable(&path, &content);
-        path.to_path_buf()
+        path
     }
 
     #[test]
