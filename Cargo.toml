@@ -20,7 +20,7 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 
 [dependencies]
 env_logger = "0.9.0"
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 structopt = "0.3.26"
 log = "0.4.14"
 heck = "0.4.0"
@@ -62,7 +62,7 @@ escape8259 = "0.5.1"
 itertools = "0.10.3"
 
 [build-dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 zip = { version = "0.5.13", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
