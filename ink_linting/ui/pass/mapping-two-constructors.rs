@@ -29,12 +29,9 @@ mod my_contract {
     }
 
     impl MyContract {
-        /// The `initialize_contract` must be found, even if there is logic before it.
+        /// First constructor which uses the `new_init` helper function.
         #[ink(constructor)]
-        pub fn new() -> Self {
-            let a = 1;
-            let b = 2;
-            assert_eq!(add(a, b), 3);
+        pub fn new1() -> Self {
             ink_lang::utils::initialize_contract(Self::new_init)
         }
 
@@ -45,15 +42,21 @@ mod my_contract {
             self.balances.insert(&caller, &value);
         }
 
+        /// Second constructor which doesn't use the `new_init` helper function.
+        #[ink(constructor)]
+        pub fn new2() -> Self {
+            ink_lang::utils::initialize_contract(|contract: &mut Self| {
+                let caller = Self::env().caller();
+                let value: Balance = Default::default();
+                contract.balances.insert(&caller, &value);
+            })
+        }
+
         /// Returns something.
         #[ink(message)]
         pub fn get(&self) {
             // ...
         }
-    }
-
-    fn add(a: u32, b: u32) -> u32 {
-        a + b
     }
 }
 
