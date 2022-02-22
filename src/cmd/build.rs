@@ -265,10 +265,10 @@ fn exec_cargo_for_wasm_target(
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
         }
-        let env = Some(vec![(
+        let env = vec![(
             "RUSTFLAGS",
             "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto",
-        )]);
+        )];
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
         Ok(())
@@ -326,7 +326,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         .directory()
         .unwrap_or_else(|| Path::new("."))
         .canonicalize()?;
-    util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, Some(env))?;
+    util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, env)?;
 
     Ok(())
 }
@@ -692,7 +692,7 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, None)
+        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, vec![])
             .map_err(|_| {
                 anyhow::anyhow!(
                     "Mismatching versions of `{}` were found!\n\

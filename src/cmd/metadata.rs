@@ -100,7 +100,7 @@ pub(crate) fn execute(
             ],
             crate_metadata.manifest_path.directory(),
             verbosity,
-            None,
+            vec![],
         )?;
 
         let ink_meta: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
