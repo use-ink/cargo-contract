@@ -81,10 +81,11 @@ fn main() {
         //
         // We still have to create an empty file though, due to the `include_bytes!` macro.
         File::create(dylint_driver_dst_file).unwrap_or_else(|err| {
-            panic!(
+            eprintln!(
                 "Failed creating an empty ink-dylint-driver.zip file: {:?}",
                 err
             );
+            std::process::exit(1);
         });
         std::process::exit(bool_to_exit_code(zipped_template));
     }
@@ -94,7 +95,8 @@ fn main() {
         let zipped_lints = build_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)
             .map(|_| true)
             .unwrap_or_else(|err| {
-                panic!("Failed building dylint driver: {:?}", err);
+                eprintln!("Failed building dylint driver: {:?}", err);
+                std::process::exit(1);
             });
         std::process::exit(bool_to_exit_code(zipped_template && zipped_lints));
     }
@@ -145,8 +147,7 @@ fn build_dylint_driver(
     let child = cmd
         // capture the stdout to return from this function as bytes
         .stdout(std::process::Stdio::piped())
-        .spawn()
-        .unwrap_or_else(|_| panic!("Error executing `{:?}`", cmd));
+        .spawn()?;
     let output = child.wait_with_output()?;
 
     if !output.status.success() {
