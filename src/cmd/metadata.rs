@@ -93,7 +93,7 @@ pub(crate) fn execute(
             &[
                 "--package",
                 "metadata-gen",
-                &manifest_path.cargo_arg(),
+                &manifest_path.cargo_arg()?,
                 &target_dir_arg,
                 "--release",
                 &network.to_string(),

@@ -314,7 +314,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     let template = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
     crate::util::unzip(template, tmp_dir.path().to_path_buf(), None)?;
 
-    let manifest_path = crate_metadata.manifest_path.cargo_arg();
+    let manifest_path = crate_metadata.manifest_path.cargo_arg()?;
     let args = vec!["ink_linting", &manifest_path];
     let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
     let env = vec![
@@ -364,10 +364,16 @@ fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
         cmd.stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
-            .unwrap_or_else(|_| panic!("Error executing `{:?}`", cmd))
+            .map_err(|err| {
+                log::debug!("Error spawning `{:?}`", cmd);
+                err
+            })?
             .wait()
             .map(|res| res.success())
-            .unwrap_or_else(|err| panic!("Error executing `{:?}`: {:?}", cmd, err))
+            .map_err(|err| {
+                log::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
+                err
+            })
     };
 
     // when testing this function we should never fall back to a `cargo` specified
@@ -377,7 +383,7 @@ fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
     #[cfg(test)]
     let cargo = "cargo";
 
-    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
+    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version"))? {
         anyhow::bail!("cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
@@ -385,7 +391,7 @@ fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
             .bright_yellow());
     }
 
-    if !execute_cmd(Command::new("dylint-link").arg("--version")) {
+    if !execute_cmd(Command::new("dylint-link").arg("--version"))? {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
