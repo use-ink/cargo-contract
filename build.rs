@@ -73,33 +73,13 @@ fn main() {
     // by building the crate in `ink_linting/`.
     let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
 
-    #[cfg(feature = "cargo-clippy")]
-    {
-        // For `clippy` runs it is not necessary to build the `dylint` driver.
-        // Furthermore the fixed Rust nightly specified in `ink_linting/rust-toolchain`
-        // contains a bug that results in an `error[E0786]: found invalid metadata files` ICE.
-        //
-        // We still have to create an empty file though, due to the `include_bytes!` macro.
-        File::create(dylint_driver_dst_file).unwrap_or_else(|err| {
-            eprintln!(
-                "Failed creating an empty ink-dylint-driver.zip file: {:?}",
-                err
-            );
+    let zipped_lints = build_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)
+        .map(|_| true)
+        .unwrap_or_else(|err| {
+            eprintln!("Failed building dylint driver: {:?}", err);
             std::process::exit(1);
         });
-        std::process::exit(bool_to_exit_code(zipped_template));
-    }
-
-    #[cfg(not(feature = "cargo-clippy"))]
-    {
-        let zipped_lints = build_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)
-            .map(|_| true)
-            .unwrap_or_else(|err| {
-                eprintln!("Failed building dylint driver: {:?}", err);
-                std::process::exit(1);
-            });
-        std::process::exit(bool_to_exit_code(zipped_template && zipped_lints));
-    }
+    std::process::exit(bool_to_exit_code(zipped_template && zipped_lints));
 }
 
 /// Returns the process exit code which corresponds to a boolean.
@@ -108,6 +88,29 @@ fn bool_to_exit_code(val: bool) -> i32 {
         true => 0,
         false => 1,
     }
+}
+
+/// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
+/// linting rules.
+#[cfg(feature = "cargo-clippy")]
+fn build_dylint_driver(
+    _manifest_dir: PathBuf,
+    _out_dir: PathBuf,
+    dylint_driver_dst_file: PathBuf,
+) -> Result<()> {
+    // For `clippy` runs it is not necessary to build the `dylint` driver.
+    // Furthermore the fixed Rust nightly specified in `ink_linting/rust-toolchain`
+    // contains a bug that results in an `error[E0786]: found invalid metadata files` ICE.
+    //
+    // We still have to create an empty file though, due to the `include_bytes!` macro.
+    File::create(dylint_driver_dst_file)
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Failed creating an empty ink-dylint-driver.zip file: {:?}",
+                err
+            )
+        })
+        .map(|_| ())
 }
 
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
