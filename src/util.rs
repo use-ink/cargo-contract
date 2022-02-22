@@ -86,7 +86,6 @@ where
     match verbosity {
         Verbosity::Quiet => cmd.arg("--quiet"),
         Verbosity::Verbose => {
-            // `dylint` is verbose by default, it doesn't have a `--verbose` argument.
             if command != "dylint" {
                 cmd.arg("--verbose")
             } else {

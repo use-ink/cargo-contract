@@ -334,6 +334,13 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         .directory()
         .unwrap_or_else(|| Path::new("."))
         .canonicalize()?;
+
+    let verbosity = if verbosity == Verbosity::Verbose {
+        // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
+        Verbosity::Default
+    } else {
+        verbosity
+    };
     util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, env)?;
 
     Ok(())
