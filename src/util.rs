@@ -42,15 +42,24 @@ pub fn assert_channel() -> Result<()> {
     }
 }
 
-/// Run cargo with the supplied args
+/// Invokes `cargo` with the subcommand `command` and the supplied `args`.
 ///
-/// If successful, returns the stdout bytes
+/// In case `working_dir` is set, the command will be invoked with that folder
+/// as the working directory.
+///
+/// In case `env` is given environment variables can be either set or unset:
+///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to
+///     the `env` vector.
+///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env`
+///     vector.
+///
+/// If successful, returns the stdout bytes.
 pub(crate) fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
-    env: Vec<(&str, &str)>,
+    env: Vec<(&str, Option<&str>)>,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
@@ -60,20 +69,12 @@ where
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
 
-    if command == "dylint" {
-        // We need to remove those environment in case `cargo dylint` is invoked.
-        // This is because the ink! dylint driver crate found in `dylint` uses a
-        // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By
-        // removing this env variable we avoid issues with different Rust toolchains
-        // interfering with each other.
-        cmd.env_remove("CARGO_TARGET_DIR");
-    }
-
-    env.unwrap_or_default()
-        .iter()
-        .for_each(|(env_var, env_key)| {
-            cmd.env(env_var, env_key);
-        });
+    env.iter().for_each(|(env_key, maybe_env_val)| {
+        match maybe_env_val {
+            Some(env_val) => cmd.env(env_key, env_val),
+            None => cmd.env_remove(env_key),
+        };
+    });
 
     if let Some(path) = working_dir {
         log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());

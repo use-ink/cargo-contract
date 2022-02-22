@@ -267,7 +267,7 @@ fn exec_cargo_for_wasm_target(
         }
         let env = vec![(
             "RUSTFLAGS",
-            "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto",
+            Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto"),
         )];
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
@@ -318,8 +318,16 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     let args = vec!["ink_linting", &manifest_path];
     let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
     let env = vec![
-        ("DYLINT_LIBRARY_PATH", tmp_dir_path.as_ref()),
-        ("DYLINT_DRIVER_PATH", tmp_dir_path.as_ref()),
+        ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
+        ("DYLINT_DRIVER_PATH", Some(tmp_dir_path.as_ref())),
+        // We need to remove the `CARGO_TARGET_DIR` environment variable in
+        // case `cargo dylint` is invoked.
+        //
+        // This is because the ink! dylint driver crate found in `dylint` uses a
+        // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By
+        // removing this env variable we avoid issues with different Rust toolchains
+        // interfering with each other.
+        ("CARGO_TARGET_DIR", None),
     ];
     let working_dir = crate_metadata
         .manifest_path
