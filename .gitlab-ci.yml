@@ -105,7 +105,7 @@ test-dylint:
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose -- -D warnings;
 
-    - cargo test --verbose --workspace --all-features
+    - cargo test --verbose --all-features
 
 test:
   stage:                           test
