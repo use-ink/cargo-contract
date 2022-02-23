@@ -140,7 +140,7 @@ pub struct VerbosityFlags {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, serde::Serialize)]
+#[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     Default,

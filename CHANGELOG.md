@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Linting rules for smart contracts
+
+We are introducing a linter for ink! smart contracts in this release!
+From now on `cargo-contract` checks if the ink! smart contract that is
+`build` or `check`-ed follows certain rules.
+
+As a starting point we've only added one linting rule so far; it asserts correct
+initialization of the [`ink_storage::Mapping`](https://paritytech.github.io/ink/ink_storage/struct.Mapping.html)
+data structure.
+
+In order for the linting to work with your smart contract, the contract has to be
+written in at least ink! 3.0.0-rc9. If it's older the linting will just always succeed.
+
+### Added
+- Add linting to assert correct initialization of [`ink_storage::Mapping`](https://paritytech.github.io/ink/ink_storage/struct.Mapping.html) - [#431](https://github.com/paritytech/cargo-contract/pull/431)
+
 ## [0.17.0] - 2022-01-19
 
 ### Changed

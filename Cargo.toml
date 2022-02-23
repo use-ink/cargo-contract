@@ -67,6 +67,7 @@ zip = { version = "0.5.13", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
+which = "4.2.4"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"

@@ -93,13 +93,14 @@ pub(crate) fn execute(
             &[
                 "--package",
                 "metadata-gen",
-                &manifest_path.cargo_arg(),
+                &manifest_path.cargo_arg()?,
                 &target_dir_arg,
                 "--release",
                 &network.to_string(),
             ],
             crate_metadata.manifest_path.directory(),
             verbosity,
+            vec![],
         )?;
 
         let ink_meta: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
