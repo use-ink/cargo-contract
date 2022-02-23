@@ -143,6 +143,7 @@ fn build_and_zip_dylint_driver(
     // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By removing
     // these env variables we avoid issues with different Rust toolchains
     // interfering with each other.
+    #[cfg(not(windows))]
     cmd.env_remove("RUSTUP_TOOLCHAIN");
     cmd.env_remove("CARGO_TARGET_DIR");
 
@@ -343,10 +344,7 @@ fn check_dylint_link_installed() -> Result<()> {
             })?
             .wait_with_output()
             .map(|res| {
-                let output = format!(
-                    "{}",
-                    std::str::from_utf8(&res.stdout).expect("conversion must work")
-                );
+                let output = std::str::from_utf8(&res.stdout).expect("conversion must work");
                 eprintln!("output: {:?}", output);
                 res.status.success()
             })
