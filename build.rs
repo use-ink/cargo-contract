@@ -81,15 +81,12 @@ fn main() {
             eprintln!("Failed building dylint driver: {:?}", err);
             std::process::exit(1);
         });
-    std::process::exit(bool_to_exit_code(zipped_template && zipped_lints));
-}
 
-/// Returns the process exit code which corresponds to a boolean.
-fn bool_to_exit_code(val: bool) -> i32 {
-    match val {
+    let exit_code = match zipped_template && zipped_lints {
         true => 0,
         false => 1,
-    }
+    };
+    std::process::exit(exit_code);
 }
 
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
