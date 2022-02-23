@@ -27,7 +27,7 @@ heck = "0.4.0"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
-scale = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
+scale = { package = "parity-scale-codec", version = "3", features = ["derive"] }
 which = "4.2.4"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -46,11 +46,11 @@ regex = "1.5.4"
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "3.0.0-rc9", features = ["derive"] }
 ink_env = "3.0.0-rc9"
-scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
 sp-core = "5.0.0"
 sp-runtime = "5.0.0"
 pallet-contracts-primitives = "5.0.0"
-subxt = "0.17.0"
+subxt = { git = "https://github.com/paritytech/subxt", branch = "update-scale-deps"}
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.9.0", features = ["ws-client"] }
