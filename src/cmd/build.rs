@@ -304,7 +304,7 @@ fn exec_cargo_for_wasm_target(
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
-    check_dylint_requirements(crate_metadata.manifest_path.directory().unwrap())?;
+    check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract-dylint_")
@@ -347,17 +347,19 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Checks if all requirements for `dylint` are installed.
+/// The requirements are an installed version of `cargo-dylint` and `dylint-link`.
 ///
-/// Those are an installed version of `cargo-dylint` and `dylint-link`.
-fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
+/// This function takes a `_working_dir` which is only used for unit tests.
+fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
         // when testing this function we set the `PATH` to the `working_dir`
         // so that we can have mocked binaries in there which are executed
         // instead of the real ones.
         #[cfg(test)]
         {
+            let working_dir = _working_dir.unwrap_or_else(|| PathBuf::from(".").as_path());
             let path_env = std::env::var("PATH").unwrap();
-            let path_env = format!("{}:{}", _working_dir.to_string_lossy(), path_env);
+            let path_env = format!("{}:{}", working_dir.to_string_lossy(), path_env);
             cmd.env("PATH", path_env);
         }
 
