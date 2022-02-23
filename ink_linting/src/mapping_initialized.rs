@@ -191,7 +191,7 @@ fn check_struct<'a>(cx: &LateContext<'a>, item: &'a Item, data: &VariantData) {
                 MAPPING_INITIALIZED,
                 item.span,
                 &format!(
-                    "you have declared an `#[ink(storage)]` on `{}` without initializing it in the contract constructor.",
+                    "`#[ink(storage)]` on `{}` contains `ink_storage::Mapping` without initializing it in the contract constructor.",
                     item.ident
                 ),
                 |diag| {
@@ -201,7 +201,7 @@ fn check_struct<'a>(cx: &LateContext<'a>, item: &'a Item, data: &VariantData) {
                         snippet,
                         Applicability::Unspecified,
                     );
-                    diag.span_help(marker.expect("marker must exist").span, "this field uses a `Mapping`");
+                    diag.span_help(marker.expect("marker must exist").span, "this field uses `ink_storage::Mapping`");
                 });
         }
     }
