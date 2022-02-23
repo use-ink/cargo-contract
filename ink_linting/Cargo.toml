@@ -70,8 +70,12 @@ name = "pass_mapping_two_constructors"
 path = "ui/pass/mapping-two-constructors.rs"
 
 [[example]]
-name = "pass_mapping_03"
+name = "pass_mapping_additional_logic_constructor"
 path = "ui/pass/mapping-additional-logic-constructor.rs"
+
+[[example]]
+name = "pass_dont_use_fully_qualified_path"
+path = "ui/pass/mapping-dont-use-fully-qualified-path.rs"
 
 [package.metadata.rust-analyzer]
 rustc_private = true
