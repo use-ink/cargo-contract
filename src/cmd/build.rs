@@ -319,6 +319,10 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
     let env = vec![
         ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
+        // For tests we need to set the `DYLINT_DRIVER_PATH` to a tmp folder,
+        // otherwise tests running in parallel will try to write to the same
+        // file at the same time which will result in a `Text file busy` error.
+        #[cfg(test)]
         ("DYLINT_DRIVER_PATH", Some(tmp_dir_path.as_ref())),
         // We need to remove the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
