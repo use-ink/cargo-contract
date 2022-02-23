@@ -143,7 +143,6 @@ fn build_and_zip_dylint_driver(
     // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By removing
     // these env variables we avoid issues with different Rust toolchains
     // interfering with each other.
-    #[cfg(not(windows))]
     cmd.env_remove("RUSTUP_TOOLCHAIN");
     cmd.env_remove("CARGO_TARGET_DIR");
 
@@ -335,6 +334,8 @@ fn get_platform() -> String {
 /// can be executed with a `--version` argument.
 fn check_dylint_link_installed() -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
+        #[cfg(windows)]
+        cmd.env("RUSTUP_TOOLCHAIN", "nightly-x86_64-pc-windows-msvc");
         cmd.stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
