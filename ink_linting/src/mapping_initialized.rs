@@ -302,9 +302,6 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
 /// on the first level of the `fn` ‒ no nested calls are found! So if you would
 /// call `initialize_contract` within a sub-function of the ink! constructor
 /// this is not recognized!
-///
-/// Also the function call must be explicitly called `ink_lang::utils::initialize_contract(…)`,
-/// the linter currently does not detected indirections.
 struct InitializeContractVisitor<'a, 'tcx> {
     cx: &'a LateContext<'tcx>,
     uses_initialize_contract: bool,
