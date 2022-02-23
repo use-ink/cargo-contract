@@ -27,7 +27,7 @@ heck = "0.4.0"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
-scale = { package = "parity-scale-codec", version = "2", features = ["derive"] }
+scale = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
 which = "4.2.4"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -46,7 +46,7 @@ regex = "1.5.4"
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "=3.0.0-rc8", features = ["derive"] }
 ink_env = "=3.0.0-rc8"
-scale-info = { version = "1", default-features = false, features = ["derive"] }
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 sp-core = "5.0.0"
 sp-runtime = "5.0.0"
 pallet-contracts-primitives = "5.0.0"
