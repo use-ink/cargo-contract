@@ -68,10 +68,10 @@ jobs:
           cargo dylint --version
           cargo run -- contract --version
           cargo run -- contract new foobar
-          echo "[workspace]" >> foobar\Cargo.toml
-          cargo run -- contract build --manifest-path=foobar\Cargo.toml
-          cargo run -- contract check --manifest-path=foobar\Cargo.toml
-          cargo run -- contract test --manifest-path=foobar\Cargo.toml
+          echo "[workspace]" >> foobar/Cargo.toml
+          cargo run -- contract build --manifest-path=foobar/Cargo.toml
+          cargo run -- contract check --manifest-path=foobar/Cargo.toml
+          cargo run -- contract test --manifest-path=foobar/Cargo.toml
 
       # This stage has to be deactivated until https://github.com/Vurich/crunchy/pull/10
       # is merged and released.
