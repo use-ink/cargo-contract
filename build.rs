@@ -341,8 +341,15 @@ fn check_dylint_link_installed() -> Result<()> {
                 eprintln!("Error spawning `{:?}`", cmd);
                 err
             })?
-            .wait()
-            .map(|res| res.success())
+            .wait_with_output()
+            .map(|res| {
+                let output = format!(
+                    "{}",
+                    std::str::from_utf8(&res.stdout).expect("conversion must work")
+                );
+                eprintln!("output: {:?}", output);
+                res.status.success()
+            })
             .map_err(|err| {
                 eprintln!("Error waiting for `{:?}`: {:?}", cmd, err);
                 err
