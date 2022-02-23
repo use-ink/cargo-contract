@@ -35,16 +35,46 @@ use substrate_build_script_utils::rerun_if_git_head_changed;
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
 
 fn main() {
+    generate_cargo_keys();
+    rerun_if_git_head_changed();
+
     let manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR")
         .expect("CARGO_MANIFEST_DIR should be set by cargo")
         .into();
     let out_dir: PathBuf = env::var("OUT_DIR")
         .expect("OUT_DIR should be set by cargo")
         .into();
+    let res = zip_template_and_build_dylint_driver(manifest_dir, out_dir);
 
-    generate_cargo_keys();
-    rerun_if_git_head_changed();
+    match res {
+        Ok(()) => std::process::exit(0),
+        Err(err) => {
+            eprintln!("Encountered error: {:?}", err);
+            std::process::exit(1)
+        }
+    }
+}
 
+/// This method:
+///   * Creates a zip archive of the `new` project template.
+///   * Builds the `dylint` driver found in `ink_linting`, the compiled
+///     driver is put into a zip archive as well.
+fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf) -> Result<()> {
+    zip_template(&manifest_dir, &out_dir)?;
+
+    check_dylint_link_installed()?;
+
+    // This zip file will contain the `dylint` driver, this is one file named in the form of
+    // `libink_linting@nightly-2021-11-04-x86_64-unknown-linux-gnu.so`. This file is obtained
+    // by building the crate in `ink_linting/`.
+    let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
+    build_and_zip_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)?;
+
+    Ok(())
+}
+
+/// Creates a zip archive `template.zip` of the `new` project template in `out_dir`.
+fn zip_template(manifest_dir: &Path, out_dir: &Path) -> Result<()> {
     let template_dir = manifest_dir.join("templates").join("new");
     let template_dst_file = out_dir.join("template.zip");
     println!(
@@ -52,47 +82,19 @@ fn main() {
         template_dir.display(),
         template_dst_file.display()
     );
-    let zipped_template =
-        match zip_dir(&template_dir, &template_dst_file, CompressionMethod::Stored) {
-            Ok(_) => {
-                println!(
-                    "done: {} written to {}",
-                    template_dir.display(),
-                    template_dst_file.display()
-                );
-                true
-            }
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                false
-            }
-        };
-
-    check_dylint_link_installed();
-
-    // This zip file will contain the `dylint` driver, this is one file named in the form of
-    // `libink_linting@nightly-2021-11-04-x86_64-unknown-linux-gnu.so`. This file is obtained
-    // by building the crate in `ink_linting/`.
-    let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
-
-    let zipped_lints = build_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)
-        .map(|_| true)
-        .unwrap_or_else(|err| {
-            eprintln!("Failed building dylint driver: {:?}", err);
-            std::process::exit(1);
-        });
-
-    let exit_code = match zipped_template && zipped_lints {
-        true => 0,
-        false => 1,
-    };
-    std::process::exit(exit_code);
+    zip_dir(&template_dir, &template_dst_file, CompressionMethod::Stored).map(|_| {
+        println!(
+            "Done: {} written to {}",
+            template_dir.display(),
+            template_dst_file.display()
+        );
+    })
 }
 
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
 /// linting rules.
 #[cfg(feature = "cargo-clippy")]
-fn build_dylint_driver(
+fn build_and_zip_dylint_driver(
     _manifest_dir: PathBuf,
     _out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
@@ -115,7 +117,7 @@ fn build_dylint_driver(
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
 /// linting rules.
 #[cfg(not(feature = "cargo-clippy"))]
-fn build_dylint_driver(
+fn build_and_zip_dylint_driver(
     manifest_dir: PathBuf,
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
@@ -165,24 +167,19 @@ fn build_dylint_driver(
         dylint_driver_dst_file.display()
     );
 
-    match zip_dylint_driver(
+    zip_dylint_driver(
         &out_dir.join("release"),
         &dylint_driver_dst_file,
         CompressionMethod::Stored,
-    ) {
-        Ok(_) => {
-            println!(
-                "done: {} written to {}",
-                ink_dylint_driver_dir.display(),
-                dylint_driver_dst_file.display()
-            );
-            Ok(())
-        }
-        Err(e) => {
-            eprintln!("Error: {:?}", e);
-            Err(e)
-        }
-    }
+    )
+    .map(|_| {
+        println!(
+            "Done: {} written to {}",
+            ink_dylint_driver_dir.display(),
+            dylint_driver_dst_file.display()
+        );
+        ()
+    })
 }
 
 /// Creates a zip archive at `dst_file` with the content of the `src_dir`.
@@ -327,7 +324,9 @@ fn get_platform() -> String {
     )
 }
 
-fn check_dylint_link_installed() {
+/// Checks if `dylint-link` is installed, i.e. if the `dylint-link` executable
+/// can be executed with a `--version` argument.
+fn check_dylint_link_installed() -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
         cmd.stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -346,11 +345,11 @@ fn check_dylint_link_installed() {
 
     let res = execute_cmd(Command::new("dylint-link").arg("--version"));
     if res.is_err() || !res.expect("the `or` case will always will be `Ok`") {
-        eprintln!(
+        anyhow::bail!(
             "dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
         );
-        std::process::exit(1);
     }
+    Ok(())
 }

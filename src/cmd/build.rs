@@ -347,7 +347,11 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Checks if all requirements for `dylint` are installed.
-/// The requirements are an installed version of `cargo-dylint` and `dylint-link`.
+///
+/// We require only an installed version of `cargo-dylint` here and don't
+/// check for an installed version of `dylint-link`. This is because
+/// `dylint-link` is only required for the `dylint` driver build process
+/// in `build.rs`.
 ///
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
