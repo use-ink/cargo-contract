@@ -350,6 +350,7 @@ fn check_dylint_link_installed() -> Result<()> {
     };
 
     let res = execute_cmd(Command::new("dylint-link").arg("--version"));
+    eprintln!("res: {:?}", res);
     if res.is_err() || !res.expect("the `or` case will always will be `Ok`") {
         anyhow::bail!(
             "dylint-link was not found!\n\
