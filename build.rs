@@ -333,31 +333,8 @@ fn get_platform() -> String {
 /// Checks if `dylint-link` is installed, i.e. if the `dylint-link` executable
 /// can be executed with a `--version` argument.
 fn check_dylint_link_installed() -> Result<()> {
-    let execute_cmd = |cmd: &mut Command| {
-        #[cfg(windows)]
-        cmd.env("RUSTUP_TOOLCHAIN", "nightly-x86_64-pc-windows-msvc");
-        cmd.stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .map_err(|err| {
-                eprintln!("Error spawning `{:?}`", cmd);
-                err
-            })?
-            .wait_with_output()
-            .map(|res| {
-                let output = std::str::from_utf8(&res.stdout).expect("conversion must work");
-                eprintln!("output: {:?}", output);
-                res.status.success()
-            })
-            .map_err(|err| {
-                eprintln!("Error waiting for `{:?}`: {:?}", cmd, err);
-                err
-            })
-    };
-
-    let res = execute_cmd(Command::new("dylint-link").arg("--version"));
-    eprintln!("res: {:?}", res);
-    if res.is_err() || !res.expect("the `or` case will always will be `Ok`") {
+    let which = which::which("dylint-link");
+    if which.is_err() {
         anyhow::bail!(
             "dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
