@@ -315,7 +315,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     crate::util::unzip(template, tmp_dir.path().to_path_buf(), None)?;
 
     let manifest_path = crate_metadata.manifest_path.cargo_arg()?;
-    let args = vec!["ink_linting", &manifest_path];
+    let args = vec!["--lib", "ink_linting", &manifest_path];
     let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
     let env = vec![
         ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
