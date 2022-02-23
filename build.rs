@@ -131,7 +131,13 @@ fn build_and_zip_dylint_driver(
         ink_dylint_driver_dir.join("Cargo.toml").display()
     );
     let target_dir = format!("--target-dir={}", out_dir.display());
-    cmd.args(vec!["build", "--release", &target_dir, &manifest_arg]);
+    cmd.args(vec![
+        "build",
+        "--release",
+        "--locked",
+        &target_dir,
+        &manifest_arg,
+    ]);
 
     // We need to remove those environment variables because `dylint` uses a
     // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By removing
