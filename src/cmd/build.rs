@@ -361,7 +361,8 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         // instead of the real ones.
         #[cfg(test)]
         {
-            let working_dir = _working_dir.unwrap_or_else(|| PathBuf::from(".").as_path());
+            let default_dir = PathBuf::from(".");
+            let working_dir = _working_dir.unwrap_or(default_dir.as_path());
             let path_env = std::env::var("PATH").unwrap();
             let path_env = format!("{}:{}", working_dir.to_string_lossy(), path_env);
             cmd.env("PATH", path_env);
