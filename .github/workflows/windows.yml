@@ -63,7 +63,7 @@ jobs:
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         env:
-          RUSTUP_TOOLCHAIN: "nightly"
+          RUSTUP_TOOLCHAIN: "nightly-x86_64-pc-windows-msvc"
         run: |
           dylint-link
           dylint-link --version
