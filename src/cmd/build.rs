@@ -319,7 +319,6 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
     let env = vec![
         ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
-        ("DYLINT_DRIVER_PATH", Some(tmp_dir_path.as_ref())),
         // We need to remove the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
         //
