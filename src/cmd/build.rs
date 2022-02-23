@@ -391,14 +391,6 @@ fn check_dylint_requirements(_working_dir: &Path) -> Result<()> {
             .bright_yellow());
     }
 
-    if !execute_cmd(Command::new("dylint-link").arg("--version"))? {
-        anyhow::bail!("dylint-link was not found!\n\
-            Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install dylint-link`."
-            .to_string()
-            .bright_yellow());
-    }
-
     Ok(())
 }
 
@@ -1462,33 +1454,6 @@ mod tests_ci_only {
                 }
                 _ => panic!("build succeeded, but must fail!"),
             };
-            Ok(())
-        })
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn missing_dylint_link_installation_must_be_detected() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let manifest_dir = manifest_path.directory().unwrap();
-
-            // mock an existing `cargo dylint` installation.
-            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 0");
-
-            // mock non-existing `dylint-link` binary
-            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 1");
-
-            // when
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                ..Default::default()
-            };
-            let res = super::execute(args).map(|_| ()).unwrap_err();
-
-            // then
-            assert!(format!("{:?}", res).contains("dylint-link was not found!"));
-
             Ok(())
         })
     }

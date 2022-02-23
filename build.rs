@@ -68,6 +68,8 @@ fn main() {
             }
         };
 
+    check_dylint_link_installed();
+
     // This zip file will contain the `dylint` driver, this is one file named in the form of
     // `libink_linting@nightly-2021-11-04-x86_64-unknown-linux-gnu.so`. This file is obtained
     // by building the crate in `ink_linting/`.
@@ -326,4 +328,32 @@ fn get_platform() -> String {
         env_dash,
         TARGET_ENV.map(|x| x.as_str()).unwrap_or(""),
     )
+}
+
+fn check_dylint_link_installed() {
+    let execute_cmd = |cmd: &mut Command| {
+        cmd.stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .map_err(|err| {
+                eprintln!("Error spawning `{:?}`", cmd);
+                err
+            })?
+            .wait()
+            .map(|res| res.success())
+            .map_err(|err| {
+                eprintln!("Error waiting for `{:?}`: {:?}", cmd, err);
+                err
+            })
+    };
+
+    let res = execute_cmd(Command::new("dylint-link").arg("--version"));
+    if res.is_err() || !res.expect("the `or` case will always will be `Ok`") {
+        eprintln!(
+            "dylint-link was not found!\n\
+            Make sure it is installed and the binary is in your PATH environment.\n\n\
+            You can install it by executing `cargo install dylint-link`."
+        );
+        std::process::exit(1);
+    }
 }
