@@ -311,8 +311,8 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         .tempdir()?;
     log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
 
-    let template = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
-    crate::util::unzip(template, tmp_dir.path().to_path_buf(), None)?;
+    let driver = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
+    crate::util::unzip(driver, tmp_dir.path().to_path_buf(), None)?;
 
     let manifest_path = crate_metadata.manifest_path.cargo_arg()?;
     let args = vec!["--lib", "ink_linting", &manifest_path];
