@@ -49,9 +49,9 @@ More relevant links:
   There's only an old version in your distributions package manager? Just use a 
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
-* Step 4: `cargo install cargo-dylint dylint-link`.
+* Step 3: `cargo install cargo-dylint dylint-link`.
 
-* Step 3: `cargo install --force cargo-contract`.
+* Step 4: `cargo install --force cargo-contract`.
 
 You can always update the `cargo-contract` binary to the latest version by running the Step 3.
 
