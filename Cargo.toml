@@ -46,7 +46,7 @@ regex = "1.5.4"
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "=3.0.0-rc8", features = ["derive"] }
 ink_env = "=3.0.0-rc8"
-scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 sp-core = "5.0.0"
 sp-runtime = "5.0.0"
 pallet-contracts-primitives = "5.0.0"
