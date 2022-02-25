@@ -332,6 +332,11 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         // removing this env variable we avoid issues with different Rust toolchains
         // interfering with each other.
         ("CARGO_TARGET_DIR", None),
+        // There are generally problems with having a custom `rustc` wrapper, while
+        // executing `dylint` (which has a custom linker). Especially for `sccache`
+        // there is this bug: https://github.com/mozilla/sccache/issues/1000.
+        // Until we have a justification for leaving the wrapper we should unset it.
+        ("RUSTC_WRAPPER", None),
     ];
     let working_dir = crate_metadata
         .manifest_path

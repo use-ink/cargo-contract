@@ -45,11 +45,6 @@ workflow:
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - sccache -s
-
-    # needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
-    # this is unfortunate, since it disables `sccache` for this entire file.
-    - unset RUSTC_WRAPPER
-
     - git show
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -104,6 +99,9 @@ test-dylint:
     - cargo check --verbose
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose -- -D warnings;
+
+    # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
+    - unset RUSTC_WRAPPER
 
     - cargo test --verbose --all-features
 
