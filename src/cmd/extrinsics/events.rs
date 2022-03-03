@@ -17,16 +17,17 @@
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
+    RuntimeEvent,
 };
 use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
-use scale::Input;
+use scale::Input as _;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
-    result: &TransactionEvents<DefaultConfig>,
+    result: &TransactionEvents<DefaultConfig, RuntimeEvent>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: &Verbosity,
@@ -46,8 +47,9 @@ pub fn display_events(
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
 
-    for event in result.as_slice() {
-        log::debug!("displaying event {}::{}", event.pallet, event.variant);
+    for event in result.iter_raw() {
+        let event = event?;
+        log::debug!("displaying event {:?}", event);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_fields = event_metadata.variant().fields();

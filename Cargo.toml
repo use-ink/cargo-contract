@@ -27,7 +27,7 @@ heck = "0.4.0"
 zip = { version = "0.5.13", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
-scale = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"] }
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.2.4"
 colored = "2.0.0"
 toml = "0.5.8"
@@ -44,13 +44,13 @@ regex = "1.5.4"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "=3.0.0-rc8", features = ["derive"] }
-ink_env = "=3.0.0-rc8"
-scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
-sp-core = "5.0.0"
-sp-runtime = "5.0.0"
-pallet-contracts-primitives = "5.0.0"
-subxt = "0.17.0"
+ink_metadata = { version = "3.0.0-rc9", features = ["derive"] }
+ink_env = "3.0.0-rc9"
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+sp-core = "6.0.0"
+sp-runtime = "6.0.0"
+pallet-contracts-primitives = "6.0.0"
+subxt = "0.18.0"
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.9.0", features = ["ws-client"] }
@@ -77,10 +77,10 @@ wabt = "0.10.0"
 regex = "1.5.4"
 predicates = "2.1.1"
 
-ink_primitives = "=3.0.0-rc8"
-ink_storage = "=3.0.0-rc8"
-ink_lang = "=3.0.0-rc8"
-ink_lang_codegen = "=3.0.0-rc8"
+ink_primitives = "3.0.0-rc9"
+ink_storage = "3.0.0-rc9"
+ink_lang = "3.0.0-rc9"
+ink_lang_codegen = "3.0.0-rc9"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

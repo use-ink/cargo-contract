@@ -22,6 +22,9 @@ written in at least ink! 3.0.0-rc9. If it's older the linting will just always s
 ### Added
 - Add linting to assert correct initialization of [`ink_storage::Mapping`](https://paritytech.github.io/ink/ink_storage/struct.Mapping.html) - [#431](https://github.com/paritytech/cargo-contract/pull/431)
 
+### Changed
+- Upgrade `subxt`, SCALE crates, and substrate primitive `sp-*` crates [#451](https://github.com/paritytech/cargo-contract/pull/451).
+
 ## [0.17.0] - 2022-01-19
 
 ### Changed
