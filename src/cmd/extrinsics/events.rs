@@ -15,9 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    RuntimeEvent,
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
+    RuntimeEvent,
 };
 use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;

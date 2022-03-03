@@ -40,8 +40,8 @@ use subxt::{Config, DefaultConfig};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
+pub use runtime_api::api::{DispatchError as RuntimeDispatchError, Event as RuntimeEvent};
 pub use upload::UploadCommand;
-pub use runtime_api::api::{Event as RuntimeEvent, DispatchError as RuntimeDispatchError};
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
