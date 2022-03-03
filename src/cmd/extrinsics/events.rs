@@ -23,6 +23,7 @@ use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
+use scale::Input as _;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
@@ -46,8 +47,9 @@ pub fn display_events(
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
 
-    for event in result.iter() {
-        log::debug!("displaying event {}::{}", event.pallet, event.variant);
+    for event in result.iter_raw() {
+        let event = event?;
+        log::debug!("displaying event {:?}", event);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_fields = event_metadata.variant().fields();
