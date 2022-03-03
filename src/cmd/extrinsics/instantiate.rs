@@ -241,10 +241,10 @@ impl<'a> Exec<'a> {
         display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let code_stored = result
-            .find_first_event::<api::contracts::events::CodeStored>()?
+            .find_first::<api::contracts::events::CodeStored>()?
             .ok_or(anyhow!("Failed to find CodeStored event"))?;
         let instantiated = result
-            .find_first_event::<api::contracts::events::Instantiated>()?
+            .find_first::<api::contracts::events::Instantiated>()?
             .ok_or(anyhow!("Failed to find Instantiated event"))?;
 
         Ok((code_stored.code_hash, instantiated.contract))
@@ -272,7 +272,7 @@ impl<'a> Exec<'a> {
         display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
         let instantiated = result
-            .find_first_event::<api::contracts::events::Instantiated>()?
+            .find_first::<api::contracts::events::Instantiated>()?
             .ok_or(anyhow!("Failed to find Instantiated event"))?;
 
         Ok(instantiated.contract)

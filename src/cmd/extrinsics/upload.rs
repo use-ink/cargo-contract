@@ -25,7 +25,7 @@ use serde::Serialize;
 use sp_core::Bytes;
 use std::{fmt::Debug, path::PathBuf};
 use structopt::StructOpt;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer, TransactionEvents};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
 type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
 type CodeUploadReturnValue = pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
@@ -65,11 +65,7 @@ impl UploadCommand {
 
                 Ok(())
             } else {
-                let result = self.upload_code(code, &signer, &transcoder).await?;
-
-                let code_stored = result
-                    .find_first_event::<api::contracts::events::CodeStored>()?
-                    .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+                let code_stored = self.upload_code(code, &signer, &transcoder).await?;
 
                 name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
 
@@ -107,7 +103,7 @@ impl UploadCommand {
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
-    ) -> Result<TransactionEvents<DefaultConfig>> {
+    ) -> Result<api::contracts::events::CodeStored> {
         let url = self.extrinsic_opts.url.to_string();
         let api = ClientBuilder::new()
             .set_url(&url)
@@ -131,7 +127,11 @@ impl UploadCommand {
             &self.extrinsic_opts.verbosity()?,
         )?;
 
-        Ok(result)
+        let code_stored = result
+            .find_first::<api::contracts::events::CodeStored>()?
+            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+
+        Ok(code_stored)
     }
 }
 

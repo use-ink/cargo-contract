@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    RuntimeEvent,
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
 };
@@ -22,11 +23,10 @@ use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
-use scale::Input;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
-    result: &TransactionEvents<DefaultConfig>,
+    result: &TransactionEvents<DefaultConfig, RuntimeEvent>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: &Verbosity,
@@ -46,7 +46,7 @@ pub fn display_events(
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
 
-    for event in result.as_slice() {
+    for event in result.iter() {
         log::debug!("displaying event {}::{}", event.pallet, event.variant);
 
         let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;

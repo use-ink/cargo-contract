@@ -41,6 +41,7 @@ use subxt::{Config, DefaultConfig};
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use upload::UploadCommand;
+pub use runtime_api::api::{Event as RuntimeEvent, DispatchError as RuntimeDispatchError};
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
@@ -193,8 +194,8 @@ pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> R
 /// Currently this will report success once the transaction is included in a block. In the future
 /// there could be a flag to wait for finality before reporting success.
 async fn wait_for_success_and_handle_error<T>(
-    tx_progress: subxt::TransactionProgress<'_, T, runtime_api::api::DispatchError>,
-) -> Result<subxt::TransactionEvents<T>>
+    tx_progress: subxt::TransactionProgress<'_, T, RuntimeDispatchError, RuntimeEvent>,
+) -> Result<subxt::TransactionEvents<'_, T, RuntimeEvent>>
 where
     T: Config,
 {
