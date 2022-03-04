@@ -50,7 +50,7 @@ scale-info = { version = "2.0.1", default-features = false, features = ["derive"
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
-subxt = "0.18.0"
+subxt = "0.18.1"
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.9.0", features = ["ws-client"] }
