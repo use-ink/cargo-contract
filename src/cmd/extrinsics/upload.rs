@@ -129,7 +129,7 @@ impl UploadCommand {
 
         let code_stored = result
             .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or(anyhow::anyhow!("Failed to find CodeStored event"))?;
+            .ok_or_else(|| anyhow::anyhow!("Failed to find CodeStored event"))?;
 
         Ok(code_stored)
     }

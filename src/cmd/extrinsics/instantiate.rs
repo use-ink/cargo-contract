@@ -242,10 +242,10 @@ impl<'a> Exec<'a> {
 
         let code_stored = result
             .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or(anyhow!("Failed to find CodeStored event"))?;
+            .ok_or_else(|| anyhow!("Failed to find CodeStored event"))?;
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
-            .ok_or(anyhow!("Failed to find Instantiated event"))?;
+            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok((code_stored.code_hash, instantiated.contract))
     }
@@ -273,7 +273,7 @@ impl<'a> Exec<'a> {
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
-            .ok_or(anyhow!("Failed to find Instantiated event"))?;
+            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(instantiated.contract)
     }
