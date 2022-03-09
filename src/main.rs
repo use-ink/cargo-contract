@@ -37,8 +37,8 @@ use std::{
 };
 
 use anyhow::{Error, Result};
+use clap::{AppSettings, Args, Parser, Subcommand};
 use colored::Colorize;
-use clap::{Args, AppSettings, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
