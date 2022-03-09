@@ -24,19 +24,18 @@ use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{fmt::Debug, path::PathBuf};
-use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
 type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
 type CodeUploadReturnValue = pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "upload", about = "Upload a contract's code")]
+#[derive(Debug, clap::Args)]
+#[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
     /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     wasm_path: Option<PathBuf>,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
 }
 

@@ -38,24 +38,22 @@ use std::{
 
 use anyhow::{Error, Result};
 use colored::Colorize;
-use structopt::{clap, StructOpt};
+use clap::{Args, AppSettings, Parser, Subcommand};
 
-#[derive(Debug, StructOpt)]
-#[structopt(bin_name = "cargo")]
-#[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
+#[derive(Debug, Parser)]
+#[clap(bin_name = "cargo")]
+#[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
 pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
-    #[structopt(name = "contract")]
-    #[structopt(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
-    #[structopt(setting = clap::AppSettings::UnifiedHelpMessage)]
-    #[structopt(setting = clap::AppSettings::DeriveDisplayOrder)]
-    #[structopt(setting = clap::AppSettings::DontCollapseArgsInUsage)]
+    #[clap(name = "contract")]
+    #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
+    #[clap(setting = AppSettings::DeriveDisplayOrder)]
     Contract(ContractArgs),
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Args)]
 pub(crate) struct ContractArgs {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
@@ -129,13 +127,13 @@ impl From<std::string::String> for OptimizationPasses {
     }
 }
 
-#[derive(Default, Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, Args)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
-    #[structopt(long)]
+    #[clap(long)]
     quiet: bool,
     /// Use verbose output
-    #[structopt(long)]
+    #[clap(long)]
     verbose: bool,
 }
 
@@ -179,10 +177,10 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
     }
 }
 
-#[derive(Default, Clone, Debug, StructOpt)]
+#[derive(Default, Clone, Debug, Args)]
 struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
-    #[structopt(long = "unstable-options", short = "Z", number_of_values = 1)]
+    #[clap(long = "unstable-options", short = 'Z', number_of_values = 1)]
     options: Vec<String>,
 }
 
@@ -211,14 +209,14 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, StructOpt, serde::Serialize)]
-#[structopt(name = "build-artifacts")]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Subcommand, serde::Serialize)]
+#[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
-    #[structopt(name = "all")]
+    #[clap(name = "all")]
     All,
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
-    #[structopt(name = "code-only")]
+    #[clap(name = "code-only")]
     CodeOnly,
     CheckOnly,
 }
@@ -427,41 +425,41 @@ impl BuildResult {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Subcommand)]
 enum Command {
     /// Setup and create a new smart contract project
-    #[structopt(name = "new")]
+    #[clap(name = "new")]
     New {
         /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
-        #[structopt(short, long, parse(from_os_str))]
+        #[clap(short, long, parse(from_os_str))]
         target_dir: Option<PathBuf>,
     },
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
-    #[structopt(name = "build")]
+    #[clap(name = "build")]
     Build(BuildCommand),
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
-    #[structopt(name = "check")]
+    #[clap(name = "check")]
     Check(CheckCommand),
     /// Test the smart contract off-chain
-    #[structopt(name = "test")]
+    #[clap(name = "test")]
     Test(TestCommand),
     /// Upload contract code
-    #[structopt(name = "upload")]
+    #[clap(name = "upload")]
     Upload(UploadCommand),
     /// Instantiate a contract
-    #[structopt(name = "instantiate")]
+    #[clap(name = "instantiate")]
     Instantiate(InstantiateCommand),
     /// Call a contract
-    #[structopt(name = "call")]
+    #[clap(name = "call")]
     Call(CallCommand),
 }
 
 fn main() {
     env_logger::init();
 
-    let Opts::Contract(args) = Opts::from_args();
+    let Opts::Contract(args) = Opts::parse();
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {

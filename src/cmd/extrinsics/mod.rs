@@ -35,7 +35,6 @@ use crate::{
 };
 use pallet_contracts_primitives::ContractResult;
 use sp_core::{crypto::Pair, sr25519};
-use structopt::StructOpt;
 use subxt::{Config, DefaultConfig};
 
 pub use call::CallCommand;
@@ -51,13 +50,13 @@ type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
-    #[structopt(
+    #[clap(
         name = "url",
         long,
         parse(try_from_str),
@@ -65,19 +64,19 @@ pub struct ExtrinsicOpts {
     )]
     url: url::Url,
     /// Secret key URI for the account deploying the contract.
-    #[structopt(name = "suri", long, short)]
+    #[clap(name = "suri", long, short)]
     suri: String,
     /// Password for the secret key.
-    #[structopt(name = "password", long, short)]
+    #[clap(name = "password", long, short)]
     password: Option<String>,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbosity: VerbosityFlags,
     /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
-    #[structopt(long, short = "rpc")]
+    #[clap(long)]
     dry_run: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[structopt(long, parse(try_from_str = parse_balance))]
+    #[clap(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
 }
 
