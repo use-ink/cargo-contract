@@ -178,10 +178,10 @@ impl<'a> Encoder<'a> {
         let variant_ident = match value {
             Value::Map(map) => map
                 .ident()
-                .ok_or(anyhow::anyhow!("Missing enum variant identifier for map")),
+                .ok_or_else(|| anyhow::anyhow!("Missing enum variant identifier for map")),
             Value::Tuple(tuple) => tuple
                 .ident()
-                .ok_or(anyhow::anyhow!("Missing enum variant identifier for tuple")),
+                .ok_or_else(|| anyhow::anyhow!("Missing enum variant identifier for tuple")),
             v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
         }?;
 
