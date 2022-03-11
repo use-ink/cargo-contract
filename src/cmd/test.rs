@@ -18,16 +18,15 @@ use crate::{maybe_println, util, workspace::ManifestPath, Verbosity, VerbosityFl
 use anyhow::Result;
 use colored::Colorize;
 use std::{convert::TryFrom, path::PathBuf};
-use structopt::StructOpt;
 
 /// Executes smart contract tests off-chain by delegating to `cargo test`.
-#[derive(Debug, StructOpt)]
-#[structopt(name = "test")]
+#[derive(Debug, clap::Args)]
+#[clap(name = "test")]
 pub struct TestCommand {
     /// Path to the `Cargo.toml` of the contract to test.
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbosity: VerbosityFlags,
 }
 

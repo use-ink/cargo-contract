@@ -25,30 +25,29 @@ use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::fmt::Debug;
-use structopt::StructOpt;
 use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "call", about = "Call a contract")]
+#[derive(Debug, clap::Args)]
+#[clap(name = "call", about = "Call a contract")]
 pub struct CallCommand {
     /// The address of the the contract to call.
-    #[structopt(name = "contract", long, env = "CONTRACT")]
+    #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
     /// The name of the contract message to call.
-    #[structopt(long, short)]
+    #[clap(long, short)]
     message: String,
     /// The arguments of the contract message to call.
-    #[structopt(long)]
+    #[clap(long)]
     args: Vec<String>,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Maximum amount of gas to be used for this command.
-    #[structopt(name = "gas", long, default_value = "50000000000")]
+    #[clap(name = "gas", long, default_value = "50000000000")]
     gas_limit: u64,
     /// The value to be transferred as part of the call.
-    #[structopt(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
+    #[clap(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
 }
 

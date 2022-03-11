@@ -34,7 +34,6 @@ use std::{
     process::Command,
     str,
 };
-use structopt::StructOpt;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -57,11 +56,11 @@ pub(crate) struct ExecuteArgs {
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-#[derive(Debug, StructOpt)]
-#[structopt(name = "build")]
+#[derive(Debug, clap::Args)]
+#[clap(name = "build")]
 pub struct BuildCommand {
     /// Path to the `Cargo.toml` of the contract to build
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// By default the contract is compiled with debug functionality
     /// included. This enables the contract to output debug messages,
@@ -69,10 +68,10 @@ pub struct BuildCommand {
     ///
     /// A production contract should always be build in `release` mode!
     /// Then no debug functionality is compiled into the contract.
-    #[structopt(long = "--release")]
+    #[clap(long = "--release")]
     build_release: bool,
     /// Build offline
-    #[structopt(long = "--offline")]
+    #[clap(long = "--offline")]
     build_offline: bool,
     /// Which build artifacts to generate.
     ///
@@ -80,16 +79,16 @@ pub struct BuildCommand {
     ///
     /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
     ///   `<name>.contract` file is skipped.
-    #[structopt(
+    #[clap(
         long = "generate",
         default_value = "all",
         value_name = "all | code-only",
         verbatim_doc_comment
     )]
     build_artifact: BuildArtifacts,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbosity: VerbosityFlags,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     unstable_options: UnstableOptions,
     /// Number of optimization passes, passed as an argument to `wasm-opt`.
     ///
@@ -113,16 +112,16 @@ pub struct BuildCommand {
     /// - It is possible to define the number of optimization passes in the
     ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
     ///   The CLI argument always takes precedence over the profile value.
-    #[structopt(long)]
+    #[clap(long)]
     optimization_passes: Option<OptimizationPasses>,
     /// Do not remove symbols (Wasm name section) when optimizing.
     ///
     /// This is useful if one wants to analyze or debug the optimized binary.
-    #[structopt(long)]
+    #[clap(long)]
     keep_debug_symbols: bool,
 
     /// Export the build output in JSON format.
-    #[structopt(long, conflicts_with = "verbose")]
+    #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
@@ -184,15 +183,15 @@ impl BuildCommand {
     }
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "check")]
+#[derive(Debug, clap::Args)]
+#[clap(name = "check")]
 pub struct CheckCommand {
     /// Path to the `Cargo.toml` of the contract to build
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbosity: VerbosityFlags,
-    #[structopt(flatten)]
+    #[clap(flatten)]
     unstable_options: UnstableOptions,
 }
 
