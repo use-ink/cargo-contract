@@ -23,7 +23,6 @@ use std::{
     iter::Iterator,
     path::{Path, PathBuf},
     process::Command,
-    str::FromStr,
 };
 
 use anyhow::Result;
