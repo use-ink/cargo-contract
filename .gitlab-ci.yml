@@ -131,6 +131,16 @@ test-new-project-template:
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
+# `cargo package` is executed when doing `cargo publish`. So by testing
+# it here we test that at least the `cargo package` step in the publishing
+# process will work.
+test-cargo-package:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo package
+
+
 #### stage:                        build (default features)
 
 build:
