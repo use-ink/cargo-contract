@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2022-03-14
+
+### Interact with contracts: upload, instantiate and call commands
+
+We added commands to upload, instantiate and call commands!
+This allows interacting with contracts on live chains with a compatible 
+[`pallet-contracts`](https://github.com/paritytech/substrate/tree/master/frame/contracts).
+
+For command-line examples on how to use these commands see [#79](https://github.com/paritytech/cargo-contract/pull/79).
+
 ### Linting rules for smart contracts
 
 We are introducing a linter for ink! smart contracts in this release!
@@ -20,10 +30,12 @@ In order for the linting to work with your smart contract, the contract has to b
 written in at least ink! 3.0.0-rc9. If it's older the linting will just always succeed.
 
 ### Added
+- Interact with contracts: upload, instantiate and call commands - [#79](https://github.com/paritytech/cargo-contract/pull/79)
 - Add linting to assert correct initialization of [`ink_storage::Mapping`](https://paritytech.github.io/ink/ink_storage/struct.Mapping.html) - [#431](https://github.com/paritytech/cargo-contract/pull/431)
 
 ### Changed
 - Upgrade `subxt`, SCALE crates, and substrate primitive `sp-*` crates [#451](https://github.com/paritytech/cargo-contract/pull/451).
+- Updated `cargo contract new` template dependencies to ink! `3.0.0-rc9` - [#443](https://github.com/paritytech/cargo-contract/pull/443)
 
 ## [0.17.0] - 2022-01-19
 
