@@ -16,7 +16,7 @@ homepage = "https://www.parity.io/"
 description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
-include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates"]
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "src/**/*.scale"]
 
 [dependencies]
 env_logger = "0.9.0"

@@ -122,7 +122,24 @@ fn build_and_zip_dylint_driver(
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
-    let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
+    let mut ink_dylint_driver_dir = manifest_dir.join("ink_linting");
+
+    // The following condition acocunts for the case when `cargo package` or
+    // `cargo publish` is used. In that case the `CARGO_MANIFEST_DIR` is actually
+    // of the form `cargo-contract/target/package/cargo-contract-0.18.0/`.
+    // But since the `ink_linting/` folder is not part of the `cargo-contract`
+    // project it would not be found in this `CARGO_MANIFEST_DIR`.
+    if !ink_dylint_driver_dir.exists() {
+        println!(
+            "Folder `ink_linting` not found at {:?}",
+            ink_dylint_driver_dir
+        );
+        ink_dylint_driver_dir = manifest_dir.join("../../../ink_linting/");
+        println!(
+            "Added a relative path to reference the `ink_linting` folder at: {:?}",
+            ink_dylint_driver_dir
+        );
+    }
 
     let mut cmd = Command::new("cargo");
 
