@@ -59,7 +59,7 @@ subxt = "0.18.1"
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.9.0", features = ["ws-client"] }
-nom = "7.1.0"
+nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
 indexmap = "1.8.0"
 thiserror = "1.0.30"
