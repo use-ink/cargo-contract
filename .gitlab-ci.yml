@@ -140,6 +140,7 @@ test-registry-publish-install:
   stage:                           test
   <<:                              *docker-env
   before_script:
+    # Set up a local registry.
     - mkdir -p ./estuary/crates/ ./estuary/indices/
     - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates/ --index-dir ./estuary/indices &
     - mkdir .cargo
