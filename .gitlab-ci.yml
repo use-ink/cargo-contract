@@ -132,6 +132,24 @@ test-new-project-template:
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
+test-publish-install:
+  stage:                           test
+  <<:                              *docker-env
+  before_script:
+    - mkdir -p estuary/crates/ estuary/indices/
+    - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates --index-dir ./estuary/indices &
+    - mkdir .cargo
+    - echo -e '[registries]\nestuary = { index = "http://0.0.0.0:7878/git/index" }' > .cargo/config.toml
+    - echo 0000 | cargo login --registry estuary
+  script:
+    - cargo publish --registry estuary
+    - cargo install --registry estuary cargo-contract --index http://0.0.0.0:7878/git/index
+
+    - cargo run -- contract new new_project
+    - echo "[workspace]" >> new_project/Cargo.toml
+    - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
+
+
 #### stage:                        build (default features)
 
 build:
