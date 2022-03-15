@@ -128,7 +128,11 @@ fn zip_template(manifest_dir: &Path, out_dir: &Path) -> Result<()> {
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
 /// linting rules.
 #[cfg(feature = "cargo-clippy")]
-fn build_and_zip_dylint_driver(_out_dir: PathBuf, dylint_driver_dst_file: PathBuf) -> Result<()> {
+fn build_and_zip_dylint_driver(
+    _ink_dylint_driver_dir: PathBuf,
+    _out_dir: PathBuf,
+    dylint_driver_dst_file: PathBuf,
+) -> Result<()> {
     // For `clippy` runs it is not necessary to build the `dylint` driver.
     // Furthermore the fixed Rust nightly specified in `ink_linting/rust-toolchain`
     // contains a bug that results in an `error[E0786]: found invalid metadata files` ICE.
