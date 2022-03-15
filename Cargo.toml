@@ -18,6 +18,8 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
     "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "src/**/*.scale",
+    # We need to include `ink_linting` in the releases, so that the dylint driver which
+    # is contained in that crate is build locally as part of the installation.
     "ink_linting", "!ink_linting/target/", "!ink_linting/ui/"
 ]
 

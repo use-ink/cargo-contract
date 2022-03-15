@@ -180,15 +180,18 @@ fn build_and_zip_dylint_driver(
     println!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
-        // capture the stdout to return from this function as bytes
+        // Capture the stdout to return from this function as bytes
         .stdout(std::process::Stdio::piped())
-        .spawn()?;
-    let output = child.wait_with_output()?;
+        .spawn();
 
+    // We need to name back to the original `_Cargo.toml` name, otherwise `cargo publish`
+    // would fail with `Source directory was modified by build.rs during cargo publish`.
     std::fs::rename(
         ink_dylint_driver_dir.join("Cargo.toml"),
         ink_dylint_driver_dir.join("_Cargo.toml"),
     );
+
+    let output = child?.wait_with_output()?;
 
     if !output.status.success() {
         anyhow::bail!(
