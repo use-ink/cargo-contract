@@ -68,9 +68,43 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     // `libink_linting@nightly-2021-11-04-x86_64-unknown-linux-gnu.so`. This file is obtained
     // by building the crate in `ink_linting/`.
     let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
-    build_and_zip_dylint_driver(manifest_dir, out_dir, dylint_driver_dst_file)?;
 
-    Ok(())
+    let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
+
+    // The `ink_linting/Cargo.toml` file is named `_Cargo.toml` in the repository.
+    // This is because we need to have the `ink_linting` folder part of the release,
+    // so that when somebody installs `cargo-contract` the `ink_linting` crate is
+    // build locally as part of that installation process.
+    // But if the file were named `Cargo.toml` then `cargo publish` would ignore
+    // the whole `ink_linting` folder and we wouldn't be able to specify the folder
+    // in the `cargo-contract/Cargo.toml` section of `[include]`.
+    //
+    // This is intended behavior:
+    //
+    // > Regardless of whether exclude or include is specified, the following files are always excluded:
+    // > * Any sub-packages will be skipped (any subdirectory that contains a Cargo.toml file).
+    //
+    // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
+    std::fs::rename(
+        ink_dylint_driver_dir.join("_Cargo.toml"),
+        ink_dylint_driver_dir.join("Cargo.toml"),
+    )?;
+
+    let res = build_and_zip_dylint_driver(
+        ink_dylint_driver_dir.clone(),
+        out_dir,
+        dylint_driver_dst_file,
+    );
+
+    // After the build process of `ink_linting` happened we need to name back to the original
+    // `_Cargo.toml` name, otherwise the directory would be "dirty" and  `cargo publish` would
+    // fail with `Source directory was modified by build.rs during cargo publish`.
+    std::fs::rename(
+        ink_dylint_driver_dir.join("Cargo.toml"),
+        ink_dylint_driver_dir.join("_Cargo.toml"),
+    )?;
+
+    res
 }
 
 /// Creates a zip archive `template.zip` of the `new` project template in `out_dir`.
@@ -94,11 +128,7 @@ fn zip_template(manifest_dir: &Path, out_dir: &Path) -> Result<()> {
 /// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
 /// linting rules.
 #[cfg(feature = "cargo-clippy")]
-fn build_and_zip_dylint_driver(
-    _manifest_dir: PathBuf,
-    _out_dir: PathBuf,
-    dylint_driver_dst_file: PathBuf,
-) -> Result<()> {
+fn build_and_zip_dylint_driver(_out_dir: PathBuf, dylint_driver_dst_file: PathBuf) -> Result<()> {
     // For `clippy` runs it is not necessary to build the `dylint` driver.
     // Furthermore the fixed Rust nightly specified in `ink_linting/rust-toolchain`
     // contains a bug that results in an `error[E0786]: found invalid metadata files` ICE.
@@ -118,31 +148,10 @@ fn build_and_zip_dylint_driver(
 /// linting rules.
 #[cfg(not(feature = "cargo-clippy"))]
 fn build_and_zip_dylint_driver(
-    manifest_dir: PathBuf,
+    ink_dylint_driver_dir: PathBuf,
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
-    let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
-
-    // The `ink_linting/Cargo.toml` file is named `_Cargo.toml` in the repository.
-    // This is because we need to have the `ink_linting` folder part of the release,
-    // so that when somebody installs `cargo-contract` the `ink_linting` crate is
-    // build locally as part of that installation process.
-    // But if the file were named `Cargo.toml` then `cargo publish` would ignore
-    // the whole `ink_linting` folder and we wouldn't be able to specify the folder
-    // in the `cargo-contract/Cargo.toml` section of `[include]`.
-    //
-    // This is intended behavior:
-    //
-    // > Regardless of whether exclude or include is specified, the following files are always excluded:
-    // > * Any sub-packages will be skipped (any subdirectory that contains a Cargo.toml file).
-    //
-    // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
-    std::fs::rename(
-        ink_dylint_driver_dir.join("_Cargo.toml"),
-        ink_dylint_driver_dir.join("Cargo.toml"),
-    );
-
     let mut cmd = Command::new("cargo");
 
     let manifest_arg = format!(
@@ -182,16 +191,8 @@ fn build_and_zip_dylint_driver(
     let child = cmd
         // Capture the stdout to return from this function as bytes
         .stdout(std::process::Stdio::piped())
-        .spawn();
-
-    // We need to name back to the original `_Cargo.toml` name, otherwise `cargo publish`
-    // would fail with `Source directory was modified by build.rs during cargo publish`.
-    std::fs::rename(
-        ink_dylint_driver_dir.join("Cargo.toml"),
-        ink_dylint_driver_dir.join("_Cargo.toml"),
-    );
-
-    let output = child?.wait_with_output()?;
+        .spawn()?;
+    let output = child.wait_with_output()?;
 
     if !output.status.success() {
         anyhow::bail!(
