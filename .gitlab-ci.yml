@@ -68,13 +68,13 @@ workflow:
 #### stage:                        check
 # be aware that the used image has cargo-contract installed
 
-fmt:
+.fmt:
   stage:                           check
   <<:                              *docker-env
   script:
     - cargo fmt --verbose --all -- --check
 
-clippy:
+.clippy:
   stage:                           check
   <<:                              *docker-env
   script:
@@ -82,7 +82,7 @@ clippy:
 
 #### stage:                        test (all features)
 
-test-dylint:
+.test-dylint:
   stage:                           test
   <<:                              *docker-env
   script:
@@ -106,13 +106,13 @@ test-dylint:
 
     - cargo test --verbose --all-features
 
-test:
+.test:
   stage:                           test
   <<:                              *docker-env
   script:
     - cargo test --verbose --workspace --all-features
 
-test-new-project-template:
+.test-new-project-template:
   stage:                           test
   <<:                              *docker-env
   script:
@@ -152,7 +152,7 @@ test-publish-install:
 
 #### stage:                        build (default features)
 
-build:
+.build:
   stage:                           build
   <<:                              *docker-env
   <<:                              *collect-artifacts
