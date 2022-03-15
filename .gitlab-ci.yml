@@ -132,12 +132,16 @@ test-new-project-template:
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
 
-test-publish-install:
+# With the introduction of `ink_linting` in `build.rs` the installation process
+# is more elaborate now and as part of it the `ink_linting` crate is built locally.
+# We introduced this CI job to make sure that publishing to a registry and installing
+# from it will work correctly.
+test-registry-publish-install:
   stage:                           test
   <<:                              *docker-env
   before_script:
-    - mkdir -p estuary/crates/ estuary/indices/
-    - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates --index-dir ./estuary/indices &
+    - mkdir -p ./estuary/crates/ ./estuary/indices/
+    - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates/ --index-dir ./estuary/indices &
     - mkdir .cargo
     - echo -e '[registries]\nestuary = { index = "http://0.0.0.0:7878/git/index" }' > .cargo/config.toml
     - echo 0000 | cargo login --registry estuary
@@ -145,6 +149,7 @@ test-publish-install:
     - cargo publish --registry estuary
     - cargo install cargo-contract --index http://0.0.0.0:7878/git/index
 
+    # Simple smoke testing to check if basic `check` functionality works.
     - cargo run -- contract new new_project
     - echo "[workspace]" >> new_project/Cargo.toml
     - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
