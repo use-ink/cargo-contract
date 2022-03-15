@@ -154,7 +154,6 @@ test-registry-publish-install:
     - echo "[workspace]" >> new_project/Cargo.toml
     - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
 
-
 #### stage:                        build (default features)
 
 build:
