@@ -87,6 +87,7 @@ test-dylint:
   <<:                              *docker-env
   script:
     - cd ink_linting/
+    - mv _Cargo.toml Cargo.toml
 
     # Installing these components here is necessary because
     # `ink_linting/` has a fixed `rust-toolchain` file.

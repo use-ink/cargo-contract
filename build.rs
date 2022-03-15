@@ -122,24 +122,26 @@ fn build_and_zip_dylint_driver(
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
-    let mut ink_dylint_driver_dir = manifest_dir.join("ink_linting");
+    let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
 
-    // The following condition acocunts for the case when `cargo package` or
-    // `cargo publish` is used. In that case the `CARGO_MANIFEST_DIR` is actually
-    // of the form `cargo-contract/target/package/cargo-contract-0.18.0/`.
-    // But since the `ink_linting/` folder is not part of the `cargo-contract`
-    // project it would not be found in this `CARGO_MANIFEST_DIR`.
-    if !ink_dylint_driver_dir.exists() {
-        println!(
-            "Folder `ink_linting` not found at {:?}",
-            ink_dylint_driver_dir
-        );
-        ink_dylint_driver_dir = manifest_dir.join("../../../ink_linting/");
-        println!(
-            "Added a relative path to reference the `ink_linting` folder at: {:?}",
-            ink_dylint_driver_dir
-        );
-    }
+    // The `ink_linting/Cargo.toml` file is named `_Cargo.toml` in the repository.
+    // This is because we need to have the `ink_linting` folder part of the release,
+    // so that when somebody installs `cargo-contract` the `ink_linting` crate is
+    // build locally as part of that installation process.
+    // But if the file were named `Cargo.toml` then `cargo publish` would ignore
+    // the whole `ink_linting` folder and we wouldn't be able to specify the folder
+    // in the `cargo-contract/Cargo.toml` section of `[include]`.
+    //
+    // This is intended behavior:
+    //
+    // > Regardless of whether exclude or include is specified, the following files are always excluded:
+    // > * Any sub-packages will be skipped (any subdirectory that contains a Cargo.toml file).
+    //
+    // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
+    std::fs::rename(
+        ink_dylint_driver_dir.join("_Cargo.toml"),
+        ink_dylint_driver_dir.join("Cargo.toml"),
+    );
 
     let mut cmd = Command::new("cargo");
 
@@ -182,6 +184,11 @@ fn build_and_zip_dylint_driver(
         .stdout(std::process::Stdio::piped())
         .spawn()?;
     let output = child.wait_with_output()?;
+
+    std::fs::rename(
+        ink_dylint_driver_dir.join("Cargo.toml"),
+        ink_dylint_driver_dir.join("_Cargo.toml"),
+    );
 
     if !output.status.success() {
         anyhow::bail!(
