@@ -70,6 +70,14 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
 
     let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
+    let ink_dylint_driver_dir = ink_dylint_driver_dir.canonicalize().map_err(|err| {
+        anyhow::anyhow!(
+            "Unable to canonicalize '{:?}': {:?}\nDoes the folder exist? {}",
+            ink_dylint_driver_dir,
+            err,
+            ink_dylint_driver_dir.exists()
+        )
+    })?;
 
     // The `ink_linting/Cargo.toml` file is named `_Cargo.toml` in the repository.
     // This is because we need to have the `ink_linting` folder part of the release,
@@ -86,9 +94,6 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     //
     // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
     let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
-    let original_name = original_name.canonicalize().map_err(|err| {
-        anyhow::anyhow!("Unable to canonicalize '{:?}': {:?}", original_name, err)
-    })?;
     if !original_name.exists() {
         anyhow::bail!(
             "'{:?}' does not exist, does the folder '{:?}'? {:?}",
