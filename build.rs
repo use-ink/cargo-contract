@@ -96,10 +96,8 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
     if !original_name.exists() {
         anyhow::bail!(
-            "'{:?}' does not exist, does the folder '{:?}'? {:?}",
+            "'{:?}' does not exist",
             original_name,
-            ink_dylint_driver_dir,
-            ink_dylint_driver_dir.exists()
         );
     }
 
