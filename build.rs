@@ -95,10 +95,7 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
     let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
     if !original_name.exists() {
-        anyhow::bail!(
-            "'{:?}' does not exist",
-            original_name,
-        );
+        anyhow::bail!("'{:?}' does not exist", original_name);
     }
 
     let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
