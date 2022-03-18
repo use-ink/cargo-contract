@@ -85,24 +85,42 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
     // > * Any sub-packages will be skipped (any subdirectory that contains a Cargo.toml file).
     //
     // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
-    std::fs::rename(
-        ink_dylint_driver_dir.join("_Cargo.toml"),
-        ink_dylint_driver_dir.join("Cargo.toml"),
-    )?;
+    let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
+    let original_name = original_name.canonicalize().map_err(|err| {
+        anyhow::anyhow!("Unable to canonicalize '{:?}': {:?}", original_name, err)
+    })?;
+    if !original_name.exists() {
+        anyhow::bail!(
+            "'{:?}' does not exist, does the folder '{:?}'? {:?}",
+            original_name,
+            ink_dylint_driver_dir,
+            ink_dylint_driver_dir.exists()
+        );
+    }
 
-    let res = build_and_zip_dylint_driver(
-        ink_dylint_driver_dir.clone(),
-        out_dir,
-        dylint_driver_dst_file,
-    );
+    let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
+    std::fs::rename(&original_name, &tmp_name).map_err(|err| {
+        anyhow::anyhow!(
+            "Failed renaming '{:?}' to '{:?}': {:?}",
+            original_name,
+            tmp_name,
+            err
+        )
+    })?;
+
+    let res = build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file);
 
     // After the build process of `ink_linting` happened we need to name back to the original
     // `_Cargo.toml` name, otherwise the directory would be "dirty" and  `cargo publish` would
     // fail with `Source directory was modified by build.rs during cargo publish`.
-    std::fs::rename(
-        ink_dylint_driver_dir.join("Cargo.toml"),
-        ink_dylint_driver_dir.join("_Cargo.toml"),
-    )?;
+    std::fs::rename(&tmp_name, &original_name).map_err(|err| {
+        anyhow::anyhow!(
+            "Failed renaming '{:?}' to '{:?}': {:?}",
+            tmp_name,
+            original_name,
+            err
+        )
+    })?;
 
     res
 }
