@@ -50,6 +50,7 @@ pub(crate) struct ExecuteArgs {
     unstable_flags: UnstableFlags,
     optimization_passes: OptimizationPasses,
     keep_debug_symbols: bool,
+    skip_linting: bool,
     output_type: OutputType,
 }
 
@@ -73,6 +74,9 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "--offline")]
     build_offline: bool,
+    /// Skips linting checks during the build process
+    #[clap(long = "--skip-linting")]
+    skip_linting: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
@@ -176,6 +180,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
+            skip_linting: self.skip_linting,
             output_type,
         };
 
@@ -211,6 +216,7 @@ impl CheckCommand {
             unstable_flags,
             optimization_passes: OptimizationPasses::Zero,
             keep_debug_symbols: false,
+            skip_linting: false,
             output_type: OutputType::default(),
         };
 
@@ -760,6 +766,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         optimization_passes,
         keep_debug_symbols,
+        skip_linting,
         output_type,
     } = args;
 
@@ -771,13 +778,22 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     }
 
     let build = || -> Result<OptimizationResult> {
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("[1/{}]", build_artifact.steps()).bold(),
-            "Checking ink! linting rules".bright_green().bold()
-        );
-        exec_cargo_dylint(&crate_metadata, verbosity)?;
+        if skip_linting {
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[1/{}]", build_artifact.steps()).bold(),
+                "Skip ink! linting rules".bright_yellow().bold()
+            );
+        } else {
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[1/{}]", build_artifact.steps()).bold(),
+                "Checking ink! linting rules".bright_green().bold()
+            );
+            exec_cargo_dylint(&crate_metadata, verbosity)?;
+        }
 
         maybe_println!(
             verbosity,
@@ -816,13 +832,22 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
-                "Checking ink! linting rules".bright_green().bold()
-            );
-            exec_cargo_dylint(&crate_metadata, verbosity)?;
+            if skip_linting {
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[1/{}]", build_artifact.steps()).bold(),
+                    "Skip ink! linting rules".bright_yellow().bold()
+                );
+            } else {
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[1/{}]", build_artifact.steps()).bold(),
+                    "Checking ink! linting rules".bright_green().bold()
+                );
+                exec_cargo_dylint(&crate_metadata, verbosity)?;
+            }
 
             maybe_println!(
                 verbosity,
@@ -1029,6 +1054,7 @@ mod tests_ci_only {
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
                 keep_debug_symbols: false,
+                skip_linting: false,
                 output_json: false,
             };
 
@@ -1070,6 +1096,7 @@ mod tests_ci_only {
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
                 keep_debug_symbols: false,
+                skip_linting: false,
                 output_json: false,
             };
 
@@ -1239,6 +1266,7 @@ mod tests_ci_only {
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
                 keep_debug_symbols: false,
+                skip_linting: false,
                 output_json: false,
             };
             let res = cmd.exec().expect("build failed");
