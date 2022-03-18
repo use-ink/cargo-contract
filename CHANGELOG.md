@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2022-03-18
+- Improved error reporting during installation - [#468](https://github.com/paritytech/cargo-contract/pull/468)
+
 ## [1.0.0] - 2022-03-17
 
 ### Changed
