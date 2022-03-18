@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--skip-linting` flag that allows to skip the linting step during build process - [#466](https://github.com/paritytech/cargo-contract/pull/467)
+
 ## [1.0.0] - 2022-03-17
 
 ### Changed
