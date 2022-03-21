@@ -33,7 +33,7 @@ zip = { version = "0.6.0", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-which = "4.2.4"
+which = "4.2.5"
 colored = "2.0.0"
 toml = "0.5.8"
 rustc_version = "0.4.0"
@@ -72,7 +72,7 @@ zip = { version = "0.6.0", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
-which = "4.2.4"
+which = "4.2.5"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
