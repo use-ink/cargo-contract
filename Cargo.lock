@@ -3364,9 +3364,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a4383f53951cfd154e561cb0eb595d4df36bf0a2a91302985f7fa7489d65461"
+checksum = "da729d136eac5e53eb54d11aa61bae0cd0c8d3822226b8fe49e6fade269c8c84"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -3377,7 +3377,6 @@ dependencies = [
  "hex",
  "jsonrpsee 0.8.0",
  "log",
- "num-traits",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -3390,9 +3389,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19c04bfdcf4d4143b6208ff4fdfffef101b255d20c78f4812eb2da32bd644061"
+checksum = "9bf09d0dbc6ba8c36beeae0784eaf256f353ea8a870be646cd33b2c5255df5b7"
 dependencies = [
  "async-trait",
  "darling",
@@ -3409,9 +3408,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd262b4b74e41f94408ed5126983db90561cae0d23baafaa0224eb9f43abeafa"
+checksum = "e683ca8888e5da50dce8d3715c48ca66fe3495936743ffb7a1de34737ec0ff41"
 dependencies = [
  "async-trait",
  "darling",
