@@ -85,7 +85,7 @@ commands and their usage.
 For each command there is also a `--help` flag with info on additional parameters,
 e.g. `cargo contract new --help`.
 
-##### `cargo contract new my_contract`
+### `cargo contract new my_contract`
 
 Creates an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
@@ -94,7 +94,7 @@ The contract contains the source code for the [`Flipper`](https://github.com/par
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 
-##### `cargo +nightly contract build`
+### `cargo +nightly contract build`
 
 Compiles the contract into optimized WebAssembly bytecode, generates metadata for it,
 and bundles both together in a `<name>.contract` file, which you can use for
@@ -107,24 +107,24 @@ do so is `cargo +nightly contract build`.
 To avoid having to always add `+nightly` you can also set `nightly` as the default
 toolchain of a directory by executing `rustup override set nightly` in it.
 
-##### `cargo contract check`
+### `cargo contract check`
 
 Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
 
-##### `cargo contract test`
+### `cargo contract test`
 
 Runs test suites defined for a smart contract off-chain.
 
-##### `cargo contract upload`
+### `cargo contract upload`
 
 Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
 
-##### `cargo contract instantiate`
+### `cargo contract instantiate`
 
 Create an instance of a contract on chain. See [extrinsics](docs/extrinsics.md).
 
-##### `cargo contract call`
+### `cargo contract call`
 
 Invoke a message on an existing contract on chain. See [extrinsics](docs/extrinsics.md).
 
