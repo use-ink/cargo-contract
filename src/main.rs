@@ -23,7 +23,7 @@ mod workspace;
 use self::{
     cmd::{
         metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, InstantiateCommand,
-        TestCommand, UploadCommand,
+        TestCommand, UploadCommand, DecodeCommand
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -454,6 +454,9 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
+    /// Decode a contract input data
+    #[clap(name = "decode")]
+    Decode(DecodeCommand),
 }
 
 fn main() {
@@ -511,6 +514,7 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Upload(upload) => upload.run(),
         Command::Instantiate(instantiate) => instantiate.run(),
         Command::Call(call) => call.run(),
+        Command::Decode(decode) => decode.run(),
     }
 }
 

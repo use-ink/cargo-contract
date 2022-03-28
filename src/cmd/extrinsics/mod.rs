@@ -20,6 +20,7 @@ mod instantiate;
 mod runtime_api;
 mod transcode;
 mod upload;
+mod decode;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
@@ -41,6 +42,7 @@ pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{DispatchError as RuntimeDispatchError, Event as RuntimeEvent};
 pub use upload::UploadCommand;
+pub use decode::DecodeCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;

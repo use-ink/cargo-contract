@@ -68,6 +68,7 @@ pub fn display_events(
                 && field.name() == Some(&"data".to_string())
             {
                 // data is a byte vec so the first byte is the length.
+		log::debug!("EVENT_DATA: {:?}", hex::encode(&event_data));
                 let _data_len = event_data.read_byte()?;
                 let contract_event = transcoder.decode_contract_event(event_data)?;
                 maybe_println!(
