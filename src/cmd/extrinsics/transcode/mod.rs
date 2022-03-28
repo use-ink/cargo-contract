@@ -94,7 +94,7 @@ pub use self::{
 
 use anyhow::Result;
 use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::Input;
+use scale::{Compact, Decode, Input};
 use scale_info::{
     form::{Form, PortableForm},
     Field,
@@ -172,6 +172,10 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
+        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
+        // ignore because the structure of the event data is known for decoding.
+        let _len = <Compact<u32>>::decode(data)?;
+
         let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
@@ -184,6 +188,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     variant_index
                 )
             })?;
+        log::debug!("decoding contract event '{}'", event_spec.label());
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
@@ -275,6 +280,14 @@ mod tests {
             value: bool,
         }
 
+        #[ink(event)]
+        pub struct Event1 {
+            #[ink(topic)]
+            name: Hash,
+            #[ink(topic)]
+            from: AccountId,
+        }
+
         impl Flipper {
             /// Creates a new flipper smart contract initialized with the given value.
             #[ink(constructor)]
@@ -363,6 +376,19 @@ mod tests {
         let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
 
         assert_eq!(Value::Bool(true), decoded);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_contract_event() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = ([0u32; 32], [1u32; 32]).encode();
+        // encode again as a Vec<u8> which has a len prefix.
+        let encoded_bytes = encoded.encode();
+        let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+
         Ok(())
     }
 }

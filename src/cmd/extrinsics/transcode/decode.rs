@@ -19,7 +19,7 @@ use super::{
     scon::{Map, Tuple, Value},
     CompositeTypeFields,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use scale::{Compact, Decode, Input};
 use scale_info::{
     form::{Form, PortableForm},
@@ -53,7 +53,7 @@ impl<'a> Decoder<'a> {
             // Value was decoded with custom decoder for type.
             Ok(Some(value)) => Ok(value),
             // No custom decoder registered so attempt default decoding.
-            Ok(None) => self.decode_type(ty, input),
+            Ok(None) => self.decode_type(type_id, ty, input),
             Err(e) => Err(e),
         }
     }
@@ -64,10 +64,11 @@ impl<'a> Decoder<'a> {
         len: usize,
         input: &mut &[u8],
     ) -> Result<Value> {
+        let type_id = ty.id();
         let ty = self
             .registry
-            .resolve(ty.id())
-            .ok_or_else(|| anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+            .resolve(type_id)
+            .ok_or_else(|| anyhow::anyhow!("Failed to find type with id '{}'", type_id))?;
 
         if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
             let mut bytes = vec![0u8; len];
@@ -76,14 +77,14 @@ impl<'a> Decoder<'a> {
         } else {
             let mut elems = Vec::new();
             while elems.len() < len as usize {
-                let elem = self.decode_type(ty, input)?;
+                let elem = self.decode_type(type_id, ty, input)?;
                 elems.push(elem)
             }
             Ok(Value::Seq(elems.into()))
         }
     }
 
-    fn decode_type(&self, ty: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
+    fn decode_type(&self, id: u32, ty: &Type<PortableForm>, input: &mut &[u8]) -> Result<Value> {
         match ty.type_def() {
             TypeDef::Composite(composite) => {
                 let ident = ty.path().segments().last().map(|s| s.as_str());
@@ -112,6 +113,7 @@ impl<'a> Decoder<'a> {
             TypeDef::Compact(compact) => self.decode_compact(compact, input),
             TypeDef::BitSequence(_) => Err(anyhow::anyhow!("bitvec decoding not yet supported")),
         }
+        .context(format!("Error decoding type {}: {}", id, ty.path()))
     }
 
     pub fn decode_composite(

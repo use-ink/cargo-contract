@@ -23,7 +23,6 @@ use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
 
 use anyhow::Result;
-use scale::Input as _;
 use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
@@ -69,7 +68,7 @@ pub fn display_events(
             {
                 // data is a byte vec so the first byte is the length.
 		log::debug!("EVENT_DATA: {:?}", hex::encode(&event_data));
-                let _data_len = event_data.read_byte()?;
+
                 let contract_event = transcoder.decode_contract_event(event_data)?;
                 maybe_println!(
                     verbosity,
