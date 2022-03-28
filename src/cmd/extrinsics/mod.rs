@@ -15,12 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod call;
+mod decode;
 mod events;
 mod instantiate;
 mod runtime_api;
 mod transcode;
 mod upload;
-mod decode;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
@@ -39,10 +39,10 @@ use sp_core::{crypto::Pair, sr25519};
 use subxt::{Config, DefaultConfig};
 
 pub use call::CallCommand;
+pub use decode::DecodeCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{DispatchError as RuntimeDispatchError, Event as RuntimeEvent};
 pub use upload::UploadCommand;
-pub use decode::DecodeCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;

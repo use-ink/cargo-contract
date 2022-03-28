@@ -155,9 +155,9 @@ impl<'a> Decoder<'a> {
     ) -> Result<Value> {
         let i2 = input.clone();
         let discriminant = input.read_byte()?;
-	println!("type is {:?}", &variant_type.clone());
-	println!("input is {:?}", &i2);
-	println!("discriminant is {:?}", &discriminant);
+        println!("type is {:?}", &variant_type.clone());
+        println!("input is {:?}", &i2);
+        println!("discriminant is {:?}", &discriminant);
         let variant = variant_type
             .variants()
             .get(discriminant as usize)

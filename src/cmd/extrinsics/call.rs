@@ -56,6 +56,8 @@ impl CallCommand {
         let (_, contract_metadata) = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
+        log::debug!("message data: {:?}", hex::encode(&call_data));
+
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         async_std::task::block_on(async {
@@ -132,7 +134,6 @@ impl CallCommand {
             .to_runtime_api::<RuntimeApi>();
 
         log::debug!("calling contract {:?}", self.contract);
-        log::debug!("with data: {:?}", hex::encode(&data));
         let tx_progress = api
             .tx()
             .contracts()

@@ -66,9 +66,7 @@ pub fn display_events(
             if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
                 && field.name() == Some(&"data".to_string())
             {
-                // data is a byte vec so the first byte is the length.
-		log::debug!("EVENT_DATA: {:?}", hex::encode(&event_data));
-
+                log::debug!("event data: {:?}", hex::encode(&event_data));
                 let contract_event = transcoder.decode_contract_event(event_data)?;
                 maybe_println!(
                     verbosity,

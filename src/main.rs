@@ -22,8 +22,8 @@ mod workspace;
 
 use self::{
     cmd::{
-        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, InstantiateCommand,
-        TestCommand, UploadCommand, DecodeCommand
+        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, DecodeCommand,
+        InstantiateCommand, TestCommand, UploadCommand,
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,

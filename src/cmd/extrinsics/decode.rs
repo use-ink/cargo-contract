@@ -15,27 +15,49 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::load_metadata;
-use crate::cmd::extrinsics::{ExtrinsicOpts, ContractMessageTranscoder};
+use crate::cmd::extrinsics::ContractMessageTranscoder;
+use crate::DEFAULT_KEY_COL_WIDTH;
 use anyhow::Result;
+use colored::Colorize as _;
 
-
-#[derive(Debug, clap::Args)]
+#[derive(Debug, Clone, clap::Args)]
 #[clap(name = "decode", about = "Decode input_data for a contract")]
 pub struct DecodeCommand {
-    #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    /// Type of data
+    #[clap(arg_enum, short, long)]
+    r#type: DataType,
     /// The data to decode
     #[clap(long)]
     data: String,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+enum DataType {
+    Event,
+    Message,
+}
+
 impl DecodeCommand {
     pub fn run(&self) -> Result<()> {
-        let (_, contract_metadata) = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let (_, contract_metadata) = load_metadata(None)?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
-        let decoded_data = transcoder.decode_contract_event(&mut &self.data.as_bytes()[..]);
 
-	log::debug!("DECODED DATA: {:?}", decoded_data);
-	Ok(())
+        let decoded_data = match self.r#type {
+            DataType::Event => {
+                transcoder.decode_contract_event(&mut &hex::decode(&self.data).unwrap()[..])
+            }
+            DataType::Message => {
+                transcoder.decode_contract_message(&mut &hex::decode(&self.data).unwrap()[..])
+            }
+        };
+
+        println!(
+            "{:>width$} {:?}",
+            "Decoded data:".bright_green().bold(),
+            decoded_data,
+            width = DEFAULT_KEY_COL_WIDTH
+        );
+
+        Ok(())
     }
 }

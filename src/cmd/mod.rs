@@ -25,4 +25,4 @@ pub(crate) use self::{
 };
 mod extrinsics;
 
-pub(crate) use self::extrinsics::{CallCommand, InstantiateCommand, UploadCommand, DecodeCommand};
+pub(crate) use self::extrinsics::{CallCommand, DecodeCommand, InstantiateCommand, UploadCommand};
