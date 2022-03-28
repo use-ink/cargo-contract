@@ -132,6 +132,7 @@ impl CallCommand {
             .to_runtime_api::<RuntimeApi>();
 
         log::debug!("calling contract {:?}", self.contract);
+        log::debug!("with data: {:?}", hex::encode(&data));
         let tx_progress = api
             .tx()
             .contracts()
