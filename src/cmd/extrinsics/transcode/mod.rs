@@ -184,6 +184,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     variant_index
                 )
             })?;
+        log::debug!("decoding contract event '{}'", event_spec.label());
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
