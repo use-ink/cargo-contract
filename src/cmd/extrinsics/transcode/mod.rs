@@ -427,9 +427,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
-        let encoded = ([0u32; 32], [1u32; 32]).encode();
-        // encode again as a Vec<u8> which has a len prefix.
-        let encoded_bytes = encoded.encode();
+        let encoded_bytes = hex::decode("633aa551").unwrap();
         let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
 
         Ok(())
