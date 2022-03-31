@@ -57,9 +57,10 @@ pub struct InstantiateCommand {
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0", parse(try_from_str = parse_balance))]
     value: Balance,
-    /// Maximum amount of gas to be used for this command
-    #[clap(name = "gas", long, default_value = "50000000000")]
-    gas_limit: u64,
+    /// Maximum amount of gas to be used for this command.
+    /// Skips the dry-run to estimate the gas consumed for the instantiation.
+    #[clap(name = "gas", long)]
+    gas_limit: Option<u64>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
     /// of the same contract code from the same account.
     #[clap(long, parse(try_from_str = parse_hex_bytes))]
@@ -141,7 +142,7 @@ impl InstantiateCommand {
 
 struct InstantiateArgs {
     value: super::Balance,
-    gas_limit: u64,
+    gas_limit: Option<u64>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
     salt: Bytes,
@@ -219,12 +220,18 @@ impl<'a> Exec<'a> {
 
     async fn instantiate_with_code(&self, code: Bytes) -> Result<(CodeHash, ContractAccount)> {
         let api = self.subxt_api().await?;
+        let gas_limit = if let Some(gas_limit) = self.args.gas_limit {
+            gas_limit
+        } else {
+            let instantiate_result = self.instantiate_dry_run(Code::Upload(code.clone())).await?;
+            instantiate_result.gas_required
+        };
         let tx_progress = api
             .tx()
             .contracts()
             .instantiate_with_code(
                 self.args.value,
-                self.args.gas_limit,
+                gas_limit,
                 self.args.storage_deposit_limit,
                 code.to_vec(),
                 self.args.data.clone(),
@@ -251,12 +258,13 @@ impl<'a> Exec<'a> {
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
         let api = self.subxt_api().await?;
+        let gas_limit = self.gas_limit(Code::Existing(code_hash)).await?;
         let tx_progress = api
             .tx()
             .contracts()
             .instantiate(
                 self.args.value,
-                self.args.gas_limit,
+                gas_limit,
                 self.args.storage_deposit_limit,
                 code_hash,
                 self.args.data.clone(),
@@ -280,6 +288,7 @@ impl<'a> Exec<'a> {
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
         let url = self.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
+        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&50000000000);
         let storage_deposit_limit = self
             .args
             .storage_deposit_limit
@@ -288,7 +297,7 @@ impl<'a> Exec<'a> {
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
             value: NumberOrHex::Hex(self.args.value.into()),
-            gas_limit: NumberOrHex::Number(self.args.gas_limit),
+            gas_limit: NumberOrHex::Number(*gas_limit),
             storage_deposit_limit,
             code,
             data: self.args.data.clone().into(),
@@ -298,6 +307,17 @@ impl<'a> Exec<'a> {
         let result: ContractInstantiateResult =
             cli.request("contracts_instantiate", params).await?;
         Ok(result)
+    }
+
+    /// Dry run the instantiation to calculate the gas required, unless the gas limit is explicitly
+    /// set by the user.
+    async fn gas_limit(&self, code: Code) -> Result<u64> {
+        if let Some(gas_limit) = self.args.gas_limit {
+            Ok(gas_limit)
+        } else {
+            let instantiate_result = self.instantiate_dry_run(code).await?;
+            Ok(instantiate_result.gas_required)
+        }
     }
 }
 
