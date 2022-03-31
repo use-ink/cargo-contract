@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::load_metadata;
-use crate::{cmd::extrinsics::ContractMessageTranscoder, util::decode_hex, DEFAULT_KEY_COL_WIDTH};
+use crate::{
+    cmd::extrinsics::{load_metadata, ContractMessageTranscoder},
+    util::decode_hex,
+    DEFAULT_KEY_COL_WIDTH,
+};
 use anyhow::{Context, Result};
 use colored::Colorize as _;
 
