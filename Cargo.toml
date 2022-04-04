@@ -29,7 +29,7 @@ anyhow = "1.0.56"
 clap = { version = "3.1.8", features = ["derive", "env"] }
 log = "0.4.16"
 heck = "0.4.0"
-zip = { version = "0.6.0", default-features = false }
+zip = { version = "0.6.2", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
@@ -68,7 +68,7 @@ itertools = "0.10.3"
 
 [build-dependencies]
 anyhow = "1.0.56"
-zip = { version = "0.6.0", default-features = false }
+zip = { version = "0.6.2", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
