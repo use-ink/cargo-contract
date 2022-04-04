@@ -26,6 +26,7 @@ use std::{
 };
 
 use anyhow::Result;
+use regex::Regex;
 use walkdir::WalkDir;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
@@ -314,13 +315,15 @@ fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod)
 
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter().filter_map(|e| e.ok());
+    let regex = Regex::new(r#"libink_linting@.+\.(dll|so|dylib)"#).expect("Regex is correct; qed");
+    let mut lib_found = false;
 
     for entry in it {
         let path = entry.path();
         let name = path.strip_prefix(&src_dir)?.to_path_buf();
         let file_path = name.as_os_str().to_string_lossy();
 
-        if path.is_file() && path.display().to_string().contains("libink_linting@") {
+        if path.is_file() && regex.is_match(&path.display().to_string()) {
             zip.start_file(file_path, options)?;
             let mut f = File::open(path)?;
 
@@ -329,9 +332,15 @@ fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod)
             buffer.clear();
 
             zip.finish()?;
+            lib_found = true;
             break;
         }
     }
+
+    if !lib_found {
+        anyhow::bail!("Couldn't find compiled lint. Is your architecture defined in ./ink_linting/.cargo/config.toml?");
+    }
+
     Ok(())
 }
 
