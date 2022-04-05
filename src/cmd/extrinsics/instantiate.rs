@@ -50,7 +50,7 @@ pub struct InstantiateCommand {
     #[clap(name = "constructor", long, default_value = "new")]
     constructor: String,
     /// The constructor arguments, encoded as strings
-    #[clap(long)]
+    #[clap(long, multiple_values = true)]
     args: Vec<String>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
