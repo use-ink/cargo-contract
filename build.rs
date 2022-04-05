@@ -323,6 +323,7 @@ fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod)
         let name = path.strip_prefix(&src_dir)?.to_path_buf();
         let file_path = name.as_os_str().to_string_lossy();
 
+        println!("path: {:?}", path.display().to_string());
         if path.is_file() && regex.is_match(&path.display().to_string()) {
             zip.start_file(file_path, options)?;
             let mut f = File::open(path)?;
