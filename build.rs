@@ -314,8 +314,8 @@ fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod)
 
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter().filter_map(|e| e.ok());
-    let regex =
-        regex::Regex::new(r#"libink_linting@.+\.(dll|so|dylib)"#).expect("Regex is correct; qed");
+    let regex = regex::Regex::new(r#"(lib)?ink_linting@.+\.(dll|so|dylib)"#)
+        .expect("Regex is correct; qed");
     let mut lib_found = false;
 
     for entry in it {
