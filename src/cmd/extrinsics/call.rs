@@ -39,7 +39,7 @@ pub struct CallCommand {
     #[clap(long, short)]
     message: String,
     /// The arguments of the contract message to call.
-    #[clap(long)]
+    #[clap(long, multiple_values = true)]
     args: Vec<String>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,

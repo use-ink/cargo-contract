@@ -2,5 +2,5 @@
 # https://github.com/trailofbits/dylint/tree/master/examples.
 
 [toolchain]
-channel = "nightly-2021-11-04"
+channel = "nightly-2022-03-14"
 components = ["llvm-tools-preview", "rustc-dev"]
