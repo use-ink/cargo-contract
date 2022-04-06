@@ -21,12 +21,12 @@ use regex::Regex;
 use rustc_errors::Applicability;
 use rustc_hir::{
     def_id::DefId,
-    intravisit::{walk_fn, walk_item, walk_qpath, FnKind, NestedVisitorMap, Visitor},
+    intravisit::{walk_fn, walk_item, walk_qpath, FnKind, Visitor},
     BodyId, FnDecl, HirId, Item, ItemKind,
 };
 use rustc_hir::{QPath, VariantData};
 use rustc_lint::{LateContext, LateLintPass};
-use rustc_middle::{hir::map::Map, ty::Attributes};
+use rustc_middle::{hir::nested_filter, ty::Attributes};
 use rustc_session::{declare_lint, declare_lint_pass};
 use rustc_span::source_map::Span;
 
@@ -244,7 +244,7 @@ struct InkConstructor {
 }
 
 impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
-    type Map = Map<'tcx>;
+    type NestedFilter = nested_filter::All;
 
     fn visit_fn(
         &mut self,
@@ -289,8 +289,8 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
         walk_fn(self, kind, decl, body_id, span, id);
     }
 
-    fn nested_visit_map(&mut self) -> NestedVisitorMap<Self::Map> {
-        NestedVisitorMap::All(self.cx.tcx.hir())
+    fn nested_visit_map(&mut self) -> Self::Map {
+        self.cx.tcx.hir()
     }
 }
 
@@ -308,7 +308,7 @@ struct InitializeContractVisitor<'a, 'tcx> {
 }
 
 impl<'tcx> Visitor<'tcx> for InitializeContractVisitor<'_, 'tcx> {
-    type Map = Map<'tcx>;
+    type NestedFilter = nested_filter::All;
 
     fn visit_qpath(&mut self, qpath: &'tcx QPath<'_>, id: HirId, span: Span) {
         log::debug!("Visiting path {:?}", qpath);
@@ -330,13 +330,12 @@ impl<'tcx> Visitor<'tcx> for InitializeContractVisitor<'_, 'tcx> {
         walk_qpath(self, qpath, id, span);
     }
 
-    fn nested_visit_map(&mut self) -> NestedVisitorMap<Self::Map> {
-        NestedVisitorMap::All(self.cx.tcx.hir())
+    fn nested_visit_map(&mut self) -> Self::Map {
+        self.cx.tcx.hir()
     }
 }
 
 /// Returns the `rustc_hir::Item` for a `rustc_hir::def_id::DefId`.
 fn item_from_def_id<'tcx>(cx: &LateContext<'tcx>, def_id: DefId) -> &'tcx Item<'tcx> {
-    let hir_id = cx.tcx.hir().local_def_id_to_hir_id(def_id.expect_local());
-    cx.tcx.hir().expect_item(hir_id)
+    cx.tcx.hir().expect_item(def_id.expect_local())
 }
