@@ -1493,9 +1493,9 @@ dependencies = [
 
 [[package]]
 name = "ink_lang_codegen"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d4d9fd69d0b7028c5ca0823fcb92393322de54a1373c53bc5897f00c8f7dbd1"
+checksum = "3060b19aec639eea7811d36d9143c849f97a4f742bf5e43f892ad6ce8c43050a"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1512,9 +1512,9 @@ dependencies = [
 
 [[package]]
 name = "ink_lang_ir"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db7709e3543a35c804b7bde70a875a4c1a842dd8f461d02dbc04ce302342714a"
+checksum = "a9e32f34c687530cca8498e1c10fa1272f374981f865158f51474b19ce2dbfce"
 dependencies = [
  "blake2",
  "either",
