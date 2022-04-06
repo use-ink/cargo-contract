@@ -1540,9 +1540,9 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc45b35402543837a828b12dcca8b806676bd41f9c32538487816515336a2526"
+checksum = "7fbe60facb61034f78367fc30dc56bd5e385487ce60aefd0b1727e6b680446dc"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1554,18 +1554,18 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9a1556937918ca7a13bcc699ceb06da600b5ee67dd1eb5d611fb44c6ee5bed4"
+checksum = "4917e51ffd6374c7be1cb030e89607a7b9384f331d47bfa7589750ff8f27fd7f"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f2abfc9cdcccb447d730a8b79399b4cc8cd2d02281cf411ffb52b00f29d925d"
+checksum = "e1793c77ab7354147a4a0de3e0a77a31a29bf6fbd5f97192b8202c3ce2587699"
 dependencies = [
  "cfg-if",
  "ink_prelude",
