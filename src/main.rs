@@ -219,8 +219,8 @@ pub enum BuildArtifacts {
     /// skipped
     #[clap(name = "code-only")]
     CodeOnly,
-    /// Run the `cargo check` command for the Wasm target, only checks for compilation errors and
-    /// does not produce any artifacts.
+    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
+    /// compilation errors.
     #[clap(name = "check-only")]
     CheckOnly,
 }
