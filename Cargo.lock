@@ -1575,9 +1575,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6341bea8ec05beff2497ff21a6d2df1833a6f00b015de70fcaed695bbe098219"
+checksum = "5c0aead5b91524156263fa11d203f3304f55e5c4d2050949939d1f47ad82ee8f"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -1593,9 +1593,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_derive"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0fc08b2f36ee4613605567b97883099c6d1824108a1a0a41aabccd8a768971"
+checksum = "46f9914f3149ccb6333e7d8f1fa013a4e81961cdd6e50c5ed1bbe041b870c516"
 dependencies = [
  "proc-macro2",
  "quote",
