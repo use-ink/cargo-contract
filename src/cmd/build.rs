@@ -85,8 +85,8 @@ pub struct BuildCommand {
     ///   `<name>.contract` file is skipped.
     #[clap(
         long = "generate",
+        arg_enum,
         default_value = "all",
-        value_name = "all | code-only",
         verbatim_doc_comment
     )]
     build_artifact: BuildArtifacts,
@@ -170,6 +170,8 @@ impl BuildCommand {
         if matches!(output_type, OutputType::Json) {
             verbosity = Verbosity::Quiet;
         }
+
+        println!("Build artifacts {:?}", self.build_artifact);
 
         let args = ExecuteArgs {
             manifest_path,

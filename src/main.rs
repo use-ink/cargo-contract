@@ -209,15 +209,19 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Subcommand, serde::Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ArgEnum, serde::Serialize)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[clap(name = "all")]
     All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
+    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
+    /// skipped
     #[clap(name = "code-only")]
     CodeOnly,
+    /// Run the `cargo check` command for the Wasm target, only checks for compilation errors and
+    /// does not produce any artifacts.
+    #[clap(name = "check-only")]
     CheckOnly,
 }
 
