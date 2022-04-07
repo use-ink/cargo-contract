@@ -63,3 +63,86 @@ impl DecodeCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::util::tests::with_new_contract_project;
+    use std::path::Path;
+
+    /// Create a `cargo contract` command
+    fn cargo_contract(path: &Path) -> assert_cmd::Command {
+        let mut cmd = assert_cmd::Command::cargo_bin("cargo-contract").unwrap();
+        cmd.current_dir(path).arg("contract");
+        cmd
+    }
+
+    #[test]
+    fn decode_works() {
+        // given
+        let contract = r#"
+	#![cfg_attr(not(feature = "std"), no_std)]
+
+	use ink_lang as ink;
+
+	#[ink::contract]
+	pub mod switcher {
+	    #[ink(event)]
+	    pub struct Switched {
+		new_value: bool,
+	    }
+
+	    #[ink(storage)]
+	    pub struct Switcher {
+		value: bool,
+	    }
+
+	    impl Switcher {
+		#[ink(constructor)]
+		pub fn new(init_value: bool) -> Self {
+		    Self { value: init_value }
+		}
+
+		#[ink(message, selector = 0xBABEBABE)]
+		pub fn switch(&mut self, value: bool) {
+		    self.value = value;
+		}
+	    }
+	}"#;
+
+        // when
+        // contract is built
+        with_new_contract_project(|manifest_path| {
+            let project_dir = manifest_path.directory().expect("directory must exist");
+            let lib = project_dir.join("lib.rs");
+            std::fs::write(&lib, contract)?;
+
+            assert_cmd::Command::new("rustup")
+                .arg("override")
+                .arg("set")
+                .arg("nightly")
+                .assert()
+                .success();
+
+            log::info!("Building contract in {}", project_dir.to_string_lossy());
+            cargo_contract(project_dir).arg("build").assert().success();
+
+            let msg_data: &str = "babebabe01";
+            let msg_decoded: &str =
+                r#"Ok(Map(Map { ident: Some("switch"), map: {String("value"): Bool(true)} }))"#;
+
+            // then
+            // message data is being decoded properly
+            cargo_contract(project_dir)
+                .arg("decode")
+                .arg("--data")
+                .arg(msg_data)
+                .arg("-t")
+                .arg("message")
+                .assert()
+                .success()
+                .stdout(predicates::str::contains(msg_decoded));
+
+            Ok(())
+        })
+    }
+}
