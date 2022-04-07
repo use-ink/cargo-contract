@@ -142,6 +142,21 @@ mod tests {
                 .success()
                 .stdout(predicates::str::contains(msg_decoded));
 
+            let event_data: &str = "080001";
+            let event_decoded: &str = r#"Ok(Map(Map { ident: Some("Switched"), map: {String("new_value"): Bool(true)} }))"#;
+
+            // and
+            // event data is being decoded properly
+            cargo_contract(project_dir)
+                .arg("decode")
+                .arg("--data")
+                .arg(event_data)
+                .arg("-t")
+                .arg("event")
+                .assert()
+                .success()
+                .stdout(predicates::str::contains(event_decoded));
+
             Ok(())
         })
     }
