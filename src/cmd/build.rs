@@ -169,8 +169,6 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        println!("Build artifacts {:?}", self.build_artifact);
-
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
