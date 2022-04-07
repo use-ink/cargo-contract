@@ -490,7 +490,7 @@ dependencies = [
  "ink_primitives",
  "ink_storage",
  "itertools",
- "jsonrpsee 0.9.0",
+ "jsonrpsee",
  "log",
  "nom",
  "nom-supreme",
@@ -1653,44 +1653,14 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05fd8cd6c6b1bbd06881d2cf88f1fc83cc36c98f2219090f839115fb4a956cb9"
-dependencies = [
- "jsonrpsee-client-transport 0.8.0",
- "jsonrpsee-core 0.8.0",
-]
-
-[[package]]
-name = "jsonrpsee"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d0b8cc1959f8c05256ace093b2317482da9127f1d9227564f47e7e6bf9bda8"
 dependencies = [
- "jsonrpsee-core 0.9.0",
- "jsonrpsee-types 0.9.0",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "jsonrpsee-ws-client",
-]
-
-[[package]]
-name = "jsonrpsee-client-transport"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3303cdf246e6ab76e2866fb3d9acb6c76a068b1b28bd923a1b7a8122257ad7b5"
-dependencies = [
- "futures",
- "http",
- "jsonrpsee-core 0.8.0",
- "jsonrpsee-types 0.8.0",
- "pin-project",
- "rustls-native-certs",
- "soketto",
- "thiserror",
- "tokio",
- "tokio-rustls",
- "tokio-util",
- "tracing",
- "webpki-roots",
 ]
 
 [[package]]
@@ -1701,8 +1671,8 @@ checksum = "fa370c2c717d798c3c0a315ae3f0a707a388c6963c11f9da7dbbe1d3f7392f5f"
 dependencies = [
  "futures",
  "http",
- "jsonrpsee-core 0.9.0",
- "jsonrpsee-types 0.9.0",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "pin-project",
  "rustls-native-certs",
  "soketto",
@@ -1712,29 +1682,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "webpki-roots",
-]
-
-[[package]]
-name = "jsonrpsee-core"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f220b5a238dc7992b90f1144fbf6eaa585872c9376afe6fe6863ffead6191bf3"
-dependencies = [
- "anyhow",
- "arrayvec 0.7.2",
- "async-trait",
- "beef",
- "futures-channel",
- "futures-util",
- "hyper",
- "jsonrpsee-types 0.8.0",
- "rustc-hash",
- "serde",
- "serde_json",
- "soketto",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -1750,27 +1697,13 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "hyper",
- "jsonrpsee-types 0.9.0",
+ "jsonrpsee-types",
  "rustc-hash",
  "serde",
  "serde_json",
  "soketto",
  "thiserror",
  "tokio",
- "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-types"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1b3f601bbbe45cd63f5407b6f7d7950e08a7d4f82aa699ff41a4a5e9e54df58"
-dependencies = [
- "anyhow",
- "beef",
- "serde",
- "serde_json",
- "thiserror",
  "tracing",
 ]
 
@@ -1794,9 +1727,9 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31b58983485b2b626c276f1eb367d62dae82132451b281072a7bfa536a33ddf3"
 dependencies = [
- "jsonrpsee-client-transport 0.9.0",
- "jsonrpsee-core 0.9.0",
- "jsonrpsee-types 0.9.0",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
 ]
 
 [[package]]
@@ -3364,9 +3297,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da729d136eac5e53eb54d11aa61bae0cd0c8d3822226b8fe49e6fade269c8c84"
+checksum = "cc99c89f8e581c6e8b3e6923e66512041d908180efee7cb026b2ccd5f0334218"
 dependencies = [
  "async-trait",
  "bitvec",
@@ -3375,7 +3308,7 @@ dependencies = [
  "frame-metadata",
  "futures",
  "hex",
- "jsonrpsee 0.8.0",
+ "jsonrpsee",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -3389,9 +3322,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bf09d0dbc6ba8c36beeae0784eaf256f353ea8a870be646cd33b2c5255df5b7"
+checksum = "74283176932f38c579311f65f4138ff2817a3bd1040250055fbd1f3857027cbb"
 dependencies = [
  "async-trait",
  "darling",
@@ -3408,9 +3341,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e683ca8888e5da50dce8d3715c48ca66fe3495936743ffb7a1de34737ec0ff41"
+checksum = "6bb844cf84cdae36fc337810569cc39e3e022c17cc2ed11031c66d0e09b73726"
 dependencies = [
  "async-trait",
  "darling",
