@@ -3,7 +3,7 @@ members = [".", "metadata"]
 
 [package]
 name = "cargo-contract"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -26,10 +26,10 @@ include = [
 [dependencies]
 env_logger = "0.9.0"
 anyhow = "1.0.56"
-clap = { version = "3.1.6", features = ["derive", "env"] }
-log = "0.4.15"
+clap = { version = "3.1.8", features = ["derive", "env"] }
+log = "0.4.16"
 heck = "0.4.0"
-zip = { version = "0.6.0", default-features = false }
+zip = { version = "0.6.2", default-features = false }
 parity-wasm = "0.42.2"
 cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
@@ -39,7 +39,7 @@ toml = "0.5.8"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
 contract-metadata = { version = "0.6.0", path = "./metadata" }
-semver = { version = "1.0.6", features = ["serde"] }
+semver = { version = "1.0.7", features = ["serde"] }
 serde = { version = "1.0.136", default-features = false, features = ["derive"] }
 serde_json = "1.0.79"
 tempfile = "3.3.0"
@@ -61,23 +61,24 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.9.0", features = ["ws-client"] }
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
-indexmap = "1.8.0"
+indexmap = "1.8.1"
 thiserror = "1.0.30"
 escape8259 = "0.5.1"
 itertools = "0.10.3"
 
 [build-dependencies]
 anyhow = "1.0.56"
-zip = { version = "0.6.0", default-features = false }
+zip = { version = "0.6.2", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 platforms = "2.0.0"
 which = "4.2.5"
+regex = "1.5.5"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
 assert_matches = "1.5.0"
-pretty_assertions = "1.2.0"
+pretty_assertions = "1.2.1"
 wabt = "0.10.0"
 regex = "1.5.5"
 predicates = "2.1.1"

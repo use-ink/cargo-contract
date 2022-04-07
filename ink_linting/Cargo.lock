@@ -22,9 +22,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.53"
+version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
+checksum = "4361135be9122e0870de935d7c439aef945b9f9ddd4199a553b5270b49c82a27"
 
 [[package]]
 name = "array-init"
@@ -163,9 +163,10 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clippy_utils"
-version = "0.1.58"
-source = "git+https://github.com/rust-lang/rust-clippy?tag=rust-1.58.0#e18101137866b79045fee0ef996e696e68c920b4"
+version = "0.1.61"
+source = "git+https://github.com/rust-lang/rust-clippy?rev=c995a8b5017766246ac5cfe66baa074eeee3a5a3#c995a8b5017766246ac5cfe66baa074eeee3a5a3"
 dependencies = [
+ "arrayvec",
  "if_chain",
  "rustc-semver",
 ]
@@ -306,9 +307,9 @@ dependencies = [
 
 [[package]]
 name = "dylint"
-version = "1.0.13"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "893050152de22362e5e50525d9da750a8ee939cae9f476a26a7a55c5617ba047"
+checksum = "b4d68b5e9a958b2d70d62ddfbf722f21061b62ec437c6fda3d7819706f84fd74"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -319,6 +320,7 @@ dependencies = [
  "heck",
  "lazy_static",
  "log",
+ "once_cell",
  "semver",
  "serde",
  "serde_json",
@@ -328,9 +330,9 @@ dependencies = [
 
 [[package]]
 name = "dylint_internal"
-version = "1.0.13"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "522be37595510d89d37096959ab258cc0dcc1867e64e956d41a1a48ff53e5892"
+checksum = "9c677491b8c9c6c957de9c6fdc282003dd589c6f11d4fdd88b1899c527db8b66"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -342,15 +344,15 @@ dependencies = [
 
 [[package]]
 name = "dylint_linting"
-version = "1.0.13"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15ec587418bda2f8e0dc6a40e21b2878c3901647f7148d5f833b2d657f46ea17"
+checksum = "73cb22931c057b6c7a93d945a22f12f9117ff5d8a6d47e4831ee617b3601bf4b"
 
 [[package]]
 name = "dylint_testing"
-version = "1.0.13"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b346641d5d618646f03e719d90857b88dc5077a7ba7b8b1e577a3fdaf6ea7137"
+checksum = "33a8a66f35b5855661ef0a2580a978172ac2e2b1f9757d86c394194e3b0e19b5"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -360,6 +362,7 @@ dependencies = [
  "env_logger",
  "lazy_static",
  "log",
+ "once_cell",
  "regex",
  "serde_json",
  "tempfile",
@@ -805,6 +808,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "once_cell"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
+
+[[package]]
 name = "parity-scale-codec"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1042,9 +1051,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.4"
+version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
+checksum = "1a11647b6b25ff05a515cb92c365cec08801e83423a235b51e231e1808747286"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1167,9 +1176,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.5"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0486718e92ec9a68fbed73bb5ef687d71103b142595b406835649bebd33f72c7"
+checksum = "d65bd28f48be7196d222d95b9243287f48d27aca604e08497513019ff0502cc4"
 dependencies = [
  "serde",
 ]

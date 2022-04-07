@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2022-04-05
+
+### Fixed
+- Fix linting support for Apple Silicon (and some other architectures) - [#489](https://github.com/paritytech/cargo-contract/pull/489)
+- Allow multiple args values for call and instantiate commands - [#480](https://github.com/paritytech/cargo-contract/pull/480)
+- Fix event decoding - [`c721b1`](https://github.com/paritytech/cargo-contract/commit/c721b19519e579de41217aa347625920925d8040)
+
 ## [1.1.0] - 2022-03-18
 
 ### Added
