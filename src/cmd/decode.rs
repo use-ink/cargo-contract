@@ -54,7 +54,7 @@ impl DecodeCommand {
         };
 
         println!(
-            "{:>width$} {:?}",
+            "{:>width$} {}",
             "Decoded data:".bright_green().bold(),
             decoded_data,
             width = DEFAULT_KEY_COL_WIDTH
