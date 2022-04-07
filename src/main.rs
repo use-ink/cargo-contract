@@ -237,17 +237,6 @@ impl BuildArtifacts {
     }
 }
 
-impl std::str::FromStr for BuildArtifacts {
-    type Err = String;
-    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
-        match artifact {
-            "all" => Ok(BuildArtifacts::All),
-            "code-only" => Ok(BuildArtifacts::CodeOnly),
-            _ => Err("Could not parse build artifact".to_string()),
-        }
-    }
-}
-
 impl Default for BuildArtifacts {
     fn default() -> Self {
         BuildArtifacts::All
