@@ -29,7 +29,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig};
 
 type ContractInstantiateResult =
     pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
@@ -230,7 +230,7 @@ impl<'a> Exec<'a> {
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
             )
-            .sign_and_submit_then_watch(&self.signer)
+            .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
@@ -262,7 +262,7 @@ impl<'a> Exec<'a> {
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
             )
-            .sign_and_submit_then_watch(&self.signer)
+            .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
