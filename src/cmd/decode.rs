@@ -29,7 +29,7 @@ pub struct DecodeCommand {
     #[clap(arg_enum, short, long)]
     r#type: DataType,
     /// The data to decode
-    #[clap(long)]
+    #[clap(short, long)]
     data: String,
 }
 
@@ -37,6 +37,7 @@ pub struct DecodeCommand {
 enum DataType {
     Event,
     Message,
+    Constructor,
 }
 
 impl DecodeCommand {
@@ -46,11 +47,12 @@ impl DecodeCommand {
 
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";
         let decoded_data = match self.r#type {
-            DataType::Event => {
-                transcoder.decode_contract_event(&mut &decode_hex(&self.data).context(ERR_MSG)?[..])
-            }
+            DataType::Event => transcoder
+                .decode_contract_event(&mut &decode_hex(&self.data).context(ERR_MSG)?[..])?,
             DataType::Message => transcoder
-                .decode_contract_message(&mut &decode_hex(&self.data).context(ERR_MSG)?[..]),
+                .decode_contract_message(&mut &decode_hex(&self.data).context(ERR_MSG)?[..])?,
+            DataType::Constructor => transcoder
+                .decode_contract_constructor(&mut &decode_hex(&self.data).context(ERR_MSG)?[..])?,
         };
 
         println!(
@@ -80,34 +82,34 @@ mod tests {
     fn decode_works() {
         // given
         let contract = r#"
-	#![cfg_attr(not(feature = "std"), no_std)]
+		#![cfg_attr(not(feature = "std"), no_std)]
 
-	use ink_lang as ink;
+		use ink_lang as ink;
 
-	#[ink::contract]
-	pub mod switcher {
-	    #[ink(event)]
-	    pub struct Switched {
-		new_value: bool,
-	    }
+		#[ink::contract]
+		mod switcher {
+			#[ink(event)]
+			pub struct Switched {
+				new_value: bool,
+			}
 
-	    #[ink(storage)]
-	    pub struct Switcher {
-		value: bool,
-	    }
+			#[ink(storage)]
+			pub struct Switcher {
+				value: bool,
+			}
 
-	    impl Switcher {
-		#[ink(constructor)]
-		pub fn new(init_value: bool) -> Self {
-		    Self { value: init_value }
-		}
+			impl Switcher {
+				#[ink(constructor, selector = 0xBABEBABE)]
+				pub fn new(init_value: bool) -> Self {
+					Self { value: init_value }
+				}
 
-		#[ink(message, selector = 0xBABEBABE)]
-		pub fn switch(&mut self, value: bool) {
-		    self.value = value;
-		}
-	    }
-	}"#;
+				#[ink(message, selector = 0xBABEBABE)]
+				pub fn switch(&mut self, value: bool) {
+					self.value = value;
+				}
+			}
+		}"#;
 
         // when
         // contract is built
@@ -128,7 +130,7 @@ mod tests {
 
             let msg_data: &str = "babebabe01";
             let msg_decoded: &str =
-                r#"Ok(Map(Map { ident: Some("switch"), map: {String("value"): Bool(true)} }))"#;
+                r#"switch { value: true }"#;
 
             // then
             // message data is being decoded properly
@@ -143,7 +145,7 @@ mod tests {
                 .stdout(predicates::str::contains(msg_decoded));
 
             let event_data: &str = "080001";
-            let event_decoded: &str = r#"Ok(Map(Map { ident: Some("Switched"), map: {String("new_value"): Bool(true)} }))"#;
+            let event_decoded: &str = r#"Switched { new_value: true }"#;
 
             // and
             // event data is being decoded properly
@@ -156,6 +158,21 @@ mod tests {
                 .assert()
                 .success()
                 .stdout(predicates::str::contains(event_decoded));
+
+            let constructor_data: &str = "babebabe00";
+            let constructor_decoded: &str = r#"new { init_value: false }"#;
+
+            // and
+            // event data is being decoded properly
+            cargo_contract(project_dir)
+                .arg("decode")
+                .arg("-d")
+                .arg(constructor_data)
+                .arg("-t")
+                .arg("constructor")
+                .assert()
+                .success()
+                .stdout(predicates::str::contains(constructor_decoded));
 
             Ok(())
         })

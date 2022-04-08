@@ -206,10 +206,7 @@ impl<'a> ContractMessageTranscoder<'a> {
         let mut msg_selector = [0u8; 4];
         data.read(&mut msg_selector)?;
         let msg_spec = self
-            .metadata
-            .spec()
             .messages()
-            .iter()
             .filter(|x| msg_selector == x.selector().to_bytes())
             .next()
             .ok_or_else(|| {
@@ -219,6 +216,34 @@ impl<'a> ContractMessageTranscoder<'a> {
                 )
             })?;
         log::debug!("decoding contract message '{}'", msg_spec.label());
+
+        let mut args = Vec::new();
+        for arg in msg_spec.args() {
+            let name = arg.label().to_string();
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
+            args.push((Value::String(name), value));
+        }
+
+        let name = msg_spec.label().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(Value::Map(map))
+    }
+
+    pub fn decode_contract_constructor(&self, data: &mut &[u8]) -> Result<Value> {
+        let mut msg_selector = [0u8; 4];
+        data.read(&mut msg_selector)?;
+        let msg_spec = self
+            .constructors()
+            .filter(|x| msg_selector == x.selector().to_bytes())
+            .next()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Constructor with selector {} not found in contract metadata",
+                    hex::encode(&msg_selector)
+                )
+            })?;
+        log::debug!("decoding contract constructor '{}'", msg_spec.label());
 
         let mut args = Vec::new();
         for arg in msg_spec.args() {
