@@ -207,8 +207,7 @@ impl<'a> ContractMessageTranscoder<'a> {
         data.read(&mut msg_selector)?;
         let msg_spec = self
             .messages()
-            .filter(|x| msg_selector == x.selector().to_bytes())
-            .next()
+            .find(|x| msg_selector == x.selector().to_bytes())
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Message with selector {} not found in contract metadata",
@@ -235,8 +234,7 @@ impl<'a> ContractMessageTranscoder<'a> {
         data.read(&mut msg_selector)?;
         let msg_spec = self
             .constructors()
-            .filter(|x| msg_selector == x.selector().to_bytes())
-            .next()
+            .find(|x| msg_selector == x.selector().to_bytes())
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Constructor with selector {} not found in contract metadata",

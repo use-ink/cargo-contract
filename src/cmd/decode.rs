@@ -129,8 +129,7 @@ mod tests {
             cargo_contract(project_dir).arg("build").assert().success();
 
             let msg_data: &str = "babebabe01";
-            let msg_decoded: &str =
-                r#"switch { value: true }"#;
+            let msg_decoded: &str = r#"switch { value: true }"#;
 
             // then
             // message data is being decoded properly
