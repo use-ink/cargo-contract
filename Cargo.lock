@@ -465,7 +465,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "1.1.2"
+version = "1.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -483,11 +483,11 @@ dependencies = [
  "hex",
  "impl-serde",
  "indexmap",
- "ink_env 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_env",
  "ink_lang",
  "ink_lang_codegen",
- "ink_metadata 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.1",
+ "ink_metadata",
+ "ink_primitives",
  "ink_storage",
  "itertools",
  "jsonrpsee 0.10.1",
@@ -1416,30 +1416,10 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "3.0.1"
-dependencies = [
- "cfg-if",
-]
-
-[[package]]
-name = "ink_allocator"
-version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "156d1399accf10640ba7e712a4c5b68b938b57aae14f4698ed9a43b113bdde11"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "ink_engine"
-version = "3.0.1"
-dependencies = [
- "blake2",
- "derive_more",
- "parity-scale-codec",
- "rand 0.8.5",
- "secp256k1 0.22.1",
- "sha2 0.10.2",
- "sha3",
 ]
 
 [[package]]
@@ -1460,31 +1440,6 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "3.0.1"
-dependencies = [
- "arrayref",
- "blake2",
- "cfg-if",
- "derive_more",
- "ink_allocator 3.0.1",
- "ink_engine 3.0.1",
- "ink_metadata 3.0.1",
- "ink_prelude 3.0.1",
- "ink_primitives 3.0.1",
- "num-traits",
- "parity-scale-codec",
- "paste",
- "rand 0.8.5",
- "rlibc",
- "scale-info",
- "secp256k1 0.22.1",
- "sha2 0.10.2",
- "sha3",
- "static_assertions",
-]
-
-[[package]]
-name = "ink_env"
-version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5d465fe08377a1d92063ff6b3fa222ab337001bc70de1941884dbc8d7a7e599"
 dependencies = [
@@ -1492,11 +1447,11 @@ dependencies = [
  "blake2",
  "cfg-if",
  "derive_more",
- "ink_allocator 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_engine 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_metadata 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_prelude 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_allocator",
+ "ink_engine",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "num-traits",
  "parity-scale-codec",
  "paste",
@@ -1512,22 +1467,26 @@ dependencies = [
 [[package]]
 name = "ink_eth_compatibility"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34ab970c1d9d27b4c9d3609dd048a9e49151691955806224a3107b1d31d50010"
 dependencies = [
- "ink_env 3.0.1",
+ "ink_env",
  "libsecp256k1",
 ]
 
 [[package]]
 name = "ink_lang"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4466ef3833f113d4b8b685550b16eece4d4fa812d6de3e7ce5725ae5e1dc44f"
 dependencies = [
  "derive_more",
- "ink_env 3.0.1",
+ "ink_env",
  "ink_eth_compatibility",
  "ink_lang_macro",
- "ink_metadata 3.0.1",
- "ink_prelude 3.0.1",
- "ink_primitives 3.0.1",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage",
  "parity-scale-codec",
 ]
@@ -1535,6 +1494,8 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3060b19aec639eea7811d36d9143c849f97a4f742bf5e43f892ad6ce8c43050a"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1552,6 +1513,8 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9e32f34c687530cca8498e1c10fa1272f374981f865158f51474b19ce2dbfce"
 dependencies = [
  "blake2",
  "either",
@@ -1564,25 +1527,15 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ffcfe6b64bc9fc9ee5ac92c5655c9d4dc27ae6062addc0cba2045446dfea105"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
- "ink_primitives 3.0.1",
+ "ink_primitives",
  "parity-scale-codec",
  "proc-macro2",
  "syn",
-]
-
-[[package]]
-name = "ink_metadata"
-version = "3.0.1"
-dependencies = [
- "derive_more",
- "impl-serde",
- "ink_prelude 3.0.1",
- "ink_primitives 3.0.1",
- "scale-info",
- "serde",
 ]
 
 [[package]]
@@ -1593,17 +1546,10 @@ checksum = "7fbe60facb61034f78367fc30dc56bd5e385487ce60aefd0b1727e6b680446dc"
 dependencies = [
  "derive_more",
  "impl-serde",
- "ink_prelude 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ink_primitives 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude",
+ "ink_primitives",
  "scale-info",
  "serde",
-]
-
-[[package]]
-name = "ink_prelude"
-version = "3.0.1"
-dependencies = [
- "cfg-if",
 ]
 
 [[package]]
@@ -1618,21 +1564,11 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "3.0.1"
-dependencies = [
- "cfg-if",
- "ink_prelude 3.0.1",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
-name = "ink_primitives"
-version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1793c77ab7354147a4a0de3e0a77a31a29bf6fbd5f97192b8202c3ce2587699"
 dependencies = [
  "cfg-if",
- "ink_prelude 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ink_prelude",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -1640,14 +1576,16 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c0aead5b91524156263fa11d203f3304f55e5c4d2050949939d1f47ad82ee8f"
 dependencies = [
  "array-init",
  "cfg-if",
  "derive_more",
- "ink_env 3.0.1",
- "ink_metadata 3.0.1",
- "ink_prelude 3.0.1",
- "ink_primitives 3.0.1",
+ "ink_env",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage_derive",
  "parity-scale-codec",
  "scale-info",
@@ -1656,6 +1594,8 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46f9914f3149ccb6333e7d8f1fa013a4e81961cdd6e50c5ed1bbe041b870c516"
 dependencies = [
  "proc-macro2",
  "quote",
