@@ -48,7 +48,7 @@ impl-serde = "0.3.2"
 regex = "1.5.5"
 
 # dependencies for extrinsics (deploying and calling a contract)
-async-std = { version = "1.10.0", features = ["attributes", "tokio1"] }
+async-std = { version = "1.11.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "3.0", features = ["derive"] }
 ink_env = "3.0"
 scale-info = { version = "2.1.0", default-features = false, features = ["derive"] }
