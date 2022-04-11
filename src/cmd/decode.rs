@@ -73,7 +73,7 @@ mod tests {
 
     /// Create a `cargo contract` command
     fn cargo_contract(path: &Path) -> assert_cmd::Command {
-        let mut cmd = assert_cmd::Command::cargo_bin("cargo-contract").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.current_dir(path).arg("contract");
         cmd
     }
