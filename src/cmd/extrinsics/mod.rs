@@ -46,8 +46,8 @@ pub use upload::UploadCommand;
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
-type PairSigner = subxt::PairSigner<DefaultConfig, SignedExtra, sp_core::sr25519::Pair>;
-type SignedExtra = subxt::DefaultExtra<DefaultConfig>;
+type PairSigner = subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
+type SignedExtra = subxt::SubstrateExtrinsicParams<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.

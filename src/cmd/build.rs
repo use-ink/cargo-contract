@@ -83,12 +83,10 @@ pub struct BuildCommand {
     ///
     /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
     ///   `<name>.contract` file is skipped.
-    #[clap(
-        long = "generate",
-        default_value = "all",
-        value_name = "all | code-only",
-        verbatim_doc_comment
-    )]
+    ///
+    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
+    ///    only checks for compilation errors.
+    #[clap(long = "generate", arg_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
     verbosity: VerbosityFlags,

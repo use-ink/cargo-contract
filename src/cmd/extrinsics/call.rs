@@ -25,7 +25,7 @@ use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::fmt::Debug;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
+use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
@@ -144,7 +144,7 @@ impl CallCommand {
                 self.extrinsic_opts.storage_deposit_limit,
                 data,
             )
-            .sign_and_submit_then_watch(signer)
+            .sign_and_submit_then_watch_default(signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
