@@ -14,10 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{maybe_println, util, workspace::ManifestPath, Verbosity, VerbosityFlags};
+use crate::{
+    maybe_println,
+    util,
+    workspace::ManifestPath,
+    Verbosity,
+    VerbosityFlags,
+};
 use anyhow::Result;
 use colored::Colorize;
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    path::PathBuf,
+};
 
 /// Executes smart contract tests off-chain by delegating to `cargo test`.
 #[derive(Debug, clap::Args)]
@@ -54,7 +63,10 @@ impl TestResult {
 }
 
 /// Executes `cargo +nightly test`.
-pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Result<TestResult> {
+pub(crate) fn execute(
+    manifest_path: &ManifestPath,
+    verbosity: Verbosity,
+) -> Result<TestResult> {
     util::assert_channel()?;
 
     maybe_println!(
@@ -64,7 +76,8 @@ pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Res
         "Running tests".bright_green().bold()
     );
 
-    let stdout = util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity, vec![])?;
+    let stdout =
+        util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity, vec![])?;
 
     Ok(TestResult { stdout, verbosity })
 }
@@ -72,7 +85,10 @@ pub(crate) fn execute(manifest_path: &ManifestPath, verbosity: Verbosity) -> Res
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use crate::{util::tests::with_new_contract_project, Verbosity};
+    use crate::{
+        util::tests::with_new_contract_project,
+        Verbosity,
+    };
     use regex::Regex;
 
     #[test]
@@ -82,8 +98,8 @@ mod tests_ci_only {
                 Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
                     .expect("regex pattern compilation failed");
 
-            let res =
-                super::execute(&manifest_path, Verbosity::Default).expect("test execution failed");
+            let res = super::execute(&manifest_path, Verbosity::Default)
+                .expect("test execution failed");
 
             assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
 

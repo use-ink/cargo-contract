@@ -15,21 +15,53 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, parse_balance, runtime_api::api,
-    wait_for_success_and_handle_error, Balance, CodeHash, ContractAccount,
-    ContractMessageTranscoder, ExtrinsicOpts, PairSigner, RuntimeApi,
+    display_contract_exec_result,
+    display_events,
+    parse_balance,
+    runtime_api::api,
+    wait_for_success_and_handle_error,
+    Balance,
+    CodeHash,
+    ContractAccount,
+    ContractMessageTranscoder,
+    ExtrinsicOpts,
+    PairSigner,
+    RuntimeApi,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
-use crate::{name_value_println, util::decode_hex, Verbosity};
-use anyhow::{anyhow, Context, Result};
-use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
+use crate::{
+    name_value_println,
+    util::decode_hex,
+    Verbosity,
+};
+use anyhow::{
+    anyhow,
+    Context,
+    Result,
+};
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use serde::Serialize;
-use sp_core::{crypto::Ss58Codec, Bytes};
+use sp_core::{
+    crypto::Ss58Codec,
+    Bytes,
+};
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig};
+use subxt::{
+    rpc::NumberOrHex,
+    ClientBuilder,
+    Config,
+    DefaultConfig,
+};
 
 type ContractInstantiateResult =
     pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
@@ -106,9 +138,11 @@ impl InstantiateCommand {
         }
 
         let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-            (Some(_), Some(_)) => Err(anyhow!(
-                "Specify either `--wasm-path` or `--code-hash` but not both"
-            )),
+            (Some(_), Some(_)) => {
+                Err(anyhow!(
+                    "Specify either `--wasm-path` or `--code-hash` but not both"
+                ))
+            }
             (Some(wasm_path), None) => load_code(wasm_path),
             (None, None) => {
                 // default to the target contract wasm in the current project,
@@ -135,7 +169,9 @@ impl InstantiateCommand {
             transcoder,
         };
 
-        async_std::task::block_on(async move { exec.exec(code, self.extrinsic_opts.dry_run).await })
+        async_std::task::block_on(async move {
+            exec.exec(code, self.extrinsic_opts.dry_run).await
+        })
     }
 }
 
@@ -200,12 +236,13 @@ impl<'a> Exec<'a> {
                 }
             }
             display_contract_exec_result(&result)?;
-            return Ok(());
+            return Ok(())
         }
 
         match code {
             Code::Upload(code) => {
-                let (code_hash, contract_account) = self.instantiate_with_code(code).await?;
+                let (code_hash, contract_account) =
+                    self.instantiate_with_code(code).await?;
                 name_value_println!("Code hash", format!("{:?}", code_hash));
                 name_value_println!("Contract", contract_account.to_ss58check());
             }
@@ -217,7 +254,10 @@ impl<'a> Exec<'a> {
         Ok(())
     }
 
-    async fn instantiate_with_code(&self, code: Bytes) -> Result<(CodeHash, ContractAccount)> {
+    async fn instantiate_with_code(
+        &self,
+        code: Bytes,
+    ) -> Result<(CodeHash, ContractAccount)> {
         let api = self.subxt_api().await?;
         let tx_progress = api
             .tx()
@@ -336,9 +376,9 @@ mod tests {
         )
         .is_ok());
         // without 0x prefix
-        assert!(
-            parse_code_hash("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
-                .is_ok()
+        assert!(parse_code_hash(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
+        .is_ok())
     }
 }

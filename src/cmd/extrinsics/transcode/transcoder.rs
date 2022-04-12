@@ -17,14 +17,25 @@
 use super::{
     decode::Decoder,
     encode::Encoder,
-    env_types::{CustomTypeTranscoder, EnvTypesTranscoder, PathKey, TypesByPath},
+    env_types::{
+        CustomTypeTranscoder,
+        EnvTypesTranscoder,
+        PathKey,
+        TypesByPath,
+    },
     scon::Value,
 };
 
 use anyhow::Result;
 use scale::Output;
-use scale_info::{PortableRegistry, TypeInfo};
-use std::{collections::HashMap, fmt::Debug};
+use scale_info::{
+    PortableRegistry,
+    TypeInfo,
+};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+};
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
@@ -119,11 +130,22 @@ impl<'a> TranscoderBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::scon::{self, Map, Tuple, Value};
-    use super::*;
+    use super::{
+        super::scon::{
+            self,
+            Map,
+            Tuple,
+            Value,
+        },
+        *,
+    };
     use crate::cmd::extrinsics::transcode;
     use scale::Encode;
-    use scale_info::{MetaType, Registry, TypeInfo};
+    use scale_info::{
+        MetaType,
+        Registry,
+        TypeInfo,
+    };
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
     where
@@ -142,7 +164,9 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
         let transcoder = TranscoderBuilder::new(&registry)
-            .register_custom_type::<sp_runtime::AccountId32, _>(transcode::env_types::AccountId)
+            .register_custom_type::<sp_runtime::AccountId32, _>(
+                transcode::env_types::AccountId,
+            )
             .done();
 
         let value = scon::parse_value(input)?;
@@ -213,7 +237,10 @@ mod tests {
         transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::min_value().into()))?;
         transcode_roundtrip::<i32>("2147483647", Value::Int(i32::max_value().into()))?;
 
-        transcode_roundtrip::<i64>("-9223372036854775808", Value::Int(i64::min_value().into()))?;
+        transcode_roundtrip::<i64>(
+            "-9223372036854775808",
+            Value::Int(i64::min_value().into()),
+        )?;
         transcode_roundtrip::<i64>(
             "\"9_223_372_036_854_775_807\"",
             Value::Int(i64::max_value().into()),
@@ -231,7 +258,10 @@ mod tests {
 
     #[test]
     fn transcode_byte_array() -> Result<()> {
-        transcode_roundtrip::<[u8; 2]>(r#"0x0000"#, Value::Bytes(vec![0x00, 0x00].into()))?;
+        transcode_roundtrip::<[u8; 2]>(
+            r#"0x0000"#,
+            Value::Bytes(vec![0x00, 0x00].into()),
+        )?;
         transcode_roundtrip::<[u8; 4]>(
             r#"0xDEADBEEF"#,
             Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
@@ -335,7 +365,10 @@ mod tests {
                                     (
                                         Value::String("d".to_string()),
                                         Value::Seq(
-                                            Vec::new().into_iter().collect::<Vec<_>>().into(),
+                                            Vec::new()
+                                                .into_iter()
+                                                .collect::<Vec<_>>()
+                                                .into(),
                                         ),
                                     ),
                                 ]
@@ -555,11 +588,15 @@ mod tests {
                 vec![
                     (
                         Value::String("no_alias".into()),
-                        Value::Literal("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into()),
+                        Value::Literal(
+                            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into(),
+                        ),
                     ),
                     (
                         Value::String("aliased".into()),
-                        Value::Literal("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into()),
+                        Value::Literal(
+                            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into(),
+                        ),
                     ),
                 ]
                 .into_iter()
@@ -599,7 +636,10 @@ mod tests {
                 Some("S"),
                 vec![(
                     Value::String("a".to_string()),
-                    Value::Tuple(Tuple::new(Some("CompactStruct"), vec![Value::UInt(33)])),
+                    Value::Tuple(Tuple::new(
+                        Some("CompactStruct"),
+                        vec![Value::UInt(33)],
+                    )),
                 )]
                 .into_iter()
                 .collect(),

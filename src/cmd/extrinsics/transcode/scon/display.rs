@@ -14,8 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Bytes, Map, Seq, Tuple, Value};
-use std::fmt::{Debug, Display, Formatter, LowerHex, Result};
+use super::{
+    Bytes,
+    Map,
+    Seq,
+    Tuple,
+    Value,
+};
+use std::fmt::{
+    Debug,
+    Display,
+    Formatter,
+    LowerHex,
+    Result,
+};
 
 /// Wraps Value for custom Debug impl to provide pretty-printed Display
 struct DisplayValue<'a>(&'a Value);

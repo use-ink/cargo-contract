@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::Path,
+};
 use toml::value;
 
 /// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to

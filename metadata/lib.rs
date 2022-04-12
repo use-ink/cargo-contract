@@ -55,10 +55,22 @@
 mod byte_str;
 
 use semver::Version;
-use serde::{de, Deserialize, Serialize, Serializer};
-use serde_json::{Map, Value};
+use serde::{
+    de,
+    Deserialize,
+    Serialize,
+    Serializer,
+};
+use serde_json::{
+    Map,
+    Value,
+};
 use std::{
-    fmt::{Display, Formatter, Result as DisplayResult},
+    fmt::{
+        Display,
+        Formatter,
+        Result as DisplayResult,
+    },
     str::FromStr,
 };
 use url::Url;
@@ -627,8 +639,10 @@ mod tests {
     #[test]
     fn json_with_optional_fields() {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
-        let compiler =
-            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let compiler = SourceCompiler::new(
+            Compiler::RustC,
+            Version::parse("1.46.0-nightly").unwrap(),
+        );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
         let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
         let contract = Contract::builder()
@@ -709,8 +723,10 @@ mod tests {
     #[test]
     fn json_excludes_optional_fields() {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
-        let compiler =
-            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let compiler = SourceCompiler::new(
+            Compiler::RustC,
+            Version::parse("1.46.0-nightly").unwrap(),
+        );
         let source = Source::new(None, CodeHash([0u8; 32]), language, compiler);
         let contract = Contract::builder()
             .name("incrementer".to_string())
@@ -759,8 +775,10 @@ mod tests {
     #[test]
     fn decoding_works() {
         let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
-        let compiler =
-            SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
+        let compiler = SourceCompiler::new(
+            Compiler::RustC,
+            Version::parse("1.46.0-nightly").unwrap(),
+        );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
         let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
         let contract = Contract::builder()

@@ -19,17 +19,31 @@ use std::{
     env,
     ffi::OsStr,
     fs::File,
-    io::{prelude::*, Write},
+    io::{
+        prelude::*,
+        Write,
+    },
     iter::Iterator,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
     process::Command,
 };
 
 use anyhow::Result;
 use walkdir::WalkDir;
-use zip::{write::FileOptions, CompressionMethod, ZipWriter};
+use zip::{
+    write::FileOptions,
+    CompressionMethod,
+    ZipWriter,
+};
 
-use platforms::{TARGET_ARCH, TARGET_ENV, TARGET_OS};
+use platforms::{
+    TARGET_ARCH,
+    TARGET_ENV,
+    TARGET_OS,
+};
 use substrate_build_script_utils::rerun_if_git_head_changed;
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
@@ -59,7 +73,10 @@ fn main() {
 ///   * Creates a zip archive of the `new` project template.
 ///   * Builds the `dylint` driver found in `ink_linting`, the compiled
 ///     driver is put into a zip archive as well.
-fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf) -> Result<()> {
+fn zip_template_and_build_dylint_driver(
+    manifest_dir: PathBuf,
+    out_dir: PathBuf,
+) -> Result<()> {
     zip_template(&manifest_dir, &out_dir)?;
 
     check_dylint_link_installed()?;
@@ -108,7 +125,11 @@ fn zip_template_and_build_dylint_driver(manifest_dir: PathBuf, out_dir: PathBuf)
         )
     })?;
 
-    let res = build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file);
+    let res = build_and_zip_dylint_driver(
+        ink_dylint_driver_dir,
+        out_dir,
+        dylint_driver_dst_file,
+    );
 
     // After the build process of `ink_linting` happened we need to name back to the original
     // `_Cargo.toml` name, otherwise the directory would be "dirty" and  `cargo publish` would
@@ -295,7 +316,11 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
 ///
 /// `dylint` drivers have a file name of the form `libink_linting@toolchain.[so,dll]`.
 #[cfg(not(feature = "cargo-clippy"))]
-fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result<()> {
+fn zip_dylint_driver(
+    src_dir: &Path,
+    dst_file: &Path,
+    method: CompressionMethod,
+) -> Result<()> {
     if !src_dir.exists() {
         anyhow::bail!("src_dir '{}' does not exist", src_dir.display());
     }
@@ -333,7 +358,7 @@ fn zip_dylint_driver(src_dir: &Path, dst_file: &Path, method: CompressionMethod)
 
             zip.finish()?;
             lib_found = true;
-            break;
+            break
         }
     }
 

@@ -21,10 +21,17 @@ pub mod new;
 pub mod test;
 
 pub(crate) use self::{
-    build::{BuildCommand, CheckCommand},
+    build::{
+        BuildCommand,
+        CheckCommand,
+    },
     decode::DecodeCommand,
     test::TestCommand,
 };
 mod extrinsics;
 
-pub(crate) use self::extrinsics::{CallCommand, InstantiateCommand, UploadCommand};
+pub(crate) use self::extrinsics::{
+    CallCommand,
+    InstantiateCommand,
+    UploadCommand,
+};

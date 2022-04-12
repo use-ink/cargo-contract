@@ -22,8 +22,14 @@ mod workspace;
 
 use self::{
     cmd::{
-        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, DecodeCommand,
-        InstantiateCommand, TestCommand, UploadCommand,
+        metadata::MetadataResult,
+        BuildCommand,
+        CallCommand,
+        CheckCommand,
+        DecodeCommand,
+        InstantiateCommand,
+        TestCommand,
+        UploadCommand,
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -31,13 +37,25 @@ use self::{
 
 use std::{
     convert::TryFrom,
-    fmt::{Display, Formatter, Result as DisplayResult},
+    fmt::{
+        Display,
+        Formatter,
+        Result as DisplayResult,
+    },
     path::PathBuf,
     str::FromStr,
 };
 
-use anyhow::{Error, Result};
-use clap::{AppSettings, Args, Parser, Subcommand};
+use anyhow::{
+    Error,
+    Result,
+};
+use clap::{
+    AppSettings,
+    Args,
+    Parser,
+    Subcommand,
+};
 use colored::Colorize;
 
 #[derive(Debug, Parser)]
@@ -368,7 +386,7 @@ impl BuildResult {
                     .to_string()
                     .bold()
             );
-            return out;
+            return out
         };
 
         let mut out = format!(

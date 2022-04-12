@@ -88,15 +88,32 @@ mod scon;
 mod transcoder;
 
 pub use self::{
-    scon::{Map, Value},
-    transcoder::{Transcoder, TranscoderBuilder},
+    scon::{
+        Map,
+        Value,
+    },
+    transcoder::{
+        Transcoder,
+        TranscoderBuilder,
+    },
 };
 
 use anyhow::Result;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::{Compact, Decode, Input};
+use ink_metadata::{
+    ConstructorSpec,
+    InkProject,
+    MessageSpec,
+};
+use scale::{
+    Compact,
+    Decode,
+    Input,
+};
 use scale_info::{
-    form::{Form, PortableForm},
+    form::{
+        Form,
+        PortableForm,
+    },
     Field,
 };
 use std::fmt::Debug;
@@ -130,12 +147,10 @@ impl<'a> ContractMessageTranscoder<'a> {
         ) {
             (Some(c), None) => (c.selector(), c.args()),
             (None, Some(m)) => (m.selector(), m.args()),
-            (Some(_), Some(_)) => {
-                return Err(anyhow::anyhow!(
-                    "Invalid metadata: both a constructor and message found with name '{}'",
-                    name
-                ))
-            }
+            (Some(_), Some(_)) => return Err(anyhow::anyhow!(
+                "Invalid metadata: both a constructor and message found with name '{}'",
+                name
+            )),
             (None, None) => {
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{}' found",
@@ -166,7 +181,10 @@ impl<'a> ContractMessageTranscoder<'a> {
             .find(|msg| msg.label().contains(&name.to_string()))
     }
 
-    fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<PortableForm>> {
+    fn find_constructor_spec(
+        &self,
+        name: &str,
+    ) -> Option<&ConstructorSpec<PortableForm>> {
         self.constructors()
             .find(|msg| msg.label().contains(&name.to_string()))
     }
@@ -257,9 +275,9 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
-        let msg_spec = self
-            .find_message_spec(name)
-            .ok_or_else(|| anyhow::anyhow!("Failed to find message spec with name '{}'", name))?;
+        let msg_spec = self.find_message_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find message spec with name '{}'", name)
+        })?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
             self.transcoder.decode(return_ty.ty().id(), data)
         } else {
@@ -298,12 +316,14 @@ impl CompositeTypeFields {
         } else if fields.iter().all(|f| f.name().is_some()) {
             let fields = fields
                 .iter()
-                .map(|field| CompositeTypeNamedField {
-                    name: field
-                        .name()
-                        .expect("All fields have a name; qed")
-                        .to_owned(),
-                    field: field.clone(),
+                .map(|field| {
+                    CompositeTypeNamedField {
+                        name: field
+                            .name()
+                            .expect("All fields have a name; qed")
+                            .to_owned(),
+                        field: field.clone(),
+                    }
                 })
                 .collect();
             Ok(Self::Named(fields))

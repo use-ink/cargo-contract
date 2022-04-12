@@ -15,14 +15,26 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::Verbosity;
-use anyhow::{Context, Result};
+use anyhow::{
+    Context,
+    Result,
+};
 use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
 use std::{
     ffi::OsStr,
     fs,
-    io::{Cursor, Read, Seek, SeekFrom, Write},
-    path::{Path, PathBuf},
+    io::{
+        Cursor,
+        Read,
+        Seek,
+        SeekFrom,
+        Write,
+    },
+    path::{
+        Path,
+        PathBuf,
+    },
     process::Command,
 };
 
@@ -164,8 +176,13 @@ macro_rules! name_value_println {
 #[cfg(test)]
 pub mod tests {
     use crate::ManifestPath;
-    use std::path::Path;
-    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::{
+        path::Path,
+        sync::atomic::{
+            AtomicU32,
+            Ordering,
+        },
+    };
 
     /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
     /// Panics if `f` returns an `Err`.
@@ -179,7 +196,8 @@ pub mod tests {
             .expect("temporary directory creation failed");
 
         // catch test panics in order to clean up temp dir which will be very large
-        f(&tmp_dir.path().canonicalize().unwrap()).expect("Error executing test with tmp dir")
+        f(&tmp_dir.path().canonicalize().unwrap())
+            .expect("Error executing test with tmp dir")
     }
 
     /// Global counter to generate unique contract names in `with_new_contract_project`.
@@ -209,7 +227,8 @@ pub mod tests {
         F: FnOnce(ManifestPath) -> anyhow::Result<()>,
     {
         with_tmp_dir(|tmp_dir| {
-            let unique_name = format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+            let unique_name =
+                format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
 
             crate::cmd::new::execute(&unique_name, Some(tmp_dir))
                 .expect("new project creation failed");
@@ -261,7 +280,8 @@ pub fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()
                 let mut contents = String::new();
                 file.read_to_string(&mut contents)?;
                 let contents = contents.replace("{{name}}", name);
-                let contents = contents.replace("{{camel_name}}", &name.to_upper_camel_case());
+                let contents =
+                    contents.replace("{{camel_name}}", &name.to_upper_camel_case());
                 outfile.write_all(contents.as_bytes())?;
             } else {
                 let mut v = Vec::new();
