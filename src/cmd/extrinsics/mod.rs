@@ -28,7 +28,7 @@ mod integration_tests;
 use anyhow::{anyhow, Context, Result};
 use std::{fs::File, path::PathBuf};
 
-use self::{events::display_events, transcode::ContractMessageTranscoder};
+use self::events::display_events;
 use crate::{
     crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath, Verbosity,
     VerbosityFlags,
@@ -37,6 +37,7 @@ use pallet_contracts_primitives::ContractResult;
 use sp_core::{crypto::Pair, sr25519};
 use subxt::{Config, DefaultConfig};
 
+pub use self::transcode::ContractMessageTranscoder;
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{DispatchError as RuntimeDispatchError, Event as RuntimeEvent};

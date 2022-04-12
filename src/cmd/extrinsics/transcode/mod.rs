@@ -175,7 +175,6 @@ impl<'a> ContractMessageTranscoder<'a> {
         // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
         // ignore because the structure of the event data is known for decoding.
         let _len = <Compact<u32>>::decode(data)?;
-
         let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
@@ -198,6 +197,60 @@ impl<'a> ContractMessageTranscoder<'a> {
         }
 
         let name = event_spec.label().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(Value::Map(map))
+    }
+
+    pub fn decode_contract_message(&self, data: &mut &[u8]) -> Result<Value> {
+        let mut msg_selector = [0u8; 4];
+        data.read(&mut msg_selector)?;
+        let msg_spec = self
+            .messages()
+            .find(|x| msg_selector == x.selector().to_bytes())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Message with selector {} not found in contract metadata",
+                    hex::encode(&msg_selector)
+                )
+            })?;
+        log::debug!("decoding contract message '{}'", msg_spec.label());
+
+        let mut args = Vec::new();
+        for arg in msg_spec.args() {
+            let name = arg.label().to_string();
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
+            args.push((Value::String(name), value));
+        }
+
+        let name = msg_spec.label().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(Value::Map(map))
+    }
+
+    pub fn decode_contract_constructor(&self, data: &mut &[u8]) -> Result<Value> {
+        let mut msg_selector = [0u8; 4];
+        data.read(&mut msg_selector)?;
+        let msg_spec = self
+            .constructors()
+            .find(|x| msg_selector == x.selector().to_bytes())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Constructor with selector {} not found in contract metadata",
+                    hex::encode(&msg_selector)
+                )
+            })?;
+        log::debug!("decoding contract constructor '{}'", msg_spec.label());
+
+        let mut args = Vec::new();
+        for arg in msg_spec.args() {
+            let name = arg.label().to_string();
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
+            args.push((Value::String(name), value));
+        }
+
+        let name = msg_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
         Ok(Value::Map(map))
@@ -388,6 +441,17 @@ mod tests {
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_contract_message() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded_bytes = hex::decode("633aa551").unwrap();
+        let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
 
         Ok(())
     }
