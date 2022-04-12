@@ -16,8 +16,18 @@
 
 use anyhow::Result;
 use predicates::prelude::*;
-use std::{ffi::OsStr, path::Path, process, str, thread, time};
-use subxt::{Client, ClientBuilder};
+use std::{
+    ffi::OsStr,
+    path::Path,
+    process,
+    str,
+    thread,
+    time,
+};
+use subxt::{
+    Client,
+    ClientBuilder,
+};
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
 
@@ -68,22 +78,24 @@ impl ContractsNodeProcess {
             );
             let result = ClientBuilder::new().build().await;
             if let Ok(client) = result {
-                break Ok(client);
+                break Ok(client)
             }
             if attempts < MAX_ATTEMPTS {
                 attempts += 1;
-                continue;
+                continue
             }
             if let Err(err) = result {
-                break Err(err);
+                break Err(err)
             }
         };
         match client {
-            Ok(client) => Ok(Self {
-                proc,
-                client,
-                tmp_dir,
-            }),
+            Ok(client) => {
+                Ok(Self {
+                    proc,
+                    client,
+                    tmp_dir,
+                })
+            }
             Err(err) => {
                 let err = anyhow::anyhow!(
                     "Failed to connect to node rpc after {} attempts: {}",

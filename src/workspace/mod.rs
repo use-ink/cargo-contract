@@ -20,16 +20,26 @@ mod profile;
 
 #[doc(inline)]
 pub use self::{
-    manifest::{Manifest, ManifestPath},
+    manifest::{
+        Manifest,
+        ManifestPath,
+    },
     profile::Profile,
 };
 
 use anyhow::Result;
-use cargo_metadata::{Metadata as CargoMetadata, Package, PackageId};
+use cargo_metadata::{
+    Metadata as CargoMetadata,
+    Package,
+    PackageId,
+};
 
 use std::{
     collections::HashMap,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
@@ -47,21 +57,22 @@ pub struct Workspace {
 impl Workspace {
     /// Create a new Workspace from the supplied cargo metadata.
     pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
-        let member_manifest = |package_id: &PackageId| -> Result<(PackageId, (Package, Manifest))> {
-            let package = metadata
-                .packages
-                .iter()
-                .find(|p| p.id == *package_id)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Package '{}' is a member and should be in the packages list",
-                        package_id
-                    )
-                });
-            let manifest_path = ManifestPath::new(&package.manifest_path)?;
-            let manifest = Manifest::new(manifest_path)?;
-            Ok((package_id.clone(), (package.clone(), manifest)))
-        };
+        let member_manifest =
+            |package_id: &PackageId| -> Result<(PackageId, (Package, Manifest))> {
+                let package = metadata
+                    .packages
+                    .iter()
+                    .find(|p| p.id == *package_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Package '{}' is a member and should be in the packages list",
+                            package_id
+                        )
+                    });
+                let manifest_path = ManifestPath::new(&package.manifest_path)?;
+                let manifest = Manifest::new(manifest_path)?;
+                Ok((package_id.clone(), (package.clone(), manifest)))
+            };
 
         let members = metadata
             .workspace_members
@@ -100,7 +111,11 @@ impl Workspace {
     }
 
     /// Amend the manifest of the package at `package_path` using the supplied function.
-    pub fn with_contract_manifest<F>(&mut self, package_path: &Path, f: F) -> Result<&mut Self>
+    pub fn with_contract_manifest<F>(
+        &mut self,
+        package_path: &Path,
+        f: F,
+    ) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
@@ -112,9 +127,9 @@ impl Workspace {
                 // canonicalize the manifest's directory path as well in order to compare
                 // both of them.
                 let manifest_path = manifest.path().directory()?;
-                let manifest_path = manifest_path
-                    .canonicalize()
-                    .unwrap_or_else(|_| panic!("Cannot canonicalize {}", manifest_path.display()));
+                let manifest_path = manifest_path.canonicalize().unwrap_or_else(|_| {
+                    panic!("Cannot canonicalize {}", manifest_path.display())
+                });
                 if manifest_path == package_path {
                     Some(manifest)
                 } else {
@@ -134,7 +149,10 @@ impl Workspace {
     /// Generates a package to invoke for generating contract metadata.
     ///
     /// The contract metadata will be generated for the package found at `package_path`.
-    pub(super) fn with_metadata_gen_package(&mut self, package_path: PathBuf) -> Result<&mut Self> {
+    pub(super) fn with_metadata_gen_package(
+        &mut self,
+        package_path: PathBuf,
+    ) -> Result<&mut Self> {
         self.with_contract_manifest(&package_path, |manifest| {
             manifest.with_metadata_package()?;
             Ok(())
@@ -148,7 +166,10 @@ impl Workspace {
     /// intra-workspace relative dependency paths which will be preserved.
     ///
     /// Returns the paths of the new manifests.
-    pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<Vec<(PackageId, ManifestPath)>> {
+    pub fn write<P: AsRef<Path>>(
+        &mut self,
+        target: P,
+    ) -> Result<Vec<(PackageId, ManifestPath)>> {
         let exclude_member_package_names = self
             .members
             .iter()

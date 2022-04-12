@@ -14,22 +14,50 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{Bytes, Map, Tuple, Value};
+use super::{
+    Bytes,
+    Map,
+    Tuple,
+    Value,
+};
 use escape8259::unescape;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while1},
-    character::complete::{alphanumeric1, anychar, char, digit1, hex_digit1, multispace0},
-    multi::{many0, separated_list0},
-    sequence::{delimited, pair, separated_pair, tuple},
-    AsChar, IResult, Parser,
+    bytes::complete::{
+        tag,
+        take_while1,
+    },
+    character::complete::{
+        alphanumeric1,
+        anychar,
+        char,
+        digit1,
+        hex_digit1,
+        multispace0,
+    },
+    multi::{
+        many0,
+        separated_list0,
+    },
+    sequence::{
+        delimited,
+        pair,
+        separated_pair,
+        tuple,
+    },
+    AsChar,
+    IResult,
+    Parser,
 };
-use nom_supreme::{error::ErrorTree, ParserExt};
+use nom_supreme::{
+    error::ErrorTree,
+    ParserExt,
+};
 
 /// Attempt to parse a SCON value
 pub fn parse_value(input: &str) -> anyhow::Result<Value> {
-    let (_, value) =
-        scon_value(input).map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
+    let (_, value) = scon_value(input)
+        .map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
     Ok(value)
 }
 
@@ -367,7 +395,9 @@ mod tests {
             scon_value(trailing).unwrap(),
             (
                 "",
-                Value::Seq(vec![Value::String("a".into()), Value::String("b".into())].into())
+                Value::Seq(
+                    vec![Value::String("a".into()), Value::String("b".into())].into()
+                )
             )
         );
     }

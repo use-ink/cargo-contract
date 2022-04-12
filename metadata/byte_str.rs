@@ -23,7 +23,7 @@ where
 {
     if bytes.is_empty() {
         // Return empty string without prepended `0x`.
-        return serializer.serialize_str("");
+        return serializer.serialize_str("")
     }
     serde_hex::serialize(bytes, serializer)
 }
@@ -56,7 +56,9 @@ where
 }
 
 /// Deserializes the given hex string with optional `0x` prefix.
-pub fn deserialize_from_byte_str_array<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+pub fn deserialize_from_byte_str_array<'de, D>(
+    deserializer: D,
+) -> Result<[u8; 32], D::Error>
 where
     D: serde::Deserializer<'de>,
 {

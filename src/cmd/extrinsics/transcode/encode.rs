@@ -14,17 +14,36 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{env_types::EnvTypesTranscoder, scon::Value, CompositeTypeFields};
+use super::{
+    env_types::EnvTypesTranscoder,
+    scon::Value,
+    CompositeTypeFields,
+};
 use anyhow::Result;
 use itertools::Itertools;
-use scale::{Compact, Encode, Output};
+use scale::{
+    Compact,
+    Encode,
+    Output,
+};
 use scale_info::{
-    form::{Form, PortableForm},
-    Field, PortableRegistry, TypeDef, TypeDefCompact, TypeDefPrimitive, TypeDefTuple,
+    form::{
+        Form,
+        PortableForm,
+    },
+    Field,
+    PortableRegistry,
+    TypeDef,
+    TypeDefCompact,
+    TypeDefPrimitive,
+    TypeDefTuple,
     TypeDefVariant,
 };
 use std::{
-    convert::{TryFrom, TryInto},
+    convert::{
+        TryFrom,
+        TryInto,
+    },
     error::Error,
     fmt::Debug,
     str::FromStr,
@@ -36,7 +55,10 @@ pub struct Encoder<'a> {
 }
 
 impl<'a> Encoder<'a> {
-    pub fn new(registry: &'a PortableRegistry, env_types: &'a EnvTypesTranscoder) -> Self {
+    pub fn new(
+        registry: &'a PortableRegistry,
+        env_types: &'a EnvTypesTranscoder,
+    ) -> Self {
         Self {
             registry,
             env_types,
@@ -47,10 +69,9 @@ impl<'a> Encoder<'a> {
     where
         O: Output + Debug,
     {
-        let ty = self
-            .registry
-            .resolve(type_id)
-            .ok_or_else(|| anyhow::anyhow!("Failed to resolve type with id '{:?}'", type_id))?;
+        let ty = self.registry.resolve(type_id).ok_or_else(|| {
+            anyhow::anyhow!("Failed to resolve type with id '{:?}'", type_id)
+        })?;
 
         log::debug!(
             "Encoding value `{:?}` with type id `{:?}` and definition `{:?}`",
@@ -60,7 +81,9 @@ impl<'a> Encoder<'a> {
         );
         if !self.env_types.try_encode(type_id, value, output)? {
             self.encode_type(ty.type_def(), value, output)
-                .map_err(|e| anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e))?
+                .map_err(|e| {
+                    anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e)
+                })?
         }
         Ok(())
     }
@@ -76,14 +99,20 @@ impl<'a> Encoder<'a> {
                 self.encode_composite(composite.fields(), value, output)
             }
             TypeDef::Variant(variant) => self.encode_variant_type(variant, value, output),
-            TypeDef::Array(array) => self.encode_seq(array.type_param(), value, false, output),
+            TypeDef::Array(array) => {
+                self.encode_seq(array.type_param(), value, false, output)
+            }
             TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
             TypeDef::Sequence(sequence) => {
                 self.encode_seq(sequence.type_param(), value, true, output)
             }
-            TypeDef::Primitive(primitive) => self.encode_primitive(primitive, value, output),
+            TypeDef::Primitive(primitive) => {
+                self.encode_primitive(primitive, value, output)
+            }
             TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
-            TypeDef::BitSequence(_) => Err(anyhow::anyhow!("bitvec encoding not yet supported")),
+            TypeDef::BitSequence(_) => {
+                Err(anyhow::anyhow!("bitvec encoding not yet supported"))
+            }
         }
     }
 
@@ -96,40 +125,50 @@ impl<'a> Encoder<'a> {
         let struct_type = CompositeTypeFields::from_fields(fields)?;
 
         match value {
-            Value::Map(map) => match struct_type {
-                CompositeTypeFields::Unnamed(fields) => {
-                    for (field, value) in fields.iter().zip(map.values()) {
-                        self.encode(field.ty().id(), value, output)?;
+            Value::Map(map) => {
+                match struct_type {
+                    CompositeTypeFields::Unnamed(fields) => {
+                        for (field, value) in fields.iter().zip(map.values()) {
+                            self.encode(field.ty().id(), value, output)?;
+                        }
+                        Ok(())
                     }
-                    Ok(())
-                }
-                CompositeTypeFields::NoFields => Ok(()),
-                CompositeTypeFields::Named(named_fields) => {
-                    for named_field in named_fields {
-                        let field_name = named_field.name();
-                        let value = map.get_by_str(field_name).ok_or_else(|| {
-                            anyhow::anyhow!("Missing a field named `{}`", field_name)
-                        })?;
-                        self.encode(named_field.field().ty().id(), value, output)
-                            .map_err(|e| {
-                                anyhow::anyhow!("Error encoding field `{}`: {}", field_name, e)
+                    CompositeTypeFields::NoFields => Ok(()),
+                    CompositeTypeFields::Named(named_fields) => {
+                        for named_field in named_fields {
+                            let field_name = named_field.name();
+                            let value = map.get_by_str(field_name).ok_or_else(|| {
+                                anyhow::anyhow!("Missing a field named `{}`", field_name)
                             })?;
+                            self.encode(named_field.field().ty().id(), value, output)
+                                .map_err(|e| {
+                                    anyhow::anyhow!(
+                                        "Error encoding field `{}`: {}",
+                                        field_name,
+                                        e
+                                    )
+                                })?;
+                        }
+                        Ok(())
                     }
-                    Ok(())
                 }
-            },
-            Value::Tuple(tuple) => match struct_type {
-                CompositeTypeFields::Unnamed(fields) => {
-                    for (field, value) in fields.iter().zip(tuple.values()) {
-                        self.encode(field.ty().id(), value, output)?;
+            }
+            Value::Tuple(tuple) => {
+                match struct_type {
+                    CompositeTypeFields::Unnamed(fields) => {
+                        for (field, value) in fields.iter().zip(tuple.values()) {
+                            self.encode(field.ty().id(), value, output)?;
+                        }
+                        Ok(())
                     }
-                    Ok(())
+                    CompositeTypeFields::NoFields => Ok(()),
+                    CompositeTypeFields::Named(_) => {
+                        return Err(anyhow::anyhow!(
+                            "Type is a struct requiring named fields"
+                        ))
+                    }
                 }
-                CompositeTypeFields::NoFields => Ok(()),
-                CompositeTypeFields::Named(_) => {
-                    return Err(anyhow::anyhow!("Type is a struct requiring named fields"))
-                }
-            },
+            }
             v => {
                 if let Ok(single_field) = fields.iter().exactly_one() {
                     self.encode(single_field.ty().id(), value, output)
@@ -176,12 +215,16 @@ impl<'a> Encoder<'a> {
         output: &mut O,
     ) -> Result<()> {
         let variant_ident = match value {
-            Value::Map(map) => map
-                .ident()
-                .ok_or_else(|| anyhow::anyhow!("Missing enum variant identifier for map")),
-            Value::Tuple(tuple) => tuple
-                .ident()
-                .ok_or_else(|| anyhow::anyhow!("Missing enum variant identifier for tuple")),
+            Value::Map(map) => {
+                map.ident().ok_or_else(|| {
+                    anyhow::anyhow!("Missing enum variant identifier for map")
+                })
+            }
+            Value::Tuple(tuple) => {
+                tuple.ident().ok_or_else(|| {
+                    anyhow::anyhow!("Missing enum variant identifier for tuple")
+                })
+            }
             v => Err(anyhow::anyhow!("Invalid enum variant value '{:?}'", v)),
         }?;
 
@@ -206,10 +249,9 @@ impl<'a> Encoder<'a> {
         encode_len: bool,
         output: &mut O,
     ) -> Result<()> {
-        let ty = self
-            .registry
-            .resolve(ty.id())
-            .ok_or_else(|| anyhow::anyhow!("Failed to find type with id '{}'", ty.id()))?;
+        let ty = self.registry.resolve(ty.id()).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find type with id '{}'", ty.id())
+        })?;
         match value {
             Value::Seq(values) => {
                 if encode_len {
@@ -227,7 +269,9 @@ impl<'a> Encoder<'a> {
                     output.push_byte(*byte);
                 }
             }
-            value => return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value)),
+            value => {
+                return Err(anyhow::anyhow!("{:?} cannot be encoded as an array", value))
+            }
         }
         Ok(())
     }
@@ -247,7 +291,9 @@ impl<'a> Encoder<'a> {
                     Err(anyhow::anyhow!("Expected a bool value"))
                 }
             }
-            TypeDefPrimitive::Char => Err(anyhow::anyhow!("scale codec not implemented for char")),
+            TypeDefPrimitive::Char => {
+                Err(anyhow::anyhow!("scale codec not implemented for char"))
+            }
             TypeDefPrimitive::Str => {
                 if let Value::String(s) = value {
                     s.encode_to(output);
@@ -261,13 +307,17 @@ impl<'a> Encoder<'a> {
             TypeDefPrimitive::U32 => encode_uint::<u32, O>(value, "u32", output),
             TypeDefPrimitive::U64 => encode_uint::<u64, O>(value, "u64", output),
             TypeDefPrimitive::U128 => encode_uint::<u128, O>(value, "u128", output),
-            TypeDefPrimitive::U256 => Err(anyhow::anyhow!("U256 currently not supported")),
+            TypeDefPrimitive::U256 => {
+                Err(anyhow::anyhow!("U256 currently not supported"))
+            }
             TypeDefPrimitive::I8 => encode_int::<i8, O>(value, "i8", output),
             TypeDefPrimitive::I16 => encode_int::<i16, O>(value, "i16", output),
             TypeDefPrimitive::I32 => encode_int::<i32, O>(value, "i32", output),
             TypeDefPrimitive::I64 => encode_int::<i64, O>(value, "i64", output),
             TypeDefPrimitive::I128 => encode_int::<i128, O>(value, "i128", output),
-            TypeDefPrimitive::I256 => Err(anyhow::anyhow!("I256 currently not supported")),
+            TypeDefPrimitive::I256 => {
+                Err(anyhow::anyhow!("I256 currently not supported"))
+            }
         }
     }
 
@@ -278,36 +328,40 @@ impl<'a> Encoder<'a> {
         output: &mut O,
     ) -> Result<()> {
         let mut encode_compact_primitive =
-            |primitive: &TypeDefPrimitive, value: &Value| match primitive {
-                TypeDefPrimitive::U8 => {
-                    let uint = uint_from_value::<u8>(value, "u8")?;
-                    Compact(uint).encode_to(output);
-                    Ok(())
+            |primitive: &TypeDefPrimitive, value: &Value| {
+                match primitive {
+                    TypeDefPrimitive::U8 => {
+                        let uint = uint_from_value::<u8>(value, "u8")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
+                    }
+                    TypeDefPrimitive::U16 => {
+                        let uint = uint_from_value::<u16>(value, "u16")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
+                    }
+                    TypeDefPrimitive::U32 => {
+                        let uint = uint_from_value::<u32>(value, "u32")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
+                    }
+                    TypeDefPrimitive::U64 => {
+                        let uint = uint_from_value::<u64>(value, "u64")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
+                    }
+                    TypeDefPrimitive::U128 => {
+                        let uint = uint_from_value::<u128>(value, "u128")?;
+                        Compact(uint).encode_to(output);
+                        Ok(())
+                    }
+                    _ => {
+                        Err(anyhow::anyhow!(
+                            "Compact encoding not supported for {:?}",
+                            primitive
+                        ))
+                    }
                 }
-                TypeDefPrimitive::U16 => {
-                    let uint = uint_from_value::<u16>(value, "u16")?;
-                    Compact(uint).encode_to(output);
-                    Ok(())
-                }
-                TypeDefPrimitive::U32 => {
-                    let uint = uint_from_value::<u32>(value, "u32")?;
-                    Compact(uint).encode_to(output);
-                    Ok(())
-                }
-                TypeDefPrimitive::U64 => {
-                    let uint = uint_from_value::<u64>(value, "u64")?;
-                    Compact(uint).encode_to(output);
-                    Ok(())
-                }
-                TypeDefPrimitive::U128 => {
-                    let uint = uint_from_value::<u128>(value, "u128")?;
-                    Compact(uint).encode_to(output);
-                    Ok(())
-                }
-                _ => Err(anyhow::anyhow!(
-                    "Compact encoding not supported for {:?}",
-                    primitive
-                )),
             };
 
         let ty = self
@@ -321,14 +375,19 @@ impl<'a> Encoder<'a> {
             })?;
         match ty.type_def() {
             TypeDef::Primitive(primitive) => encode_compact_primitive(primitive, value),
-            TypeDef::Composite(composite) => match composite.fields() {
-                [field] => {
-                    let type_id = field.ty().id();
-                    let field_ty = self.registry.resolve(type_id).ok_or_else(|| {
-                        anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
-                    })?;
-                    if let TypeDef::Primitive(primitive) = field_ty.type_def() {
-                        let field_values: Vec<_> = match value {
+            TypeDef::Composite(composite) => {
+                match composite.fields() {
+                    [field] => {
+                        let type_id = field.ty().id();
+                        let field_ty =
+                            self.registry.resolve(type_id).ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Failed to resolve type with id `{:?}`",
+                                    type_id
+                                )
+                            })?;
+                        if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                            let field_values: Vec<_> = match value {
                             Value::Map(map) => Ok(map.values().collect()),
                             Value::Tuple(tuple) => Ok(tuple.values().collect()),
                             x => Err(anyhow::anyhow!(
@@ -336,25 +395,28 @@ impl<'a> Encoder<'a> {
                                 x
                             )),
                         }?;
-                        if field_values.len() == 1 {
-                            let field_value = field_values[0];
-                            encode_compact_primitive(primitive, field_value)
+                            if field_values.len() == 1 {
+                                let field_value = field_values[0];
+                                encode_compact_primitive(primitive, field_value)
+                            } else {
+                                Err(anyhow::anyhow!(
+                                    "Compact composite value must have a single field"
+                                ))
+                            }
                         } else {
                             Err(anyhow::anyhow!(
-                                "Compact composite value must have a single field"
+                                "Composite type must have a single primitive field"
                             ))
                         }
-                    } else {
-                        Err(anyhow::anyhow!(
-                            "Composite type must have a single primitive field"
-                        ))
                     }
+                    _ => Err(anyhow::anyhow!("Composite type must have a single field")),
                 }
-                _ => Err(anyhow::anyhow!("Composite type must have a single field")),
-            },
-            _ => Err(anyhow::anyhow!(
-                "Compact type must be a primitive or a composite type"
-            )),
+            }
+            _ => {
+                Err(anyhow::anyhow!(
+                    "Compact type must be a primitive or a composite type"
+                ))
+            }
         }
     }
 }
@@ -375,11 +437,13 @@ where
             let uint = T::from_str(&sanitized)?;
             Ok(uint)
         }
-        _ => Err(anyhow::anyhow!(
-            "Expected a {} or a String value, got {}",
-            expected,
-            value
-        )),
+        _ => {
+            Err(anyhow::anyhow!(
+                "Expected a {} or a String value, got {}",
+                expected,
+                value
+            ))
+        }
     }
 }
 
@@ -417,11 +481,13 @@ where
             let i = T::from_str(&sanitized)?;
             Ok(i)
         }
-        _ => Err(anyhow::anyhow!(
-            "Expected a {} or a String value, got {}",
-            expected,
-            value
-        )),
+        _ => {
+            Err(anyhow::anyhow!(
+                "Expected a {} or a String value, got {}",
+                expected,
+                value
+            ))
+        }
     }?;
     int.encode_to(output);
     Ok(())

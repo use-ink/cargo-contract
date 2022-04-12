@@ -80,7 +80,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
         None => {
             // the module does not contain any imports,
             // hence no further validation is necessary.
-            return Ok(());
+            return Ok(())
         }
     };
     let original_imports_len = imports.len();
@@ -218,10 +218,9 @@ mod tests {
 
         // then
         assert!(res.is_err());
-        assert!(res
-            .unwrap_err()
-            .to_string()
-            .contains("An unexpected panic function import was found in the contract Wasm."));
+        assert!(res.unwrap_err().to_string().contains(
+            "An unexpected panic function import was found in the contract Wasm."
+        ));
     }
 
     #[test]
@@ -233,7 +232,8 @@ mod tests {
                 (import "env" "__ink_enforce_error_0x0110466c697010666c6970aa97cade01" (func $__ink_enforce_error_0x0110466c697010666c6970aa97cade01 (type 0)))
             )"#;
         let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
-        let module = parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
+        let module =
+            parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
 
         // when
         let res = validate_import_section(&module);
@@ -283,10 +283,9 @@ mod tests {
 
         // then
         assert!(res.is_err());
-        assert!(res
-            .unwrap_err()
-            .to_string()
-            .contains("An unexpected import function was found in the contract Wasm: some_fn."));
+        assert!(res.unwrap_err().to_string().contains(
+            "An unexpected import function was found in the contract Wasm: some_fn."
+        ));
     }
 
     #[test]

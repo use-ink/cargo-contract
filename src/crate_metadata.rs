@@ -15,11 +15,24 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ManifestPath;
-use anyhow::{Context, Result};
-use cargo_metadata::{Metadata as CargoMetadata, MetadataCommand, Package};
+use anyhow::{
+    Context,
+    Result,
+};
+use cargo_metadata::{
+    Metadata as CargoMetadata,
+    MetadataCommand,
+    Package,
+};
 use semver::Version;
-use serde_json::{Map, Value};
-use std::{fs, path::PathBuf};
+use serde_json::{
+    Map,
+    Value,
+};
+use std::{
+    fs,
+    path::PathBuf,
+};
 use toml::value;
 use url::Url;
 

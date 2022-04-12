@@ -15,19 +15,42 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events, runtime_api::api, wait_for_success_and_handle_error, Balance, CodeHash,
-    ContractMessageTranscoder, ExtrinsicOpts, PairSigner, RuntimeApi,
+    display_events,
+    runtime_api::api,
+    wait_for_success_and_handle_error,
+    Balance,
+    CodeHash,
+    ContractMessageTranscoder,
+    ExtrinsicOpts,
+    PairSigner,
+    RuntimeApi,
 };
 use crate::name_value_println;
-use anyhow::{Context, Result};
-use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
+use anyhow::{
+    Context,
+    Result,
+};
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use serde::Serialize;
 use sp_core::Bytes;
-use std::{fmt::Debug, path::PathBuf};
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig};
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+};
+use subxt::{
+    rpc::NumberOrHex,
+    ClientBuilder,
+    Config,
+    DefaultConfig,
+};
 
 type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
-type CodeUploadReturnValue = pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
+type CodeUploadReturnValue =
+    pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -92,7 +115,8 @@ impl UploadCommand {
         };
         let params = rpc_params!(call_request);
 
-        let result: CodeUploadResult = cli.request("contracts_upload_code", params).await?;
+        let result: CodeUploadResult =
+            cli.request("contracts_upload_code", params).await?;
 
         result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))
     }

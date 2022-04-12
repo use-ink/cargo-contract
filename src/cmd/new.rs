@@ -14,7 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env, fs, path::Path};
+use std::{
+    env,
+    fs,
+    path::Path,
+};
 
 use anyhow::Result;
 
@@ -23,7 +27,9 @@ where
     P: AsRef<Path>,
 {
     if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-        anyhow::bail!("Contract names can only contain alphanumeric characters and underscores");
+        anyhow::bail!(
+            "Contract names can only contain alphanumeric characters and underscores"
+        );
     }
 
     if !name
@@ -55,7 +61,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::tests::{with_new_contract_project, with_tmp_dir};
+    use crate::util::tests::{
+        with_new_contract_project,
+        with_tmp_dir,
+    };
 
     #[test]
     fn rejects_hyphenated_name() {

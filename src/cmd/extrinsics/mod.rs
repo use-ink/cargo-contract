@@ -25,22 +25,41 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use anyhow::{anyhow, Context, Result};
-use std::{fs::File, path::PathBuf};
+use anyhow::{
+    anyhow,
+    Context,
+    Result,
+};
+use std::{
+    fs::File,
+    path::PathBuf,
+};
 
 use self::events::display_events;
 use crate::{
-    crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath, Verbosity,
+    crate_metadata::CrateMetadata,
+    name_value_println,
+    workspace::ManifestPath,
+    Verbosity,
     VerbosityFlags,
 };
 use pallet_contracts_primitives::ContractResult;
-use sp_core::{crypto::Pair, sr25519};
-use subxt::{Config, DefaultConfig};
+use sp_core::{
+    crypto::Pair,
+    sr25519,
+};
+use subxt::{
+    Config,
+    DefaultConfig,
+};
 
 pub use self::transcode::ContractMessageTranscoder;
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
-pub use runtime_api::api::{DispatchError as RuntimeDispatchError, Event as RuntimeEvent};
+pub use runtime_api::api::{
+    DispatchError as RuntimeDispatchError,
+    Event as RuntimeEvent,
+};
 pub use upload::UploadCommand;
 
 type Balance = u128;
@@ -105,16 +124,18 @@ pub fn load_metadata(
     if !path.exists() {
         return Err(anyhow!(
             "Metadata file not found. Try building with `cargo contract build`."
-        ));
+        ))
     }
 
-    let file =
-        File::open(&path).context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file).context(
-        format!("Failed to deserialize metadata file {}", path.display()),
-    )?;
-    let ink_metadata =
-        serde_json::from_value(serde_json::Value::Object(metadata.abi)).context(format!(
+    let file = File::open(&path)
+        .context(format!("Failed to open metadata file {}", path.display()))?;
+    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
+        .context(format!(
+            "Failed to deserialize metadata file {}",
+            path.display()
+        ))?;
+    let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
+        .context(format!(
             "Failed to deserialize ink project metadata from file {}",
             path.display()
         ))?;
@@ -142,7 +163,9 @@ const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
 pub const EXEC_RESULT_MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R>(result: &ContractResult<R, Balance>) -> Result<()> {
+pub fn display_contract_exec_result<R>(
+    result: &ContractResult<R, Balance>,
+) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
         .lines();

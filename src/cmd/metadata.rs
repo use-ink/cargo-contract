@@ -16,22 +16,42 @@
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println, util,
-    workspace::{ManifestPath, Workspace},
-    Network, UnstableFlags, Verbosity,
+    maybe_println,
+    util,
+    workspace::{
+        ManifestPath,
+        Workspace,
+    },
+    Network,
+    UnstableFlags,
+    Verbosity,
 };
 
 use anyhow::Result;
-use blake2::digest::{consts::U32, Digest as _};
+use blake2::digest::{
+    consts::U32,
+    Digest as _,
+};
 use colored::Colorize;
 use contract_metadata::{
-    CodeHash, Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
-    SourceLanguage, SourceWasm, User,
+    CodeHash,
+    Compiler,
+    Contract,
+    ContractMetadata,
+    Language,
+    Source,
+    SourceCompiler,
+    SourceLanguage,
+    SourceWasm,
+    User,
 };
 use semver::Version;
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 use url::Url;
 
@@ -87,7 +107,8 @@ pub(crate) fn execute(
             format!("[{}/{}]", current_progress, total_steps).bold(),
             "Generating metadata".bright_green().bold()
         );
-        let target_dir_arg = format!("--target-dir={}", target_directory.to_string_lossy());
+        let target_dir_arg =
+            format!("--target-dir={}", target_directory.to_string_lossy());
         let stdout = util::invoke_cargo(
             "run",
             &[
@@ -103,7 +124,8 @@ pub(crate) fn execute(
             vec![],
         )?;
 
-        let ink_meta: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&stdout)?;
+        let ink_meta: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_slice(&stdout)?;
         let metadata = ContractMetadata::new(source, contract, user, ink_meta);
         {
             let mut metadata = metadata.clone();
@@ -135,7 +157,9 @@ pub(crate) fn execute(
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package(crate_metadata.manifest_path.absolute_directory()?)?
+            .with_metadata_gen_package(
+                crate_metadata.manifest_path.absolute_directory()?,
+            )?
             .using_temp(generate_metadata)?;
     }
 
@@ -201,9 +225,9 @@ fn extended_metadata(
         builder.license(license);
     }
 
-    let contract = builder
-        .build()
-        .map_err(|err| anyhow::anyhow!("Invalid contract metadata builder state: {}", err))?;
+    let contract = builder.build().map_err(|err| {
+        anyhow::anyhow!("Invalid contract metadata builder state: {}", err)
+    })?;
 
     // user defined metadata
     let user = crate_metadata.user.clone().map(User::new);
@@ -226,14 +250,23 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests {
-    use crate::cmd::metadata::blake2_hash;
     use crate::{
-        cmd, crate_metadata::CrateMetadata, util::tests::with_new_contract_project, ManifestPath,
+        cmd,
+        cmd::metadata::blake2_hash,
+        crate_metadata::CrateMetadata,
+        util::tests::with_new_contract_project,
+        ManifestPath,
     };
     use anyhow::Context;
     use contract_metadata::*;
-    use serde_json::{Map, Value};
-    use std::{fmt::Write, fs};
+    use serde_json::{
+        Map,
+        Value,
+    };
+    use std::{
+        fmt::Write,
+        fs,
+    };
     use toml::value;
 
     struct TestContractManifest {
@@ -301,13 +334,18 @@ mod tests {
         with_new_contract_project(|manifest_path| {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;
-            test_manifest.add_package_value("description", "contract description".into())?;
-            test_manifest.add_package_value("documentation", "http://documentation.com".into())?;
-            test_manifest.add_package_value("repository", "http://repository.com".into())?;
+            test_manifest
+                .add_package_value("description", "contract description".into())?;
+            test_manifest
+                .add_package_value("documentation", "http://documentation.com".into())?;
+            test_manifest
+                .add_package_value("repository", "http://repository.com".into())?;
             test_manifest.add_package_value("homepage", "http://homepage.com".into())?;
             test_manifest.add_package_value("license", "Apache-2.0".into())?;
-            test_manifest
-                .add_user_metadata_value("some-user-provided-field", "and-its-value".into())?;
+            test_manifest.add_user_metadata_value(
+                "some-user-provided-field",
+                "and-its-value".into(),
+            )?;
             test_manifest.add_user_metadata_value(
                 "more-user-provided-fields",
                 vec!["and", "their", "values"].into(),
@@ -378,7 +416,8 @@ mod tests {
             let expected_wasm = build_byte_str(&fs_wasm);
 
             let expected_language =
-                SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
+                SourceLanguage::new(Language::Ink, crate_metadata.ink_version)
+                    .to_string();
             let expected_rustc_version =
                 semver::Version::parse(&rustc_version::version()?.to_string())?;
             let expected_compiler =
@@ -388,7 +427,11 @@ mod tests {
                 .insert("some-user-provided-field".into(), "and-its-value".into());
             expected_user_metadata.insert(
                 "more-user-provided-fields".into(),
-                serde_json::Value::Array(vec!["and".into(), "their".into(), "values".into()]),
+                serde_json::Value::Array(vec![
+                    "and".into(),
+                    "their".into(),
+                    "values".into(),
+                ]),
             );
 
             assert_eq!(build_byte_str(&expected_hash.0[..]), hash.as_str().unwrap());

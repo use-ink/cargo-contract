@@ -14,16 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::{Context, Result};
+use anyhow::{
+    Context,
+    Result,
+};
 
-use super::{metadata, Profile};
+use super::{
+    metadata,
+    Profile,
+};
 use crate::OptimizationPasses;
 
 use std::{
     collections::HashSet,
     convert::TryFrom,
     fs,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 use toml::value;
 
@@ -53,10 +62,9 @@ impl ManifestPath {
 
     /// Create an arg `--manifest-path=` for `cargo` command
     pub fn cargo_arg(&self) -> Result<String> {
-        let path = self
-            .path
-            .canonicalize()
-            .map_err(|err| anyhow::anyhow!("Failed to canonicalize {:?}: {:?}", self.path, err))?;
+        let path = self.path.canonicalize().map_err(|err| {
+            anyhow::anyhow!("Failed to canonicalize {:?}: {:?}", self.path, err)
+        })?;
         Ok(format!("--manifest-path={}", path.to_string_lossy()))
     }
 
@@ -222,7 +230,9 @@ impl Manifest {
             .get_mut(dependency)
             .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
             .as_table_mut()
-            .ok_or_else(|| anyhow::anyhow!("{} dependency should be a table", dependency))?
+            .ok_or_else(|| {
+                anyhow::anyhow!("{} dependency should be a table", dependency)
+            })?
             .insert("version".into(), value::Value::String(version.into())))
     }
 
@@ -281,7 +291,10 @@ impl Manifest {
     ///
     /// Existing user defined settings for this section are preserved. Only if a setting is not
     /// defined is the preferred default set.
-    pub fn with_profile_release_defaults(&mut self, defaults: Profile) -> Result<&mut Self> {
+    pub fn with_profile_release_defaults(
+        &mut self,
+        defaults: Profile,
+    ) -> Result<&mut Self> {
         let profile_release = self.get_profile_release_table_mut()?;
         defaults.merge(profile_release);
         Ok(self)
@@ -369,7 +382,10 @@ impl Manifest {
     /// - `[dependencies]`
     ///
     /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
-    pub(super) fn rewrite_relative_paths<I, S>(&mut self, exclude_deps: I) -> Result<&mut Self>
+    pub(super) fn rewrite_relative_paths<I, S>(
+        &mut self,
+        exclude_deps: I,
+    ) -> Result<&mut Self>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -379,7 +395,9 @@ impl Manifest {
             .parent()
             .expect("The manifest path is a file path so has a parent; qed");
 
-        let to_absolute = |value_id: String, existing_path: &mut value::Value| -> Result<()> {
+        let to_absolute = |value_id: String,
+                           existing_path: &mut value::Value|
+         -> Result<()> {
             let path_str = existing_path
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
@@ -396,33 +414,34 @@ impl Manifest {
             Ok(())
         };
 
-        let rewrite_path = |table_value: &mut value::Value, table_section: &str, default: &str| {
-            let table = table_value.as_table_mut().ok_or_else(|| {
-                anyhow::anyhow!("'[{}]' section should be a table", table_section)
-            })?;
+        let rewrite_path =
+            |table_value: &mut value::Value, table_section: &str, default: &str| {
+                let table = table_value.as_table_mut().ok_or_else(|| {
+                    anyhow::anyhow!("'[{}]' section should be a table", table_section)
+                })?;
 
-            match table.get_mut("path") {
-                Some(existing_path) => {
-                    to_absolute(format!("[{}]/path", table_section), existing_path)
-                }
-                None => {
-                    let default_path = PathBuf::from(default);
-                    if !default_path.exists() {
-                        anyhow::bail!(
-                            "No path specified, and the default `{}` was not found",
-                            default
-                        )
+                match table.get_mut("path") {
+                    Some(existing_path) => {
+                        to_absolute(format!("[{}]/path", table_section), existing_path)
                     }
-                    let path = abs_dir.join(default_path);
-                    log::debug!("Adding default path '{}'", path.display());
-                    table.insert(
-                        "path".into(),
-                        value::Value::String(path.to_string_lossy().into()),
-                    );
-                    Ok(())
+                    None => {
+                        let default_path = PathBuf::from(default);
+                        if !default_path.exists() {
+                            anyhow::bail!(
+                                "No path specified, and the default `{}` was not found",
+                                default
+                            )
+                        }
+                        let path = abs_dir.join(default_path);
+                        log::debug!("Adding default path '{}'", path.display());
+                        table.insert(
+                            "path".into(),
+                            value::Value::String(path.to_string_lossy().into()),
+                        );
+                        Ok(())
+                    }
                 }
-            }
-        };
+            };
 
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = self.toml.get_mut("lib") {
@@ -431,9 +450,9 @@ impl Manifest {
 
         // Rewrite `[[bin]] path = /path/to/main.rs`
         if let Some(bin) = self.toml.get_mut("bin") {
-            let bins = bin
-                .as_array_mut()
-                .ok_or_else(|| anyhow::anyhow!("'[[bin]]' section should be a table array"))?;
+            let bins = bin.as_array_mut().ok_or_else(|| {
+                anyhow::anyhow!("'[[bin]]' section should be a table array")
+            })?;
 
             // Rewrite `[[bin]] path =` value to an absolute path.
             for bin in bins {
@@ -460,7 +479,10 @@ impl Manifest {
                 if !exclude.contains(&package_name) {
                     if let Some(dependency) = value.as_table_mut() {
                         if let Some(dep_path) = dependency.get_mut("path") {
-                            to_absolute(format!("dependency {}", package_name), dep_path)?;
+                            to_absolute(
+                                format!("dependency {}", package_name),
+                                dep_path,
+                            )?;
                         }
                     }
                 }
@@ -473,7 +495,8 @@ impl Manifest {
     /// Writes the amended manifest to the given path.
     pub fn write(&self, manifest_path: &ManifestPath) -> Result<()> {
         if let Some(dir) = manifest_path.directory() {
-            fs::create_dir_all(dir).context(format!("Creating directory '{}'", dir.display()))?;
+            fs::create_dir_all(dir)
+                .context(format!("Creating directory '{}'", dir.display()))?;
         }
 
         if self.metadata_package {
@@ -483,7 +506,8 @@ impl Manifest {
                 METADATA_PACKAGE_PATH.into()
             };
 
-            fs::create_dir_all(&dir).context(format!("Creating directory '{}'", dir.display()))?;
+            fs::create_dir_all(&dir)
+                .context(format!("Creating directory '{}'", dir.display()))?;
 
             let contract_package_name = self
                 .toml
@@ -501,7 +525,9 @@ impl Manifest {
                 .get("ink_metadata")
                 .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency not found"))?
                 .as_table()
-                .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency should be a table"))?;
+                .ok_or_else(|| {
+                    anyhow::anyhow!("ink_metadata dependency should be a table")
+                })?;
 
             metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
         }
@@ -534,8 +560,8 @@ mod test {
             // given
             let cargo_toml_path = path.join("Cargo.toml");
             let _ = fs::File::create(&cargo_toml_path).expect("file creation failed");
-            let manifest_path =
-                ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
+            let manifest_path = ManifestPath::new(cargo_toml_path)
+                .expect("manifest path creation failed");
 
             // when
             let absolute_path = manifest_path
