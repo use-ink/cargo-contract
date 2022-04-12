@@ -263,7 +263,8 @@ impl<'a> Exec<'a> {
         let gas_limit = if let Some(gas_limit) = self.args.gas_limit {
             gas_limit
         } else {
-            let instantiate_result = self.instantiate_dry_run(Code::Upload(code.clone())).await?;
+            let instantiate_result =
+                self.instantiate_dry_run(Code::Upload(code.clone())).await?;
             instantiate_result.gas_required
         };
         let tx_progress = api
