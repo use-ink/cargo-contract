@@ -147,12 +147,10 @@ impl<'a> ContractMessageTranscoder<'a> {
         ) {
             (Some(c), None) => (c.selector(), c.args()),
             (None, Some(m)) => (m.selector(), m.args()),
-            (Some(_), Some(_)) => {
-                return Err(anyhow::anyhow!(
+            (Some(_), Some(_)) => return Err(anyhow::anyhow!(
                 "Invalid metadata: both a constructor and message found with name '{}'",
                 name
-            ))
-            }
+            )),
             (None, None) => {
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{}' found",
