@@ -16,14 +16,27 @@
 
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
-    transcode::{env_types, ContractMessageTranscoder, TranscoderBuilder},
+    transcode::{
+        env_types,
+        ContractMessageTranscoder,
+        TranscoderBuilder,
+    },
     RuntimeEvent,
 };
-use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
+use crate::{
+    maybe_println,
+    Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
+};
 use colored::Colorize as _;
 
 use anyhow::Result;
-use subxt::{self, DefaultConfig, Event, TransactionEvents};
+use subxt::{
+    self,
+    DefaultConfig,
+    Event,
+    TransactionEvents,
+};
 
 pub fn display_events(
     result: &TransactionEvents<DefaultConfig, RuntimeEvent>,
@@ -32,7 +45,7 @@ pub fn display_events(
     verbosity: &Verbosity,
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
-        return Ok(());
+        return Ok(())
     }
 
     if matches!(verbosity, Verbosity::Verbose) {
@@ -50,7 +63,8 @@ pub fn display_events(
         let event = event?;
         log::debug!("displaying event {:?}", event);
 
-        let event_metadata = subxt_metadata.event(event.pallet_index, event.variant_index)?;
+        let event_metadata =
+            subxt_metadata.event(event.pallet_index, event.variant_index)?;
         let event_fields = event_metadata.variant().fields();
 
         println!(
@@ -66,6 +80,7 @@ pub fn display_events(
             if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
                 && field.name() == Some(&"data".to_string())
             {
+                log::debug!("event data: {:?}", hex::encode(&event_data));
                 let contract_event = transcoder.decode_contract_event(event_data)?;
                 maybe_println!(
                     verbosity,
@@ -81,7 +96,8 @@ pub fn display_events(
                     name
                 });
 
-                let decoded_field = events_transcoder.decode(field.ty().id(), event_data)?;
+                let decoded_field =
+                    events_transcoder.decode(field.ty().id(), event_data)?;
                 maybe_println!(
                     verbosity,
                     "{:width$}{}",

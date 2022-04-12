@@ -22,8 +22,14 @@ mod workspace;
 
 use self::{
     cmd::{
-        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, InstantiateCommand,
-        TestCommand, UploadCommand,
+        metadata::MetadataResult,
+        BuildCommand,
+        CallCommand,
+        CheckCommand,
+        DecodeCommand,
+        InstantiateCommand,
+        TestCommand,
+        UploadCommand,
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -31,13 +37,25 @@ use self::{
 
 use std::{
     convert::TryFrom,
-    fmt::{Display, Formatter, Result as DisplayResult},
+    fmt::{
+        Display,
+        Formatter,
+        Result as DisplayResult,
+    },
     path::PathBuf,
     str::FromStr,
 };
 
-use anyhow::{Error, Result};
-use clap::{AppSettings, Args, Parser, Subcommand};
+use anyhow::{
+    Error,
+    Result,
+};
+use clap::{
+    AppSettings,
+    Args,
+    Parser,
+    Subcommand,
+};
 use colored::Colorize;
 
 #[derive(Debug, Parser)]
@@ -209,15 +227,19 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Subcommand, serde::Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ArgEnum, serde::Serialize)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[clap(name = "all")]
     All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is skipped
+    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
+    /// skipped
     #[clap(name = "code-only")]
     CodeOnly,
+    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
+    /// compilation errors.
+    #[clap(name = "check-only")]
     CheckOnly,
 }
 
@@ -229,17 +251,6 @@ impl BuildArtifacts {
             BuildArtifacts::All => 5,
             BuildArtifacts::CodeOnly => 3,
             BuildArtifacts::CheckOnly => 2,
-        }
-    }
-}
-
-impl std::str::FromStr for BuildArtifacts {
-    type Err = String;
-    fn from_str(artifact: &str) -> Result<Self, Self::Err> {
-        match artifact {
-            "all" => Ok(BuildArtifacts::All),
-            "code-only" => Ok(BuildArtifacts::CodeOnly),
-            _ => Err("Could not parse build artifact".to_string()),
         }
     }
 }
@@ -375,7 +386,7 @@ impl BuildResult {
                     .to_string()
                     .bold()
             );
-            return out;
+            return out
         };
 
         let mut out = format!(
@@ -454,6 +465,9 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
+    /// Decode a contract input data
+    #[clap(name = "decode")]
+    Decode(DecodeCommand),
 }
 
 fn main() {
@@ -511,6 +525,7 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Upload(upload) => upload.run(),
         Command::Instantiate(instantiate) => instantiate.run(),
         Command::Call(call) => call.run(),
+        Command::Decode(decode) => decode.run(),
     }
 }
 

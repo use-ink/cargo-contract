@@ -16,21 +16,49 @@
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println, util, validate_wasm,
-    workspace::{Manifest, ManifestPath, Profile, Workspace},
-    BuildArtifacts, BuildMode, BuildResult, Network, OptimizationPasses, OptimizationResult,
-    OutputType, UnstableFlags, UnstableOptions, Verbosity, VerbosityFlags,
+    maybe_println,
+    util,
+    validate_wasm,
+    workspace::{
+        Manifest,
+        ManifestPath,
+        Profile,
+        Workspace,
+    },
+    BuildArtifacts,
+    BuildMode,
+    BuildResult,
+    Network,
+    OptimizationPasses,
+    OptimizationResult,
+    OutputType,
+    UnstableFlags,
+    UnstableOptions,
+    Verbosity,
+    VerbosityFlags,
 };
-use anyhow::{Context, Result};
+use anyhow::{
+    Context,
+    Result,
+};
 use colored::Colorize;
-use parity_wasm::elements::{External, Internal, MemoryType, Module, Section};
+use parity_wasm::elements::{
+    External,
+    Internal,
+    MemoryType,
+    Module,
+    Section,
+};
 use regex::Regex;
 use semver::Version;
 use std::{
     convert::TryFrom,
     ffi::OsStr,
     fs::metadata,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
     process::Command,
     str,
 };
@@ -83,12 +111,10 @@ pub struct BuildCommand {
     ///
     /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
     ///   `<name>.contract` file is skipped.
-    #[clap(
-        long = "generate",
-        default_value = "all",
-        value_name = "all | code-only",
-        verbatim_doc_comment
-    )]
+    ///
+    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
+    ///    only checks for compilation errors.
+    #[clap(long = "generate", arg_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
@@ -419,19 +445,23 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
 ///
 /// Iterates over the import section, finds the memory import entry if any and adjusts the maximum
 /// limit.
-fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) -> Result<()> {
+fn ensure_maximum_memory_pages(
+    module: &mut Module,
+    maximum_allowed_pages: u32,
+) -> Result<()> {
     let mem_ty = module
         .import_section_mut()
         .and_then(|section| {
-            section
-                .entries_mut()
-                .iter_mut()
-                .find_map(|entry| match entry.external_mut() {
+            section.entries_mut().iter_mut().find_map(|entry| {
+                match entry.external_mut() {
                     External::Memory(ref mut mem_ty) => Some(mem_ty),
                     _ => None,
-                })
+                }
+            })
         })
-        .context("Memory import is not found. Is --import-memory specified in the linker args")?;
+        .context(
+            "Memory import is not found. Is --import-memory specified in the linker args",
+        )?;
 
     if let Some(requested_maximum) = mem_ty.limits().maximum() {
         // The module already has maximum, check if it is within the limit bail out.
@@ -455,10 +485,12 @@ fn ensure_maximum_memory_pages(module: &mut Module, maximum_allowed_pages: u32) 
 /// Presently all custom sections are not required so they can be stripped safely.
 /// The name section is already stripped by `wasm-opt`.
 fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| match section {
-        Section::Reloc(_) => false,
-        Section::Custom(custom) if custom.name() != "name" => false,
-        _ => true,
+    module.sections_mut().retain(|section| {
+        match section {
+            Section::Reloc(_) => false,
+            Section::Custom(custom) if custom.name() != "name" => false,
+            _ => true,
+        }
     })
 }
 
@@ -486,8 +518,8 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
 /// Performs required post-processing steps on the Wasm artifact.
 fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     // Deserialize Wasm module from a file.
-    let mut module =
-        load_module(&crate_metadata.original_wasm).context("Loading of original wasm failed")?;
+    let mut module = load_module(&crate_metadata.original_wasm)
+        .context("Loading of original wasm failed")?;
 
     strip_exports(&mut module);
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
@@ -529,7 +561,7 @@ fn optimize_wasm(
         return Err(anyhow::anyhow!(
             "Optimization failed, optimized wasm output file `{}` not found.",
             dest_optimized.display()
-        ));
+        ))
     }
 
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
@@ -901,15 +933,28 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 #[cfg(test)]
 mod tests_ci_only {
     use super::{
-        assert_compatible_ink_dependencies, assert_debug_mode_supported,
+        assert_compatible_ink_dependencies,
+        assert_debug_mode_supported,
         check_wasm_opt_version_compatibility,
     };
     use crate::{
-        cmd::{build::load_module, BuildCommand},
-        util::tests::{with_new_contract_project, with_tmp_dir},
+        cmd::{
+            build::load_module,
+            BuildCommand,
+        },
+        util::tests::{
+            with_new_contract_project,
+            with_tmp_dir,
+        },
         workspace::Manifest,
-        BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions,
-        Verbosity, VerbosityFlags,
+        BuildArtifacts,
+        BuildMode,
+        ManifestPath,
+        OptimizationPasses,
+        OutputType,
+        UnstableOptions,
+        Verbosity,
+        VerbosityFlags,
     };
     use semver::Version;
     #[cfg(unix)]
@@ -917,15 +962,22 @@ mod tests_ci_only {
     use std::{
         ffi::OsStr,
         io::Write,
-        path::{Path, PathBuf},
+        path::{
+            Path,
+            PathBuf,
+        },
     };
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
-    fn write_optimization_passes_into_manifest(cargo_toml_path: &Path, passes: OptimizationPasses) {
+    fn write_optimization_passes_into_manifest(
+        cargo_toml_path: &Path,
+        passes: OptimizationPasses,
+    ) {
         let manifest_path =
             ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
-        let mut manifest = Manifest::new(manifest_path.clone()).expect("manifest creation failed");
+        let mut manifest =
+            Manifest::new(manifest_path.clone()).expect("manifest creation failed");
         manifest
             .set_profile_optimization_passes(passes)
             .expect("setting `optimization-passes` in profile failed");
@@ -1127,7 +1179,8 @@ mod tests_ci_only {
             // the manifest path
 
             // when
-            let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
+            let res =
+                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
 
             // then
             assert!(res.is_ok());
@@ -1152,7 +1205,8 @@ mod tests_ci_only {
                 .expect("writing manifest failed");
 
             // when
-            let res = assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
+            let res =
+                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
 
             // then
             assert!(res.is_err());
@@ -1216,8 +1270,9 @@ mod tests_ci_only {
 
             // this println is here to debug a spuriously failing CI at the following assert.
             eprintln!("error: {:?}", res);
-            assert!(format!("{:?}", res)
-                .starts_with("Err(Your wasm-opt version is 98, but we require a version >= 99."));
+            assert!(format!("{:?}", res).starts_with(
+                "Err(Your wasm-opt version is 98, but we require a version >= 99."
+            ));
 
             Ok(())
         })
@@ -1285,21 +1340,26 @@ mod tests_ci_only {
 
     #[test]
     pub fn debug_mode_must_be_compatible() {
-        let _ =
-            assert_debug_mode_supported(&Version::parse("3.0.0-rc4").expect("parsing must work"))
-                .expect("debug mode must be compatible");
-        let _ =
-            assert_debug_mode_supported(&Version::parse("4.0.0-rc1").expect("parsing must work"))
-                .expect("debug mode must be compatible");
-        let _ = assert_debug_mode_supported(&Version::parse("5.0.0").expect("parsing must work"))
-            .expect("debug mode must be compatible");
+        let _ = assert_debug_mode_supported(
+            &Version::parse("3.0.0-rc4").expect("parsing must work"),
+        )
+        .expect("debug mode must be compatible");
+        let _ = assert_debug_mode_supported(
+            &Version::parse("4.0.0-rc1").expect("parsing must work"),
+        )
+        .expect("debug mode must be compatible");
+        let _ = assert_debug_mode_supported(
+            &Version::parse("5.0.0").expect("parsing must work"),
+        )
+        .expect("debug mode must be compatible");
     }
 
     #[test]
     pub fn debug_mode_must_be_incompatible() {
-        let res =
-            assert_debug_mode_supported(&Version::parse("3.0.0-rc3").expect("parsing must work"))
-                .expect_err("assertion must fail");
+        let res = assert_debug_mode_supported(
+            &Version::parse("3.0.0-rc3").expect("parsing must work"),
+        )
+        .expect_err("assertion must fail");
         assert_eq!(
             res.to_string(),
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
@@ -1355,8 +1415,8 @@ mod tests_ci_only {
             std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
             std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
 
-            let mut manifest =
-                Manifest::new(manifest_path.clone()).expect("creating manifest must work");
+            let mut manifest = Manifest::new(manifest_path.clone())
+                .expect("creating manifest must work");
             manifest
                 .set_lib_path("srcfoo/lib.rs")
                 .expect("setting lib path must work");

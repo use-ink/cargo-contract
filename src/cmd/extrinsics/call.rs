@@ -15,17 +15,34 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, display_events, load_metadata, parse_balance,
-    wait_for_success_and_handle_error, Balance, ContractMessageTranscoder, ExtrinsicOpts,
-    PairSigner, RuntimeApi, EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    display_contract_exec_result,
+    display_events,
+    load_metadata,
+    parse_balance,
+    wait_for_success_and_handle_error,
+    Balance,
+    ContractMessageTranscoder,
+    ExtrinsicOpts,
+    PairSigner,
+    RuntimeApi,
+    EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::name_value_println;
 use anyhow::Result;
-use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use serde::Serialize;
 use sp_core::Bytes;
 use std::fmt::Debug;
-use subxt::{rpc::NumberOrHex, ClientBuilder, Config, DefaultConfig, Signer};
+use subxt::{
+    rpc::NumberOrHex,
+    ClientBuilder,
+    Config,
+    DefaultConfig,
+};
 
 type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
 
@@ -53,9 +70,12 @@ pub struct CallCommand {
 
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
-        let (_, contract_metadata) = load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
+        let (_, contract_metadata) =
+            load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
+        log::debug!("message data: {:?}", hex::encode(&call_data));
+
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         async_std::task::block_on(async {
@@ -93,7 +113,8 @@ impl CallCommand {
 
         match result.result {
             Ok(ref ret_val) => {
-                let value = transcoder.decode_return(&self.message, &mut &ret_val.data.0[..])?;
+                let value =
+                    transcoder.decode_return(&self.message, &mut &ret_val.data.0[..])?;
                 name_value_println!(
                     "Result",
                     String::from("Success!"),
@@ -104,7 +125,11 @@ impl CallCommand {
                     format!("{:?}", ret_val.did_revert()),
                     EXEC_RESULT_MAX_KEY_COL_WIDTH
                 );
-                name_value_println!("Data", format!("{}", value), EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                name_value_println!(
+                    "Data",
+                    format!("{}", value),
+                    EXEC_RESULT_MAX_KEY_COL_WIDTH
+                );
             }
             Err(err) => {
                 name_value_println!(
@@ -142,7 +167,7 @@ impl CallCommand {
                 self.extrinsic_opts.storage_deposit_limit,
                 data,
             )
-            .sign_and_submit_then_watch(signer)
+            .sign_and_submit_then_watch_default(signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;

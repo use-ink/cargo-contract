@@ -88,15 +88,32 @@ mod scon;
 mod transcoder;
 
 pub use self::{
-    scon::{Map, Value},
-    transcoder::{Transcoder, TranscoderBuilder},
+    scon::{
+        Map,
+        Value,
+    },
+    transcoder::{
+        Transcoder,
+        TranscoderBuilder,
+    },
 };
 
 use anyhow::Result;
-use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
-use scale::{Compact, Decode, Input};
+use ink_metadata::{
+    ConstructorSpec,
+    InkProject,
+    MessageSpec,
+};
+use scale::{
+    Compact,
+    Decode,
+    Input,
+};
 use scale_info::{
-    form::{Form, PortableForm},
+    form::{
+        Form,
+        PortableForm,
+    },
     Field,
 };
 use std::fmt::Debug;
@@ -132,9 +149,9 @@ impl<'a> ContractMessageTranscoder<'a> {
             (None, Some(m)) => (m.selector(), m.args()),
             (Some(_), Some(_)) => {
                 return Err(anyhow::anyhow!(
-                    "Invalid metadata: both a constructor and message found with name '{}'",
-                    name
-                ))
+                "Invalid metadata: both a constructor and message found with name '{}'",
+                name
+            ))
             }
             (None, None) => {
                 return Err(anyhow::anyhow!(
@@ -166,7 +183,10 @@ impl<'a> ContractMessageTranscoder<'a> {
             .find(|msg| msg.label().contains(&name.to_string()))
     }
 
-    fn find_constructor_spec(&self, name: &str) -> Option<&ConstructorSpec<PortableForm>> {
+    fn find_constructor_spec(
+        &self,
+        name: &str,
+    ) -> Option<&ConstructorSpec<PortableForm>> {
         self.constructors()
             .find(|msg| msg.label().contains(&name.to_string()))
     }
@@ -175,7 +195,6 @@ impl<'a> ContractMessageTranscoder<'a> {
         // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
         // ignore because the structure of the event data is known for decoding.
         let _len = <Compact<u32>>::decode(data)?;
-
         let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
@@ -203,10 +222,64 @@ impl<'a> ContractMessageTranscoder<'a> {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_contract_message(&self, data: &mut &[u8]) -> Result<Value> {
+        let mut msg_selector = [0u8; 4];
+        data.read(&mut msg_selector)?;
         let msg_spec = self
-            .find_message_spec(name)
-            .ok_or_else(|| anyhow::anyhow!("Failed to find message spec with name '{}'", name))?;
+            .messages()
+            .find(|x| msg_selector == x.selector().to_bytes())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Message with selector {} not found in contract metadata",
+                    hex::encode(&msg_selector)
+                )
+            })?;
+        log::debug!("decoding contract message '{}'", msg_spec.label());
+
+        let mut args = Vec::new();
+        for arg in msg_spec.args() {
+            let name = arg.label().to_string();
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
+            args.push((Value::String(name), value));
+        }
+
+        let name = msg_spec.label().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(Value::Map(map))
+    }
+
+    pub fn decode_contract_constructor(&self, data: &mut &[u8]) -> Result<Value> {
+        let mut msg_selector = [0u8; 4];
+        data.read(&mut msg_selector)?;
+        let msg_spec = self
+            .constructors()
+            .find(|x| msg_selector == x.selector().to_bytes())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Constructor with selector {} not found in contract metadata",
+                    hex::encode(&msg_selector)
+                )
+            })?;
+        log::debug!("decoding contract constructor '{}'", msg_spec.label());
+
+        let mut args = Vec::new();
+        for arg in msg_spec.args() {
+            let name = arg.label().to_string();
+            let value = self.transcoder.decode(arg.ty().ty().id(), data)?;
+            args.push((Value::String(name), value));
+        }
+
+        let name = msg_spec.label().to_string();
+        let map = Map::new(Some(&name), args.into_iter().collect());
+
+        Ok(Value::Map(map))
+    }
+
+    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+        let msg_spec = self.find_message_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find message spec with name '{}'", name)
+        })?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
             self.transcoder.decode(return_ty.ty().id(), data)
         } else {
@@ -245,12 +318,14 @@ impl CompositeTypeFields {
         } else if fields.iter().all(|f| f.name().is_some()) {
             let fields = fields
                 .iter()
-                .map(|field| CompositeTypeNamedField {
-                    name: field
-                        .name()
-                        .expect("All fields have a name; qed")
-                        .to_owned(),
-                    field: field.clone(),
+                .map(|field| {
+                    CompositeTypeNamedField {
+                        name: field
+                            .name()
+                            .expect("All fields have a name; qed")
+                            .to_owned(),
+                        field: field.clone(),
+                    }
                 })
                 .collect();
             Ok(Self::Named(fields))
@@ -388,6 +463,17 @@ mod tests {
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_contract_message() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded_bytes = hex::decode("633aa551").unwrap();
+        let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
 
         Ok(())
     }
