@@ -7,8 +7,8 @@
 
 stages:
   - check
-  - build
   - test
+  - build
 
 variables:
   GIT_STRATEGY:                    fetch
@@ -110,7 +110,7 @@ test:
   stage:                           test
   <<:                              *docker-env
   script:
-    - cargo test --release --verbose --workspace --all-features
+    - cargo test --verbose --workspace --all-features
 
 test-new-project-template:
   stage:                           test
