@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `decode` command for event, message and constructor data decoding - [#481](https://github.com/paritytech/cargo-contract/pull/481)
 
+### Fixed
+- Fix usage of `check-only` and remove need for `FromStr` impl - [#499](https://github.com/paritytech/cargo-contract/pull/499)
+
 ## [1.1.1] - 2022-04-05
 
 ### Fixed
