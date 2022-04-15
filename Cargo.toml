@@ -35,7 +35,7 @@ cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.2.5"
 colored = "2.0.0"
-toml = "0.5.8"
+toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
 contract-metadata = { version = "0.6.0", path = "./metadata" }
