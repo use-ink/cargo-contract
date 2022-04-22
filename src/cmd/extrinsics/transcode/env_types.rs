@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::scon::Value;
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result
+};
 use scale::{
     Decode,
     Encode,
@@ -68,7 +71,8 @@ impl EnvTypesTranscoder {
         match self.transcoders.get(&type_id) {
             Some(transcoder) => {
                 log::debug!("Encoding type {:?} with custom encoder", type_id);
-                let encoded_env_type = transcoder.encode_value(value)?;
+                let encoded_env_type = transcoder.encode_value(value)
+                    .context("Error encoding custom type")?;
                 output.write(&encoded_env_type);
                 Ok(true)
             }

@@ -202,6 +202,7 @@ impl<'a> Exec<'a> {
     }
 
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
+        log::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
             match result.result {
@@ -336,7 +337,8 @@ impl<'a> Exec<'a> {
         };
         let params = rpc_params![call_request];
         let result: ContractInstantiateResult =
-            cli.request("contracts_instantiate", params).await?;
+            cli.request("contracts_instantiate", params).await
+                .context("contracts_instantiate RPC error")?;
         Ok(result)
     }
 }
