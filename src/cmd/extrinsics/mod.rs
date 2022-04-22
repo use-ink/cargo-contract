@@ -21,10 +21,6 @@ mod runtime_api;
 mod transcode;
 mod upload;
 
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-mod integration_tests;
-
 use anyhow::{
     anyhow,
     Context,
