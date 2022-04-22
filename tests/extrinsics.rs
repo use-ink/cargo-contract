@@ -167,6 +167,8 @@ async fn build_upload_instantiate_call() {
     log::info!("Building contract in {}", project_path.to_string_lossy());
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release")
+        .arg("--skip-linting")
         .assert()
         .success();
 
