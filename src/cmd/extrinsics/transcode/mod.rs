@@ -454,7 +454,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_ids_vec",
-            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY]"],
+            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
         )?;
 
         // encoded args follow the 4 byte selector
@@ -466,7 +466,7 @@ mod tests {
             )
             .unwrap(),
             sp_core::crypto::AccountId32::from_str(
-                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
             )
             .unwrap(),
         ];

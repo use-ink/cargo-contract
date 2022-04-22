@@ -134,12 +134,16 @@ mod tests {
         super::scon::{
             self,
             Map,
+            Seq,
             Tuple,
             Value,
         },
         *,
     };
-    use crate::cmd::extrinsics::transcode;
+    use crate::cmd::extrinsics::{
+        transcode,
+        transcode::scon::Bytes,
+    };
     use scale::Encode;
     use scale_info::{
         MetaType,
@@ -601,6 +605,34 @@ mod tests {
                 ]
                 .into_iter()
                 .collect(),
+            )),
+        )
+    }
+
+    #[test]
+    fn transcode_account_id_custom_ss58_encoding_seq() -> Result<()> {
+        transcode_roundtrip::<Vec<sp_runtime::AccountId32>>(
+            r#"[
+                5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
+                5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
+             ]"#,
+            Value::Seq(Seq::new(
+                vec![
+                    Value::Tuple(
+                        Tuple::new(
+                            Some("AccountId32"),
+                            vec![Value::Bytes(Bytes::from_hex_string("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").unwrap())]
+                        )
+                    ),
+                    Value::Tuple(
+                        Tuple::new(
+                            Some("AccountId32"),
+                            vec![Value::Bytes(Bytes::from_hex_string("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").unwrap())]
+                        )
+                    )
+                ]
+                    .into_iter()
+                    .collect(),
             )),
         )
     }

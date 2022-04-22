@@ -80,40 +80,30 @@ impl<'a> Encoder<'a> {
             ty.type_def(),
         );
         if !self.env_types.try_encode(type_id, value, output)? {
-            self.encode_type(ty.type_def(), value, output)
-                .map_err(|e| {
-                    anyhow::anyhow!("Error encoding value for {:?}: {}", ty, e)
-                })?
+            match ty.type_def() {
+                TypeDef::Composite(composite) => {
+                    self.encode_composite(composite.fields(), value, output)
+                }
+                TypeDef::Variant(variant) => {
+                    self.encode_variant_type(variant, value, output)
+                }
+                TypeDef::Array(array) => {
+                    self.encode_seq(array.type_param(), value, false, output)
+                }
+                TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
+                TypeDef::Sequence(sequence) => {
+                    self.encode_seq(sequence.type_param(), value, true, output)
+                }
+                TypeDef::Primitive(primitive) => {
+                    self.encode_primitive(primitive, value, output)
+                }
+                TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
+                TypeDef::BitSequence(_) => {
+                    Err(anyhow::anyhow!("bitvec encoding not yet supported"))
+                }
+            }?;
         }
         Ok(())
-    }
-
-    fn encode_type<O: Output + Debug>(
-        &self,
-        type_def: &TypeDef<PortableForm>,
-        value: &Value,
-        output: &mut O,
-    ) -> Result<()> {
-        match type_def {
-            TypeDef::Composite(composite) => {
-                self.encode_composite(composite.fields(), value, output)
-            }
-            TypeDef::Variant(variant) => self.encode_variant_type(variant, value, output),
-            TypeDef::Array(array) => {
-                self.encode_seq(array.type_param(), value, false, output)
-            }
-            TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
-            TypeDef::Sequence(sequence) => {
-                self.encode_seq(sequence.type_param(), value, true, output)
-            }
-            TypeDef::Primitive(primitive) => {
-                self.encode_primitive(primitive, value, output)
-            }
-            TypeDef::Compact(compact) => self.encode_compact(compact, value, output),
-            TypeDef::BitSequence(_) => {
-                Err(anyhow::anyhow!("bitvec encoding not yet supported"))
-            }
-        }
     }
 
     fn encode_composite<O: Output + Debug>(
@@ -249,16 +239,13 @@ impl<'a> Encoder<'a> {
         encode_len: bool,
         output: &mut O,
     ) -> Result<()> {
-        let ty = self.registry.resolve(ty.id()).ok_or_else(|| {
-            anyhow::anyhow!("Failed to find type with id '{}'", ty.id())
-        })?;
         match value {
             Value::Seq(values) => {
                 if encode_len {
                     Compact(values.len() as u32).encode_to(output);
                 }
                 for value in values.elems() {
-                    self.encode_type(ty.type_def(), value, output)?;
+                    self.encode(ty.id(), value, output)?;
                 }
             }
             Value::Bytes(bytes) => {
