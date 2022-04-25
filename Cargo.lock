@@ -497,7 +497,7 @@ dependencies = [
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "parity-wasm",
- "platforms 2.0.0",
+ "platforms 3.0.0",
  "predicates",
  "pretty_assertions",
  "regex",
@@ -2313,9 +2313,9 @@ checksum = "989d43012e2ca1c4a02507c67282691a0a3207f9dc67cec596b43fe925b3d325"
 
 [[package]]
 name = "platforms"
-version = "2.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8d0eef3571242013a0d5dc84861c3ae4a652e56e12adf8bdc26ff5f8cb34c94"
+checksum = "86d1db500905601725f5c3629a5815a2ce7611fe063de279964b451f3edb3532"
 
 [[package]]
 name = "polling"
