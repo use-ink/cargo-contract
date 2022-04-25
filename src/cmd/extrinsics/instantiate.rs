@@ -336,9 +336,10 @@ impl<'a> Exec<'a> {
             salt: self.args.salt.clone(),
         };
         let params = rpc_params![call_request];
-        let result: ContractInstantiateResult =
-            cli.request("contracts_instantiate", params).await
-                .context("contracts_instantiate RPC error")?;
+        let result: ContractInstantiateResult = cli
+            .request("contracts_instantiate", params)
+            .await
+            .context("contracts_instantiate RPC error")?;
         Ok(result)
     }
 }
