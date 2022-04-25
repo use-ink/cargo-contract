@@ -71,7 +71,7 @@ anyhow = "1.0.57"
 zip = { version = "0.6.2", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
-platforms = "2.0.0"
+current_platform = "0.2.0"
 which = "4.2.5"
 regex = "1.5.5"
 
