@@ -349,9 +349,9 @@ mod tests {
     use ink_lang as ink;
 
     #[ink::contract]
-    pub mod flipper {
+    pub mod transcode {
         #[ink(storage)]
-        pub struct Flipper {
+        pub struct Transcode {
             value: bool,
         }
 
@@ -363,35 +363,40 @@ mod tests {
             from: AccountId,
         }
 
-        impl Flipper {
-            /// Creates a new flipper smart contract initialized with the given value.
+        impl Transcode {
             #[ink(constructor)]
             pub fn new(init_value: bool) -> Self {
                 Self { value: init_value }
             }
 
-            /// Creates a new flipper smart contract initialized to `false`.
             #[ink(constructor)]
             pub fn default() -> Self {
                 Self::new(Default::default())
             }
 
-            /// Flips the current value of the Flipper's bool.
             #[ink(message)]
             pub fn flip(&mut self) {
                 self.value = !self.value;
             }
 
-            /// Returns the current value of the Flipper's bool.
             #[ink(message)]
             pub fn get(&self) -> bool {
                 self.value
             }
 
-            /// Dummy setter which receives the env type AccountId.
             #[ink(message)]
             pub fn set_account_id(&self, account_id: AccountId) {
                 let _ = account_id;
+            }
+
+            #[ink(message)]
+            pub fn set_account_ids_vec(&self, account_ids: Vec<AccountId>) {
+                let _ = account_ids;
+            }
+
+            #[ink(message)]
+            pub fn primitive_vec_args(&self, args: Vec<u32>) {
+                let _ = args;
             }
         }
     }
@@ -438,6 +443,48 @@ mod tests {
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
         )
         .unwrap();
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_account_ids_vec_args() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode(
+            "set_account_ids_vec",
+            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = vec![
+            sp_core::crypto::AccountId32::from_str(
+                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            )
+            .unwrap(),
+            sp_core::crypto::AccountId32::from_str(
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            )
+            .unwrap(),
+        ];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_primitive_vec_args() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = vec![1, 2];
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }
