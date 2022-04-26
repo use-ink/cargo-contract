@@ -476,6 +476,7 @@ dependencies = [
  "clap",
  "colored",
  "contract-metadata",
+ "current_platform",
  "env_logger",
  "escape8259",
  "futures",
@@ -497,7 +498,6 @@ dependencies = [
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "parity-wasm",
- "platforms 2.0.0",
  "predicates",
  "pretty_assertions",
  "regex",
@@ -747,6 +747,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "current_platform"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a74858bcfe44b22016cb49337d7b6f04618c58e5dbfdef61b06b8c434324a0bc"
 
 [[package]]
 name = "curve25519-dalek"
@@ -2312,12 +2318,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "989d43012e2ca1c4a02507c67282691a0a3207f9dc67cec596b43fe925b3d325"
 
 [[package]]
-name = "platforms"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8d0eef3571242013a0d5dc84861c3ae4a652e56e12adf8bdc26ff5f8cb34c94"
-
-[[package]]
 name = "polling"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3364,7 +3364,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd540ba72520174c2c73ce96bf507eeba3cc8a481f58be92525b69110e1fa645"
 dependencies = [
- "platforms 1.1.0",
+ "platforms",
 ]
 
 [[package]]

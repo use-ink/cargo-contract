@@ -39,11 +39,6 @@ use zip::{
     ZipWriter,
 };
 
-use platforms::{
-    TARGET_ARCH,
-    TARGET_ENV,
-    TARGET_OS,
-};
 use substrate_build_script_utils::rerun_if_git_head_changed;
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;
@@ -407,19 +402,7 @@ fn get_version(impl_commit: &str) -> String {
         std::env::var("CARGO_PKG_VERSION").unwrap_or_default(),
         commit_dash,
         impl_commit,
-        get_platform(),
-    )
-}
-
-fn get_platform() -> String {
-    let env_dash = if TARGET_ENV.is_some() { "-" } else { "" };
-
-    format!(
-        "{}-{}{}{}",
-        TARGET_ARCH.as_str(),
-        TARGET_OS.as_str(),
-        env_dash,
-        TARGET_ENV.map(|x| x.as_str()).unwrap_or(""),
+        current_platform::CURRENT_PLATFORM,
     )
 }
 
