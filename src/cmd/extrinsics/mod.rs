@@ -51,6 +51,7 @@ use sp_core::{
 use subxt::{
     Config,
     DefaultConfig,
+    HasModuleError as _,
 };
 
 pub use self::transcode::ContractMessageTranscoder;
@@ -228,4 +229,28 @@ where
         .wait_for_success()
         .await
         .map_err(Into::into)
+}
+
+/// Extract and display error details for an RPC `--dry-run` result.
+async fn display_dry_run_error_details(
+    api: &RuntimeApi,
+    error: &RuntimeDispatchError,
+) -> Result<()> {
+    let error = if let Some(error_data) = error.module_error_data()
+    {
+        let details = api
+            .client
+            .metadata()
+            .error(error_data.pallet_index, error_data.error_index())?;
+        format!(
+            "ModuleError: {}::{}: {:?}",
+            details.pallet(),
+            details.error(),
+            details.description()
+        )
+    } else {
+        format!("Error: {:?}", error)
+    };
+    name_value_println!("Result", error, EXEC_RESULT_MAX_KEY_COL_WIDTH);
+    Ok(())
 }

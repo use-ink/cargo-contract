@@ -19,7 +19,13 @@
     derive_for_type(type = "sp_runtime::DispatchError", derive = "::serde::Deserialize"),
     derive_for_type(type = "sp_runtime::ModuleError", derive = "::serde::Deserialize"),
     derive_for_type(type = "sp_runtime::TokenError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ArithmeticError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::TransactionalError", derive = "::serde::Deserialize"),
+    derive_for_type(
+        type = "sp_runtime::ArithmeticError",
+        derive = "::serde::Deserialize"
+    ),
+    derive_for_type(
+        type = "sp_runtime::TransactionalError",
+        derive = "::serde::Deserialize"
+    )
 )]
 pub mod api {}

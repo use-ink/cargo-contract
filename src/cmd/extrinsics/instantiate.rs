@@ -16,10 +16,10 @@
 
 use super::{
     display_contract_exec_result,
+    display_dry_run_error_details,
     display_events,
     parse_balance,
     runtime_api::api,
-    runtime_api::api::runtime_types::sp_runtime::DispatchError,
     wait_for_success_and_handle_error,
     Balance,
     CodeHash,
@@ -28,6 +28,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
+    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -45,7 +46,10 @@ use jsonrpsee::{
     rpc_params,
     ws_client::WsClientBuilder,
 };
-use pallet_contracts_primitives::{ContractResult, InstantiateReturnValue};
+use pallet_contracts_primitives::{
+    ContractResult,
+    InstantiateReturnValue,
+};
 use serde::Serialize;
 use sp_core::{
     crypto::Ss58Codec,
@@ -66,7 +70,10 @@ use subxt::{
     DefaultConfig,
 };
 
-type ContractInstantiateResult = ContractResult<result::Result<InstantiateReturnValue<ContractAccount>, DispatchError>, Balance>;
+type ContractInstantiateResult = ContractResult<
+    result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
+    Balance,
+>;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -231,22 +238,7 @@ impl<'a> Exec<'a> {
                     );
                 }
                 Err(ref err) => {
-                    let error =
-                        if let Some(error_data) = subxt::HasModuleError::module_error_data(err) {
-                            let api = self.subxt_api().await?;
-                            let details = api
-                                .client
-                                .metadata()
-                                .error(error_data.pallet_index, error_data.error_index())?;
-                            format!("ModuleError: {}::{}: {:?}", details.pallet(), details.error(), details.description())
-                        } else {
-                            format!("Error: {:?}", err)
-                        };
-                    name_value_println!(
-                        "Result",
-                        error,
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
-                    );
+                    display_dry_run_error_details(&self.subxt_api().await?, err).await?;
                 }
             }
             display_contract_exec_result(&result)?;
