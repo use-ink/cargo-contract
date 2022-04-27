@@ -16,6 +16,7 @@
 
 use super::{
     display_contract_exec_result,
+    display_dry_run_error_details,
     display_events,
     load_metadata,
     parse_balance,
@@ -25,6 +26,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
+    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::name_value_println;
@@ -34,9 +36,16 @@ use jsonrpsee::{
     rpc_params,
     ws_client::WsClientBuilder,
 };
+use pallet_contracts_primitives::{
+    ContractResult,
+    ExecReturnValue,
+};
 use serde::Serialize;
 use sp_core::Bytes;
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    result,
+};
 use subxt::{
     rpc::NumberOrHex,
     ClientBuilder,
@@ -44,7 +53,8 @@ use subxt::{
     DefaultConfig,
 };
 
-type ContractExecResult = pallet_contracts_primitives::ContractExecResult<Balance>;
+type ContractExecResult =
+    ContractResult<result::Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -79,16 +89,24 @@ impl CallCommand {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         async_std::task::block_on(async {
+            let url = self.extrinsic_opts.url.to_string();
+            let api = ClientBuilder::new()
+                .set_url(&url)
+                .build()
+                .await?
+                .to_runtime_api::<RuntimeApi>();
+
             if self.extrinsic_opts.dry_run {
-                self.call_rpc(call_data, &signer, &transcoder).await
+                self.call_rpc(&api, call_data, &signer, &transcoder).await
             } else {
-                self.call(call_data, &signer, &transcoder).await
+                self.call(&api, call_data, &signer, &transcoder).await
             }
         })
     }
 
     async fn call_rpc(
         &self,
+        api: &RuntimeApi,
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
@@ -131,12 +149,8 @@ impl CallCommand {
                     EXEC_RESULT_MAX_KEY_COL_WIDTH
                 );
             }
-            Err(err) => {
-                name_value_println!(
-                    "Result",
-                    format!("Error: {:?}", err),
-                    EXEC_RESULT_MAX_KEY_COL_WIDTH
-                );
+            Err(ref err) => {
+                display_dry_run_error_details(api, err).await?;
             }
         }
         display_contract_exec_result(&result)?;
@@ -145,17 +159,11 @@ impl CallCommand {
 
     async fn call(
         &self,
+        api: &RuntimeApi,
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
-        let url = self.extrinsic_opts.url.to_string();
-        let api = ClientBuilder::new()
-            .set_url(&url)
-            .build()
-            .await?
-            .to_runtime_api::<RuntimeApi>();
-
         log::debug!("calling contract {:?}", self.contract);
         let tx_progress = api
             .tx()
