@@ -236,8 +236,7 @@ async fn display_dry_run_error_details(
     api: &RuntimeApi,
     error: &RuntimeDispatchError,
 ) -> Result<()> {
-    let error = if let Some(error_data) = error.module_error_data()
-    {
+    let error = if let Some(error_data) = error.module_error_data() {
         let details = api
             .client
             .metadata()

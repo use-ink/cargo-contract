@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    display_dry_run_error_details,
     display_events,
     runtime_api::api,
     wait_for_success_and_handle_error,
@@ -24,6 +25,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
+    RuntimeDispatchError,
 };
 use crate::name_value_println;
 use anyhow::{
@@ -40,6 +42,7 @@ use sp_core::Bytes;
 use std::{
     fmt::Debug,
     path::PathBuf,
+    result,
 };
 use subxt::{
     rpc::NumberOrHex,
@@ -48,7 +51,7 @@ use subxt::{
     DefaultConfig,
 };
 
-type CodeUploadResult = pallet_contracts_primitives::CodeUploadResult<CodeHash, Balance>;
+type CodeUploadResult = result::Result<CodeUploadReturnValue, RuntimeDispatchError>;
 type CodeUploadReturnValue =
     pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
@@ -79,15 +82,30 @@ impl UploadCommand {
             .context(format!("Failed to read from {}", wasm_path.display()))?;
 
         async_std::task::block_on(async {
+            let url = self.extrinsic_opts.url.to_string();
+            let api = ClientBuilder::new()
+                .set_url(&url)
+                .build()
+                .await?
+                .to_runtime_api::<RuntimeApi>();
+
             if self.extrinsic_opts.dry_run {
-                let result = self.upload_code_rpc(code, &signer).await?;
-
-                name_value_println!("Code hash", format!("{:?}", result.code_hash));
-                name_value_println!("Deposit", format!("{:?}", result.deposit));
-
+                match self.upload_code_rpc(code, &signer).await? {
+                    Ok(result) => {
+                        name_value_println!(
+                            "Code hash",
+                            format!("{:?}", result.code_hash)
+                        );
+                        name_value_println!("Deposit", format!("{:?}", result.deposit));
+                    }
+                    Err(err) => {
+                        display_dry_run_error_details(&api, &err).await?;
+                    }
+                }
                 Ok(())
             } else {
-                let code_stored = self.upload_code(code, &signer, &transcoder).await?;
+                let code_stored =
+                    self.upload_code(&api, code, &signer, &transcoder).await?;
 
                 name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
 
@@ -100,7 +118,7 @@ impl UploadCommand {
         &self,
         code: Vec<u8>,
         signer: &PairSigner,
-    ) -> Result<CodeUploadReturnValue> {
+    ) -> Result<CodeUploadResult> {
         let url = self.extrinsic_opts.url.to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
@@ -115,25 +133,21 @@ impl UploadCommand {
         };
         let params = rpc_params!(call_request);
 
-        let result: CodeUploadResult =
-            cli.request("contracts_upload_code", params).await?;
+        let result: CodeUploadResult = cli
+            .request("contracts_upload_code", params)
+            .await
+            .context("contracts_upload_code RPC error")?;
 
-        result.map_err(|e| anyhow::anyhow!("Failed to execute call via rpc: {:?}", e))
+        Ok(result)
     }
 
     async fn upload_code(
         &self,
+        api: &RuntimeApi,
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<api::contracts::events::CodeStored> {
-        let url = self.extrinsic_opts.url.to_string();
-        let api = ClientBuilder::new()
-            .set_url(&url)
-            .build()
-            .await?
-            .to_runtime_api::<RuntimeApi>();
-
         let tx_progress = api
             .tx()
             .contracts()
