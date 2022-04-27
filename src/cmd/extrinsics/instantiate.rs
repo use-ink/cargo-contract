@@ -231,9 +231,20 @@ impl<'a> Exec<'a> {
                     );
                 }
                 Err(ref err) => {
+                    let error =
+                        if let Some(error_data) = subxt::HasModuleError::module_error_data(err) {
+                            let api = self.subxt_api().await?;
+                            let details = api
+                                .client
+                                .metadata()
+                                .error(error_data.pallet_index, error_data.error_index())?;
+                            format!("ModuleError: {}::{}: {:?}", details.pallet(), details.error(), details.description())
+                        } else {
+                            format!("Error: {:?}", err)
+                        };
                     name_value_println!(
                         "Result",
-                        format!("Error: {:?}", err),
+                        error,
                         EXEC_RESULT_MAX_KEY_COL_WIDTH
                     );
                 }
@@ -342,6 +353,7 @@ impl<'a> Exec<'a> {
             .request("contracts_instantiate", params)
             .await
             .context("contracts_instantiate RPC error")?;
+
         Ok(result)
     }
 }
