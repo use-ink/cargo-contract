@@ -19,6 +19,7 @@ use super::{
     display_events,
     parse_balance,
     runtime_api::api,
+    runtime_api::api::runtime_types::sp_runtime::DispatchError,
     wait_for_success_and_handle_error,
     Balance,
     CodeHash,
@@ -44,6 +45,7 @@ use jsonrpsee::{
     rpc_params,
     ws_client::WsClientBuilder,
 };
+use pallet_contracts_primitives::{ContractResult, InstantiateReturnValue};
 use serde::Serialize;
 use sp_core::{
     crypto::Ss58Codec,
@@ -55,6 +57,7 @@ use std::{
         Path,
         PathBuf,
     },
+    result,
 };
 use subxt::{
     rpc::NumberOrHex,
@@ -63,8 +66,7 @@ use subxt::{
     DefaultConfig,
 };
 
-type ContractInstantiateResult =
-    pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
+type ContractInstantiateResult = ContractResult<result::Result<InstantiateReturnValue<ContractAccount>, DispatchError>, Balance>;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -228,7 +230,7 @@ impl<'a> Exec<'a> {
                         EXEC_RESULT_MAX_KEY_COL_WIDTH
                     );
                 }
-                Err(err) => {
+                Err(ref err) => {
                     name_value_println!(
                         "Result",
                         format!("Error: {:?}", err),
