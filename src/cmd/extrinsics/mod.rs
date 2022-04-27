@@ -232,10 +232,10 @@ where
 }
 
 /// Extract and display error details for an RPC `--dry-run` result.
-async fn display_dry_run_error_details(
+async fn dry_run_error_details(
     api: &RuntimeApi,
     error: &RuntimeDispatchError,
-) -> Result<()> {
+) -> Result<String> {
     let error = if let Some(error_data) = error.module_error_data() {
         let details = api
             .client
@@ -248,8 +248,7 @@ async fn display_dry_run_error_details(
             details.description()
         )
     } else {
-        format!("Error: {:?}", error)
+        format!("{:?}", error)
     };
-    name_value_println!("Result", error, EXEC_RESULT_MAX_KEY_COL_WIDTH);
-    Ok(())
+    Ok(error)
 }

@@ -16,8 +16,8 @@
 
 use super::{
     display_contract_exec_result,
-    display_dry_run_error_details,
     display_events,
+    dry_run_error_details,
     load_metadata,
     parse_balance,
     wait_for_success_and_handle_error,
@@ -150,7 +150,8 @@ impl CallCommand {
                 );
             }
             Err(ref err) => {
-                display_dry_run_error_details(api, err).await?;
+                let err = dry_run_error_details(&api, err).await?;
+                name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
         }
         display_contract_exec_result(&result)?;

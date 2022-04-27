@@ -16,8 +16,8 @@
 
 use super::{
     display_contract_exec_result,
-    display_dry_run_error_details,
     display_events,
+    dry_run_error_details,
     parse_balance,
     runtime_api::api,
     wait_for_success_and_handle_error,
@@ -238,7 +238,9 @@ impl<'a> Exec<'a> {
                     );
                 }
                 Err(ref err) => {
-                    display_dry_run_error_details(&self.subxt_api().await?, err).await?;
+                    let err =
+                        dry_run_error_details(&self.subxt_api().await?, err).await?;
+                    name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)?;

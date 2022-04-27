@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_dry_run_error_details,
     display_events,
+    dry_run_error_details,
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
@@ -92,6 +92,7 @@ impl UploadCommand {
             if self.extrinsic_opts.dry_run {
                 match self.upload_code_rpc(code, &signer).await? {
                     Ok(result) => {
+                        name_value_println!("Result", String::from("Success!"));
                         name_value_println!(
                             "Code hash",
                             format!("{:?}", result.code_hash)
@@ -99,7 +100,8 @@ impl UploadCommand {
                         name_value_println!("Deposit", format!("{:?}", result.deposit));
                     }
                     Err(err) => {
-                        display_dry_run_error_details(&api, &err).await?;
+                        let err = dry_run_error_details(&api, &err).await?;
+                        name_value_println!("Result", err);
                     }
                 }
                 Ok(())
