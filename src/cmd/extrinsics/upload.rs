@@ -153,7 +153,7 @@ impl UploadCommand {
         let tx_progress = api
             .tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit)
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit)?
             .sign_and_submit_then_watch_default(signer)
             .await?;
 

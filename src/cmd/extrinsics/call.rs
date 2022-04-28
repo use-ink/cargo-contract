@@ -150,7 +150,7 @@ impl CallCommand {
                 );
             }
             Err(ref err) => {
-                let err = dry_run_error_details(&api, err).await?;
+                let err = dry_run_error_details(api, err).await?;
                 name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
         }
@@ -175,7 +175,7 @@ impl CallCommand {
                 self.gas_limit,
                 self.extrinsic_opts.storage_deposit_limit,
                 data,
-            )
+            )?
             .sign_and_submit_then_watch_default(signer)
             .await?;
 

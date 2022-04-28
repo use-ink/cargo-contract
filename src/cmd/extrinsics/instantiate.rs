@@ -277,7 +277,7 @@ impl<'a> Exec<'a> {
                 code.to_vec(),
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
@@ -309,7 +309,7 @@ impl<'a> Exec<'a> {
                 code_hash,
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
