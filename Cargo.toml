@@ -55,7 +55,7 @@ scale-info = { version = "2.1.1", default-features = false, features = ["derive"
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
-subxt = { git = "https://github.com/paritytech/subxt", branch = "aj/specific-type-derive" }
+subxt = { git = "https://github.com/paritytech/subxt", branch = "master" }
 futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.11.0", features = ["ws-client"] }
