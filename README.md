@@ -49,6 +49,8 @@ More relevant links:
   There's only an old version in your distributions package manager? Just use a 
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
+* Step 2b (MacOS): `brew install openssl`
+
 * Step 3: `cargo install cargo-dylint dylint-link`.
 
 * Step 4: `cargo install --force cargo-contract`.
