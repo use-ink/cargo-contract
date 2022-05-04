@@ -23,7 +23,7 @@ use super::{
         PathKey,
         TypesByPath,
     },
-    scon::Value,
+    scon::{Value, Hex},
 };
 
 use anyhow::Result;
@@ -35,6 +35,7 @@ use scale_info::{
 use std::{
     collections::HashMap,
     fmt::Debug,
+    str::FromStr,
 };
 
 /// Encode strings to SCALE encoded output.
@@ -261,15 +262,15 @@ mod tests {
     fn transcode_byte_array() -> Result<()> {
         transcode_roundtrip::<[u8; 2]>(
             r#"0x0000"#,
-            Value::Bytes(vec![0x00, 0x00].into()),
+            Value::Seq(vec![Value::UInt(0x00), Value::UInt(0x00)].into()),
         )?;
         transcode_roundtrip::<[u8; 4]>(
             r#"0xDEADBEEF"#,
-            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+            Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
         )?;
         transcode_roundtrip::<[u8; 4]>(
             r#"0xdeadbeef"#,
-            Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+            Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
         )
     }
 
@@ -318,7 +319,7 @@ mod tests {
                 vec![
                     Value::UInt(1),
                     Value::String("ink!".to_string()),
-                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
                 ],
             )),
         )
@@ -347,7 +348,7 @@ mod tests {
                     ),
                     (
                         Value::String("c".to_string()),
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
                     ),
                     (
                         Value::String("d".to_string()),
@@ -361,7 +362,7 @@ mod tests {
                                     ),
                                     (
                                         Value::String("c".to_string()),
-                                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
                                     ),
                                     (
                                         Value::String("d".to_string()),
@@ -436,7 +437,7 @@ mod tests {
                     ),
                     (
                         Value::String("c".to_string()),
-                        Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
                     ),
                 ]
                 .into_iter()
@@ -458,7 +459,7 @@ mod tests {
                 vec![
                     Value::UInt(1),
                     Value::String("ink!".to_string()),
-                    Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into()),
+                    Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
                 ],
             )),
         )
@@ -474,7 +475,7 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 Some("S"),
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())],
+                vec![Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into())],
             )),
         )
     }
@@ -485,7 +486,7 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 None,
-                vec![Value::Bytes(vec![0xDE, 0xAD, 0xBE, 0xEF].into())],
+                vec![Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into())],
             )),
         )
     }
@@ -618,13 +619,13 @@ mod tests {
                     Value::Tuple(
                         Tuple::new(
                             Some("AccountId32"),
-                            vec![Value::Hex("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d".to_string())]
+                            vec![Value::Hex(Hex::from_str("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")?)]
                         )
                     ),
                     Value::Tuple(
                         Tuple::new(
                             Some("AccountId32"),
-                            vec![Value::Hex("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48".unwrap())]
+                            vec![Value::Hex(Hex::from_str("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")?)]
                         )
                     )
                 ]

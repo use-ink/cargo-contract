@@ -603,10 +603,10 @@ mod tests {
 
     #[test]
     fn test_bytes() {
-        assert_scon_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
+        assert_scon_value("0x0000", Value::Hex(Hex::from_str("0x0000").unwrap()));
         assert_scon_value(
-            r#"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"#,
-            Value::Bytes(vec![255u8; 23].into()),
+            "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            Value::Hex(Hex::from_str("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF").unwrap()),
         );
     }
 }
