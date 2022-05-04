@@ -762,15 +762,15 @@ mod tests {
         struct S(u8, u16, u32, u64, u128);
 
         transcode_roundtrip::<S>(
-            r#"S (0xDEu8, 0xDEADu16, 0xDEADBEEFu32, 0xDEADBEEF12345678u64, 0xDEADBEEF0123456789ABCDEF01234567u128)"#,
+            r#"S (0xDE, 0xDEAD, 0xDEADBEEF, 0xDEADBEEF12345678, 0xDEADBEEF0123456789ABCDEF01234567)"#,
             Value::Tuple(Tuple::new(
                 Some("S"),
                 vec![
-                    Value::Hex(Hex::from_str("0xDE")?),
-                    Value::Hex(Hex::from_str("0xDEAD")?),
-                    Value::Hex(Hex::from_str("0xDEADBEEF")?),
-                    Value::Hex(Hex::from_str("0xDEADBEEF12345678")?),
-                    Value::Hex(Hex::from_str("0xDEADBEEF0123456789ABCDEF01234567")?),
+                    Value::UInt(0xDE),
+                    Value::UInt(0xDEAD),
+                    Value::UInt(0xDEADBEEF),
+                    Value::UInt(0xDEADBEEF12345678),
+                    Value::UInt(0xDEADBEEF0123456789ABCDEF01234567),
                 ]
                 .into_iter()
                 .collect(),
