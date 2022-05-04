@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    Bytes,
+    Hex,
     Map,
     Seq,
     Tuple,
@@ -43,7 +43,7 @@ impl<'a> Debug for DisplayValue<'a> {
             Value::Tuple(tuple) => <DisplayTuple as Debug>::fmt(&DisplayTuple(tuple), f),
             Value::String(string) => <String as Display>::fmt(string, f),
             Value::Seq(seq) => <DisplaySeq as Debug>::fmt(&DisplaySeq(seq), f),
-            Value::Bytes(bytes) => <Bytes as Debug>::fmt(bytes, f),
+            Value::Hex(hex) => <Hex as Debug>::fmt(hex, f),
             Value::Literal(literal) => <String as Display>::fmt(literal, f),
             Value::Unit => write!(f, "()"),
         }
@@ -107,13 +107,13 @@ impl<'a> Debug for DisplaySeq<'a> {
     }
 }
 
-impl Debug for Bytes {
+impl Debug for Hex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{:#x}", self)
     }
 }
 
-impl LowerHex for Bytes {
+impl LowerHex for Hex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if f.alternate() {
             write!(f, "0x{}", hex::encode(&self.bytes))

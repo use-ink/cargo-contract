@@ -161,9 +161,9 @@ impl CustomTypeTranscoder for AccountId {
                     )
                 })?
             }
-            Value::Bytes(bytes) => {
-                AccountId32::try_from(bytes.bytes()).map_err(|_| {
-                    anyhow::anyhow!("Error converting bytes `{:?}` to AccountId", bytes)
+            Value::Hex(hex) => {
+                AccountId32::try_from(hex.bytes()).map_err(|_| {
+                    anyhow::anyhow!("Error converting hex bytes `{:?}` to AccountId", hex.bytes())
                 })?
             }
             _ => {

@@ -15,11 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    Bytes,
+    Hex,
     Map,
     Tuple,
     Value,
 };
+use std::str::FromStr as _;
 use escape8259::unescape;
 use nom::{
     branch::alt,
@@ -64,7 +65,7 @@ pub fn parse_value(input: &str) -> anyhow::Result<Value> {
 fn scon_value(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     ws(alt((
         scon_unit,
-        scon_bytes,
+        scon_hex,
         scon_seq,
         scon_tuple,
         scon_map,
@@ -221,12 +222,12 @@ fn scon_map(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .parse(input)
 }
 
-fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
+fn scon_hex(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     tag("0x")
         .precedes(hex_digit1)
         .map_res::<_, _, hex::FromHexError>(|byte_str| {
-            let bytes = Bytes::from_hex_string(byte_str)?;
-            Ok(Value::Bytes(bytes))
+            let hex = Hex::from_str(byte_str)?;
+            Ok(Value::Hex(hex))
         })
         .parse(input)
 }

@@ -35,7 +35,9 @@ use std::{
         Index,
         IndexMut,
     },
+    str::FromStr,
 };
+use crate::util;
 
 pub use self::parse::parse_value;
 
@@ -49,7 +51,7 @@ pub enum Value {
     Tuple(Tuple),
     String(String),
     Seq(Seq),
-    Bytes(Bytes),
+    Hex(Hex),
     Literal(String),
     Unit,
 }
@@ -199,20 +201,23 @@ impl Seq {
 }
 
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Bytes {
+pub struct Hex {
+    s: String,
     bytes: Vec<u8>,
 }
 
-impl From<Vec<u8>> for Bytes {
-    fn from(bytes: Vec<u8>) -> Self {
-        Self { bytes }
+impl FromStr for Hex {
+    type Err = hex::FromHexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes = util::decode_hex(s)?;
+        Ok(Self { s: s.to_string(), bytes })
     }
 }
 
-impl Bytes {
-    pub fn from_hex_string(s: &str) -> Result<Self, hex::FromHexError> {
-        let bytes = crate::util::decode_hex(s)?;
-        Ok(Self { bytes })
+impl Hex {
+    pub fn as_str(&self) -> &str {
+        &self.s
     }
 
     pub fn bytes(&self) -> &[u8] {

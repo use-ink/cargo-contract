@@ -140,10 +140,7 @@ mod tests {
         },
         *,
     };
-    use crate::cmd::extrinsics::{
-        transcode,
-        transcode::scon::Bytes,
-    };
+    use crate::cmd::extrinsics::transcode;
     use scale::Encode;
     use scale_info::{
         MetaType,
@@ -621,13 +618,13 @@ mod tests {
                     Value::Tuple(
                         Tuple::new(
                             Some("AccountId32"),
-                            vec![Value::Bytes(Bytes::from_hex_string("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").unwrap())]
+                            vec![Value::Hex("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d".to_string())]
                         )
                     ),
                     Value::Tuple(
                         Tuple::new(
                             Some("AccountId32"),
-                            vec![Value::Bytes(Bytes::from_hex_string("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").unwrap())]
+                            vec![Value::Hex("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48".unwrap())]
                         )
                     )
                 ]

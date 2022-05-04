@@ -248,11 +248,11 @@ impl<'a> Encoder<'a> {
                     self.encode(ty.id(), value, output)?;
                 }
             }
-            Value::Bytes(bytes) => {
+            Value::Hex(hex) => {
                 if encode_len {
-                    Compact(bytes.bytes().len() as u32).encode_to(output);
+                    Compact(hex.bytes().len() as u32).encode_to(output);
                 }
-                for byte in bytes.bytes() {
+                for byte in hex.bytes() {
                     output.push_byte(*byte);
                 }
             }
@@ -410,7 +410,7 @@ impl<'a> Encoder<'a> {
 
 fn uint_from_value<T>(value: &Value, expected: &str) -> Result<T>
 where
-    T: TryFrom<u128> + FromStr,
+    T: TryFrom<u128> + TryFromHex + FromStr,
     <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
     <T as FromStr>::Err: Error + Send + Sync + 'static,
 {
@@ -422,6 +422,10 @@ where
         Value::String(s) => {
             let sanitized = s.replace(&['_', ','][..], "");
             let uint = T::from_str(&sanitized)?;
+            Ok(uint)
+        }
+        Value::Hex(hex) => {
+            let uint = T::try_from_hex(hex.as_str())?;
             Ok(uint)
         }
         _ => {
@@ -436,7 +440,7 @@ where
 
 fn encode_uint<T, O>(value: &Value, expected: &str, output: &mut O) -> Result<()>
 where
-    T: TryFrom<u128> + FromStr + Encode,
+    T: TryFrom<u128> + TryFromHex + FromStr + Encode,
     <T as TryFrom<u128>>::Error: Error + Send + Sync + 'static,
     <T as FromStr>::Err: Error + Send + Sync + 'static,
     O: Output,
@@ -479,3 +483,21 @@ where
     int.encode_to(output);
     Ok(())
 }
+
+/// Attempt to instantiate a type from its little-endian bytes representation.
+pub trait TryFromHex: Sized {
+    /// Create a new instance from the little-endian bytes representation.
+    fn try_from_hex(hex: &str) -> Result<Self>;
+}
+
+macro_rules! impl_try_from_hex {
+    ( $($ty:ident),* ) => { $(
+        impl TryFromHex for $ty {
+            fn try_from_hex(hex: &str) -> Result<Self> {
+                $ty::from_str_radix(hex, 16).map_err(Into::into)
+            }
+        }
+    )* }
+}
+
+impl_try_from_hex!(u8, u16, u32, u64, u128);
