@@ -210,11 +210,9 @@ impl FromStr for Hex {
     type Err = hex::FromHexError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = util::decode_hex(s)?;
-        Ok(Self {
-            s: s.to_string(),
-            bytes,
-        })
+        let s = s.trim_start_matches("0x").to_string();
+        let bytes = util::decode_hex(&s)?;
+        Ok(Self { s, bytes })
     }
 }
 
