@@ -23,10 +23,7 @@ use super::{
         PathKey,
         TypesByPath,
     },
-    scon::{
-        Hex,
-        Value,
-    },
+    scon::Value,
 };
 
 use anyhow::Result;
@@ -38,7 +35,6 @@ use scale_info::{
 use std::{
     collections::HashMap,
     fmt::Debug,
-    str::FromStr,
 };
 
 /// Encode strings to SCALE encoded output.
