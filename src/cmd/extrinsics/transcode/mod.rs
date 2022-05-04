@@ -400,7 +400,14 @@ mod tests {
             }
 
             #[ink(message)]
-            pub fn uint_args(&self, _u8: u8, _u16: u16, _u32: u32, _u64: u64, _u128: u128) {
+            pub fn uint_args(
+                &self,
+                _u8: u8,
+                _u16: u16,
+                _u32: u32,
+                _u64: u64,
+                _u128: u128,
+            ) {
             }
 
             #[ink(message)]
@@ -518,7 +525,8 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
-        let encoded = transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+        let encoded =
+            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];

@@ -21,6 +21,7 @@ mod parse;
 
 use indexmap::IndexMap;
 
+use crate::util;
 use std::{
     cmp::{
         Eq,
@@ -37,7 +38,6 @@ use std::{
     },
     str::FromStr,
 };
-use crate::util;
 
 pub use self::parse::parse_value;
 
@@ -211,7 +211,10 @@ impl FromStr for Hex {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bytes = util::decode_hex(s)?;
-        Ok(Self { s: s.to_string(), bytes })
+        Ok(Self {
+            s: s.to_string(),
+            bytes,
+        })
     }
 }
 

@@ -20,7 +20,6 @@ use super::{
     Tuple,
     Value,
 };
-use std::str::FromStr as _;
 use escape8259::unescape;
 use nom::{
     branch::alt,
@@ -54,6 +53,7 @@ use nom_supreme::{
     error::ErrorTree,
     ParserExt,
 };
+use std::str::FromStr as _;
 
 /// Attempt to parse a SCON value
 pub fn parse_value(input: &str) -> anyhow::Result<Value> {
@@ -606,7 +606,10 @@ mod tests {
         assert_scon_value("0x0000", Value::Hex(Hex::from_str("0x0000").unwrap()));
         assert_scon_value(
             "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-            Value::Hex(Hex::from_str("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF").unwrap()),
+            Value::Hex(
+                Hex::from_str("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+                    .unwrap(),
+            ),
         );
     }
 }

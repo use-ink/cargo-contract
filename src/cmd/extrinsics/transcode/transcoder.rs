@@ -23,7 +23,10 @@ use super::{
         PathKey,
         TypesByPath,
     },
-    scon::{Value, Hex},
+    scon::{
+        Hex,
+        Value,
+    },
 };
 
 use anyhow::Result;
@@ -266,11 +269,27 @@ mod tests {
         )?;
         transcode_roundtrip::<[u8; 4]>(
             r#"0xDEADBEEF"#,
-            Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+            Value::Seq(
+                vec![
+                    Value::UInt(0xDE),
+                    Value::UInt(0xAD),
+                    Value::UInt(0xBE),
+                    Value::UInt(0xEF),
+                ]
+                .into(),
+            ),
         )?;
         transcode_roundtrip::<[u8; 4]>(
             r#"0xdeadbeef"#,
-            Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+            Value::Seq(
+                vec![
+                    Value::UInt(0xDE),
+                    Value::UInt(0xAD),
+                    Value::UInt(0xBE),
+                    Value::UInt(0xEF),
+                ]
+                .into(),
+            ),
         )
     }
 
@@ -319,7 +338,15 @@ mod tests {
                 vec![
                     Value::UInt(1),
                     Value::String("ink!".to_string()),
-                    Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+                    Value::Seq(
+                        vec![
+                            Value::UInt(0xDE),
+                            Value::UInt(0xAD),
+                            Value::UInt(0xBE),
+                            Value::UInt(0xEF),
+                        ]
+                        .into(),
+                    ),
                 ],
             )),
         )
@@ -348,7 +375,15 @@ mod tests {
                     ),
                     (
                         Value::String("c".to_string()),
-                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+                        Value::Seq(
+                            vec![
+                                Value::UInt(0xDE),
+                                Value::UInt(0xAD),
+                                Value::UInt(0xBE),
+                                Value::UInt(0xEF),
+                            ]
+                            .into(),
+                        ),
                     ),
                     (
                         Value::String("d".to_string()),
@@ -362,7 +397,15 @@ mod tests {
                                     ),
                                     (
                                         Value::String("c".to_string()),
-                                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+                                        Value::Seq(
+                                            vec![
+                                                Value::UInt(0xDE),
+                                                Value::UInt(0xAD),
+                                                Value::UInt(0xBE),
+                                                Value::UInt(0xEF),
+                                            ]
+                                            .into(),
+                                        ),
                                     ),
                                     (
                                         Value::String("d".to_string()),
@@ -437,7 +480,15 @@ mod tests {
                     ),
                     (
                         Value::String("c".to_string()),
-                        Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+                        Value::Seq(
+                            vec![
+                                Value::UInt(0xDE),
+                                Value::UInt(0xAD),
+                                Value::UInt(0xBE),
+                                Value::UInt(0xEF),
+                            ]
+                            .into(),
+                        ),
                     ),
                 ]
                 .into_iter()
@@ -459,7 +510,15 @@ mod tests {
                 vec![
                     Value::UInt(1),
                     Value::String("ink!".to_string()),
-                    Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into()),
+                    Value::Seq(
+                        vec![
+                            Value::UInt(0xDE),
+                            Value::UInt(0xAD),
+                            Value::UInt(0xBE),
+                            Value::UInt(0xEF),
+                        ]
+                        .into(),
+                    ),
                 ],
             )),
         )
@@ -475,7 +534,15 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 Some("S"),
-                vec![Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into())],
+                vec![Value::Seq(
+                    vec![
+                        Value::UInt(0xDE),
+                        Value::UInt(0xAD),
+                        Value::UInt(0xBE),
+                        Value::UInt(0xEF),
+                    ]
+                    .into(),
+                )],
             )),
         )
     }
@@ -486,7 +553,15 @@ mod tests {
             r#"0xDEADBEEF"#,
             Value::Tuple(Tuple::new(
                 None,
-                vec![Value::Seq(vec![Value::UInt(0xDE), Value::UInt(0xAD), Value::UInt(0xBE), Value::UInt(0xEF)].into())],
+                vec![Value::Seq(
+                    vec![
+                        Value::UInt(0xDE),
+                        Value::UInt(0xAD),
+                        Value::UInt(0xBE),
+                        Value::UInt(0xEF),
+                    ]
+                    .into(),
+                )],
             )),
         )
     }
