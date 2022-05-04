@@ -510,12 +510,27 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
-        let encoded = transcoder.encode("uint_args", &["0x00", "0xDEAD"])?; // "0xDEADBEEF", "0xDEADBEEF12345678", "0xDEADBEEF0123456789ABCDEF01234567"])?;
+        let encoded = transcoder.encode(
+            "uint_args",
+            &[
+                "0x00",
+                "0xDEAD",
+                "0xDEADBEEF",
+                "0xDEADBEEF12345678",
+                "0xDEADBEEF0123456789ABCDEF01234567",
+            ],
+        )?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
-        let expected = (0x00u8, 0xDEADu16); // 0xDEADBEEFu32, 0xDEADBEEF12345678u64, 0xDEADBEEF0123456789ABCDEF01234567u128);
+        let expected = (
+            0x00u8,
+            0xDEADu16,
+            0xDEADBEEFu32,
+            0xDEADBEEF12345678u64,
+            0xDEADBEEF0123456789ABCDEF01234567u128,
+        );
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }

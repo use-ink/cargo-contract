@@ -133,6 +133,7 @@ mod tests {
     use super::{
         super::scon::{
             self,
+            Hex,
             Map,
             Seq,
             Tuple,
@@ -147,6 +148,7 @@ mod tests {
         Registry,
         TypeInfo,
     };
+    use std::str::FromStr;
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>
     where
@@ -742,6 +744,28 @@ mod tests {
                         vec![Value::UInt(33)],
                     )),
                 )]
+                .into_iter()
+                .collect(),
+            )),
+        )
+    }
+
+    #[test]
+    fn transcode_hex_literal_uints() -> Result<()> {
+        #[derive(scale::Encode, TypeInfo)]
+        struct S(u8, u16, u32, u64, u128);
+
+        transcode_roundtrip::<S>(
+            r#"S (0xDEu8, 0xDEADu16, 0xDEADBEEFu32, 0xDEADBEEF12345678u64, 0xDEADBEEF0123456789ABCDEF01234567u128)"#,
+            Value::Tuple(Tuple::new(
+                Some("S"),
+                vec![
+                    Value::Hex(Hex::from_str("0xDE")?),
+                    Value::Hex(Hex::from_str("0xDEAD")?),
+                    Value::Hex(Hex::from_str("0xDEADBEEF")?),
+                    Value::Hex(Hex::from_str("0xDEADBEEF12345678")?),
+                    Value::Hex(Hex::from_str("0xDEADBEEF0123456789ABCDEF01234567")?),
+                ]
                 .into_iter()
                 .collect(),
             )),
