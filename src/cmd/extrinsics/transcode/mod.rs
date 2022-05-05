@@ -398,6 +398,22 @@ mod tests {
             pub fn primitive_vec_args(&self, args: Vec<u32>) {
                 let _ = args;
             }
+
+            #[ink(message)]
+            pub fn uint_args(
+                &self,
+                _u8: u8,
+                _u16: u16,
+                _u32: u32,
+                _u64: u64,
+                _u128: u128,
+            ) {
+            }
+
+            #[ink(message)]
+            pub fn uint_array_args(&self, arr: [u8; 4]) {
+                let _ = arr;
+            }
         }
     }
 
@@ -485,6 +501,52 @@ mod tests {
         let encoded_args = &encoded[4..];
 
         let expected = vec![1, 2];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_uint_hex_literals() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode(
+            "uint_args",
+            &[
+                "0x00",
+                "0xDEAD",
+                "0xDEADBEEF",
+                "0xDEADBEEF12345678",
+                "0xDEADBEEF0123456789ABCDEF01234567",
+            ],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = (
+            0x00u8,
+            0xDEADu16,
+            0xDEADBEEFu32,
+            0xDEADBEEF12345678u64,
+            0xDEADBEEF0123456789ABCDEF01234567u128,
+        );
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_uint_arr_hex_literals() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded =
+            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected: [u8; 4] = [0xDE, 0xAD, 0xBE, 0xEF];
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }

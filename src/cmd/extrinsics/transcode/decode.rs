@@ -91,18 +91,12 @@ impl<'a> Decoder<'a> {
             anyhow::anyhow!("Failed to find type with id '{}'", type_id)
         })?;
 
-        if *ty.type_def() == TypeDef::Primitive(TypeDefPrimitive::U8) {
-            let mut bytes = vec![0u8; len];
-            input.read(&mut bytes)?;
-            Ok(Value::Bytes(bytes.into()))
-        } else {
-            let mut elems = Vec::new();
-            while elems.len() < len as usize {
-                let elem = self.decode_type(type_id, ty, input)?;
-                elems.push(elem)
-            }
-            Ok(Value::Seq(elems.into()))
+        let mut elems = Vec::new();
+        while elems.len() < len as usize {
+            let elem = self.decode_type(type_id, ty, input)?;
+            elems.push(elem)
         }
+        Ok(Value::Seq(elems.into()))
     }
 
     fn decode_type(
