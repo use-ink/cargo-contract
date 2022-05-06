@@ -18,7 +18,9 @@ use super::{
     decode::Decoder,
     encode::Encoder,
     env_types::{
-        CustomTypeTranscoder,
+        self,
+        CustomTypeDecoder,
+        CustomTypeEncoder,
         EnvTypesTranscoder,
         PathKey,
         TypesByPath,
@@ -76,7 +78,8 @@ impl<'a> Transcoder<'a> {
 pub struct TranscoderBuilder<'a> {
     registry: &'a PortableRegistry,
     types_by_path: TypesByPath,
-    transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>,
+    encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+    decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
 }
 
 impl<'a> TranscoderBuilder<'a> {
@@ -89,14 +92,31 @@ impl<'a> TranscoderBuilder<'a> {
         Self {
             registry,
             types_by_path,
-            transcoders: HashMap::new(),
+            encoders: HashMap::new(),
+            decoders: HashMap::new(),
         }
     }
 
-    pub fn register_custom_type<T, U>(self, transcoder: U) -> Self
+    pub fn with_default_custom_type_transcoders(self) -> Self {
+        self.register_custom_type_transcoder::<sp_runtime::AccountId32, _>(
+            env_types::AccountId,
+        )
+        .register_custom_type_decoder::<sp_core::H256, _>(env_types::Hash)
+    }
+
+    pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
     where
         T: TypeInfo + 'static,
-        U: CustomTypeTranscoder + 'static,
+        U: CustomTypeEncoder + CustomTypeDecoder + Clone + 'static,
+    {
+        self.register_custom_type_encoder::<T, U>(transcoder.clone())
+            .register_custom_type_decoder::<T, U>(transcoder)
+    }
+
+    pub fn register_custom_type_encoder<T, U>(self, encoder: U) -> Self
+    where
+        T: TypeInfo + 'static,
+        U: CustomTypeEncoder + 'static,
     {
         let mut this = self;
 
@@ -105,11 +125,40 @@ impl<'a> TranscoderBuilder<'a> {
 
         match type_id {
             Some(type_id) => {
-                let existing = this.transcoders.insert(*type_id, Box::new(transcoder));
-                log::debug!("Registered environment type `{:?}`", type_id);
+                let existing = this.encoders.insert(*type_id, Box::new(encoder));
+                log::debug!("Registered custom encoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
-                        "Attempted to register transcoder with existing type id {:?}",
+                        "Attempted to register encoder with existing type id {:?}",
+                        type_id
+                    );
+                }
+            }
+            None => {
+                // if the type is not present in the registry, it just means it has not been used.
+                log::info!("No matching type in registry for path {:?}.", path_key);
+            }
+        }
+        this
+    }
+
+    pub fn register_custom_type_decoder<T, U>(self, encoder: U) -> Self
+    where
+        T: TypeInfo + 'static,
+        U: CustomTypeDecoder + 'static,
+    {
+        let mut this = self;
+
+        let path_key = PathKey::from_type::<T>();
+        let type_id = this.types_by_path.get(&path_key);
+
+        match type_id {
+            Some(type_id) => {
+                let existing = this.decoders.insert(*type_id, Box::new(encoder));
+                log::debug!("Registered custom decoder for type `{:?}`", type_id);
+                if existing.is_some() {
+                    panic!(
+                        "Attempted to register decoder with existing type id {:?}",
                         type_id
                     );
                 }
@@ -123,7 +172,7 @@ impl<'a> TranscoderBuilder<'a> {
     }
 
     pub fn done(self) -> Transcoder<'a> {
-        let env_types_transcoder = EnvTypesTranscoder::new(self.transcoders);
+        let env_types_transcoder = EnvTypesTranscoder::new(self.encoders, self.decoders);
         Transcoder::new(self.registry, env_types_transcoder)
     }
 }
@@ -141,7 +190,6 @@ mod tests {
         },
         *,
     };
-    use crate::cmd::extrinsics::transcode;
     use scale::Encode;
     use scale_info::{
         MetaType,
@@ -167,9 +215,7 @@ mod tests {
     {
         let (registry, ty) = registry_with_type::<T>()?;
         let transcoder = TranscoderBuilder::new(&registry)
-            .register_custom_type::<sp_runtime::AccountId32, _>(
-                transcode::env_types::AccountId,
-            )
+            .with_default_custom_type_transcoders()
             .done();
 
         let value = scon::parse_value(input)?;
@@ -707,6 +753,34 @@ mod tests {
                             vec![hex_to_bytes("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")?]
                         )
                     )
+                ]
+                    .into_iter()
+                    .collect(),
+            )),
+        )
+    }
+
+    #[test]
+    fn decode_h256_as_hex_string() -> Result<()> {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            hash: sp_core::H256,
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S(
+                hash: 0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de,
+             )"#,
+            Value::Map(Map::new(
+                Some("S"),
+                vec![
+                    (
+                        Value::String("hash".into()),
+                        Value::Hex(
+                            Hex::from_str("0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de")?,
+                        ),
+                    ),
                 ]
                     .into_iter()
                     .collect(),

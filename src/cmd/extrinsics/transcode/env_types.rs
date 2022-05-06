@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::scon::Value;
+use crate::cmd::extrinsics::transcode::scon::Hex;
 use anyhow::{
     Context,
     Result,
@@ -44,13 +45,17 @@ use std::{
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
 pub struct EnvTypesTranscoder {
-    transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>,
+    encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+    decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
 }
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(transcoders: HashMap<u32, Box<dyn CustomTypeTranscoder>>) -> Self {
-        Self { transcoders }
+    pub fn new(
+        encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+        decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
+    ) -> Self {
+        Self { encoders, decoders }
     }
 
     /// If the given type id is for a type with custom encoding, encodes the given value with the
@@ -68,10 +73,10 @@ impl EnvTypesTranscoder {
     where
         O: Output,
     {
-        match self.transcoders.get(&type_id) {
-            Some(transcoder) => {
+        match self.encoders.get(&type_id) {
+            Some(encoder) => {
                 log::debug!("Encoding type {:?} with custom encoder", type_id);
-                let encoded_env_type = transcoder
+                let encoded_env_type = encoder
                     .encode_value(value)
                     .context("Error encoding custom type")?;
                 output.write(&encoded_env_type);
@@ -89,10 +94,10 @@ impl EnvTypesTranscoder {
     ///
     /// - If the custom decoding fails.
     pub fn try_decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Option<Value>> {
-        match self.transcoders.get(&type_id) {
-            Some(transcoder) => {
+        match self.decoders.get(&type_id) {
+            Some(decoder) => {
                 log::debug!("Decoding type {:?} with custom decoder", type_id);
-                let decoded = transcoder.decode_value(input)?;
+                let decoded = decoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
             None => {
@@ -101,13 +106,6 @@ impl EnvTypesTranscoder {
             }
         }
     }
-}
-
-/// Implement this trait to define custom transcoding for a type in a `scale-info` type registry.
-pub trait CustomTypeTranscoder {
-    fn aliases(&self) -> &[&str];
-    fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
-    fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -135,12 +133,24 @@ impl From<&Path<PortableForm>> for PathKey {
 
 pub type TypesByPath = HashMap<PathKey, u32>;
 
+/// Implement this trait to define custom encoding for a type in a `scale-info` type registry.
+pub trait CustomTypeEncoder {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
+}
+
+/// Implement this trait to define custom decoding for a type in a `scale-info` type registry.
+pub trait CustomTypeDecoder {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
+}
+
+/// Custom encoding/decoding for the Substrate `AccountId` type.
+///
+/// Enables an `AccountId` to be input/ouput as an SS58 Encoded literal e.g.
+/// 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+#[derive(Clone)]
 pub struct AccountId;
 
-impl CustomTypeTranscoder for AccountId {
-    fn aliases(&self) -> &[&'static str] {
-        &["AccountId"]
-    }
+impl CustomTypeEncoder for AccountId {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
         let account_id = match value {
             Value::Literal(literal) => {
@@ -177,9 +187,22 @@ impl CustomTypeTranscoder for AccountId {
         };
         Ok(account_id.encode())
     }
+}
 
+impl CustomTypeDecoder for AccountId {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let account_id = AccountId32::decode(input)?;
         Ok(Value::Literal(account_id.to_ss58check()))
+    }
+}
+
+/// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex encoded
+/// string.
+pub struct Hash;
+
+impl CustomTypeDecoder for Hash {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
+        let hash = sp_core::H256::decode(input)?;
+        Ok(Value::Hex(Hex::from_str(&format!("{:?}", hash))?))
     }
 }
