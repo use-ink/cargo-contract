@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::scon::Value;
+use crate::cmd::extrinsics::transcode::scon::Hex;
 use anyhow::{
     Context,
     Result,
@@ -40,7 +41,6 @@ use std::{
     convert::TryFrom,
     str::FromStr,
 };
-use crate::cmd::extrinsics::transcode::scon::Hex;
 
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
@@ -51,7 +51,10 @@ pub struct EnvTypesTranscoder {
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
-    pub fn new(encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>, decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>) -> Self {
+    pub fn new(
+        encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+        decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
+    ) -> Self {
         Self { encoders, decoders }
     }
 

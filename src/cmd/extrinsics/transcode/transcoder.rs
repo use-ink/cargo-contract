@@ -19,8 +19,8 @@ use super::{
     encode::Encoder,
     env_types::{
         self,
-        CustomTypeEncoder,
         CustomTypeDecoder,
+        CustomTypeEncoder,
         EnvTypesTranscoder,
         PathKey,
         TypesByPath,
@@ -98,9 +98,10 @@ impl<'a> TranscoderBuilder<'a> {
     }
 
     pub fn with_default_custom_type_transcoders(self) -> Self {
-        self
-            .register_custom_type_transcoder::<sp_runtime::AccountId32, _>(env_types::AccountId)
-            .register_custom_type_decoder::<sp_core::H256, _>(env_types::Hash)
+        self.register_custom_type_transcoder::<sp_runtime::AccountId32, _>(
+            env_types::AccountId,
+        )
+        .register_custom_type_decoder::<sp_core::H256, _>(env_types::Hash)
     }
 
     pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
@@ -142,9 +143,9 @@ impl<'a> TranscoderBuilder<'a> {
     }
 
     pub fn register_custom_type_decoder<T, U>(self, encoder: U) -> Self
-        where
-            T: TypeInfo + 'static,
-            U: CustomTypeDecoder + 'static,
+    where
+        T: TypeInfo + 'static,
+        U: CustomTypeDecoder + 'static,
     {
         let mut this = self;
 
@@ -786,7 +787,6 @@ mod tests {
             )),
         )
     }
-
 
     #[test]
     fn transcode_compact_primitives() -> Result<()> {
