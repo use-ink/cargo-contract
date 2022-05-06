@@ -17,7 +17,6 @@
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
     transcode::{
-        env_types,
         ContractMessageTranscoder,
         TranscoderBuilder,
     },
@@ -54,7 +53,7 @@ pub fn display_events(
 
     let runtime_metadata = subxt_metadata.runtime_metadata();
     let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
-        .register_custom_type::<sp_runtime::AccountId32, _>(env_types::AccountId)
+        .with_default_custom_type_transcoders()
         .done();
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;

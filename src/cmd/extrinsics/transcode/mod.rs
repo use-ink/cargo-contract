@@ -128,7 +128,7 @@ pub struct ContractMessageTranscoder<'a> {
 impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
-            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
             .done();
         Self {
             metadata,
