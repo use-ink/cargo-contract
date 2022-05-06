@@ -484,9 +484,9 @@ where
     Ok(())
 }
 
-/// Attempt to instantiate a type from its little-endian bytes representation.
+/// Attempt to instantiate a type from its hex-encoded bytes representation.
 pub trait TryFromHex: Sized {
-    /// Create a new instance from the little-endian bytes representation.
+    /// Create a new instance from the hex-encoded bytes representation.
     fn try_from_hex(hex: &str) -> Result<Self>;
 }
 
