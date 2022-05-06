@@ -129,6 +129,7 @@ impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
             .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
             .done();
         Self {
             metadata,
@@ -346,6 +347,7 @@ mod tests {
     use scon::Value;
     use std::str::FromStr;
 
+    use crate::cmd::extrinsics::transcode::scon::Hex;
     use ink_lang as ink;
 
     #[ink::contract]
@@ -568,12 +570,46 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
-        let encoded = ([0u32; 32], [1u32; 32]).encode();
+        // raw encoded event with event index prefix
+        let encoded = (0u8, [0u32; 32], [1u32; 32]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
 
         Ok(())
+    }
+
+    #[test]
+    fn decode_hash_as_hex_encoded_string() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let hash = [
+            52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
+            83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
+        ];
+        // raw encoded event with event index prefix
+        let encoded = (0u8, hash, [0u32; 32]).encode();
+        // encode again as a Vec<u8> which has a len prefix.
+        let encoded_bytes = encoded.encode();
+        let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+
+        if let Value::Map(ref map) = decoded {
+            let name_field = &map[&Value::String("name".into())];
+            if let Value::Hex(hex) = name_field {
+                assert_eq!(&Hex::from_str("0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de")?, hex);
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                    "Expected a name field hash encoded as Hex value, was {:?}",
+                    name_field
+                ))
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected a Value::Map for the decoded event"
+            ))
+        }
     }
 
     #[test]
