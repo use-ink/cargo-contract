@@ -17,6 +17,7 @@
 use super::{
     display_contract_exec_result,
     display_events,
+    dry_run_error_details,
     parse_balance,
     runtime_api::api,
     wait_for_success_and_handle_error,
@@ -27,6 +28,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
+    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -44,6 +46,10 @@ use jsonrpsee::{
     rpc_params,
     ws_client::WsClientBuilder,
 };
+use pallet_contracts_primitives::{
+    ContractResult,
+    InstantiateReturnValue,
+};
 use serde::Serialize;
 use sp_core::{
     crypto::Ss58Codec,
@@ -55,6 +61,7 @@ use std::{
         Path,
         PathBuf,
     },
+    result,
 };
 use subxt::{
     rpc::NumberOrHex,
@@ -63,8 +70,10 @@ use subxt::{
     DefaultConfig,
 };
 
-type ContractInstantiateResult =
-    pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
+type ContractInstantiateResult = ContractResult<
+    result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
+    Balance,
+>;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -228,12 +237,10 @@ impl<'a> Exec<'a> {
                         EXEC_RESULT_MAX_KEY_COL_WIDTH
                     );
                 }
-                Err(err) => {
-                    name_value_println!(
-                        "Result",
-                        format!("Error: {:?}", err),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
-                    );
+                Err(ref err) => {
+                    let err =
+                        dry_run_error_details(&self.subxt_api().await?, err).await?;
+                    name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)?;
@@ -270,7 +277,7 @@ impl<'a> Exec<'a> {
                 code.to_vec(),
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
@@ -302,7 +309,7 @@ impl<'a> Exec<'a> {
                 code_hash,
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
@@ -340,6 +347,7 @@ impl<'a> Exec<'a> {
             .request("contracts_instantiate", params)
             .await
             .context("contracts_instantiate RPC error")?;
+
         Ok(result)
     }
 }
