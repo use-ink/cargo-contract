@@ -6,8 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2022-05-09
+
+### Added
+- Allow hex literals for unsigned integers - [#547](https://github.com/paritytech/cargo-contract/pull/547)
+
 ### Fixed
--  Fix extrinsic params for contract chains - [#523](https://github.com/paritytech/cargo-contract/pull/523)
+- Display `H256` instances in events as hex encoded string - [#550](https://github.com/paritytech/cargo-contract/pull/550)
+- Fix extrinsic params for contract chains - [#523](https://github.com/paritytech/cargo-contract/pull/523)
+- Fix `Vec<AccountId>` args - [#519](https://github.com/paritytech/cargo-contract/pull/519)
+- Fix `--dry-run` error deserialization and report error details - [#534](https://github.com/paritytech/cargo-contract/pull/534)
 
 ## [1.2.0] - 2022-04-13
 
