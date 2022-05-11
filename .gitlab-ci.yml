@@ -13,8 +13,6 @@ stages:
 variables:
   GIT_STRATEGY:                    fetch
   GIT_DEPTH:                       "100"
-  CARGO_HOME:                      "/ci-cache/${CI_PROJECT_NAME}/cargo/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
-  CARGO_TARGET_DIR:                "/ci-cache/${CI_PROJECT_NAME}/targets/${CI_COMMIT_REF_NAME}/${CI_JOB_NAME}"
   RUST_LIB_BACKTRACE:              "0"
   # this var is changed to "-:staging" when the CI image gets rebuilt
   # read more https://github.com/paritytech/cargo-contract/pull/115
@@ -33,6 +31,15 @@ workflow:
     paths:
       - artifacts/
 
+.rusty-cachier:
+  before_script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier environment check --gracefully
+    - $(rusty-cachier environment inject)
+    - rusty-cachier project mtime
+  after_script:
+    - rusty-cachier snapshot destroy
+
 .docker-env:                       &docker-env
   image:                           "${CI_IMAGE}"
   before_script:
@@ -41,11 +48,13 @@ workflow:
     - rustup show
     - cargo dylint --version
     - bash --version
-    - ./scripts/ci/pre_cache.sh
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - sccache -s
     - git show
+    - !reference [.rusty-cachier, before_script]
+  after_script:
+    - !reference [.rusty-cachier, after_script]
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -86,6 +95,7 @@ test-dylint:
   stage:                           test
   <<:                              *docker-env
   script:
+    - rusty-cachier snapshot create
     - cd ink_linting/
     - mv _Cargo.toml Cargo.toml
 
@@ -105,6 +115,7 @@ test-dylint:
     - unset RUSTC_WRAPPER
 
     - cargo test --verbose --all-features
+    - rusty-cachier cache upload
 
 test:
   stage:                           test
@@ -116,6 +127,7 @@ test-new-project-template:
   stage:                           test
   <<:                              *docker-env
   script:
+    - rusty-cachier snapshot create
     - cargo run -- contract new new_project
 
     # needed because otherwise:
@@ -131,6 +143,7 @@ test-new-project-template:
     - cargo test --verbose --all
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
+    - rusty-cachier cache upload
 
 # With the introduction of `ink_linting` in `build.rs` the installation process
 # is more elaborate now and as part of it the `ink_linting` crate is built locally.
@@ -140,6 +153,7 @@ test-registry-publish-install:
   stage:                           test
   <<:                              *docker-env
   before_script:
+    - !reference [.rusty-cachier, before_script]
     # Set up a local registry.
     - mkdir -p ./estuary/crates/ ./estuary/indices/
     - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates/ --index-dir ./estuary/indices &
@@ -147,6 +161,7 @@ test-registry-publish-install:
     - echo -e '[registries]\nestuary = { index = "http://0.0.0.0:7878/git/index" }' > .cargo/config.toml
     - echo 0000 | cargo login --registry estuary
   script:
+    - rusty-cachier snapshot create
     - cargo publish --registry estuary
     - cargo install cargo-contract --index http://0.0.0.0:7878/git/index
 
@@ -154,6 +169,7 @@ test-registry-publish-install:
     - cargo run -- contract new new_project
     - echo "[workspace]" >> new_project/Cargo.toml
     - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
+    - rusty-cachier cache upload
 
 #### stage:                        build (default features)
 
@@ -167,7 +183,10 @@ build:
     - if: $CI_COMMIT_REF_NAME == "master"
     - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
   script:
+    - rusty-cachier snapshot create
     - cargo build --verbose --release
+    - rusty-cachier cache upload
   after_script:
+    - !reference [.rusty-cachier, after_script]
     - mkdir -p ./artifacts/cargo-contract/
     - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/
