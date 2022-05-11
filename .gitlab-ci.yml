@@ -41,7 +41,9 @@ workflow:
     - rusty-cachier snapshot destroy
 
 .docker-env:                       &docker-env
-  image:                           "${CI_IMAGE}"
+  image:
+    name:                          "${CI_IMAGE}"
+    entrypoint:                    ['bash', '-c', 'exec unshare -m -r bash']
   before_script:
     - cargo -vV
     - rustc -vV
