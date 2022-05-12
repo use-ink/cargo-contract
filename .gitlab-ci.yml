@@ -9,6 +9,7 @@ stages:
   - check
   - test
   - build
+  - notify
 
 variables:
   GIT_STRATEGY:                    fetch
@@ -192,3 +193,11 @@ build:
     - !reference [.rusty-cachier, after_script]
     - mkdir -p ./artifacts/cargo-contract/
     - cp ${CARGO_TARGET_DIR}/release/cargo-contract ./artifacts/cargo-contract/
+
+#### stage:                        notify (rusty-cachier notification about the latest revision)
+
+rusty-cachier-notify:
+  stage:                           notify
+  <<:                              *docker-env
+  script:
+    - rusty-cachier cache notify
