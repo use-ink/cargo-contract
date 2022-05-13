@@ -53,7 +53,7 @@ More relevant links:
 
 * Step 4 (MacOS): `brew install openssl`
 
-* Step 5: `cargo install --force cargo-contract`.
+* Step 5: `cargo install --force --locked cargo-contract`.
 
 You can always update the `cargo-contract` binary to the latest version by running the Step 4.
 
