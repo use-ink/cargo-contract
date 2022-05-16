@@ -19,6 +19,7 @@ variables:
   # read more https://github.com/paritytech/cargo-contract/pull/115
   CI_IMAGE:                        "paritytech/contracts-ci-linux:production"
   RUSTY_CACHIER_SINGLE_BRANCH:     master
+  RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
 
 workflow:
   rules:
