@@ -6,7 +6,7 @@
 
 [a1]: https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg
 [a2]: https://gitlab.parity.io/parity/cargo-contract/pipelines
-[b2]: https://substrate.stackexchange.com/questions/tagged/ink
+[b2]: https://substrate.stackexchange.com/questions/tagged/ink?tab=Votes
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
 
