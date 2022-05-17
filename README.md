@@ -4,8 +4,8 @@
 [![CI Status][a1]][a2]
 [![Latest Release][d1]][d2]
 
-[a1]: https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg
-[a2]: https://gitlab.parity.io/parity/cargo-contract/pipelines
+[a1]: https://gitlab.parity.io/parity/mirrors/cargo-contract/badges/master/pipeline.svg
+[a2]: https://gitlab.parity.io/parity/mirrors/cargo-contract/pipelines
 [b2]: https://substrate.stackexchange.com/questions/tagged/ink?tab=Votes
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
