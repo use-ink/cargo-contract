@@ -180,8 +180,7 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<PortableForm>> {
-        self.messages()
-            .find(|msg| msg.label() == &name.to_string())
+        self.messages().find(|msg| msg.label() == &name.to_string())
     }
 
     fn find_constructor_spec(
