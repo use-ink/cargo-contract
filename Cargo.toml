@@ -85,7 +85,7 @@ predicates = "2.1.1"
 
 ink_primitives = "3.0"
 ink_storage = "3.0"
-ink_lang = "3.0"
+ink_lang = "3.1"
 ink_lang_codegen = "3.0"
 
 [features]
