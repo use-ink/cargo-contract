@@ -50,7 +50,7 @@ regex = "1.5.5"
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.11.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "3.0", features = ["derive"] }
-ink_env = "3.0"
+ink_env = "3.1"
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
