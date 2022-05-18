@@ -6,8 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2022-05-18
+
 ### Changed
-- Updated `cargo contract new` template dependencies to ink! `3` - [#569](https://github.com/paritytech/cargo-contract/pull/569)
+- Updated `cargo contract new` template dependencies to ink! `version = "3"` - [#569](https://github.com/paritytech/cargo-contract/pull/569)
+
+### Fixed
+- Make constructor selector look for exact function name - [#562](https://github.com/paritytech/cargo-contract/pull/562) (thanks [@forgetso](https://github.com/forgetso)!)
 
 ## [1.3.0] - 2022-05-09
 
