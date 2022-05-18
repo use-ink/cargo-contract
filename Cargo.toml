@@ -83,7 +83,7 @@ wabt = "0.10.0"
 regex = "1.5.5"
 predicates = "2.1.1"
 
-ink_primitives = "3.0"
+ink_primitives = "3.1"
 ink_storage = "3.0"
 ink_lang = "3.0"
 ink_lang_codegen = "3.0"
