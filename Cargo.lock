@@ -1508,9 +1508,9 @@ dependencies = [
 
 [[package]]
 name = "ink_lang_codegen"
-version = "3.0.1"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3060b19aec639eea7811d36d9143c849f97a4f742bf5e43f892ad6ce8c43050a"
+checksum = "d8579c42a4a313ea22ad9362e5ad9988d499121f5ff37f28915ca5282cee9778"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1527,9 +1527,9 @@ dependencies = [
 
 [[package]]
 name = "ink_lang_ir"
-version = "3.0.1"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9e32f34c687530cca8498e1c10fa1272f374981f865158f51474b19ce2dbfce"
+checksum = "5ea5a1b06d72d1abaa50c7788e670f21e2de9fc9e651ee57b3b24596da693d08"
 dependencies = [
  "blake2",
  "either",
@@ -2692,9 +2692,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8980cafbe98a7ee7a9cc16b32ebce542c77883f512d83fbf2ddc8f6a85ea74c9"
+checksum = "c46be926081c9f4dd5dd9b6f1d3e3229f2360bc6502dd8836f84a93b7c75e99a"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -2706,9 +2706,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4260c630e8a8a33429d1688eff2f163f24c65a4e1b1578ef6b565061336e4b6f"
+checksum = "50e334bb10a245e28e5fd755cabcafd96cfcd167c99ae63a46924ca8d8703a3c"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",

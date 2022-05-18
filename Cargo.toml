@@ -51,7 +51,7 @@ regex = "1.5.5"
 async-std = { version = "1.11.0", features = ["attributes", "tokio1"] }
 ink_metadata = { version = "3.0", features = ["derive"] }
 ink_env = "3.0"
-scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
@@ -86,7 +86,7 @@ predicates = "2.1.1"
 ink_primitives = "3.0"
 ink_storage = "3.0"
 ink_lang = "3.0"
-ink_lang_codegen = "3.0"
+ink_lang_codegen = "3.1"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
