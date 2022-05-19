@@ -19,7 +19,7 @@
 
 <br/>
 
-[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp; 
+[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp;
 [ink! Documentation Portal](https://paritytech.github.io/ink-docs)
 
 <br/>
@@ -43,7 +43,7 @@ More relevant links:
   * [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
   * Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
 
-  There's only an old version in your distributions package manager? Just use a 
+  There's only an old version in your distributions package manager? Just use a
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
 * Step 3: Install `dylint`
@@ -89,7 +89,7 @@ e.g. `cargo contract new --help`.
 Creates an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
-The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) 
+The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs)
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 

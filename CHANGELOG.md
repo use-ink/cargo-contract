@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Interact with contracts: upload, instantiate and call commands
 
 We added commands to upload, instantiate and call contracts!
-This allows interacting with contracts on live chains with a compatible 
+This allows interacting with contracts on live chains with a compatible
 [`pallet-contracts`](https://github.com/paritytech/substrate/tree/master/frame/contracts).
 
 For command-line examples on how to use these commands see [#79](https://github.com/paritytech/cargo-contract/pull/79).
