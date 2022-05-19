@@ -111,9 +111,9 @@ fn zip_template_and_build_dylint_driver(
     }
 
     let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
-    std::fs::rename(&original_name, &tmp_name).map_err(|err| {
+    std::fs::copy(&original_name, &tmp_name).map_err(|err| {
         anyhow::anyhow!(
-            "Failed renaming '{:?}' to '{:?}': {:?}",
+            "Failed copying '{:?}' to '{:?}': {:?}",
             original_name,
             tmp_name,
             err
@@ -126,14 +126,13 @@ fn zip_template_and_build_dylint_driver(
         dylint_driver_dst_file,
     );
 
-    // After the build process of `ink_linting` happened we need to name back to the original
-    // `_Cargo.toml` name, otherwise the directory would be "dirty" and  `cargo publish` would
-    // fail with `Source directory was modified by build.rs during cargo publish`.
-    std::fs::rename(&tmp_name, &original_name).map_err(|err| {
+    // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
+    // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
+    // directory was modified by build.rs during cargo publish`.
+    std::fs::remove_file(&tmp_name).map_err(|err| {
         anyhow::anyhow!(
-            "Failed renaming '{:?}' to '{:?}': {:?}",
+            "Failed removing '{:?}': {:?}",
             tmp_name,
-            original_name,
             err
         )
     })?;
