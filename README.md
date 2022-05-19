@@ -27,7 +27,7 @@
 
 More relevant links:
 * Find answers to your questions by joining our [Stack Exchange][s2] community
-* [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
+* [ink!](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
 * [Contracts UI](https://paritytech.github.io/contracts-ui/) ‒ Frontend for contract deployment and interaction
 * [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
 
