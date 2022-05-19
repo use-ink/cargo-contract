@@ -64,17 +64,6 @@ fn main() {
     }
 }
 
-/// Holds the path to a file meant to be temporary.
-struct TmpFileGuard(PathBuf);
-
-impl Drop for TmpFileGuard {
-    // Once the struct instance is dropped we remove the file.
-    fn drop(&mut self) {
-        std::fs::remove_file(&self.0)
-            .unwrap_or_else(|err| panic!("Failed removing '{:?}': {:?}", self.0, err))
-    }
-}
-
 /// This method:
 ///   * Creates a zip archive of the `new` project template.
 ///   * Builds the `dylint` driver found in `ink_linting`, the compiled
@@ -134,7 +123,7 @@ fn zip_template_and_build_dylint_driver(
     // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
     // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
     // directory was modified by build.rs during cargo publish`.
-    let _guard = TmpFileGuard(tmp_name);
+    let _guard = tmp_file_guard::FileGuard::new(tmp_name);
 
     build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file)
 }
@@ -416,4 +405,31 @@ fn check_dylint_link_installed() -> Result<()> {
         );
     }
     Ok(())
+}
+
+mod tmp_file_guard {
+    use std::path::PathBuf;
+
+    /// Holds the path to a file meant to be temporary.
+    pub struct FileGuard {
+        path: PathBuf,
+    }
+
+    impl FileGuard {
+        /// Create a new new file guard.
+        ///
+        /// Once the object instance is dropped the file will be removed automatically.
+        pub fn new(path: PathBuf) -> Self {
+            Self { path }
+        }
+    }
+
+    impl Drop for FileGuard {
+        // Once the struct instance is dropped we remove the file.
+        fn drop(&mut self) {
+            std::fs::remove_file(&self.path).unwrap_or_else(|err| {
+                panic!("Failed removing '{:?}': {:?}", self.path, err)
+            })
+        }
+    }
 }
