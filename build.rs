@@ -129,13 +129,8 @@ fn zip_template_and_build_dylint_driver(
     // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
     // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
     // directory was modified by build.rs during cargo publish`.
-    std::fs::remove_file(&tmp_name).map_err(|err| {
-        anyhow::anyhow!(
-            "Failed removing '{:?}': {:?}",
-            tmp_name,
-            err
-        )
-    })?;
+    std::fs::remove_file(&tmp_name)
+        .map_err(|err| anyhow::anyhow!("Failed removing '{:?}': {:?}", tmp_name, err))?;
 
     res
 }
