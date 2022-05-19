@@ -3,12 +3,14 @@
 
 [![CI Status][a1]][a2]
 [![Latest Release][d1]][d2]
+[![stack-exchange][s1]][s2]
 
 [a1]: https://gitlab.parity.io/parity/mirrors/cargo-contract/badges/master/pipeline.svg
 [a2]: https://gitlab.parity.io/parity/mirrors/cargo-contract/pipelines
-[b2]: https://substrate.stackexchange.com/questions/tagged/ink?tab=Votes
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
+[s1]: https://img.shields.io/badge/click-white.svg?logo=StackExchange&label=ink!%20Support%20on%20StackExchange&labelColor=white&color=blue
+[s2]: https://substrate.stackexchange.com/questions/tagged/ink?tab=Votes
 
 <p align="center">
 
@@ -24,7 +26,7 @@
 </div>
 
 More relevant links:
-* Find answers to your questions by joining our [Stack Exchange][b2] community
+* Find answers to your questions by joining our [Stack Exchange][s2] community
 * [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
 * [Contracts UI](https://paritytech.github.io/contracts-ui/) ‒ Frontend for contract deployment and interaction
 * [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
