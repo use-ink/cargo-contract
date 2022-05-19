@@ -106,24 +106,12 @@ fn zip_template_and_build_dylint_driver(
     //
     // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
     let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
-    if !original_name.exists() {
-        anyhow::bail!("'{:?}' does not exist", original_name);
-    }
-
-    let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
-    std::fs::copy(&original_name, &tmp_name).map_err(|err| {
-        anyhow::anyhow!(
-            "Failed copying '{:?}' to '{:?}': {:?}",
-            original_name,
-            tmp_name,
-            err
-        )
-    })?;
 
     // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
     // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
     // directory was modified by build.rs during cargo publish`.
-    let _guard = tmp_file_guard::FileGuard::new(tmp_name);
+    let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
+    let _guard = tmp_file_guard::FileGuard::new(original_name, tmp_name);
 
     build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file)
 }
@@ -419,8 +407,14 @@ mod tmp_file_guard {
         /// Create a new new file guard.
         ///
         /// Once the object instance is dropped the file will be removed automatically.
-        pub fn new(path: PathBuf) -> Self {
-            Self { path }
+        pub fn new(original_name: PathBuf, tmp_path: PathBuf) -> Self {
+            std::fs::copy(&original_name, &tmp_path).unwrap_or_else(|err| {
+                panic!(
+                    "Failed copying '{:?}' to '{:?}': {:?}",
+                    original_name, tmp_path, err
+                )
+            });
+            Self { path: tmp_path }
         }
     }
 
