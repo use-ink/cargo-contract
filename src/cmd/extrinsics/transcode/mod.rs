@@ -207,7 +207,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     variant_index
                 )
             })?;
-        log::debug!("decoding contract event '{}'", event_spec.label());
+        log::debug!("Decoding contract event '{}'", event_spec.label());
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
@@ -234,7 +234,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     hex::encode(&msg_selector)
                 )
             })?;
-        log::debug!("decoding contract message '{}'", msg_spec.label());
+        log::debug!("Decoding contract message '{}'", msg_spec.label());
 
         let mut args = Vec::new();
         for arg in msg_spec.args() {
@@ -261,7 +261,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     hex::encode(&msg_selector)
                 )
             })?;
-        log::debug!("decoding contract constructor '{}'", msg_spec.label());
+        log::debug!("Decoding contract constructor '{}'", msg_spec.label());
 
         let mut args = Vec::new();
         for arg in msg_spec.args() {
