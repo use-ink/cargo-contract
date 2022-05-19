@@ -64,6 +64,17 @@ fn main() {
     }
 }
 
+/// Holds the path to a file meant to be temporary.
+struct TmpFileGuard(PathBuf);
+
+impl Drop for TmpFileGuard {
+    // Once the struct instance is dropped we remove the file.
+    fn drop(&mut self) {
+        std::fs::remove_file(&self.0)
+            .unwrap_or_else(|err| panic!("Failed removing '{:?}': {:?}", self.0, err))
+    }
+}
+
 /// This method:
 ///   * Creates a zip archive of the `new` project template.
 ///   * Builds the `dylint` driver found in `ink_linting`, the compiled
@@ -120,19 +131,12 @@ fn zip_template_and_build_dylint_driver(
         )
     })?;
 
-    let res = build_and_zip_dylint_driver(
-        ink_dylint_driver_dir,
-        out_dir,
-        dylint_driver_dst_file,
-    );
-
     // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
     // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
     // directory was modified by build.rs during cargo publish`.
-    std::fs::remove_file(&tmp_name)
-        .map_err(|err| anyhow::anyhow!("Failed removing '{:?}': {:?}", tmp_name, err))?;
+    let _guard = TmpFileGuard(tmp_name);
 
-    res
+    build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file)
 }
 
 /// Creates a zip archive `template.zip` of the `new` project template in `out_dir`.
