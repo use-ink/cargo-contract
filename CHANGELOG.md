@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `cargo contract new` template dependencies to ink! `3` - [#569](https://github.com/paritytech/cargo-contract/pull/569)
 - Improved documentation on how to invoke `cargo contract decode` - [#572](https://github.com/paritytech/cargo-contract/pull/572)
 
+### Fixed
+- Fix dirty directory issue when crate installation had been interrupted - [#571](https://github.com/paritytech/cargo-contract/pull/571)
+
 ## [1.3.0] - 2022-05-09
 
 ### Added
