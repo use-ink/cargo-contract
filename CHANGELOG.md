@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated `cargo contract new` template dependencies to ink! `3` - [#569](https://github.com/paritytech/cargo-contract/pull/569)
+- Improved documentation on how to invoke `cargo contract decode` - [#572](https://github.com/paritytech/cargo-contract/pull/572)
 
 ## [1.3.0] - 2022-05-09
 
@@ -53,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Interact with contracts: upload, instantiate and call commands
 
 We added commands to upload, instantiate and call contracts!
-This allows interacting with contracts on live chains with a compatible 
+This allows interacting with contracts on live chains with a compatible
 [`pallet-contracts`](https://github.com/paritytech/substrate/tree/master/frame/contracts).
 
 For command-line examples on how to use these commands see [#79](https://github.com/paritytech/cargo-contract/pull/79).
