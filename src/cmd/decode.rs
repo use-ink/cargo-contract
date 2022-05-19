@@ -29,7 +29,10 @@ use anyhow::{
 use colored::Colorize as _;
 
 #[derive(Debug, Clone, clap::Args)]
-#[clap(name = "decode", about = "Decodes the input or output data of a contract")]
+#[clap(
+    name = "decode",
+    about = "Decodes the input or output data of a contract"
+)]
 pub struct DecodeCommand {
     /// The type of data to encode.
     #[clap(arg_enum, short, long)]
