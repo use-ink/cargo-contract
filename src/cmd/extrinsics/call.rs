@@ -84,7 +84,7 @@ impl CallCommand {
             load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
-        log::debug!("message data: {:?}", hex::encode(&call_data));
+        log::debug!("Message data: {:?}", hex::encode(&call_data));
 
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 

@@ -106,39 +106,14 @@ fn zip_template_and_build_dylint_driver(
     //
     // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
     let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
-    if !original_name.exists() {
-        anyhow::bail!("'{:?}' does not exist", original_name);
-    }
 
+    // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
+    // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
+    // directory was modified by build.rs during cargo publish`.
     let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
-    std::fs::rename(&original_name, &tmp_name).map_err(|err| {
-        anyhow::anyhow!(
-            "Failed renaming '{:?}' to '{:?}': {:?}",
-            original_name,
-            tmp_name,
-            err
-        )
-    })?;
+    let _guard = tmp_file_guard::FileGuard::new(original_name, tmp_name);
 
-    let res = build_and_zip_dylint_driver(
-        ink_dylint_driver_dir,
-        out_dir,
-        dylint_driver_dst_file,
-    );
-
-    // After the build process of `ink_linting` happened we need to name back to the original
-    // `_Cargo.toml` name, otherwise the directory would be "dirty" and  `cargo publish` would
-    // fail with `Source directory was modified by build.rs during cargo publish`.
-    std::fs::rename(&tmp_name, &original_name).map_err(|err| {
-        anyhow::anyhow!(
-            "Failed renaming '{:?}' to '{:?}': {:?}",
-            tmp_name,
-            original_name,
-            err
-        )
-    })?;
-
-    res
+    build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file)
 }
 
 /// Creates a zip archive `template.zip` of the `new` project template in `out_dir`.
@@ -418,4 +393,37 @@ fn check_dylint_link_installed() -> Result<()> {
         );
     }
     Ok(())
+}
+
+mod tmp_file_guard {
+    use std::path::PathBuf;
+
+    /// Holds the path to a file meant to be temporary.
+    pub struct FileGuard {
+        path: PathBuf,
+    }
+
+    impl FileGuard {
+        /// Create a new new file guard.
+        ///
+        /// Once the object instance is dropped the file will be removed automatically.
+        pub fn new(original_name: PathBuf, tmp_path: PathBuf) -> Self {
+            std::fs::copy(&original_name, &tmp_path).unwrap_or_else(|err| {
+                panic!(
+                    "Failed copying '{:?}' to '{:?}': {:?}",
+                    original_name, tmp_path, err
+                )
+            });
+            Self { path: tmp_path }
+        }
+    }
+
+    impl Drop for FileGuard {
+        // Once the struct instance is dropped we remove the file.
+        fn drop(&mut self) {
+            std::fs::remove_file(&self.path).unwrap_or_else(|err| {
+                panic!("Failed removing '{:?}': {:?}", self.path, err)
+            })
+        }
+    }
 }

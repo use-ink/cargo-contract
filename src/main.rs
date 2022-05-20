@@ -465,7 +465,7 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
-    /// Decode a contract input data
+    /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
 }
