@@ -92,7 +92,9 @@ clippy:
   stage:                           check
   <<:                              *docker-env
   script:
+    - rusty-cachier snapshot create
     - cargo clippy --verbose --all-targets --all-features -- -D warnings;
+    - rusty-cachier cache upload
 
 #### stage:                        test (all features)
 
