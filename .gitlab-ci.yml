@@ -20,6 +20,7 @@ variables:
   CI_IMAGE:                        "paritytech/contracts-ci-linux:production"
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+  RUSTY_CACHIER_BYPASS:            "true"
 
 workflow:
   rules:
