@@ -84,7 +84,6 @@ predicates = "2.1.1"
 ink_primitives = "3"
 ink_storage = "3"
 ink_lang = "3"
-ink_lang_codegen = "3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
