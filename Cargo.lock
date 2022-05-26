@@ -1427,18 +1427,18 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abe6a609d6c6cd84dd091419f672a5ed98504a111211491d7024014244782369"
+checksum = "e131a5e2dc1ae56ba66a2b32fcac74134044e828cc46bfbeccead93b4d2a6cd3"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_engine"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdedf68966ab265e469e99ae6fe72f6f421ca5e845578cd603ba38309a60823c"
+checksum = "34a3accfd498e386e6a1dad78ca18ed8cbc699ec72f48931bd0d51cd7736e6fc"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1451,9 +1451,9 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43679bbf0e47f7a3a654c64fac0a206a673cd19d8a88db110a779519cbbc69e4"
+checksum = "c68d27c8e99f67681862779f1238d13d2f6fae996a2140a0e52d1d25eeed8972"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1541,9 +1541,9 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93ad130f7a2645f22a6106b87bc9dd0e512f110b4e98da6960e4fc3d4daa766"
+checksum = "e00b1ea893ae80972db897ae2c9ce2d5292961a9c7b83714d3ee6b17461413e1"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1555,18 +1555,18 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90a9133adeaa0d07bb1f29b9d4a0db6f0399e34ff63d5c9f1c008cde54f4db24"
+checksum = "17443d7d15df552eca048ba3b7ba8551fff3b0d529779bd3a64afc1be19ba65a"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49a45f65f373fa1a2d91b4293bb4dcf5858b5505d0aaa800b19d6fcd5b36f100"
+checksum = "538ad6c2050f950099e6d0202c296d174854f956d2d815e608c24d9db214ae4f"
 dependencies = [
  "cfg-if",
  "ink_prelude",
