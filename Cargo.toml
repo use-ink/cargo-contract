@@ -56,13 +56,11 @@ sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
 subxt = "0.21.0"
-futures = "0.3.19"
 hex = "0.4.3"
 jsonrpsee = { version = "0.13.1", features = ["ws-client"] }
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
 indexmap = "1.8.1"
-thiserror = "1.0.31"
 escape8259 = "0.5.1"
 itertools = "0.10.3"
 
@@ -86,7 +84,6 @@ predicates = "2.1.1"
 ink_primitives = "3"
 ink_storage = "3"
 ink_lang = "3"
-ink_lang_codegen = "3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

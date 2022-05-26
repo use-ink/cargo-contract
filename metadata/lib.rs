@@ -52,6 +52,8 @@
 //! let json = serde_json::to_value(&metadata).unwrap();
 //! ```
 
+#![deny(unused_crate_dependencies)]
+
 mod byte_str;
 
 use semver::Version;
