@@ -46,7 +46,6 @@ workflow:
 .docker-env:                       &docker-env
   image:
     name:                          "${CI_IMAGE}"
-    entrypoint:                    ['bash', '-c', 'exec unshare -m -r bash']
   before_script:
     - cargo -vV
     - rustc -vV
