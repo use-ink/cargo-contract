@@ -82,7 +82,7 @@ impl UploadCommand {
             .context(format!("Failed to read from {}", wasm_path.display()))?;
 
         async_std::task::block_on(async {
-            let url = self.extrinsic_opts.url.to_string();
+            let url = self.extrinsic_opts.url_to_string();
             let api = ClientBuilder::new()
                 .set_url(&url)
                 .build()
@@ -121,7 +121,7 @@ impl UploadCommand {
         code: Vec<u8>,
         signer: &PairSigner,
     ) -> Result<CodeUploadResult> {
-        let url = self.extrinsic_opts.url.to_string();
+        let url = self.extrinsic_opts.url_to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
             .extrinsic_opts

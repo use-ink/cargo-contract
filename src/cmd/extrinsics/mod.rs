@@ -111,6 +111,18 @@ impl ExtrinsicOpts {
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
     }
+
+    /// Convert URL to String without omitting the default port
+    pub fn url_to_string(&self) -> String {
+        let mut res = self.url.to_string();
+        match (self.url.port(), self.url.port_or_known_default()) {
+            (None, Some(port)) => {
+                res.insert_str(res.len() - 1, &format!(":{}", port));
+                res
+            }
+            _ => res,
+        }
+    }
 }
 
 /// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo

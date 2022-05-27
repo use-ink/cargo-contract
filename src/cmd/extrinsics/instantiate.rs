@@ -136,7 +136,7 @@ impl InstantiateCommand {
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
-        let url = self.extrinsic_opts.url.clone();
+        let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
@@ -195,7 +195,7 @@ struct InstantiateArgs {
 pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
-    url: url::Url,
+    url: String,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
 }
@@ -203,7 +203,7 @@ pub struct Exec<'a> {
 impl<'a> Exec<'a> {
     async fn subxt_api(&self) -> Result<RuntimeApi> {
         let api = ClientBuilder::new()
-            .set_url(self.url.to_string())
+            .set_url(&self.url)
             .build()
             .await?
             .to_runtime_api::<RuntimeApi>();
@@ -326,8 +326,7 @@ impl<'a> Exec<'a> {
     }
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
-        let url = self.url.to_string();
-        let cli = WsClientBuilder::default().build(&url).await?;
+        let cli = WsClientBuilder::default().build(&self.url).await?;
         let storage_deposit_limit = self
             .args
             .storage_deposit_limit
