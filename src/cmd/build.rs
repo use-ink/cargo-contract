@@ -528,7 +528,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     validate_wasm::validate_import_section(&module)?;
 
     debug_assert!(
-        !module.clone().to_bytes().unwrap().is_empty(),
+        !module.clone().into_bytes().unwrap().is_empty(),
         "resulting wasm size of post processing must be > 0"
     );
 
