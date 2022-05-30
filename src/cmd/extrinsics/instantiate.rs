@@ -251,7 +251,9 @@ impl<'a> Exec<'a> {
             Code::Upload(code) => {
                 let (code_hash, contract_account) =
                     self.instantiate_with_code(code).await?;
-                name_value_println!("Code hash", format!("{:?}", code_hash));
+                if let Some(code_hash) = code_hash {
+                    name_value_println!("Code hash", format!("{:?}", code_hash));
+                }
                 name_value_println!("Contract", contract_account.to_ss58check());
             }
             Code::Existing(code_hash) => {
@@ -265,7 +267,7 @@ impl<'a> Exec<'a> {
     async fn instantiate_with_code(
         &self,
         code: Bytes,
-    ) -> Result<(CodeHash, ContractAccount)> {
+    ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let api = self.subxt_api().await?;
         let tx_progress = api
             .tx()
@@ -287,14 +289,16 @@ impl<'a> Exec<'a> {
 
         display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
-        let code_stored = result
+        // The CodeStored event is only raised if the contract has not already been uploaded.
+        let code_hash = result
             .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or_else(|| anyhow!("Failed to find CodeStored event"))?;
+            .map(|code_stored| code_stored.code_hash);
+
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        Ok((code_stored.code_hash, instantiated.contract))
+        Ok((code_hash, instantiated.contract))
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
