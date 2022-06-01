@@ -528,7 +528,7 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     validate_wasm::validate_import_section(&module)?;
 
     debug_assert!(
-        !module.clone().to_bytes().unwrap().is_empty(),
+        !module.clone().into_bytes().unwrap().is_empty(),
         "resulting wasm size of post processing must be > 0"
     );
 
@@ -550,7 +550,7 @@ fn optimize_wasm(
         "{}-opt.wasm",
         crate_metadata.contract_artifact_name
     ));
-    let _ = do_optimization(
+    do_optimization(
         crate_metadata.dest_wasm.as_os_str(),
         dest_optimized.as_os_str(),
         optimization_passes,
@@ -612,7 +612,7 @@ fn do_optimization(
         .as_path();
     log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
-    let _ = check_wasm_opt_version_compatibility(wasm_opt_path)?;
+    check_wasm_opt_version_compatibility(wasm_opt_path)?;
 
     log::info!(
         "Optimization level passed to wasm-opt: {}",

@@ -51,6 +51,7 @@ use sp_core::{
 use subxt::{
     Config,
     DefaultConfig,
+    HasModuleError as _,
 };
 
 pub use self::transcode::ContractMessageTranscoder;
@@ -66,7 +67,7 @@ type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
-type SignedExtra = subxt::SubstrateExtrinsicParams<DefaultConfig>;
+type SignedExtra = subxt::PolkadotExtrinsicParams<DefaultConfig>;
 type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -109,6 +110,18 @@ impl ExtrinsicOpts {
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
+    }
+
+    /// Convert URL to String without omitting the default port
+    pub fn url_to_string(&self) -> String {
+        let mut res = self.url.to_string();
+        match (self.url.port(), self.url.port_or_known_default()) {
+            (None, Some(port)) => {
+                res.insert_str(res.len() - 1, &format!(":{}", port));
+                res
+            }
+            _ => res,
+        }
     }
 }
 
@@ -228,4 +241,26 @@ where
         .wait_for_success()
         .await
         .map_err(Into::into)
+}
+
+/// Extract and display error details for an RPC `--dry-run` result.
+async fn dry_run_error_details(
+    api: &RuntimeApi,
+    error: &RuntimeDispatchError,
+) -> Result<String> {
+    let error = if let Some(error_data) = error.module_error_data() {
+        let details = api
+            .client
+            .metadata()
+            .error(error_data.pallet_index, error_data.error_index())?;
+        format!(
+            "ModuleError: {}::{}: {:?}",
+            details.pallet(),
+            details.error(),
+            details.description()
+        )
+    } else {
+        format!("{:?}", error)
+    };
+    Ok(error)
 }

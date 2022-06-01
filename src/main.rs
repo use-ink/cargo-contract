@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+#![deny(unused_crate_dependencies)]
+
 mod cmd;
 mod crate_metadata;
 mod util;
@@ -78,7 +80,7 @@ pub(crate) struct ContractArgs {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct HexData(pub Vec<u8>);
 
-impl std::str::FromStr for HexData {
+impl FromStr for HexData {
     type Err = hex::FromHexError;
 
     fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
@@ -118,7 +120,7 @@ impl Default for OptimizationPasses {
     }
 }
 
-impl std::str::FromStr for OptimizationPasses {
+impl FromStr for OptimizationPasses {
     type Err = Error;
 
     fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
@@ -139,7 +141,7 @@ impl std::str::FromStr for OptimizationPasses {
     }
 }
 
-impl From<std::string::String> for OptimizationPasses {
+impl From<String> for OptimizationPasses {
     fn from(str: String) -> Self {
         OptimizationPasses::from_str(&str).expect("conversion failed")
     }
@@ -465,7 +467,7 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
-    /// Decode a contract input data
+    /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
 }
@@ -553,14 +555,14 @@ mod tests {
   "verbosity": "Quiet"
 }"#;
 
-        let build_result = crate::BuildResult {
+        let build_result = BuildResult {
             dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
-            metadata_result: Some(crate::cmd::metadata::MetadataResult {
+            metadata_result: Some(MetadataResult {
                 dest_metadata: PathBuf::from("/path/to/metadata.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),
             target_directory: PathBuf::from("/path/to/target"),
-            optimization_result: Some(crate::OptimizationResult {
+            optimization_result: Some(OptimizationResult {
                 dest_wasm: PathBuf::from("/path/to/contract.wasm"),
                 original_size: 64.0,
                 optimized_size: 32.0,

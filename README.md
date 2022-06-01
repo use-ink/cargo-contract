@@ -2,18 +2,15 @@
     <img src="./.images/cargo-contract.svg" alt="cargo-contract" height="170" />
 
 [![CI Status][a1]][a2]
-[![Matrix Chat][b1]][b2]
-[![Discord Chat][c1]][c2]
 [![Latest Release][d1]][d2]
+[![stack-exchange][s1]][s2]
 
-[a1]: https://gitlab.parity.io/parity/cargo-contract/badges/master/pipeline.svg
-[a2]: https://gitlab.parity.io/parity/cargo-contract/pipelines
-[b1]: https://img.shields.io/badge/matrix-chat-brightgreen.svg?style=flat
-[b2]: https://riot.im/app/#/room/#ink:matrix.parity.io
-[c1]: https://img.shields.io/discord/722223075629727774?style=flat-square&label=discord
-[c2]: https://discord.com/invite/wGUDt2p
+[a1]: https://gitlab.parity.io/parity/mirrors/cargo-contract/badges/master/pipeline.svg
+[a2]: https://gitlab.parity.io/parity/mirrors/cargo-contract/pipelines
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
+[s1]: https://img.shields.io/badge/click-white.svg?logo=StackExchange&label=ink!%20Support%20on%20StackExchange&labelColor=white&color=blue
+[s2]: https://substrate.stackexchange.com/questions/tagged/ink?tab=Votes
 
 <p align="center">
 
@@ -22,16 +19,16 @@
 
 <br/>
 
-[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp; 
-[ink! Documentation Portal](https://paritytech.github.io/ink-docs)
+[Guided Tutorial for Beginners](https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/)&nbsp;&nbsp;•&nbsp;&nbsp;
+[ink! Documentation Portal](https://ink.substrate.io)
 
 <br/>
 </div>
 
 More relevant links:
-* Talk to us on [Element][b2] or on [Discord][c2] in the [`ink_smart-contracts`](https://discord.com/channels/722223075629727774/765280480609828864) channel
-* [`ink!`](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
-* [Canvas UI](https://paritytech.github.io/canvas-ui/#/upload) ‒ Frontend for contract deployment and interaction
+* Find answers to your questions by joining our [Stack Exchange][s2] community
+* [ink!](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
+* [Contracts UI](https://paritytech.github.io/contracts-ui/) ‒ Frontend for contract deployment and interaction
 * [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
 
 
@@ -46,12 +43,14 @@ More relevant links:
   * [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
   * Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
 
-  There's only an old version in your distributions package manager? Just use a 
+  There's only an old version in your distributions package manager? Just use a
   [binary release](https://github.com/WebAssembly/binaryen/releases).
 
-* Step 3: `cargo install cargo-dylint dylint-link`.
+* Step 3: Install `dylint`
+  * (MacOS) `brew install openssl`
+  * `cargo install cargo-dylint dylint-link`.
 
-* Step 4: `cargo install --force cargo-contract`.
+* Step 4: `cargo install --force --locked cargo-contract`.
 
 You can always update the `cargo-contract` binary to the latest version by running the Step 4.
 
@@ -90,7 +89,7 @@ e.g. `cargo contract new --help`.
 Creates an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
-The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) 
+The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs)
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 
@@ -127,6 +126,14 @@ Create an instance of a contract on chain. See [extrinsics](docs/extrinsics.md).
 ##### `cargo contract call`
 
 Invoke a message on an existing contract on chain. See [extrinsics](docs/extrinsics.md).
+
+##### `cargo contract decode`
+
+Decodes a contracts input or output data.
+
+This can be either an event, an invocation of a contract message, or an invocation of a contract constructor.
+
+The argument has to be given as hex-encoding, starting with `0x`.
 
 ## License
 

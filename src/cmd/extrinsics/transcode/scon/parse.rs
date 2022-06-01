@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    Bytes,
+    Hex,
     Map,
     Tuple,
     Value,
@@ -53,6 +53,7 @@ use nom_supreme::{
     error::ErrorTree,
     ParserExt,
 };
+use std::str::FromStr as _;
 
 /// Attempt to parse a SCON value
 pub fn parse_value(input: &str) -> anyhow::Result<Value> {
@@ -64,7 +65,7 @@ pub fn parse_value(input: &str) -> anyhow::Result<Value> {
 fn scon_value(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     ws(alt((
         scon_unit,
-        scon_bytes,
+        scon_hex,
         scon_seq,
         scon_tuple,
         scon_map,
@@ -221,12 +222,12 @@ fn scon_map(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .parse(input)
 }
 
-fn scon_bytes(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
+fn scon_hex(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     tag("0x")
         .precedes(hex_digit1)
         .map_res::<_, _, hex::FromHexError>(|byte_str| {
-            let bytes = Bytes::from_hex_string(byte_str)?;
-            Ok(Value::Bytes(bytes))
+            let hex = Hex::from_str(byte_str)?;
+            Ok(Value::Hex(hex))
         })
         .parse(input)
 }
@@ -602,10 +603,13 @@ mod tests {
 
     #[test]
     fn test_bytes() {
-        assert_scon_value(r#"0x0000"#, Value::Bytes(vec![0u8; 2].into()));
+        assert_scon_value("0x0000", Value::Hex(Hex::from_str("0x0000").unwrap()));
         assert_scon_value(
-            r#"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"#,
-            Value::Bytes(vec![255u8; 23].into()),
+            "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            Value::Hex(
+                Hex::from_str("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+                    .unwrap(),
+            ),
         );
     }
 }

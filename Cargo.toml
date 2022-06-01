@@ -3,7 +3,7 @@ members = [".", "metadata"]
 
 [package]
 name = "cargo-contract"
-version = "1.1.1"
+version = "1.4.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -25,68 +25,65 @@ include = [
 
 [dependencies]
 env_logger = "0.9.0"
-anyhow = "1.0.56"
-clap = { version = "3.1.8", features = ["derive", "env"] }
-log = "0.4.16"
+anyhow = "1.0.57"
+clap = { version = "3.1.18", features = ["derive", "env"] }
+log = "0.4.17"
 heck = "0.4.0"
 zip = { version = "0.6.2", default-features = false }
-parity-wasm = "0.42.2"
+parity-wasm = "0.45.0"
 cargo_metadata = "0.14.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.2.5"
 colored = "2.0.0"
-toml = "0.5.8"
+toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
 contract-metadata = { version = "0.6.0", path = "./metadata" }
-semver = { version = "1.0.7", features = ["serde"] }
-serde = { version = "1.0.136", default-features = false, features = ["derive"] }
-serde_json = "1.0.79"
+semver = { version = "1.0.9", features = ["serde"] }
+serde = { version = "1.0.137", default-features = false, features = ["derive"] }
+serde_json = "1.0.81"
 tempfile = "3.3.0"
 url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.2"
-regex = "1.5.5"
+regex = "1.5.6"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.11.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "3.0", features = ["derive"] }
-ink_env = "3.0"
-scale-info = { version = "2.1.0", default-features = false, features = ["derive"] }
+ink_metadata = { version = "3", features = ["derive"] }
+ink_env = "3"
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
-subxt = "0.20.0"
-futures = "0.3.19"
+subxt = "0.21.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.10.1", features = ["ws-client"] }
+jsonrpsee = { version = "0.13.1", features = ["ws-client"] }
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
-indexmap = "1.8.1"
-thiserror = "1.0.30"
+indexmap = "1.8.2"
 escape8259 = "0.5.1"
 itertools = "0.10.3"
 
 [build-dependencies]
-anyhow = "1.0.56"
+anyhow = "1.0.57"
 zip = { version = "0.6.2", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
-platforms = "2.0.0"
+current_platform = "0.2.0"
 which = "4.2.5"
-regex = "1.5.5"
+regex = "1.5.6"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
 assert_matches = "1.5.0"
 pretty_assertions = "1.2.1"
 wabt = "0.10.0"
-regex = "1.5.5"
+regex = "1.5.6"
 predicates = "2.1.1"
 
-ink_primitives = "3.0"
-ink_storage = "3.0"
-ink_lang = "3.0"
-ink_lang_codegen = "3.0"
+ink_primitives = "3"
+ink_storage = "3"
+ink_lang = "3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

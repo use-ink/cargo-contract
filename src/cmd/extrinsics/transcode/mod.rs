@@ -128,7 +128,8 @@ pub struct ContractMessageTranscoder<'a> {
 impl<'a> ContractMessageTranscoder<'a> {
     pub fn new(metadata: &'a InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
-            .register_custom_type::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
             .done();
         Self {
             metadata,
@@ -179,8 +180,7 @@ impl<'a> ContractMessageTranscoder<'a> {
     }
 
     fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<PortableForm>> {
-        self.messages()
-            .find(|msg| msg.label().contains(&name.to_string()))
+        self.messages().find(|msg| msg.label() == &name.to_string())
     }
 
     fn find_constructor_spec(
@@ -188,7 +188,7 @@ impl<'a> ContractMessageTranscoder<'a> {
         name: &str,
     ) -> Option<&ConstructorSpec<PortableForm>> {
         self.constructors()
-            .find(|msg| msg.label().contains(&name.to_string()))
+            .find(|msg| msg.label() == &name.to_string())
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
@@ -207,7 +207,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     variant_index
                 )
             })?;
-        log::debug!("decoding contract event '{}'", event_spec.label());
+        log::debug!("Decoding contract event '{}'", event_spec.label());
 
         let mut args = Vec::new();
         for arg in event_spec.args() {
@@ -234,7 +234,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     hex::encode(&msg_selector)
                 )
             })?;
-        log::debug!("decoding contract message '{}'", msg_spec.label());
+        log::debug!("Decoding contract message '{}'", msg_spec.label());
 
         let mut args = Vec::new();
         for arg in msg_spec.args() {
@@ -261,7 +261,7 @@ impl<'a> ContractMessageTranscoder<'a> {
                     hex::encode(&msg_selector)
                 )
             })?;
-        log::debug!("decoding contract constructor '{}'", msg_spec.label());
+        log::debug!("Decoding contract constructor '{}'", msg_spec.label());
 
         let mut args = Vec::new();
         for arg in msg_spec.args() {
@@ -346,12 +346,13 @@ mod tests {
     use scon::Value;
     use std::str::FromStr;
 
+    use crate::cmd::extrinsics::transcode::scon::Hex;
     use ink_lang as ink;
 
     #[ink::contract]
-    pub mod flipper {
+    pub mod transcode {
         #[ink(storage)]
-        pub struct Flipper {
+        pub struct Transcode {
             value: bool,
         }
 
@@ -363,35 +364,56 @@ mod tests {
             from: AccountId,
         }
 
-        impl Flipper {
-            /// Creates a new flipper smart contract initialized with the given value.
+        impl Transcode {
             #[ink(constructor)]
             pub fn new(init_value: bool) -> Self {
                 Self { value: init_value }
             }
 
-            /// Creates a new flipper smart contract initialized to `false`.
             #[ink(constructor)]
             pub fn default() -> Self {
                 Self::new(Default::default())
             }
 
-            /// Flips the current value of the Flipper's bool.
             #[ink(message)]
             pub fn flip(&mut self) {
                 self.value = !self.value;
             }
 
-            /// Returns the current value of the Flipper's bool.
             #[ink(message)]
             pub fn get(&self) -> bool {
                 self.value
             }
 
-            /// Dummy setter which receives the env type AccountId.
             #[ink(message)]
             pub fn set_account_id(&self, account_id: AccountId) {
                 let _ = account_id;
+            }
+
+            #[ink(message)]
+            pub fn set_account_ids_vec(&self, account_ids: Vec<AccountId>) {
+                let _ = account_ids;
+            }
+
+            #[ink(message)]
+            pub fn primitive_vec_args(&self, args: Vec<u32>) {
+                let _ = args;
+            }
+
+            #[ink(message)]
+            pub fn uint_args(
+                &self,
+                _u8: u8,
+                _u16: u16,
+                _u32: u32,
+                _u64: u64,
+                _u128: u128,
+            ) {
+            }
+
+            #[ink(message)]
+            pub fn uint_array_args(&self, arr: [u8; 4]) {
+                let _ = arr;
             }
         }
     }
@@ -443,6 +465,94 @@ mod tests {
     }
 
     #[test]
+    fn encode_account_ids_vec_args() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode(
+            "set_account_ids_vec",
+            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = vec![
+            sp_core::crypto::AccountId32::from_str(
+                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            )
+            .unwrap(),
+            sp_core::crypto::AccountId32::from_str(
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            )
+            .unwrap(),
+        ];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_primitive_vec_args() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = vec![1, 2];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_uint_hex_literals() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded = transcoder.encode(
+            "uint_args",
+            &[
+                "0x00",
+                "0xDEAD",
+                "0xDEADBEEF",
+                "0xDEADBEEF12345678",
+                "0xDEADBEEF0123456789ABCDEF01234567",
+            ],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = (
+            0x00u8,
+            0xDEADu16,
+            0xDEADBEEFu32,
+            0xDEADBEEF12345678u64,
+            0xDEADBEEF0123456789ABCDEF01234567u128,
+        );
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_uint_arr_hex_literals() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let encoded =
+            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected: [u8; 4] = [0xDE, 0xAD, 0xBE, 0xEF];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
     fn decode_primitive_return() -> Result<()> {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
@@ -459,12 +569,46 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(&metadata);
 
-        let encoded = ([0u32; 32], [1u32; 32]).encode();
+        // raw encoded event with event index prefix
+        let encoded = (0u8, [0u32; 32], [1u32; 32]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
 
         Ok(())
+    }
+
+    #[test]
+    fn decode_hash_as_hex_encoded_string() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(&metadata);
+
+        let hash = [
+            52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
+            83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
+        ];
+        // raw encoded event with event index prefix
+        let encoded = (0u8, hash, [0u32; 32]).encode();
+        // encode again as a Vec<u8> which has a len prefix.
+        let encoded_bytes = encoded.encode();
+        let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+
+        if let Value::Map(ref map) = decoded {
+            let name_field = &map[&Value::String("name".into())];
+            if let Value::Hex(hex) = name_field {
+                assert_eq!(&Hex::from_str("0x3428ebe146f5b82415da82724bcf75f053768738dcac5f83ab7d82a70a0ff2de")?, hex);
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                    "Expected a name field hash encoded as Hex value, was {:?}",
+                    name_field
+                ))
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Expected a Value::Map for the decoded event"
+            ))
+        }
     }
 
     #[test]

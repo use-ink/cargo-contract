@@ -17,6 +17,7 @@
 use super::{
     display_contract_exec_result,
     display_events,
+    dry_run_error_details,
     parse_balance,
     runtime_api::api,
     wait_for_success_and_handle_error,
@@ -27,6 +28,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
+    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -44,6 +46,10 @@ use jsonrpsee::{
     rpc_params,
     ws_client::WsClientBuilder,
 };
+use pallet_contracts_primitives::{
+    ContractResult,
+    InstantiateReturnValue,
+};
 use serde::Serialize;
 use sp_core::{
     crypto::Ss58Codec,
@@ -55,6 +61,7 @@ use std::{
         Path,
         PathBuf,
     },
+    result,
 };
 use subxt::{
     rpc::NumberOrHex,
@@ -63,8 +70,10 @@ use subxt::{
     DefaultConfig,
 };
 
-type ContractInstantiateResult =
-    pallet_contracts_primitives::ContractInstantiateResult<ContractAccount, Balance>;
+type ContractInstantiateResult = ContractResult<
+    result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
+    Balance,
+>;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -128,7 +137,7 @@ impl InstantiateCommand {
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
-        let url = self.extrinsic_opts.url.clone();
+        let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
@@ -187,7 +196,7 @@ struct InstantiateArgs {
 pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
-    url: url::Url,
+    url: String,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
 }
@@ -195,7 +204,7 @@ pub struct Exec<'a> {
 impl<'a> Exec<'a> {
     async fn subxt_api(&self) -> Result<RuntimeApi> {
         let api = ClientBuilder::new()
-            .set_url(self.url.to_string())
+            .set_url(&self.url)
             .build()
             .await?
             .to_runtime_api::<RuntimeApi>();
@@ -203,6 +212,7 @@ impl<'a> Exec<'a> {
     }
 
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
+        log::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
             match result.result {
@@ -228,12 +238,10 @@ impl<'a> Exec<'a> {
                         EXEC_RESULT_MAX_KEY_COL_WIDTH
                     );
                 }
-                Err(err) => {
-                    name_value_println!(
-                        "Result",
-                        format!("Error: {:?}", err),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
-                    );
+                Err(ref err) => {
+                    let err =
+                        dry_run_error_details(&self.subxt_api().await?, err).await?;
+                    name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)?;
@@ -244,7 +252,9 @@ impl<'a> Exec<'a> {
             Code::Upload(code) => {
                 let (code_hash, contract_account) =
                     self.instantiate_with_code(code).await?;
-                name_value_println!("Code hash", format!("{:?}", code_hash));
+                if let Some(code_hash) = code_hash {
+                    name_value_println!("Code hash", format!("{:?}", code_hash));
+                }
                 name_value_println!("Contract", contract_account.to_ss58check());
             }
             Code::Existing(code_hash) => {
@@ -258,7 +268,7 @@ impl<'a> Exec<'a> {
     async fn instantiate_with_code(
         &self,
         code: Bytes,
-    ) -> Result<(CodeHash, ContractAccount)> {
+    ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let api = self.subxt_api().await?;
         let gas_limit = if let Some(gas_limit) = self.args.gas_limit {
             gas_limit
@@ -277,7 +287,7 @@ impl<'a> Exec<'a> {
                 code.to_vec(),
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
@@ -287,14 +297,16 @@ impl<'a> Exec<'a> {
 
         display_events(&result, &self.transcoder, metadata, &self.verbosity)?;
 
-        let code_stored = result
+        // The CodeStored event is only raised if the contract has not already been uploaded.
+        let code_hash = result
             .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or_else(|| anyhow!("Failed to find CodeStored event"))?;
+            .map(|code_stored| code_stored.code_hash);
+
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        Ok((code_stored.code_hash, instantiated.contract))
+        Ok((code_hash, instantiated.contract))
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
@@ -310,7 +322,7 @@ impl<'a> Exec<'a> {
                 code_hash,
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )
+            )?
             .sign_and_submit_then_watch_default(&self.signer)
             .await?;
 
@@ -327,8 +339,7 @@ impl<'a> Exec<'a> {
     }
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
-        let url = self.url.to_string();
-        let cli = WsClientBuilder::default().build(&url).await?;
+        let cli = WsClientBuilder::default().build(&self.url).await?;
         let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&50000000000);
         let storage_deposit_limit = self
             .args
@@ -345,8 +356,11 @@ impl<'a> Exec<'a> {
             salt: self.args.salt.clone(),
         };
         let params = rpc_params![call_request];
-        let result: ContractInstantiateResult =
-            cli.request("contracts_instantiate", params).await?;
+        let result: ContractInstantiateResult = cli
+            .request("contracts_instantiate", params)
+            .await
+            .context("contracts_instantiate RPC error")?;
+
         Ok(result)
     }
 
