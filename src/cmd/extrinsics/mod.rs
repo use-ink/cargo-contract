@@ -18,49 +18,30 @@ mod call;
 mod events;
 mod instantiate;
 mod runtime_api;
-mod transcode;
 mod upload;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use anyhow::{
-    anyhow,
-    Context,
-    Result,
-};
-use std::{
-    fs::File,
-    path::PathBuf,
-};
+use anyhow::{anyhow, Context, Result};
+use std::{fs::File, path::PathBuf};
 
 use self::events::display_events;
 use crate::{
-    crate_metadata::CrateMetadata,
-    name_value_println,
-    workspace::ManifestPath,
-    Verbosity,
-    VerbosityFlags,
+    crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath,
+    Verbosity, VerbosityFlags,
 };
 use pallet_contracts_primitives::ContractResult;
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-};
-use subxt::{
-    Config,
-    DefaultConfig,
-    HasModuleError as _,
-};
+use sp_core::{crypto::Pair, sr25519};
+use subxt::{Config, DefaultConfig, HasModuleError as _};
 
-pub use self::transcode::ContractMessageTranscoder;
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{
-    DispatchError as RuntimeDispatchError,
-    Event as RuntimeEvent,
+    DispatchError as RuntimeDispatchError, Event as RuntimeEvent,
 };
+pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
 type Balance = u128;
@@ -137,7 +118,7 @@ pub fn load_metadata(
     if !path.exists() {
         return Err(anyhow!(
             "Metadata file not found. Try building with `cargo contract build`."
-        ))
+        ));
     }
 
     let file = File::open(&path)

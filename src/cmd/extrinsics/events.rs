@@ -14,28 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    runtime_api::api::contracts::events::ContractEmitted,
-    transcode::{
-        ContractMessageTranscoder,
-        TranscoderBuilder,
-    },
-    RuntimeEvent,
-};
-use crate::{
-    maybe_println,
-    Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use super::{runtime_api::api::contracts::events::ContractEmitted, RuntimeEvent};
+use crate::{maybe_println, Verbosity, DEFAULT_KEY_COL_WIDTH};
 use colored::Colorize as _;
+use transcode::{ContractMessageTranscoder, TranscoderBuilder};
 
 use anyhow::Result;
-use subxt::{
-    self,
-    DefaultConfig,
-    Event,
-    TransactionEvents,
-};
+use subxt::{self, DefaultConfig, Event, TransactionEvents};
 
 pub fn display_events(
     result: &TransactionEvents<DefaultConfig, RuntimeEvent>,
@@ -44,7 +29,7 @@ pub fn display_events(
     verbosity: &Verbosity,
 ) -> Result<()> {
     if matches!(verbosity, Verbosity::Quiet) {
-        return Ok(())
+        return Ok(());
     }
 
     if matches!(verbosity, Verbosity::Verbose) {
