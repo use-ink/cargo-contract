@@ -14,45 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    Hex,
-    Map,
-    Tuple,
-    Value,
-};
+use super::{Hex, Map, Tuple, Value};
 use escape8259::unescape;
 use nom::{
     branch::alt,
-    bytes::complete::{
-        tag,
-        take_while1,
-    },
+    bytes::complete::{tag, take_while1},
     character::complete::{
-        alphanumeric1,
-        anychar,
-        char,
-        digit1,
-        hex_digit1,
-        multispace0,
+        alphanumeric1, anychar, char, digit1, hex_digit1, multispace0,
     },
-    multi::{
-        many0,
-        separated_list0,
-    },
-    sequence::{
-        delimited,
-        pair,
-        separated_pair,
-        tuple,
-    },
-    AsChar,
-    IResult,
-    Parser,
+    multi::{many0, separated_list0},
+    sequence::{delimited, pair, separated_pair, tuple},
+    AsChar, IResult, Parser,
 };
-use nom_supreme::{
-    error::ErrorTree,
-    ParserExt,
-};
+use nom_supreme::{error::ErrorTree, ParserExt};
 use std::str::FromStr as _;
 
 /// Attempt to parse a SCON value

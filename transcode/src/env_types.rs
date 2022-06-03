@@ -15,32 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::scon::Value;
-use crate::cmd::extrinsics::transcode::scon::Hex;
-use anyhow::{
-    Context,
-    Result,
-};
-use scale::{
-    Decode,
-    Encode,
-    Output,
-};
-use scale_info::{
-    form::PortableForm,
-    IntoPortable,
-    Path,
-    TypeInfo,
-};
-use sp_core::crypto::{
-    AccountId32,
-    Ss58Codec,
-};
-use std::{
-    boxed::Box,
-    collections::HashMap,
-    convert::TryFrom,
-    str::FromStr,
-};
+use crate::scon::Hex;
+use anyhow::{Context, Result};
+use scale::{Decode, Encode, Output};
+use scale_info::{form::PortableForm, IntoPortable, Path, TypeInfo};
+use sp_core::crypto::{AccountId32, Ss58Codec};
+use std::{boxed::Box, collections::HashMap, convert::TryFrom, str::FromStr};
 
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
@@ -153,32 +133,22 @@ pub struct AccountId;
 impl CustomTypeEncoder for AccountId {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
         let account_id = match value {
-            Value::Literal(literal) => {
-                AccountId32::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing AccountId from literal `{}`: {}",
-                        literal,
-                        e
-                    )
-                })?
-            }
-            Value::String(string) => {
-                AccountId32::from_str(string).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing AccountId from string '{}': {}",
-                        string,
-                        e
-                    )
-                })?
-            }
-            Value::Hex(hex) => {
-                AccountId32::try_from(hex.bytes()).map_err(|_| {
-                    anyhow::anyhow!(
-                        "Error converting hex bytes `{:?}` to AccountId",
-                        hex.bytes()
-                    )
-                })?
-            }
+            Value::Literal(literal) => AccountId32::from_str(literal).map_err(|e| {
+                anyhow::anyhow!(
+                    "Error parsing AccountId from literal `{}`: {}",
+                    literal,
+                    e
+                )
+            })?,
+            Value::String(string) => AccountId32::from_str(string).map_err(|e| {
+                anyhow::anyhow!("Error parsing AccountId from string '{}': {}", string, e)
+            })?,
+            Value::Hex(hex) => AccountId32::try_from(hex.bytes()).map_err(|_| {
+                anyhow::anyhow!(
+                    "Error converting hex bytes `{:?}` to AccountId",
+                    hex.bytes()
+                )
+            })?,
             _ => {
                 return Err(anyhow::anyhow!(
                     "Expected a string or a literal for an AccountId"

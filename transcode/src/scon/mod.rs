@@ -23,19 +23,10 @@ use indexmap::IndexMap;
 
 use crate::util;
 use std::{
-    cmp::{
-        Eq,
-        Ordering,
-    },
-    hash::{
-        Hash,
-        Hasher,
-    },
+    cmp::{Eq, Ordering},
+    hash::{Hash, Hasher},
     iter::FromIterator,
-    ops::{
-        Index,
-        IndexMut,
-    },
+    ops::{Index, IndexMut},
     str::FromStr,
 };
 
@@ -94,7 +85,7 @@ impl Ord for Map {
 impl PartialEq for Map {
     fn eq(&self, other: &Map) -> bool {
         if self.map.len() != other.map.len() {
-            return false
+            return false;
         }
         self.iter().zip(other.iter()).all(|(a, b)| a == b)
     }
