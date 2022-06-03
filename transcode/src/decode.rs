@@ -16,14 +16,33 @@
 
 use super::{
     env_types::EnvTypesTranscoder,
-    scon::{Map, Tuple, Value},
+    scon::{
+        Map,
+        Tuple,
+        Value,
+    },
     CompositeTypeFields,
 };
-use anyhow::{Context, Result};
-use scale::{Compact, Decode, Input};
+use anyhow::{
+    Context,
+    Result,
+};
+use scale::{
+    Compact,
+    Decode,
+    Input,
+};
 use scale_info::{
-    form::{Form, PortableForm},
-    Field, PortableRegistry, Type, TypeDef, TypeDefCompact, TypeDefPrimitive,
+    form::{
+        Form,
+        PortableForm,
+    },
+    Field,
+    PortableRegistry,
+    Type,
+    TypeDef,
+    TypeDefCompact,
+    TypeDefPrimitive,
     TypeDefVariant,
 };
 
@@ -225,27 +244,30 @@ impl<'a> Decoder<'a> {
         compact: &TypeDefCompact<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        let mut decode_compact_primitive = |primitive: &TypeDefPrimitive| match primitive
-        {
-            TypeDefPrimitive::U8 => {
-                Ok(Value::UInt(Compact::<u8>::decode(input)?.0.into()))
+        let mut decode_compact_primitive = |primitive: &TypeDefPrimitive| {
+            match primitive {
+                TypeDefPrimitive::U8 => {
+                    Ok(Value::UInt(Compact::<u8>::decode(input)?.0.into()))
+                }
+                TypeDefPrimitive::U16 => {
+                    Ok(Value::UInt(Compact::<u16>::decode(input)?.0.into()))
+                }
+                TypeDefPrimitive::U32 => {
+                    Ok(Value::UInt(Compact::<u32>::decode(input)?.0.into()))
+                }
+                TypeDefPrimitive::U64 => {
+                    Ok(Value::UInt(Compact::<u64>::decode(input)?.0.into()))
+                }
+                TypeDefPrimitive::U128 => {
+                    Ok(Value::UInt(Compact::<u128>::decode(input)?.into()))
+                }
+                prim => {
+                    Err(anyhow::anyhow!(
+                        "{:?} not supported. Expected unsigned int primitive.",
+                        prim
+                    ))
+                }
             }
-            TypeDefPrimitive::U16 => {
-                Ok(Value::UInt(Compact::<u16>::decode(input)?.0.into()))
-            }
-            TypeDefPrimitive::U32 => {
-                Ok(Value::UInt(Compact::<u32>::decode(input)?.0.into()))
-            }
-            TypeDefPrimitive::U64 => {
-                Ok(Value::UInt(Compact::<u64>::decode(input)?.0.into()))
-            }
-            TypeDefPrimitive::U128 => {
-                Ok(Value::UInt(Compact::<u128>::decode(input)?.into()))
-            }
-            prim => Err(anyhow::anyhow!(
-                "{:?} not supported. Expected unsigned int primitive.",
-                prim
-            )),
         };
 
         let type_id = compact.type_param().id();
@@ -254,39 +276,55 @@ impl<'a> Decoder<'a> {
         })?;
         match ty.type_def() {
             TypeDef::Primitive(primitive) => decode_compact_primitive(primitive),
-            TypeDef::Composite(composite) => match composite.fields() {
-                [field] => {
-                    let type_id = field.ty().id();
-                    let field_ty = self.registry.resolve(type_id).ok_or_else(|| {
-                        anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
-                    })?;
-                    if let TypeDef::Primitive(primitive) = field_ty.type_def() {
-                        let struct_ident =
-                            ty.path().segments().last().map(|s| s.as_str());
-                        let field_value = decode_compact_primitive(primitive)?;
-                        let compact_composite = match field.name() {
-                            Some(name) => Value::Map(Map::new(
-                                struct_ident,
-                                vec![(Value::String(name.to_string()), field_value)]
-                                    .into_iter()
-                                    .collect(),
-                            )),
-                            None => {
-                                Value::Tuple(Tuple::new(struct_ident, vec![field_value]))
-                            }
-                        };
-                        Ok(compact_composite)
-                    } else {
-                        Err(anyhow::anyhow!(
-                            "Composite type must have a single primitive field"
-                        ))
+            TypeDef::Composite(composite) => {
+                match composite.fields() {
+                    [field] => {
+                        let type_id = field.ty().id();
+                        let field_ty =
+                            self.registry.resolve(type_id).ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Failed to resolve type with id `{:?}`",
+                                    type_id
+                                )
+                            })?;
+                        if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                            let struct_ident =
+                                ty.path().segments().last().map(|s| s.as_str());
+                            let field_value = decode_compact_primitive(primitive)?;
+                            let compact_composite = match field.name() {
+                                Some(name) => {
+                                    Value::Map(Map::new(
+                                        struct_ident,
+                                        vec![(
+                                            Value::String(name.to_string()),
+                                            field_value,
+                                        )]
+                                        .into_iter()
+                                        .collect(),
+                                    ))
+                                }
+                                None => {
+                                    Value::Tuple(Tuple::new(
+                                        struct_ident,
+                                        vec![field_value],
+                                    ))
+                                }
+                            };
+                            Ok(compact_composite)
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "Composite type must have a single primitive field"
+                            ))
+                        }
                     }
+                    _ => Err(anyhow::anyhow!("Composite type must have a single field")),
                 }
-                _ => Err(anyhow::anyhow!("Composite type must have a single field")),
-            },
-            _ => Err(anyhow::anyhow!(
-                "Compact type must be a primitive or a composite type"
-            )),
+            }
+            _ => {
+                Err(anyhow::anyhow!(
+                    "Compact type must be a primitive or a composite type"
+                ))
+            }
         }
     }
 }
