@@ -1,0 +1,39 @@
+[package]
+name = "contract-transcode"
+version = "0.6.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-metadata"
+homepage = "https://www.substrate.io/"
+description = "Library defining metadata for smart contracts on substrate"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1.0.57"
+contract-metadata = { version = "0.6.0", path = "../metadata" }
+env_logger = "0.9.0"
+escape8259 = "0.5.1"
+hex = "0.4.3"
+indexmap = "1.8.1"
+ink_env = "3.0"
+ink_metadata = { version = "3.0", features = ["derive"] }
+itertools = "0.10.3"
+log = "0.4.17"
+nom = "7.1.1"
+nom-supreme = { version = "0.7.0", features = ["error"] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+serde = { version = "1.0.137", default-features = false, features = ["derive"] }
+serde_json = "1.0.81"
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+
+# dependencies for extrinsics (deploying and calling a contract)
+sp-core = "6.0.0"
+sp-runtime = "6.0.0"

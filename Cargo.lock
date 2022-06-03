@@ -650,6 +650,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "contract-transcode"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "contract-metadata",
+ "env_logger",
+ "escape8259",
+ "hex",
+ "indexmap",
+ "ink_env",
+ "ink_metadata",
+ "itertools",
+ "log",
+ "nom",
+ "nom-supreme",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

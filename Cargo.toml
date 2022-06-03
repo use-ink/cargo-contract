@@ -1,5 +1,9 @@
 [workspace]
-members = [".", "metadata"]
+members = [".", "metadata", "transcode"]
+# members = [".", "metadata" ]
+# exclude = [
+#   "transcode",
+# ]
 
 [package]
 name = "cargo-contract"
@@ -99,3 +103,4 @@ test-ci-only = []
 # Enable this to execute tests which depend on a locally running contracts enabed chain
 # e.g.https://github.com/paritytech/canvas-node
 integration-tests = []
+
