@@ -66,7 +66,7 @@ use std::{
 use url::Url;
 
 /// Smart contract metadata.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ContractMetadata {
     /// Information about the contract's Wasm code.
     pub source: Source,
@@ -492,6 +492,137 @@ pub struct Contract {
     pub license: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
+pub struct ContractInner {
+    /// The name of the smart contract.
+    pub name: String,
+    /// The authors of the smart contract.
+    pub authors: Vec<String>,
+    /// The description of the smart contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Link to the documentation of the smart contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<Url>,
+    /// Link to the code repository of the smart contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository: Option<Url>,
+    /// Link to the homepage of the smart contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub homepage: Option<Url>,
+    /// The license of the smart contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<String>,
+}
+
+impl schemars::JsonSchema for Contract {
+    fn schema_name() -> String {
+        "Contract".into()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::SchemaObject;
+
+        // NANDO: So this generates some pretty dumb schemas
+        // Like, it doesn't have the name of the property, or the documentation (which makes sense
+        // if you think about it, we never tell it about these things)
+        // However, the types do seem to match what the macro generates
+        let name_schema = gen.subschema_for::<String>();
+        let authors_schema = gen.subschema_for::<Vec<String>>();
+        let description_schema = gen.subschema_for::<Option<String>>();
+        let documentation_schema = gen.subschema_for::<Option<Url>>();
+        let repository_schema = gen.subschema_for::<Option<Url>>();
+        let homepage_schema = gen.subschema_for::<Option<Url>>();
+        let license_schema = gen.subschema_for::<Option<String>>();
+
+        let mut version_schema = SchemaObject {
+            instance_type: Some(schemars::schema::InstanceType::Object.into()),
+            ..Default::default()
+        };
+
+        let obj = version_schema.object();
+        obj.required.insert("major".to_owned());
+        obj.required.insert("minor".to_owned());
+        obj.required.insert("patch".to_owned());
+        obj.required.insert("pre".to_owned());
+        obj.required.insert("build".to_owned());
+
+        // TODO: Probably shouldn't be Strings
+        //
+        // So it looks like the serde implementation of this uses `collect_str`
+        // So I don't think we have to break this down, can use just String
+        obj.properties
+            .insert("major".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("pre".to_owned(), gen.subschema_for::<String>());
+        obj.properties
+            .insert("build".to_owned(), gen.subschema_for::<String>());
+
+        // obj.properties
+        //     .insert("Err".to_owned(), gen.subschema_for::<E>());
+
+        let mut schema = SchemaObject::default();
+        schema.subschemas().all_of = Some(vec![
+            name_schema.into(),
+            version_schema.into(),
+            authors_schema.into(),
+            description_schema.into(),
+            documentation_schema.into(),
+            repository_schema.into(),
+            homepage_schema.into(),
+            license_schema.into(),
+        ]);
+        schema.into()
+    }
+}
+
+// impl schemars::JsonSchema for Contract {
+//     fn schema_name() -> String {
+//         "Contract".into()
+//     }
+//
+//     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+//         use schemars::schema::SchemaObject;
+//         let contract_schema = gen.subschema_for::<ContractInner>();
+//
+//         let mut version_schema = SchemaObject {
+//             instance_type: Some(schemars::schema::InstanceType::Object.into()),
+//             ..Default::default()
+//         };
+//
+//         let obj = version_schema.object();
+//         obj.required.insert("major".to_owned());
+//         obj.required.insert("minor".to_owned());
+//         obj.required.insert("patch".to_owned());
+//         obj.required.insert("pre".to_owned());
+//         obj.required.insert("build".to_owned());
+//
+//         // TODO: Probably shouldn't be Strings
+//         obj.properties
+//             .insert("major".to_owned(), gen.subschema_for::<u64>());
+//         obj.properties
+//             .insert("minor".to_owned(), gen.subschema_for::<u64>());
+//         obj.properties
+//             .insert("patch".to_owned(), gen.subschema_for::<u64>());
+//         obj.properties
+//             .insert("pre".to_owned(), gen.subschema_for::<String>());
+//         obj.properties
+//             .insert("build".to_owned(), gen.subschema_for::<String>());
+//
+//         // obj.properties
+//         //     .insert("Err".to_owned(), gen.subschema_for::<E>());
+//
+//         let mut schema = SchemaObject::default();
+//         schema.subschemas().all_of =
+//             Some(vec![contract_schema.into(), version_schema.into()]);
+//         schema.into()
+//     }
+// }
+
 impl Contract {
     pub fn builder() -> ContractBuilder {
         ContractBuilder::default()
@@ -499,7 +630,7 @@ impl Contract {
 }
 
 /// Additional user defined metadata, can be any valid json.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct User {
     /// Raw json of user defined metadata.
     #[serde(flatten)]
