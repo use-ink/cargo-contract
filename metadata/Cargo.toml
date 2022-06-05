@@ -23,5 +23,7 @@ serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 serde_json = "1.0.81"
 url = { version = "2.2.2", features = ["serde"] }
 
+schemars = { version = "0.8.10", features = ["url"] }
+
 [dev-dependencies]
 pretty_assertions = "1.2.1"

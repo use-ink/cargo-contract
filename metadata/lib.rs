@@ -57,22 +57,10 @@
 mod byte_str;
 
 use semver::Version;
-use serde::{
-    de,
-    Deserialize,
-    Serialize,
-    Serializer,
-};
-use serde_json::{
-    Map,
-    Value,
-};
+use serde::{de, Deserialize, Serialize, Serializer};
+use serde_json::{Map, Value};
 use std::{
-    fmt::{
-        Display,
-        Formatter,
-        Result as DisplayResult,
-    },
+    fmt::{Display, Formatter, Result as DisplayResult},
     str::FromStr,
 };
 use url::Url;
@@ -114,7 +102,7 @@ impl ContractMetadata {
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct CodeHash(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
@@ -125,7 +113,7 @@ pub struct CodeHash(
 );
 
 /// Information about the contract's Wasm code.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct Source {
     /// The hash of the contract's Wasm code.
     pub hash: CodeHash,
@@ -157,7 +145,7 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct SourceWasm(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
@@ -191,6 +179,49 @@ pub struct SourceLanguage {
     pub language: Language,
     /// The version of the language used to write the contract.
     pub version: Version,
+}
+
+impl schemars::JsonSchema for SourceLanguage {
+    fn schema_name() -> String {
+        "SourceLanguage".into()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::SchemaObject;
+        let language_schema = gen.subschema_for::<Language>();
+
+        let mut version_schema = SchemaObject {
+            instance_type: Some(schemars::schema::InstanceType::Object.into()),
+            ..Default::default()
+        };
+
+        let obj = version_schema.object();
+        obj.required.insert("major".to_owned());
+        obj.required.insert("minor".to_owned());
+        obj.required.insert("patch".to_owned());
+        obj.required.insert("pre".to_owned());
+        obj.required.insert("build".to_owned());
+
+        // TODO: Probably shouldn't be Strings
+        obj.properties
+            .insert("major".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("pre".to_owned(), gen.subschema_for::<String>());
+        obj.properties
+            .insert("build".to_owned(), gen.subschema_for::<String>());
+
+        // obj.properties
+        //     .insert("Err".to_owned(), gen.subschema_for::<E>());
+
+        let mut schema = SchemaObject::default();
+        schema.subschemas().all_of =
+            Some(vec![language_schema.into(), version_schema.into()]);
+        schema.into()
+    }
 }
 
 impl SourceLanguage {
@@ -259,7 +290,7 @@ impl FromStr for SourceLanguage {
 }
 
 /// The language in which the smart contract is written.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, schemars::JsonSchema)]
 pub enum Language {
     Ink,
     Solidity,
@@ -296,6 +327,49 @@ pub struct SourceCompiler {
     pub compiler: Compiler,
     /// The version of the compiler used to compile the smart contract.
     pub version: Version,
+}
+
+impl schemars::JsonSchema for SourceCompiler {
+    fn schema_name() -> String {
+        "SourceCompiler".into()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::SchemaObject;
+        let compiler_schema = gen.subschema_for::<Compiler>();
+
+        let mut version_schema = SchemaObject {
+            instance_type: Some(schemars::schema::InstanceType::Object.into()),
+            ..Default::default()
+        };
+
+        let obj = version_schema.object();
+        obj.required.insert("major".to_owned());
+        obj.required.insert("minor".to_owned());
+        obj.required.insert("patch".to_owned());
+        obj.required.insert("pre".to_owned());
+        obj.required.insert("build".to_owned());
+
+        // TODO: Probably shouldn't be Strings
+        obj.properties
+            .insert("major".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        obj.properties
+            .insert("pre".to_owned(), gen.subschema_for::<String>());
+        obj.properties
+            .insert("build".to_owned(), gen.subschema_for::<String>());
+
+        // obj.properties
+        //     .insert("Err".to_owned(), gen.subschema_for::<E>());
+
+        let mut schema = SchemaObject::default();
+        schema.subschemas().all_of =
+            Some(vec![compiler_schema.into(), version_schema.into()]);
+        schema.into()
+    }
 }
 
 impl Display for SourceCompiler {
@@ -363,7 +437,7 @@ impl SourceCompiler {
 }
 
 /// Compilers used to compile a smart contract.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub enum Compiler {
     /// The rust compiler.
     RustC,
