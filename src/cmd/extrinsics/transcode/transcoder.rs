@@ -18,11 +18,7 @@ use super::{
     decode::Decoder,
     encode::Encoder,
     env_types::{
-        self,
-        CustomTypeDecoder,
-        CustomTypeEncoder,
-        EnvTypesTranscoder,
-        PathKey,
+        self, CustomTypeDecoder, CustomTypeEncoder, EnvTypesTranscoder, PathKey,
         TypesByPath,
     },
     scon::Value,
@@ -30,14 +26,8 @@ use super::{
 
 use anyhow::Result;
 use scale::Output;
-use scale_info::{
-    PortableRegistry,
-    TypeInfo,
-};
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-};
+use scale_info::{PortableRegistry, TypeInfo};
+use std::{collections::HashMap, fmt::Debug};
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
@@ -180,22 +170,11 @@ impl<'a> TranscoderBuilder<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::scon::{
-            self,
-            Hex,
-            Map,
-            Seq,
-            Tuple,
-            Value,
-        },
+        super::scon::{self, Hex, Map, Seq, Tuple, Value},
         *,
     };
     use scale::Encode;
-    use scale_info::{
-        MetaType,
-        Registry,
-        TypeInfo,
-    };
+    use scale_info::{MetaType, Registry, TypeInfo};
     use std::str::FromStr;
 
     fn registry_with_type<T>() -> Result<(PortableRegistry, u32)>

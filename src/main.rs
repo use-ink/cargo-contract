@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-#![deny(unused_crate_dependencies)]
+// #![deny(unused_crate_dependencies)]
 
 mod cmd;
 mod crate_metadata;
@@ -24,14 +24,8 @@ mod workspace;
 
 use self::{
     cmd::{
-        metadata::MetadataResult,
-        BuildCommand,
-        CallCommand,
-        CheckCommand,
-        DecodeCommand,
-        InstantiateCommand,
-        TestCommand,
-        UploadCommand,
+        metadata::MetadataResult, BuildCommand, /*CallCommand,*/ CheckCommand,
+        DecodeCommand, /*InstantiateCommand,*/ TestCommand, /*UploadCommand,*/
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -39,25 +33,13 @@ use self::{
 
 use std::{
     convert::TryFrom,
-    fmt::{
-        Display,
-        Formatter,
-        Result as DisplayResult,
-    },
+    fmt::{Display, Formatter, Result as DisplayResult},
     path::PathBuf,
     str::FromStr,
 };
 
-use anyhow::{
-    Error,
-    Result,
-};
-use clap::{
-    AppSettings,
-    Args,
-    Parser,
-    Subcommand,
-};
+use anyhow::{Error, Result};
+use clap::{AppSettings, Args, Parser, Subcommand};
 use colored::Colorize;
 
 #[derive(Debug, Parser)]
@@ -388,7 +370,7 @@ impl BuildResult {
                     .to_string()
                     .bold()
             );
-            return out
+            return out;
         };
 
         let mut out = format!(
@@ -460,13 +442,13 @@ enum Command {
     Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
-    Upload(UploadCommand),
+    Upload(BuildCommand),
     /// Instantiate a contract
     #[clap(name = "instantiate")]
-    Instantiate(InstantiateCommand),
+    Instantiate(BuildCommand),
     /// Call a contract
     #[clap(name = "call")]
-    Call(CallCommand),
+    Call(BuildCommand),
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
@@ -524,9 +506,9 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Upload(upload) => upload.run(),
-        Command::Instantiate(instantiate) => instantiate.run(),
-        Command::Call(call) => call.run(),
+        Command::Upload(upload) => todo!(), // upload.run(),
+        Command::Instantiate(instantiate) => todo!(), // instantiate.run(),
+        Command::Call(call) => todo!(),     // call.run(),
         Command::Decode(decode) => decode.run(),
     }
 }

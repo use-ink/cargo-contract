@@ -15,17 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    cmd::extrinsics::{
-        load_metadata,
-        ContractMessageTranscoder,
-    },
+    // cmd::extrinsics::{
+    //     load_metadata,
+    //     ContractMessageTranscoder,
+    // },
     util::decode_hex,
     DEFAULT_KEY_COL_WIDTH,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::{Context, Result};
 use colored::Colorize as _;
 
 #[derive(Debug, Clone, clap::Args)]
@@ -51,34 +48,28 @@ enum DataType {
 
 impl DecodeCommand {
     pub fn run(&self) -> Result<()> {
-        let (_, contract_metadata) = load_metadata(None)?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        // let (_, contract_metadata) = load_metadata(None)?;
+        // let transcoder = ContractMessageTranscoder::new(&contract_metadata);
 
-        const ERR_MSG: &str = "Failed to decode specified data as a hex value";
-        let decoded_data = match self.r#type {
-            DataType::Event => {
-                transcoder.decode_contract_event(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
-                )?
-            }
-            DataType::Message => {
-                transcoder.decode_contract_message(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
-                )?
-            }
-            DataType::Constructor => {
-                transcoder.decode_contract_constructor(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
-                )?
-            }
-        };
+        // const ERR_MSG: &str = "Failed to decode specified data as a hex value";
+        // let decoded_data = match self.r#type {
+        //     DataType::Event => transcoder.decode_contract_event(
+        //         &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+        //     )?,
+        //     DataType::Message => transcoder.decode_contract_message(
+        //         &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+        //     )?,
+        //     DataType::Constructor => transcoder.decode_contract_constructor(
+        //         &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+        //     )?,
+        // };
 
-        println!(
-            "{:>width$} {}",
-            "Decoded data:".bright_green().bold(),
-            decoded_data,
-            width = DEFAULT_KEY_COL_WIDTH
-        );
+        // println!(
+        //     "{:>width$} {}",
+        //     "Decoded data:".bright_green().bold(),
+        //     decoded_data,
+        //     width = DEFAULT_KEY_COL_WIDTH
+        // );
 
         Ok(())
     }

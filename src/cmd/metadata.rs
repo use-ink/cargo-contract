@@ -16,42 +16,22 @@
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println,
-    util,
-    workspace::{
-        ManifestPath,
-        Workspace,
-    },
-    Network,
-    UnstableFlags,
-    Verbosity,
+    maybe_println, util,
+    workspace::{ManifestPath, Workspace},
+    Network, UnstableFlags, Verbosity,
 };
 
 use anyhow::Result;
-use blake2::digest::{
-    consts::U32,
-    Digest as _,
-};
+use blake2::digest::{consts::U32, Digest as _};
 use colored::Colorize;
 use contract_metadata::{
-    CodeHash,
-    Compiler,
-    Contract,
-    ContractMetadata,
-    Language,
-    Source,
-    SourceCompiler,
-    SourceLanguage,
-    SourceWasm,
-    User,
+    CodeHash, Compiler, Contract, ContractMetadata, Language, Source, SourceCompiler,
+    SourceLanguage, SourceWasm, User,
 };
 use semver::Version;
 use std::{
     fs,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::{Path, PathBuf},
 };
 use url::Url;
 
@@ -134,6 +114,9 @@ pub(crate) fn execute(
             fs::write(&out_path_metadata, contents)?;
             current_progress += 1;
         }
+
+        let schema = schemars::schema_for!(Source);
+        println!("NANDO: {}", serde_json::to_string_pretty(&schema).unwrap());
 
         maybe_println!(
             verbosity,
@@ -251,22 +234,13 @@ fn blake2_hash(code: &[u8]) -> CodeHash {
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd,
-        cmd::metadata::blake2_hash,
-        crate_metadata::CrateMetadata,
-        util::tests::with_new_contract_project,
-        ManifestPath,
+        cmd, cmd::metadata::blake2_hash, crate_metadata::CrateMetadata,
+        util::tests::with_new_contract_project, ManifestPath,
     };
     use anyhow::Context;
     use contract_metadata::*;
-    use serde_json::{
-        Map,
-        Value,
-    };
-    use std::{
-        fmt::Write,
-        fs,
-    };
+    use serde_json::{Map, Value};
+    use std::{fmt::Write, fs};
     use toml::value;
 
     struct TestContractManifest {
