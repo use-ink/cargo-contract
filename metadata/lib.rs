@@ -102,7 +102,7 @@ impl ContractMetadata {
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CodeHash(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
@@ -119,8 +119,10 @@ pub struct Source {
     #[schemars(with = "String")]
     pub hash: CodeHash,
     /// The language used to write the contract.
+    #[schemars(with = "String")]
     pub language: SourceLanguage,
     /// The compiler used to compile the contract.
+    #[schemars(with = "String")]
     pub compiler: SourceCompiler,
     /// The actual Wasm code of the contract, for optionally bundling the code
     /// with the metadata.
@@ -182,43 +184,6 @@ pub struct SourceLanguage {
     pub language: Language,
     /// The version of the language used to write the contract.
     pub version: Version,
-}
-
-impl schemars::JsonSchema for SourceLanguage {
-    fn schema_name() -> String {
-        "SourceLanguage".into()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<String>()
-
-        // let mut version_schema = SchemaObject {
-        //     instance_type: Some(schemars::schema::InstanceType::Object.into()),
-        //     ..Default::default()
-        // };
-
-        // let obj = version_schema.object();
-        // obj.required.insert("major".to_owned());
-        // obj.required.insert("minor".to_owned());
-        // obj.required.insert("patch".to_owned());
-        // obj.required.insert("pre".to_owned());
-        // obj.required.insert("build".to_owned());
-
-        // // TODO: Probably shouldn't be Strings
-        // obj.properties
-        //     .insert("major".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("minor".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("patch".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("pre".to_owned(), gen.subschema_for::<String>());
-        // obj.properties
-        //     .insert("build".to_owned(), gen.subschema_for::<String>());
-
-        // obj.properties
-        //     .insert("Err".to_owned(), gen.subschema_for::<E>());
-    }
 }
 
 impl SourceLanguage {
@@ -287,7 +252,7 @@ impl FromStr for SourceLanguage {
 }
 
 /// The language in which the smart contract is written.
-#[derive(Clone, Debug, schemars::JsonSchema)]
+#[derive(Clone, Debug)]
 pub enum Language {
     Ink,
     Solidity,
@@ -327,48 +292,6 @@ pub struct SourceCompiler {
     pub compiler: Compiler,
     /// The version of the compiler used to compile the smart contract.
     pub version: Version,
-}
-
-impl schemars::JsonSchema for SourceCompiler {
-    fn schema_name() -> String {
-        "SourceCompiler".into()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<String>()
-
-        // let mut version_schema = SchemaObject {
-        //     instance_type: Some(schemars::schema::InstanceType::Object.into()),
-        //     ..Default::default()
-        // };
-
-        // let obj = version_schema.object();
-        // obj.required.insert("major".to_owned());
-        // obj.required.insert("minor".to_owned());
-        // obj.required.insert("patch".to_owned());
-        // obj.required.insert("pre".to_owned());
-        // obj.required.insert("build".to_owned());
-
-        // // TODO: Probably shouldn't be Strings
-        // obj.properties
-        //     .insert("major".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("minor".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("patch".to_owned(), gen.subschema_for::<u64>());
-        // obj.properties
-        //     .insert("pre".to_owned(), gen.subschema_for::<String>());
-        // obj.properties
-        //     .insert("build".to_owned(), gen.subschema_for::<String>());
-
-        // obj.properties
-        //     .insert("Err".to_owned(), gen.subschema_for::<E>());
-
-        // let mut schema = SchemaObject::default();
-        // schema.subschemas().all_of =
-        //     Some(vec![compiler_schema.into(), version_schema.into()]);
-        // schema.into()
-    }
 }
 
 impl Display for SourceCompiler {
@@ -471,7 +394,7 @@ pub struct Contract {
     /// The name of the smart contract.
     pub name: String,
     /// The version of the smart contract.
-    #[schemars(schema_with = "version_schema")]
+    #[schemars(with = "String")]
     pub version: Version,
     /// The authors of the smart contract.
     pub authors: Vec<String>,
@@ -490,13 +413,6 @@ pub struct Contract {
     /// The license of the smart contract.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
-}
-
-fn version_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-    gen.subschema_for::<String>()
-    // let mut schema: SchemaObject = <String>::json_schema(gen).into();
-    // schema.format = Some("boolean".to_owned());
-    // schema.into()
 }
 
 impl Contract {
