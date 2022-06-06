@@ -7,9 +7,9 @@ edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/paritytech/cargo-contract"
-documentation = "https://docs.rs/contract-metadata"
+documentation = "https://docs.rs/contract-transcode"
 homepage = "https://www.substrate.io/"
-description = "Library defining metadata for smart contracts on substrate"
+description = "Library encoding calls for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
@@ -43,3 +43,9 @@ assert_matches = "1.5.0"
 ink_primitives = "3"
 ink_storage = "3"
 ink_lang = "3"
+
+[features]
+# This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
+# generation code with `#[cfg(feature = "std")]`.
+default = ["std"]
+std = []
