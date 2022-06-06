@@ -68,15 +68,10 @@ regex = "1.5.6"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
-assert_matches = "1.5.0"
 pretty_assertions = "1.2.1"
 wabt = "0.10.0"
 regex = "1.5.6"
 predicates = "2.1.1"
-
-ink_primitives = "3"
-ink_storage = "3"
-ink_lang = "3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
