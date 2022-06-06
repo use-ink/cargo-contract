@@ -116,6 +116,7 @@ pub struct CodeHash(
 #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct Source {
     /// The hash of the contract's Wasm code.
+    #[schemars(with = "String")]
     pub hash: CodeHash,
     /// The language used to write the contract.
     pub language: SourceLanguage,
@@ -145,6 +146,8 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
+///
+/// TODO: This might need to be a "string"
 #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct SourceWasm(
     #[serde(
@@ -187,40 +190,34 @@ impl schemars::JsonSchema for SourceLanguage {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        use schemars::schema::SchemaObject;
-        let language_schema = gen.subschema_for::<Language>();
+        gen.subschema_for::<String>()
 
-        let mut version_schema = SchemaObject {
-            instance_type: Some(schemars::schema::InstanceType::Object.into()),
-            ..Default::default()
-        };
+        // let mut version_schema = SchemaObject {
+        //     instance_type: Some(schemars::schema::InstanceType::Object.into()),
+        //     ..Default::default()
+        // };
 
-        let obj = version_schema.object();
-        obj.required.insert("major".to_owned());
-        obj.required.insert("minor".to_owned());
-        obj.required.insert("patch".to_owned());
-        obj.required.insert("pre".to_owned());
-        obj.required.insert("build".to_owned());
+        // let obj = version_schema.object();
+        // obj.required.insert("major".to_owned());
+        // obj.required.insert("minor".to_owned());
+        // obj.required.insert("patch".to_owned());
+        // obj.required.insert("pre".to_owned());
+        // obj.required.insert("build".to_owned());
 
-        // TODO: Probably shouldn't be Strings
-        obj.properties
-            .insert("major".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("minor".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("patch".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("pre".to_owned(), gen.subschema_for::<String>());
-        obj.properties
-            .insert("build".to_owned(), gen.subschema_for::<String>());
+        // // TODO: Probably shouldn't be Strings
+        // obj.properties
+        //     .insert("major".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("pre".to_owned(), gen.subschema_for::<String>());
+        // obj.properties
+        //     .insert("build".to_owned(), gen.subschema_for::<String>());
 
         // obj.properties
         //     .insert("Err".to_owned(), gen.subschema_for::<E>());
-
-        let mut schema = SchemaObject::default();
-        schema.subschemas().all_of =
-            Some(vec![language_schema.into(), version_schema.into()]);
-        schema.into()
     }
 }
 
@@ -321,6 +318,9 @@ impl FromStr for Language {
 }
 
 /// A compiler used to compile a smart contract.
+///
+/// NOTE: Should we enforce any sort of validation here? We just end up turning this into a
+/// "string" and not validating that the compiler versions match anything
 #[derive(Clone, Debug)]
 pub struct SourceCompiler {
     /// The compiler used to compile the smart contract.
@@ -335,40 +335,39 @@ impl schemars::JsonSchema for SourceCompiler {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        use schemars::schema::SchemaObject;
-        let compiler_schema = gen.subschema_for::<Compiler>();
+        gen.subschema_for::<String>()
 
-        let mut version_schema = SchemaObject {
-            instance_type: Some(schemars::schema::InstanceType::Object.into()),
-            ..Default::default()
-        };
+        // let mut version_schema = SchemaObject {
+        //     instance_type: Some(schemars::schema::InstanceType::Object.into()),
+        //     ..Default::default()
+        // };
 
-        let obj = version_schema.object();
-        obj.required.insert("major".to_owned());
-        obj.required.insert("minor".to_owned());
-        obj.required.insert("patch".to_owned());
-        obj.required.insert("pre".to_owned());
-        obj.required.insert("build".to_owned());
+        // let obj = version_schema.object();
+        // obj.required.insert("major".to_owned());
+        // obj.required.insert("minor".to_owned());
+        // obj.required.insert("patch".to_owned());
+        // obj.required.insert("pre".to_owned());
+        // obj.required.insert("build".to_owned());
 
-        // TODO: Probably shouldn't be Strings
-        obj.properties
-            .insert("major".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("minor".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("patch".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("pre".to_owned(), gen.subschema_for::<String>());
-        obj.properties
-            .insert("build".to_owned(), gen.subschema_for::<String>());
+        // // TODO: Probably shouldn't be Strings
+        // obj.properties
+        //     .insert("major".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("pre".to_owned(), gen.subschema_for::<String>());
+        // obj.properties
+        //     .insert("build".to_owned(), gen.subschema_for::<String>());
 
         // obj.properties
         //     .insert("Err".to_owned(), gen.subschema_for::<E>());
 
-        let mut schema = SchemaObject::default();
-        schema.subschemas().all_of =
-            Some(vec![compiler_schema.into(), version_schema.into()]);
-        schema.into()
+        // let mut schema = SchemaObject::default();
+        // schema.subschemas().all_of =
+        //     Some(vec![compiler_schema.into(), version_schema.into()]);
+        // schema.into()
     }
 }
 
@@ -515,6 +514,8 @@ pub struct ContractInner {
     pub license: Option<String>,
 }
 
+// NANDO: Should use the auto generated contract schema and then manually set the version to be a
+// string
 impl schemars::JsonSchema for Contract {
     fn schema_name() -> String {
         "Contract".into()
@@ -528,6 +529,7 @@ impl schemars::JsonSchema for Contract {
         // if you think about it, we never tell it about these things)
         // However, the types do seem to match what the macro generates
         let name_schema = gen.subschema_for::<String>();
+        let version_schema = gen.subschema_for::<String>();
         let authors_schema = gen.subschema_for::<Vec<String>>();
         let description_schema = gen.subschema_for::<Option<String>>();
         let documentation_schema = gen.subschema_for::<Option<Url>>();
@@ -535,32 +537,32 @@ impl schemars::JsonSchema for Contract {
         let homepage_schema = gen.subschema_for::<Option<Url>>();
         let license_schema = gen.subschema_for::<Option<String>>();
 
-        let mut version_schema = SchemaObject {
-            instance_type: Some(schemars::schema::InstanceType::Object.into()),
-            ..Default::default()
-        };
+        // let mut version_schema = SchemaObject {
+        //     instance_type: Some(schemars::schema::InstanceType::Object.into()),
+        //     ..Default::default()
+        // };
 
-        let obj = version_schema.object();
-        obj.required.insert("major".to_owned());
-        obj.required.insert("minor".to_owned());
-        obj.required.insert("patch".to_owned());
-        obj.required.insert("pre".to_owned());
-        obj.required.insert("build".to_owned());
+        // let obj = version_schema.object();
+        // obj.required.insert("major".to_owned());
+        // obj.required.insert("minor".to_owned());
+        // obj.required.insert("patch".to_owned());
+        // obj.required.insert("pre".to_owned());
+        // obj.required.insert("build".to_owned());
 
-        // TODO: Probably shouldn't be Strings
-        //
-        // So it looks like the serde implementation of this uses `collect_str`
-        // So I don't think we have to break this down, can use just String
-        obj.properties
-            .insert("major".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("minor".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("patch".to_owned(), gen.subschema_for::<u64>());
-        obj.properties
-            .insert("pre".to_owned(), gen.subschema_for::<String>());
-        obj.properties
-            .insert("build".to_owned(), gen.subschema_for::<String>());
+        // // TODO: Probably shouldn't be Strings
+        // //
+        // // So it looks like the serde implementation of this uses `collect_str`
+        // // So I don't think we have to break this down, can use just String
+        // obj.properties
+        //     .insert("major".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("minor".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("patch".to_owned(), gen.subschema_for::<u64>());
+        // obj.properties
+        //     .insert("pre".to_owned(), gen.subschema_for::<String>());
+        // obj.properties
+        //     .insert("build".to_owned(), gen.subschema_for::<String>());
 
         // obj.properties
         //     .insert("Err".to_owned(), gen.subschema_for::<E>());
