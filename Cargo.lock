@@ -63,6 +63,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
 
 [[package]]
+name = "array-init"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6945cc5422176fc5e602e590c2878d2c2acd9a4fe20a4baa7c28022521698ec6"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -102,6 +108,12 @@ dependencies = [
  "predicates-tree",
  "wait-timeout",
 ]
+
+[[package]]
+name = "assert_matches"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
 name = "async-attributes"
@@ -631,13 +643,17 @@ name = "contract-transcode"
 version = "0.6.0"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "contract-metadata",
  "env_logger",
  "escape8259",
  "hex",
  "indexmap",
  "ink_env",
+ "ink_lang",
  "ink_metadata",
+ "ink_primitives",
+ "ink_storage",
  "itertools",
  "log",
  "nom",
@@ -1478,6 +1494,69 @@ dependencies = [
 ]
 
 [[package]]
+name = "ink_lang"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c18fdbce6774f2c4a1f5890412d3a5337e82c61b9e57a50295d91b314e264103"
+dependencies = [
+ "derive_more",
+ "ink_env",
+ "ink_lang_macro",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "ink_storage",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "ink_lang_codegen"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86c4cca39c31030b9ffdd6d0fecacec10158fde164868c4beb13399c95983b8d"
+dependencies = [
+ "blake2",
+ "derive_more",
+ "either",
+ "heck",
+ "impl-serde",
+ "ink_lang_ir",
+ "itertools",
+ "parity-scale-codec",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "ink_lang_ir"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb68cdb4db44e7c088755857c93ec7a270e720bcd403c8caefa90100533759e5"
+dependencies = [
+ "blake2",
+ "either",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "ink_lang_macro"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c39fcbdaffd4126eb985fcb571ac302e966f8d14c5c2d3d64c330ef111a9d789"
+dependencies = [
+ "ink_lang_codegen",
+ "ink_lang_ir",
+ "ink_primitives",
+ "parity-scale-codec",
+ "proc-macro2",
+ "syn",
+]
+
+[[package]]
 name = "ink_metadata"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,6 +1589,36 @@ dependencies = [
  "ink_prelude",
  "parity-scale-codec",
  "scale-info",
+]
+
+[[package]]
+name = "ink_storage"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d1b226ba92ffa9dca87150bb0e472050db540d3af4ce1323311154971652d69"
+dependencies = [
+ "array-init",
+ "cfg-if",
+ "derive_more",
+ "ink_env",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "ink_storage_derive",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "ink_storage_derive"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fbe35878a5db2fb9405bae6a0943bf9ace1198b1279ea6926e01d6ac0502599"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "synstructure",
 ]
 
 [[package]]

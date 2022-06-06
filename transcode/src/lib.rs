@@ -347,7 +347,7 @@ mod tests {
     use scon::Value;
     use std::str::FromStr;
 
-    use crate::cmd::extrinsics::transcode::scon::Hex;
+    use crate::scon::Hex;
     use ink_lang as ink;
 
     #[ink::contract]

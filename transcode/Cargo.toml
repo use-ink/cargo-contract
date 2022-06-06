@@ -37,3 +37,9 @@ scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive
 # dependencies for extrinsics (deploying and calling a contract)
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+ink_primitives = "3"
+ink_storage = "3"
+ink_lang = "3"
