@@ -18,7 +18,6 @@ mod call;
 mod events;
 mod instantiate;
 mod runtime_api;
-mod transcode;
 mod upload;
 
 #[cfg(test)]
@@ -54,13 +53,13 @@ use subxt::{
     HasModuleError as _,
 };
 
-pub use self::transcode::ContractMessageTranscoder;
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{
     DispatchError as RuntimeDispatchError,
     Event as RuntimeEvent,
 };
+pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
 type Balance = u128;

@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::scon::Value;
-use crate::cmd::extrinsics::transcode::scon::Hex;
+use crate::scon::Hex;
 use anyhow::{
     Context,
     Result,
