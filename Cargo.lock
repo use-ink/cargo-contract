@@ -640,7 +640,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "0.6.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -2835,9 +2835,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cb243bdfdb5936c8dc3c45762a19d12ab4550cdc753bc247637d4ec35a040fd"
+checksum = "a41d061efea015927ac527063765e73601444cdc344ba855bc7bd44578b25e1c"
 dependencies = [
  "serde",
 ]
