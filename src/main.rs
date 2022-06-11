@@ -30,6 +30,7 @@ use self::{
         CheckCommand,
         DecodeCommand,
         InstantiateCommand,
+        BulkInstantiateCommand,
         TestCommand,
         UploadCommand,
     },
@@ -464,6 +465,9 @@ enum Command {
     /// Instantiate a contract
     #[clap(name = "instantiate")]
     Instantiate(InstantiateCommand),
+    /// Instantiate contracts
+    #[clap(name = "bulk-instantiate")]
+    BulkInstantiate(BulkInstantiateCommand),
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
@@ -526,6 +530,7 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::Upload(upload) => upload.run(),
         Command::Instantiate(instantiate) => instantiate.run(),
+        Command::BulkInstantiate(bulk_instantiate) => bulk_instantiate.run(),
         Command::Call(call) => call.run(),
         Command::Decode(decode) => decode.run(),
     }

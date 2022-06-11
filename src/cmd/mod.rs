@@ -33,5 +33,6 @@ mod extrinsics;
 pub(crate) use self::extrinsics::{
     CallCommand,
     InstantiateCommand,
+    BulkInstantiateCommand,
     UploadCommand,
 };

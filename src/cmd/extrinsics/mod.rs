@@ -54,7 +54,10 @@ use subxt::{
 };
 
 pub use call::CallCommand;
-pub use instantiate::InstantiateCommand;
+pub use instantiate::{
+    InstantiateCommand,
+    BulkInstantiateCommand,
+};
 pub use runtime_api::api::{
     DispatchError as RuntimeDispatchError,
     Event as RuntimeEvent,

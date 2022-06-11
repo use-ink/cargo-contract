@@ -489,6 +489,7 @@ dependencies = [
  "parity-wasm 0.45.0",
  "predicates",
  "pretty_assertions",
+ "rand 0.8.5",
  "regex",
  "rustc_version",
  "semver",

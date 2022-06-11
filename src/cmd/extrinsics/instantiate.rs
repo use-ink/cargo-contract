@@ -69,6 +69,10 @@ use subxt::{
     Config,
     DefaultConfig,
 };
+use rand::{
+    distributions::Alphanumeric,
+    Rng,
+};
 
 type ContractInstantiateResult = ContractResult<
     result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
@@ -105,6 +109,22 @@ pub struct InstantiateCommand {
     /// of the same contract code from the same account.
     #[clap(long, parse(try_from_str = parse_hex_bytes))]
     salt: Option<Bytes>,
+}
+
+#[derive(Debug, clap::Args)]
+pub struct BulkInstantiateCommand {
+    /// Instantiate args
+    #[clap(flatten)]
+    instantiate: InstantiateCommand,
+    /// The number of contracts intend to instantiate
+    #[clap(
+        name = "contract-count",
+        long,
+        default_value = "1",
+        max_values = 50,
+        conflicts_with = "salt"
+    )]
+    contract_count: u64,
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
@@ -181,6 +201,33 @@ impl InstantiateCommand {
         async_std::task::block_on(async move {
             exec.exec(code, self.extrinsic_opts.dry_run).await
         })
+    }
+}
+
+impl BulkInstantiateCommand {
+    pub fn run(&self) -> Result<()> {
+        for _ in 0..self.contract_count {
+            let s: String = rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(10)
+                .map(char::from)
+                .collect();
+            // generate random salt & set
+            let salt = Bytes(Vec::from(s));
+            let instantiate_command = InstantiateCommand{
+                wasm_path: self.instantiate.wasm_path.clone(),
+                constructor: self.instantiate.constructor.clone(),
+                code_hash: self.instantiate.code_hash.clone(),
+                args: self.instantiate.args.clone(),
+                extrinsic_opts: self.instantiate.extrinsic_opts.clone(),
+                value: self.instantiate.value,
+                gas_limit: self.instantiate.gas_limit,
+                salt: Some(salt),
+            };
+            instantiate_command.run()?;
+            println!("=================================");
+        }
+        Ok(())
     }
 }
 
