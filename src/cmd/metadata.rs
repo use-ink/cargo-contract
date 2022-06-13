@@ -115,8 +115,15 @@ pub(crate) fn execute(
             current_progress += 1;
         }
 
-        let schema = schemars::schema_for!(Source);
-        println!("NANDO: {}", serde_json::to_string_pretty(&schema).unwrap());
+        // If you want to print the outer metadata, uncomment this bit:
+        //
+        // let schema = schemars::schema_for!(ContractMetadata);
+        // println!("{}", serde_json::to_string_pretty(&schema).unwrap());
+
+        // If you want to print the ink! versioned metadata, uncomment this bit:
+        //
+        let schema = schemars::schema_for!(ink_metadata::MetadataVersioned);
+        println!("{}", serde_json::to_string_pretty(&schema).unwrap());
 
         maybe_println!(
             verbosity,
