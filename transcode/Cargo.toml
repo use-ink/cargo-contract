@@ -22,7 +22,7 @@ contract-metadata = { version = "0.6.0", path = "../metadata" }
 env_logger = "0.9.0"
 escape8259 = "0.5.1"
 hex = "0.4.3"
-indexmap = "1.8.1"
+indexmap = "1.9.0"
 ink_env = "3.0"
 ink_metadata = { version = "3.0", features = ["derive"] }
 itertools = "0.10.3"
