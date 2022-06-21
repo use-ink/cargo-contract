@@ -18,7 +18,7 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0.58"
-contract-metadata = { version = "0.6.0", path = "../metadata" }
+contract-metadata = { version = "1", path = "../metadata" }
 env_logger = "0.9.0"
 escape8259 = "0.5.1"
 hex = "0.4.3"
