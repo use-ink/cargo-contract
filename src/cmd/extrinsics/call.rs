@@ -184,7 +184,7 @@ impl CallCommand {
         display_events(
             &result,
             transcoder,
-            api.client.metadata(),
+            &api.client.metadata().read(),
             &self.extrinsic_opts.verbosity()?,
         )
     }
