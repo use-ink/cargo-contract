@@ -230,7 +230,7 @@ pub fn display_contract_exec_result<R>(
 /// there could be a flag to wait for finality before reporting success.
 async fn wait_for_success_and_handle_error<T>(
     tx_progress: subxt::TransactionProgress<'_, T, RuntimeDispatchError, RuntimeEvent>,
-) -> Result<subxt::TransactionEvents<'_, T, RuntimeEvent>>
+) -> Result<subxt::TransactionEvents<T, RuntimeEvent>>
 where
     T: Config,
 {
@@ -248,9 +248,9 @@ async fn dry_run_error_details(
     error: &RuntimeDispatchError,
 ) -> Result<String> {
     let error = if let Some(error_data) = error.module_error_data() {
-        let details = api
-            .client
-            .metadata()
+        let metadata = api.client.metadata();
+        let locked_metadata = metadata.read();
+        let details = locked_metadata
             .error(error_data.pallet_index, error_data.error_index())?;
         format!(
             "ModuleError: {}::{}: {:?}",
