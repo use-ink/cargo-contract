@@ -153,9 +153,7 @@ impl<'a> Encoder<'a> {
                     }
                     CompositeTypeFields::NoFields => Ok(()),
                     CompositeTypeFields::Named(_) => {
-                        Err(anyhow::anyhow!(
-                            "Type is a struct requiring named fields"
-                        ))
+                        Err(anyhow::anyhow!("Type is a struct requiring named fields"))
                     }
                 }
             }

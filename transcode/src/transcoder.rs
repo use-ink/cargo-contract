@@ -432,38 +432,40 @@ mod tests {
                     (
                         Value::String("d".to_string()),
                         Value::Seq(
-                            vec![Value::Map(
-                                vec![
-                                    (Value::String("a".to_string()), Value::UInt(2)),
-                                    (
-                                        Value::String("b".to_string()),
-                                        Value::String("ink!".to_string()),
-                                    ),
-                                    (
-                                        Value::String("c".to_string()),
-                                        Value::Seq(
-                                            vec![
-                                                Value::UInt(0xDE),
-                                                Value::UInt(0xAD),
-                                                Value::UInt(0xBE),
-                                                Value::UInt(0xEF),
-                                            ]
-                                            .into(),
+                            vec![
+                                Value::Map(
+                                    vec![
+                                        (Value::String("a".to_string()), Value::UInt(2)),
+                                        (
+                                            Value::String("b".to_string()),
+                                            Value::String("ink!".to_string()),
                                         ),
-                                    ),
-                                    (
-                                        Value::String("d".to_string()),
-                                        Value::Seq(
-                                            Vec::new()
-                                                .into_iter()
-                                                .collect::<Vec<_>>()
+                                        (
+                                            Value::String("c".to_string()),
+                                            Value::Seq(
+                                                vec![
+                                                    Value::UInt(0xDE),
+                                                    Value::UInt(0xAD),
+                                                    Value::UInt(0xBE),
+                                                    Value::UInt(0xEF),
+                                                ]
                                                 .into(),
+                                            ),
                                         ),
-                                    ),
-                                ]
-                                .into_iter()
-                                .collect(),
-                            )]
+                                        (
+                                            Value::String("d".to_string()),
+                                            Value::Seq(
+                                                Vec::new()
+                                                    .into_iter()
+                                                    .collect::<Vec<_>>()
+                                                    .into(),
+                                            ),
+                                        ),
+                                    ]
+                                    .into_iter()
+                                    .collect(),
+                                ),
+                            ]
                             .into(),
                         ),
                     ),

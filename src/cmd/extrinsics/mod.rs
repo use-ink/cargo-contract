@@ -250,8 +250,8 @@ async fn dry_run_error_details(
     let error = if let Some(error_data) = error.module_error_data() {
         let metadata = api.client.metadata();
         let locked_metadata = metadata.read();
-        let details = locked_metadata
-            .error(error_data.pallet_index, error_data.error_index())?;
+        let details =
+            locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
         format!(
             "ModuleError: {}::{}: {:?}",
             details.pallet(),

@@ -285,7 +285,12 @@ impl<'a> Exec<'a> {
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
 
-        display_events(&result, &self.transcoder, &api.client.metadata().read(), &self.verbosity)?;
+        display_events(
+            &result,
+            &self.transcoder,
+            &api.client.metadata().read(),
+            &self.verbosity,
+        )?;
 
         // The CodeStored event is only raised if the contract has not already been uploaded.
         let code_hash = result
@@ -317,7 +322,12 @@ impl<'a> Exec<'a> {
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
 
-        display_events(&result, &self.transcoder, &api.client.metadata().read(), &self.verbosity)?;
+        display_events(
+            &result,
+            &self.transcoder,
+            &api.client.metadata().read(),
+            &self.verbosity,
+        )?;
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
