@@ -1526,18 +1526,18 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "3.2.0"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17443d7d15df552eca048ba3b7ba8551fff3b0d529779bd3a64afc1be19ba65a"
+checksum = "b1f7f4dec15e573496c9d2af353e78bde84add391251608f25b5adcf175dc777"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "3.2.0"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "538ad6c2050f950099e6d0202c296d174854f956d2d815e608c24d9db214ae4f"
+checksum = "b3296dd1c4f4fe12ede7c92d60e6fcb94d46a959ec19c701e4ac588b09e0b4a6"
 dependencies = [
  "cfg-if",
  "ink_prelude",
