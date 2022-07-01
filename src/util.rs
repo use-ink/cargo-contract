@@ -152,7 +152,7 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 /// PackageId looks like this:
 /// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
 /// so we have to extract the package name via regex:
-pub fn extract_package_name(package_id: PackageId) -> String {
+pub fn extract_subcontract_name(package_id: PackageId) -> String {
     let re = Regex::new(r"([^\s]+)").unwrap();
     let caps = re.captures(package_id.repr.as_str()).unwrap();
     let package = caps.get(1).unwrap().as_str();
@@ -162,7 +162,7 @@ pub fn extract_package_name(package_id: PackageId) -> String {
 /// PackageId looks like this:
 /// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
 /// so we have to extract the manifest_path via regex:
-pub fn extract_package_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
+pub fn extract_subcontract_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
     let re = Regex::new(r"\((.*)\)")?;
     let caps = re.captures(package_id.repr.as_str()).unwrap();
     let path_str = caps.get(1).unwrap().as_str().replace("path+file://", "");
@@ -292,6 +292,39 @@ pub mod tests {
             write!(output, "members = [ \"{}\" ]", unique_name)?;
 
             f((manifest_path, unique_name))
+        })
+    }
+
+    /// Creates many new subcontracts into a temporary directory.
+    pub fn with_many_new_subcontract_projects<F>(f: F)
+    where
+        F: FnOnce(PathBuf) -> anyhow::Result<()>,
+    {
+        with_tmp_dir(|tmp_dir| {
+            let unique_name_0 =
+                format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+            crate::cmd::new::execute(&unique_name_0, Some(tmp_dir))
+                .expect("new project creation failed");
+            let unique_name_1 =
+                format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+            crate::cmd::new::execute(&unique_name_1, Some(tmp_dir))
+                .expect("new project creation failed");
+            let unique_name_2 =
+                format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+            crate::cmd::new::execute(&unique_name_2, Some(tmp_dir))
+                .expect("new project creation failed");
+
+            let manifest_path = tmp_dir.join("Cargo.toml");
+
+            let mut output = File::create(manifest_path.clone())?;
+            write!(output, "[workspace]\n\n")?;
+            write!(output, "members = [\n")?;
+            write!(output, "  \"{}\",\n", unique_name_0)?;
+            write!(output, "\"{}\",\n", unique_name_1)?;
+            write!(output, "\"{}\",\n", unique_name_2)?;
+            write!(output, "]")?;
+
+            f(manifest_path)
         })
     }
 }

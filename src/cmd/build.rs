@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    crate_metadata::CrateMetadata,
+    crate_metadata::{
+        get_cargo_workspace_members,
+        CrateMetadata,
+    },
     maybe_println,
     util,
     validate_wasm,
@@ -103,6 +106,9 @@ pub struct BuildCommand {
     /// Then no debug functionality is compiled into the contract.
     #[clap(long = "--release")]
     build_release: bool,
+    /// Build all subcontracts in the workspace
+    #[clap(long = "--all")]
+    build_all: bool,
     /// Build offline
     #[clap(long = "--offline")]
     build_offline: bool,
@@ -160,7 +166,7 @@ pub struct BuildCommand {
 }
 
 impl BuildCommand {
-    pub fn exec(&self) -> Result<BuildResult> {
+    pub fn exec(&self) -> Result<Vec<BuildResult>> {
         let manifest_path = match self.package.as_ref() {
             Some(package) => {
                 let root_manifest_path =
@@ -213,20 +219,48 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        let args = ExecuteArgs {
-            manifest_path,
-            verbosity,
-            build_mode,
-            network,
-            build_artifact: self.build_artifact,
-            unstable_flags,
-            optimization_passes,
-            keep_debug_symbols: self.keep_debug_symbols,
-            skip_linting: self.skip_linting,
-            output_type,
-        };
+        let mut ret = Vec::new();
 
-        execute(args)
+        match self.build_all {
+            true => {
+                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                for package_id in workspace_members {
+                    let manifest_path =
+                        util::extract_subcontract_manifest_path(package_id)
+                            .expect("Error extracting package manifest path");
+
+                    let args = ExecuteArgs {
+                        manifest_path,
+                        verbosity,
+                        build_mode,
+                        network,
+                        build_artifact: self.build_artifact,
+                        unstable_flags: unstable_flags.clone(),
+                        optimization_passes,
+                        keep_debug_symbols: self.keep_debug_symbols,
+                        skip_linting: self.skip_linting,
+                        output_type: output_type.clone(),
+                    };
+                    ret.push(execute(args)?);
+                }
+            }
+            false => {
+                let args = ExecuteArgs {
+                    manifest_path,
+                    verbosity,
+                    build_mode,
+                    network,
+                    build_artifact: self.build_artifact,
+                    unstable_flags,
+                    optimization_passes,
+                    keep_debug_symbols: self.keep_debug_symbols,
+                    skip_linting: self.skip_linting,
+                    output_type,
+                };
+                ret.push(execute(args)?);
+            }
+        }
+        Ok(ret)
     }
 }
 
@@ -239,6 +273,9 @@ pub struct CheckCommand {
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
+    /// Check all subcontracts in the workspace
+    #[clap(long = "--all")]
+    check_all: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -246,7 +283,7 @@ pub struct CheckCommand {
 }
 
 impl CheckCommand {
-    pub fn exec(&self) -> Result<BuildResult> {
+    pub fn exec(&self) -> Result<Vec<BuildResult>> {
         let manifest_path = match self.package.as_ref() {
             Some(package) => {
                 let root_manifest_path =
@@ -264,20 +301,48 @@ impl CheckCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let args = ExecuteArgs {
-            manifest_path,
-            verbosity,
-            build_mode: BuildMode::Debug,
-            network: Network::default(),
-            build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags,
-            optimization_passes: OptimizationPasses::Zero,
-            keep_debug_symbols: false,
-            skip_linting: false,
-            output_type: OutputType::default(),
-        };
+        let mut ret = Vec::new();
 
-        execute(args)
+        match self.check_all {
+            true => {
+                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                for package_id in workspace_members {
+                    let manifest_path =
+                        util::extract_subcontract_manifest_path(package_id)
+                            .expect("Error extracting package manifest path");
+
+                    let args = ExecuteArgs {
+                        manifest_path,
+                        verbosity,
+                        build_mode: BuildMode::Debug,
+                        network: Network::default(),
+                        build_artifact: BuildArtifacts::CheckOnly,
+                        unstable_flags: unstable_flags.clone(),
+                        optimization_passes: OptimizationPasses::Zero,
+                        keep_debug_symbols: false,
+                        skip_linting: false,
+                        output_type: OutputType::default(),
+                    };
+                    ret.push(execute(args)?);
+                }
+            }
+            false => {
+                let args = ExecuteArgs {
+                    manifest_path,
+                    verbosity,
+                    build_mode: BuildMode::Debug,
+                    network: Network::default(),
+                    build_artifact: BuildArtifacts::CheckOnly,
+                    unstable_flags,
+                    optimization_passes: OptimizationPasses::Zero,
+                    keep_debug_symbols: false,
+                    skip_linting: false,
+                    output_type: OutputType::default(),
+                };
+                ret.push(execute(args)?);
+            }
+        }
+        Ok(ret)
     }
 }
 
@@ -974,6 +1039,7 @@ mod tests_ci_only {
             BuildCommand,
         },
         util::tests::{
+            with_many_new_subcontract_projects,
             with_new_contract_project,
             with_new_subcontract_project,
             with_tmp_dir,
@@ -1128,6 +1194,7 @@ mod tests_ci_only {
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
+                build_all: false,
                 package: None,
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
@@ -1144,20 +1211,23 @@ mod tests_ci_only {
             };
 
             // when
-            let res = cmd.exec().expect("build failed");
-            let optimization = res
-                .optimization_result
-                .expect("no optimization result available");
+            let results = cmd.exec().expect("build failed");
+            for res in results {
+                let optimization = res
+                    .optimization_result
+                    .expect("no optimization result available");
 
-            // then
-            // The size does not exactly match the original size even without optimization
-            // passed because there is still some post processing happening.
-            let size_diff = optimization.original_size - optimization.optimized_size;
-            assert!(
-                0.0 < size_diff && size_diff < 10.0,
-                "The optimized size savings are larger than allowed or negative: {}",
-                size_diff,
-            );
+                // then
+                // The size does not exactly match the original size even without optimization
+                // passed because there is still some post processing happening.
+                let size_diff = optimization.original_size - optimization.optimized_size;
+                assert!(
+                    0.0 < size_diff && size_diff < 10.0,
+                    "The optimized size savings are larger than allowed or negative: {}",
+                    size_diff,
+                );
+            }
+
             Ok(())
         })
     }
@@ -1171,6 +1241,7 @@ mod tests_ci_only {
                 OptimizationPasses::Three,
             );
             let cmd = BuildCommand {
+                build_all: false,
                 package: None,
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
@@ -1187,20 +1258,22 @@ mod tests_ci_only {
             };
 
             // when
-            let res = cmd.exec().expect("build failed");
-            let optimization = res
-                .optimization_result
-                .expect("no optimization result available");
+            let results = cmd.exec().expect("build failed");
+            for res in results {
+                let optimization = res
+                    .optimization_result
+                    .expect("no optimization result available");
 
-            // then
-            // The size does not exactly match the original size even without optimization
-            // passed because there is still some post processing happening.
-            let size_diff = optimization.original_size - optimization.optimized_size;
-            assert!(
-                size_diff > (optimization.original_size / 2.0),
-                "The optimized size savings are too small: {}",
-                size_diff,
-            );
+                // then
+                // The size does not exactly match the original size even without optimization
+                // passed because there is still some post processing happening.
+                let size_diff = optimization.original_size - optimization.optimized_size;
+                assert!(
+                    size_diff > (optimization.original_size / 2.0),
+                    "The optimized size savings are too small: {}",
+                    size_diff,
+                );
+            }
 
             Ok(())
         })
@@ -1347,6 +1420,7 @@ mod tests_ci_only {
 
             // when
             let cmd = BuildCommand {
+                build_all: false,
                 package: None,
                 manifest_path: Some(manifest_path.into()),
                 build_artifact: BuildArtifacts::All,
@@ -1359,15 +1433,17 @@ mod tests_ci_only {
                 skip_linting: false,
                 output_json: false,
             };
-            let res = cmd.exec().expect("build failed");
+            let results = cmd.exec().expect("build failed");
 
-            // then
-            assert_eq!(
-                res.dest_wasm
-                    .expect("`dest_wasm` does not exist")
-                    .file_name(),
-                Some(OsStr::new("some_lib_name.wasm"))
-            );
+            for res in results {
+                // then
+                assert_eq!(
+                    res.dest_wasm
+                        .expect("`dest_wasm` does not exist")
+                        .file_name(),
+                    Some(OsStr::new("some_lib_name.wasm"))
+                );
+            }
 
             Ok(())
         })
@@ -1476,7 +1552,30 @@ mod tests_ci_only {
     fn building_subcontract_must_work() {
         with_new_subcontract_project(|(manifest_path, subcontract)| {
             let cmd = BuildCommand {
+                build_all: false,
                 package: Some(subcontract),
+                manifest_path: Some(manifest_path),
+                build_artifact: BuildArtifacts::All,
+                build_release: false,
+                build_offline: false,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+                optimization_passes: None,
+                keep_debug_symbols: false,
+                skip_linting: false,
+                output_json: false,
+            };
+            cmd.exec().expect("build failed");
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn building_all_subcontracts_must_work() {
+        with_many_new_subcontract_projects(|manifest_path| {
+            let cmd = BuildCommand {
+                build_all: true,
+                package: None,
                 manifest_path: Some(manifest_path),
                 build_artifact: BuildArtifacts::All,
                 build_release: false,

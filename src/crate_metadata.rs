@@ -23,6 +23,7 @@ use cargo_metadata::{
     Metadata as CargoMetadata,
     MetadataCommand,
     Package,
+    PackageId,
 };
 use semver::Version;
 use serde_json::{
@@ -131,6 +132,24 @@ impl CrateMetadata {
     pub fn metadata_path(&self) -> PathBuf {
         self.target_directory.join(METADATA_FILE)
     }
+}
+
+/// Get the members of a cargo workspace
+pub fn get_cargo_workspace_members(
+    manifest_path: &ManifestPath,
+) -> Result<Vec<PackageId>> {
+    log::info!(
+        "Fetching cargo workspace members for {}",
+        manifest_path.as_ref().to_string_lossy()
+    );
+
+    let mut cmd = MetadataCommand::new();
+    let metadata = cmd
+        .manifest_path(manifest_path.as_ref())
+        .exec()
+        .context("Error invoking `cargo metadata`")?;
+
+    Ok(metadata.workspace_members)
 }
 
 /// Get the result of `cargo metadata`, together with the root package id.

@@ -312,6 +312,7 @@ impl Display for Network {
 }
 
 /// The type of output to display at the end of a build.
+#[derive(Clone)]
 pub enum OutputType {
     /// Output build results in a human readable format.
     HumanReadable,
@@ -497,30 +498,37 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Build(build) => {
-            let result = build.exec()?;
+            let results = build.exec()?;
 
-            if matches!(result.output_type, OutputType::Json) {
-                println!("{}", result.serialize_json()?)
-            } else if result.verbosity.is_verbose() {
-                println!("{}", result.display())
+            for result in results {
+                if matches!(result.output_type, OutputType::Json) {
+                    println!("{}", result.serialize_json()?)
+                } else if result.verbosity.is_verbose() {
+                    println!("{}", result.display())
+                }
             }
+
             Ok(())
         }
         Command::Check(check) => {
-            let res = check.exec()?;
-            assert!(
-                res.dest_wasm.is_none(),
-                "no dest_wasm must be on the generation result"
-            );
-            if res.verbosity.is_verbose() {
-                println!("\nYour contract's code was built successfully.")
+            let results = check.exec()?;
+            for res in results {
+                assert!(
+                    res.dest_wasm.is_none(),
+                    "no dest_wasm must be on the generation result"
+                );
+                if res.verbosity.is_verbose() {
+                    println!("\nYour contract's code was built successfully.")
+                }
             }
             Ok(())
         }
         Command::Test(test) => {
-            let res = test.exec()?;
-            if res.verbosity.is_verbose() {
-                println!("{}", res.display()?)
+            let results = test.exec()?;
+            for res in results {
+                if res.verbosity.is_verbose() {
+                    println!("{}", res.display()?)
+                }
             }
             Ok(())
         }

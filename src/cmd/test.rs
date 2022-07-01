@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    crate_metadata::get_cargo_workspace_members,
     maybe_println,
     util,
     workspace::ManifestPath,
@@ -38,12 +39,15 @@ pub struct TestCommand {
     /// Path to the `Cargo.toml` of the contract to test.
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
+    /// Test all subcontracts in the workspace
+    #[clap(long = "--all")]
+    test_all: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
 }
 
 impl TestCommand {
-    pub fn exec(&self) -> Result<TestResult> {
+    pub fn exec(&self) -> Result<Vec<TestResult>> {
         let manifest_path = match self.package.as_ref() {
             Some(package) => {
                 let root_manifest_path =
@@ -59,7 +63,21 @@ impl TestCommand {
         };
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        execute(&manifest_path, verbosity)
+        let mut ret = Vec::new();
+        match self.test_all {
+            true => {
+                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                for package_id in workspace_members {
+                    let manifest_path =
+                        util::extract_subcontract_manifest_path(package_id)
+                            .expect("Error extracting package manifest path");
+
+                    ret.push(execute(&manifest_path, verbosity)?)
+                }
+            }
+            false => ret.push(execute(&manifest_path, verbosity)?),
+        }
+        Ok(ret)
     }
 }
 
