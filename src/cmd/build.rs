@@ -975,6 +975,7 @@ mod tests_ci_only {
         },
         util::tests::{
             with_new_contract_project,
+            with_new_subcontract_project,
             with_tmp_dir,
         },
         workspace::Manifest,
@@ -1467,6 +1468,27 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_ok(), "building contract failed!");
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn building_subcontract_must_work() {
+        with_new_subcontract_project(|(manifest_path, subcontract)| {
+            let cmd = BuildCommand {
+                package: Some(subcontract),
+                manifest_path: Some(manifest_path),
+                build_artifact: BuildArtifacts::All,
+                build_release: false,
+                build_offline: false,
+                verbosity: VerbosityFlags::default(),
+                unstable_options: UnstableOptions::default(),
+                optimization_passes: None,
+                keep_debug_symbols: false,
+                skip_linting: false,
+                output_json: false,
+            };
+            cmd.exec().expect("build failed");
             Ok(())
         })
     }
