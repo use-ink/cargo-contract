@@ -32,6 +32,9 @@ use std::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "test")]
 pub struct TestCommand {
+    /// Subcontract
+    #[clap(long, short)]
+    package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to test.
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
@@ -41,7 +44,19 @@ pub struct TestCommand {
 
 impl TestCommand {
     pub fn exec(&self) -> Result<TestResult> {
-        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let manifest_path = match self.package.as_ref() {
+            Some(package) => {
+                let root_manifest_path =
+                    ManifestPath::try_from(self.manifest_path.as_ref())?;
+                root_manifest_path
+                    .subcontract_manifest_path(package)
+                    .expect(&format!(
+                        "error: package ID specification `{}` did not match any packages",
+                        package
+                    ))
+            }
+            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
+        };
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         execute(&manifest_path, verbosity)

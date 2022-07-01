@@ -23,8 +23,15 @@ use super::{
     metadata,
     Profile,
 };
-use crate::OptimizationPasses;
+use crate::{
+    util::{
+        extract_package_manifest_path,
+        extract_package_name,
+    },
+    OptimizationPasses,
+};
 
+use cargo_metadata::MetadataCommand;
 use std::{
     collections::HashSet,
     convert::TryFrom,
@@ -88,6 +95,28 @@ impl ManifestPath {
             None => Path::new("./"),
         };
         directory.canonicalize()
+    }
+
+    /// Returns the ManifestPath of a subcontract in the workspace
+    pub fn subcontract_manifest_path(&self, package: &String) -> Option<ManifestPath> {
+        let mut cmd = MetadataCommand::new();
+        let metadata = cmd
+            .manifest_path(self.as_ref())
+            .exec()
+            .expect("Error invoking `cargo metadata`");
+        let manifest_path = match metadata
+            .workspace_members
+            .into_iter()
+            .filter(|package_id| &extract_package_name(package_id.clone()) == package)
+            .next()
+        {
+            None => return None,
+            Some(package_id) => {
+                extract_package_manifest_path(package_id)
+                    .expect("Error extracting package manifest path")
+            }
+        };
+        Some(manifest_path)
     }
 }
 

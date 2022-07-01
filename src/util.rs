@@ -14,12 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::Verbosity;
+use crate::{
+    workspace::ManifestPath,
+    Verbosity,
+};
 use anyhow::{
     Context,
     Result,
 };
+use cargo_metadata::PackageId;
 use heck::ToUpperCamelCase as _;
+use regex::Regex;
 use rustc_version::Channel;
 use std::{
     ffi::OsStr,
@@ -142,6 +147,31 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     } else {
         hex::decode(input)
     }
+}
+
+/// PackageId looks like this:
+/// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
+/// so we have to extract the package name via regex:
+pub fn extract_package_name(package_id: PackageId) -> String {
+    let re = Regex::new(r"([^\s]+)").unwrap();
+    let caps = re.captures(package_id.repr.as_str()).unwrap();
+    let package = caps.get(1).unwrap().as_str();
+    String::from(package)
+}
+
+/// PackageId looks like this:
+/// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
+/// so we have to extract the manifest_path via regex:
+pub fn extract_package_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
+    let re = Regex::new(r"\((.*)\)")?;
+    let caps = re.captures(package_id.repr.as_str()).unwrap();
+    let path_str = caps.get(1).unwrap().as_str().replace("path+file://", "");
+
+    let mut path = PathBuf::new();
+    path.push(path_str);
+    path.push("Cargo.toml");
+
+    ManifestPath::try_from(Some(path))
 }
 
 /// Prints to stdout if `verbosity.is_verbose()` is `true`.
