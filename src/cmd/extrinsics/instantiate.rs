@@ -32,6 +32,7 @@ use super::{
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
+    cmd::extrinsics::prompt_gas_estimate,
     name_value_println,
     util::decode_hex,
     Verbosity,
@@ -56,7 +57,6 @@ use sp_core::{
     Bytes,
 };
 use std::{
-    io::{self, Write},
     fs,
     path::{
         Path,
@@ -348,7 +348,7 @@ impl<'a> Exec<'a> {
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
         let cli = WsClientBuilder::default().build(&self.url).await?;
-        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&50000000000);
+        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&5000000000000);
         let storage_deposit_limit = self
             .args
             .storage_deposit_limit
@@ -379,21 +379,7 @@ impl<'a> Exec<'a> {
             Ok(gas_limit)
         } else {
             let instantiate_result = self.instantiate_dry_run(code).await?;
-            let gas_required = instantiate_result.gas_required;
-
-            println!();
-            println!("Confirm estimated gas limit for this transaction.");
-            println!("Override with the --gas option, or skip this prompt with --skip-gas-prompt");
-            print!("Gas required estimated at {}. Accept? (Y/n): ", gas_required);
-
-            let mut buf = String::new();
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut buf)?;
-            match buf.trim() {
-                "Y" => Ok(gas_required),
-                "n" => Err(anyhow!("Estimated gas limit not accepted, transaction not submitted")),
-                c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c))
-            }
+            prompt_gas_estimate(instantiate_result.gas_required)
         }
     }
 }
