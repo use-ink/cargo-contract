@@ -16,10 +16,6 @@
 
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
-    transcode::{
-        ContractMessageTranscoder,
-        TranscoderBuilder,
-    },
     RuntimeEvent,
 };
 use crate::{
@@ -28,6 +24,10 @@ use crate::{
     DEFAULT_KEY_COL_WIDTH,
 };
 use colored::Colorize as _;
+use transcode::{
+    ContractMessageTranscoder,
+    TranscoderBuilder,
+};
 
 use anyhow::Result;
 use subxt::{

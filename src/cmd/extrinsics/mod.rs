@@ -18,7 +18,6 @@ mod call;
 mod events;
 mod instantiate;
 mod runtime_api;
-mod transcode;
 mod upload;
 
 #[cfg(test)]
@@ -54,13 +53,13 @@ use subxt::{
     HasModuleError as _,
 };
 
-pub use self::transcode::ContractMessageTranscoder;
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{
     DispatchError as RuntimeDispatchError,
     Event as RuntimeEvent,
 };
+pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
 type Balance = u128;
@@ -231,7 +230,7 @@ pub fn display_contract_exec_result<R>(
 /// there could be a flag to wait for finality before reporting success.
 async fn wait_for_success_and_handle_error<T>(
     tx_progress: subxt::TransactionProgress<'_, T, RuntimeDispatchError, RuntimeEvent>,
-) -> Result<subxt::TransactionEvents<'_, T, RuntimeEvent>>
+) -> Result<subxt::TransactionEvents<T, RuntimeEvent>>
 where
     T: Config,
 {
@@ -249,10 +248,10 @@ async fn dry_run_error_details(
     error: &RuntimeDispatchError,
 ) -> Result<String> {
     let error = if let Some(error_data) = error.module_error_data() {
-        let details = api
-            .client
-            .metadata()
-            .error(error_data.pallet_index, error_data.error_index())?;
+        let metadata = api.client.metadata();
+        let locked_metadata = metadata.read();
+        let details =
+            locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
         format!(
             "ModuleError: {}::{}: {:?}",
             details.pallet(),

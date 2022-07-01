@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "metadata"]
+members = [".", "metadata", "transcode"]
 
 [package]
 name = "cargo-contract"
@@ -25,47 +25,40 @@ include = [
 
 [dependencies]
 env_logger = "0.9.0"
-anyhow = "1.0.57"
-clap = { version = "3.1.18", features = ["derive", "env"] }
+anyhow = "1.0.58"
+clap = { version = "3.2.7", features = ["derive", "env"] }
 log = "0.4.17"
 heck = "0.4.0"
 zip = { version = "0.6.2", default-features = false }
 parity-wasm = "0.45.0"
-cargo_metadata = "0.14.2"
+cargo_metadata = "0.15.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.2.5"
 colored = "2.0.0"
 toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
-contract-metadata = { version = "0.6.0", path = "./metadata" }
-semver = { version = "1.0.9", features = ["serde"] }
+contract-metadata = { version = "1", path = "./metadata" }
+transcode = { package = "contract-transcode", version = "0.1.0", path = "./transcode" }
+semver = { version = "1.0.11", features = ["serde"] }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
-serde_json = "1.0.81"
+serde_json = "1.0.82"
 tempfile = "3.3.0"
 url = { version = "2.2.2", features = ["serde"] }
 impl-serde = "0.3.2"
 regex = "1.5.6"
 
 # dependencies for extrinsics (deploying and calling a contract)
-async-std = { version = "1.11.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "3", features = ["derive"] }
-ink_env = "3"
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
+ink_metadata = { version = "3.3", features = ["derive"] }
 sp-core = "6.0.0"
-sp-runtime = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
-subxt = "0.21.0"
+subxt = "0.22.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.13.1", features = ["ws-client"] }
-nom = "7.1.1"
-nom-supreme = { version = "0.7.0", features = ["error"] }
-indexmap = "1.8.2"
-escape8259 = "0.5.1"
-itertools = "0.10.3"
+jsonrpsee = { version = "0.14.0", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 zip = { version = "0.6.2", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
@@ -75,15 +68,10 @@ regex = "1.5.6"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
-assert_matches = "1.5.0"
 pretty_assertions = "1.2.1"
 wabt = "0.10.0"
 regex = "1.5.6"
 predicates = "2.1.1"
-
-ink_primitives = "3"
-ink_storage = "3"
-ink_lang = "3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
