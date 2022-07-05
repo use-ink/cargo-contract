@@ -168,14 +168,13 @@ impl CallCommand {
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
 
-        let gas_limit =
-            if let Some(gas_limit) = self.gas_limit {
-                gas_limit
-            } else {
-                let call_result = self.call_dry_run(data.clone(), signer).await?;
-                let estimated_gas = prompt_gas_estimate(call_result.gas_required)?;
-                estimated_gas
-            };
+        let gas_limit = if let Some(gas_limit) = self.gas_limit {
+            gas_limit
+        } else {
+            let call_result = self.call_dry_run(data.clone(), signer).await?;
+            let estimated_gas = prompt_gas_estimate(call_result.gas_required)?;
+            estimated_gas
+        };
 
         let tx_progress = api
             .tx()
