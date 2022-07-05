@@ -271,13 +271,7 @@ impl<'a> Exec<'a> {
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let api = self.subxt_api().await?;
-        let gas_limit = if let Some(gas_limit) = self.args.gas_limit {
-            gas_limit
-        } else {
-            let instantiate_result =
-                self.instantiate_dry_run(Code::Upload(code.clone())).await?;
-            instantiate_result.gas_required
-        };
+        let gas_limit = self.gas_limit(Code::Upload(code.clone())).await?;
         let tx_progress = api
             .tx()
             .contracts()
