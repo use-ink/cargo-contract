@@ -19,6 +19,7 @@ use super::{
     display_events,
     dry_run_error_details,
     parse_balance,
+    prompt_gas_estimate,
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
@@ -32,7 +33,6 @@ use super::{
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
-    cmd::extrinsics::prompt_gas_estimate,
     name_value_println,
     util::decode_hex,
     Verbosity,
@@ -100,7 +100,7 @@ pub struct InstantiateCommand {
     #[clap(name = "value", long, default_value = "0", parse(try_from_str = parse_balance))]
     value: Balance,
     /// Maximum amount of gas to be used for this command.
-    /// Skips the dry-run to estimate the gas consumed for the instantiation.
+    /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
@@ -342,7 +342,7 @@ impl<'a> Exec<'a> {
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
         let cli = WsClientBuilder::default().build(&self.url).await?;
-        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&5000000000000);
+        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
         let storage_deposit_limit = self
             .args
             .storage_deposit_limit

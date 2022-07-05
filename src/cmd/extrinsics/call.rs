@@ -20,6 +20,7 @@ use super::{
     dry_run_error_details,
     load_metadata,
     parse_balance,
+    prompt_gas_estimate,
     wait_for_success_and_handle_error,
     Balance,
     ContractMessageTranscoder,
@@ -71,8 +72,9 @@ pub struct CallCommand {
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Maximum amount of gas to be used for this command.
-    #[clap(name = "gas", long, default_value = "50000000000")]
-    gas_limit: u64,
+    /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
+    #[clap(name = "gas", long)]
+    gas_limit: Option<u64>,
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
@@ -97,22 +99,48 @@ impl CallCommand {
                 .to_runtime_api::<RuntimeApi>();
 
             if self.extrinsic_opts.dry_run {
-                self.call_rpc(&api, call_data, &signer, &transcoder).await
+                let result = self.call_dry_run(call_data, &signer).await?;
+
+                match result.result {
+                    Ok(ref ret_val) => {
+                        let value = transcoder
+                            .decode_return(&self.message, &mut &ret_val.data.0[..])?;
+                        name_value_println!(
+                            "Result",
+                            String::from("Success!"),
+                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        );
+                        name_value_println!(
+                            "Reverted",
+                            format!("{:?}", ret_val.did_revert()),
+                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        );
+                        name_value_println!(
+                            "Data",
+                            format!("{}", value),
+                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        );
+                    }
+                    Err(ref err) => {
+                        let err = dry_run_error_details(&api, err).await?;
+                        name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    }
+                }
+                display_contract_exec_result(&result)
             } else {
                 self.call(&api, call_data, &signer, &transcoder).await
             }
         })
     }
 
-    async fn call_rpc(
+    async fn call_dry_run(
         &self,
-        api: &RuntimeApi,
         data: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'_>,
-    ) -> Result<()> {
+    ) -> Result<ContractExecResult> {
         let url = self.extrinsic_opts.url_to_string();
         let cli = WsClientBuilder::default().build(&url).await?;
+        let gas_limit = self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
         let storage_deposit_limit = self
             .extrinsic_opts
             .storage_deposit_limit
@@ -122,40 +150,13 @@ impl CallCommand {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: NumberOrHex::Hex(self.value.into()),
-            gas_limit: NumberOrHex::Number(self.gas_limit),
+            gas_limit: NumberOrHex::Number(*gas_limit),
             storage_deposit_limit,
             input_data: Bytes(data),
         };
         let params = rpc_params![call_request];
-        let result: ContractExecResult = cli.request("contracts_call", params).await?;
-
-        match result.result {
-            Ok(ref ret_val) => {
-                let value =
-                    transcoder.decode_return(&self.message, &mut &ret_val.data.0[..])?;
-                name_value_println!(
-                    "Result",
-                    String::from("Success!"),
-                    EXEC_RESULT_MAX_KEY_COL_WIDTH
-                );
-                name_value_println!(
-                    "Reverted",
-                    format!("{:?}", ret_val.did_revert()),
-                    EXEC_RESULT_MAX_KEY_COL_WIDTH
-                );
-                name_value_println!(
-                    "Data",
-                    format!("{}", value),
-                    EXEC_RESULT_MAX_KEY_COL_WIDTH
-                );
-            }
-            Err(ref err) => {
-                let err = dry_run_error_details(api, err).await?;
-                name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
-            }
-        }
-        display_contract_exec_result(&result)?;
-        Ok(())
+        let result = cli.request("contracts_call", params).await?;
+        Ok(result)
     }
 
     async fn call(
@@ -166,13 +167,23 @@ impl CallCommand {
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
+
+        let gas_limit =
+            if let Some(gas_limit) = self.gas_limit {
+                gas_limit
+            } else {
+                let call_result = self.call_dry_run(data.clone(), signer).await?;
+                let estimated_gas = prompt_gas_estimate(call_result.gas_required)?;
+                estimated_gas
+            };
+
         let tx_progress = api
             .tx()
             .contracts()
             .call(
                 self.contract.clone().into(),
                 self.value,
-                self.gas_limit,
+                gas_limit,
                 self.extrinsic_opts.storage_deposit_limit,
                 data,
             )?
