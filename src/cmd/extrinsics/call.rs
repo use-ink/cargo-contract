@@ -172,8 +172,7 @@ impl CallCommand {
             gas_limit
         } else {
             let call_result = self.call_dry_run(data.clone(), signer).await?;
-            let estimated_gas = prompt_gas_estimate(call_result.gas_required)?;
-            estimated_gas
+            prompt_gas_estimate(call_result.gas_required)?
         };
 
         let tx_progress = api

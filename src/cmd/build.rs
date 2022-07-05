@@ -1340,15 +1340,15 @@ mod tests_ci_only {
 
     #[test]
     pub fn debug_mode_must_be_compatible() {
-        let _ = assert_debug_mode_supported(
+        assert_debug_mode_supported(
             &Version::parse("3.0.0-rc4").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
-        let _ = assert_debug_mode_supported(
+        assert_debug_mode_supported(
             &Version::parse("4.0.0-rc1").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
-        let _ = assert_debug_mode_supported(
+        assert_debug_mode_supported(
             &Version::parse("5.0.0").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
