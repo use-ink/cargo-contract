@@ -1348,10 +1348,8 @@ mod tests_ci_only {
             &Version::parse("4.0.0-rc1").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
-        assert_debug_mode_supported(
-            &Version::parse("5.0.0").expect("parsing must work"),
-        )
-        .expect("debug mode must be compatible");
+        assert_debug_mode_supported(&Version::parse("5.0.0").expect("parsing must work"))
+            .expect("debug mode must be compatible");
     }
 
     #[test]
