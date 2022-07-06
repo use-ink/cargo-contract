@@ -20,6 +20,7 @@ use clippy_utils::{
 };
 use if_chain::if_chain;
 use regex::Regex;
+use rustc_ast as ast;
 use rustc_errors::Applicability;
 use rustc_hir::{
     def_id::DefId,
@@ -44,13 +45,15 @@ use rustc_lint::{
 };
 use rustc_middle::{
     hir::nested_filter,
-    ty::Attributes,
 };
 use rustc_session::{
     declare_lint,
     declare_lint_pass,
 };
-use rustc_span::source_map::Span;
+use rustc_span::{
+    source_map::Span,
+    symbol::sym,
+};
 
 declare_lint! {
     /// **What it does:** Checks for ink! contracts that use
@@ -126,7 +129,7 @@ enum InkAttribute {
 }
 
 /// Returns `Some(InkAttribute)` if an ink! attribute is among `attributes`.
-fn get_ink_attribute(attributes: Attributes) -> Option<InkAttribute> {
+fn get_ink_attribute(attributes: &[ast::Attribute]) -> Option<InkAttribute> {
     const INK_STORAGE: &str = "__ink_dylint_Storage";
     const INK_CONSTRUCTOR: &str = "__ink_dylint_Constructor";
 
@@ -283,8 +286,8 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
             }
         }
 
-        let attrs = self.cx.tcx.get_attrs(id.owner.to_def_id());
-        self.ink_attribute = get_ink_attribute(attrs);
+        let attrs = self.cx.tcx.get_attrs(id.owner.to_def_id(), sym::cfg).cloned().collect::<Vec<_>>();
+        self.ink_attribute = get_ink_attribute(&attrs);
 
         if self.ink_attribute == Some(InkAttribute::Storage) {
             return
