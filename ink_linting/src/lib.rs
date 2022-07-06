@@ -30,10 +30,7 @@ mod mapping_initialized;
 
 #[doc(hidden)]
 #[no_mangle]
-pub fn register_lints(
-    _sess: &rustc_session::Session,
-    lint_store: &mut rustc_lint::LintStore,
-) {
+pub fn register_lints(_sess: &rustc_session::Session, lint_store: &mut rustc_lint::LintStore) {
     lint_store.register_lints(&[mapping_initialized::MAPPING_INITIALIZED]);
     lint_store.register_late_pass(|| Box::new(mapping_initialized::MappingInitialized));
 }
