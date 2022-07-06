@@ -17,7 +17,7 @@ variables:
   RUST_LIB_BACKTRACE:              "0"
   # this var is changed to "-:staging" when the CI image gets rebuilt
   # read more https://github.com/paritytech/cargo-contract/pull/115
-  CI_IMAGE:                        "paritytech/contracts-ci-linux:production"
+  CI_IMAGE:                        "paritytech/contracts-ci-linux:cachepot"
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
 
@@ -54,7 +54,7 @@ workflow:
     - bash --version
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
-    - sccache -s
+    - cachepot -s
     - git show
     - !reference [.rusty-cachier, before_script]
   after_script:
@@ -94,6 +94,7 @@ clippy:
     - rusty-cachier snapshot create
     - cargo clippy --verbose --all-targets --all-features -- -D warnings;
     - rusty-cachier cache upload
+    - cachepot -s
 
 #### stage:                        test (all features)
 
@@ -118,10 +119,11 @@ test-dylint:
     - cargo clippy --verbose -- -D warnings;
 
     # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
-    - unset RUSTC_WRAPPER
+    # - unset RUSTC_WRAPPER
 
     - cargo test --verbose --all-features
     - rusty-cachier cache upload
+    - cachepot -s
 
 test:
   stage:                           test
@@ -130,6 +132,7 @@ test:
     - rusty-cachier snapshot create
     - cargo test --verbose --workspace --all-features
     - rusty-cachier cache upload
+    - cachepot -s
 
 test-new-project-template:
   stage:                           test
@@ -152,6 +155,7 @@ test-new-project-template:
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
     - rusty-cachier cache upload
+    - cachepot -s
 
 # With the introduction of `ink_linting` in `build.rs` the installation process
 # is more elaborate now and as part of it the `ink_linting` crate is built locally.
@@ -178,6 +182,7 @@ test-registry-publish-install:
     - echo "[workspace]" >> new_project/Cargo.toml
     - cargo run --all-features -- contract check --manifest-path new_project/Cargo.toml
     - rusty-cachier cache upload
+    - cachepot -s
 
 #### stage:                        build (default features)
 
@@ -194,6 +199,7 @@ build:
     - rusty-cachier snapshot create
     - cargo build --verbose --release
     - rusty-cachier cache upload
+    - cachepot -s
   after_script:
     - !reference [.rusty-cachier, after_script]
     - mkdir -p ./artifacts/cargo-contract/
