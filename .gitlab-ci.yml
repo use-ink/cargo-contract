@@ -76,7 +76,7 @@ workflow:
       - unknown_failure
       - api_failure
   tags:
-    - ci2
+    - ci17
 
 
 #### stage:                        check
