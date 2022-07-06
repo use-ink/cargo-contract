@@ -76,7 +76,7 @@ workflow:
       - unknown_failure
       - api_failure
   tags:
-    - linux-docker
+    - ci2
 
 
 #### stage:                        check
@@ -120,7 +120,7 @@ test-dylint:
     - cargo clippy --verbose -- -D warnings;
 
     # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
-    # - unset RUSTC_WRAPPER
+    - unset RUSTC_WRAPPER
 
     - cargo test --verbose --all-features
     - rusty-cachier cache upload
