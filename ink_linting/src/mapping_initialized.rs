@@ -43,9 +43,7 @@ use rustc_lint::{
     LateContext,
     LateLintPass,
 };
-use rustc_middle::{
-    hir::nested_filter,
-};
+use rustc_middle::hir::nested_filter;
 use rustc_session::{
     declare_lint,
     declare_lint_pass,
@@ -286,7 +284,12 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
             }
         }
 
-        let attrs = self.cx.tcx.get_attrs(id.owner.to_def_id(), sym::cfg).cloned().collect::<Vec<_>>();
+        let attrs = self
+            .cx
+            .tcx
+            .get_attrs(id.owner.to_def_id(), sym::cfg)
+            .cloned()
+            .collect::<Vec<_>>();
         self.ink_attribute = get_ink_attribute(&attrs);
 
         if self.ink_attribute == Some(InkAttribute::Storage) {
