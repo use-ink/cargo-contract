@@ -260,12 +260,12 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
             }
         }
 
-        let attrs = self
+        let attrs: Vec<ast::Attribute> = self
             .cx
             .tcx
             .get_attrs(id.owner.to_def_id(), sym::cfg)
             .cloned()
-            .collect::<Vec<_>>();
+            .collect();
         self.ink_attribute = get_ink_attribute(&attrs);
 
         if self.ink_attribute == Some(InkAttribute::Storage) {
