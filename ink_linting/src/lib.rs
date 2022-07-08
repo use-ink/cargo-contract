@@ -18,6 +18,7 @@
 
 dylint_linting::dylint_library!();
 
+extern crate rustc_ast;
 extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_lint;

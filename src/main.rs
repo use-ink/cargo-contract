@@ -88,7 +88,7 @@ impl FromStr for HexData {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OptimizationPasses {
     Zero,
     One,
