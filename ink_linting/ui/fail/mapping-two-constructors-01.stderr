@@ -21,7 +21,8 @@ LL +         pub fn new2() -> Self {
 LL +             Self {
 LL +                 balances: Default::default(),
 LL +             }
- ...
+LL +         }
+   |
 
 error: aborting due to previous error
 
