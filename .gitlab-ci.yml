@@ -22,6 +22,7 @@ variables:
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
   RUSTC_WRAPPER:                   cachepot
   RUSTY_CACHIER_BYPASS:            "true"
+  CACHEPOT_LOG:                    trace
 
 workflow:
   rules:
