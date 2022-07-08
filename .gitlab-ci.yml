@@ -20,9 +20,10 @@ variables:
   CI_IMAGE:                        "paritytech/contracts-ci-linux:cachepot"
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-  # RUSTC_WRAPPER:                   cachepot
+  RUSTC_WRAPPER:                   cachepot
   RUSTY_CACHIER_BYPASS:            "true"
   CACHEPOT_LOG:                    trace
+  RUST_LOG:                        trace
 
 workflow:
   rules:
