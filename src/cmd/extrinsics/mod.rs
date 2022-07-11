@@ -24,40 +24,22 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use anyhow::{
-    anyhow,
-    Context,
-    Result,
-};
-use std::{
-    fs::File,
-    path::PathBuf,
-};
+use anyhow::{anyhow, Context, Result};
+use std::{fs::File, path::PathBuf};
 
 use self::events::display_events;
 use crate::{
-    crate_metadata::CrateMetadata,
-    name_value_println,
-    workspace::ManifestPath,
-    Verbosity,
-    VerbosityFlags,
+    crate_metadata::CrateMetadata, name_value_println, workspace::ManifestPath,
+    Verbosity, VerbosityFlags,
 };
 use pallet_contracts_primitives::ContractResult;
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-};
-use subxt::{
-    Config,
-    DefaultConfig,
-    HasModuleError as _,
-};
+use sp_core::{crypto::Pair, sr25519};
+use subxt::{Config, DefaultConfig, HasModuleError as _};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
 pub use runtime_api::api::{
-    DispatchError as RuntimeDispatchError,
-    Event as RuntimeEvent,
+    DispatchError as RuntimeDispatchError, Event as RuntimeEvent,
 };
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
@@ -136,7 +118,7 @@ pub fn load_metadata(
     if !path.exists() {
         return Err(anyhow!(
             "Metadata file not found. Try building with `cargo contract build`."
-        ))
+        ));
     }
 
     let file = File::open(&path)
@@ -146,15 +128,18 @@ pub fn load_metadata(
             "Failed to deserialize metadata file {}",
             path.display()
         ))?;
-    let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
-        .context(format!(
-            "Failed to deserialize ink project metadata from file {}",
-            path.display()
-        ))?;
-    if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-        Ok((crate_metadata, ink_project))
+    let ink_metadata: ink_metadata::InkProject = serde_json::from_value(
+        serde_json::Value::Object(metadata.abi),
+    )
+    .context(format!(
+        "Failed to deserialize ink! project metadata from file {}",
+        path.display()
+    ))?;
+
+    if let ink_metadata::MetadataVersion::V3 = ink_metadata.version() {
+        Ok((crate_metadata, ink_metadata))
     } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V1"))
+        Err(anyhow!("Unsupported ink metadata version. Expected V3"))
     }
 }
 

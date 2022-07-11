@@ -28,11 +28,13 @@ fn load_metadata(path: &Path) -> anyhow::Result<ink_metadata::InkProject> {
     let file = File::open(&path).expect("Failed to open metadata file");
     let metadata: ContractMetadata =
         serde_json::from_reader(file).expect("Failed to deserialize metadata file");
-    let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
-        .expect("Failed to deserialize ink project metadata");
 
-    if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-        Ok(ink_project)
+    let ink_metadata: ink_metadata::InkProject = serde_json::from_value(
+        serde_json::Value::Object(metadata.abi),
+    ).expect("Failed to deserialize ink project metadata");
+
+    if let ink_metadata::MetadataVersion::V3 = ink_metadata.version() {
+        Ok(ink_metadata)
     } else {
         Err(anyhow!("Unsupported ink metadata version. Expected V3"))
     }

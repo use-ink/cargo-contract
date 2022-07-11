@@ -402,10 +402,11 @@ mod tests {
 
     fn generate_metadata() -> ink_metadata::InkProject {
         extern "Rust" {
-            fn __ink_generate_metadata() -> ink_metadata::MetadataVersioned;
+            fn __ink_generate_metadata() -> ink_metadata::InkProject;
         }
-        let metadata_versioned = unsafe { __ink_generate_metadata() };
-        if let ink_metadata::MetadataVersioned::V3(ink_project) = metadata_versioned {
+
+        let ink_project = unsafe { __ink_generate_metadata() };
+        if let ink_metadata::MetadataVersion::V3 = ink_project.version() {
             ink_project
         } else {
             panic!("Expected metadata V3");
