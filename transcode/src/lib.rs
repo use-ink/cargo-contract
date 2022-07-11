@@ -89,32 +89,15 @@ mod transcoder;
 mod util;
 
 pub use self::{
-    scon::{
-        Map,
-        Value,
-    },
-    transcoder::{
-        Transcoder,
-        TranscoderBuilder,
-    },
+    scon::{Map, Value},
+    transcoder::{Transcoder, TranscoderBuilder},
 };
 
 use anyhow::Result;
-use ink_metadata::{
-    ConstructorSpec,
-    InkProject,
-    MessageSpec,
-};
-use scale::{
-    Compact,
-    Decode,
-    Input,
-};
+use ink_metadata::{ConstructorSpec, InkProject, MessageSpec};
+use scale::{Compact, Decode, Input};
 use scale_info::{
-    form::{
-        Form,
-        PortableForm,
-    },
+    form::{Form, PortableForm},
     Field,
 };
 use std::fmt::Debug;
@@ -319,14 +302,12 @@ impl CompositeTypeFields {
         } else if fields.iter().all(|f| f.name().is_some()) {
             let fields = fields
                 .iter()
-                .map(|field| {
-                    CompositeTypeNamedField {
-                        name: field
-                            .name()
-                            .expect("All fields have a name; qed")
-                            .to_owned(),
-                        field: field.clone(),
-                    }
+                .map(|field| CompositeTypeNamedField {
+                    name: field
+                        .name()
+                        .expect("All fields have a name; qed")
+                        .to_owned(),
+                    field: field.clone(),
                 })
                 .collect();
             Ok(Self::Named(fields))
