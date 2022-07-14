@@ -128,7 +128,6 @@ test:
   <<:                              *docker-env
   script:
     - rusty-cachier snapshot create
-    - cargo clean
     - cargo test --verbose --workspace --all-features
     - rusty-cachier cache upload
 
