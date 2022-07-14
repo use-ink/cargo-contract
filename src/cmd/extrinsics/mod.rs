@@ -154,10 +154,10 @@ pub fn load_metadata(
         path.display()
     ))?;
 
-    if let ink_metadata::MetadataVersion::V3 = ink_metadata.version() {
+    if let ink_metadata::MetadataVersion::V4 = ink_metadata.version() {
         Ok((crate_metadata, ink_metadata))
     } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V3"))
+        Err(anyhow!("Unsupported ink metadata version. Expected V4"))
     }
 }
 
