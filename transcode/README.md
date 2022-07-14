@@ -33,10 +33,10 @@ fn load_metadata(path: &Path) -> anyhow::Result<ink_metadata::InkProject> {
         serde_json::Value::Object(metadata.abi),
     ).expect("Failed to deserialize ink project metadata");
 
-    if let ink_metadata::MetadataVersion::V3 = ink_metadata.version() {
+    if let ink_metadata::MetadataVersion::V4 = ink_metadata.version() {
         Ok(ink_metadata)
     } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V3"))
+        Err(anyhow!("Unsupported ink metadata version. Expected V4"))
     }
 }
 

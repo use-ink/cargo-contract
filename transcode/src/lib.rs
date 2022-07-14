@@ -425,10 +425,10 @@ mod tests {
         }
 
         let ink_project = unsafe { __ink_generate_metadata() };
-        if let ink_metadata::MetadataVersion::V3 = ink_project.version() {
+        if let ink_metadata::MetadataVersion::V4 = ink_project.version() {
             ink_project
         } else {
-            panic!("Expected metadata V3");
+            panic!("Expected metadata V4");
         }
     }
 
