@@ -47,13 +47,13 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: cargo-dylint
-          version: 1
+          version: 2
 
       - name: Install dylint-link
         uses: baptiste0928/cargo-install@v1
         with:
           crate: dylint-link
-          version: 1
+          version: 2
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v1.4.0
