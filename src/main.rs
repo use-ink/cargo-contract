@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-#![deny(unused_crate_dependencies)]
+// #![deny(unused_crate_dependencies)]
 
 mod cmd;
 mod crate_metadata;

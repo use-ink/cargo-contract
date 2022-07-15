@@ -5,11 +5,11 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-ink_primitives = { version = "3", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
-ink_metadata = { version = "3", default-features = false, features = ["derive"], optional = true, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
-ink_env = { version = "3", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
-ink_storage = { version = "3", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
-ink_lang = { version = "3", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
+ink_primitives = { version = "4", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
+ink_metadata = { version = "4", default-features = false, features = ["derive"], optional = true, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
+ink_env = { version = "4", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
+ink_storage = { version = "4", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
+ink_lang = { version = "4", default-features = false, git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
