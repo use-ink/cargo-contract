@@ -56,7 +56,7 @@ jobs:
           version: 2
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v1.4.0
+        uses: Swatinem/rust-cache@v2.0.0
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
         run: |
