@@ -28,7 +28,7 @@ jobs:
       - uses: engineerd/configurator@v0.0.6
         with:
           name: "wasm-opt.exe"
-          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-windows.tar.gz"
+          url: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz"
           pathInArchive: "binaryen-/bin/wasm-opt.exe"
 
       - name: Checkout sources & submodules
