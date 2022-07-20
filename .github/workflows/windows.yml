@@ -66,6 +66,7 @@ jobs:
           cargo dylint --version
 
       - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
+        run: |
           cargo run -- contract --version
           cargo run -- contract new foobar
           echo "[workspace]" >> foobar/Cargo.toml
