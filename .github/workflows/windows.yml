@@ -39,12 +39,10 @@ jobs:
 
       - name: Install toolchain
         id: toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
-          override: true
 
       - name: Install cargo-dylint
         uses: baptiste0928/cargo-install@v1
