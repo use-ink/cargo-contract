@@ -28,7 +28,7 @@ jobs:
       - uses: engineerd/configurator@v0.0.6
         with:
           name: "wasm-opt.exe"
-          url: "https://github.com/WebAssembly/binaryen/releases/download/version_103/binaryen-version_103-x86_64-windows.tar.gz"
+          url: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz"
           pathInArchive: "binaryen-/bin/wasm-opt.exe"
 
       - name: Checkout sources & submodules
@@ -39,12 +39,10 @@ jobs:
 
       - name: Install toolchain
         id: toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
-          override: true
 
       - name: Install cargo-dylint
         uses: baptiste0928/cargo-install@v1
@@ -61,11 +59,13 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.0.0
 
-      - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
+      - name: Output versions
         run: |
           wasm-opt --version
           cargo -vV
           cargo dylint --version
+
+      - name: Build contract template on ${{ matrix.platform }}-${{ matrix.toolchain }}
           cargo run -- contract --version
           cargo run -- contract new foobar
           echo "[workspace]" >> foobar/Cargo.toml
