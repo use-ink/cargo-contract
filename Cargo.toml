@@ -55,7 +55,7 @@ sp-core = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
 subxt = "0.22.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.14.0", features = ["ws-client"] }
+jsonrpsee = { version = "0.15.0", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.58"
