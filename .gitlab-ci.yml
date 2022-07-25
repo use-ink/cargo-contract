@@ -77,6 +77,10 @@ workflow:
   tags:
     - linux-docker
 
+.kubernetes-env:
+  image:                           "${CI_IMAGE}"
+  tags:
+    - kubernetes-parity-build
 
 #### stage:                        check
 # be aware that the used image has cargo-contract installed
@@ -203,6 +207,11 @@ build:
 
 rusty-cachier-notify:
   stage:                           notify
-  <<:                              *docker-env
+  <<:                              *kubernetes-env
+  variables:
+    CI_IMAGE:                      paritytech/rusty-cachier-env:latest
+    GIT_STRATEGY:                  none
+  dependencies:                    []
   script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - rusty-cachier cache notify
