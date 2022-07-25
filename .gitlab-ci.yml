@@ -77,7 +77,7 @@ workflow:
   tags:
     - linux-docker
 
-.kubernetes-env:
+.kubernetes-env:                  &kubernetes-env
   image:                           "${CI_IMAGE}"
   tags:
     - kubernetes-parity-build
