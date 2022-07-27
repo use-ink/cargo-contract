@@ -24,6 +24,7 @@ variables:
   RUSTY_CACHIER_BYPASS:            "true"
   CACHEPOT_LOG:                    trace
   RUST_LOG:                        trace
+  CARGO_INCREMENTAL:               0
 
 workflow:
   rules:
