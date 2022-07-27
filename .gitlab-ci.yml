@@ -133,9 +133,11 @@ workflow:
 test:
   stage:                           test
   <<:                              *docker-env
+  <<:                              *collect-artifacts
   script:
     - rusty-cachier snapshot create
-    - cargo test --verbose --workspace --all-features
+    - cargo test --verbose --workspace --all-features --timings
+    - cp target/cargo-timings/cargo-timing-*.html artifacts/
     - rusty-cachier cache upload
     - cachepot -s
 
@@ -204,7 +206,7 @@ build:
   script:
     - rusty-cachier snapshot create
     - cargo build --verbose --release --timings
-    - cp target/cargo-timings/cargo-timings.html artifacts/
+    - cp target/cargo-timings/cargo-timing-*.html artifacts/
     - rusty-cachier cache upload
     - cachepot -s
   # after_script:
