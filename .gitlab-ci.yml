@@ -82,6 +82,10 @@ workflow:
   tags:
     - ci17
 
+.kubernetes-env:                  &kubernetes-env
+  image:                           "${CI_IMAGE}"
+  tags:
+    - kubernetes-parity-build
 
 #### stage:                        check
 # be aware that the used image has cargo-contract installed

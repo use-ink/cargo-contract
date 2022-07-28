@@ -21,7 +21,10 @@ use ink_lang as ink;
 #[ink::contract]
 mod my_contract {
     use ink_lang::utils::initialize_contract as foo;
-    use ink_storage::{traits::SpreadAllocate, Mapping};
+    use ink_storage::{
+        traits::SpreadAllocate,
+        Mapping,
+    };
 
     #[ink(storage)]
     #[derive(SpreadAllocate)]

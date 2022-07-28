@@ -22,7 +22,10 @@ use ink_lang as ink;
 mod my_contract {
     /// The `Mapping` must be recognized, even if it is imported
     /// under a different name.
-    use ink_storage::{traits::SpreadAllocate, Mapping as SomeOtherName};
+    use ink_storage::{
+        traits::SpreadAllocate,
+        Mapping as SomeOtherName,
+    };
 
     #[ink(storage)]
     #[derive(SpreadAllocate)]
