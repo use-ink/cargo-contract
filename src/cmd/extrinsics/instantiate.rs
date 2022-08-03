@@ -245,25 +245,24 @@ impl<'a> Exec<'a> {
                     name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
-            display_contract_exec_result(&result)?;
-            return Ok(())
-        }
-
-        match code {
-            Code::Upload(code) => {
-                let (code_hash, contract_account) =
-                    self.instantiate_with_code(code).await?;
-                if let Some(code_hash) = code_hash {
-                    name_value_println!("Code hash", format!("{:?}", code_hash));
+            display_contract_exec_result(&result)
+        } else {
+            match code {
+                Code::Upload(code) => {
+                    let (code_hash, contract_account) =
+                        self.instantiate_with_code(code).await?;
+                    if let Some(code_hash) = code_hash {
+                        name_value_println!("Code hash", format!("{:?}", code_hash));
+                    }
+                    name_value_println!("Contract", contract_account.to_ss58check());
                 }
-                name_value_println!("Contract", contract_account.to_ss58check());
+                Code::Existing(code_hash) => {
+                    let contract_account = self.instantiate(code_hash).await?;
+                    name_value_println!("Contract", contract_account.to_ss58check());
+                }
             }
-            Code::Existing(code_hash) => {
-                let contract_account = self.instantiate(code_hash).await?;
-                name_value_println!("Contract", contract_account.to_ss58check());
-            }
+            Ok(())
         }
-        Ok(())
     }
 
     async fn instantiate_with_code(
