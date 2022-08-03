@@ -282,23 +282,7 @@ impl<'a> Exec<'a> {
             .await?;
 
         if !self.opts.skip_confirm {
-            prompt_confirm_tx(|| {
-                name_value_println!(
-                    "Constructor",
-                    self.args.constructor,
-                    DEFAULT_KEY_COL_WIDTH
-                );
-                name_value_println!(
-                    "Args",
-                    self.args.raw_args.join(" "),
-                    DEFAULT_KEY_COL_WIDTH
-                );
-                name_value_println!(
-                    "Gas Limit",
-                    gas_limit.to_string(),
-                    DEFAULT_KEY_COL_WIDTH
-                );
-            })?;
+            prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
         }
 
         let tx_progress = api
@@ -341,6 +325,18 @@ impl<'a> Exec<'a> {
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
             .await?;
+
+        if !self.opts.skip_confirm {
+            prompt_confirm_tx(|| {
+                self.print_default_instantiate_preview(gas_limit);
+                name_value_println!(
+                    "Code hash",
+                    format!("{:?}", code_hash),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+            })?;
+        }
+
         let tx_progress = api
             .tx()
             .contracts()
@@ -369,6 +365,12 @@ impl<'a> Exec<'a> {
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(instantiated.contract)
+    }
+
+    fn print_default_instantiate_preview(&self, gas_limit: u64) {
+        name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Gas Limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
     }
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
