@@ -137,6 +137,11 @@ pub struct Source {
     /// with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wasm: Option<SourceWasm>,
+    /// Extra information about the environment in which the contract was built.
+    ///
+    /// Useful for producing deterministic builds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_info: Option<Map<String, Value>>,
 }
 
 impl Source {
@@ -146,12 +151,14 @@ impl Source {
         hash: CodeHash,
         language: SourceLanguage,
         compiler: SourceCompiler,
+        build_info: Option<Map<String, Value>>,
     ) -> Self {
         Source {
             hash,
             language,
             compiler,
             wasm,
+            build_info,
         }
     }
 }

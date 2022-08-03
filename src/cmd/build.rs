@@ -281,6 +281,8 @@ fn exec_cargo_for_wasm_target(
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
+
+        // TODO: So we'll need to find a way to include these into the `BuildInfo`.
         let mut args = vec![
             "--target=wasm32-unknown-unknown",
             "-Zbuild-std",
@@ -789,6 +791,11 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+    use crate::cmd::metadata::{
+        BuildInfo,
+        WasmOptSettings,
+    };
+
     let ExecuteArgs {
         manifest_path,
         verbosity,
@@ -801,6 +808,29 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         skip_linting,
         output_type,
     } = args;
+
+    let rustc_version = contract_metadata::SourceCompiler {
+        compiler: contract_metadata::Compiler::RustC,
+        version: Version::parse(&rustc_version::version()?.to_string())?,
+    };
+
+    // TODO: This we should be able to get by doing something like:
+    //
+    // `let version: Version = invoke_cargo(contract, --version).parse()`
+    let cargo_contract_version = Version::parse("1.4.0").expect("TODO");
+
+    let build_info = BuildInfo {
+        rustc_version,
+        cargo_contract_version,
+        build_mode,
+        // TODO: I think we'll need to pull this out from the wasm_build function
+        features: vec![],
+        // TODO: Maybe extract version from check_wasm_opt_version_compatibility()
+        wasm_opt_settings: WasmOptSettings {
+            version: 0,
+            optimization_passes,
+        },
+    };
 
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
@@ -911,6 +941,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 build_artifact.steps(),
                 &unstable_flags,
+                build_info,
             )?;
             (Some(optimization_result), Some(metadata_result))
         }
