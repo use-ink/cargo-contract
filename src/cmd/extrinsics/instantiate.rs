@@ -411,14 +411,17 @@ impl<'a> Exec<'a> {
                 }
             }
         }
-
+        println!(
+            "{} (skip with --skip-dry-run)",
+            "Dry-running transaction...".bright_white()
+        );
         let instantiate_result = self.instantiate_dry_run(code).await?;
         match instantiate_result.result {
             Ok(_) => {
                 println!(
-                    "{} {}",
-                    "Dry-run success! Gas required estimated at".green().bold(),
-                    instantiate_result.gas_required.to_string().bold()
+                    "{} Gas required estimated at {}",
+                    "Success!".green().bold(),
+                    instantiate_result.gas_required.to_string().bright_white()
                 );
                 Ok(instantiate_result.gas_required)
             }
