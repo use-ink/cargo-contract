@@ -42,7 +42,6 @@ use anyhow::{
     Context,
     Result,
 };
-use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
