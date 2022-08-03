@@ -46,6 +46,7 @@ use crate::{
     workspace::ManifestPath,
     Verbosity,
     VerbosityFlags,
+    DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
 use sp_core::{
@@ -288,4 +289,22 @@ fn prompt_confirm_tx<F: FnOnce() -> ()>(show_details: F) -> Result<()> {
         "n" => Err(anyhow!("Transaction not submitted")),
         c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
     }
+}
+
+fn print_dry_running_status(msg: &str) {
+    println!(
+        "{:>width$} {} (skip with --skip-dry-run)",
+        "Dry-running".green().bold(),
+        msg.bright_white().bold(),
+        width = DEFAULT_KEY_COL_WIDTH
+    );
+}
+
+fn print_gas_required_success(gas: u64) {
+    println!(
+        "{:>width$} Gas required estimated at {}",
+        "Success!".green().bold(),
+        gas.to_string().bright_white(),
+        width = DEFAULT_KEY_COL_WIDTH
+    );
 }

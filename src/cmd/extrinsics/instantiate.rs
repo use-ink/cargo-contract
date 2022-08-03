@@ -404,25 +404,16 @@ impl<'a> Exec<'a> {
         if self.opts.skip_dry_run {
             return match self.args.gas_limit {
                 Some(gas) => Ok(gas),
-                None => {
-                    Err(anyhow!(
+                None => Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
-                }
+                )),
             }
         }
-        println!(
-            "{} (skip with --skip-dry-run)",
-            "Dry-running transaction...".bright_white()
-        );
+        super::print_dry_running_status(&self.args.constructor);
         let instantiate_result = self.instantiate_dry_run(code).await?;
         match instantiate_result.result {
             Ok(_) => {
-                println!(
-                    "{} Gas required estimated at {}",
-                    "Success!".green().bold(),
-                    instantiate_result.gas_required.to_string().bright_white()
-                );
+                super::print_gas_required_success(instantiate_result.gas_required);
                 Ok(instantiate_result.gas_required)
             }
             Err(ref err) => {

@@ -37,7 +37,6 @@ use anyhow::{
     anyhow,
     Result,
 };
-use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
@@ -223,28 +222,16 @@ impl CallCommand {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => {
-                    Err(anyhow!(
+                None => Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
-                }
+                )),
             }
         }
-        println!(
-            "{:>width$} {} (skip with --skip-dry-run)",
-            "Dry-running".green().bold(),
-            self.message.bright_white().bold(),
-            width = DEFAULT_KEY_COL_WIDTH
-        );
+        super::print_dry_running_status(&self.message);
         let call_result = self.call_dry_run(data, signer).await?;
         match call_result.result {
             Ok(_) => {
-                println!(
-                    "{:>width$} Gas required estimated at {}",
-                    "Success!".green().bold(),
-                    call_result.gas_required.to_string().bright_white(),
-                    width = DEFAULT_KEY_COL_WIDTH
-                );
+                super::print_gas_required_success(call_result.gas_required);
                 Ok(call_result.gas_required)
             }
             Err(ref err) => {
