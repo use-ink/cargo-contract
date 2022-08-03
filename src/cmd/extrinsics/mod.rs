@@ -29,6 +29,7 @@ use anyhow::{
     Context,
     Result,
 };
+use colored::Colorize;
 use std::{
     fs::File,
     io::{
@@ -102,6 +103,12 @@ pub struct ExtrinsicOpts {
     /// consumed.
     #[clap(long, parse(try_from_str = parse_balance))]
     storage_deposit_limit: Option<Balance>,
+    /// Before submitting a transaction, do not dry-run it via RPC first.
+    #[clap(long)]
+    skip_dry_run: bool,
+    /// Before submitting a transaction, do not ask the user for confirmation.
+    #[clap(long)]
+    skip_confirm: bool,
 }
 
 impl ExtrinsicOpts {
@@ -176,7 +183,7 @@ pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
 }
 
 const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
-pub const EXEC_RESULT_MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
+pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R>(
@@ -188,17 +195,17 @@ pub fn display_contract_exec_result<R>(
     name_value_println!(
         "Gas Consumed",
         format!("{:?}", result.gas_consumed),
-        EXEC_RESULT_MAX_KEY_COL_WIDTH
+        MAX_KEY_COL_WIDTH
     );
     name_value_println!(
         "Gas Required",
         format!("{:?}", result.gas_required),
-        EXEC_RESULT_MAX_KEY_COL_WIDTH
+        MAX_KEY_COL_WIDTH
     );
     name_value_println!(
         STORAGE_DEPOSIT_KEY,
         format!("{:?}", result.storage_deposit),
-        EXEC_RESULT_MAX_KEY_COL_WIDTH
+        MAX_KEY_COL_WIDTH
     );
 
     // print debug messages aligned, only first line has key
@@ -206,16 +213,12 @@ pub fn display_contract_exec_result<R>(
         name_value_println!(
             "Debug Message",
             format!("{}", debug_message),
-            EXEC_RESULT_MAX_KEY_COL_WIDTH
+            MAX_KEY_COL_WIDTH
         );
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!(
-            "",
-            format!("{}", debug_message),
-            EXEC_RESULT_MAX_KEY_COL_WIDTH
-        );
+        name_value_println!("", format!("{}", debug_message), MAX_KEY_COL_WIDTH);
     }
     Ok(())
 }
@@ -290,6 +293,25 @@ fn prompt_gas_estimate(gas_required: u64) -> Result<u64> {
                 "Estimated gas limit not accepted, transaction not submitted"
             ))
         }
+        c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
+    }
+}
+
+/// Prompt the user to accept or reject the estimated gas required
+fn prompt_confirm_tx<F: FnOnce() -> ()>(show_details: F) -> Result<()> {
+    println!(
+        "{} (skip with --skip-confirm)",
+        "Confirm transaction details:".bright_white().bold()
+    );
+    show_details();
+    print!("{} (Y/n): ", "Submit?".bright_white().bold());
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim() {
+        "Y" => Ok(()),
+        "n" => Err(anyhow!("Transaction not submitted")),
         c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
     }
 }

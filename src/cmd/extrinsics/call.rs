@@ -28,7 +28,7 @@ use super::{
     PairSigner,
     RuntimeApi,
     RuntimeDispatchError,
-    EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    MAX_KEY_COL_WIDTH,
 };
 use crate::name_value_println;
 use anyhow::Result;
@@ -108,22 +108,22 @@ impl CallCommand {
                         name_value_println!(
                             "Result",
                             String::from("Success!"),
-                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                            MAX_KEY_COL_WIDTH
                         );
                         name_value_println!(
                             "Reverted",
                             format!("{:?}", ret_val.did_revert()),
-                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                            MAX_KEY_COL_WIDTH
                         );
                         name_value_println!(
                             "Data",
                             format!("{}", value),
-                            EXEC_RESULT_MAX_KEY_COL_WIDTH
+                            MAX_KEY_COL_WIDTH
                         );
                     }
                     Err(ref err) => {
                         let err = dry_run_error_details(&api, err).await?;
-                        name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                     }
                 }
                 display_contract_exec_result(&result)

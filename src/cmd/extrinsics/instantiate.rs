@@ -19,7 +19,7 @@ use super::{
     display_events,
     dry_run_error_details,
     parse_balance,
-    prompt_gas_estimate,
+    prompt_confirm_tx,
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
@@ -30,18 +30,19 @@ use super::{
     PairSigner,
     RuntimeApi,
     RuntimeDispatchError,
-    EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
     name_value_println,
     util::decode_hex,
     Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
     Context,
     Result,
 };
+use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
@@ -165,6 +166,8 @@ impl InstantiateCommand {
         let salt = self.salt.clone().unwrap_or_else(|| Bytes(Vec::new()));
 
         let args = InstantiateArgs {
+            constructor: self.constructor.clone(),
+            raw_args: self.args.clone(),
             value: self.value,
             gas_limit: self.gas_limit,
             storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
@@ -174,6 +177,7 @@ impl InstantiateCommand {
 
         let exec = Exec {
             args,
+            opts: self.extrinsic_opts.clone(),
             url,
             verbosity,
             signer,
@@ -187,7 +191,9 @@ impl InstantiateCommand {
 }
 
 struct InstantiateArgs {
-    value: super::Balance,
+    constructor: String,
+    raw_args: Vec<String>,
+    value: Balance,
     gas_limit: Option<u64>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
@@ -195,6 +201,7 @@ struct InstantiateArgs {
 }
 
 pub struct Exec<'a> {
+    opts: ExtrinsicOpts,
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
@@ -221,28 +228,28 @@ impl<'a> Exec<'a> {
                     name_value_println!(
                         "Result",
                         String::from("Success!"),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Contract",
                         ret_val.account_id.to_ss58check(),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Reverted",
                         format!("{:?}", ret_val.result.did_revert()),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Data",
                         format!("{:?}", ret_val.result.data),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                 }
                 Err(ref err) => {
                     let err =
                         dry_run_error_details(&self.subxt_api().await?, err).await?;
-                    name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    name_value_println!("Result", err, DEFAULT_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)
@@ -270,7 +277,30 @@ impl<'a> Exec<'a> {
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let api = self.subxt_api().await?;
-        let gas_limit = self.gas_limit(Code::Upload(code.clone())).await?;
+        let gas_limit = self
+            .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
+            .await?;
+
+        if !self.opts.skip_confirm {
+            prompt_confirm_tx(|| {
+                name_value_println!(
+                    "Constructor",
+                    self.args.constructor,
+                    DEFAULT_KEY_COL_WIDTH
+                );
+                name_value_println!(
+                    "Args",
+                    self.args.raw_args.join(" "),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+                name_value_println!(
+                    "Gas Limit",
+                    gas_limit.to_string(),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+            })?;
+        }
+
         let tx_progress = api
             .tx()
             .contracts()
@@ -308,7 +338,9 @@ impl<'a> Exec<'a> {
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
         let api = self.subxt_api().await?;
-        let gas_limit = self.gas_limit(Code::Existing(code_hash)).await?;
+        let gas_limit = self
+            .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
+            .await?;
         let tx_progress = api
             .tx()
             .contracts()
@@ -365,14 +397,33 @@ impl<'a> Exec<'a> {
         Ok(result)
     }
 
-    /// Dry run the instantiation to calculate the gas required, unless the gas limit is explicitly
-    /// set by the user.
-    async fn gas_limit(&self, code: Code) -> Result<u64> {
-        if let Some(gas_limit) = self.args.gas_limit {
-            Ok(gas_limit)
-        } else {
-            let instantiate_result = self.instantiate_dry_run(code).await?;
-            prompt_gas_estimate(instantiate_result.gas_required)
+    /// Dry run the instantiation before tx submission. Returns the gas required estimate.
+    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<u64> {
+        if self.opts.skip_dry_run {
+            return match self.args.gas_limit {
+                Some(gas) => Ok(gas),
+                None => {
+                    Err(anyhow!(
+                    "Gas limit `--gas` argument required if `--skip-dry-run` specified"
+                ))
+                }
+            }
+        }
+
+        let instantiate_result = self.instantiate_dry_run(code).await?;
+        match instantiate_result.result {
+            Ok(_) => {
+                println!(
+                    "{} {}",
+                    "Dry-run success! Gas required estimated at".green().bold(),
+                    instantiate_result.gas_required.to_string().bold()
+                );
+                Ok(instantiate_result.gas_required)
+            }
+            Err(ref err) => {
+                let err = dry_run_error_details(&self.subxt_api().await?, err).await?;
+                Err(anyhow!("Pre-submission dry-run failed: '{}'. Use --skip-dry-run to skip this step.", err))
+            }
         }
     }
 }
