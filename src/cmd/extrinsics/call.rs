@@ -20,18 +20,24 @@ use super::{
     dry_run_error_details,
     load_metadata,
     parse_balance,
-    prompt_gas_estimate,
+    prompt_confirm_tx,
     wait_for_success_and_handle_error,
     Balance,
     ContractMessageTranscoder,
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
-    RuntimeDispatchError,
-    MAX_KEY_COL_WIDTH,
+    RuntimeDispatchError
 };
-use crate::name_value_println;
-use anyhow::Result;
+use crate::{
+    name_value_println,
+    DEFAULT_KEY_COL_WIDTH,
+};
+use anyhow::{
+    anyhow,
+    Result,
+};
+use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
@@ -108,22 +114,22 @@ impl CallCommand {
                         name_value_println!(
                             "Result",
                             String::from("Success!"),
-                            MAX_KEY_COL_WIDTH
+                            DEFAULT_KEY_COL_WIDTH
                         );
                         name_value_println!(
                             "Reverted",
                             format!("{:?}", ret_val.did_revert()),
-                            MAX_KEY_COL_WIDTH
+                            DEFAULT_KEY_COL_WIDTH
                         );
                         name_value_println!(
                             "Data",
                             format!("{}", value),
-                            MAX_KEY_COL_WIDTH
+                            DEFAULT_KEY_COL_WIDTH
                         );
                     }
                     Err(ref err) => {
                         let err = dry_run_error_details(&api, err).await?;
-                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                        name_value_println!("Result", err, DEFAULT_KEY_COL_WIDTH);
                     }
                 }
                 display_contract_exec_result(&result)
@@ -168,12 +174,17 @@ impl CallCommand {
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
 
-        let gas_limit = if let Some(gas_limit) = self.gas_limit {
-            gas_limit
-        } else {
-            let call_result = self.call_dry_run(data.clone(), signer).await?;
-            prompt_gas_estimate(call_result.gas_required)?
-        };
+        let gas_limit = self
+            .pre_submit_dry_run_gas_estimate(api,data.clone(), signer)
+            .await?;
+
+        if !self.extrinsic_opts.skip_confirm {
+            prompt_confirm_tx(|| {
+                name_value_println!("Message", self.message, DEFAULT_KEY_COL_WIDTH);
+                name_value_println!("Args", self.args.join(" "), DEFAULT_KEY_COL_WIDTH);
+                name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+            })?;
+        }
 
         let tx_progress = api
             .tx()
@@ -196,6 +207,44 @@ impl CallCommand {
             &api.client.metadata().read(),
             &self.extrinsic_opts.verbosity()?,
         )
+    }
+
+    /// Dry run the call before tx submission. Returns the gas required estimate.
+    async fn pre_submit_dry_run_gas_estimate(
+        &self,
+        api: &RuntimeApi,
+        data: Vec<u8>,
+        signer: &PairSigner,
+    ) -> Result<u64> {
+        if self.extrinsic_opts.skip_dry_run {
+            return match self.gas_limit {
+                Some(gas) => Ok(gas),
+                None => {
+                    Err(anyhow!(
+                    "Gas limit `--gas` argument required if `--skip-dry-run` specified"
+                ))
+                }
+            }
+        }
+        println!(
+            "{} (skip with --skip-dry-run)",
+            "Dry-running transaction...".bright_white()
+        );
+        let call_result = self.call_dry_run(data, signer).await?;
+        match call_result.result {
+            Ok(_) => {
+                println!(
+                    "{} Gas required estimated at {}",
+                    "Success!".green().bold(),
+                    call_result.gas_required.to_string().bright_white()
+                );
+                Ok(call_result.gas_required)
+            }
+            Err(ref err) => {
+                let err = dry_run_error_details(api, err).await?;
+                Err(anyhow!("Pre-submission dry-run failed: '{}'. Use --skip-dry-run to skip this step.", err))
+            }
+        }
     }
 }
 

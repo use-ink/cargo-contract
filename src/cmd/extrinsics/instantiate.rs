@@ -370,7 +370,7 @@ impl<'a> Exec<'a> {
     fn print_default_instantiate_preview(&self, gas_limit: u64) {
         name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
         name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Gas Limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
     }
 
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {

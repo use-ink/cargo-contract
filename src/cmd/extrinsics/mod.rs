@@ -272,32 +272,6 @@ async fn dry_run_error_details(
 }
 
 /// Prompt the user to accept or reject the estimated gas required
-fn prompt_gas_estimate(gas_required: u64) -> Result<u64> {
-    println!();
-    println!("Confirm estimated gas limit for this transaction.");
-    println!(
-        "Override with the --gas option, or skip this prompt with --skip-gas-prompt"
-    );
-    print!(
-        "Gas required estimated at {}. Accept? (Y/n): ",
-        gas_required
-    );
-
-    let mut buf = String::new();
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut buf)?;
-    match buf.trim() {
-        "Y" => Ok(gas_required),
-        "n" => {
-            Err(anyhow!(
-                "Estimated gas limit not accepted, transaction not submitted"
-            ))
-        }
-        c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
-    }
-}
-
-/// Prompt the user to accept or reject the estimated gas required
 fn prompt_confirm_tx<F: FnOnce() -> ()>(show_details: F) -> Result<()> {
     println!(
         "{} (skip with --skip-confirm)",
