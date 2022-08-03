@@ -27,7 +27,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     RuntimeApi,
-    RuntimeDispatchError
+    RuntimeDispatchError,
 };
 use crate::{
     name_value_println,
@@ -175,14 +175,18 @@ impl CallCommand {
         log::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(api,data.clone(), signer)
+            .pre_submit_dry_run_gas_estimate(api, data.clone(), signer)
             .await?;
 
         if !self.extrinsic_opts.skip_confirm {
             prompt_confirm_tx(|| {
                 name_value_println!("Message", self.message, DEFAULT_KEY_COL_WIDTH);
                 name_value_println!("Args", self.args.join(" "), DEFAULT_KEY_COL_WIDTH);
-                name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+                name_value_println!(
+                    "Gas limit",
+                    gas_limit.to_string(),
+                    DEFAULT_KEY_COL_WIDTH
+                );
             })?;
         }
 
@@ -227,16 +231,19 @@ impl CallCommand {
             }
         }
         println!(
-            "{} (skip with --skip-dry-run)",
-            "Dry-running transaction...".bright_white()
+            "{:>width$} {} (skip with --skip-dry-run)",
+            "Dry-running".green().bold(),
+            self.message.bright_white().bold(),
+            width = DEFAULT_KEY_COL_WIDTH
         );
         let call_result = self.call_dry_run(data, signer).await?;
         match call_result.result {
             Ok(_) => {
                 println!(
-                    "{} Gas required estimated at {}",
+                    "{:>width$} Gas required estimated at {}",
                     "Success!".green().bold(),
-                    call_result.gas_required.to_string().bright_white()
+                    call_result.gas_required.to_string().bright_white(),
+                    width = DEFAULT_KEY_COL_WIDTH
                 );
                 Ok(call_result.gas_required)
             }
