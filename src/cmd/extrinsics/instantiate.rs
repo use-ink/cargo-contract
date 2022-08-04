@@ -403,9 +403,11 @@ impl<'a> Exec<'a> {
         if self.opts.skip_dry_run {
             return match self.args.gas_limit {
                 Some(gas) => Ok(gas),
-                None => Err(anyhow!(
+                None => {
+                    Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                )),
+                ))
+                }
             }
         }
         super::print_dry_running_status(&self.args.constructor);
