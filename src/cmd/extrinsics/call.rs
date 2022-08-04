@@ -234,7 +234,8 @@ impl CallCommand {
         match call_result.result {
             Ok(_) => {
                 super::print_gas_required_success(call_result.gas_required);
-                Ok(call_result.gas_required)
+                let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
+                Ok(gas_limit)
             }
             Err(ref err) => {
                 let err = dry_run_error_details(api, err).await?;
