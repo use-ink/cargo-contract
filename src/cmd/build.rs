@@ -550,12 +550,21 @@ fn optimize_wasm(
         "{}-opt.wasm",
         crate_metadata.contract_artifact_name
     ));
-    do_optimization(
+
+    let mut handler = WasmOptHandler::new()?;
+    handler.set_optimization_level(optimization_passes);
+    handler.set_debug_symbols(keep_debug_symbols);
+    handler.optimize(
         crate_metadata.dest_wasm.as_os_str(),
         dest_optimized.as_os_str(),
-        optimization_passes,
-        keep_debug_symbols,
     )?;
+
+    // do_optimization(
+    //     crate_metadata.dest_wasm.as_os_str(),
+    //     dest_optimized.as_os_str(),
+    //     optimization_passes,
+    //     keep_debug_symbols,
+    // )?;
 
     if !dest_optimized.exists() {
         return Err(anyhow::anyhow!(
@@ -564,6 +573,7 @@ fn optimize_wasm(
         ))
     }
 
+    // TODO: Maybe get this from the handler instead of reading it from a file?
     let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
     let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
 
@@ -927,6 +937,101 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         verbosity,
         output_type,
     })
+}
+
+#[derive(Default)]
+struct WasmOptHandler {
+    wasm_opt_path: PathBuf,
+    optimization_level: OptimizationPasses,
+    keep_debug_symbols: bool,
+}
+
+impl WasmOptHandler {
+    fn new() -> Result<Self> {
+        let which = which::which("wasm-opt");
+        if which.is_err() {
+            anyhow::bail!(
+            "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
+            We use this tool to optimize the size of your contract's Wasm binary.\n\n\
+            wasm-opt is part of the binaryen package. You can find detailed\n\
+            installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
+            There are ready-to-install packages for many platforms:\n\
+            * Debian/Ubuntu: apt-get install binaryen\n\
+            * Homebrew: brew install binaryen\n\
+            * Arch Linux: pacman -S binaryen\n\
+            * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
+                .to_string()
+                .bright_yellow()
+        );
+        }
+
+        let wasm_opt_path =
+            which.expect("we just checked if `which` returned an err; qed");
+        log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+
+        // TODO: Should use our new `version` functions do to this
+        check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
+
+        Ok(Self {
+            wasm_opt_path,
+            optimization_level: Default::default(),
+            keep_debug_symbols: Default::default(),
+        })
+    }
+
+    // Should take a path to the binary we want to optimize
+    fn optimize(&self, dest_wasm: &OsStr, dest_optimized: &OsStr) -> Result<()> {
+        log::info!(
+            "Optimization level passed to wasm-opt: {}",
+            self.optimization_level
+        );
+        let mut command = Command::new(self.wasm_opt_path.as_path());
+        command
+        .arg(dest_wasm)
+        .arg(format!("-O{}", self.optimization_level))
+        .arg("-o")
+        .arg(dest_optimized)
+        // the memory in our module is imported, `wasm-opt` needs to be told that
+        // the memory is initialized to zeroes, otherwise it won't run the
+        // memory-packing pre-pass.
+        .arg("--zero-filled-memory");
+        if self.keep_debug_symbols {
+            command.arg("-g");
+        }
+        log::info!("Invoking wasm-opt with {:?}", command);
+        let output = command.output().map_err(|err| {
+            anyhow::anyhow!(
+                "Executing {} failed with {:?}",
+                self.wasm_opt_path.display(),
+                err
+            )
+        })?;
+
+        if !output.status.success() {
+            let err = str::from_utf8(&output.stderr)
+                .expect("Cannot convert stderr output of wasm-opt to string")
+                .trim();
+            anyhow::bail!(
+                "The wasm-opt optimization failed.\n\n\
+            The error which wasm-opt returned was: \n{}",
+                err
+            );
+        }
+
+        Ok(())
+    }
+
+    fn version(&self) -> u32 {
+        todo!()
+    }
+
+    fn set_optimization_level(&mut self, optimization_level: OptimizationPasses) {
+        self.optimization_level = optimization_level;
+    }
+
+    fn set_debug_symbols(&mut self, keep: bool) {
+        self.keep_debug_symbols = keep;
+    }
 }
 
 #[cfg(feature = "test-ci-only")]
