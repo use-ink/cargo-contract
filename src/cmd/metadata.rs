@@ -82,7 +82,9 @@ struct ExtendedMetadataResult {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct BuildInfo {
     /// The version of `rustc` used to build the contract.
-    pub rustc_version: SourceCompiler,
+    ///
+    /// TODO: Should add a Display impl to `rustc_version::VersionMeta` and use that instead
+    pub rustc_version: String,
     /// The version of `cargo-contract` used to build the contract.
     pub cargo_contract_version: Version,
     /// The type of build that was used when building the contract.
@@ -230,7 +232,7 @@ fn extended_metadata(
         // TODO: lol
         let mut build_info_map = serde_json::Map::new();
         build_info_map.insert(
-            "cargo_contract_version".to_string(),
+            "rustc_version".to_string(),
             serde_json::to_value(build_info.rustc_version)?,
         );
         build_info_map.insert(

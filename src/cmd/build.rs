@@ -809,15 +809,16 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         output_type,
     } = args;
 
-    let rustc_version = contract_metadata::SourceCompiler {
-        compiler: contract_metadata::Compiler::RustC,
-        version: Version::parse(&rustc_version::version()?.to_string())?,
-    };
+    let rustc_version = rustc_version::version_meta()?;
+    let rustc_version = format!(
+        "{:?}-{}",
+        rustc_version.channel,
+        rustc_version.commit_date.expect("TODO")
+    )
+    .to_lowercase();
 
-    // TODO: This we should be able to get by doing something like:
-    //
-    // `let version: Version = invoke_cargo(contract, --version).parse()`
-    let cargo_contract_version = Version::parse("1.4.0").expect("TODO");
+    let cargo_contract_version = env!("CARGO_PKG_VERSION");
+    let cargo_contract_version = Version::parse(cargo_contract_version).expect("TODO");
 
     let build_info = BuildInfo {
         rustc_version,
