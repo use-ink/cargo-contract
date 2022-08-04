@@ -89,8 +89,6 @@ pub struct BuildInfo {
     pub cargo_contract_version: Version,
     /// The type of build that was used when building the contract.
     pub build_mode: BuildMode,
-    /// The list of supplied Cargo features.
-    pub features: Vec<String>,
     /// Information about the `wasm-opt` optimization settings.
     pub wasm_opt_settings: WasmOptSettings,
 }
@@ -242,10 +240,6 @@ fn extended_metadata(
         build_info_map.insert(
             "build_mode".to_string(),
             serde_json::to_value(build_info.build_mode)?,
-        );
-        build_info_map.insert(
-            "features".to_string(),
-            serde_json::to_value(build_info.features)?,
         );
         build_info_map.insert(
             "wasm_opt_settings".to_string(),
