@@ -273,7 +273,7 @@ async fn dry_run_error_details(
 }
 
 /// Prompt the user to accept or reject the estimated gas required
-fn prompt_confirm_tx<F: FnOnce() -> ()>(show_details: F) -> Result<()> {
+fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     println!(
         "{} (skip with --skip-confirm)",
         "Confirm transaction details:".bright_white().bold()
