@@ -32,6 +32,7 @@ use anyhow::{
     Context,
     Result,
 };
+use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
@@ -106,10 +107,19 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                let code_stored =
-                    self.upload_code(&api, code, &signer, &transcoder).await?;
-
-                name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
+                if let Some(code_stored) =
+                    self.upload_code(&api, code, &signer, &transcoder).await?
+                {
+                    name_value_println!(
+                        "Code hash",
+                        format!("{:?}", code_stored.code_hash)
+                    );
+                } else {
+                    eprintln!(
+                        "{} This contract has already been uploaded",
+                        "warning:".yellow().bold(),
+                    );
+                }
 
                 Ok(())
             }
@@ -149,7 +159,7 @@ impl UploadCommand {
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
-    ) -> Result<api::contracts::events::CodeStored> {
+    ) -> Result<Option<api::contracts::events::CodeStored>> {
         let tx_progress = api
             .tx()
             .contracts()
@@ -166,9 +176,7 @@ impl UploadCommand {
             &self.extrinsic_opts.verbosity()?,
         )?;
 
-        let code_stored = result
-            .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or_else(|| anyhow::anyhow!("Failed to find CodeStored event"))?;
+        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
 
         Ok(code_stored)
     }
