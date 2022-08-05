@@ -551,20 +551,15 @@ fn optimize_wasm(
         crate_metadata.contract_artifact_name
     ));
 
-    let mut handler = WasmOptHandler::new()?;
-    handler.set_optimization_level(optimization_passes);
-    handler.set_debug_symbols(keep_debug_symbols);
-    handler.optimize(
-        crate_metadata.dest_wasm.as_os_str(),
-        dest_optimized.as_os_str(),
-    )?;
-
     // do_optimization(
     //     crate_metadata.dest_wasm.as_os_str(),
     //     dest_optimized.as_os_str(),
     //     optimization_passes,
     //     keep_debug_symbols,
     // )?;
+
+    // NANDO: This should probably be part of the WasmOptHandler as well
+    // Maybe optimize can return an `OptimizationResult`
 
     if !dest_optimized.exists() {
         return Err(anyhow::anyhow!(
@@ -749,6 +744,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
             github_note,
         );
     }
+
     Ok(())
 }
 
@@ -866,8 +862,18 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             format!("[4/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        let optimization_result =
-            optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
+
+        // let optimization_result =
+        //     optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
+
+        let mut handler = WasmOptHandler::new()?;
+        handler.set_optimization_level(optimization_passes);
+        handler.set_debug_symbols(keep_debug_symbols);
+        let optimization_result = handler.optimize(
+            &crate_metadata.dest_wasm,
+            &mut crate_metadata.dest_wasm.clone(),
+            &crate_metadata.contract_artifact_name,
+        )?;
 
         Ok(optimization_result)
     };
@@ -939,11 +945,13 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
-#[derive(Default)]
 struct WasmOptHandler {
     wasm_opt_path: PathBuf,
     optimization_level: OptimizationPasses,
     keep_debug_symbols: bool,
+    // Take these from optimize_wasm
+    // output_path: PathBuf,
+    // artifact_name: String,
 }
 
 impl WasmOptHandler {
@@ -951,18 +959,18 @@ impl WasmOptHandler {
         let which = which::which("wasm-opt");
         if which.is_err() {
             anyhow::bail!(
-            "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
-            We use this tool to optimize the size of your contract's Wasm binary.\n\n\
-            wasm-opt is part of the binaryen package. You can find detailed\n\
-            installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
-            There are ready-to-install packages for many platforms:\n\
-            * Debian/Ubuntu: apt-get install binaryen\n\
-            * Homebrew: brew install binaryen\n\
-            * Arch Linux: pacman -S binaryen\n\
-            * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
-                .to_string()
-                .bright_yellow()
-        );
+                "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
+                We use this tool to optimize the size of your contract's Wasm binary.\n\n\
+                wasm-opt is part of the binaryen package. You can find detailed\n\
+                installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
+                There are ready-to-install packages for many platforms:\n\
+                * Debian/Ubuntu: apt-get install binaryen\n\
+                * Homebrew: brew install binaryen\n\
+                * Arch Linux: pacman -S binaryen\n\
+                * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
+                    .to_string()
+                    .bright_yellow()
+            );
         }
 
         let wasm_opt_path =
@@ -979,26 +987,38 @@ impl WasmOptHandler {
         })
     }
 
-    // Should take a path to the binary we want to optimize
-    fn optimize(&self, dest_wasm: &OsStr, dest_optimized: &OsStr) -> Result<()> {
+    fn optimize(
+        &self,
+        dest_wasm: &PathBuf,
+        dest_optimized: &mut PathBuf,
+        contract_artifact_name: &String,
+    ) -> Result<OptimizationResult> {
+        // We'll create a temporary file for our optimized Wasm binary. Note that we'll later
+        // overwrite this with the original path of the Wasm binary.
+        dest_optimized.set_file_name(format!("{}-opt.wasm", contract_artifact_name));
+
         log::info!(
             "Optimization level passed to wasm-opt: {}",
             self.optimization_level
         );
+
         let mut command = Command::new(self.wasm_opt_path.as_path());
         command
-        .arg(dest_wasm)
+        .arg(dest_wasm.as_os_str())
         .arg(format!("-O{}", self.optimization_level))
         .arg("-o")
-        .arg(dest_optimized)
+        .arg(dest_optimized.as_os_str())
         // the memory in our module is imported, `wasm-opt` needs to be told that
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
         .arg("--zero-filled-memory");
+
         if self.keep_debug_symbols {
             command.arg("-g");
         }
+
         log::info!("Invoking wasm-opt with {:?}", command);
+
         let output = command.output().map_err(|err| {
             anyhow::anyhow!(
                 "Executing {} failed with {:?}",
@@ -1013,12 +1033,28 @@ impl WasmOptHandler {
                 .trim();
             anyhow::bail!(
                 "The wasm-opt optimization failed.\n\n\
-            The error which wasm-opt returned was: \n{}",
+                The error which wasm-opt returned was: \n{}",
                 err
             );
         }
 
-        Ok(())
+        if !dest_optimized.exists() {
+            return Err(anyhow::anyhow!(
+                "Optimization failed, optimized wasm output file `{}` not found.",
+                dest_optimized.display()
+            ))
+        }
+
+        let original_size = metadata(&dest_wasm)?.len() as f64 / 1000.0;
+        let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
+
+        // Overwrite existing destination wasm file with the optimised version
+        std::fs::rename(&dest_optimized, &dest_wasm)?;
+        Ok(OptimizationResult {
+            dest_wasm: dest_wasm.clone(),
+            original_size,
+            optimized_size,
+        })
     }
 
     fn version(&self) -> u32 {
