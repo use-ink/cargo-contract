@@ -945,6 +945,17 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
+const WASM_OPT_INSTALLATION_SUGGESTION: &str =
+                "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
+                We use this tool to optimize the size of your contract's Wasm binary.\n\n\
+                wasm-opt is part of the binaryen package. You can find detailed\n\
+                installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
+                There are ready-to-install packages for many platforms:\n\
+                * Debian/Ubuntu: apt-get install binaryen\n\
+                * Homebrew: brew install binaryen\n\
+                * Arch Linux: pacman -S binaryen\n\
+                * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases";
+
 struct WasmOptHandler {
     wasm_opt_path: PathBuf,
     optimization_level: OptimizationPasses,
@@ -958,19 +969,7 @@ impl WasmOptHandler {
     fn new() -> Result<Self> {
         let which = which::which("wasm-opt");
         if which.is_err() {
-            anyhow::bail!(
-                "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
-                We use this tool to optimize the size of your contract's Wasm binary.\n\n\
-                wasm-opt is part of the binaryen package. You can find detailed\n\
-                installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
-                There are ready-to-install packages for many platforms:\n\
-                * Debian/Ubuntu: apt-get install binaryen\n\
-                * Homebrew: brew install binaryen\n\
-                * Arch Linux: pacman -S binaryen\n\
-                * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
-                    .to_string()
-                    .bright_yellow()
-            );
+            anyhow::bail!(WASM_OPT_INSTALLATION_SUGGESTION.to_string().bright_yellow());
         }
 
         let wasm_opt_path =
