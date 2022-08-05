@@ -25,6 +25,7 @@ use super::{
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
     Client,
@@ -65,9 +66,8 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
+    OnlineClient,
     Config,
-    DefaultConfig,
 };
 
 type ContractInstantiateResult = ContractResult<
@@ -170,22 +170,25 @@ impl InstantiateCommand {
             salt,
         };
 
-        let exec = Exec {
-            args,
-            url,
-            verbosity,
-            signer,
-            transcoder,
-        };
-
         async_std::task::block_on(async move {
+            let client = OnlineClient::from_url(url.clone()).await?;
+
+            let exec = Exec {
+                args,
+                url,
+                client,
+                verbosity,
+                signer,
+                transcoder,
+            };
+
             exec.exec(code, self.extrinsic_opts.dry_run).await
         })
     }
 }
 
 struct InstantiateArgs {
-    value: super::Balance,
+    value: Balance,
     gas_limit: u64,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
@@ -196,20 +199,12 @@ pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
+    client: Client,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
 }
 
 impl<'a> Exec<'a> {
-    async fn subxt_api(&self) -> Result<Client> {
-        let api = ClientBuilder::new()
-            .set_url(&self.url)
-            .build()
-            .await?
-            .to_runtime_api::<Client>();
-        Ok(api)
-    }
-
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         log::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
@@ -239,7 +234,7 @@ impl<'a> Exec<'a> {
                 }
                 Err(ref err) => {
                     let err =
-                        dry_run_error_details(&self.subxt_api().await?, err).await?;
+                        dry_run_error_details(&self.client, err).await?;
                     name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }
@@ -268,9 +263,8 @@ impl<'a> Exec<'a> {
         &self,
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
-        let api = self.subxt_api().await?;
-        let tx_progress = api
-            .tx()
+        let client = &self.client;
+        let call = api::tx()
             .contracts()
             .instantiate_with_code(
                 self.args.value,
@@ -279,8 +273,10 @@ impl<'a> Exec<'a> {
                 code.to_vec(),
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )?
-            .sign_and_submit_then_watch_default(&self.signer)
+            );
+        let tx_progress = client
+            .tx()
+            .sign_and_submit_then_watch_default(&call, &self.signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
@@ -288,7 +284,7 @@ impl<'a> Exec<'a> {
         display_events(
             &result,
             &self.transcoder,
-            &api.client.metadata().read(),
+            &client.metadata(),
             &self.verbosity,
         )?;
 
@@ -305,9 +301,9 @@ impl<'a> Exec<'a> {
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
-        let api = self.subxt_api().await?;
-        let tx_progress = api
-            .tx()
+        let client = &self.client;
+
+        let call = api::tx()
             .contracts()
             .instantiate(
                 self.args.value,
@@ -316,8 +312,11 @@ impl<'a> Exec<'a> {
                 code_hash,
                 self.args.data.clone(),
                 self.args.salt.0.clone(),
-            )?
-            .sign_and_submit_then_watch_default(&self.signer)
+            );
+
+        let tx_progress = client
+            .tx()
+            .sign_and_submit_then_watch_default(&call, &self.signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
@@ -325,7 +324,7 @@ impl<'a> Exec<'a> {
         display_events(
             &result,
             &self.transcoder,
-            &api.client.metadata().read(),
+            &client.metadata(),
             &self.verbosity,
         )?;
 

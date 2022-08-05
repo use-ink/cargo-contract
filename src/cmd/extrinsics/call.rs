@@ -26,6 +26,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     Client,
+    DefaultConfig,
     RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
@@ -50,7 +51,6 @@ use subxt::{
     rpc::NumberOrHex,
     OnlineClient,
     Config,
-    PolkadotConfig as DefaultConfig,
 };
 
 type ContractExecResult =
@@ -162,8 +162,8 @@ impl CallCommand {
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
-        let tx_progress = client
-            .tx()
+
+        let call = super::runtime_api::api::tx()
             .contracts()
             .call(
                 self.contract.clone().into(),
@@ -171,8 +171,11 @@ impl CallCommand {
                 self.gas_limit,
                 self.extrinsic_opts.storage_deposit_limit,
                 data,
-            )?
-            .sign_and_submit_then_watch_default(signer)
+            );
+
+        let tx_progress = client
+            .tx()
+            .sign_and_submit_then_watch_default(&call, signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
@@ -180,7 +183,7 @@ impl CallCommand {
         display_events(
             &result,
             transcoder,
-            &client.client.metadata().read(),
+            &client.metadata(),
             &self.extrinsic_opts.verbosity()?,
         )
     }

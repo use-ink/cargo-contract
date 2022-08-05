@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    DefaultConfig,
     runtime_api::api::contracts::events::ContractEmitted,
     RuntimeEvent,
 };
@@ -32,9 +33,7 @@ use transcode::{
 use anyhow::Result;
 use subxt::{
     self,
-    DefaultConfig,
-    Event,
-    TransactionEvents,
+    tx::TxEvents,
 };
 
 pub fn display_events(

@@ -25,6 +25,7 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
     Client,
+    DefaultConfig,
     RuntimeDispatchError,
 };
 use crate::name_value_println;
@@ -47,9 +48,8 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
+    OnlineClient,
     Config,
-    DefaultConfig,
 };
 
 type CodeUploadResult = result::Result<CodeUploadReturnValue, RuntimeDispatchError>;
@@ -84,11 +84,7 @@ impl UploadCommand {
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let api = ClientBuilder::new()
-                .set_url(&url)
-                .build()
-                .await?
-                .to_runtime_api::<Client>();
+            let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
                 match self.upload_code_rpc(code, &signer).await? {
@@ -101,14 +97,14 @@ impl UploadCommand {
                         name_value_println!("Deposit", format!("{:?}", result.deposit));
                     }
                     Err(err) => {
-                        let err = dry_run_error_details(&api, &err).await?;
+                        let err = dry_run_error_details(&client, &err).await?;
                         name_value_println!("Result", err);
                     }
                 }
                 Ok(())
             } else {
                 if let Some(code_stored) =
-                    self.upload_code(&api, code, &signer, &transcoder).await?
+                    self.upload_code(&client, code, &signer, &transcoder).await?
                 {
                     name_value_println!(
                         "Code hash",
@@ -155,16 +151,18 @@ impl UploadCommand {
 
     async fn upload_code(
         &self,
-        api: &Client,
+        client: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<Option<api::contracts::events::CodeStored>> {
-        let tx_progress = api
-            .tx()
+        let call = super::runtime_api::api::tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit)?
-            .sign_and_submit_then_watch_default(signer)
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
+
+        let tx_progress = client
+            .tx()
+            .sign_and_submit_then_watch_default(&call, signer)
             .await?;
 
         let result = wait_for_success_and_handle_error(tx_progress).await?;
@@ -172,7 +170,7 @@ impl UploadCommand {
         display_events(
             &result,
             transcoder,
-            &api.client.metadata().read(),
+            &client.metadata(),
             &self.extrinsic_opts.verbosity()?,
         )?;
 

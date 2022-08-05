@@ -47,7 +47,7 @@ use sp_core::{
     crypto::Pair,
     sr25519,
 };
-use subxt::{Config, DefaultConfig, HasModuleError as _, OnlineClient};
+use subxt::{Config, OnlineClient};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
@@ -57,12 +57,12 @@ pub use runtime_api::api::{
 };
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
+pub use subxt::PolkadotConfig as DefaultConfig;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
-type PairSigner = subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
-type SignedExtra = subxt::PolkadotExtrinsicParams<DefaultConfig>;
+type PairSigner = subxt::tx::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
 type Client = OnlineClient<DefaultConfig>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -224,11 +224,12 @@ pub fn display_contract_exec_result<R>(
 ///
 /// Currently this will report success once the transaction is included in a block. In the future
 /// there could be a flag to wait for finality before reporting success.
-async fn wait_for_success_and_handle_error<T>(
-    tx_progress: subxt::TransactionProgress<'_, T, RuntimeDispatchError, RuntimeEvent>,
-) -> Result<subxt::TransactionEvents<T, RuntimeEvent>>
+async fn wait_for_success_and_handle_error<T, C>(
+    tx_progress: subxt::tx::TxProgress<T, C>,
+) -> Result<subxt::tx::TxEvents<T>>
 where
     T: Config,
+    C: subxt::client::OnlineClientT<T>,
 {
     tx_progress
         .wait_for_in_block()
@@ -240,19 +241,18 @@ where
 
 /// Extract and display error details for an RPC `--dry-run` result.
 async fn dry_run_error_details(
-    api: &Client,
+    client: &Client,
     error: &RuntimeDispatchError,
 ) -> Result<String> {
     let error = if let Some(error_data) = error.module_error_data() {
-        let metadata = api.client.metadata();
-        let locked_metadata = metadata.read();
+        let metadata = client.metadata();
         let details =
-            locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
+            metadata.error(error_data.pallet_index, error_data.error_index())?;
         format!(
             "ModuleError: {}::{}: {:?}",
             details.pallet(),
             details.error(),
-            details.description()
+            details.docs()
         )
     } else {
         format!("{:?}", error)
