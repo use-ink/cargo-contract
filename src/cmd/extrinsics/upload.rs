@@ -24,7 +24,7 @@ use super::{
     ContractMessageTranscoder,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
+    Client,
     RuntimeDispatchError,
 };
 use crate::name_value_println;
@@ -88,7 +88,7 @@ impl UploadCommand {
                 .set_url(&url)
                 .build()
                 .await?
-                .to_runtime_api::<RuntimeApi>();
+                .to_runtime_api::<Client>();
 
             if self.extrinsic_opts.dry_run {
                 match self.upload_code_rpc(code, &signer).await? {
@@ -155,7 +155,7 @@ impl UploadCommand {
 
     async fn upload_code(
         &self,
-        api: &RuntimeApi,
+        api: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,

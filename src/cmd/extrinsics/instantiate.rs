@@ -27,7 +27,7 @@ use super::{
     ContractMessageTranscoder,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
+    Client,
     RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
@@ -201,12 +201,12 @@ pub struct Exec<'a> {
 }
 
 impl<'a> Exec<'a> {
-    async fn subxt_api(&self) -> Result<RuntimeApi> {
+    async fn subxt_api(&self) -> Result<Client> {
         let api = ClientBuilder::new()
             .set_url(&self.url)
             .build()
             .await?
-            .to_runtime_api::<RuntimeApi>();
+            .to_runtime_api::<Client>();
         Ok(api)
     }
 

@@ -47,11 +47,7 @@ use sp_core::{
     crypto::Pair,
     sr25519,
 };
-use subxt::{
-    Config,
-    DefaultConfig,
-    HasModuleError as _,
-};
+use subxt::{Config, DefaultConfig, HasModuleError as _, OnlineClient};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
@@ -67,7 +63,7 @@ type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = subxt::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
 type SignedExtra = subxt::PolkadotExtrinsicParams<DefaultConfig>;
-type RuntimeApi = runtime_api::api::RuntimeApi<DefaultConfig, SignedExtra>;
+type Client = OnlineClient<DefaultConfig>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -244,7 +240,7 @@ where
 
 /// Extract and display error details for an RPC `--dry-run` result.
 async fn dry_run_error_details(
-    api: &RuntimeApi,
+    api: &Client,
     error: &RuntimeDispatchError,
 ) -> Result<String> {
     let error = if let Some(error_data) = error.module_error_data() {

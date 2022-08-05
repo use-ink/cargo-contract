@@ -25,7 +25,7 @@ use super::{
     ContractMessageTranscoder,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
+    Client,
     RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
@@ -48,9 +48,9 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
+    OnlineClient,
     Config,
-    DefaultConfig,
+    PolkadotConfig as DefaultConfig,
 };
 
 type ContractExecResult =
@@ -90,29 +90,25 @@ impl CallCommand {
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let api = ClientBuilder::new()
-                .set_url(&url)
-                .build()
-                .await?
-                .to_runtime_api::<RuntimeApi>();
+            let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
-                self.call_rpc(&api, call_data, &signer, &transcoder).await
+                self.call_rpc(&client, call_data, &signer, &transcoder).await
             } else {
-                self.call(&api, call_data, &signer, &transcoder).await
+                self.call(&client, call_data, &signer, &transcoder).await
             }
         })
     }
 
     async fn call_rpc(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         let url = self.extrinsic_opts.url_to_string();
-        let cli = WsClientBuilder::default().build(&url).await?;
+        let ws_client = WsClientBuilder::default().build(&url).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
             .storage_deposit_limit
@@ -127,7 +123,7 @@ impl CallCommand {
             input_data: Bytes(data),
         };
         let params = rpc_params![call_request];
-        let result: ContractExecResult = cli.request("contracts_call", params).await?;
+        let result: ContractExecResult = ws_client.request("contracts_call", params).await?;
 
         match result.result {
             Ok(ref ret_val) => {
@@ -150,7 +146,7 @@ impl CallCommand {
                 );
             }
             Err(ref err) => {
-                let err = dry_run_error_details(api, err).await?;
+                let err = dry_run_error_details(client, err).await?;
                 name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
         }
@@ -160,13 +156,13 @@ impl CallCommand {
 
     async fn call(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
-        let tx_progress = api
+        let tx_progress = client
             .tx()
             .contracts()
             .call(
@@ -184,7 +180,7 @@ impl CallCommand {
         display_events(
             &result,
             transcoder,
-            &api.client.metadata().read(),
+            &client.client.metadata().read(),
             &self.extrinsic_opts.verbosity()?,
         )
     }
