@@ -21,6 +21,7 @@ use super::{
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
+    Client,
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
@@ -28,7 +29,6 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    Client,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -65,8 +65,8 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    OnlineClient,
     Config,
+    OnlineClient,
 };
 
 type ContractInstantiateResult = ContractResult<
@@ -263,16 +263,14 @@ impl<'a> Exec<'a> {
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let client = &self.client;
-        let call = api::tx()
-            .contracts()
-            .instantiate_with_code(
-                self.args.value,
-                self.args.gas_limit,
-                self.args.storage_deposit_limit,
-                code.to_vec(),
-                self.args.data.clone(),
-                self.args.salt.0.clone(),
-            );
+        let call = api::tx().contracts().instantiate_with_code(
+            self.args.value,
+            self.args.gas_limit,
+            self.args.storage_deposit_limit,
+            code.to_vec(),
+            self.args.data.clone(),
+            self.args.salt.0.clone(),
+        );
         let tx_progress = client
             .tx()
             .sign_and_submit_then_watch_default(&call, &self.signer)
@@ -302,16 +300,14 @@ impl<'a> Exec<'a> {
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
         let client = &self.client;
 
-        let call = api::tx()
-            .contracts()
-            .instantiate(
-                self.args.value,
-                self.args.gas_limit,
-                self.args.storage_deposit_limit,
-                code_hash,
-                self.args.data.clone(),
-                self.args.salt.0.clone(),
-            );
+        let call = api::tx().contracts().instantiate(
+            self.args.value,
+            self.args.gas_limit,
+            self.args.storage_deposit_limit,
+            code_hash,
+            self.args.data.clone(),
+            self.args.salt.0.clone(),
+        );
 
         let tx_progress = client
             .tx()

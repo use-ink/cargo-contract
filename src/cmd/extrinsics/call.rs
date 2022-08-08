@@ -21,12 +21,12 @@ use super::{
     parse_balance,
     wait_for_success_and_handle_error,
     Balance,
-    ContractsRpcError,
+    Client,
     ContractMessageTranscoder,
+    ContractsRpcError,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    Client,
-    DefaultConfig,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::name_value_println;
@@ -48,8 +48,8 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    OnlineClient,
     Config,
+    OnlineClient,
 };
 
 type ContractExecResult =
@@ -92,7 +92,8 @@ impl CallCommand {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
-                self.call_rpc(&client, call_data, &signer, &transcoder).await
+                self.call_rpc(&client, call_data, &signer, &transcoder)
+                    .await
             } else {
                 self.call(&client, call_data, &signer, &transcoder).await
             }
@@ -122,7 +123,8 @@ impl CallCommand {
             input_data: Bytes(data),
         };
         let params = rpc_params![call_request];
-        let result: ContractExecResult = ws_client.request("contracts_call", params).await?;
+        let result: ContractExecResult =
+            ws_client.request("contracts_call", params).await?;
 
         match result.result {
             Ok(ref ret_val) => {
@@ -163,15 +165,13 @@ impl CallCommand {
     ) -> Result<()> {
         log::debug!("calling contract {:?}", self.contract);
 
-        let call = super::runtime_api::api::tx()
-            .contracts()
-            .call(
-                self.contract.clone().into(),
-                self.value,
-                self.gas_limit,
-                self.extrinsic_opts.storage_deposit_limit,
-                data,
-            );
+        let call = super::runtime_api::api::tx().contracts().call(
+            self.contract.clone().into(),
+            self.value,
+            self.gas_limit,
+            self.extrinsic_opts.storage_deposit_limit,
+            data,
+        );
 
         let tx_progress = client
             .tx()

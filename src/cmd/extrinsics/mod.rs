@@ -47,14 +47,16 @@ use sp_core::{
     crypto::Pair,
     sr25519,
 };
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
-pub use runtime_api::api::Event as RuntimeEvent;
+pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
-pub use subxt::PolkadotConfig as DefaultConfig;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;

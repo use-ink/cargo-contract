@@ -19,13 +19,13 @@ use super::{
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
+    Client,
     CodeHash,
     ContractMessageTranscoder,
     ContractsRpcError,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    Client,
-    DefaultConfig,
 };
 use crate::name_value_println;
 use anyhow::{
@@ -47,8 +47,8 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    OnlineClient,
     Config,
+    OnlineClient,
 };
 
 type CodeUploadResult = result::Result<CodeUploadReturnValue, ContractsRpcError>;
@@ -103,8 +103,9 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                if let Some(code_stored) =
-                    self.upload_code(&client, code, &signer, &transcoder).await?
+                if let Some(code_stored) = self
+                    .upload_code(&client, code, &signer, &transcoder)
+                    .await?
                 {
                     name_value_println!(
                         "Code hash",

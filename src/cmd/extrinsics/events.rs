@@ -15,9 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    DefaultConfig,
     runtime_api::api::contracts::events::ContractEmitted,
-    RuntimeEvent,
+    DefaultConfig,
 };
 use crate::{
     maybe_println,
@@ -33,11 +32,12 @@ use transcode::{
 use anyhow::Result;
 use subxt::{
     self,
+    events::StaticEvent,
     tx::TxEvents,
 };
 
 pub fn display_events(
-    result: &TransactionEvents<DefaultConfig, RuntimeEvent>,
+    result: &TxEvents<DefaultConfig>,
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     verbosity: &Verbosity,
@@ -57,26 +57,28 @@ pub fn display_events(
 
     const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
 
-    for event in result.iter_raw() {
+    for event in result.iter() {
         let event = event?;
         log::debug!("displaying event {:?}", event);
 
         let event_metadata =
-            subxt_metadata.event(event.pallet_index, event.variant_index)?;
-        let event_fields = event_metadata.variant().fields();
+            subxt_metadata.event(event.pallet_index(), event.variant_index())?;
+        let event_fields = event_metadata.fields();
 
         println!(
             "{:>width$} {} ➜ {}",
             "Event".bright_green().bold(),
-            event.pallet.bright_white(),
-            event.variant.bright_white().bold(),
+            event.pallet_name().bright_white(),
+            event.variant_name().bright_white().bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
-        let event_data = &mut &event.data[..];
+        let event_data = &mut event.bytes();
         let mut unnamed_field_name = 0;
-        for field in event_fields {
-            if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
-                && field.name() == Some(&"data".to_string())
+        for (field, field_ty) in event_fields {
+            if <ContractEmitted as StaticEvent>::is_event(
+                event.pallet_name(),
+                event.variant_name(),
+            ) && field.as_ref() == Some(&"data".to_string())
             {
                 log::debug!("event data: {:?}", hex::encode(&event_data));
                 let contract_event = transcoder.decode_contract_event(event_data)?;
@@ -88,14 +90,13 @@ pub fn display_events(
                     width = EVENT_FIELD_INDENT
                 );
             } else {
-                let field_name = field.name().cloned().unwrap_or_else(|| {
+                let field_name = field.clone().unwrap_or_else(|| {
                     let name = unnamed_field_name.to_string();
                     unnamed_field_name += 1;
                     name
                 });
 
-                let decoded_field =
-                    events_transcoder.decode(field.ty().id(), event_data)?;
+                let decoded_field = events_transcoder.decode(*field_ty, event_data)?;
                 maybe_println!(
                     verbosity,
                     "{:width$}{}",
