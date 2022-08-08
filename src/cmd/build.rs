@@ -791,10 +791,7 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
-    use crate::cmd::metadata::{
-        BuildInfo,
-        WasmOptSettings,
-    };
+    use crate::cmd::metadata::BuildInfo;
 
     let ExecuteArgs {
         manifest_path,
@@ -809,36 +806,6 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         output_type,
     } = args;
 
-    // TODO: This would be slightly nicer if `VersionMeta` had a `Display` implementation
-    let rustc_version = rustc_version::version_meta()?;
-    let rustc_version = format!(
-        "{:?}-{}",
-        rustc_version.channel,
-        rustc_version.commit_date.expect("TODO")
-    )
-    .to_lowercase();
-
-    let cargo_contract_version = env!("CARGO_PKG_VERSION");
-    let cargo_contract_version = Version::parse(cargo_contract_version).expect("TODO");
-
-    // TODO: We'll want to refactor this. Two main things:
-    // 1. We want to be able to get the version number without necessarily calling `which`
-    // 2. We want to make sure that we don't need to check for the existence of `wasm-opt` in the
-    //    `check` codepath (only in the `BuildArtifacts::All` path)
-    let wasm_opt_path = which::which("wasm-opt").expect("TODO");
-    let wasm_opt_path = wasm_opt_path.as_path();
-    let version = check_wasm_opt_version_compatibility(wasm_opt_path)?;
-
-    let build_info = BuildInfo {
-        rustc_version,
-        cargo_contract_version,
-        build_mode,
-        wasm_opt_settings: WasmOptSettings {
-            version,
-            optimization_passes,
-        },
-    };
-
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
     assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
@@ -846,7 +813,9 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    let build = || -> Result<OptimizationResult> {
+    let build = || -> Result<(OptimizationResult, BuildInfo)> {
+        use crate::cmd::metadata::WasmOptSettings;
+
         if skip_linting {
             maybe_println!(
                 verbosity,
@@ -894,12 +863,39 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             "Optimizing wasm file".bright_green().bold()
         );
 
-        // TODO: Build the BuildInfo struct here?
+        // TODO: This would be slightly nicer if `VersionMeta` had a `Display` implementation
+        let rustc_version = rustc_version::version_meta()?;
+        let rustc_version = format!(
+            "{:?}-{}",
+            rustc_version.channel,
+            rustc_version.commit_date.expect("TODO")
+        )
+        .to_lowercase();
+
+        let cargo_contract_version = env!("CARGO_PKG_VERSION");
+        let cargo_contract_version =
+            Version::parse(cargo_contract_version).expect("TODO");
+
+        // TODO: We'll want to refactor this to be able to get the version number without
+        // necessarily calling `which`
+        let wasm_opt_path = which::which("wasm-opt").expect("TODO");
+        let wasm_opt_path = wasm_opt_path.as_path();
+        let version = check_wasm_opt_version_compatibility(wasm_opt_path)?;
+
+        let build_info = BuildInfo {
+            rustc_version,
+            cargo_contract_version,
+            build_mode,
+            wasm_opt_settings: WasmOptSettings {
+                version,
+                optimization_passes,
+            },
+        };
 
         let optimization_result =
             optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
 
-        Ok(optimization_result)
+        Ok((optimization_result, build_info))
     };
 
     let (opt_result, metadata_result) = match build_artifact {
@@ -938,11 +934,11 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let optimization_result = build()?;
+            let (optimization_result, _build_info) = build()?;
             (Some(optimization_result), None)
         }
         BuildArtifacts::All => {
-            let optimization_result = build()?;
+            let (optimization_result, build_info) = build()?;
 
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
@@ -953,6 +949,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 &unstable_flags,
                 build_info,
             )?;
+
             (Some(optimization_result), Some(metadata_result))
         }
     };
