@@ -28,7 +28,9 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
 //! let wasm = SourceWasm::new(vec![0u8]);
-//! let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+//! // Optional information about how the contract was build
+//! let build_info: Map<String, Value> = Map::new();
+//! let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler, Some(build_info));
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
@@ -653,7 +655,25 @@ mod tests {
             Version::parse("1.46.0-nightly").unwrap(),
         );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
-        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let build_info = json! {
+            {
+                "example_compiler_version": 42,
+                "example_settings": [],
+                "example_name": "increment"
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let source = Source::new(
+            Some(wasm),
+            CodeHash([0u8; 32]),
+            language,
+            compiler,
+            Some(build_info),
+        );
+
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
@@ -697,7 +717,12 @@ mod tests {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
                     "compiler": "rustc 1.46.0-nightly",
-                    "wasm": "0x000102"
+                    "wasm": "0x000102",
+                    "build_info": {
+                        "example_compiler_version": 42,
+                        "example_settings": [],
+                        "example_name": "increment"
+                    }
                 },
                 "contract": {
                     "name": "incrementer",
@@ -736,7 +761,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let source = Source::new(None, CodeHash([0u8; 32]), language, compiler);
+        let source = Source::new(None, CodeHash([0u8; 32]), language, compiler, None);
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
@@ -789,7 +814,24 @@ mod tests {
             Version::parse("1.46.0-nightly").unwrap(),
         );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
-        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let build_info = json! {
+            {
+                "example_compiler_version": 42,
+                "example_settings": [],
+                "example_name": "increment",
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let source = Source::new(
+            Some(wasm),
+            CodeHash([0u8; 32]),
+            language,
+            compiler,
+            Some(build_info),
+        );
         let contract = Contract::builder()
             .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
