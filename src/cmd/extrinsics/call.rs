@@ -17,17 +17,16 @@
 use super::{
     display_contract_exec_result,
     display_events,
-    dry_run_error_details,
     load_metadata,
     parse_balance,
     wait_for_success_and_handle_error,
     Balance,
+    ContractsRpcError,
     ContractMessageTranscoder,
     ExtrinsicOpts,
     PairSigner,
     Client,
     DefaultConfig,
-    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::name_value_println;
@@ -54,7 +53,7 @@ use subxt::{
 };
 
 type ContractExecResult =
-    ContractResult<result::Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
+    ContractResult<result::Result<ExecReturnValue, ContractsRpcError>, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -146,7 +145,8 @@ impl CallCommand {
                 );
             }
             Err(ref err) => {
-                let err = dry_run_error_details(client, err).await?;
+                let metadata = client.metadata();
+                let err = err.error_details(&metadata)?;
                 name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
             }
         }

@@ -16,17 +16,16 @@
 
 use super::{
     display_events,
-    dry_run_error_details,
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
     CodeHash,
     ContractMessageTranscoder,
+    ContractsRpcError,
     ExtrinsicOpts,
     PairSigner,
     Client,
     DefaultConfig,
-    RuntimeDispatchError,
 };
 use crate::name_value_println;
 use anyhow::{
@@ -52,7 +51,7 @@ use subxt::{
     Config,
 };
 
-type CodeUploadResult = result::Result<CodeUploadReturnValue, RuntimeDispatchError>;
+type CodeUploadResult = result::Result<CodeUploadReturnValue, ContractsRpcError>;
 type CodeUploadReturnValue =
     pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
@@ -97,7 +96,8 @@ impl UploadCommand {
                         name_value_println!("Deposit", format!("{:?}", result.deposit));
                     }
                     Err(err) => {
-                        let err = dry_run_error_details(&client, &err).await?;
+                        let metadata = client.metadata();
+                        let err = err.error_details(&metadata)?;
                         name_value_println!("Result", err);
                     }
                 }

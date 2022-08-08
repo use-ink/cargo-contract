@@ -17,7 +17,6 @@
 use super::{
     display_contract_exec_result,
     display_events,
-    dry_run_error_details,
     parse_balance,
     runtime_api::api,
     wait_for_success_and_handle_error,
@@ -25,11 +24,11 @@ use super::{
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
+    ContractsRpcError,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
     Client,
-    RuntimeDispatchError,
     EXEC_RESULT_MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -71,7 +70,7 @@ use subxt::{
 };
 
 type ContractInstantiateResult = ContractResult<
-    result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
+    result::Result<InstantiateReturnValue<ContractAccount>, ContractsRpcError>,
     Balance,
 >;
 
@@ -233,8 +232,8 @@ impl<'a> Exec<'a> {
                     );
                 }
                 Err(ref err) => {
-                    let err =
-                        dry_run_error_details(&self.client, err).await?;
+                    let metadata = self.client.metadata();
+                    let err = err.error_details(&metadata)?;
                     name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
                 }
             }

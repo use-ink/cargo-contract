@@ -51,10 +51,7 @@ use subxt::{Config, OnlineClient};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
-pub use runtime_api::api::{
-    DispatchError as RuntimeDispatchError,
-    Event as RuntimeEvent,
-};
+pub use runtime_api::api::Event as RuntimeEvent;
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
@@ -239,23 +236,25 @@ where
         .map_err(Into::into)
 }
 
-/// Extract and display error details for an RPC `--dry-run` result.
-async fn dry_run_error_details(
-    client: &Client,
-    error: &RuntimeDispatchError,
-) -> Result<String> {
-    let error = if let Some(error_data) = error.module_error_data() {
-        let metadata = client.metadata();
-        let details =
-            metadata.error(error_data.pallet_index, error_data.error_index())?;
-        format!(
-            "ModuleError: {}::{}: {:?}",
-            details.pallet(),
-            details.error(),
-            details.docs()
-        )
-    } else {
-        format!("{:?}", error)
-    };
-    Ok(error)
+#[derive(serde::Deserialize)]
+pub struct ContractsRpcError(serde_json::Value);
+
+impl ContractsRpcError {
+    pub fn error_details(&self, _metadata: &subxt::Metadata) -> Result<String> {
+        Ok(format!("{:?}", self.0))
+        // let dispatch_err = DispatchError::decode_from(error, &client.metadata());
+        // match dispatch_err {
+        //     DispatchError::Module(module_err) => {
+        //         Ok(format!(
+        //             "ModuleError: {}::{}: {:?}",
+        //             details.pallet(),
+        //             details.error(),
+        //             details.docs()
+        //         ))
+        //     }
+        //     DispatchError::Other(raw_err) => {
+        //         Ok(format!("DispatchError::Other: {}", to_hex(&raw_err)))
+        //     }
+        // }
+    }
 }

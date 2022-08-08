@@ -481,7 +481,7 @@ dependencies = [
  "hex",
  "impl-serde",
  "ink_metadata",
- "jsonrpsee 0.15.1",
+ "jsonrpsee",
  "log",
  "pallet-contracts-primitives",
  "parity-scale-codec",
@@ -1631,44 +1631,14 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11e017217fcd18da0a25296d3693153dd19c8a6aadab330b3595285d075385d1"
-dependencies = [
- "jsonrpsee-client-transport 0.14.0",
- "jsonrpsee-core 0.14.0",
-]
-
-[[package]]
-name = "jsonrpsee"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bd0d559d5e679b1ab2f869b486a11182923863b1b3ee8b421763cdd707b783a"
 dependencies = [
- "jsonrpsee-core 0.15.1",
- "jsonrpsee-types 0.15.1",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "jsonrpsee-ws-client",
-]
-
-[[package]]
-name = "jsonrpsee-client-transport"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce395539a14d3ad4ec1256fde105abd36a2da25d578a291cabe98f45adfdb111"
-dependencies = [
- "futures-util",
- "http",
- "jsonrpsee-core 0.14.0",
- "jsonrpsee-types 0.14.0",
- "pin-project",
- "rustls-native-certs",
- "soketto",
- "thiserror",
- "tokio",
- "tokio-rustls",
- "tokio-util",
- "tracing",
- "webpki-roots",
 ]
 
 [[package]]
@@ -1679,8 +1649,8 @@ checksum = "8752740ecd374bcbf8b69f3e80b0327942df76f793f8d4e60d3355650c31fb74"
 dependencies = [
  "futures-util",
  "http",
- "jsonrpsee-core 0.15.1",
- "jsonrpsee-types 0.15.1",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "pin-project",
  "rustls-native-certs",
  "soketto",
@@ -1690,28 +1660,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "webpki-roots",
-]
-
-[[package]]
-name = "jsonrpsee-core"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16efcd4477de857d4a2195a45769b2fe9ebb54f3ef5a4221d3b014a4fe33ec0b"
-dependencies = [
- "anyhow",
- "async-lock",
- "async-trait",
- "beef",
- "futures-channel",
- "futures-timer",
- "futures-util",
- "jsonrpsee-types 0.14.0",
- "rustc-hash",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -1727,7 +1675,7 @@ dependencies = [
  "futures-channel",
  "futures-timer",
  "futures-util",
- "jsonrpsee-types 0.15.1",
+ "jsonrpsee-types",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -1735,20 +1683,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-futures",
-]
-
-[[package]]
-name = "jsonrpsee-types"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bcf76cd316f5d3ad48138085af1f45e2c58c98e02f0779783dbb034d43f7c86"
-dependencies = [
- "anyhow",
- "beef",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -1772,9 +1706,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ee5feddd5188e62ac08fcf0e56478138e581509d4730f3f7be9b57dd402a4ff"
 dependencies = [
  "http",
- "jsonrpsee-client-transport 0.15.1",
- "jsonrpsee-core 0.15.1",
- "jsonrpsee-types 0.15.1",
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
 ]
 
 [[package]]
@@ -3338,14 +3272,14 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.22.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-wip-api-changes#45963270cec59dd8da3e19fab6df7a0f377a10fd"
+source = "git+https://github.com/paritytech/subxt?branch=master#e48f0e3b1de130779abb3dd092c86b845de81116"
 dependencies = [
  "bitvec",
  "derivative",
  "frame-metadata",
  "futures",
  "hex",
- "jsonrpsee 0.14.0",
+ "jsonrpsee",
  "parity-scale-codec",
  "parking_lot",
  "scale-info",
@@ -3363,7 +3297,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.22.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-wip-api-changes#45963270cec59dd8da3e19fab6df7a0f377a10fd"
+source = "git+https://github.com/paritytech/subxt?branch=master#e48f0e3b1de130779abb3dd092c86b845de81116"
 dependencies = [
  "darling",
  "frame-metadata",
@@ -3380,7 +3314,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.22.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-wip-api-changes#45963270cec59dd8da3e19fab6df7a0f377a10fd"
+source = "git+https://github.com/paritytech/subxt?branch=master#e48f0e3b1de130779abb3dd092c86b845de81116"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -3391,7 +3325,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.22.0"
-source = "git+https://github.com/paritytech/subxt?branch=jsdw-wip-api-changes#45963270cec59dd8da3e19fab6df7a0f377a10fd"
+source = "git+https://github.com/paritytech/subxt?branch=master#e48f0e3b1de130779abb3dd092c86b845de81116"
 dependencies = [
  "frame-metadata",
  "parity-scale-codec",
