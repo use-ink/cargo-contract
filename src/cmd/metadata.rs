@@ -97,7 +97,7 @@ pub struct BuildInfo {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct WasmOptSettings {
     /// Version of `wasm-opt`.
-    pub version: u64,
+    pub version: u32,
     /// The level of optimization used during the `wasm-opt` run.
     pub optimization_passes: OptimizationPasses,
 }

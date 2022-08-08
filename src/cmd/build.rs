@@ -658,7 +658,7 @@ fn do_optimization(
 /// compatible with `cargo-contract`.
 ///
 /// Currently this must be a version >= 99.
-fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
+fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<u32> {
     let mut cmd_res = Command::new(wasm_opt_path).arg("--version").output();
 
     // The following condition is a workaround for a spurious CI failure:
@@ -740,7 +740,8 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
             github_note,
         );
     }
-    Ok(())
+
+    Ok(version_number)
 }
 
 /// Asserts that the contract's dependencies are compatible to the ones used in ink!.
@@ -808,6 +809,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         output_type,
     } = args;
 
+    // TODO: This would be slightly nicer if `VersionMeta` had a `Display` implementation
     let rustc_version = rustc_version::version_meta()?;
     let rustc_version = format!(
         "{:?}-{}",
@@ -819,13 +821,20 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let cargo_contract_version = env!("CARGO_PKG_VERSION");
     let cargo_contract_version = Version::parse(cargo_contract_version).expect("TODO");
 
+    // TODO: We'll want to refactor this. Two main things:
+    // 1. We want to be able to get the version number without necessarily calling `which`
+    // 2. We want to make sure that we don't need to check for the existence of `wasm-opt` in the
+    //    `check` codepath (only in the `BuildArtifacts::All` path)
+    let wasm_opt_path = which::which("wasm-opt").expect("TODO");
+    let wasm_opt_path = wasm_opt_path.as_path();
+    let version = check_wasm_opt_version_compatibility(wasm_opt_path)?;
+
     let build_info = BuildInfo {
         rustc_version,
         cargo_contract_version,
         build_mode,
-        // TODO: Maybe extract version from check_wasm_opt_version_compatibility()
         wasm_opt_settings: WasmOptSettings {
-            version: 0,
+            version,
             optimization_passes,
         },
     };
@@ -884,6 +893,9 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             format!("[4/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
+
+        // TODO: Build the BuildInfo struct here?
+
         let optimization_result =
             optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
 
