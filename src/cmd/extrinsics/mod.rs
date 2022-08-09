@@ -187,7 +187,7 @@ const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R>(
+pub fn display_contract_exec_result<R, const WIDTH: usize>(
     result: &ContractResult<R, Balance>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
@@ -196,17 +196,17 @@ pub fn display_contract_exec_result<R>(
     name_value_println!(
         "Gas Consumed",
         format!("{:?}", result.gas_consumed),
-        MAX_KEY_COL_WIDTH
+        WIDTH
     );
     name_value_println!(
         "Gas Required",
         format!("{:?}", result.gas_required),
-        MAX_KEY_COL_WIDTH
+        WIDTH
     );
     name_value_println!(
         STORAGE_DEPOSIT_KEY,
         format!("{:?}", result.storage_deposit),
-        MAX_KEY_COL_WIDTH
+        WIDTH
     );
 
     // print debug messages aligned, only first line has key
@@ -214,12 +214,12 @@ pub fn display_contract_exec_result<R>(
         name_value_println!(
             "Debug Message",
             format!("{}", debug_message),
-            MAX_KEY_COL_WIDTH
+            WIDTH
         );
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!("", format!("{}", debug_message), MAX_KEY_COL_WIDTH);
+        name_value_println!("", format!("{}", debug_message), WIDTH);
     }
     Ok(())
 }

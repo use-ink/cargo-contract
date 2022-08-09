@@ -245,14 +245,15 @@ impl<'a> Exec<'a> {
                         format!("{:?}", ret_val.result.data),
                         DEFAULT_KEY_COL_WIDTH
                     );
+                    display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                 }
                 Err(ref err) => {
                     let err =
                         dry_run_error_details(&self.subxt_api().await?, err).await?;
                     name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                 }
             }
-            display_contract_exec_result(&result)
         } else {
             match code {
                 Code::Upload(code) => {
@@ -424,7 +425,9 @@ impl<'a> Exec<'a> {
             }
             Err(ref err) => {
                 let err = dry_run_error_details(&self.subxt_api().await?, err).await?;
-                Err(anyhow!("Pre-submission dry-run failed: '{}'. Use --skip-dry-run to skip this step.", err))
+                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&instantiate_result)?;
+                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
     }

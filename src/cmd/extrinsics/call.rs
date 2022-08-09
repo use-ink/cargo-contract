@@ -126,13 +126,14 @@ impl CallCommand {
                             format!("{}", value),
                             DEFAULT_KEY_COL_WIDTH
                         );
+                        display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                     }
                     Err(ref err) => {
                         let err = dry_run_error_details(&api, err).await?;
                         name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                     }
                 }
-                display_contract_exec_result(&result)
             } else {
                 self.call(&api, call_data, &signer, &transcoder).await
             }
@@ -240,7 +241,9 @@ impl CallCommand {
             }
             Err(ref err) => {
                 let err = dry_run_error_details(api, err).await?;
-                Err(anyhow!("Pre-submission dry-run failed: '{}'. Use --skip-dry-run to skip this step.", err))
+                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
     }
