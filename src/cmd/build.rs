@@ -749,9 +749,10 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         handler.set_debug_symbols(keep_debug_symbols);
         let optimization_result = handler.optimize(
             &crate_metadata.dest_wasm,
-            &mut crate_metadata.dest_wasm.clone(),
             &crate_metadata.contract_artifact_name,
         )?;
+
+        // We'll have the `BuildInfo` built here
 
         Ok(optimization_result)
     };
@@ -872,11 +873,11 @@ impl WasmOptHandler {
     fn optimize(
         &self,
         dest_wasm: &PathBuf,
-        dest_optimized: &mut PathBuf,
         contract_artifact_name: &String,
     ) -> Result<OptimizationResult> {
         // We'll create a temporary file for our optimized Wasm binary. Note that we'll later
         // overwrite this with the original path of the Wasm binary.
+        let mut dest_optimized = dest_wasm.clone();
         dest_optimized.set_file_name(format!("{}-opt.wasm", contract_artifact_name));
 
         log::info!(
