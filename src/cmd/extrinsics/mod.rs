@@ -261,7 +261,7 @@ async fn dry_run_error_details(
         let details =
             locked_metadata.error(error_data.pallet_index, error_data.error_index())?;
         format!(
-            "ModuleError: {}::{}: {:?}",
+            "{}::{}: {:?}",
             details.pallet(),
             details.error(),
             details.description()

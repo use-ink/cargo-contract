@@ -30,6 +30,7 @@ use super::{
     PairSigner,
     RuntimeApi,
     RuntimeDispatchError,
+    MAX_KEY_COL_WIDTH,
 };
 use crate::{
     name_value_println,
@@ -248,7 +249,7 @@ impl<'a> Exec<'a> {
                 Err(ref err) => {
                     let err =
                         dry_run_error_details(&self.subxt_api().await?, err).await?;
-                    name_value_println!("Result", err, DEFAULT_KEY_COL_WIDTH);
+                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 }
             }
             display_contract_exec_result(&result)
