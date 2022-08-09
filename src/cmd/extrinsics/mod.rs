@@ -154,11 +154,7 @@ pub fn load_metadata(
         path.display()
     ))?;
 
-    if let ink_metadata::MetadataVersion::V4 = ink_metadata.version() {
-        Ok((crate_metadata, ink_metadata))
-    } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V4"))
-    }
+    Ok((crate_metadata, ink_metadata))
 }
 
 /// Parse Rust style integer balance literals which can contain underscores.
