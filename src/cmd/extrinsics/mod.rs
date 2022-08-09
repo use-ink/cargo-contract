@@ -193,16 +193,8 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
-    name_value_println!(
-        "Gas Consumed",
-        format!("{:?}", result.gas_consumed),
-        WIDTH
-    );
-    name_value_println!(
-        "Gas Required",
-        format!("{:?}", result.gas_required),
-        WIDTH
-    );
+    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), WIDTH);
+    name_value_println!("Gas Required", format!("{:?}", result.gas_required), WIDTH);
     name_value_println!(
         STORAGE_DEPOSIT_KEY,
         format!("{:?}", result.storage_deposit),
@@ -211,11 +203,7 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
 
     // print debug messages aligned, only first line has key
     if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!(
-            "Debug Message",
-            format!("{}", debug_message),
-            WIDTH
-        );
+        name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
     }
 
     for debug_message in debug_message_lines {
