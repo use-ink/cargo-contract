@@ -43,6 +43,7 @@ use crate::{
     VerbosityFlags,
 };
 use pallet_contracts_primitives::ContractResult;
+use serde_json::Value;
 use sp_core::{
     crypto::Pair,
     sr25519,
@@ -61,7 +62,7 @@ pub use upload::UploadCommand;
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
-type PairSigner = subxt::tx::PairSigner<DefaultConfig, sp_core::sr25519::Pair>;
+type PairSigner = subxt::tx::PairSigner<DefaultConfig, sr25519::Pair>;
 type Client = OnlineClient<DefaultConfig>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -141,8 +142,8 @@ pub fn load_metadata(
             "Failed to deserialize metadata file {}",
             path.display()
         ))?;
-    let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
-        .context(format!(
+    let ink_metadata =
+        serde_json::from_value(Value::Object(metadata.abi)).context(format!(
             "Failed to deserialize ink project metadata from file {}",
             path.display()
         ))?;
@@ -239,24 +240,34 @@ where
 }
 
 #[derive(serde::Deserialize)]
-pub struct ContractsRpcError(serde_json::Value);
+pub struct ContractsRpcError(Value);
 
 impl ContractsRpcError {
-    pub fn error_details(&self, _metadata: &subxt::Metadata) -> Result<String> {
-        Ok(format!("{:?}", self.0))
-        // let dispatch_err = DispatchError::decode_from(error, &client.metadata());
-        // match dispatch_err {
-        //     DispatchError::Module(module_err) => {
-        //         Ok(format!(
-        //             "ModuleError: {}::{}: {:?}",
-        //             details.pallet(),
-        //             details.error(),
-        //             details.docs()
-        //         ))
-        //     }
-        //     DispatchError::Other(raw_err) => {
-        //         Ok(format!("DispatchError::Other: {}", to_hex(&raw_err)))
-        //     }
-        // }
+    pub fn error_details(&self, metadata: &subxt::Metadata) -> Result<String> {
+        let try_parse_module_error = || {
+            let obj = self.0.as_object()?;
+            let module = obj.get("Module")?;
+            let pallet_index = module.get("index").and_then(|i| i.as_u64())?;
+            let error_field = module.get("error")?;
+            let error_index = match error_field {
+                Value::Array(arr) => arr.get(0).and_then(|v| v.as_u64()),
+                // the legacy ModuleError has a single `u8` for the error index
+                Value::Number(n) => n.as_u64(),
+                _ => None,
+            }?;
+            Some((pallet_index as u8, error_index as u8))
+        };
+
+        if let Some((pallet_index, error_index)) = try_parse_module_error() {
+            let details = metadata.error(pallet_index, error_index)?;
+            Ok(format!(
+                "ModuleError: {}::{}: {:?}",
+                details.pallet(),
+                details.error(),
+                details.docs()
+            ))
+        } else {
+            Ok(format!("DispatchError: {:?}", self.0))
+        }
     }
 }
