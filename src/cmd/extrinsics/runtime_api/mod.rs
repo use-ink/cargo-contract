@@ -15,6 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 #[subxt::subxt(
-    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale",
+    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale"
 )]
 pub mod api {}
