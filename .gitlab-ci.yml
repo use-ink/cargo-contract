@@ -44,8 +44,8 @@ workflow:
     - rusty-cachier environment check --gracefully
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
-  # after_script:
-    # - rusty-cachier snapshot destroy
+  after_script:
+    - rusty-cachier snapshot destroy
 
 .docker-env:                       &docker-env
   image:
@@ -138,9 +138,12 @@ test-no-run-basic:
   <<:                              *docker-env
   <<:                              *collect-artifacts
   script:
+    - rusty-cachier snapshot create
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - rusty-cachier cache upload
+    # - cachepot -s
 
 test-no-run-cachier:
   stage:                           test
@@ -149,12 +152,13 @@ test-no-run-cachier:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH:     master
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+    # RUSTY_CACHIER_BYPASS:            "true"
   script:
     - rusty-cachier snapshot create
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
-    - rusty-cachier snapshot destroy
+    - rusty-cachier cache upload
 
 test-no-run-cachepot:
   stage:                           test
@@ -184,8 +188,8 @@ test-no-run-both:
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - rusty-cachier cache upload
     - cachepot -s
-    - rusty-cachier snapshot destroy
 
 # test-new-project-template:
 #   stage:                           test
