@@ -24,6 +24,7 @@ variables:
   # RUSTC_WRAPPER:                   cachepot
   # CACHEPOT_LOG:                    trace
   # RUST_LOG:                        trace
+  CARGO_INCREMENTAL: 0
 
 workflow:
   rules:
@@ -134,7 +135,6 @@ test-no-run-cachepot:
   <<:                              *collect-artifacts
   variables:
     RUSTC_WRAPPER: cachepot
-    CARGO_INCREMENTAL: 0
   script:
     - cargo test --workspace --all-features --no-run
     - cachepot -s
@@ -162,7 +162,6 @@ test-no-run-cachier-no-incremental:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH:     master
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-    CARGO_INCREMENTAL: 0
   script:
     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - rusty-cachier environment check --gracefully
@@ -181,7 +180,6 @@ test-no-run-both:
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
     # RUSTY_CACHIER_BYPASS:            "true"
     RUSTC_WRAPPER: cachepot
-    CARGO_INCREMENTAL: 0
   script:
     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - rusty-cachier environment check --gracefully
