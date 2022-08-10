@@ -53,7 +53,6 @@ use regex::Regex;
 use semver::Version;
 use std::{
     convert::TryFrom,
-    ffi::OsStr,
     fs::metadata,
     path::{
         Path,
@@ -536,96 +535,6 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
-/// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
-/// compatible with `cargo-contract`.
-///
-/// Currently this must be a version >= 99.
-fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
-    let mut cmd_res = Command::new(wasm_opt_path).arg("--version").output();
-
-    // The following condition is a workaround for a spurious CI failure:
-    // ```
-    // Executing `"/tmp/cargo-contract.test.GGnC0p/wasm-opt-mocked" --version` failed with
-    // Os { code: 26, kind: ExecutableFileBusy, message: "Text file busy" }
-    // ```
-    if cmd_res.is_err() && format!("{:?}", cmd_res).contains("ExecutableFileBusy") {
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        cmd_res = Command::new(wasm_opt_path).arg("--version").output();
-    }
-
-    let res = cmd_res.map_err(|err| {
-        anyhow::anyhow!(
-            "Executing `{:?} --version` failed with {:?}",
-            wasm_opt_path.display(),
-            err
-        )
-    })?;
-    if !res.status.success() {
-        let err = str::from_utf8(&res.stderr)
-            .expect("Cannot convert stderr output of wasm-opt to string")
-            .trim();
-        anyhow::bail!(
-            "Getting version information from wasm-opt failed.\n\
-            The error which wasm-opt returned was: \n{}",
-            err
-        );
-    }
-
-    // ```sh
-    // $ wasm-opt --version
-    // wasm-opt version 99 (version_99-79-gc12cc3f50)
-    // ```
-    let github_note = "\n\n\
-        If you tried installing from your system package manager the best\n\
-        way forward is to download a recent binary release directly:\n\n\
-        https://github.com/WebAssembly/binaryen/releases\n\n\
-        Make sure that the `wasm-opt` file from that release is in your `PATH`.";
-    let version_stdout = str::from_utf8(&res.stdout)
-        .expect("Cannot convert stdout output of wasm-opt to string")
-        .trim();
-    let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
-    let captures = re.captures(version_stdout).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
-            version_stdout,
-            github_note,
-        )
-    })?;
-    let version_number: u32 = captures
-        .get(1) // first capture group is at index 1
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "Unable to extract version number from '{:?}'",
-                version_stdout
-            )
-        })?
-        .as_str()
-        .parse()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Parsing version number failed with '{:?}' for '{:?}'",
-                err,
-                version_stdout
-            )
-        })?;
-
-    log::info!(
-        "The wasm-opt version output is '{}', which was parsed to '{}'",
-        version_stdout,
-        version_number
-    );
-    if version_number < 99 {
-        anyhow::bail!(
-            "Your wasm-opt version is {}, but we require a version >= 99.{}",
-            version_number,
-            github_note,
-        );
-    }
-
-    Ok(())
-}
-
 /// Asserts that the contract's dependencies are compatible to the ones used in ink!.
 ///
 /// This function utilizes `cargo tree`, which takes semver into consideration.
@@ -744,13 +653,12 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         // let optimization_result =
         //     optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
 
-        let mut handler = WasmOptHandler::new()?;
-        handler.set_optimization_level(optimization_passes);
-        handler.set_debug_symbols(keep_debug_symbols);
+        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
         let optimization_result = handler.optimize(
             &crate_metadata.dest_wasm,
             &crate_metadata.contract_artifact_name,
         )?;
+        let _v = handler.version;
 
         // We'll have the `BuildInfo` built here
 
@@ -841,13 +749,14 @@ struct WasmOptHandler {
     /// resulting in potentially a lot of time spent optimizing.
     optimization_level: OptimizationPasses,
     keep_debug_symbols: bool,
-    // Take these from optimize_wasm
-    // output_path: PathBuf,
-    // artifact_name: String,
+    version: u32,
 }
 
 impl WasmOptHandler {
-    fn new() -> Result<Self> {
+    fn new(
+        optimization_level: OptimizationPasses,
+        keep_debug_symbols: bool,
+    ) -> Result<Self> {
         let which = which::which("wasm-opt");
         if which.is_err() {
             anyhow::bail!(WASM_OPT_INSTALLATION_SUGGESTION.to_string().bright_yellow());
@@ -857,13 +766,14 @@ impl WasmOptHandler {
             which.expect("we just checked if `which` returned an err; qed");
         log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
-        // TODO: Should use our new `version` functions do to this
-        check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
+        let version =
+            Self::check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
 
         Ok(Self {
             wasm_opt_path,
-            optimization_level: Default::default(),
-            keep_debug_symbols: Default::default(),
+            optimization_level,
+            keep_debug_symbols,
+            version,
         })
     }
 
@@ -940,16 +850,94 @@ impl WasmOptHandler {
         })
     }
 
-    fn version(&self) -> u32 {
-        todo!()
-    }
+    /// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
+    /// compatible with `cargo-contract`.
+    ///
+    /// Currently this must be a version >= 99.
+    fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<u32> {
+        let mut cmd_res = Command::new(wasm_opt_path).arg("--version").output();
 
-    fn set_optimization_level(&mut self, optimization_level: OptimizationPasses) {
-        self.optimization_level = optimization_level;
-    }
+        // The following condition is a workaround for a spurious CI failure:
+        // ```
+        // Executing `"/tmp/cargo-contract.test.GGnC0p/wasm-opt-mocked" --version` failed with
+        // Os { code: 26, kind: ExecutableFileBusy, message: "Text file busy" }
+        // ```
+        if cmd_res.is_err() && format!("{:?}", cmd_res).contains("ExecutableFileBusy") {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            cmd_res = Command::new(wasm_opt_path).arg("--version").output();
+        }
 
-    fn set_debug_symbols(&mut self, keep: bool) {
-        self.keep_debug_symbols = keep;
+        let res = cmd_res.map_err(|err| {
+            anyhow::anyhow!(
+                "Executing `{:?} --version` failed with {:?}",
+                wasm_opt_path.display(),
+                err
+            )
+        })?;
+        if !res.status.success() {
+            let err = str::from_utf8(&res.stderr)
+                .expect("Cannot convert stderr output of wasm-opt to string")
+                .trim();
+            anyhow::bail!(
+                "Getting version information from wasm-opt failed.\n\
+            The error which wasm-opt returned was: \n{}",
+                err
+            );
+        }
+
+        // ```sh
+        // $ wasm-opt --version
+        // wasm-opt version 99 (version_99-79-gc12cc3f50)
+        // ```
+        let github_note = "\n\n\
+        If you tried installing from your system package manager the best\n\
+        way forward is to download a recent binary release directly:\n\n\
+        https://github.com/WebAssembly/binaryen/releases\n\n\
+        Make sure that the `wasm-opt` file from that release is in your `PATH`.";
+        let version_stdout = str::from_utf8(&res.stdout)
+            .expect("Cannot convert stdout output of wasm-opt to string")
+            .trim();
+        let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
+        let captures = re.captures(version_stdout).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Unable to extract version information from '{}'.\n\
+            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
+            version_stdout,
+            github_note,
+        )
+    })?;
+        let version_number: u32 = captures
+        .get(1) // first capture group is at index 1
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "Unable to extract version number from '{:?}'",
+                version_stdout
+            )
+        })?
+        .as_str()
+        .parse()
+        .map_err(|err| {
+            anyhow::anyhow!(
+                "Parsing version number failed with '{:?}' for '{:?}'",
+                err,
+                version_stdout
+            )
+        })?;
+
+        log::info!(
+            "The wasm-opt version output is '{}', which was parsed to '{}'",
+            version_stdout,
+            version_number
+        );
+        if version_number < 99 {
+            anyhow::bail!(
+                "Your wasm-opt version is {}, but we require a version >= 99.{}",
+                version_number,
+                github_note,
+            );
+        }
+
+        Ok(version_number)
     }
 }
 
@@ -959,7 +947,7 @@ mod tests_ci_only {
     use super::{
         assert_compatible_ink_dependencies,
         assert_debug_mode_supported,
-        check_wasm_opt_version_compatibility,
+        WasmOptHandler,
     };
     use crate::{
         cmd::{
@@ -1246,7 +1234,7 @@ mod tests_ci_only {
             let path = mock_wasm_opt_version(path, "98 (version_13-79-gc12cc3f50)");
 
             // when
-            let res = check_wasm_opt_version_compatibility(&path);
+            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
 
             // then
             assert!(res.is_err());
@@ -1270,7 +1258,7 @@ mod tests_ci_only {
             let path = mock_wasm_opt_version(path, "99 (version_99-79-gc12cc3f50");
 
             // when
-            let res = check_wasm_opt_version_compatibility(&path);
+            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
 
             // then
             assert!(res.is_ok());
@@ -1287,7 +1275,7 @@ mod tests_ci_only {
             let path = mock_wasm_opt_version(path, "98");
 
             // when
-            let res = check_wasm_opt_version_compatibility(&path);
+            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
 
             // then
             assert!(res.is_err());
@@ -1310,7 +1298,7 @@ mod tests_ci_only {
             let path = mock_wasm_opt_version(path, "99");
 
             // when
-            let res = check_wasm_opt_version_compatibility(&path);
+            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
 
             // then
             assert!(res.is_ok());
