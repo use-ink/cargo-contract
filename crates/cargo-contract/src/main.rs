@@ -34,6 +34,7 @@ use self::{
         InstantiateCommand,
         TestCommand,
         UploadCommand,
+        VerifyCommand,
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -504,6 +505,9 @@ enum Command {
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
+    /// Verifies that a given contract binary matches the build result of the specified workspace.
+    #[clap(name = "verify")]
+    Verify(VerifyCommand),
 }
 
 fn main() {
@@ -570,6 +574,7 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
         Command::Decode(decode) => decode.run().map_err(format_err),
+        Command::Verify(verify) => verify.run(),
     }
 }
 

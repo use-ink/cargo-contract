@@ -14,27 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod build;
-pub mod decode;
-pub mod metadata;
-pub mod new;
-pub mod test;
-pub mod verify;
+use crate::workspace::ManifestPath;
 
-pub(crate) use self::{
-    build::{
-        BuildCommand,
-        CheckCommand,
-    },
-    decode::DecodeCommand,
-    test::TestCommand,
-    verify::VerifyCommand,
-};
-mod extrinsics;
+use anyhow::Result;
 
-pub(crate) use self::extrinsics::{
-    CallCommand,
-    ErrorVariant,
-    InstantiateCommand,
-    UploadCommand,
-};
+use std::path::PathBuf;
+
+#[derive(Debug, clap::Args)]
+#[clap(name = "verify")]
+pub struct VerifyCommand {
+    /// Path to the `Cargo.toml` of the contract to verify.
+    #[clap(long, parse(from_os_str))]
+    manifest_path: Option<PathBuf>,
+    /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
+    contract_wasm: String,
+}
+
+impl VerifyCommand {
+    pub fn run(&self) -> Result<()> {
+        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        todo!()
+    }
+}
