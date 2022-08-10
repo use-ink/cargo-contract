@@ -127,7 +127,7 @@ test-no-run-basic:
   <<:                              *collect-artifacts
   script:
     - cargo test --workspace --all-features --no-run
- 
+
 test-no-run-cachepot:
   stage:                           test
   <<:                              *docker-env
