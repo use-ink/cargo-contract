@@ -38,15 +38,6 @@ workflow:
     paths:
       - artifacts/
 
-.rusty-cachier:
-  before_script:
-    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
-    - rusty-cachier environment check --gracefully
-    - $(rusty-cachier environment inject)
-    - rusty-cachier project mtime
-  after_script:
-    - echo done
-
 .docker-env:                       &docker-env
   image:
     name:                          "${CI_IMAGE}"
@@ -60,9 +51,6 @@ workflow:
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - cachepot -s
     - git show
-    - !reference [.rusty-cachier, before_script]
-  after_script:
-    - !reference [.rusty-cachier, after_script]
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -142,20 +130,6 @@ test-no-run-basic:
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
 
-test-no-run-cachier:
-  stage:                           test
-  <<:                              *docker-env
-  <<:                              *collect-artifacts
-  variables:
-    RUSTY_CACHIER_SINGLE_BRANCH:     master
-    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-  script:
-    - rusty-cachier snapshot create
-    - cargo test --verbose --workspace --all-features --timings --no-run
-    - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
-    - rusty-cachier snapshot destroy
-
 test-no-run-cachepot:
   stage:                           test
   <<:                              *docker-env
@@ -166,8 +140,26 @@ test-no-run-cachepot:
   script:
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
     - cachepot -s
+
+test-no-run-cachier:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  variables:
+    RUSTY_CACHIER_SINGLE_BRANCH:     master
+    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+  script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier environment check --gracefully
+    - $(rusty-cachier environment inject)
+    - rusty-cachier project mtime
+    - rusty-cachier snapshot create
+    - cargo test --verbose --workspace --all-features --timings --no-run
+    - mkdir -p ./artifacts/$CI_JOB_NAME
+    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - rusty-cachier snapshot destroy
 
 test-no-run-both:
   stage:                           test
@@ -180,12 +172,16 @@ test-no-run-both:
     RUSTC_WRAPPER: cachepot
     CARGO_INCREMENTAL: 0
   script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier environment check --gracefully
+    - $(rusty-cachier environment inject)
+    - rusty-cachier project mtime
     - rusty-cachier snapshot create
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
-    - cachepot -s
     - rusty-cachier snapshot destroy
+    - cachepot -s
 
 # test-new-project-template:
 #   stage:                           test
