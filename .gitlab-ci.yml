@@ -155,22 +155,6 @@ test-no-run-cachier:
     - cargo test --workspace --all-features --no-run
     - rusty-cachier snapshot destroy
 
-test-no-run-cachier-no-incremental:
-  stage:                           test
-  <<:                              *docker-env
-  <<:                              *collect-artifacts
-  variables:
-    RUSTY_CACHIER_SINGLE_BRANCH:     master
-    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-  script:
-    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
-    - rusty-cachier environment check --gracefully
-    - $(rusty-cachier environment inject)
-    - rusty-cachier project mtime
-    - rusty-cachier snapshot create
-    - cargo test --workspace --all-features --no-run
-    - rusty-cachier snapshot destroy
-
 test-no-run-both:
   stage:                           test
   <<:                              *docker-env
