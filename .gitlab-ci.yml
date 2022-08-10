@@ -126,9 +126,7 @@ test-no-run-basic:
   <<:                              *docker-env
   <<:                              *collect-artifacts
   script:
-    - cargo test --verbose --workspace --all-features --timings --no-run
-    - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cargo test --workspace --all-features --no-run
  
 test-no-run-cachepot:
   stage:                           test
@@ -138,9 +136,7 @@ test-no-run-cachepot:
     RUSTC_WRAPPER: cachepot
     CARGO_INCREMENTAL: 0
   script:
-    - cargo test --verbose --workspace --all-features --timings --no-run
-    - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cargo test --workspace --all-features --no-run
     - cachepot -s
 
 test-no-run-cachier:
@@ -156,9 +152,24 @@ test-no-run-cachier:
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
     - rusty-cachier snapshot create
-    - cargo test --verbose --workspace --all-features --timings --no-run
-    - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cargo test --workspace --all-features --no-run
+    - rusty-cachier snapshot destroy
+
+test-no-run-cachier-no-incremental:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  variables:
+    RUSTY_CACHIER_SINGLE_BRANCH:     master
+    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+    CARGO_INCREMENTAL: 0
+  script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier environment check --gracefully
+    - $(rusty-cachier environment inject)
+    - rusty-cachier project mtime
+    - rusty-cachier snapshot create
+    - cargo test --workspace --all-features --no-run
     - rusty-cachier snapshot destroy
 
 test-no-run-both:
@@ -177,9 +188,7 @@ test-no-run-both:
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
     - rusty-cachier snapshot create
-    - cargo test --verbose --workspace --all-features --timings --no-run
-    - mkdir -p ./artifacts/$CI_JOB_NAME
-    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cargo test --workspace --all-features --no-run
     - rusty-cachier snapshot destroy
     - cachepot -s
 
