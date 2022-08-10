@@ -25,11 +25,11 @@ jobs:
       RUST_BACKTRACE: full
     steps:
 
-      - uses: engineerd/configurator@v0.0.6
+      - uses: engineerd/configurator@v0.0.8
         with:
           name: "wasm-opt.exe"
           url: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz"
-          pathInArchive: "binaryen-/bin/wasm-opt.exe"
+          pathInArchive: "binaryen-version_109/bin/wasm-opt.exe"
 
       - name: Checkout sources & submodules
         uses: actions/checkout@v3
