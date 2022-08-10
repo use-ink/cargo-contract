@@ -93,6 +93,15 @@ pub struct BuildInfo {
     pub wasm_opt_settings: WasmOptSettings,
 }
 
+impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
+    type Error = serde_json::Error;
+
+    fn try_from(build_info: BuildInfo) -> Result<Self, Self::Error> {
+        let tmp = serde_json::to_string(&build_info)?;
+        serde_json::from_str(&tmp)
+    }
+}
+
 /// Settings used when optimizing the Wasm binary using Binaryen's `wasm-opt`.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct WasmOptSettings {
@@ -227,31 +236,12 @@ fn extended_metadata(
         let wasm = fs::read(final_contract_wasm)?;
         let hash = blake2_hash(wasm.as_slice());
 
-        // TODO: lol
-        let mut build_info_map = serde_json::Map::new();
-        build_info_map.insert(
-            "rustc_version".to_string(),
-            serde_json::to_value(build_info.rustc_version)?,
-        );
-        build_info_map.insert(
-            "cargo_contract_version".to_string(),
-            serde_json::to_value(build_info.cargo_contract_version)?,
-        );
-        build_info_map.insert(
-            "build_mode".to_string(),
-            serde_json::to_value(build_info.build_mode)?,
-        );
-        build_info_map.insert(
-            "wasm_opt_settings".to_string(),
-            serde_json::to_value(build_info.wasm_opt_settings)?,
-        );
-
         Source::new(
             Some(SourceWasm::new(wasm)),
             hash,
             lang,
             compiler,
-            Some(build_info_map),
+            Some(build_info.try_into()?),
         )
     };
 
