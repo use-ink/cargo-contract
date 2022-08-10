@@ -152,7 +152,7 @@ test-no-run-cachier:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH:     master
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-    RUSTY_CACHIER_BYPASS:            "true"
+    # RUSTY_CACHIER_BYPASS:            "true"
   script:
     - rusty-cachier snapshot create
     - cargo test --verbose --workspace --all-features --timings --no-run
