@@ -129,7 +129,7 @@ test-no-run-basic:
     - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp target/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
-
+ 
 test-no-run-cachepot:
   stage:                           test
   <<:                              *docker-env
