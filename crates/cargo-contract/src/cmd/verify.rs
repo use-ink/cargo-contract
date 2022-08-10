@@ -15,8 +15,15 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    cmd::metadata::BuildInfo,
+    cmd::{
+        build::{
+            execute,
+            ExecuteArgs,
+        },
+        metadata::BuildInfo,
+    },
     workspace::ManifestPath,
+    BuildArtifacts,
 };
 
 use anyhow::Result;
@@ -40,7 +47,7 @@ pub struct VerifyCommand {
 
 impl VerifyCommand {
     pub fn run(&self) -> Result<()> {
-        let _manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
 
         // 1. Read the given metadata, and pull out the `BuildInfo`
         let mut file = File::open(&self.contract)?;
@@ -54,7 +61,21 @@ impl VerifyCommand {
         dbg!(&build_info);
 
         // 2. Call `cmd::Build` with the given `BuildInfo`
-        //
+        let args = ExecuteArgs {
+            manifest_path,
+            verbosity: Default::default(),
+            build_mode: build_info.build_mode,
+            network: Default::default(),
+            build_artifact: BuildArtifacts::CodeOnly,
+            unstable_flags: Default::default(),
+            optimization_passes: build_info.wasm_opt_settings.optimization_passes,
+            keep_debug_symbols: false, /* TODO: Will either want to add this to BuildInfo or assume release (so no) */
+            skip_linting: true,
+            output_type: Default::default(),
+        };
+
+        let _build_result = execute(args)?;
+
         // 3. Read output file, compare with given contract_wasm
         todo!()
     }
