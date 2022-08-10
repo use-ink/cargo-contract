@@ -18,13 +18,12 @@ variables:
   # this var is changed to "-:staging" when the CI image gets rebuilt
   # read more https://github.com/paritytech/cargo-contract/pull/115
   CI_IMAGE:                        "paritytech/contracts-ci-linux:cachepot"
-  RUSTY_CACHIER_SINGLE_BRANCH:     master
-  RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
-  # RUSTC_WRAPPER:                   cachepot
+  # RUSTY_CACHIER_SINGLE_BRANCH:     master
+  # RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
   # RUSTY_CACHIER_BYPASS:            "true"
+  # RUSTC_WRAPPER:                   cachepot
   CACHEPOT_LOG:                    trace
   RUST_LOG:                        trace
-  CARGO_INCREMENTAL:               0
 
 workflow:
   rules:
@@ -134,17 +133,63 @@ workflow:
 #     - rusty-cachier cache upload
 #     - cachepot -s
 
-test:
+test-no-run-basic:
   stage:                           test
   <<:                              *docker-env
   <<:                              *collect-artifacts
   script:
     - rusty-cachier snapshot create
-    - cargo test --verbose --workspace --all-features --timings
+    - cargo test --verbose --workspace --all-features --timings --no-run
     - mkdir -p ./artifacts/$CI_JOB_NAME
     - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
     - rusty-cachier cache upload
     # - cachepot -s
+
+test-no-run-cachier:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  variables:
+    RUSTY_CACHIER_SINGLE_BRANCH:     master
+    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+    RUSTY_CACHIER_BYPASS:            "true"
+  script:
+    - rusty-cachier snapshot create
+    - cargo test --verbose --workspace --all-features --timings --no-run
+    - mkdir -p ./artifacts/$CI_JOB_NAME
+    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - rusty-cachier cache upload
+
+test-no-run-cachepot:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  variables:
+    RUSTC_WRAPPER: cachepot
+    CARGO_INCREMENTAL: 0
+  script:
+    - cargo test --verbose --workspace --all-features --timings --no-run
+    - mkdir -p ./artifacts/$CI_JOB_NAME
+    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - cachepot -s
+
+test-no-run-both:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  variables:
+    RUSTY_CACHIER_SINGLE_BRANCH:     master
+    RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+    # RUSTY_CACHIER_BYPASS:            "true"
+    RUSTC_WRAPPER: cachepot
+    CARGO_INCREMENTAL: 0
+  script:
+    - rusty-cachier snapshot create
+    - cargo test --verbose --workspace --all-features --timings --no-run
+    - mkdir -p ./artifacts/$CI_JOB_NAME
+    - cp /cargo_target_dir/cargo-timings/cargo-timing-*.html artifacts/$CI_JOB_NAME
+    - rusty-cachier cache upload
+    - cachepot -s
 
 # test-new-project-template:
 #   stage:                           test
