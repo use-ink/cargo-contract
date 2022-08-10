@@ -14,11 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::workspace::ManifestPath;
+use crate::{
+    cmd::metadata::BuildInfo,
+    workspace::ManifestPath,
+};
 
 use anyhow::Result;
+use contract_metadata::ContractMetadata;
 
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::prelude::Read,
+    path::PathBuf,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "verify")]
@@ -27,12 +35,27 @@ pub struct VerifyCommand {
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
-    contract_wasm: String,
+    contract: PathBuf,
 }
 
 impl VerifyCommand {
     pub fn run(&self) -> Result<()> {
-        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let _manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+
+        // 1. Read the given metadata, and pull out the `BuildInfo`
+        let mut file = File::open(&self.contract)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        let metadata: ContractMetadata = serde_json::from_str(&contents)?;
+        let build_info = metadata.source.build_info.as_ref().unwrap();
+        let build_info: BuildInfo =
+            serde_json::from_value(build_info.clone().into()).unwrap();
+        dbg!(&build_info);
+
+        // 2. Call `cmd::Build` with the given `BuildInfo`
+        //
+        // 3. Read output file, compare with given contract_wasm
         todo!()
     }
 }
