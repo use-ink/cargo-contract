@@ -127,7 +127,7 @@ test-no-run-basic:
   <<:                              *docker-env
   <<:                              *collect-artifacts
   script:
-    - cargo test --workspace --all-features --no-run
+    - cargo build --release
 
 test-no-run-cachepot:
   stage:                           test
@@ -136,7 +136,7 @@ test-no-run-cachepot:
   variables:
     RUSTC_WRAPPER: cachepot
   script:
-    - cargo test --workspace --all-features --no-run
+    - cargo build --release
     - cachepot -s
 
 test-no-run-cachier:
@@ -152,7 +152,7 @@ test-no-run-cachier:
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
     - rusty-cachier snapshot create
-    - cargo test --workspace --all-features --no-run
+    - cargo build --release
     - rusty-cachier snapshot destroy
 
 test-no-run-both:
@@ -170,7 +170,7 @@ test-no-run-both:
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
     - rusty-cachier snapshot create
-    - cargo test --workspace --all-features --no-run
+    - cargo build --release
     - rusty-cachier snapshot destroy
     - cachepot -s
 
