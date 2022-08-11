@@ -160,6 +160,8 @@ test-no-run-both:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH: "635"
     RUSTC_WRAPPER: cachepot
+    # tell cachier to grab the cache from the sibling job
+    CI_JOB_NAME: "test-no-run-cachier"
   script:
     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - rusty-cachier environment check --gracefully
