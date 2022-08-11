@@ -122,20 +122,20 @@ workflow:
 #     - rusty-cachier cache upload
 #     - cachepot -s
 
-# test-no-run-basic:
-#   stage:                           test
-#   <<:                              *docker-env
-#   script:
-#     - cargo build
+test-no-run-basic:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo build
 
-# test-no-run-cachepot:
-#   stage:                           test
-#   <<:                              *docker-env
-#   variables:
-#     RUSTC_WRAPPER: cachepot
-#   script:
-#     - cargo build
-#     - cachepot -s
+test-no-run-cachepot:
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    RUSTC_WRAPPER: cachepot
+  script:
+    - cargo build
+    - cachepot -s
 
 test-no-run-cachier:
   stage:                           test
@@ -143,23 +143,24 @@ test-no-run-cachier:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH: "635"
   script:
-    - rusty-cachier cache notify
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier notify
 
-# test-no-run-both:
-#   stage:                           test
-#   <<:                              *docker-env
-#   variables:
-#     RUSTY_CACHIER_SINGLE_BRANCH: "635"
-#     RUSTC_WRAPPER: cachepot
-#   script:
-#     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
-#     - rusty-cachier environment check --gracefully
-#     - $(rusty-cachier environment inject)
-#     - rusty-cachier project mtime
-#     - rusty-cachier snapshot create
-#     - cargo build
-#     - rusty-cachier snapshot destroy
-#     - cachepot -s
+test-no-run-both:
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    RUSTY_CACHIER_SINGLE_BRANCH: "635"
+    RUSTC_WRAPPER: cachepot
+  script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
+    - rusty-cachier environment check --gracefully
+    - $(rusty-cachier environment inject)
+    - rusty-cachier project mtime
+    - rusty-cachier snapshot create
+    - cargo build
+    - rusty-cachier snapshot destroy
+    - cachepot -s
 
 # test-new-project-template:
 #   stage:                           test
