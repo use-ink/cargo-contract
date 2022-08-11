@@ -243,8 +243,7 @@ impl<'a> Exec<'a> {
                 }
                 Err(ref err) => {
                     let metadata = self.client.metadata();
-                    let err =
-                        dry_run_error_details(&metadata, err).await?;
+                    let err = err.error_details(&metadata)?;
                     name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                 }
@@ -335,7 +334,7 @@ impl<'a> Exec<'a> {
 
         let call = api::tx().contracts().instantiate(
             self.args.value,
-            self.args.gas_limit,
+            gas_limit,
             self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
@@ -419,7 +418,7 @@ impl<'a> Exec<'a> {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = dry_run_error_details(&self.subxt_api().await?, err).await?;
+                let err = err.error_details(&self.client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                     &instantiate_result,

@@ -30,7 +30,10 @@ use super::{
     PairSigner,
     MAX_KEY_COL_WIDTH,
 };
-use crate::name_value_println;
+use crate::{
+    name_value_println,
+    DEFAULT_KEY_COL_WIDTH,
+};
 use anyhow::{
     anyhow,
     Result,
@@ -121,7 +124,7 @@ impl CallCommand {
                         display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                     }
                     Err(ref err) => {
-                        let err = dry_run_error_details(&api, err).await?;
+                        let err = err.error_details(&client.metadata())?;
                         name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                     }
@@ -168,7 +171,7 @@ impl CallCommand {
         log::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(api, data.clone(), signer)
+            .pre_submit_dry_run_gas_estimate(client, data.clone(), signer)
             .await?;
 
         if !self.extrinsic_opts.skip_confirm {
@@ -209,7 +212,7 @@ impl CallCommand {
     /// Dry run the call before tx submission. Returns the gas required estimate.
     async fn pre_submit_dry_run_gas_estimate(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
     ) -> Result<u64> {
@@ -232,7 +235,7 @@ impl CallCommand {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = dry_run_error_details(api, err).await?;
+                let err = err.error_details(&client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
