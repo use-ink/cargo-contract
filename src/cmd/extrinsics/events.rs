@@ -47,6 +47,8 @@ pub fn display_events(
         return Ok(())
     }
 
+    println!();
+
     if matches!(verbosity, Verbosity::Verbose) {
         println!("VERBOSE")
     }

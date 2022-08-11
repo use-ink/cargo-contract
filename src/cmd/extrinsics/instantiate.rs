@@ -19,6 +19,7 @@ use super::{
     display_events,
     dry_run_error_details,
     parse_balance,
+    prompt_confirm_tx,
     runtime_api::api,
     wait_for_success_and_handle_error,
     Balance,
@@ -29,12 +30,13 @@ use super::{
     PairSigner,
     RuntimeApi,
     RuntimeDispatchError,
-    EXEC_RESULT_MAX_KEY_COL_WIDTH,
+    MAX_KEY_COL_WIDTH,
 };
 use crate::{
     name_value_println,
     util::decode_hex,
     Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -98,9 +100,10 @@ pub struct InstantiateCommand {
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0", parse(try_from_str = parse_balance))]
     value: Balance,
-    /// Maximum amount of gas to be used for this command
-    #[clap(name = "gas", long, default_value = "50000000000")]
-    gas_limit: u64,
+    /// Maximum amount of gas to be used for this command.
+    /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
+    #[clap(name = "gas", long)]
+    gas_limit: Option<u64>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
     /// of the same contract code from the same account.
     #[clap(long, parse(try_from_str = parse_hex_bytes))]
@@ -163,6 +166,8 @@ impl InstantiateCommand {
         let salt = self.salt.clone().unwrap_or_else(|| Bytes(Vec::new()));
 
         let args = InstantiateArgs {
+            constructor: self.constructor.clone(),
+            raw_args: self.args.clone(),
             value: self.value,
             gas_limit: self.gas_limit,
             storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
@@ -172,6 +177,7 @@ impl InstantiateCommand {
 
         let exec = Exec {
             args,
+            opts: self.extrinsic_opts.clone(),
             url,
             verbosity,
             signer,
@@ -185,14 +191,17 @@ impl InstantiateCommand {
 }
 
 struct InstantiateArgs {
-    value: super::Balance,
-    gas_limit: u64,
+    constructor: String,
+    raw_args: Vec<String>,
+    value: Balance,
+    gas_limit: Option<u64>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
     salt: Bytes,
 }
 
 pub struct Exec<'a> {
+    opts: ExtrinsicOpts,
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
@@ -219,49 +228,49 @@ impl<'a> Exec<'a> {
                     name_value_println!(
                         "Result",
                         String::from("Success!"),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Contract",
                         ret_val.account_id.to_ss58check(),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Reverted",
                         format!("{:?}", ret_val.result.did_revert()),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Data",
                         format!("{:?}", ret_val.result.data),
-                        EXEC_RESULT_MAX_KEY_COL_WIDTH
+                        DEFAULT_KEY_COL_WIDTH
                     );
+                    display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                 }
                 Err(ref err) => {
                     let err =
                         dry_run_error_details(&self.subxt_api().await?, err).await?;
-                    name_value_println!("Result", err, EXEC_RESULT_MAX_KEY_COL_WIDTH);
+                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                 }
             }
-            display_contract_exec_result(&result)?;
-            return Ok(())
-        }
-
-        match code {
-            Code::Upload(code) => {
-                let (code_hash, contract_account) =
-                    self.instantiate_with_code(code).await?;
-                if let Some(code_hash) = code_hash {
-                    name_value_println!("Code hash", format!("{:?}", code_hash));
+        } else {
+            match code {
+                Code::Upload(code) => {
+                    let (code_hash, contract_account) =
+                        self.instantiate_with_code(code).await?;
+                    if let Some(code_hash) = code_hash {
+                        name_value_println!("Code hash", format!("{:?}", code_hash));
+                    }
+                    name_value_println!("Contract", contract_account.to_ss58check());
                 }
-                name_value_println!("Contract", contract_account.to_ss58check());
+                Code::Existing(code_hash) => {
+                    let contract_account = self.instantiate(code_hash).await?;
+                    name_value_println!("Contract", contract_account.to_ss58check());
+                }
             }
-            Code::Existing(code_hash) => {
-                let contract_account = self.instantiate(code_hash).await?;
-                name_value_println!("Contract", contract_account.to_ss58check());
-            }
+            Ok(())
         }
-        Ok(())
     }
 
     async fn instantiate_with_code(
@@ -269,12 +278,20 @@ impl<'a> Exec<'a> {
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let api = self.subxt_api().await?;
+        let gas_limit = self
+            .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
+            .await?;
+
+        if !self.opts.skip_confirm {
+            prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
+        }
+
         let tx_progress = api
             .tx()
             .contracts()
             .instantiate_with_code(
                 self.args.value,
-                self.args.gas_limit,
+                gas_limit,
                 self.args.storage_deposit_limit,
                 code.to_vec(),
                 self.args.data.clone(),
@@ -306,12 +323,27 @@ impl<'a> Exec<'a> {
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
         let api = self.subxt_api().await?;
+        let gas_limit = self
+            .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
+            .await?;
+
+        if !self.opts.skip_confirm {
+            prompt_confirm_tx(|| {
+                self.print_default_instantiate_preview(gas_limit);
+                name_value_println!(
+                    "Code hash",
+                    format!("{:?}", code_hash),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+            })?;
+        }
+
         let tx_progress = api
             .tx()
             .contracts()
             .instantiate(
                 self.args.value,
-                self.args.gas_limit,
+                gas_limit,
                 self.args.storage_deposit_limit,
                 code_hash,
                 self.args.data.clone(),
@@ -336,8 +368,15 @@ impl<'a> Exec<'a> {
         Ok(instantiated.contract)
     }
 
+    fn print_default_instantiate_preview(&self, gas_limit: u64) {
+        name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+    }
+
     async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
         let cli = WsClientBuilder::default().build(&self.url).await?;
+        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
         let storage_deposit_limit = self
             .args
             .storage_deposit_limit
@@ -346,7 +385,7 @@ impl<'a> Exec<'a> {
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
             value: NumberOrHex::Hex(self.args.value.into()),
-            gas_limit: NumberOrHex::Number(self.args.gas_limit),
+            gas_limit: NumberOrHex::Number(*gas_limit),
             storage_deposit_limit,
             code,
             data: self.args.data.clone().into(),
@@ -359,6 +398,40 @@ impl<'a> Exec<'a> {
             .context("contracts_instantiate RPC error")?;
 
         Ok(result)
+    }
+
+    /// Dry run the instantiation before tx submission. Returns the gas required estimate.
+    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<u64> {
+        if self.opts.skip_dry_run {
+            return match self.args.gas_limit {
+                Some(gas) => Ok(gas),
+                None => {
+                    Err(anyhow!(
+                    "Gas limit `--gas` argument required if `--skip-dry-run` specified"
+                ))
+                }
+            }
+        }
+        super::print_dry_running_status(&self.args.constructor);
+        let instantiate_result = self.instantiate_dry_run(code).await?;
+        match instantiate_result.result {
+            Ok(_) => {
+                super::print_gas_required_success(instantiate_result.gas_required);
+                let gas_limit = self
+                    .args
+                    .gas_limit
+                    .unwrap_or(instantiate_result.gas_required);
+                Ok(gas_limit)
+            }
+            Err(ref err) => {
+                let err = dry_run_error_details(&self.subxt_api().await?, err).await?;
+                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                    &instantiate_result,
+                )?;
+                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+            }
+        }
     }
 }
 
