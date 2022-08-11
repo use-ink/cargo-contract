@@ -166,7 +166,7 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SourceWasm(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",

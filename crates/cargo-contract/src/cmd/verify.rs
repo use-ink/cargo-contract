@@ -27,7 +27,10 @@ use crate::{
 };
 
 use anyhow::Result;
-use contract_metadata::ContractMetadata;
+use contract_metadata::{
+    ContractMetadata,
+    SourceWasm,
+};
 
 use std::{
     fs::File,
@@ -76,11 +79,11 @@ impl VerifyCommand {
         let build_result = execute(args)?;
 
         // 3. Read output file, compare with given contract_wasm
-        let reference_wasm = metadata.source.wasm.unwrap().to_string();
+        let reference_wasm = metadata.source.wasm.unwrap();
 
         let built_wasm_path = build_result.dest_wasm.unwrap();
         let fs_wasm = std::fs::read(built_wasm_path)?;
-        let built_wasm = build_byte_str(&fs_wasm);
+        let built_wasm = SourceWasm::new(fs_wasm);
 
         if reference_wasm != built_wasm {
             log::debug!(
@@ -88,6 +91,7 @@ impl VerifyCommand {
                 &reference_wasm,
                 &built_wasm
             );
+
             anyhow::bail!(
                 "Failed to verify the authenticity of `{}` contract againt the workspace found at {:?}.",
                 metadata.contract.name,
@@ -99,15 +103,4 @@ impl VerifyCommand {
 
         Ok(())
     }
-}
-
-fn build_byte_str(bytes: &[u8]) -> String {
-    use std::fmt::Write;
-
-    let mut str = String::new();
-    write!(str, "0x").expect("failed writing to string");
-    for byte in bytes {
-        write!(str, "{:02x}", byte).expect("failed writing to string");
-    }
-    str
 }
