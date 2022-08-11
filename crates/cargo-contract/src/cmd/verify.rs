@@ -58,11 +58,10 @@ impl VerifyCommand {
         let build_info = metadata.source.build_info.as_ref().unwrap();
         let build_info: BuildInfo =
             serde_json::from_value(build_info.clone().into()).unwrap();
-        dbg!(&build_info);
 
         // 2. Call `cmd::Build` with the given `BuildInfo`
         let args = ExecuteArgs {
-            manifest_path,
+            manifest_path: manifest_path.clone(),
             verbosity: Default::default(),
             build_mode: build_info.build_mode,
             network: Default::default(),
@@ -74,9 +73,41 @@ impl VerifyCommand {
             output_type: Default::default(),
         };
 
-        let _build_result = execute(args)?;
+        let build_result = execute(args)?;
 
         // 3. Read output file, compare with given contract_wasm
-        todo!()
+        let reference_wasm = metadata.source.wasm.unwrap().to_string();
+
+        let built_wasm_path = build_result.dest_wasm.unwrap();
+        let fs_wasm = std::fs::read(built_wasm_path)?;
+        let built_wasm = build_byte_str(&fs_wasm);
+
+        if reference_wasm != built_wasm {
+            log::debug!(
+                "Expected Wasm Binary '{}'\n\nGot Wasm Binary `{}`",
+                &reference_wasm,
+                &built_wasm
+            );
+            anyhow::bail!(
+                "Failed to verify the authenticity of `{}` contract againt the workspace found at {:?}.",
+                metadata.contract.name,
+                manifest_path.as_ref(),
+            );
+        }
+
+        log::info!("Succesfully verified `{}`!", &metadata.contract.name);
+
+        Ok(())
     }
+}
+
+fn build_byte_str(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+
+    let mut str = String::new();
+    write!(str, "0x").expect("failed writing to string");
+    for byte in bytes {
+        write!(str, "{:02x}", byte).expect("failed writing to string");
+    }
+    str
 }
