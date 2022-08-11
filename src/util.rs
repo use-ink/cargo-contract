@@ -150,7 +150,7 @@ macro_rules! maybe_println {
     };
 }
 
-pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+pub const DEFAULT_KEY_COL_WIDTH: usize = 12;
 
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]
