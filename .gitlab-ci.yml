@@ -48,6 +48,7 @@ workflow:
     - rustup show
     - cargo dylint --version
     - bash --version
+    - echo $RUSTC_WRAPPER
     # global RUSTFLAGS overrides the linker args so this way is better to pass the flags
     - printf '[build]\nrustflags = ["-C", "link-dead-code"]\n' > ${CARGO_HOME}/config
     - cachepot -s
