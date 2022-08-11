@@ -143,14 +143,7 @@ test-no-run-cachier:
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH: "635"
   script:
-    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
-    - rusty-cachier environment check --gracefully
-    - $(rusty-cachier environment inject)
-    - rusty-cachier project mtime
-    - rusty-cachier snapshot create
-    - cargo build
-    - rusty-cachier cache upload
-    - rusty-cachier snapshot destroy
+    - rusty-cachier cache notify
 
 # test-no-run-both:
 #   stage:                           test
