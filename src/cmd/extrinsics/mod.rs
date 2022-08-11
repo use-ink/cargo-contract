@@ -267,15 +267,16 @@ fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
         "Confirm transaction details:".bright_white().bold()
     );
     show_details();
-    print!("{} (Y/n): ", "Submit?".bright_white().bold());
+    print!("{} ({}/n): ", "Submit?".bright_white().bold(), "Y".bright_white().bold());
 
     let mut buf = String::new();
     io::stdout().flush()?;
     io::stdin().read_line(&mut buf)?;
-    match buf.trim() {
-        "Y" => Ok(()),
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'y'
+        "y" | "" => Ok(()),
         "n" => Err(anyhow!("Transaction not submitted")),
-        c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }
 
