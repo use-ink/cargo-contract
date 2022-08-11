@@ -125,14 +125,12 @@ workflow:
 test-no-run-basic:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *collect-artifacts
   script:
     - cargo build
 
 test-no-run-cachepot:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *collect-artifacts
   variables:
     RUSTC_WRAPPER: cachepot
   script:
@@ -142,7 +140,6 @@ test-no-run-cachepot:
 test-no-run-cachier:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *collect-artifacts
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH:     master
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
@@ -158,7 +155,6 @@ test-no-run-cachier:
 test-no-run-both:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *collect-artifacts
   variables:
     RUSTY_CACHIER_SINGLE_BRANCH:     master
     RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
