@@ -74,7 +74,7 @@ pub fn display_events(
             event.variant_name().bright_white().bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
-        let event_data = &mut event.bytes();
+        let event_data = &mut event.field_bytes();
         let mut unnamed_field_name = 0;
         for (field, field_ty) in event_fields {
             if <ContractEmitted as StaticEvent>::is_event(
