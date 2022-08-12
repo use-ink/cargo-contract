@@ -91,7 +91,7 @@ impl CallCommand {
             load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
         let transcoder = ContractMessageTranscoder::new(&contract_metadata);
         let call_data = transcoder.encode(&self.message, &self.args)?;
-        log::debug!("Message data: {:?}", hex::encode(&call_data));
+        tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
@@ -168,7 +168,7 @@ impl CallCommand {
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
     ) -> Result<()> {
-        log::debug!("calling contract {:?}", self.contract);
+        tracing::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(client, data.clone(), signer)

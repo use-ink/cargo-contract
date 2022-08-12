@@ -473,7 +473,7 @@ enum Command {
 }
 
 fn main() {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
     match exec(args.cmd) {

@@ -142,7 +142,7 @@ impl InstantiateCommand {
         let verbosity = self.extrinsic_opts.verbosity()?;
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
-            log::info!("Contract code path: {}", wasm_path.display());
+            tracing::info!("Contract code path: {}", wasm_path.display());
             let code = fs::read(&wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
             Ok(Code::Upload(code.into()))
@@ -214,7 +214,7 @@ pub struct Exec<'a> {
 
 impl<'a> Exec<'a> {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
-        log::debug!("instantiate data {:?}", self.args.data);
+        tracing::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
             match result.result {

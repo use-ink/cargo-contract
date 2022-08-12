@@ -77,7 +77,7 @@ impl UploadCommand {
             None => crate_metadata.dest_wasm,
         };
 
-        log::info!("Contract code path: {}", wasm_path.display());
+        tracing::info!("Contract code path: {}", wasm_path.display());
         let code = std::fs::read(&wasm_path)
             .context(format!("Failed to read from {}", wasm_path.display()))?;
 
