@@ -165,7 +165,7 @@ fn build_and_zip_dylint_driver(
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
-    let mut cmd = Command::new("cargo");
+    let mut cmd = Command::new("rustup");
 
     let manifest_arg = format!(
         "--manifest-path={}",
@@ -173,6 +173,9 @@ fn build_and_zip_dylint_driver(
     );
     let target_dir = format!("--target-dir={}", out_dir.display());
     cmd.args(vec![
+        "run",
+        "nightly-2022-06-30",
+        "cargo",
         "build",
         "--release",
         "--locked",
