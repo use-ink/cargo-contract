@@ -62,7 +62,7 @@ pub fn display_events(
 
     for event in result.iter_raw() {
         let event = event?;
-        log::debug!("displaying event {:?}", event);
+        tracing::debug!("displaying event {:?}", event);
 
         let event_metadata =
             subxt_metadata.event(event.pallet_index, event.variant_index)?;
@@ -81,7 +81,7 @@ pub fn display_events(
             if <ContractEmitted as Event>::is_event(&event.pallet, &event.variant)
                 && field.name() == Some(&"data".to_string())
             {
-                log::debug!("event data: {:?}", hex::encode(&event_data));
+                tracing::debug!("event data: {:?}", hex::encode(&event_data));
                 let contract_event = transcoder.decode_contract_event(event_data)?;
                 maybe_println!(
                     verbosity,

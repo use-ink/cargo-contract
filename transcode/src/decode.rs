@@ -66,7 +66,7 @@ impl<'a> Decoder<'a> {
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
             anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
         })?;
-        log::debug!(
+        tracing::debug!(
             "Decoding input with type id `{:?}` and definition `{:?}`",
             type_id,
             ty

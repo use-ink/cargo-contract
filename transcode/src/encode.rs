@@ -73,7 +73,7 @@ impl<'a> Encoder<'a> {
             anyhow::anyhow!("Failed to resolve type with id '{:?}'", type_id)
         })?;
 
-        log::debug!(
+        tracing::debug!(
             "Encoding value `{:?}` with type id `{:?}` and definition `{:?}`",
             value,
             type_id,

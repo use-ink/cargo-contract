@@ -199,7 +199,7 @@ impl Workspace {
         let tmp_dir = tempfile::Builder::new()
             .prefix("cargo-contract_")
             .tempdir()?;
-        log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
+        tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
         let new_paths = self.write(&tmp_dir)?;
         let root_manifest_path = new_paths
             .iter()
