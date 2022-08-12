@@ -165,34 +165,6 @@ fn build_and_zip_dylint_driver(
     out_dir: PathBuf,
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
-    const NIGHTLY_TOOLCHAIN: &str = "nightly-2022-06-30";
-
-    let mut install_toolchain = Command::new("rustup");
-    install_toolchain
-        .args(vec![
-            "toolchain",
-            "install",
-            NIGHTLY_TOOLCHAIN,
-            "--component",
-            "llvm-tools-preview",
-            "rustc-dev",
-        ]);
-
-    let child = install_toolchain
-        // Capture the stdout to return from this function as bytes
-        .stdout(std::process::Stdio::piped())
-        .spawn()?;
-
-    let output = child.wait_with_output()?;
-
-    if !output.status.success() {
-        anyhow::bail!(
-            "`{:?}` failed with exit code: {:?}",
-            install_toolchain,
-            output.status.code()
-        );
-    }
-
     let mut cmd = Command::new("rustup");
 
     let manifest_arg = format!(
@@ -202,7 +174,7 @@ fn build_and_zip_dylint_driver(
     let target_dir = format!("--target-dir={}", out_dir.display());
     cmd.args(vec![
         "run",
-        NIGHTLY_TOOLCHAIN,
+        "nightly-2022-06-30",
         "cargo",
         "build",
         "--release",
