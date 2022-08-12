@@ -17,19 +17,19 @@
 use super::{
     display_contract_exec_result,
     display_events,
-    dry_run_error_details,
     parse_balance,
     prompt_confirm_tx,
     runtime_api::api,
-    wait_for_success_and_handle_error,
+    submit_extrinsic,
     Balance,
+    Client,
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
+    ContractsRpcError,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
-    RuntimeDispatchError,
     MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -67,13 +67,12 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
     Config,
-    DefaultConfig,
+    OnlineClient,
 };
 
 type ContractInstantiateResult = ContractResult<
-    result::Result<InstantiateReturnValue<ContractAccount>, RuntimeDispatchError>,
+    result::Result<InstantiateReturnValue<ContractAccount>, ContractsRpcError>,
     Balance,
 >;
 
@@ -175,16 +174,19 @@ impl InstantiateCommand {
             salt,
         };
 
-        let exec = Exec {
-            args,
-            opts: self.extrinsic_opts.clone(),
-            url,
-            verbosity,
-            signer,
-            transcoder,
-        };
-
         async_std::task::block_on(async move {
+            let client = OnlineClient::from_url(url.clone()).await?;
+
+            let exec = Exec {
+                args,
+                opts: self.extrinsic_opts.clone(),
+                url,
+                client,
+                verbosity,
+                signer,
+                transcoder,
+            };
+
             exec.exec(code, self.extrinsic_opts.dry_run).await
         })
     }
@@ -205,20 +207,12 @@ pub struct Exec<'a> {
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
+    client: Client,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder<'a>,
 }
 
 impl<'a> Exec<'a> {
-    async fn subxt_api(&self) -> Result<RuntimeApi> {
-        let api = ClientBuilder::new()
-            .set_url(&self.url)
-            .build()
-            .await?
-            .to_runtime_api::<RuntimeApi>();
-        Ok(api)
-    }
-
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         log::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
@@ -248,8 +242,8 @@ impl<'a> Exec<'a> {
                     display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                 }
                 Err(ref err) => {
-                    let err =
-                        dry_run_error_details(&self.subxt_api().await?, err).await?;
+                    let metadata = self.client.metadata();
+                    let err = err.error_details(&metadata)?;
                     name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                 }
@@ -277,7 +271,6 @@ impl<'a> Exec<'a> {
         &self,
         code: Bytes,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
-        let api = self.subxt_api().await?;
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
             .await?;
@@ -286,26 +279,21 @@ impl<'a> Exec<'a> {
             prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
         }
 
-        let tx_progress = api
-            .tx()
-            .contracts()
-            .instantiate_with_code(
-                self.args.value,
-                gas_limit,
-                self.args.storage_deposit_limit,
-                code.to_vec(),
-                self.args.data.clone(),
-                self.args.salt.0.clone(),
-            )?
-            .sign_and_submit_then_watch_default(&self.signer)
-            .await?;
+        let call = api::tx().contracts().instantiate_with_code(
+            self.args.value,
+            gas_limit,
+            self.args.storage_deposit_limit,
+            code.to_vec(),
+            self.args.data.clone(),
+            self.args.salt.0.clone(),
+        );
 
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
         display_events(
             &result,
             &self.transcoder,
-            &api.client.metadata().read(),
+            &self.client.metadata(),
             &self.verbosity,
         )?;
 
@@ -322,7 +310,6 @@ impl<'a> Exec<'a> {
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
-        let api = self.subxt_api().await?;
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
             .await?;
@@ -338,26 +325,21 @@ impl<'a> Exec<'a> {
             })?;
         }
 
-        let tx_progress = api
-            .tx()
-            .contracts()
-            .instantiate(
-                self.args.value,
-                gas_limit,
-                self.args.storage_deposit_limit,
-                code_hash,
-                self.args.data.clone(),
-                self.args.salt.0.clone(),
-            )?
-            .sign_and_submit_then_watch_default(&self.signer)
-            .await?;
+        let call = api::tx().contracts().instantiate(
+            self.args.value,
+            gas_limit,
+            self.args.storage_deposit_limit,
+            code_hash,
+            self.args.data.clone(),
+            self.args.salt.0.clone(),
+        );
 
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
         display_events(
             &result,
             &self.transcoder,
-            &api.client.metadata().read(),
+            &self.client.metadata(),
             &self.verbosity,
         )?;
 
@@ -424,7 +406,7 @@ impl<'a> Exec<'a> {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = dry_run_error_details(&self.subxt_api().await?, err).await?;
+                let err = err.error_details(&self.client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                     &instantiate_result,

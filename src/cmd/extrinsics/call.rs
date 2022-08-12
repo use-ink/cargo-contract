@@ -17,17 +17,17 @@
 use super::{
     display_contract_exec_result,
     display_events,
-    dry_run_error_details,
     load_metadata,
     parse_balance,
     prompt_confirm_tx,
-    wait_for_success_and_handle_error,
+    submit_extrinsic,
     Balance,
+    Client,
     ContractMessageTranscoder,
+    ContractsRpcError,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
-    RuntimeDispatchError,
     MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -55,13 +55,12 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
     Config,
-    DefaultConfig,
+    OnlineClient,
 };
 
 type ContractExecResult =
-    ContractResult<result::Result<ExecReturnValue, RuntimeDispatchError>, Balance>;
+    ContractResult<result::Result<ExecReturnValue, ContractsRpcError>, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -98,11 +97,7 @@ impl CallCommand {
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let api = ClientBuilder::new()
-                .set_url(&url)
-                .build()
-                .await?
-                .to_runtime_api::<RuntimeApi>();
+            let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
                 let result = self.call_dry_run(call_data, &signer).await?;
@@ -129,13 +124,13 @@ impl CallCommand {
                         display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                     }
                     Err(ref err) => {
-                        let err = dry_run_error_details(&api, err).await?;
+                        let err = err.error_details(&client.metadata())?;
                         name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                     }
                 }
             } else {
-                self.call(&api, call_data, &signer, &transcoder).await
+                self.call(&client, call_data, &signer, &transcoder).await
             }
         })
     }
@@ -168,7 +163,7 @@ impl CallCommand {
 
     async fn call(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
@@ -176,7 +171,7 @@ impl CallCommand {
         log::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(api, data.clone(), signer)
+            .pre_submit_dry_run_gas_estimate(client, data.clone(), signer)
             .await?;
 
         if !self.extrinsic_opts.skip_confirm {
@@ -191,25 +186,20 @@ impl CallCommand {
             })?;
         }
 
-        let tx_progress = api
-            .tx()
-            .contracts()
-            .call(
-                self.contract.clone().into(),
-                self.value,
-                gas_limit,
-                self.extrinsic_opts.storage_deposit_limit,
-                data,
-            )?
-            .sign_and_submit_then_watch_default(signer)
-            .await?;
+        let call = super::runtime_api::api::tx().contracts().call(
+            self.contract.clone().into(),
+            self.value,
+            gas_limit,
+            self.extrinsic_opts.storage_deposit_limit,
+            data,
+        );
 
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(client, &call, signer).await?;
 
         display_events(
             &result,
             transcoder,
-            &api.client.metadata().read(),
+            &client.metadata(),
             &self.extrinsic_opts.verbosity()?,
         )
     }
@@ -217,7 +207,7 @@ impl CallCommand {
     /// Dry run the call before tx submission. Returns the gas required estimate.
     async fn pre_submit_dry_run_gas_estimate(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
     ) -> Result<u64> {
@@ -240,7 +230,7 @@ impl CallCommand {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = dry_run_error_details(api, err).await?;
+                let err = err.error_details(&client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
