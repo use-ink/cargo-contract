@@ -175,6 +175,7 @@ fn build_and_zip_dylint_driver(
         "--component",
         "llvm-tools-preview",
         "rustc-dev",
+        "--no-self-update",
     ]);
 
     let child = install_toolchain
@@ -208,6 +209,7 @@ fn build_and_zip_dylint_driver(
         "--locked",
         &target_dir,
         &manifest_arg,
+        "--no-self-update",
     ]);
 
     // There are generally problems with having a custom `rustc` wrapper, while
@@ -215,13 +217,6 @@ fn build_and_zip_dylint_driver(
     // there is this bug: https://github.com/mozilla/sccache/issues/1000.
     // Until we have a justification for leaving the wrapper we should unset it.
     cmd.env_remove("RUSTC_WRAPPER");
-
-    // We need to remove those environment variables because `dylint` uses a
-    // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By removing
-    // these env variables we avoid issues with different Rust toolchains
-    // interfering with each other.
-    cmd.env_remove("RUSTUP_TOOLCHAIN");
-    cmd.env_remove("CARGO_TARGET_DIR");
 
     println!(
         "Setting cargo working dir to '{}'",
