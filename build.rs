@@ -209,6 +209,7 @@ fn build_and_zip_dylint_driver(
         "--locked",
         &target_dir,
         &manifest_arg,
+        "--no-self-update",
     ]);
 
     // There are generally problems with having a custom `rustc` wrapper, while
