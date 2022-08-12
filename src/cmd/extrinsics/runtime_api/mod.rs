@@ -15,17 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 #[subxt::subxt(
-    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale",
-    derive_for_type(type = "sp_runtime::DispatchError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::ModuleError", derive = "::serde::Deserialize"),
-    derive_for_type(type = "sp_runtime::TokenError", derive = "::serde::Deserialize"),
-    derive_for_type(
-        type = "sp_runtime::ArithmeticError",
-        derive = "::serde::Deserialize"
-    ),
-    derive_for_type(
-        type = "sp_runtime::TransactionalError",
-        derive = "::serde::Deserialize"
-    )
+    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale"
 )]
 pub mod api {}

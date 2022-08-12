@@ -25,8 +25,8 @@ use std::{
     time,
 };
 use subxt::{
-    Client,
-    ClientBuilder,
+    OnlineClient,
+    PolkadotConfig as DefaultConfig,
 };
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
@@ -43,7 +43,7 @@ fn cargo_contract(path: &Path) -> assert_cmd::Command {
 struct ContractsNodeProcess {
     proc: process::Child,
     tmp_dir: tempfile::TempDir,
-    client: Client<subxt::DefaultConfig>,
+    client: OnlineClient<DefaultConfig>,
 }
 
 impl Drop for ContractsNodeProcess {
@@ -76,7 +76,7 @@ impl ContractsNodeProcess {
                 attempts,
                 MAX_ATTEMPTS
             );
-            let result = ClientBuilder::new().build().await;
+            let result = OnlineClient::new().await;
             if let Ok(client) = result {
                 break Ok(client)
             }
