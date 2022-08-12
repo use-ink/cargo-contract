@@ -55,6 +55,7 @@ use sp_core::{
     sr25519,
 };
 use subxt::{
+    tx,
     Config,
     OnlineClient,
 };
@@ -68,7 +69,7 @@ pub use upload::UploadCommand;
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type ContractAccount = <DefaultConfig as Config>::AccountId;
-type PairSigner = subxt::tx::PairSigner<DefaultConfig, sr25519::Pair>;
+type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
 type Client = OnlineClient<DefaultConfig>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -220,14 +221,20 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
 ///
 /// Currently this will report success once the transaction is included in a block. In the future
 /// there could be a flag to wait for finality before reporting success.
-async fn wait_for_success_and_handle_error<T, C>(
-    tx_progress: subxt::tx::TxProgress<T, C>,
-) -> Result<subxt::tx::TxEvents<T>>
+async fn submit_extrinsic<T, Call>(
+    client: &OnlineClient<T>,
+    call: &Call,
+    signer: &(dyn tx::Signer<T> + Send + Sync),
+) -> Result<tx::TxEvents<T>>
 where
     T: Config,
-    C: subxt::client::OnlineClientT<T>,
+    <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
+    Call: tx::TxPayload,
 {
-    tx_progress
+    client
+        .tx()
+        .sign_and_submit_then_watch_default(call, signer)
+        .await?
         .wait_for_in_block()
         .await?
         .wait_for_success()

@@ -20,7 +20,7 @@ use super::{
     parse_balance,
     prompt_confirm_tx,
     runtime_api::api,
-    wait_for_success_and_handle_error,
+    submit_extrinsic,
     Balance,
     Client,
     CodeHash,
@@ -279,7 +279,6 @@ impl<'a> Exec<'a> {
             prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
         }
 
-        let client = &self.client;
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
             gas_limit,
@@ -288,17 +287,13 @@ impl<'a> Exec<'a> {
             self.args.data.clone(),
             self.args.salt.0.clone(),
         );
-        let tx_progress = client
-            .tx()
-            .sign_and_submit_then_watch_default(&call, &self.signer)
-            .await?;
 
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
         display_events(
             &result,
             &self.transcoder,
-            &client.metadata(),
+            &self.client.metadata(),
             &self.verbosity,
         )?;
 
@@ -330,8 +325,6 @@ impl<'a> Exec<'a> {
             })?;
         }
 
-        let client = &self.client;
-
         let call = api::tx().contracts().instantiate(
             self.args.value,
             gas_limit,
@@ -341,17 +334,12 @@ impl<'a> Exec<'a> {
             self.args.salt.0.clone(),
         );
 
-        let tx_progress = client
-            .tx()
-            .sign_and_submit_then_watch_default(&call, &self.signer)
-            .await?;
-
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
         display_events(
             &result,
             &self.transcoder,
-            &client.metadata(),
+            &self.client.metadata(),
             &self.verbosity,
         )?;
 

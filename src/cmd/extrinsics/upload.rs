@@ -17,7 +17,7 @@
 use super::{
     display_events,
     runtime_api::api,
-    wait_for_success_and_handle_error,
+    submit_extrinsic,
     Balance,
     Client,
     CodeHash,
@@ -161,12 +161,7 @@ impl UploadCommand {
             .contracts()
             .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
 
-        let tx_progress = client
-            .tx()
-            .sign_and_submit_then_watch_default(&call, signer)
-            .await?;
-
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(client, &call, signer).await?;
 
         display_events(
             &result,
