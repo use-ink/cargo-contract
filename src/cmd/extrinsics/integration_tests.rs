@@ -136,7 +136,7 @@ impl ContractsNodeProcess {
 #[ignore]
 #[async_std::test]
 async fn build_upload_instantiate_call() {
-    env_logger::try_init().ok();
+    tracing_subscriber::fmt::init();
 
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
