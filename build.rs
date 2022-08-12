@@ -168,15 +168,14 @@ fn build_and_zip_dylint_driver(
     const NIGHTLY_TOOLCHAIN: &str = "nightly-2022-06-30";
 
     let mut install_toolchain = Command::new("rustup");
-    install_toolchain
-        .args(vec![
-            "toolchain",
-            "install",
-            NIGHTLY_TOOLCHAIN,
-            "--component",
-            "llvm-tools-preview",
-            "rustc-dev",
-        ]);
+    install_toolchain.args(vec![
+        "toolchain",
+        "install",
+        NIGHTLY_TOOLCHAIN,
+        "--component",
+        "llvm-tools-preview",
+        "rustc-dev",
+    ]);
 
     let child = install_toolchain
         // Capture the stdout to return from this function as bytes
