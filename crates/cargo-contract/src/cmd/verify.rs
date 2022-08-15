@@ -63,6 +63,23 @@ impl VerifyCommand {
             serde_json::from_value(build_info.clone().into()).unwrap();
 
         // 2. Call `cmd::Build` with the given `BuildInfo`
+        let expected_rustc_version = build_info.rustc_version;
+        let rustc_version = rustc_version::version_meta()?;
+        let rustc_version = format!(
+            "{:?}-{}",
+            rustc_version.channel,
+            rustc_version.commit_date.expect("TODO")
+        )
+        .to_lowercase();
+
+        anyhow::ensure!(
+            rustc_version == expected_rustc_version,
+            "You are trying to `verify` a contract using the `{rustc_version}` toolchain.\n\
+             However, the original contract was built using `{expected_rustc_version}`. Please\n\
+             install the correct toolchain (`rustup install {expected_rustc_version}`) and\n\
+             re-run the `verify` command.",
+        );
+
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
             verbosity: Default::default(),
