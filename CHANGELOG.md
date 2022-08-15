@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2022-08-15
+
+- Fix windows dylint build (#690)
+
+### Added
+- Dry run gas limit estimation [#484](https://github.com/paritytech/cargo-contract/pull/484)
+
+### Changed
+- Bump `ink_*` crates to `v3.3.1` [#686](https://github.com/paritytech/cargo-contract/pull/686)
+- Refactor out transcode as a separate library [#597](https://github.com/paritytech/cargo-contract/pull/597)
+- Sync `metadata` version with `cargo-contract` [#611](https://github.com/paritytech/cargo-contract/pull/611)
+- Adapt to new subxt API [#678](https://github.com/paritytech/cargo-contract/pull/678)
+- Replace log/env_logger with tracing/tracing_subscriber [#689](https://github.com/paritytech/cargo-contract/pull/689)
+- Contract upload: emitting a warning instead of an error when the contract already existed is more user friendly [#644](https://github.com/paritytech/cargo-contract/pull/644)
+
+### Fixed
+- Fix windows dylint build [#690](https://github.com/paritytech/cargo-contract/pull/690)
+- Fix `instantiate_with_code` with already uploaded code [#594](https://github.com/paritytech/cargo-contract/pull/594)
+
+
 ## [1.4.0] - 2022-05-18
 
 ### Changed
