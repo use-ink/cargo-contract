@@ -72,7 +72,7 @@ impl WasmOptHandler {
 
         let wasm_opt_path =
             which.expect("we just checked if `which` returned an err; qed");
-        log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+        tracing::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
         let version =
             Self::check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
@@ -98,7 +98,7 @@ impl WasmOptHandler {
         let mut dest_optimized = dest_wasm.clone();
         dest_optimized.set_file_name(format!("{}-opt.wasm", contract_artifact_name));
 
-        log::info!(
+        tracing::info!(
             "Optimization level passed to wasm-opt: {}",
             self.optimization_level
         );
@@ -118,7 +118,7 @@ impl WasmOptHandler {
             command.arg("-g");
         }
 
-        log::info!("Invoking wasm-opt with {:?}", command);
+        tracing::info!("Invoking wasm-opt with {:?}", command);
 
         let output = command.output().map_err(|err| {
             anyhow::anyhow!(
@@ -232,7 +232,7 @@ impl WasmOptHandler {
             )
         })?;
 
-        log::info!(
+        tracing::info!(
             "The wasm-opt version output is '{}', which was parsed to '{}'",
             version_stdout,
             version_number
