@@ -156,7 +156,7 @@ test-new-project-template:
     - cargo check --verbose
     - cargo test --verbose --all
     - cargo fmt --verbose --all -- --check
-    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings -A clippy::let-unit-value;
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
     - rusty-cachier cache upload
 
 # With the introduction of `ink_linting` in `build.rs` the installation process
