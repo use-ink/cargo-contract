@@ -254,11 +254,10 @@ impl WasmOptHandler {
 mod tests_ci_only {
     use super::*;
 
-    use crate::util::tests::with_tmp_dir;
-
-    use std::io::Write;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
+    use crate::util::tests::{
+        create_executable,
+        with_tmp_dir,
+    };
 
     /// Creates an executable `wasm-opt-mocked` file which outputs
     /// "wasm-opt version `version`".
@@ -272,22 +271,6 @@ mod tests_ci_only {
         let content = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
         create_executable(&path, &content);
         path
-    }
-
-    /// TODO: Dup from build.rs
-    ///
-    /// Creates an executable file at `path` with the content `content`.
-    ///
-    /// Currently works only on `unix`.
-    #[cfg(unix)]
-    fn create_executable(path: &Path, content: &str) {
-        {
-            let mut file = std::fs::File::create(&path).unwrap();
-            file.write_all(content.as_bytes())
-                .expect("writing of executable failed");
-        }
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-            .expect("setting permissions failed");
     }
 
     #[cfg(unix)]

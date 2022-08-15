@@ -737,7 +737,10 @@ mod tests_ci_only {
             build::load_module,
             BuildCommand,
         },
-        util::tests::with_new_contract_project,
+        util::tests::{
+            create_executable,
+            with_new_contract_project,
+        },
         workspace::Manifest,
         BuildArtifacts,
         BuildMode,
@@ -749,11 +752,8 @@ mod tests_ci_only {
         VerbosityFlags,
     };
     use semver::Version;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
     use std::{
         ffi::OsStr,
-        io::Write,
         path::Path,
     };
 
@@ -780,20 +780,6 @@ mod tests_ci_only {
             .unwrap()
             .custom_sections()
             .any(|e| e.name() == "name")
-    }
-
-    /// Creates an executable file at `path` with the content `content`.
-    ///
-    /// Currently works only on `unix`.
-    #[cfg(unix)]
-    fn create_executable(path: &Path, content: &str) {
-        {
-            let mut file = std::fs::File::create(&path).unwrap();
-            file.write_all(content.as_bytes())
-                .expect("writing of executable failed");
-        }
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-            .expect("setting permissions failed");
     }
 
     #[test]
