@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync `metadata` version with `cargo-contract` [#611](https://github.com/paritytech/cargo-contract/pull/611)
 - Adapt to new subxt API [#678](https://github.com/paritytech/cargo-contract/pull/678)
 - Replace log/env_logger with tracing/tracing_subscriber [#689](https://github.com/paritytech/cargo-contract/pull/689)
-- contract upload: emitting a warning instead of an error when the contract already existed is more user friendly [#644](https://github.com/paritytech/cargo-contract/pull/644)
+- Contract upload: emitting a warning instead of an error when the contract already existed is more user friendly [#644](https://github.com/paritytech/cargo-contract/pull/644)
 
 ### Fixed
 - Fix windows dylint build [#690](https://github.com/paritytech/cargo-contract/pull/690)
