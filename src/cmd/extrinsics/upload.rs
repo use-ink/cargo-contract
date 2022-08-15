@@ -16,22 +16,23 @@
 
 use super::{
     display_events,
-    dry_run_error_details,
     runtime_api::api,
-    wait_for_success_and_handle_error,
+    submit_extrinsic,
     Balance,
+    Client,
     CodeHash,
     ContractMessageTranscoder,
+    ContractsRpcError,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    RuntimeApi,
-    RuntimeDispatchError,
 };
 use crate::name_value_println;
 use anyhow::{
     Context,
     Result,
 };
+use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
@@ -46,12 +47,11 @@ use std::{
 };
 use subxt::{
     rpc::NumberOrHex,
-    ClientBuilder,
     Config,
-    DefaultConfig,
+    OnlineClient,
 };
 
-type CodeUploadResult = result::Result<CodeUploadReturnValue, RuntimeDispatchError>;
+type CodeUploadResult = result::Result<CodeUploadReturnValue, ContractsRpcError>;
 type CodeUploadReturnValue =
     pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
@@ -77,17 +77,13 @@ impl UploadCommand {
             None => crate_metadata.dest_wasm,
         };
 
-        log::info!("Contract code path: {}", wasm_path.display());
+        tracing::info!("Contract code path: {}", wasm_path.display());
         let code = std::fs::read(&wasm_path)
             .context(format!("Failed to read from {}", wasm_path.display()))?;
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let api = ClientBuilder::new()
-                .set_url(&url)
-                .build()
-                .await?
-                .to_runtime_api::<RuntimeApi>();
+            let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
                 match self.upload_code_rpc(code, &signer).await? {
@@ -100,16 +96,27 @@ impl UploadCommand {
                         name_value_println!("Deposit", format!("{:?}", result.deposit));
                     }
                     Err(err) => {
-                        let err = dry_run_error_details(&api, &err).await?;
+                        let metadata = client.metadata();
+                        let err = err.error_details(&metadata)?;
                         name_value_println!("Result", err);
                     }
                 }
                 Ok(())
             } else {
-                let code_stored =
-                    self.upload_code(&api, code, &signer, &transcoder).await?;
-
-                name_value_println!("Code hash", format!("{:?}", code_stored.code_hash));
+                if let Some(code_stored) = self
+                    .upload_code(&client, code, &signer, &transcoder)
+                    .await?
+                {
+                    name_value_println!(
+                        "Code hash",
+                        format!("{:?}", code_stored.code_hash)
+                    );
+                } else {
+                    eprintln!(
+                        "{} This contract has already been uploaded",
+                        "warning:".yellow().bold(),
+                    );
+                }
 
                 Ok(())
             }
@@ -145,30 +152,25 @@ impl UploadCommand {
 
     async fn upload_code(
         &self,
-        api: &RuntimeApi,
+        client: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder<'_>,
-    ) -> Result<api::contracts::events::CodeStored> {
-        let tx_progress = api
-            .tx()
+    ) -> Result<Option<api::contracts::events::CodeStored>> {
+        let call = super::runtime_api::api::tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit)?
-            .sign_and_submit_then_watch_default(signer)
-            .await?;
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
 
-        let result = wait_for_success_and_handle_error(tx_progress).await?;
+        let result = submit_extrinsic(client, &call, signer).await?;
 
         display_events(
             &result,
             transcoder,
-            &api.client.metadata().read(),
+            &client.metadata(),
             &self.extrinsic_opts.verbosity()?,
         )?;
 
-        let code_stored = result
-            .find_first::<api::contracts::events::CodeStored>()?
-            .ok_or_else(|| anyhow::anyhow!("Failed to find CodeStored event"))?;
+        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
 
         Ok(code_stored)
     }

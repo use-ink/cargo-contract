@@ -20,6 +20,8 @@ variables:
   CI_IMAGE:                        "paritytech/contracts-ci-linux:production"
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
+  # paritytech/contracts-ci-linux:production defaults to nightly toolchain, default rusty-cachier to it too
+  RUSTY_CACHIER_TOOLCHAIN:         nightly
 
 workflow:
   rules:
@@ -77,6 +79,10 @@ workflow:
   tags:
     - linux-docker
 
+.kubernetes-env:                  &kubernetes-env
+  image:                           "${CI_IMAGE}"
+  tags:
+    - kubernetes-parity-build
 
 #### stage:                        check
 # be aware that the used image has cargo-contract installed
@@ -150,7 +156,7 @@ test-new-project-template:
     - cargo check --verbose
     - cargo test --verbose --all
     - cargo fmt --verbose --all -- --check
-    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings;
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings -A clippy::let-unit-value;
     - rusty-cachier cache upload
 
 # With the introduction of `ink_linting` in `build.rs` the installation process
@@ -203,6 +209,11 @@ build:
 
 rusty-cachier-notify:
   stage:                           notify
-  <<:                              *docker-env
+  <<:                              *kubernetes-env
+  variables:
+    CI_IMAGE:                      paritytech/rusty-cachier-env:latest
+    GIT_STRATEGY:                  none
+  dependencies:                    []
   script:
+    - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - rusty-cachier cache notify

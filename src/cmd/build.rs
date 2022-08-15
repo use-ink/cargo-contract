@@ -436,7 +436,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract-dylint_")
         .tempdir()?;
-    log::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
+    tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
 
     let driver = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
     crate::util::unzip(driver, tmp_dir.path().to_path_buf(), None)?;
@@ -508,13 +508,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             .stderr(std::process::Stdio::null())
             .spawn()
             .map_err(|err| {
-                log::debug!("Error spawning `{:?}`", cmd);
+                tracing::debug!("Error spawning `{:?}`", cmd);
                 err
             })?
             .wait()
             .map(|res| res.success())
             .map_err(|err| {
-                log::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
+                tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
                 err
             })
     };
@@ -706,11 +706,11 @@ fn do_optimization(
         .as_ref()
         .expect("we just checked if `which` returned an err; qed")
         .as_path();
-    log::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+    tracing::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
     check_wasm_opt_version_compatibility(wasm_opt_path)?;
 
-    log::info!(
+    tracing::info!(
         "Optimization level passed to wasm-opt: {}",
         optimization_level
     );
@@ -727,7 +727,7 @@ fn do_optimization(
     if keep_debug_symbols {
         command.arg("-g");
     }
-    log::info!("Invoking wasm-opt with {:?}", command);
+    tracing::info!("Invoking wasm-opt with {:?}", command);
     let output = command.output().map_err(|err| {
         anyhow::anyhow!(
             "Executing {} failed with {:?}",
@@ -823,7 +823,7 @@ fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
             )
         })?;
 
-    log::info!(
+    tracing::info!(
         "The wasm-opt version output is '{}', which was parsed to '{}'",
         version_stdout,
         version_number
@@ -871,7 +871,7 @@ fn assert_compatible_ink_dependencies(
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
-    log::info!("Contract version: {:?}", ink_version);
+    tracing::info!("Contract version: {:?}", ink_version);
     let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
         anyhow::bail!(
@@ -1451,18 +1451,16 @@ mod tests_ci_only {
 
     #[test]
     pub fn debug_mode_must_be_compatible() {
-        let _ = assert_debug_mode_supported(
+        assert_debug_mode_supported(
             &Version::parse("3.0.0-rc4").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
-        let _ = assert_debug_mode_supported(
+        assert_debug_mode_supported(
             &Version::parse("4.0.0-rc1").expect("parsing must work"),
         )
         .expect("debug mode must be compatible");
-        let _ = assert_debug_mode_supported(
-            &Version::parse("5.0.0").expect("parsing must work"),
-        )
-        .expect("debug mode must be compatible");
+        assert_debug_mode_supported(&Version::parse("5.0.0").expect("parsing must work"))
+            .expect("debug mode must be compatible");
     }
 
     #[test]

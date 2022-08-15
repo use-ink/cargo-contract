@@ -88,7 +88,7 @@ impl FromStr for HexData {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OptimizationPasses {
     Zero,
     One,
@@ -474,7 +474,7 @@ enum Command {
 }
 
 fn main() {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
     match exec(args.cmd) {

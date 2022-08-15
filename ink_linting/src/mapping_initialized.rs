@@ -14,21 +14,44 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use clippy_utils::diagnostics::span_lint_and_then;
-use clippy_utils::source::snippet_opt;
+use clippy_utils::{
+    diagnostics::span_lint_and_then,
+    source::snippet_opt,
+};
 use if_chain::if_chain;
 use regex::Regex;
+use rustc_ast as ast;
 use rustc_errors::Applicability;
 use rustc_hir::{
     def_id::DefId,
-    intravisit::{walk_fn, walk_item, walk_qpath, FnKind, Visitor},
-    BodyId, FnDecl, HirId, Item, ItemKind,
+    intravisit::{
+        walk_fn,
+        walk_item,
+        walk_qpath,
+        FnKind,
+        Visitor,
+    },
+    BodyId,
+    FnDecl,
+    HirId,
+    Item,
+    ItemKind,
+    QPath,
+    VariantData,
 };
-use rustc_hir::{QPath, VariantData};
-use rustc_lint::{LateContext, LateLintPass};
-use rustc_middle::{hir::nested_filter, ty::Attributes};
-use rustc_session::{declare_lint, declare_lint_pass};
-use rustc_span::source_map::Span;
+use rustc_lint::{
+    LateContext,
+    LateLintPass,
+};
+use rustc_middle::hir::nested_filter;
+use rustc_session::{
+    declare_lint,
+    declare_lint_pass,
+};
+use rustc_span::{
+    source_map::Span,
+    symbol::sym,
+};
 
 declare_lint! {
     /// **What it does:** Checks for ink! contracts that use
@@ -104,7 +127,7 @@ enum InkAttribute {
 }
 
 /// Returns `Some(InkAttribute)` if an ink! attribute is among `attributes`.
-fn get_ink_attribute(attributes: Attributes) -> Option<InkAttribute> {
+fn get_ink_attribute(attributes: &[ast::Attribute]) -> Option<InkAttribute> {
     const INK_STORAGE: &str = "__ink_dylint_Storage";
     const INK_CONSTRUCTOR: &str = "__ink_dylint_Constructor";
 
@@ -123,12 +146,12 @@ impl<'tcx> LateLintPass<'tcx> for MappingInitialized {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
         let ink_attrs = get_ink_attribute(attrs);
         if ink_attrs.is_none() {
-            return;
+            return
         }
 
         if let ItemKind::Struct(variant_data, _) = &item.kind {
             if let VariantData::Unit(..) = variant_data {
-                return;
+                return
             }
             check_struct(cx, item, variant_data);
         }
@@ -156,14 +179,14 @@ fn check_struct<'a>(cx: &LateContext<'a>, item: &'a Item, data: &VariantData) {
             .expect("failed creating regex");
         if re.is_match(&format!("{:?}", field.ty.kind)) {
             marker = Some(field);
-            return true;
+            return true
         }
         false
     });
 
     if !storage_contains_mapping {
         log::debug!("Found `#[ink(storage)]` struct without `Mapping`");
-        return;
+        return
     }
     log::debug!("Found `#[ink(storage)]` struct with `Mapping`");
 
@@ -257,17 +280,24 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
         // We can return immediately if an incorrect constructor was already found
         if let Some(constructor) = &self.constructor_info {
             if !constructor.uses_initialize_contract {
-                return;
+                return
             }
         }
 
-        let attrs = self.cx.tcx.get_attrs(id.owner.to_def_id());
-        self.ink_attribute = get_ink_attribute(attrs);
+        let attrs: Vec<ast::Attribute> = self
+            .cx
+            .tcx
+            .get_attrs(id.owner.to_def_id(), sym::cfg)
+            .cloned()
+            .collect();
+        self.ink_attribute = get_ink_attribute(&attrs);
 
         if self.ink_attribute == Some(InkAttribute::Storage) {
-            return;
+            return
         } else if self.ink_attribute == Some(InkAttribute::Constructor) {
-            log::debug!("Found constructor, starting to search for `initialize_contract`");
+            log::debug!(
+                "Found constructor, starting to search for `initialize_contract`"
+            );
             let mut visitor = InitializeContractVisitor {
                 cx: self.cx,
                 uses_initialize_contract: false,
@@ -283,7 +313,7 @@ impl<'tcx> Visitor<'tcx> for InkAttributeVisitor<'_, 'tcx> {
                 span,
             });
 
-            return;
+            return
         }
 
         walk_fn(self, kind, decl, body_id, span, id);
@@ -313,17 +343,18 @@ impl<'tcx> Visitor<'tcx> for InitializeContractVisitor<'_, 'tcx> {
     fn visit_qpath(&mut self, qpath: &'tcx QPath<'_>, id: HirId, span: Span) {
         log::debug!("Visiting path {:?}", qpath);
         if self.uses_initialize_contract {
-            return;
+            return
         }
 
         if let QPath::Resolved(_, path) = qpath {
             log::debug!("QPath: {:?}", path.res);
-            let re =
-                Regex::new(r"ink_lang\[.*\]::codegen::dispatch::execution::initialize_contract")
-                    .expect("failed creating regex");
+            let re = Regex::new(
+                r"ink_lang\[.*\]::codegen::dispatch::execution::initialize_contract",
+            )
+            .expect("failed creating regex");
             if re.is_match(&format!("{:?}", path.res)) {
                 self.uses_initialize_contract = true;
-                return;
+                return
             }
         }
 

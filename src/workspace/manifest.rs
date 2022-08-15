@@ -435,7 +435,7 @@ impl Manifest {
             let path = PathBuf::from(path_str);
             if path.is_relative() {
                 let lib_abs = abs_dir.join(path);
-                log::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
+                tracing::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
                 *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
             }
             Ok(())
@@ -460,7 +460,7 @@ impl Manifest {
                             )
                         }
                         let path = abs_dir.join(default_path);
-                        log::debug!("Adding default path '{}'", path.display());
+                        tracing::debug!("Adding default path '{}'", path.display());
                         table.insert(
                             "path".into(),
                             value::Value::String(path.to_string_lossy().into()),
@@ -560,7 +560,7 @@ impl Manifest {
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
-        log::debug!(
+        tracing::debug!(
             "Writing updated manifest to '{}'",
             manifest_path.as_ref().display()
         );

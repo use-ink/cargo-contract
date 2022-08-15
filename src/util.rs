@@ -94,7 +94,7 @@ where
     });
 
     if let Some(path) = working_dir {
-        log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
 
@@ -112,7 +112,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    log::info!("Invoking cargo: {:?}", cmd);
+    tracing::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -142,11 +142,7 @@ pub(crate) fn base_name(path: &Path) -> &str {
 
 /// Decode hex string with or without 0x prefix
 pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
-    if input.starts_with("0x") {
-        hex::decode(input.trim_start_matches("0x"))
-    } else {
-        hex::decode(input)
-    }
+    hex::decode(input.trim_start_matches("0x"))
 }
 
 /// PackageId looks like this:
@@ -184,7 +180,7 @@ macro_rules! maybe_println {
     };
 }
 
-pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+pub const DEFAULT_KEY_COL_WIDTH: usize = 12;
 
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]

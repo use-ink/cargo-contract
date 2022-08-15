@@ -154,7 +154,7 @@ pub fn get_cargo_workspace_members(
 
 /// Get the result of `cargo metadata`, together with the root package id.
 fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Package)> {
-    log::info!(
+    tracing::info!(
         "Fetching cargo metadata for {}",
         manifest_path.as_ref().to_string_lossy()
     );
