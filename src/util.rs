@@ -314,10 +314,10 @@ pub mod tests {
 
             let mut output = File::create(manifest_path.clone())?;
             write!(output, "[workspace]\n\n")?;
-            write!(output, "members = [\n")?;
-            write!(output, "  \"{}\",\n", unique_name_0)?;
-            write!(output, "\"{}\",\n", unique_name_1)?;
-            write!(output, "\"{}\",\n", unique_name_2)?;
+            writeln!(output, "members = [")?;
+            writeln!(output, "  \"{}\",", unique_name_0)?;
+            writeln!(output, "\"{}\",", unique_name_1)?;
+            writeln!(output, "\"{}\",", unique_name_2)?;
             write!(output, "]")?;
 
             f(manifest_path)

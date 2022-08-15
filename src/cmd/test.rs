@@ -54,10 +54,12 @@ impl TestCommand {
                     ManifestPath::try_from(self.manifest_path.as_ref())?;
                 root_manifest_path
                     .subcontract_manifest_path(package)
-                    .expect(&format!(
+                    .unwrap_or_else(|| {
+                        panic!(
                         "error: package ID specification `{}` did not match any packages",
                         package
-                    ))
+                    )
+                    })
             }
             None => ManifestPath::try_from(self.manifest_path.as_ref())?,
         };
