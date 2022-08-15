@@ -17,7 +17,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "src/lib.rs"
 
 [dependencies]
-anyhow = "1.0.60"
+anyhow = "1.0.61"
 contract-metadata = { version = "1", path = "../metadata" }
 env_logger = "0.9.0"
 escape8259 = "0.5.1"
@@ -26,7 +26,7 @@ indexmap = "1.9.1"
 ink_env = "3.3"
 ink_metadata = { version = "3.3", features = ["derive"] }
 itertools = "0.10.3"
-log = "0.4.17"
+tracing = "0.1.36"
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
