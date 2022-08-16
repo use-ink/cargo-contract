@@ -105,14 +105,14 @@ impl WasmOptHandler {
 
         let mut command = Command::new(self.wasm_opt_path.as_path());
         command
-        .arg(dest_wasm.as_os_str())
-        .arg(format!("-O{}", self.optimization_level))
-        .arg("-o")
-        .arg(dest_optimized.as_os_str())
-        // the memory in our module is imported, `wasm-opt` needs to be told that
-        // the memory is initialized to zeroes, otherwise it won't run the
-        // memory-packing pre-pass.
-        .arg("--zero-filled-memory");
+            .arg(dest_wasm.as_os_str())
+            .arg(format!("-O{}", self.optimization_level))
+            .arg("-o")
+            .arg(dest_optimized.as_os_str())
+            // the memory in our module is imported, `wasm-opt` needs to be told that
+            // the memory is initialized to zeroes, otherwise it won't run the
+            // memory-packing pre-pass.
+            .arg("--zero-filled-memory");
 
         if self.keep_debug_symbols {
             command.arg("-g");
@@ -215,22 +215,22 @@ impl WasmOptHandler {
         )
     })?;
         let version_number: u32 = captures
-        .get(1) // first capture group is at index 1
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "Unable to extract version number from '{:?}'",
-                version_stdout
-            )
-        })?
-        .as_str()
-        .parse()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Parsing version number failed with '{:?}' for '{:?}'",
-                err,
-                version_stdout
-            )
-        })?;
+            .get(1) // first capture group is at index 1
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Unable to extract version number from '{:?}'",
+                    version_stdout
+                )
+            })?
+            .as_str()
+            .parse()
+            .map_err(|err| {
+                anyhow::anyhow!(
+                    "Parsing version number failed with '{:?}' for '{:?}'",
+                    err,
+                    version_stdout
+                )
+            })?;
 
         tracing::info!(
             "The wasm-opt version output is '{}', which was parsed to '{}'",
