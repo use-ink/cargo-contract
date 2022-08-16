@@ -148,7 +148,7 @@ test-no-run-cachepot-aligned:
     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
-    - cargo -Z sparse-registry build
+    - cargo -Z sparse-registry --release build
     - cachepot -s
 
 # test-no-run-cachier:
