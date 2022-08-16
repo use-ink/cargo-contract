@@ -234,6 +234,23 @@ pub mod tests {
             f(manifest_path)
         })
     }
+
+    /// Creates an executable file at `path` with the content `content`.
+    ///
+    /// Currently works only on `unix`.
+    #[cfg(unix)]
+    pub fn create_executable(path: &Path, content: &str) {
+        use std::io::Write;
+        #[cfg(unix)]
+        use std::os::unix::fs::PermissionsExt;
+        {
+            let mut file = std::fs::File::create(&path).unwrap();
+            file.write_all(content.as_bytes())
+                .expect("writing of executable failed");
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+            .expect("setting permissions failed");
+    }
 }
 
 // Unzips the file at `template` to `out_dir`.
