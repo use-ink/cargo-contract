@@ -128,7 +128,7 @@ workflow:
 #   <<:                              *docker-env
 #   script:
 #     - unset RUSTC_WRAPPER
-#     - cargo build
+#     - cargo -Z sparse-registry build
 
 # test-no-run-cachepot:
 #   stage:                           test
@@ -136,7 +136,7 @@ workflow:
 #   variables:
 #     RUSTC_WRAPPER: cachepot
 #   script:
-#     - cargo build
+#     - cargo -Z sparse-registry build
 #     - cachepot -s
 
 test-no-run-cachepot-aligned:
@@ -148,7 +148,7 @@ test-no-run-cachepot-aligned:
     - curl -s https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.parity.io/parity/infrastructure/ci_cd/rusty-cachier/client/-/raw/release/util/install.sh | bash
     - $(rusty-cachier environment inject)
     - rusty-cachier project mtime
-    - cargo build
+    - cargo -Z sparse-registry build
     - cachepot -s
 
 # test-no-run-cachier:
@@ -163,7 +163,7 @@ test-no-run-cachepot-aligned:
 #     - $(rusty-cachier environment inject)
 #     - rusty-cachier project mtime
 #     - rusty-cachier snapshot create
-#     - cargo build
+#     - cargo -Z sparse-registry build
 #     - rusty-cachier snapshot destroy
 
 # test-no-run-both:
@@ -180,7 +180,7 @@ test-no-run-cachepot-aligned:
 #     - $(rusty-cachier environment inject)
 #     - rusty-cachier project mtime
 #     - rusty-cachier snapshot create
-#     - cargo build
+#     - cargo -Z sparse-registry build
 #     - rusty-cachier snapshot destroy
 #     - cachepot -s
 
