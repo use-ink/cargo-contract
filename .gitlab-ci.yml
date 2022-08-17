@@ -123,12 +123,12 @@ workflow:
 #     - rusty-cachier cache upload
 #     - cachepot -s
 
-# test-no-run-basic:
-#   stage:                           test
-#   <<:                              *docker-env
-#   script:
-#     - unset RUSTC_WRAPPER
-#     - cargo -Z sparse-registry build
+test-no-run-basic:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - unset RUSTC_WRAPPER
+    - cargo -Z sparse-registry build
 
 test-no-run-cachepot:
   stage:                           test
