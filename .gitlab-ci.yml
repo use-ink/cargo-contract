@@ -129,6 +129,7 @@ test-no-run-basic:
   script:
     - unset RUSTC_WRAPPER
     - cargo -Z sparse-registry build
+    - cachepot -s
 
 test-no-run-cachepot:
   stage:                           test
