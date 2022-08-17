@@ -130,14 +130,14 @@ workflow:
 #     - unset RUSTC_WRAPPER
 #     - cargo -Z sparse-registry build
 
-# test-no-run-cachepot:
-#   stage:                           test
-#   <<:                              *docker-env
-#   variables:
-#     RUSTC_WRAPPER: cachepot
-#   script:
-#     - cargo -Z sparse-registry build
-#     - cachepot -s
+test-no-run-cachepot:
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    RUSTC_WRAPPER: cachepot
+  script:
+    - cargo -Z sparse-registry build
+    - cachepot -s
 
 test-no-run-cachepot-aligned:
   stage:                           test
