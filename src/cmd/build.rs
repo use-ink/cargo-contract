@@ -660,9 +660,15 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &crate_metadata.contract_artifact_name,
         )?;
 
-        let cargo_contract_version = env!("CARGO_PKG_VERSION");
         let cargo_contract_version =
-            Version::parse(cargo_contract_version).expect("TODO");
+            if let Ok(version) = Version::parse(env!("CARGO_PKG_VERSION")) {
+                version
+            } else {
+                anyhow::bail!(
+                    "Unable to parse version number for the currently running \
+                    `cargo-contract` binary."
+                );
+            };
 
         let build_info = BuildInfo {
             rustc_version: util::rustc_toolchain()?,
