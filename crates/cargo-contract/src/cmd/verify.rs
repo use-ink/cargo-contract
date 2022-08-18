@@ -64,13 +64,7 @@ impl VerifyCommand {
 
         // 2. Call `cmd::Build` with the given `BuildInfo`
         let expected_rustc_version = build_info.rustc_version;
-        let rustc_version = rustc_version::version_meta()?;
-        let rustc_version = format!(
-            "{:?}-{}",
-            rustc_version.channel,
-            rustc_version.commit_date.expect("TODO")
-        )
-        .to_lowercase();
+        let rustc_version = crate::util::rustc_toolchain()?;
 
         anyhow::ensure!(
             rustc_version == expected_rustc_version,
