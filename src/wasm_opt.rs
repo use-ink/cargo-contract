@@ -53,7 +53,7 @@ pub struct WasmOptHandler {
     /// Whether or not to keep debugging information in the final Wasm binary.
     keep_debug_symbols: bool,
     /// The version number of the `wasm-opt` binary being executed.
-    _version: u32,
+    version: u32,
 }
 
 impl WasmOptHandler {
@@ -81,7 +81,7 @@ impl WasmOptHandler {
             wasm_opt_path,
             optimization_level,
             keep_debug_symbols,
-            _version: version,
+            version,
         })
     }
 
@@ -156,6 +156,11 @@ impl WasmOptHandler {
             original_size,
             optimized_size,
         })
+    }
+
+    /// The version number of the `wasm-opt` binary being executed.
+    pub fn version(&self) -> u32 {
+        self.version
     }
 
     /// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version

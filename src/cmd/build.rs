@@ -667,25 +667,21 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         let cargo_contract_version =
             Version::parse(cargo_contract_version).expect("TODO");
 
-        // TODO: We'll want to refactor this to be able to get the version number without
-        // necessarily calling `which`
-        let version = 0;
+        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
+        let optimization_result = handler.optimize(
+            &crate_metadata.dest_wasm,
+            &crate_metadata.contract_artifact_name,
+        )?;
 
         let build_info = BuildInfo {
             rustc_version,
             cargo_contract_version,
             build_mode,
             wasm_opt_settings: WasmOptSettings {
-                version,
+                version: handler.version(),
                 optimization_passes,
             },
         };
-
-        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
-        let optimization_result = handler.optimize(
-            &crate_metadata.dest_wasm,
-            &crate_metadata.contract_artifact_name,
-        )?;
 
         Ok((optimization_result, build_info))
     };
