@@ -89,7 +89,7 @@ where
     });
 
     if let Some(path) = working_dir {
-        log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
 
@@ -107,7 +107,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    log::info!("Invoking cargo: {:?}", cmd);
+    tracing::info!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -150,7 +150,7 @@ macro_rules! maybe_println {
     };
 }
 
-pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+pub const DEFAULT_KEY_COL_WIDTH: usize = 12;
 
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]
@@ -233,6 +233,23 @@ pub mod tests {
 
             f(manifest_path)
         })
+    }
+
+    /// Creates an executable file at `path` with the content `content`.
+    ///
+    /// Currently works only on `unix`.
+    #[cfg(unix)]
+    pub fn create_executable(path: &Path, content: &str) {
+        use std::io::Write;
+        #[cfg(unix)]
+        use std::os::unix::fs::PermissionsExt;
+        {
+            let mut file = std::fs::File::create(&path).unwrap();
+            file.write_all(content.as_bytes())
+                .expect("writing of executable failed");
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+            .expect("setting permissions failed");
     }
 }
 

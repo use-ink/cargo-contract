@@ -166,6 +166,24 @@ fn build_and_zip_dylint_driver(
     dylint_driver_dst_file: PathBuf,
 ) -> Result<()> {
     let mut cmd = Command::new("cargo");
+    #[cfg(windows)]
+    {
+        // copied workaround from dylint for https://github.com/rust-lang/rustup/pull/2978
+        let cargo_home = match env::var("CARGO_HOME") {
+            Ok(value) => Ok(PathBuf::from(value)),
+            Err(error) => {
+                dirs::home_dir()
+                    .map(|path| path.join(".cargo"))
+                    .ok_or(error)
+            }
+        }?;
+        let old_path = crate::env::var("PATH")?;
+        let new_path = std::env::join_paths(
+            std::iter::once(Path::new(&cargo_home).join("bin"))
+                .chain(std::env::split_paths(&old_path)),
+        )?;
+        cmd.envs(vec![("PATH", new_path)]);
+    }
 
     let manifest_arg = format!(
         "--manifest-path={}",

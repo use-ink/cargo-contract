@@ -20,6 +20,7 @@ mod cmd;
 mod crate_metadata;
 mod util;
 mod validate_wasm;
+mod wasm_opt;
 mod workspace;
 
 use self::{
@@ -473,7 +474,7 @@ enum Command {
 }
 
 fn main() {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
     match exec(args.cmd) {
