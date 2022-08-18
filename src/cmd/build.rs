@@ -654,27 +654,18 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             "Optimizing wasm file".bright_green().bold()
         );
 
-        // TODO: This would be slightly nicer if `VersionMeta` had a `Display` implementation
-        let rustc_version = rustc_version::version_meta()?;
-        let rustc_version = format!(
-            "{:?}-{}",
-            rustc_version.channel,
-            rustc_version.commit_date.expect("TODO")
-        )
-        .to_lowercase();
-
-        let cargo_contract_version = env!("CARGO_PKG_VERSION");
-        let cargo_contract_version =
-            Version::parse(cargo_contract_version).expect("TODO");
-
         let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
         let optimization_result = handler.optimize(
             &crate_metadata.dest_wasm,
             &crate_metadata.contract_artifact_name,
         )?;
 
+        let cargo_contract_version = env!("CARGO_PKG_VERSION");
+        let cargo_contract_version =
+            Version::parse(cargo_contract_version).expect("TODO");
+
         let build_info = BuildInfo {
-            rustc_version,
+            rustc_version: util::rustc_toolchain()?,
             cargo_contract_version,
             build_mode,
             wasm_opt_settings: WasmOptSettings {

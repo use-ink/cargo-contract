@@ -54,6 +54,20 @@ pub fn assert_channel() -> Result<()> {
     }
 }
 
+/// Returns the current Rust toolchain formatted by `<channel>[-<date>]`.
+pub(crate) fn rustc_toolchain() -> Result<String> {
+    let meta = rustc_version::version_meta()?;
+    let commit_date = if let Some(date) = meta.commit_date {
+        format!("-{}", date)
+    } else {
+        "".to_string()
+    };
+
+    let toolchain = format!("{:?}{}", meta.channel, commit_date,).to_lowercase();
+
+    Ok(toolchain)
+}
+
 /// Invokes `cargo` with the subcommand `command` and the supplied `args`.
 ///
 /// In case `working_dir` is set, the command will be invoked with that folder
