@@ -103,7 +103,7 @@ impl VerifyCommand {
         let built_wasm = SourceWasm::new(fs_wasm);
 
         if reference_wasm != built_wasm {
-            log::debug!(
+            tracing::debug!(
                 "Expected Wasm Binary '{}'\n\nGot Wasm Binary `{}`",
                 &reference_wasm,
                 &built_wasm
@@ -116,7 +116,7 @@ impl VerifyCommand {
             );
         }
 
-        log::info!("Succesfully verified `{}`!", &metadata.contract.name);
+        tracing::info!("Succesfully verified `{}`!", &metadata.contract.name);
 
         Ok(())
     }
