@@ -38,6 +38,7 @@ use std::{
     path::PathBuf,
 };
 
+/// Checks if a contract in the given workspace matches that of a reference contract.
 #[derive(Debug, clap::Args)]
 #[clap(name = "verify")]
 pub struct VerifyCommand {
@@ -62,7 +63,7 @@ impl VerifyCommand {
         let build_info: BuildInfo =
             serde_json::from_value(build_info.clone().into()).unwrap();
 
-        // 2. Call `cmd::Build` with the given `BuildInfo`
+        // 2. Call `cargo contract build` with the `BuildInfo` from the metadata.
         let expected_rustc_version = build_info.rustc_version;
         let rustc_version = crate::util::rustc_toolchain()?;
 
@@ -89,7 +90,7 @@ impl VerifyCommand {
 
         let build_result = execute(args)?;
 
-        // 3. Read output file, compare with given contract_wasm
+        // 3. Grab the built Wasm contract and compare it with the Wasm from the metadata.
         let reference_wasm = metadata.source.wasm.unwrap();
 
         let built_wasm_path = build_result.dest_wasm.unwrap();
