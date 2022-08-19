@@ -353,24 +353,4 @@ mod tests_ci_only {
             Ok(())
         })
     }
-
-    #[cfg(unix)]
-    #[test]
-    fn compatible_wasm_opt_version_must_be_detected_with_extra() {
-        with_tmp_dir(|path| {
-            // given
-            let path = mock_wasm_opt_version(path, "'\''wasm-opt' version 109 '(version_109)'\'");
-
-            // when
-            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
-
-            // then
-            match res {
-                Ok(x) => assert_eq!(109, x),
-                Err(err) => panic!("{}", err),
-            }
-
-            Ok(())
-        })
-    }
 }
