@@ -207,13 +207,13 @@ impl WasmOptHandler {
             .trim();
         let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
         let captures = re.captures(version_stdout).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
-            version_stdout,
-            github_note,
-        )
-    })?;
+            anyhow::anyhow!(
+                "Unable to extract version information from '{}'.\n\
+                Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
+                version_stdout,
+                github_note,
+            )
+        })?;
         let version_number: u32 = captures
             .get(1) // first capture group is at index 1
             .ok_or_else(|| {
