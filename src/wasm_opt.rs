@@ -207,13 +207,13 @@ impl WasmOptHandler {
             .trim();
         let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
         let captures = re.captures(version_stdout).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
-            version_stdout,
-            github_note,
-        )
-    })?;
+            anyhow::anyhow!(
+                "Unable to extract version information from '{}'.\n\
+                Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
+                version_stdout,
+                github_note,
+            )
+        })?;
         let version_number: u32 = captures
             .get(1) // first capture group is at index 1
             .ok_or_else(|| {
@@ -349,6 +349,26 @@ mod tests_ci_only {
 
             // then
             assert!(res.is_ok());
+
+            Ok(())
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn compatible_wasm_opt_version_must_be_detected_with_extra() {
+        with_tmp_dir(|path| {
+            // given
+            let path = mock_wasm_opt_version(path, "'\''wasm-opt' version 109 '(version_109)'\'");
+
+            // when
+            let res = WasmOptHandler::check_wasm_opt_version_compatibility(&path);
+
+            // then
+            match res {
+                Ok(x) => assert_eq!(109, x),
+                Err(err) => panic!("{}", err),
+            }
 
             Ok(())
         })
