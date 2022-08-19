@@ -142,7 +142,7 @@ impl InstantiateCommand {
         let verbosity = self.extrinsic_opts.verbosity()?;
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
-            tracing::info!("Contract code path: {}", wasm_path.display());
+            tracing::debug!("Contract code path: {}", wasm_path.display());
             let code = fs::read(&wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
             Ok(Code::Upload(code.into()))

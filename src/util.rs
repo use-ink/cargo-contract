@@ -107,7 +107,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    tracing::info!("Invoking cargo: {:?}", cmd);
+    tracing::debug!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
