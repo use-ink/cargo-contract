@@ -75,6 +75,22 @@ impl VerifyCommand {
              re-run the `verify` command.",
         );
 
+        let expected_wasm_opt_version = build_info.wasm_opt_settings.version;
+        // TODO: Will either want to add this to BuildInfo or assume release (so no)
+        let keep_debug_symbols = false;
+        let handler = crate::wasm_opt::WasmOptHandler::new(
+            build_info.wasm_opt_settings.optimization_passes,
+            keep_debug_symbols,
+        )?;
+        let wasm_opt_version = handler.version();
+
+        anyhow::ensure!(
+            wasm_opt_version == expected_wasm_opt_version,
+            "You are trying to `verify` a contract using `wasm-opt` version {wasm_opt_version}`.\n\
+             However, the original contract was built using `wasm-opt` version {expected_wasm_opt_version}`.\n\
+             Please install the matching version and re-run the `verify` command.",
+        );
+
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
             verbosity: Default::default(),
@@ -83,7 +99,7 @@ impl VerifyCommand {
             build_artifact: BuildArtifacts::CodeOnly,
             unstable_flags: Default::default(),
             optimization_passes: build_info.wasm_opt_settings.optimization_passes,
-            keep_debug_symbols: false, /* TODO: Will either want to add this to BuildInfo or assume release (so no) */
+            keep_debug_symbols,
             skip_linting: true,
             output_type: Default::default(),
         };
