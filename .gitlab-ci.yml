@@ -93,7 +93,7 @@ fmt:
   stage:                           check
   <<:                              *docker-env
   script:
-    - cargo fmt --verbose --all -- --check
+    - cargo +nightly fmt --verbose --all -- --check
 
 clippy:
   stage:                           check
@@ -115,7 +115,7 @@ test-dylint:
 
     - export RUSTC_BOOTSTRAP=1
     - cargo check --verbose
-    - cargo fmt --verbose --all -- --check
+    - cargo +nightly fmt --verbose --all -- --check
     - cargo clippy --verbose -- -D warnings;
 
     # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
@@ -150,7 +150,7 @@ test-new-project-template:
 
     - cargo check --verbose
     - cargo test --verbose --all
-    - cargo fmt --verbose --all -- --check
+    - cargo +nightly fmt --verbose --all -- --check
     - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings -A clippy::let-unit-value;
     - rusty-cachier cache upload
 
