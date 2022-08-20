@@ -21,7 +21,7 @@ variables:
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
   # paritytech/contracts-ci-linux:production defaults to nightly toolchain, default rusty-cachier to it too
-  RUSTY_CACHIER_TOOLCHAIN:         nightly
+  RUSTY_CACHIER_TOOLCHAIN:         stable
 
 workflow:
   rules:
@@ -111,14 +111,7 @@ test-dylint:
     - cd ink_linting/
     - mv _Cargo.toml Cargo.toml
 
-    # Installing these components here is necessary because
-    # `ink_linting/` has a fixed `rust-toolchain` file.
-    # We can't move this line to the Docker container, since
-    # that would then make it impossible to upgrade the
-    # `ink_linting/rust-toolchain` file while still having
-    # this CI job succeed.
-    - rustup component add rustfmt clippy rust-src
-
+    - export RUSTC_BOOTSTRAP=1
     - cargo check --verbose
     - cargo fmt --verbose --all -- --check
     - cargo clippy --verbose -- -D warnings;
