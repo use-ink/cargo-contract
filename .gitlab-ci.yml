@@ -49,6 +49,8 @@ workflow:
   image:
     name:                          "${CI_IMAGE}"
   before_script:
+    - rustup default stable
+    - rustup component add rustfmt clippy rust-src rustc-dev llvm-tools-preview
     - cargo -vV
     - rustc -vV
     - rustup show
