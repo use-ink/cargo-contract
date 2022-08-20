@@ -211,6 +211,9 @@ fn build_and_zip_dylint_driver(
     cmd.env_remove("RUSTUP_TOOLCHAIN");
     cmd.env_remove("CARGO_TARGET_DIR");
 
+    // Dylint drivers need unstable features. Allow them on a stable toolchain.
+    cmd.env("RUSTC_BOOTSTRAP", "1");
+
     println!(
         "Setting cargo working dir to '{}'",
         ink_dylint_driver_dir.display()
