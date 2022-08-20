@@ -13,5 +13,8 @@ cargo build --release
 
 # Run the linting on a contract.
 DYLINT_LIBRARY_PATH=$PWD/target/release cargo dylint contract_instantiated
-    --manifest-path ../ink/examples/erc20/Cargo.toml 
+    --manifest-path ../ink/examples/erc20/Cargo.toml
+
+# The UI tests are written against a specific toolchain version. If you wish to run them locally:
+cargo +nightly-2022-06-30 test
 ```

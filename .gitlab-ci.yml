@@ -109,11 +109,15 @@ test-dylint:
   stage:                           test
   <<:                              *docker-env
   script:
+    # We need to fix this test to a toolchain because of the UI tests
+    # We can't use stable here because the UI tests freak out if there are dots in the drivers file name
+    - rustup default nightly-2022-06-30
+    - rustup component add rustfmt clippy rust-src rustc-dev llvm-tools-preview
+
     - rusty-cachier snapshot create
     - cd ink_linting/
     - mv _Cargo.toml Cargo.toml
 
-    - export RUSTC_BOOTSTRAP=1
     - cargo check --verbose
     - cargo +nightly fmt --verbose --all -- --check
     - cargo clippy --verbose -- -D warnings;
