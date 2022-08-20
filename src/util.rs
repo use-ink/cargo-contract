@@ -40,7 +40,7 @@ use std::{
 };
 
 /// This makes sure we are building with a minimum `stable` toolchain version.
-pub fn assert_channel() -> Result<()> {
+fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;
     let min_version = Version::new(1, 63, 0);
     match meta.channel {
@@ -86,6 +86,7 @@ where
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
+    assert_channel()?;
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
 

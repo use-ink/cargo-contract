@@ -84,8 +84,6 @@ pub(crate) fn execute(
     total_steps: usize,
     unstable_options: &UnstableFlags,
 ) -> Result<MetadataResult> {
-    util::assert_channel()?;
-
     let target_directory = crate_metadata.target_directory.clone();
     let out_path_metadata = target_directory.join(METADATA_FILE);
 

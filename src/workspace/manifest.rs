@@ -372,6 +372,37 @@ impl Manifest {
         Ok(self)
     }
 
+    pub fn with_dylint(&mut self) -> Result<&mut Self> {
+        let ink_dylint = {
+            let mut map = value::Table::new();
+            map.insert("git".into(), "https://github.com/paritytech/ink/".into());
+            map.insert("branch".into(), "at/linting".into());
+            map.insert("pattern".into(), "linting/".into());
+            value::Value::Table(map)
+        };
+
+        self.toml
+            .entry("workspace")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("workspace section should be a table")?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("workspace.metadata section should be a table")?
+            .entry("dylint")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("workspace.metadata.dylint section should be a table")?
+            .entry("libraries")
+            .or_insert(value::Value::Array(Default::default()))
+            .as_array_mut()
+            .context("workspace.metadata.dylint.libraries section should be an array")?
+            .push(ink_dylint);
+
+        Ok(self)
+    }
+
     /// Replace relative paths with absolute paths with the working directory.
     ///
     /// Enables the use of a temporary amended copy of the manifest.
