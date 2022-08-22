@@ -16,13 +16,14 @@
 
 use super::{
     display_events,
+    error_details,
     runtime_api::api,
+    state_call,
     submit_extrinsic,
     Balance,
     Client,
     CodeHash,
     ContractMessageTranscoder,
-    ContractsRpcError,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -33,27 +34,18 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
-};
-use serde::Serialize;
-use sp_core::Bytes;
+
+use scale::Encode;
+
+use pallet_contracts_primitives::CodeUploadResult;
 use std::{
     fmt::Debug,
     path::PathBuf,
-    result,
 };
 use subxt::{
-    rpc::NumberOrHex,
     Config,
     OnlineClient,
 };
-
-type CodeUploadResult = result::Result<CodeUploadReturnValue, ContractsRpcError>;
-type CodeUploadReturnValue =
-    pallet_contracts_primitives::CodeUploadReturnValue<CodeHash, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -97,7 +89,7 @@ impl UploadCommand {
                     }
                     Err(err) => {
                         let metadata = client.metadata();
-                        let err = err.error_details(&metadata)?;
+                        let err = error_details(&err, &metadata)?;
                         name_value_println!("Result", err);
                     }
                 }
@@ -127,27 +119,15 @@ impl UploadCommand {
         &self,
         code: Vec<u8>,
         signer: &PairSigner,
-    ) -> Result<CodeUploadResult> {
+    ) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let cli = WsClientBuilder::default().build(&url).await?;
-        let storage_deposit_limit = self
-            .extrinsic_opts
-            .storage_deposit_limit
-            .as_ref()
-            .map(|limit| NumberOrHex::Hex((*limit).into()));
+        let storage_deposit_limit = self.extrinsic_opts.storage_deposit_limit;
         let call_request = CodeUploadRequest {
             origin: signer.account_id().clone(),
-            code: Bytes(code),
+            code,
             storage_deposit_limit,
         };
-        let params = rpc_params!(call_request);
-
-        let result: CodeUploadResult = cli
-            .request("contracts_upload_code", params)
-            .await
-            .context("contracts_upload_code RPC error")?;
-
-        Ok(result)
+        state_call(&url, "ContractsApi_upload_code", call_request).await
     }
 
     async fn upload_code(
@@ -177,10 +157,9 @@ impl UploadCommand {
 }
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode)]
 pub struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
-    code: Bytes,
-    storage_deposit_limit: Option<NumberOrHex>,
+    code: Vec<u8>,
+    storage_deposit_limit: Option<Balance>,
 }
