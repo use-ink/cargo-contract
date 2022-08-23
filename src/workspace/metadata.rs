@@ -34,7 +34,7 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     mut ink_metadata_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
-    log::debug!(
+    tracing::debug!(
         "Generating metadata package for {} in {}",
         contract_package_name,
         dir.display()

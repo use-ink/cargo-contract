@@ -75,7 +75,7 @@ impl EnvTypesTranscoder {
     {
         match self.encoders.get(&type_id) {
             Some(encoder) => {
-                log::debug!("Encoding type {:?} with custom encoder", type_id);
+                tracing::debug!("Encoding type {:?} with custom encoder", type_id);
                 let encoded_env_type = encoder
                     .encode_value(value)
                     .context("Error encoding custom type")?;
@@ -96,12 +96,12 @@ impl EnvTypesTranscoder {
     pub fn try_decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Option<Value>> {
         match self.decoders.get(&type_id) {
             Some(decoder) => {
-                log::debug!("Decoding type {:?} with custom decoder", type_id);
+                tracing::debug!("Decoding type {:?} with custom decoder", type_id);
                 let decoded = decoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
             None => {
-                log::debug!("No custom decoder found for type {:?}", type_id);
+                tracing::debug!("No custom decoder found for type {:?}", type_id);
                 Ok(None)
             }
         }

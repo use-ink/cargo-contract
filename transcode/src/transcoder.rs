@@ -126,7 +126,7 @@ impl<'a> TranscoderBuilder<'a> {
         match type_id {
             Some(type_id) => {
                 let existing = this.encoders.insert(*type_id, Box::new(encoder));
-                log::debug!("Registered custom encoder for type `{:?}`", type_id);
+                tracing::debug!("Registered custom encoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
                         "Attempted to register encoder with existing type id {:?}",
@@ -136,7 +136,7 @@ impl<'a> TranscoderBuilder<'a> {
             }
             None => {
                 // if the type is not present in the registry, it just means it has not been used.
-                log::info!("No matching type in registry for path {:?}.", path_key);
+                tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
         this
@@ -155,7 +155,7 @@ impl<'a> TranscoderBuilder<'a> {
         match type_id {
             Some(type_id) => {
                 let existing = this.decoders.insert(*type_id, Box::new(encoder));
-                log::debug!("Registered custom decoder for type `{:?}`", type_id);
+                tracing::debug!("Registered custom decoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
                         "Attempted to register decoder with existing type id {:?}",
@@ -165,7 +165,7 @@ impl<'a> TranscoderBuilder<'a> {
             }
             None => {
                 // if the type is not present in the registry, it just means it has not been used.
-                log::info!("No matching type in registry for path {:?}.", path_key);
+                tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
         this

@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn generate_metadata() {
-        env_logger::try_init().ok();
+        crate::util::tests::init_tracing_subscriber();
         with_new_contract_project(|manifest_path| {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;

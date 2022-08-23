@@ -21,6 +21,7 @@ use anyhow::{
 };
 use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
+use semver::Version;
 use std::{
     ffi::OsStr,
     fs,
@@ -38,18 +39,25 @@ use std::{
     process::Command,
 };
 
-/// Check whether the current rust channel is valid: `nightly` is recommended.
+/// This makes sure we are building with a minimum `stable` toolchain version.
 pub fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;
+    let min_version = Version::new(1, 63, 0);
     match meta.channel {
-        Channel::Dev | Channel::Nightly => Ok(()),
-        Channel::Stable | Channel::Beta => {
+        Channel::Stable if meta.semver >= min_version => Ok(()),
+        Channel::Stable => {
             anyhow::bail!(
-                "cargo-contract cannot build using the {:?} channel. \
-                Switch to nightly. \
-                See https://github.com/paritytech/cargo-contract#build-requires-the-nightly-toolchain",
+                "The minimum Rust version is {}. You are using {}.",
+                min_version,
+                meta.semver
+            )
+        }
+        _ => {
+            anyhow::bail!(
+                "Using the {:?} channel is not supported. \
+                Contracts should be built using a \"stable\" toolchain.",
                 format!("{:?}", meta.channel).to_lowercase(),
-            );
+            )
         }
     }
 }
@@ -89,9 +97,12 @@ where
     });
 
     if let Some(path) = working_dir {
-        log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
+
+    // Allow nightly features on a stable toolchain
+    cmd.env("RUSTC_BOOTSTRAP", "1");
 
     cmd.arg(command);
     cmd.args(args);
@@ -107,7 +118,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    log::info!("Invoking cargo: {:?}", cmd);
+    tracing::debug!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -150,7 +161,7 @@ macro_rules! maybe_println {
     };
 }
 
-pub const DEFAULT_KEY_COL_WIDTH: usize = 13;
+pub const DEFAULT_KEY_COL_WIDTH: usize = 12;
 
 /// Pretty print name value, name right aligned with colour.
 #[macro_export]
@@ -233,6 +244,38 @@ pub mod tests {
 
             f(manifest_path)
         })
+    }
+
+    /// Creates an executable file at `path` with the content `content`.
+    ///
+    /// Currently works only on `unix`.
+    #[cfg(unix)]
+    pub fn create_executable(path: &Path, content: &str) {
+        use std::io::Write;
+        #[cfg(unix)]
+        use std::os::unix::fs::PermissionsExt;
+        {
+            let mut file = std::fs::File::create(&path).unwrap();
+            file.write_all(content.as_bytes())
+                .expect("writing of executable failed");
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+            .expect("setting permissions failed");
+    }
+
+    /// Init a tracing subscriber for logging in tests.
+    ///
+    /// Be aware that this enables `TRACE` by default. It also ignores any error
+    /// while setting up the logger.
+    ///
+    /// The logs are not shown by default, logs are only shown when the test fails
+    /// or if [`nocapture`](https://doc.rust-lang.org/cargo/commands/cargo-test.html#display-options)
+    /// is being used.
+    pub fn init_tracing_subscriber() {
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .with_test_writer()
+            .try_init();
     }
 }
 

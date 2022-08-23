@@ -19,7 +19,7 @@ jobs:
         platform:
           - windows-latest
         toolchain:
-          - nightly
+          - stable
     runs-on: ${{ matrix.platform }}
     env:
       RUST_BACKTRACE: full
@@ -42,7 +42,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          components: rust-src
+          components: rust-src, rustc-dev, llvm-tools-preview
 
       - name: Install cargo-dylint
         uses: baptiste0928/cargo-install@v1

@@ -17,7 +17,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "src/lib.rs"
 
 [dependencies]
-anyhow = "1.0.60"
+anyhow = "1.0.62"
 contract-metadata = { version = "1", path = "../metadata" }
 env_logger = "0.9.0"
 escape8259 = "0.5.1"
@@ -26,13 +26,13 @@ indexmap = "1.9.1"
 ink_env = { version = "4", git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
 ink_metadata = { version = "4", features = ["derive"], git = "https://github.com/paritytech/ink", branch = "hc-versioned-metadata" }
 itertools = "0.10.3"
-log = "0.4.17"
+tracing = "0.1.36"
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
-serde = { version = "1.0.143", default-features = false, features = ["derive"] }
-serde_json = "1.0.83"
+serde = { version = "1.0.144", default-features = false, features = ["derive"] }
+serde_json = "1.0.85"
 sp-core = "6.0.0"
 sp-runtime = "6.0.0"
 
