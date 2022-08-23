@@ -252,7 +252,6 @@ pub mod tests {
             .expect("setting permissions failed");
     }
 
-
     /// Init a tracing subscriber for logging in tests.
     ///
     /// Be aware that this enables `TRACE` by default. It also ignores any error
