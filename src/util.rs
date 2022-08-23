@@ -21,6 +21,7 @@ use anyhow::{
 };
 use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
+use semver::Version;
 use std::{
     ffi::OsStr,
     fs,
@@ -38,18 +39,25 @@ use std::{
     process::Command,
 };
 
-/// Check whether the current rust channel is valid: `nightly` is recommended.
+/// This makes sure we are building with a minimum `stable` toolchain version.
 pub fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;
+    let min_version = Version::new(1, 63, 0);
     match meta.channel {
-        Channel::Dev | Channel::Nightly => Ok(()),
-        Channel::Stable | Channel::Beta => {
+        Channel::Stable if meta.semver >= min_version => Ok(()),
+        Channel::Stable => {
             anyhow::bail!(
-                "cargo-contract cannot build using the {:?} channel. \
-                Switch to nightly. \
-                See https://github.com/paritytech/cargo-contract#build-requires-the-nightly-toolchain",
+                "The minimum Rust version is {}. You are using {}.",
+                min_version,
+                meta.semver
+            )
+        }
+        _ => {
+            anyhow::bail!(
+                "Using the {:?} channel is not supported. \
+                Contracts should be built using a \"stable\" toolchain.",
                 format!("{:?}", meta.channel).to_lowercase(),
-            );
+            )
         }
     }
 }
@@ -92,6 +100,9 @@ where
         tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
+
+    // Allow nightly features on a stable toolchain
+    cmd.env("RUSTC_BOOTSTRAP", "1");
 
     cmd.arg(command);
     cmd.args(args);
