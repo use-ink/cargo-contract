@@ -58,7 +58,6 @@ use scale::{
     Decode,
     Encode,
 };
-use serde_json::Value;
 use sp_core::{
     crypto::Pair,
     sr25519,
