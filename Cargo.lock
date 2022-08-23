@@ -1420,7 +1420,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "cfg-if",
 ]
@@ -1428,7 +1428,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1442,7 +1442,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1468,7 +1468,7 @@ dependencies = [
 [[package]]
 name = "ink_lang"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -1483,7 +1483,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_codegen"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1501,7 +1501,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_ir"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "blake2",
  "either",
@@ -1514,7 +1514,7 @@ dependencies = [
 [[package]]
 name = "ink_lang_macro"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "ink_lang_codegen",
  "ink_lang_ir",
@@ -1527,7 +1527,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -1540,7 +1540,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "cfg-if",
 ]
@@ -1548,7 +1548,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "cfg-if",
  "ink_prelude",
@@ -1559,7 +1559,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -1576,7 +1576,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/ink?branch=hc-versioned-metadata#5b456d70aa2455462e57ea20c7b37d6fc6327dc8"
+source = "git+https://github.com/paritytech/ink#23f42d92e3fbb3cdd3f75d24dc1af11c4e1afc39"
 dependencies = [
  "proc-macro2",
  "quote",
