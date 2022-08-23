@@ -185,7 +185,11 @@ macro_rules! name_value_println {
 pub mod tests {
     use crate::ManifestPath;
     use std::{
-        path::Path,
+        ops::Deref,
+        path::{
+            Path,
+            PathBuf,
+        },
         sync::atomic::{
             AtomicU32,
             Ordering,
@@ -247,22 +251,54 @@ pub mod tests {
         })
     }
 
+    /// Deletes the mocked executable on `Drop`.
+    pub struct MockGuard(PathBuf);
+
+    impl Drop for MockGuard {
+        fn drop(&mut self) {
+            std::fs::remove_file(&self.0).ok();
+        }
+    }
+
+    impl Deref for MockGuard {
+        type Target = Path;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
     /// Creates an executable file at `path` with the content `content`.
     ///
     /// Currently works only on `unix`.
-    #[cfg(unix)]
-    #[cfg(feature = "test-ci-only")]
-    pub fn create_executable(path: &Path, content: &str) {
-        use std::io::Write;
-        #[cfg(unix)]
-        use std::os::unix::fs::PermissionsExt;
-        {
-            let mut file = std::fs::File::create(&path).unwrap();
-            file.write_all(content.as_bytes())
-                .expect("writing of executable failed");
-        }
+    #[cfg(all(unix, feature = "test-ci-only"))]
+    pub fn create_executable(path: &Path, content: &str) -> MockGuard {
+        use std::{
+            env,
+            io::Write,
+            os::unix::fs::PermissionsExt,
+        };
+        let mut guard = MockGuard(path.to_path_buf());
+        let mut file = std::fs::File::create(&path).unwrap();
+        let path = path.canonicalize().unwrap();
+        guard.0 = path.clone();
+        file.write_all(content.as_bytes())
+            .expect("writing of executable failed");
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
             .expect("setting permissions failed");
+
+        // make sure the mocked executable is in the path
+        let env_pathes = {
+            let work_dir = path.parent().unwrap().to_path_buf();
+            let pathes = env::var_os("PATH").unwrap_or_default();
+            let mut pathes: Vec<_> = env::split_paths(&pathes).collect();
+            if !pathes.contains(&work_dir) {
+                pathes.insert(0, work_dir);
+            }
+            pathes
+        };
+        env::set_var("PATH", env::join_paths(&env_pathes).unwrap());
+        guard
     }
 
     /// Init a tracing subscriber for logging in tests.

@@ -378,18 +378,6 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
-        // when testing this function we set the `PATH` to the `working_dir`
-        // so that we can have mocked binaries in there which are executed
-        // instead of the real ones.
-        #[cfg(test)]
-        {
-            let default_dir = PathBuf::from(".");
-            let working_dir = _working_dir.unwrap_or(default_dir.as_path());
-            let path_env = std::env::var("PATH").unwrap();
-            let path_env = format!("{}:{}", working_dir.to_string_lossy(), path_env);
-            cmd.env("PATH", path_env);
-        }
-
         let mut child = if let Ok(child) = cmd
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -422,7 +410,14 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             .bright_yellow());
     }
 
-    if !execute_cmd(Command::new("dylint-link").arg("--version")) {
+    // On windows we cannot just run the linker with --version as there is no command
+    // which just ouputs some information. It always needs to do some linking in
+    // order to return successful exit code.
+    #[cfg(windows)]
+    let dylint_link_found = which::which("dylint-link").is_ok();
+    #[cfg(not(windows))]
+    let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
+    if !dylint_link_found {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
@@ -731,10 +726,7 @@ mod tests_ci_only {
             build::load_module,
             BuildCommand,
         },
-        util::tests::{
-            create_executable,
-            with_new_contract_project,
-        },
+        util::tests::with_new_contract_project,
         workspace::Manifest,
         BuildArtifacts,
         BuildMode,
@@ -1237,14 +1229,18 @@ mod tests_ci_only {
     #[test]
     fn missing_cargo_dylint_installation_must_be_detected() {
         with_new_contract_project(|manifest_path| {
+            use super::util::tests::create_executable;
+
             // given
             let manifest_dir = manifest_path.directory().unwrap();
 
             // mock existing `dylint-link` binary
-            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
+            let _tmp0 =
+                create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
 
             // mock a non-existing `cargo dylint` installation.
-            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+            let _tmp1 =
+                create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
             // when
             let args = crate::cmd::build::ExecuteArgs {
