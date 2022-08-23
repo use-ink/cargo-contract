@@ -55,7 +55,7 @@ pub fn assert_channel() -> Result<()> {
         _ => {
             anyhow::bail!(
                 "cargo-contract cannot build using the {:?} channel. \
-                Contracts should be build using a stable toolchain.",
+                Contracts should be build using a "stable" toolchain.",
                 format!("{:?}", meta.channel).to_lowercase(),
             )
         }
