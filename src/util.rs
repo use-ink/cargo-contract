@@ -39,7 +39,7 @@ use std::{
     process::Command,
 };
 
-/// Check whether the current rust channel is valid: `nightly` is recommended.
+/// This makes sure we are building with a minimum `stable` toolchain version.
 pub fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;
     let min_version = Version::new(1, 63, 0);
@@ -47,15 +47,15 @@ pub fn assert_channel() -> Result<()> {
         Channel::Stable if meta.semver >= min_version => Ok(()),
         Channel::Stable => {
             anyhow::bail!(
-                "Minimum Rust version is {}. You are using {}.",
+                "The minimum Rust version is {}. You are using {}.",
                 min_version,
                 meta.semver
             )
         }
         _ => {
             anyhow::bail!(
-                "cargo-contract cannot build using the {:?} channel. \
-                Contracts should be build using a "stable" toolchain.",
+                "Using the {:?} channel is not supported. \
+                Contracts should be built using a "stable" toolchain.",
                 format!("{:?}", meta.channel).to_lowercase(),
             )
         }
