@@ -30,6 +30,11 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use std::{
     fs::File,
     io::{
@@ -49,12 +54,18 @@ use crate::{
     DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
+use scale::{
+    Decode,
+    Encode,
+};
 use serde_json::Value;
 use sp_core::{
     crypto::Pair,
     sr25519,
+    Bytes,
 };
 use subxt::{
+    ext::sp_runtime::DispatchError,
     tx,
     Config,
     OnlineClient,
@@ -242,36 +253,25 @@ where
         .map_err(Into::into)
 }
 
-#[derive(serde::Deserialize)]
-pub struct ContractsRpcError(Value);
+async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
+    let cli = WsClientBuilder::default().build(&url).await?;
+    let params = rpc_params![func, Bytes(args.encode())];
+    let bytes: Bytes = cli.request("state_call", params).await?;
+    Ok(R::decode(&mut bytes.as_ref())?)
+}
 
-impl ContractsRpcError {
-    pub fn error_details(&self, metadata: &subxt::Metadata) -> Result<String> {
-        let try_parse_module_error = || {
-            let obj = self.0.as_object()?;
-            let module = obj.get("Module")?;
-            let pallet_index = module.get("index").and_then(|i| i.as_u64())?;
-            let error_field = module.get("error")?;
-            let error_index = match error_field {
-                Value::Array(arr) => arr.get(0).and_then(|v| v.as_u64()),
-                // the legacy ModuleError has a single `u8` for the error index
-                Value::Number(n) => n.as_u64(),
-                _ => None,
-            }?;
-            Some((pallet_index as u8, error_index as u8))
-        };
-
-        if let Some((pallet_index, error_index)) = try_parse_module_error() {
-            let details = metadata.error(pallet_index, error_index)?;
+fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<String> {
+    match error {
+        DispatchError::Module(err) => {
+            let details = metadata.error(err.index, err.error)?;
             Ok(format!(
                 "ModuleError: {}::{}: {:?}",
                 details.pallet(),
                 details.error(),
                 details.docs()
             ))
-        } else {
-            Ok(format!("DispatchError: {:?}", self.0))
         }
+        err => Ok(format!("DispatchError: {:?}", err)),
     }
 }
 

@@ -17,14 +17,15 @@
 use super::{
     display_contract_exec_result,
     display_events,
+    error_details,
     load_metadata,
     parse_balance,
     prompt_confirm_tx,
+    state_call,
     submit_extrinsic,
     Balance,
     Client,
     ContractMessageTranscoder,
-    ContractsRpcError,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -38,29 +39,15 @@ use anyhow::{
     anyhow,
     Result,
 };
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
-};
-use pallet_contracts_primitives::{
-    ContractResult,
-    ExecReturnValue,
-};
-use serde::Serialize;
-use sp_core::Bytes;
-use std::{
-    fmt::Debug,
-    result,
-};
+
+use pallet_contracts_primitives::ContractExecResult;
+use scale::Encode;
+
+use std::fmt::Debug;
 use subxt::{
-    rpc::NumberOrHex,
     Config,
     OnlineClient,
 };
-
-type ContractExecResult =
-    ContractResult<result::Result<ExecReturnValue, ContractsRpcError>, Balance>;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -124,7 +111,7 @@ impl CallCommand {
                         display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
                     }
                     Err(ref err) => {
-                        let err = err.error_details(&client.metadata())?;
+                        let err = error_details(err, &client.metadata())?;
                         name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                     }
@@ -137,28 +124,21 @@ impl CallCommand {
 
     async fn call_dry_run(
         &self,
-        data: Vec<u8>,
+        input_data: Vec<u8>,
         signer: &PairSigner,
-    ) -> Result<ContractExecResult> {
+    ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let cli = WsClientBuilder::default().build(&url).await?;
-        let gas_limit = self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let storage_deposit_limit = self
-            .extrinsic_opts
-            .storage_deposit_limit
-            .as_ref()
-            .map(|limit| NumberOrHex::Hex((*limit).into()));
-        let call_request = RpcCallRequest {
+        let gas_limit = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
+        let storage_deposit_limit = self.extrinsic_opts.storage_deposit_limit;
+        let call_request = CallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
-            value: NumberOrHex::Hex(self.value.into()),
-            gas_limit: NumberOrHex::Number(*gas_limit),
+            value: self.value,
+            gas_limit,
             storage_deposit_limit,
-            input_data: Bytes(data),
+            input_data,
         };
-        let params = rpc_params![call_request];
-        let result = cli.request("contracts_call", params).await?;
-        Ok(result)
+        state_call(&url, "ContractsApi_call", call_request).await
     }
 
     async fn call(
@@ -230,7 +210,7 @@ impl CallCommand {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = err.error_details(&client.metadata())?;
+                let err = error_details(err, &client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
@@ -241,14 +221,13 @@ impl CallCommand {
 
 /// A struct that encodes RPC parameters required for a call to a smart contract.
 ///
-/// Copied from `pallet-contracts-rpc`.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RpcCallRequest {
+/// Copied from `pallet-contracts-rpc-runtime-api`.
+#[derive(Encode)]
+pub struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
-    value: NumberOrHex,
-    gas_limit: NumberOrHex,
-    storage_deposit_limit: Option<NumberOrHex>,
-    input_data: Bytes,
+    value: Balance,
+    gas_limit: u64,
+    storage_deposit_limit: Option<Balance>,
+    input_data: Vec<u8>,
 }
