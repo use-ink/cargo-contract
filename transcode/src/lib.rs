@@ -81,7 +81,7 @@
 //! As with the example for the primitive `bool` above, this works in the other direction for
 //! decoding SCALE encoded bytes and converting them into a human readable string.
 //!
-//! # Examplel
+//! # Example
 //! ```
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
