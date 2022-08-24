@@ -41,56 +41,55 @@ use std::{
 
 /// Encode strings to SCALE encoded output.
 /// Decode SCALE encoded input into `Value` objects.
-pub struct Transcoder<'a> {
-    registry: &'a PortableRegistry,
+pub struct Transcoder {
     env_types: EnvTypesTranscoder,
 }
 
-impl<'a> Transcoder<'a> {
-    pub fn new(registry: &'a PortableRegistry, env_types: EnvTypesTranscoder) -> Self {
-        Self {
-            registry,
-            env_types,
-        }
+impl Transcoder {
+    pub fn new(env_types: EnvTypesTranscoder) -> Self {
+        Self { env_types }
     }
 
-    pub fn encoder(&self) -> Encoder {
-        Encoder::new(self.registry, &self.env_types)
-    }
-
-    pub fn encode<O>(&self, type_id: u32, value: &Value, output: &mut O) -> Result<()>
+    pub fn encode<O>(
+        &self,
+        registry: &PortableRegistry,
+        type_id: u32,
+        value: &Value,
+        output: &mut O,
+    ) -> Result<()>
     where
         O: Output + Debug,
     {
-        self.encoder().encode(type_id, value, output)
+        let encoder = Encoder::new(registry, &self.env_types);
+        encoder.encode(type_id, value, output)
     }
 
-    pub fn decoder(&self) -> Decoder {
-        Decoder::new(self.registry, &self.env_types)
-    }
-
-    pub fn decode(&self, type_id: u32, input: &mut &[u8]) -> Result<Value> {
-        self.decoder().decode(type_id, input)
+    pub fn decode(
+        &self,
+        registry: &PortableRegistry,
+        type_id: u32,
+        input: &mut &[u8],
+    ) -> Result<Value> {
+        let decoder = Decoder::new(registry, &self.env_types);
+        decoder.decode(type_id, input)
     }
 }
 
 /// Construct a [`Transcoder`], allows registering custom transcoders for certain types.
-pub struct TranscoderBuilder<'a> {
-    registry: &'a PortableRegistry,
+pub struct TranscoderBuilder {
     types_by_path: TypesByPath,
     encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
     decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
 }
 
-impl<'a> TranscoderBuilder<'a> {
-    pub fn new(registry: &'a PortableRegistry) -> Self {
+impl TranscoderBuilder {
+    pub fn new(registry: &PortableRegistry) -> Self {
         let types_by_path = registry
             .types()
             .iter()
             .map(|ty| (PathKey::from(ty.ty().path()), ty.id()))
             .collect::<TypesByPath>();
         Self {
-            registry,
             types_by_path,
             encoders: HashMap::new(),
             decoders: HashMap::new(),
@@ -171,9 +170,9 @@ impl<'a> TranscoderBuilder<'a> {
         this
     }
 
-    pub fn done(self) -> Transcoder<'a> {
+    pub fn done(self) -> Transcoder {
         let env_types_transcoder = EnvTypesTranscoder::new(self.encoders, self.decoders);
-        Transcoder::new(self.registry, env_types_transcoder)
+        Transcoder::new(env_types_transcoder)
     }
 }
 
@@ -221,8 +220,8 @@ mod tests {
         let value = scon::parse_value(input)?;
 
         let mut output = Vec::new();
-        transcoder.encode(ty, &value, &mut output)?;
-        let decoded = transcoder.decode(ty, &mut &output[..])?;
+        transcoder.encode(&registry, ty, &value, &mut output)?;
+        let decoded = transcoder.decode(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded, "decoding");
         Ok(())
     }
@@ -236,13 +235,13 @@ mod tests {
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
         let (registry, ty) = registry_with_type::<char>()?;
-        let transcoder = Transcoder::new(&registry, Default::default());
+        let transcoder = Transcoder::new(Default::default());
         let encoded = u32::from('c').encode();
 
         assert!(transcoder
-            .encode(ty, &Value::Char('c'), &mut Vec::new())
+            .encode(&registry, ty, &Value::Char('c'), &mut Vec::new())
             .is_err());
-        assert!(transcoder.decode(ty, &mut &encoded[..]).is_err());
+        assert!(transcoder.decode(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }
 
