@@ -220,8 +220,8 @@ mod tests {
         let value = scon::parse_value(input)?;
 
         let mut output = Vec::new();
-        transcoder.encode(ty, &value, &mut output)?;
-        let decoded = transcoder.decode(ty, &mut &output[..])?;
+        transcoder.encode(&registry, ty, &value, &mut output)?;
+        let decoded = transcoder.decode(&registry, ty, &mut &output[..])?;
         assert_eq!(expected_output, decoded, "decoding");
         Ok(())
     }
@@ -235,13 +235,13 @@ mod tests {
     #[test]
     fn transcode_char_unsupported() -> Result<()> {
         let (registry, ty) = registry_with_type::<char>()?;
-        let transcoder = Transcoder::new(&registry, Default::default());
+        let transcoder = Transcoder::new(Default::default());
         let encoded = u32::from('c').encode();
 
         assert!(transcoder
-            .encode(ty, &Value::Char('c'), &mut Vec::new())
+            .encode(&registry, ty, &Value::Char('c'), &mut Vec::new())
             .is_err());
-        assert!(transcoder.decode(ty, &mut &encoded[..]).is_err());
+        assert!(transcoder.decode(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }
 

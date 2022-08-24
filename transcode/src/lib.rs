@@ -87,29 +87,13 @@
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
 //! let metadata_path = "/path/to/metadata.json";
-//!
-//! let metadata = load_metadata(&metadata_path.into());
-//! let transcoder = ContractMessageTranscoder::new(&metadata);
+//! let transcoder = ContractMessageTranscoder::load(&metadata_path.into()).unwrap();
 //!
 //! let constructor = "new";
 //! let args = ["foo", "bar"];
 //! let data = transcoder.encode(&constructor, &args).unwrap();
 //!
 //! println!("Encoded constructor data {:?}", data);
-//!
-//! fn load_metadata(path: &Path) -> ink_metadata::InkProject {
-//!     let file = File::open(&path).expect("Failed to open metadata file");
-//!     let metadata: ContractMetadata =
-//!         serde_json::from_reader(file).expect("Failed to deserialize metadata file");
-//!     let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
-//!         .expect("Failed to deserialize ink project metadata");
-//!
-//!     if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-//!         ink_project
-//!     } else {
-//!         panic!("Unsupported ink metadata version. Expected V3")
-//!     }
-//! }
 //! ```
 
 mod decode;
@@ -509,7 +493,7 @@ mod tests {
     #[test]
     fn encode_single_primitive_arg() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = transcoder.encode("new", &["true"])?;
         // encoded args follow the 4 byte selector
@@ -522,7 +506,7 @@ mod tests {
     #[test]
     fn encode_account_id_custom_ss58_encoding() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = transcoder.encode(
             "set_account_id",
@@ -543,7 +527,7 @@ mod tests {
     #[test]
     fn encode_account_ids_vec_args() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = transcoder.encode(
             "set_account_ids_vec",
@@ -570,7 +554,7 @@ mod tests {
     #[test]
     fn encode_primitive_vec_args() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
 
@@ -585,7 +569,7 @@ mod tests {
     #[test]
     fn encode_uint_hex_literals() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = transcoder.encode(
             "uint_args",
@@ -615,7 +599,7 @@ mod tests {
     #[test]
     fn encode_uint_arr_hex_literals() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded =
             transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
@@ -631,7 +615,7 @@ mod tests {
     #[test]
     fn decode_primitive_return() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded = true.encode();
         let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
@@ -643,7 +627,7 @@ mod tests {
     #[test]
     fn decode_contract_event() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         // raw encoded event with event index prefix
         let encoded = (0u8, [0u32; 32], [1u32; 32]).encode();
@@ -657,7 +641,7 @@ mod tests {
     #[test]
     fn decode_hash_as_hex_encoded_string() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let hash = [
             52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
@@ -690,7 +674,7 @@ mod tests {
     #[test]
     fn decode_contract_message() -> Result<()> {
         let metadata = generate_metadata();
-        let transcoder = ContractMessageTranscoder::new(&metadata);
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded_bytes = hex::decode("633aa551").unwrap();
         let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
