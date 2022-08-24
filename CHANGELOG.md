@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.1] - 2022-08-24
+
+This release brings two exciting updates! First, contracts can now be built using the
+`stable` Rust toolchain! Don't ask us how we managed to do this 👻.
+
+Secondly, it allows you to build ink! `v4.0.0-alpha.1`, which introduced a small - but
+breaking - change to the ink! ABI as part of [paritytech/ink#1313](https://github.com/paritytech/ink/pull/1313).
+
+### Added
+- Add support for ink!'s `version` metadata field - [#641](https://github.com/paritytech/cargo-contract/pull/641)
+
+### Changed
+- Build contracts and dylint driver with stable - [#698](https://github.com/paritytech/cargo-contract/pull/698)
+- Compile dylints when compiling the contract - [#703](https://github.com/paritytech/cargo-contract/pull/703)
+- Move transcode example to doc test, add helper method - [#705](https://github.com/paritytech/cargo-contract/pull/705)
+    - Note that alongside this PR we released [`contract-transcode@0.2.0`](https://crates.io/crates/contract-transcode/0.2.0)
+- Replace custom RPCs by `state_call` - [#701](https://github.com/paritytech/cargo-contract/pull/701)
+
+### Fixed
+- Fix `tracing_subscriber` filtering - [#702](https://github.com/paritytech/cargo-contract/pull/702)
+
 ## [1.5.0] - 2022-08-15
 
 - Fix windows dylint build (#690)
