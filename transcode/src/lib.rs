@@ -86,8 +86,8 @@
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
-//! let metadata_path = "/path/to/metadata.json";
-//! let transcoder = ContractMessageTranscoder::load(&metadata_path.into()).unwrap();
+//! let metadata_path = Path::new("/path/to/metadata.json");
+//! let transcoder = ContractMessageTranscoder::load(metadata_path).unwrap();
 //!
 //! let constructor = "new";
 //! let args = ["foo", "bar"];
