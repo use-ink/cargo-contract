@@ -82,7 +82,7 @@
 //! decoding SCALE encoded bytes and converting them into a human readable string.
 //!
 //! # Example
-//! ```
+//! ```no_run
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
