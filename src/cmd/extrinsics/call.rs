@@ -18,7 +18,6 @@ use super::{
     display_contract_exec_result,
     display_events,
     error_details,
-    load_metadata,
     parse_balance,
     prompt_confirm_tx,
     state_call,
@@ -26,6 +25,7 @@ use super::{
     Balance,
     Client,
     ContractMessageTranscoder,
+    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -74,9 +74,10 @@ pub struct CallCommand {
 
 impl CallCommand {
     pub fn run(&self) -> Result<()> {
-        let (_, contract_metadata) =
-            load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        let crate_metadata = CrateMetadata::from_manifest_path(
+            self.extrinsic_opts.manifest_path.as_ref(),
+        )?;
+        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
         let call_data = transcoder.encode(&self.message, &self.args)?;
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
@@ -146,7 +147,7 @@ impl CallCommand {
         client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'_>,
+        transcoder: &ContractMessageTranscoder,
     ) -> Result<()> {
         tracing::debug!("calling contract {:?}", self.contract);
 

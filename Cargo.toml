@@ -36,7 +36,7 @@ toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
 contract-metadata = { version = "1", path = "./metadata" }
-transcode = { package = "contract-transcode", version = "0.1.0", path = "./transcode" }
+transcode = { package = "contract-transcode", version = "0.2.0", path = "./transcode" }
 semver = { version = "1.0.13", features = ["serde"] }
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 serde_json = "1.0.85"
@@ -47,7 +47,6 @@ regex = "1.6.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "4", features = ["derive"], git = "https://github.com/paritytech/ink" }
 sp-core = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
 subxt = "0.23.0"

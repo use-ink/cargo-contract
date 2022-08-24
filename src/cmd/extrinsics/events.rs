@@ -98,7 +98,11 @@ pub fn display_events(
                     name
                 });
 
-                let decoded_field = events_transcoder.decode(*field_ty, event_data)?;
+                let decoded_field = events_transcoder.decode(
+                    &runtime_metadata.types,
+                    *field_ty,
+                    event_data,
+                )?;
                 maybe_println!(
                     verbosity,
                     "{:width$}{}",

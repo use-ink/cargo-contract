@@ -24,51 +24,23 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use anyhow::{
-    anyhow,
-    Context,
-    Result,
-};
+use anyhow::{anyhow, Context, Result};
 use colored::Colorize;
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
-};
+use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
 use std::{
-    fs::File,
-    io::{
-        self,
-        Write,
-    },
+    io::{self, Write},
     path::PathBuf,
 };
 
 use self::events::display_events;
 use crate::{
-    crate_metadata::CrateMetadata,
-    name_value_println,
-    workspace::ManifestPath,
-    Verbosity,
-    VerbosityFlags,
+    crate_metadata::CrateMetadata, name_value_println, Verbosity, VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
-use scale::{
-    Decode,
-    Encode,
-};
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-    Bytes,
-};
-use subxt::{
-    ext::sp_runtime::DispatchError,
-    tx,
-    Config,
-    OnlineClient,
-};
+use scale::{Decode, Encode};
+use sp_core::{crypto::Pair, sr25519, Bytes};
+use subxt::{ext::sp_runtime::DispatchError, tx, Config, OnlineClient};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
@@ -141,39 +113,6 @@ impl ExtrinsicOpts {
             _ => res,
         }
     }
-}
-
-/// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo
-/// [`CrateMetadata`] along with the contract metadata [`ink_metadata::InkProject`].
-pub fn load_metadata(
-    manifest_path: Option<&PathBuf>,
-) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
-    let manifest_path = ManifestPath::try_from(manifest_path)?;
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-    let path = crate_metadata.metadata_path();
-
-    if !path.exists() {
-        return Err(anyhow!(
-            "Metadata file not found. Try building with `cargo contract build`."
-        ))
-    }
-
-    let file = File::open(&path)
-        .context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-        .context(format!(
-            "Failed to deserialize metadata file {}",
-            path.display()
-        ))?;
-    let ink_metadata: ink_metadata::InkProject = serde_json::from_value(
-        serde_json::Value::Object(metadata.abi),
-    )
-    .context(format!(
-        "Failed to deserialize ink! project metadata from file {}",
-        path.display()
-    ))?;
-
-    Ok((crate_metadata, ink_metadata))
 }
 
 /// Parse Rust style integer balance literals which can contain underscores.

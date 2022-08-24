@@ -24,6 +24,7 @@ use super::{
     Client,
     CodeHash,
     ContractMessageTranscoder,
+    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -59,9 +60,10 @@ pub struct UploadCommand {
 
 impl UploadCommand {
     pub fn run(&self) -> Result<()> {
-        let (crate_metadata, contract_metadata) =
-            super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        let crate_metadata = CrateMetadata::from_manifest_path(
+            self.extrinsic_opts.manifest_path.as_ref(),
+        )?;
+        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let wasm_path = match &self.wasm_path {
@@ -135,7 +137,7 @@ impl UploadCommand {
         client: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder<'_>,
+        transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>> {
         let call = super::runtime_api::api::tx()
             .contracts()
