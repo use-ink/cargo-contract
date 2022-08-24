@@ -50,7 +50,6 @@ regex = "1.6.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-ink_metadata = { version = "3.3", features = ["derive"] }
 sp-core = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
 subxt = "0.23.0"

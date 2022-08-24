@@ -55,6 +55,12 @@ pub struct CrateMetadata {
 }
 
 impl CrateMetadata {
+    /// Attempt to construct [`CrateMetadata`] from the given manifest path.
+    pub fn from_manifest_path(manifest_path: Option<&PathBuf>) -> Result<Self> {
+        let manifest_path = ManifestPath::try_from(manifest_path)?;
+        Self::collect(&manifest_path)
+    }
+
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;

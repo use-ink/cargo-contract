@@ -28,6 +28,7 @@ use super::{
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
+    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -121,9 +122,10 @@ impl InstantiateCommand {
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<()> {
-        let (crate_metadata, contract_metadata) =
-            super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        let crate_metadata = CrateMetadata::from_manifest_path(
+            self.extrinsic_opts.manifest_path.as_ref(),
+        )?;
+        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url_to_string();
@@ -190,17 +192,17 @@ struct InstantiateArgs {
     salt: Vec<u8>,
 }
 
-pub struct Exec<'a> {
+pub struct Exec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
     client: Client,
     signer: PairSigner,
-    transcoder: ContractMessageTranscoder<'a>,
+    transcoder: ContractMessageTranscoder,
 }
 
-impl<'a> Exec<'a> {
+impl Exec {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         if dry_run {

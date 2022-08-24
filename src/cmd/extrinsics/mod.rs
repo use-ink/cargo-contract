@@ -36,7 +36,6 @@ use jsonrpsee::{
     ws_client::WsClientBuilder,
 };
 use std::{
-    fs::File,
     io::{
         self,
         Write,
@@ -48,7 +47,6 @@ use self::events::display_events;
 use crate::{
     crate_metadata::CrateMetadata,
     name_value_println,
-    workspace::ManifestPath,
     Verbosity,
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
@@ -58,7 +56,6 @@ use scale::{
     Decode,
     Encode,
 };
-use serde_json::Value;
 use sp_core::{
     crypto::Pair,
     sr25519,
@@ -141,40 +138,6 @@ impl ExtrinsicOpts {
             }
             _ => res,
         }
-    }
-}
-
-/// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo
-/// [`CrateMetadata`] along with the contract metadata [`ink_metadata::InkProject`].
-pub fn load_metadata(
-    manifest_path: Option<&PathBuf>,
-) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
-    let manifest_path = ManifestPath::try_from(manifest_path)?;
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-    let path = crate_metadata.metadata_path();
-
-    if !path.exists() {
-        return Err(anyhow!(
-            "Metadata file not found. Try building with `cargo contract build`."
-        ))
-    }
-
-    let file = File::open(&path)
-        .context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-        .context(format!(
-            "Failed to deserialize metadata file {}",
-            path.display()
-        ))?;
-    let ink_metadata =
-        serde_json::from_value(Value::Object(metadata.abi)).context(format!(
-            "Failed to deserialize ink project metadata from file {}",
-            path.display()
-        ))?;
-    if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-        Ok((crate_metadata, ink_project))
-    } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V1"))
     }
 }
 
