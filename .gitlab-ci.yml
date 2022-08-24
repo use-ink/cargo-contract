@@ -50,7 +50,7 @@ workflow:
     name:                          "${CI_IMAGE}"
   before_script:
     - rustup default stable
-    - rustup component add rustfmt clippy rust-src rustc-dev llvm-tools-preview
+    - rustup component add rustfmt clippy rust-src
     - cargo -vV
     - rustc -vV
     - rustup show
@@ -104,29 +104,6 @@ clippy:
     - rusty-cachier cache upload
 
 #### stage:                        test (all features)
-
-test-dylint:
-  stage:                           test
-  <<:                              *docker-env
-  script:
-    # We need to fix this test to a toolchain because of the UI tests
-    # We can't use stable here because the UI tests freak out if there are dots in the drivers file name
-    - rustup default nightly-2022-06-30
-    - rustup component add rustfmt clippy rust-src rustc-dev llvm-tools-preview
-
-    - rusty-cachier snapshot create
-    - cd ink_linting/
-    - mv _Cargo.toml Cargo.toml
-
-    - cargo check --verbose
-    - cargo +nightly fmt --verbose --all -- --check
-    - cargo clippy --verbose -- -D warnings;
-
-    # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
-    - unset RUSTC_WRAPPER
-
-    - cargo test --verbose --all-features
-    - rusty-cachier cache upload
 
 test:
   stage:                           test
