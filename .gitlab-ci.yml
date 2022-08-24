@@ -150,6 +150,7 @@ test-registry-publish-install:
     - echo -e '[registries]\nestuary = { index = "http://0.0.0.0:7878/git/index" }' > .cargo/config.toml
     - echo 0000 | cargo login --registry estuary
     - rusty-cachier snapshot create
+    - cd transcode && cargo publish --registry estuary && cd ..
     - cargo publish --registry estuary
     - cargo install cargo-contract --index http://0.0.0.0:7878/git/index
 
