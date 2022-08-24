@@ -88,7 +88,7 @@
 //! # use std::{path::Path, fs::File};
 //! let metadata_path = "/path/to/metadata.json";
 //!
-//! let metadata = load_metadata(&metadata_path.into())?;
+//! let metadata = load_metadata(&metadata_path.into());
 //! let transcoder = ContractMessageTranscoder::new(&metadata);
 //!
 //! let constructor = "new";
@@ -97,7 +97,7 @@
 //!
 //! println!("Encoded constructor data {:?}", data);
 //!
-//! fn load_metadata(path: &Path) -> anyhow::Result<ink_metadata::InkProject> {
+//! fn load_metadata(path: &Path) -> ink_metadata::InkProject {
 //!     let file = File::open(&path).expect("Failed to open metadata file");
 //!     let metadata: ContractMetadata =
 //!         serde_json::from_reader(file).expect("Failed to deserialize metadata file");
@@ -105,9 +105,9 @@
 //!         .expect("Failed to deserialize ink project metadata");
 //!
 //!     if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-//!         Ok(ink_project)
+//!         ink_project
 //!     } else {
-//!         Err(anyhow::anyhow!("Unsupported ink metadata version. Expected V3"))
+//!         panic!("Unsupported ink metadata version. Expected V3")
 //!     }
 //! }
 //! ```
