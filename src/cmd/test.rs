@@ -67,8 +67,6 @@ pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
 ) -> Result<TestResult> {
-    util::assert_channel()?;
-
     maybe_println!(
         verbosity,
         " {} {}",

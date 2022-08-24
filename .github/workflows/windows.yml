@@ -42,7 +42,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          components: rust-src, rustc-dev, llvm-tools-preview
+          components: rust-src
 
       - name: Install cargo-dylint
         uses: baptiste0928/cargo-install@v1
