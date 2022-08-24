@@ -180,13 +180,8 @@ impl ContractMessageTranscoder {
             "Failed to deserialize ink project metadata from file {}",
             path.display()
         ))?;
-        if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-            Ok(Self::new(ink_project))
-        } else {
-            Err(anyhow::anyhow!(
-                "Unsupported ink metadata version. Expected V1"
-            ))
-        }
+
+        Ok(Self::new(ink_metadata))
     }
 
     pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
@@ -481,14 +476,11 @@ mod tests {
 
     fn generate_metadata() -> ink_metadata::InkProject {
         extern "Rust" {
-            fn __ink_generate_metadata() -> ink_metadata::MetadataVersioned;
+            fn __ink_generate_metadata() -> ink_metadata::InkProject;
         }
-        let metadata_versioned = unsafe { __ink_generate_metadata() };
-        if let ink_metadata::MetadataVersioned::V3(ink_project) = metadata_versioned {
-            ink_project
-        } else {
-            panic!("Expected metadata V3");
-        }
+
+        let ink_project = unsafe { __ink_generate_metadata() };
+        ink_project
     }
 
     #[test]
