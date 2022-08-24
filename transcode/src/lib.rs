@@ -81,13 +81,11 @@
 //! As with the example for the primitive `bool` above, this works in the other direction for
 //! decoding SCALE encoded bytes and converting them into a human readable string.
 //!
-//! # Example
-//!
+//! # Examplel
 //! ```
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
-//!
 //! let metadata_path = "/path/to/metadata.json";
 //!
 //! let metadata = load_metadata(&metadata_path.into())?;
