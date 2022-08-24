@@ -80,7 +80,7 @@
 //!
 //! As with the example for the primitive `bool` above, this works in the other direction for
 //! decoding SCALE encoded bytes and converting them into a human readable string.
-//! 
+//!
 //! # Example
 //!
 //! ```
@@ -89,14 +89,14 @@
 //! # use std::{path::Path, fs::File};
 //!
 //! let metadata_path = "/path/to/metadata.json";
-//! 
+//!
 //! let metadata = load_metadata(&metadata_path.into())?;
 //! let transcoder = ContractMessageTranscoder::new(&metadata);
-//! 
+//!
 //! let constructor = "new";
 //! let args = ["foo", "bar"];
 //! let data = transcoder.encode(&constructor, &args).unwrap();
-//! 
+//!
 //! println!("Encoded constructor data {:?}", data);
 //!
 //! fn load_metadata(path: &Path) -> anyhow::Result<ink_metadata::InkProject> {
@@ -105,7 +105,7 @@
 //!         serde_json::from_reader(file).expect("Failed to deserialize metadata file");
 //!     let ink_metadata = serde_json::from_value(serde_json::Value::Object(metadata.abi))
 //!         .expect("Failed to deserialize ink project metadata");
-//! 
+//!
 //!     if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
 //!         Ok(ink_project)
 //!     } else {
