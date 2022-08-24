@@ -29,18 +29,17 @@ breaking - change to the ink! ABI as part of [paritytech/ink#1313](https://githu
 
 ## [1.5.0] - 2022-08-15
 
-- Fix windows dylint build (#690)
-
 ### Added
-- Dry run gas limit estimation [#484](https://github.com/paritytech/cargo-contract/pull/484)
+- Dry run gas limit estimation - [#484](https://github.com/paritytech/cargo-contract/pull/484)
 
 ### Changed
-- Bump `ink_*` crates to `v3.3.1` [#686](https://github.com/paritytech/cargo-contract/pull/686)
-- Refactor out transcode as a separate library [#597](https://github.com/paritytech/cargo-contract/pull/597)
-- Sync `metadata` version with `cargo-contract` [#611](https://github.com/paritytech/cargo-contract/pull/611)
-- Adapt to new subxt API [#678](https://github.com/paritytech/cargo-contract/pull/678)
-- Replace log/env_logger with tracing/tracing_subscriber [#689](https://github.com/paritytech/cargo-contract/pull/689)
-- Contract upload: emitting a warning instead of an error when the contract already existed is more user friendly [#644](https://github.com/paritytech/cargo-contract/pull/644)
+- Bump `ink_*` crates to `v3.3.1` - [#686](https://github.com/paritytech/cargo-contract/pull/686)
+- Refactor out transcode as a separate library - [#597](https://github.com/paritytech/cargo-contract/pull/597)
+- Sync `metadata` version with `cargo-contract` - [#611](https://github.com/paritytech/cargo-contract/pull/611)
+- Adapt to new subxt API - [#678](https://github.com/paritytech/cargo-contract/pull/678)
+- Replace log/env_logger with tracing/tracing_subscriber - [#689](https://github.com/paritytech/cargo-contract/pull/689)
+- Contract upload: emitting a warning instead of an error when the contract already
+  existed is more user friendly - [#644](https://github.com/paritytech/cargo-contract/pull/644)
 
 ### Fixed
 - Fix windows dylint build [#690](https://github.com/paritytech/cargo-contract/pull/690)
