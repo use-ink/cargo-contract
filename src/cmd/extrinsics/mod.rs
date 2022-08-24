@@ -24,23 +24,49 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{
+    anyhow,
+    Context,
+    Result,
+};
 use colored::Colorize;
-use jsonrpsee::{core::client::ClientT, rpc_params, ws_client::WsClientBuilder};
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use std::{
-    io::{self, Write},
+    io::{
+        self,
+        Write,
+    },
     path::PathBuf,
 };
 
 use self::events::display_events;
 use crate::{
-    crate_metadata::CrateMetadata, name_value_println, Verbosity, VerbosityFlags,
+    crate_metadata::CrateMetadata,
+    name_value_println,
+    Verbosity,
+    VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
-use scale::{Decode, Encode};
-use sp_core::{crypto::Pair, sr25519, Bytes};
-use subxt::{ext::sp_runtime::DispatchError, tx, Config, OnlineClient};
+use scale::{
+    Decode,
+    Encode,
+};
+use sp_core::{
+    crypto::Pair,
+    sr25519,
+    Bytes,
+};
+use subxt::{
+    ext::sp_runtime::DispatchError,
+    tx,
+    Config,
+    OnlineClient,
+};
 
 pub use call::CallCommand;
 pub use instantiate::InstantiateCommand;
