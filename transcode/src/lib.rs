@@ -160,6 +160,7 @@ impl ContractMessageTranscoder {
         }
     }
 
+    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the given path.
     pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
