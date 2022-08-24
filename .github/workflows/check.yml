@@ -12,49 +12,49 @@ jobs:
   build-contract-template:
     strategy:
       matrix:
-        config:
-          - {
-            os: "ubuntu-latest",
-            optUrl: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-linux.tar.gz",
-            optName: "wasm-opt",
-            optPath: "binaryen-version_109/bin/wasm-opt"
-          }
-          - {
-            os: "macos-latest",
-            optUrl: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-macos.tar.gz",
-            optName: "wasm-opt",
-            optPath: "binaryen-version_109/bin/wasm-opt"
-          }
-          - {
-            os: "windows-latest",
-            optUrl: "https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz",
-            optName: "wasm-opt.exe",
-            optPath: "binaryen-version_109/bin/wasm-opt.exe"
-          }
-    runs-on: ${{ matrix.config.os }}
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+    runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
     steps:
-      - name: Checkout sources & submodules
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-          submodules: recursive
+      - name: Install wasm-opt
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt-get install binaryen
 
       - name: Install wasm-opt
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: brew install binaryen
+
+      - name: Install wasm-opt
+        if: ${{ matrix.os == 'windows-latest' }}
         uses: engineerd/configurator@v0.0.8
         with:
-          name: ${{ matrix.config.optName }}
-          url: ${{ matrix.config.optUrl }}
-          pathInArchive: ${{ matrix.config.optPath }}
+          name: wasm-opt.exe
+          url: https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz
+          pathInArchive: binaryen-version_109/bin/wasm-opt.exe
 
-      - name: Install toolchain
+      # everything is accomplished on stable except formatting
+      - name: Install nightly toolchain
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          default: false
+          components: rustfmt
+
+      - name: Install stable toolchain
         id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          components: rust-src, clippy, rustfmt
+          default: true
+          target: wasm32-unknown-unknown
+          components: rust-src, clippy
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-dylint
         uses: actions-rs/cargo@v1
@@ -68,8 +68,17 @@ jobs:
           command: install
           args: --version ^2 dylint-link
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Checkout sources & submodules
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Check Formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: +nightly fmt --verbose --all -- --check
 
       - name: Check Template
         run: |
