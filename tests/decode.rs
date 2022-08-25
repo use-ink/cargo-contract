@@ -73,13 +73,6 @@ fn decode_works() {
     let lib = project_dir.join("lib.rs");
     std::fs::write(&lib, contract).expect("Failed to write contract lib.rs");
 
-    assert_cmd::Command::new("rustup")
-        .arg("override")
-        .arg("set")
-        .arg("nightly")
-        .assert()
-        .success();
-
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir)
         .arg("build")
