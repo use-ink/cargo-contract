@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "0.2.0"
+version = "0.2.0-alpha.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
