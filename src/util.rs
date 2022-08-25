@@ -251,6 +251,7 @@ pub mod tests {
     ///
     /// Currently works only on `unix`.
     #[cfg(unix)]
+    #[cfg(feature = "test-ci-only")]
     pub fn create_executable(path: &Path, content: &str) {
         use std::io::Write;
         #[cfg(unix)]
@@ -272,6 +273,7 @@ pub mod tests {
     /// The logs are not shown by default, logs are only shown when the test fails
     /// or if [`nocapture`](https://doc.rust-lang.org/cargo/commands/cargo-test.html#display-options)
     /// is being used.
+    #[cfg(any(feature = "integration-tests", feature = "test-ci-only"))]
     pub fn init_tracing_subscriber() {
         let _ = tracing_subscriber::fmt()
             .with_max_level(tracing::Level::TRACE)
