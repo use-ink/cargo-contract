@@ -63,8 +63,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        # Tests currently fail on windows with some dylint path issues.
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-22.04", "macos-12", "windows-2022"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full

@@ -775,6 +775,7 @@ mod tests_ci_only {
                 manifest_path,
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -815,6 +816,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path: manifest_path.clone(),
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -987,7 +989,7 @@ mod tests_ci_only {
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
             let res = cmd.exec().expect("build failed");
@@ -1037,6 +1039,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Debug,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1056,6 +1059,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Release,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1089,6 +1093,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1109,6 +1114,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Debug,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1129,6 +1135,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1148,6 +1155,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 output_type: OutputType::Json,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1205,6 +1213,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1245,6 +1254,7 @@ mod tests_ci_only {
             // when
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
+                skip_linting: true,
                 ..Default::default()
             };
             let res = super::execute(args).map(|_| ()).unwrap_err();

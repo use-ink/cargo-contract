@@ -357,7 +357,10 @@ mod tests {
             fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-            let mut args = crate::cmd::build::ExecuteArgs::default();
+            let mut args = crate::cmd::build::ExecuteArgs {
+                skip_linting: true,
+                ..Default::default()
+            };
             args.manifest_path = test_manifest.manifest_path;
 
             let build_result = cmd::build::execute(args)?;
