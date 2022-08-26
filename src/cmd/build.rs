@@ -855,7 +855,7 @@ mod tests_ci_only {
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -897,7 +897,7 @@ mod tests_ci_only {
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -1254,7 +1254,6 @@ mod tests_ci_only {
             // when
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
-                skip_linting: true,
                 ..Default::default()
             };
             let res = super::execute(args).map(|_| ()).unwrap_err();
