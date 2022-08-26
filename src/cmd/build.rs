@@ -68,16 +68,16 @@ const MAX_MEMORY_PAGES: u32 = 16;
 #[derive(Default)]
 pub(crate) struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
-    pub(crate) manifest_path: ManifestPath,
-    verbosity: Verbosity,
-    build_mode: BuildMode,
-    network: Network,
-    build_artifact: BuildArtifacts,
-    unstable_flags: UnstableFlags,
-    optimization_passes: OptimizationPasses,
-    keep_debug_symbols: bool,
-    skip_linting: bool,
-    output_type: OutputType,
+    pub manifest_path: ManifestPath,
+    pub verbosity: Verbosity,
+    pub build_mode: BuildMode,
+    pub network: Network,
+    pub build_artifact: BuildArtifacts,
+    pub unstable_flags: UnstableFlags,
+    pub optimization_passes: OptimizationPasses,
+    pub keep_debug_symbols: bool,
+    pub skip_linting: bool,
+    pub output_type: OutputType,
 }
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
