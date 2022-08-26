@@ -190,10 +190,15 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
+        let output_json = matches!(output_type, OutputType::Json);
+
         // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
+        if output_json {
             verbosity = Verbosity::Quiet;
         }
+
+        // We don't need to lint the contract if we're outputting JSON artifacts.
+        let skip_linting = output_json || self.skip_linting;
 
         let args = ExecuteArgs {
             manifest_path,
@@ -204,7 +209,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            skip_linting: self.skip_linting,
+            skip_linting,
             output_type,
         };
 
