@@ -81,10 +81,8 @@ struct ExtendedMetadataResult {
 /// translate to other languages (e.g ask!, Solidity).
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct BuildInfo {
-    /// The version of `rustc` used to build the contract.
-    ///
-    /// TODO: Should add a Display impl to `rustc_version::VersionMeta` and use that instead
-    pub rustc_version: String,
+    /// The stable version of `rustc` used to build the contract.
+    pub rustc_version: Version,
     /// The version of `cargo-contract` used to build the contract.
     pub cargo_contract_version: Version,
     /// The type of build that was used when building the contract.
