@@ -21,7 +21,7 @@ variables:
   RUSTY_CACHIER_SINGLE_BRANCH:     master
   RUSTY_CACHIER_DONT_OPERATE_ON_MAIN_BRANCH: "true"
   # paritytech/contracts-ci-linux:production defaults to nightly toolchain, default rusty-cachier to it too
-  RUSTY_CACHIER_TOOLCHAIN:         nightly
+  RUSTY_CACHIER_TOOLCHAIN:         stable
 
 workflow:
   rules:
@@ -49,6 +49,8 @@ workflow:
   image:
     name:                          "${CI_IMAGE}"
   before_script:
+    - rustup default stable
+    - rustup component add rustfmt clippy rust-src
     - cargo -vV
     - rustc -vV
     - rustup show
@@ -91,7 +93,7 @@ fmt:
   stage:                           check
   <<:                              *docker-env
   script:
-    - cargo fmt --verbose --all -- --check
+    - cargo +nightly fmt --verbose --all -- --check
 
 clippy:
   stage:                           check
@@ -102,32 +104,6 @@ clippy:
     - rusty-cachier cache upload
 
 #### stage:                        test (all features)
-
-test-dylint:
-  stage:                           test
-  <<:                              *docker-env
-  script:
-    - rusty-cachier snapshot create
-    - cd ink_linting/
-    - mv _Cargo.toml Cargo.toml
-
-    # Installing these components here is necessary because
-    # `ink_linting/` has a fixed `rust-toolchain` file.
-    # We can't move this line to the Docker container, since
-    # that would then make it impossible to upgrade the
-    # `ink_linting/rust-toolchain` file while still having
-    # this CI job succeed.
-    - rustup component add rustfmt clippy rust-src
-
-    - cargo check --verbose
-    - cargo fmt --verbose --all -- --check
-    - cargo clippy --verbose -- -D warnings;
-
-    # Needed until https://github.com/mozilla/sccache/issues/1000 is fixed.
-    - unset RUSTC_WRAPPER
-
-    - cargo test --verbose --all-features
-    - rusty-cachier cache upload
 
 test:
   stage:                           test
@@ -155,8 +131,8 @@ test-new-project-template:
 
     - cargo check --verbose
     - cargo test --verbose --all
-    - cargo fmt --verbose --all -- --check
-    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings -A clippy::let-unit-value;
+    - cargo +nightly fmt --verbose --all -- --check
+    - cargo clippy --verbose --manifest-path Cargo.toml -- -D warnings -A clippy::let-unit-value -A clippy::extra-unused-lifetimes
     - rusty-cachier cache upload
 
 # With the introduction of `ink_linting` in `build.rs` the installation process
@@ -166,18 +142,17 @@ test-new-project-template:
 test-registry-publish-install:
   stage:                           test
   <<:                              *docker-env
-  before_script:
-    - !reference [.rusty-cachier, before_script]
+  script:
     # Set up a local registry.
     - mkdir -p ./estuary/crates/ ./estuary/indices/
     - estuary --base-url=http://0.0.0.0:7878 --crate-dir ./estuary/crates/ --index-dir ./estuary/indices &
     - mkdir .cargo
     - echo -e '[registries]\nestuary = { index = "http://0.0.0.0:7878/git/index" }' > .cargo/config.toml
     - echo 0000 | cargo login --registry estuary
-  script:
     - rusty-cachier snapshot create
+    - cd transcode && cargo publish --registry estuary && cd ..
     - cargo publish --registry estuary
-    - cargo install cargo-contract --index http://0.0.0.0:7878/git/index
+    - cargo install cargo-contract --index http://0.0.0.0:7878/git/index --version 2.0.0-alpha.1
 
     # Simple smoke testing to check if basic `check` functionality works.
     - cargo run -- contract new new_project

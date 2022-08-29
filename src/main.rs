@@ -61,6 +61,15 @@ use clap::{
 };
 use colored::Colorize;
 
+// These crates are only used when we run integration tests `--features integration-tests`. However
+// since we can't have optional `dev-dependencies` we pretend to use them during normal test runs
+// in order to satisfy the `unused_crate_dependencies` lint.
+#[cfg(test)]
+use assert_cmd as _;
+
+#[cfg(test)]
+use predicates as _;
+
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
 #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]

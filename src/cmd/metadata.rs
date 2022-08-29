@@ -123,8 +123,6 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
-    util::assert_channel()?;
-
     let target_directory = crate_metadata.target_directory.clone();
     let out_path_metadata = target_directory.join(METADATA_FILE);
 
@@ -377,7 +375,7 @@ mod tests {
 
     #[test]
     fn generate_metadata() {
-        tracing_subscriber::fmt::init();
+        crate::util::tests::init_tracing_subscriber();
         with_new_contract_project(|manifest_path| {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;

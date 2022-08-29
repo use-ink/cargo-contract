@@ -30,8 +30,12 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
+use jsonrpsee::{
+    core::client::ClientT,
+    rpc_params,
+    ws_client::WsClientBuilder,
+};
 use std::{
-    fs::File,
     io::{
         self,
         Write,
@@ -43,18 +47,22 @@ use self::events::display_events;
 use crate::{
     crate_metadata::CrateMetadata,
     name_value_println,
-    workspace::ManifestPath,
     Verbosity,
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
-use serde_json::Value;
+use scale::{
+    Decode,
+    Encode,
+};
 use sp_core::{
     crypto::Pair,
     sr25519,
+    Bytes,
 };
 use subxt::{
+    ext::sp_runtime::DispatchError,
     tx,
     Config,
     OnlineClient,
@@ -133,40 +141,6 @@ impl ExtrinsicOpts {
     }
 }
 
-/// For a contract project with its `Cargo.toml` at the specified `manifest_path`, load the cargo
-/// [`CrateMetadata`] along with the contract metadata [`ink_metadata::InkProject`].
-pub fn load_metadata(
-    manifest_path: Option<&PathBuf>,
-) -> Result<(CrateMetadata, ink_metadata::InkProject)> {
-    let manifest_path = ManifestPath::try_from(manifest_path)?;
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-    let path = crate_metadata.metadata_path();
-
-    if !path.exists() {
-        return Err(anyhow!(
-            "Metadata file not found. Try building with `cargo contract build`."
-        ))
-    }
-
-    let file = File::open(&path)
-        .context(format!("Failed to open metadata file {}", path.display()))?;
-    let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-        .context(format!(
-            "Failed to deserialize metadata file {}",
-            path.display()
-        ))?;
-    let ink_metadata =
-        serde_json::from_value(Value::Object(metadata.abi)).context(format!(
-            "Failed to deserialize ink project metadata from file {}",
-            path.display()
-        ))?;
-    if let ink_metadata::MetadataVersioned::V3(ink_project) = ink_metadata {
-        Ok((crate_metadata, ink_project))
-    } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V1"))
-    }
-}
-
 /// Parse Rust style integer balance literals which can contain underscores.
 fn parse_balance(input: &str) -> Result<Balance> {
     input
@@ -242,36 +216,25 @@ where
         .map_err(Into::into)
 }
 
-#[derive(serde::Deserialize)]
-pub struct ContractsRpcError(Value);
+async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
+    let cli = WsClientBuilder::default().build(&url).await?;
+    let params = rpc_params![func, Bytes(args.encode())];
+    let bytes: Bytes = cli.request("state_call", params).await?;
+    Ok(R::decode(&mut bytes.as_ref())?)
+}
 
-impl ContractsRpcError {
-    pub fn error_details(&self, metadata: &subxt::Metadata) -> Result<String> {
-        let try_parse_module_error = || {
-            let obj = self.0.as_object()?;
-            let module = obj.get("Module")?;
-            let pallet_index = module.get("index").and_then(|i| i.as_u64())?;
-            let error_field = module.get("error")?;
-            let error_index = match error_field {
-                Value::Array(arr) => arr.get(0).and_then(|v| v.as_u64()),
-                // the legacy ModuleError has a single `u8` for the error index
-                Value::Number(n) => n.as_u64(),
-                _ => None,
-            }?;
-            Some((pallet_index as u8, error_index as u8))
-        };
-
-        if let Some((pallet_index, error_index)) = try_parse_module_error() {
-            let details = metadata.error(pallet_index, error_index)?;
+fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<String> {
+    match error {
+        DispatchError::Module(err) => {
+            let details = metadata.error(err.index, err.error)?;
             Ok(format!(
                 "ModuleError: {}::{}: {:?}",
                 details.pallet(),
                 details.error(),
                 details.docs()
             ))
-        } else {
-            Ok(format!("DispatchError: {:?}", self.0))
         }
+        err => Ok(format!("DispatchError: {:?}", err)),
     }
 }
 

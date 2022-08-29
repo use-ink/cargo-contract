@@ -21,6 +21,7 @@ use anyhow::{
 };
 use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
+use semver::Version;
 use std::{
     ffi::OsStr,
     fs,
@@ -38,18 +39,25 @@ use std::{
     process::Command,
 };
 
-/// Check whether the current rust channel is valid: `nightly` is recommended.
-pub fn assert_channel() -> Result<()> {
+/// This makes sure we are building with a minimum `stable` toolchain version.
+fn assert_channel() -> Result<()> {
     let meta = rustc_version::version_meta()?;
+    let min_version = Version::new(1, 63, 0);
     match meta.channel {
-        Channel::Dev | Channel::Nightly => Ok(()),
-        Channel::Stable | Channel::Beta => {
+        Channel::Stable if meta.semver >= min_version => Ok(()),
+        Channel::Stable => {
             anyhow::bail!(
-                "cargo-contract cannot build using the {:?} channel. \
-                Switch to nightly. \
-                See https://github.com/paritytech/cargo-contract#build-requires-the-nightly-toolchain",
+                "The minimum Rust version is {}. You are using {}.",
+                min_version,
+                meta.semver
+            )
+        }
+        _ => {
+            anyhow::bail!(
+                "Using the {:?} channel is not supported. \
+                Contracts should be built using a \"stable\" toolchain.",
                 format!("{:?}", meta.channel).to_lowercase(),
-            );
+            )
         }
     }
 }
@@ -92,6 +100,7 @@ where
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
+    assert_channel()?;
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
 
@@ -107,6 +116,9 @@ where
         cmd.current_dir(path);
     }
 
+    // Allow nightly features on a stable toolchain
+    cmd.env("RUSTC_BOOTSTRAP", "1");
+
     cmd.arg(command);
     cmd.args(args);
     match verbosity {
@@ -121,7 +133,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    tracing::info!("Invoking cargo: {:?}", cmd);
+    tracing::debug!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
@@ -253,6 +265,7 @@ pub mod tests {
     ///
     /// Currently works only on `unix`.
     #[cfg(unix)]
+    #[cfg(feature = "test-ci-only")]
     pub fn create_executable(path: &Path, content: &str) {
         use std::io::Write;
         #[cfg(unix)]
@@ -264,6 +277,22 @@ pub mod tests {
         }
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
             .expect("setting permissions failed");
+    }
+
+    /// Init a tracing subscriber for logging in tests.
+    ///
+    /// Be aware that this enables `TRACE` by default. It also ignores any error
+    /// while setting up the logger.
+    ///
+    /// The logs are not shown by default, logs are only shown when the test fails
+    /// or if [`nocapture`](https://doc.rust-lang.org/cargo/commands/cargo-test.html#display-options)
+    /// is being used.
+    #[cfg(any(feature = "integration-tests", feature = "test-ci-only"))]
+    pub fn init_tracing_subscriber() {
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .with_test_writer()
+            .try_init();
     }
 }
 

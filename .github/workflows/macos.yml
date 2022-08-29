@@ -19,7 +19,7 @@ jobs:
         platform:
           - macos-latest
         toolchain:
-          - nightly
+          - stable
     runs-on: ${{ matrix.platform }}
     env:
       RUST_BACKTRACE: full
@@ -41,7 +41,6 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
-          override: true
 
       - name: Install cargo-dylint
         uses: baptiste0928/cargo-install@v1

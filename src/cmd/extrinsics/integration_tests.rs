@@ -71,7 +71,7 @@ impl ContractsNodeProcess {
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
-            tracing::info!(
+            tracing::debug!(
                 "Connecting to contracts enabled node, attempt {}/{}",
                 attempts,
                 MAX_ATTEMPTS
@@ -110,7 +110,7 @@ impl ContractsNodeProcess {
     }
 
     fn kill(&mut self) {
-        tracing::info!("Killing contracts node process {}", self.proc.id());
+        tracing::debug!("Killing contracts node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
             tracing::error!(
                 "Error killing contracts node process {}: {}",
@@ -136,7 +136,7 @@ impl ContractsNodeProcess {
 #[ignore]
 #[async_std::test]
 async fn build_upload_instantiate_call() {
-    tracing_subscriber::fmt::init();
+    crate::util::tests::init_tracing_subscriber();
 
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
@@ -148,7 +148,7 @@ async fn build_upload_instantiate_call() {
         .await
         .expect("Error spawning contracts node");
 
-    tracing::info!(
+    tracing::debug!(
         "Creating new contract in temporary directory {}",
         tmp_dir.path().to_string_lossy()
     );
@@ -164,13 +164,13 @@ async fn build_upload_instantiate_call() {
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
-    tracing::info!("Building contract in {}", project_path.to_string_lossy());
+    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
     cargo_contract(project_path.as_path())
         .arg("build")
         .assert()
         .success();
 
-    tracing::info!("Uploading the code to the substrate-contracts-node chain");
+    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(&["--suri", "//Alice"])
@@ -187,7 +187,7 @@ async fn build_upload_instantiate_call() {
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
-    tracing::info!("Instantiating the contract with code hash `{}`", code_hash);
+    tracing::debug!("Instantiating the contract with code hash `{}`", code_hash);
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
         .args(&["--constructor", "new"])
@@ -222,7 +222,7 @@ async fn build_upload_instantiate_call() {
     // call the `get` message via rpc to assert that it was set to the initial value
     call_get_rpc(true);
 
-    tracing::info!("Calling flip on the contract `{}`", contract_account);
+    tracing::debug!("Calling flip on the contract `{}`", contract_account);
     cargo_contract(project_path.as_path())
         .arg("call")
         .args(&["--message", "flip"])

@@ -274,8 +274,6 @@ fn exec_cargo_for_wasm_target(
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
-    util::assert_channel()?;
-
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -336,61 +334,47 @@ fn exec_cargo_for_wasm_target(
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
-    let tmp_dir = tempfile::Builder::new()
-        .prefix("cargo-contract-dylint_")
-        .tempdir()?;
-    tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
-
-    let driver = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
-    crate::util::unzip(driver, tmp_dir.path().to_path_buf(), None)?;
-
-    let manifest_path = crate_metadata.manifest_path.cargo_arg()?;
-    let args = vec!["--lib", "ink_linting", &manifest_path];
-    let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
-    let env = vec![
-        ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
-        // For tests we need to set the `DYLINT_DRIVER_PATH` to a tmp folder,
-        // otherwise tests running in parallel will try to write to the same
-        // file at the same time which will result in a `Text file busy` error.
-        #[cfg(test)]
-        ("DYLINT_DRIVER_PATH", Some(tmp_dir_path.as_ref())),
-        // We need to remove the `CARGO_TARGET_DIR` environment variable in
-        // case `cargo dylint` is invoked.
-        //
-        // This is because the ink! dylint driver crate found in `dylint` uses a
-        // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By
-        // removing this env variable we avoid issues with different Rust toolchains
-        // interfering with each other.
-        ("CARGO_TARGET_DIR", None),
-        // There are generally problems with having a custom `rustc` wrapper, while
-        // executing `dylint` (which has a custom linker). Especially for `sccache`
-        // there is this bug: https://github.com/mozilla/sccache/issues/1000.
-        // Until we have a justification for leaving the wrapper we should unset it.
-        ("RUSTC_WRAPPER", None),
-    ];
-    let working_dir = crate_metadata
-        .manifest_path
-        .directory()
-        .unwrap_or_else(|| Path::new("."))
-        .canonicalize()?;
-
     let verbosity = if verbosity == Verbosity::Verbose {
         // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
         Verbosity::Default
     } else {
         verbosity
     };
-    util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, env)?;
+
+    let target_dir = &crate_metadata.target_directory.to_string_lossy();
+    let args = vec!["--lib=ink_linting", "--quiet"];
+    let env = vec![
+        // We need to set the `CARGO_TARGET_DIR` environment variable in
+        // case `cargo dylint` is invoked.
+        //
+        // This is because we build from a temporary directory (to patch the manifest) but still
+        // want the output to live at a fixed path. `cargo dylint` does not accept this information
+        // on the command line.
+        ("CARGO_TARGET_DIR", Some(target_dir.as_ref())),
+        // There are generally problems with having a custom `rustc` wrapper, while
+        // executing `dylint` (which has a custom linker). Especially for `sccache`
+        // there is this bug: https://github.com/mozilla/sccache/issues/1000.
+        // Until we have a justification for leaving the wrapper we should unset it.
+        ("RUSTC_WRAPPER", None),
+    ];
+
+    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+        .with_root_package_manifest(|manifest| {
+            manifest.with_dylint()?;
+            Ok(())
+        })?
+        .using_temp(|manifest_path| {
+            util::invoke_cargo("dylint", &args, manifest_path.directory(), verbosity, env)
+                .map(|_| ())
+        })?;
 
     Ok(())
 }
 
 /// Checks if all requirements for `dylint` are installed.
 ///
-/// We require only an installed version of `cargo-dylint` here and don't
-/// check for an installed version of `dylint-link`. This is because
-/// `dylint-link` is only required for the `dylint` driver build process
-/// in `build.rs`.
+/// We require both `cargo-dylint` and `dylint-link` because the driver is being
+/// built at runtime on demand.
 ///
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
@@ -407,19 +391,21 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             cmd.env("PATH", path_env);
         }
 
-        cmd.stdout(std::process::Stdio::null())
+        let mut child = if let Ok(child) = cmd
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
-            .map_err(|err| {
-                tracing::debug!("Error spawning `{:?}`", cmd);
-                err
-            })?
-            .wait()
-            .map(|res| res.success())
-            .map_err(|err| {
-                tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
-                err
-            })
+        {
+            child
+        } else {
+            tracing::debug!("Error spawning `{:?}`", cmd);
+            return false
+        };
+
+        child.wait().map(|ret| ret.success()).unwrap_or_else(|err| {
+            tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
+            false
+        })
     };
 
     // when testing this function we should never fall back to a `cargo` specified
@@ -429,10 +415,18 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     #[cfg(test)]
     let cargo = "cargo";
 
-    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version"))? {
+    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
         anyhow::bail!("cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
+            .to_string()
+            .bright_yellow());
+    }
+
+    if !execute_cmd(Command::new("dylint-link").arg("--version")) {
+        anyhow::bail!("dylint-link was not found!\n\
+            Make sure it is installed and the binary is in your PATH environment.\n\n\
+            You can install it by executing `cargo install dylint-link`."
             .to_string()
             .bright_yellow());
     }
@@ -552,8 +546,8 @@ fn assert_compatible_ink_dependencies(
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
         let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, vec![])
-            .map_err(|_| {
-                anyhow::anyhow!(
+            .with_context(|| {
+                format!(
                     "Mismatching versions of `{}` were found!\n\
                      Please ensure that your contract and your ink! dependencies use a compatible \
                      version of this package.",
@@ -568,7 +562,7 @@ fn assert_compatible_ink_dependencies(
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
-    tracing::info!("Contract version: {:?}", ink_version);
+    tracing::debug!("Contract version: {:?}", ink_version);
     let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
         anyhow::bail!(

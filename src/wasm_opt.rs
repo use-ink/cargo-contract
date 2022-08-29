@@ -72,7 +72,7 @@ impl WasmOptHandler {
 
         let wasm_opt_path =
             which.expect("we just checked if `which` returned an err; qed");
-        tracing::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+        tracing::debug!("Path to wasm-opt executable: {}", wasm_opt_path.display());
 
         let version =
             Self::check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
@@ -98,7 +98,7 @@ impl WasmOptHandler {
         let mut dest_optimized = dest_wasm.clone();
         dest_optimized.set_file_name(format!("{}-opt.wasm", contract_artifact_name));
 
-        tracing::info!(
+        tracing::debug!(
             "Optimization level passed to wasm-opt: {}",
             self.optimization_level
         );
@@ -118,7 +118,7 @@ impl WasmOptHandler {
             command.arg("-g");
         }
 
-        tracing::info!("Invoking wasm-opt with {:?}", command);
+        tracing::debug!("Invoking wasm-opt with {:?}", command);
 
         let output = command.output().map_err(|err| {
             anyhow::anyhow!(
@@ -212,13 +212,13 @@ impl WasmOptHandler {
             .trim();
         let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
         let captures = re.captures(version_stdout).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
-            version_stdout,
-            github_note,
-        )
-    })?;
+            anyhow::anyhow!(
+                "Unable to extract version information from '{}'.\n\
+                Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
+                version_stdout,
+                github_note,
+            )
+        })?;
         let version_number: u32 = captures
             .get(1) // first capture group is at index 1
             .ok_or_else(|| {
@@ -237,7 +237,7 @@ impl WasmOptHandler {
                 )
             })?;
 
-        tracing::info!(
+        tracing::debug!(
             "The wasm-opt version output is '{}', which was parsed to '{}'",
             version_stdout,
             version_number

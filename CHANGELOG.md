@@ -6,20 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.0] - 2022-08-15
+## [2.0.0-alpha.1] - 2022-08-24
 
-- Fix windows dylint build (#690)
+This release brings two exciting updates! First, contracts can now be built using the
+`stable` Rust toolchain! Don't ask us how we managed to do this 👻.
+
+Secondly, it allows you to build ink! `v4.0.0-alpha.1`, which introduced a small - but
+breaking - change to the ink! ABI as part of [paritytech/ink#1313](https://github.com/paritytech/ink/pull/1313).
 
 ### Added
-- Dry run gas limit estimation [#484](https://github.com/paritytech/cargo-contract/pull/484)
+- Add support for ink!'s `version` metadata field - [#641](https://github.com/paritytech/cargo-contract/pull/641)
 
 ### Changed
-- Bump `ink_*` crates to `v3.3.1` [#686](https://github.com/paritytech/cargo-contract/pull/686)
-- Refactor out transcode as a separate library [#597](https://github.com/paritytech/cargo-contract/pull/597)
-- Sync `metadata` version with `cargo-contract` [#611](https://github.com/paritytech/cargo-contract/pull/611)
-- Adapt to new subxt API [#678](https://github.com/paritytech/cargo-contract/pull/678)
-- Replace log/env_logger with tracing/tracing_subscriber [#689](https://github.com/paritytech/cargo-contract/pull/689)
-- Contract upload: emitting a warning instead of an error when the contract already existed is more user friendly [#644](https://github.com/paritytech/cargo-contract/pull/644)
+- Build contracts and dylint driver with stable - [#698](https://github.com/paritytech/cargo-contract/pull/698)
+- Compile dylints when compiling the contract - [#703](https://github.com/paritytech/cargo-contract/pull/703)
+- Move transcode example to doc test, add helper method - [#705](https://github.com/paritytech/cargo-contract/pull/705)
+    - Note that alongside this PR we released [`contract-transcode@0.2.0`](https://crates.io/crates/contract-transcode/0.2.0)
+- Replace custom RPCs by `state_call` - [#701](https://github.com/paritytech/cargo-contract/pull/701)
+
+### Fixed
+- Fix `tracing_subscriber` filtering - [#702](https://github.com/paritytech/cargo-contract/pull/702)
+
+## [1.5.0] - 2022-08-15
+
+### Added
+- Dry run gas limit estimation - [#484](https://github.com/paritytech/cargo-contract/pull/484)
+
+### Changed
+- Bump `ink_*` crates to `v3.3.1` - [#686](https://github.com/paritytech/cargo-contract/pull/686)
+- Refactor out transcode as a separate library - [#597](https://github.com/paritytech/cargo-contract/pull/597)
+- Sync `metadata` version with `cargo-contract` - [#611](https://github.com/paritytech/cargo-contract/pull/611)
+- Adapt to new subxt API - [#678](https://github.com/paritytech/cargo-contract/pull/678)
+- Replace log/env_logger with tracing/tracing_subscriber - [#689](https://github.com/paritytech/cargo-contract/pull/689)
+- Contract upload: emitting a warning instead of an error when the contract already
+  existed is more user friendly - [#644](https://github.com/paritytech/cargo-contract/pull/644)
 
 ### Fixed
 - Fix windows dylint build [#690](https://github.com/paritytech/cargo-contract/pull/690)
