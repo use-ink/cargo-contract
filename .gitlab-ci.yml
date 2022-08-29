@@ -152,7 +152,7 @@ test-registry-publish-install:
     - rusty-cachier snapshot create
     - cd transcode && cargo publish --registry estuary && cd ..
     - cargo publish --registry estuary
-    - cargo install cargo-contract --index http://0.0.0.0:7878/git/index
+    - cargo install cargo-contract --index http://0.0.0.0:7878/git/index --version 2.0.0-alpha.1
 
     # Simple smoke testing to check if basic `check` functionality works.
     - cargo run -- contract new new_project
