@@ -65,7 +65,8 @@ impl VerifyCommand {
 
         // 2. Call `cargo contract build` with the `BuildInfo` from the metadata.
         let expected_rustc_version = build_info.rustc_version;
-        let rustc_version = crate::util::rustc_toolchain()?;
+        let rustc_version = rustc_version::version()
+            .expect("`rustc` always has a version associated with it.");
 
         anyhow::ensure!(
             rustc_version == expected_rustc_version,
