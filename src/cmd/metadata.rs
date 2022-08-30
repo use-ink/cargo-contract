@@ -98,7 +98,7 @@ pub(crate) fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        let mut current_progress = 4;
+        let mut current_progress = 5;
         maybe_println!(
             verbosity,
             " {} {}",
