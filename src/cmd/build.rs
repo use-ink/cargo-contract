@@ -333,15 +333,14 @@ fn exec_cargo_for_wasm_target(
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
-    let verbosity = if verbosity == Verbosity::Verbose {
-        // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
-        Verbosity::Default
-    } else {
-        verbosity
+    // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
+    let verbosity = match verbosity {
+        Verbosity::Verbose => Verbosity::Default,
+        Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
     };
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting", "--quiet"];
+    let args = vec!["--lib=ink_linting"];
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
