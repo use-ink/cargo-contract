@@ -260,8 +260,8 @@ impl BuildArtifacts {
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            BuildArtifacts::All => 5,
-            BuildArtifacts::CodeOnly => 3,
+            BuildArtifacts::All => 6,
+            BuildArtifacts::CodeOnly => 4,
             BuildArtifacts::CheckOnly => 2,
         }
     }
