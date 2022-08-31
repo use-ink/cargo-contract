@@ -73,7 +73,9 @@ impl serde::Serialize for Map {
     {
         let mut map = serializer.serialize_map(Some(self.map.len()))?;
         for (k, v) in &self.map {
-            map.serialize_entry(k, v)?;
+            //we need to convert the key to a string
+            //because serde_json disallows non-string keys
+            map.serialize_entry(&k.to_string(), v)?;
         }
         todo!()
     }

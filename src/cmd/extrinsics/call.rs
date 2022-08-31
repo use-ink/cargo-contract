@@ -188,7 +188,8 @@ impl CallCommand {
             Default::default()
         )?;
 
-        call_result.display(&self.extrinsic_opts.verbosity()?);
+        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        println!("{}", display);
 
         Ok(())
     }

@@ -287,7 +287,8 @@ impl Exec {
             Default::default(),
         )?;
 
-        call_result.display(&self.verbosity);
+        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        println!("{}", display);
 
         // The CodeStored event is only raised if the contract has not already been uploaded.
         let code_hash = result
@@ -335,7 +336,8 @@ impl Exec {
             Default::default(),
         )?;
 
-        call_result.display(&self.verbosity);
+        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        println!("{}", display);
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?

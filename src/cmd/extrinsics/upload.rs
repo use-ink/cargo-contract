@@ -151,7 +151,8 @@ impl UploadCommand {
             Default::default()
         )?;
 
-        call_result.display(&self.extrinsic_opts.verbosity()?);
+        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        println!("{}", display);
 
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
 
