@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    display_events,
     error_details,
     parse_balance,
     prompt_confirm_tx,
@@ -31,7 +30,9 @@ use super::{
     PairSigner,
     MAX_KEY_COL_WIDTH,
 };
+
 use crate::{
+    cmd::extrinsics::events::parse_events,
     name_value_println,
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -72,7 +73,7 @@ pub struct CallCommand {
     value: Balance,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
-    output_json: bool
+    output_json: bool,
 }
 
 impl CallCommand {
@@ -180,12 +181,16 @@ impl CallCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        display_events(
+        let call_result = parse_events(
             &result,
             transcoder,
             &client.metadata(),
-            &self.extrinsic_opts.verbosity()?,
-        )
+            Default::default()
+        )?;
+
+        call_result.display(&self.extrinsic_opts.verbosity()?);
+
+        Ok(())
     }
 
     /// Dry run the call before tx submission. Returns the gas required estimate.

@@ -36,7 +36,7 @@ use std::{
         Index,
         IndexMut,
     },
-    str::FromStr
+    str::FromStr,
 };
 
 use serde::ser::SerializeMap;
@@ -69,7 +69,8 @@ pub struct Map {
 impl serde::Serialize for Map {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         let mut map = serializer.serialize_map(Some(self.map.len()))?;
         for (k, v) in &self.map {
             map.serialize_entry(k, v)?;

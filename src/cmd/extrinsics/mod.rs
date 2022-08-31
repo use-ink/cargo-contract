@@ -43,7 +43,6 @@ use std::{
     path::PathBuf,
 };
 
-use self::events::display_events;
 use crate::{
     crate_metadata::CrateMetadata,
     name_value_println,

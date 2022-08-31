@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_events,
     error_details,
     runtime_api::api,
     state_call,
@@ -27,7 +26,7 @@ use super::{
     CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
-    PairSigner,
+    PairSigner, events::parse_events,
 };
 use crate::name_value_println;
 use anyhow::{
@@ -145,12 +144,14 @@ impl UploadCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        display_events(
+        let call_result = parse_events(
             &result,
             transcoder,
             &client.metadata(),
-            &self.extrinsic_opts.verbosity()?,
+            Default::default()
         )?;
+
+        call_result.display(&self.extrinsic_opts.verbosity()?);
 
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
 

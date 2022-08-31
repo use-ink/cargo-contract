@@ -16,8 +16,8 @@
 
 use super::{
     display_contract_exec_result,
-    display_events,
     error_details,
+    events::parse_events,
     parse_balance,
     prompt_confirm_tx,
     runtime_api::api,
@@ -280,12 +280,14 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        display_events(
+        let call_result = parse_events(
             &result,
             &self.transcoder,
             &self.client.metadata(),
-            &self.verbosity,
+            Default::default(),
         )?;
+
+        call_result.display(&self.verbosity);
 
         // The CodeStored event is only raised if the contract has not already been uploaded.
         let code_hash = result
@@ -326,12 +328,14 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        display_events(
+        let call_result = parse_events(
             &result,
             &self.transcoder,
             &self.client.metadata(),
-            &self.verbosity,
+            Default::default(),
         )?;
+
+        call_result.display(&self.verbosity);
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
