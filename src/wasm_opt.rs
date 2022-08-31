@@ -250,13 +250,14 @@ impl WasmOptHandler {
 }
 
 #[cfg(feature = "test-ci-only")]
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests_ci_only {
     use super::*;
 
     use crate::util::tests::{
         create_executable,
         with_tmp_dir,
+        MockGuard,
     };
 
     /// Creates an executable `wasm-opt-mocked` file which outputs
@@ -265,15 +266,12 @@ mod tests_ci_only {
     /// Returns the path to this file.
     ///
     /// Currently works only on `unix`.
-    #[cfg(unix)]
-    fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> PathBuf {
+    fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> MockGuard {
         let path = tmp_dir.join("wasm-opt-mocked");
         let content = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
-        create_executable(&path, &content);
-        path
+        create_executable(&path, &content)
     }
 
-    #[cfg(unix)]
     #[test]
     fn incompatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
@@ -297,7 +295,6 @@ mod tests_ci_only {
         })
     }
 
-    #[cfg(unix)]
     #[test]
     fn compatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
         with_tmp_dir(|path| {
@@ -314,7 +311,6 @@ mod tests_ci_only {
         })
     }
 
-    #[cfg(unix)]
     #[test]
     fn incompatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
         with_tmp_dir(|path| {
@@ -337,7 +333,6 @@ mod tests_ci_only {
         })
     }
 
-    #[cfg(unix)]
     #[test]
     fn compatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
         with_tmp_dir(|path| {
