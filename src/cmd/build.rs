@@ -725,8 +725,8 @@ mod tests_ci_only {
             build::load_module,
             BuildCommand,
         },
-        workspace::Manifest,
         util::tests::with_new_contract_project,
+        workspace::Manifest,
         BuildArtifacts,
         BuildMode,
         ManifestPath,
@@ -740,10 +740,13 @@ mod tests_ci_only {
     use semver::Version;
     use std::{
         ffi::OsStr,
-        path::Path,
-        fs, io,
+        fs,
+        io,
+        path::{
+            Path,
+            PathBuf,
+        },
     };
-    use std::path::PathBuf;
 
     fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
         fs::create_dir_all(&dst)?;
@@ -817,10 +820,17 @@ mod tests_ci_only {
             fs::rename(&working_dir, &template_dir)?;
             copy_dir_all(&template_dir, &working_dir)?;
 
-            Ok(Self { template_dir, working_dir })
+            Ok(Self {
+                template_dir,
+                working_dir,
+            })
         }
 
-        pub fn run_test(&self, name: &str, test: impl FnOnce(&ManifestPath) -> Result<()>) -> Result<()> {
+        pub fn run_test(
+            &self,
+            name: &str,
+            test: impl FnOnce(&ManifestPath) -> Result<()>,
+        ) -> Result<()> {
             println!("Running {}", name);
             let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
             match test(&manifest_path) {
@@ -838,18 +848,45 @@ mod tests_ci_only {
     #[test]
     fn build_tests() {
         crate::util::tests::with_tmp_dir(|tmp_dir| {
-            let ctx = BuildTestContext::new(tmp_dir,"build_test")?;
+            let ctx = BuildTestContext::new(tmp_dir, "build_test")?;
 
-            ctx.run_test("build_code_only",build_code_only)?;
-            ctx.run_test("check_must_not_output_contract_artifacts_in_project_dir", check_must_not_output_contract_artifacts_in_project_dir)?;
-            ctx.run_test("optimization_passes_from_cli_must_take_precedence_over_profile", optimization_passes_from_cli_must_take_precedence_over_profile)?;
-            ctx.run_test("optimization_passes_from_profile_must_be_used", optimization_passes_from_profile_must_be_used)?;
-            ctx.run_test("building_template_in_debug_mode_must_work", contract_lib_name_different_from_package_name_must_build)?;
-            ctx.run_test("building_template_in_debug_mode_must_work", building_template_in_debug_mode_must_work)?;
-            ctx.run_test("building_template_in_release_mode_must_work", building_template_in_release_mode_must_work)?;
-            ctx.run_test("keep_debug_symbols_in_debug_mode", keep_debug_symbols_in_debug_mode)?;
-            ctx.run_test("keep_debug_symbols_in_release_mode", keep_debug_symbols_in_release_mode)?;
-            ctx.run_test("check_must_not_output_contract_artifacts_in_project_dir", build_with_json_output_works)?;
+            ctx.run_test("build_code_only", build_code_only)?;
+            ctx.run_test(
+                "check_must_not_output_contract_artifacts_in_project_dir",
+                check_must_not_output_contract_artifacts_in_project_dir,
+            )?;
+            ctx.run_test(
+                "optimization_passes_from_cli_must_take_precedence_over_profile",
+                optimization_passes_from_cli_must_take_precedence_over_profile,
+            )?;
+            ctx.run_test(
+                "optimization_passes_from_profile_must_be_used",
+                optimization_passes_from_profile_must_be_used,
+            )?;
+            ctx.run_test(
+                "building_template_in_debug_mode_must_work",
+                contract_lib_name_different_from_package_name_must_build,
+            )?;
+            ctx.run_test(
+                "building_template_in_debug_mode_must_work",
+                building_template_in_debug_mode_must_work,
+            )?;
+            ctx.run_test(
+                "building_template_in_release_mode_must_work",
+                building_template_in_release_mode_must_work,
+            )?;
+            ctx.run_test(
+                "keep_debug_symbols_in_debug_mode",
+                keep_debug_symbols_in_debug_mode,
+            )?;
+            ctx.run_test(
+                "keep_debug_symbols_in_release_mode",
+                keep_debug_symbols_in_release_mode,
+            )?;
+            ctx.run_test(
+                "check_must_not_output_contract_artifacts_in_project_dir",
+                build_with_json_output_works,
+            )?;
             Ok(())
         })
     }
@@ -891,7 +928,9 @@ mod tests_ci_only {
         Ok(())
     }
 
-    fn check_must_not_output_contract_artifacts_in_project_dir(manifest_path: &ManifestPath) -> Result<()> {
+    fn check_must_not_output_contract_artifacts_in_project_dir(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         let project_dir = manifest_path.directory().expect("directory must exist");
         let args = crate::cmd::build::ExecuteArgs {
@@ -914,10 +953,11 @@ mod tests_ci_only {
             "found wasm artifact in project directory!"
         );
         Ok(())
-
     }
 
-    fn optimization_passes_from_cli_must_take_precedence_over_profile(manifest_path: &ManifestPath) -> Result<()> {
+    fn optimization_passes_from_cli_must_take_precedence_over_profile(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         write_optimization_passes_into_manifest(
             manifest_path.as_ref(),
@@ -954,10 +994,11 @@ mod tests_ci_only {
             size_diff,
         );
         Ok(())
-
     }
 
-    fn optimization_passes_from_profile_must_be_used(manifest_path: &ManifestPath) -> Result<()> {
+    fn optimization_passes_from_profile_must_be_used(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         write_optimization_passes_into_manifest(
             manifest_path.as_ref(),
@@ -995,7 +1036,6 @@ mod tests_ci_only {
         );
 
         Ok(())
-
     }
 
     #[test]
@@ -1040,7 +1080,9 @@ mod tests_ci_only {
         })
     }
 
-    fn contract_lib_name_different_from_package_name_must_build(manifest_path: &ManifestPath) -> Result<()> {
+    fn contract_lib_name_different_from_package_name_must_build(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         let mut manifest =
             Manifest::new(manifest_path.clone()).expect("manifest creation failed");
@@ -1078,7 +1120,6 @@ mod tests_ci_only {
         );
 
         Ok(())
-
     }
 
     #[test]
@@ -1107,7 +1148,9 @@ mod tests_ci_only {
         );
     }
 
-    fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    fn building_template_in_debug_mode_must_work(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         let args = crate::cmd::build::ExecuteArgs {
             manifest_path: manifest_path.clone(),
@@ -1124,7 +1167,9 @@ mod tests_ci_only {
         Ok(())
     }
 
-    fn building_template_in_release_mode_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    fn building_template_in_release_mode_must_work(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         let args = crate::cmd::build::ExecuteArgs {
             manifest_path: manifest_path.clone(),
@@ -1141,7 +1186,9 @@ mod tests_ci_only {
         Ok(())
     }
 
-    fn building_contract_with_source_file_in_subfolder_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    fn building_contract_with_source_file_in_subfolder_must_work(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
         // given
         let path = manifest_path.directory().expect("dir must exist");
         let old_lib_path = path.join(Path::new("lib.rs"));
@@ -1150,8 +1197,8 @@ mod tests_ci_only {
         std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
         std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
 
-        let mut manifest = Manifest::new(manifest_path.clone())
-            .expect("creating manifest must work");
+        let mut manifest =
+            Manifest::new(manifest_path.clone()).expect("creating manifest must work");
         manifest
             .set_lib_path("srcfoo/lib.rs")
             .expect("setting lib path must work");
@@ -1170,7 +1217,6 @@ mod tests_ci_only {
         // then
         assert!(res.is_ok(), "building contract failed!");
         Ok(())
-
     }
 
     fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
