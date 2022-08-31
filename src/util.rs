@@ -288,7 +288,7 @@ pub mod tests {
             .expect("setting permissions failed");
 
         // make sure the mocked executable is in the path
-        let env_pathes = {
+        let env_paths = {
             let work_dir = path.parent().unwrap().to_path_buf();
             let pathes = env::var_os("PATH").unwrap_or_default();
             let mut pathes: Vec<_> = env::split_paths(&pathes).collect();
@@ -297,7 +297,7 @@ pub mod tests {
             }
             pathes
         };
-        env::set_var("PATH", env::join_paths(&env_pathes).unwrap());
+        env::set_var("PATH", env::join_paths(&env_paths).unwrap());
         guard
     }
 
