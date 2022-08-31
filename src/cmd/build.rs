@@ -811,7 +811,7 @@ mod tests_ci_only {
 
     impl BuildTestContext {
         pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
-            crate::cmd::new::execute(&working_project_name, Some(tmp_dir))
+            crate::cmd::new::execute(working_project_name, Some(tmp_dir))
                 .expect("new project creation failed");
             let working_dir = tmp_dir.join(working_project_name);
 
@@ -836,7 +836,7 @@ mod tests_ci_only {
             match test(&manifest_path) {
                 Ok(()) => (),
                 Err(err) => {
-                    println!("{} FAILED", name);
+                    println!("{} FAILED: {:?}", name, err);
                 }
             }
             revert_contract_project_files(&self.working_dir)?;
@@ -886,6 +886,10 @@ mod tests_ci_only {
             ctx.run_test(
                 "check_must_not_output_contract_artifacts_in_project_dir",
                 build_with_json_output_works,
+            )?;
+            ctx.run_test(
+                "building_contract_with_source_file_in_subfolder_must_work",
+                building_contract_with_source_file_in_subfolder_must_work,
             )?;
             Ok(())
         })
@@ -1093,7 +1097,7 @@ mod tests_ci_only {
             .set_package_name("some_package_name")
             .expect("setting pacakge name failed");
         manifest
-            .write(&manifest_path)
+            .write(manifest_path)
             .expect("writing manifest failed");
 
         // when
@@ -1202,7 +1206,7 @@ mod tests_ci_only {
         manifest
             .set_lib_path("srcfoo/lib.rs")
             .expect("setting lib path must work");
-        manifest.write(&manifest_path).expect("writing must work");
+        manifest.write(manifest_path).expect("writing must work");
 
         let args = crate::cmd::build::ExecuteArgs {
             manifest_path: manifest_path.clone(),
