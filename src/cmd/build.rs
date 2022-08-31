@@ -736,10 +736,19 @@ mod tests_ci_only {
         Verbosity,
         VerbosityFlags,
     };
-    use anyhow::Result;
+    use anyhow::{
+        Context,
+        Result,
+    };
+    use contract_metadata::*;
     use semver::Version;
+    use serde_json::{
+        Map,
+        Value,
+    };
     use std::{
         ffi::OsStr,
+        fmt::Write,
         fs,
         io,
         path::{
@@ -747,6 +756,7 @@ mod tests_ci_only {
             PathBuf,
         },
     };
+    use toml::value;
 
     fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
         fs::create_dir_all(&dst)?;
@@ -891,6 +901,7 @@ mod tests_ci_only {
                 "building_contract_with_source_file_in_subfolder_must_work",
                 building_contract_with_source_file_in_subfolder_must_work,
             )?;
+            ctx.run_test("generates_metadata", generates_metadata)?;
             Ok(())
         })
     }
@@ -1371,5 +1382,196 @@ mod tests_ci_only {
 
             Ok(())
         })
+    }
+
+    struct TestContractManifest {
+        toml: value::Table,
+        manifest_path: ManifestPath,
+    }
+
+    impl TestContractManifest {
+        fn new(manifest_path: ManifestPath) -> anyhow::Result<Self> {
+            Ok(Self {
+                toml: toml::from_slice(&fs::read(&manifest_path)?)?,
+                manifest_path,
+            })
+        }
+
+        fn package_mut(&mut self) -> anyhow::Result<&mut value::Table> {
+            self.toml
+                .get_mut("package")
+                .context("package section not found")?
+                .as_table_mut()
+                .context("package section should be a table")
+        }
+
+        /// Add a key/value to the `[package.metadata.contract.user]` section
+        fn add_user_metadata_value(
+            &mut self,
+            key: &'static str,
+            value: value::Value,
+        ) -> anyhow::Result<()> {
+            self.package_mut()?
+                .entry("metadata")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .context("metadata section should be a table")?
+                .entry("contract")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .context("metadata.contract section should be a table")?
+                .entry("user")
+                .or_insert(value::Value::Table(Default::default()))
+                .as_table_mut()
+                .context("metadata.contract.user section should be a table")?
+                .insert(key.into(), value);
+            Ok(())
+        }
+
+        fn add_package_value(
+            &mut self,
+            key: &'static str,
+            value: value::Value,
+        ) -> anyhow::Result<()> {
+            self.package_mut()?.insert(key.into(), value);
+            Ok(())
+        }
+
+        fn write(&self) -> anyhow::Result<()> {
+            let toml = toml::to_string(&self.toml)?;
+            fs::write(&self.manifest_path, toml).map_err(Into::into)
+        }
+    }
+
+    fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
+        // add optional metadata fields
+        let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+        test_manifest.add_package_value("description", "contract description".into())?;
+        test_manifest
+            .add_package_value("documentation", "http://documentation.com".into())?;
+        test_manifest.add_package_value("repository", "http://repository.com".into())?;
+        test_manifest.add_package_value("homepage", "http://homepage.com".into())?;
+        test_manifest.add_package_value("license", "Apache-2.0".into())?;
+        test_manifest.add_user_metadata_value(
+            "some-user-provided-field",
+            "and-its-value".into(),
+        )?;
+        test_manifest.add_user_metadata_value(
+            "more-user-provided-fields",
+            vec!["and", "their", "values"].into(),
+        )?;
+        test_manifest.write()?;
+
+        let crate_metadata =
+            crate::crate_metadata::CrateMetadata::collect(&test_manifest.manifest_path)?;
+
+        // usually this file will be produced by a previous build step
+        let final_contract_wasm_path = &crate_metadata.dest_wasm;
+        fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
+        fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
+
+        let mut args = crate::cmd::build::ExecuteArgs {
+            skip_linting: true,
+            ..Default::default()
+        };
+        args.manifest_path = test_manifest.manifest_path;
+
+        let build_result = crate::cmd::build::execute(args)?;
+        let dest_bundle = build_result
+            .metadata_result
+            .expect("Metadata should be generated")
+            .dest_bundle;
+
+        let metadata_json: Map<String, Value> =
+            serde_json::from_slice(&fs::read(&dest_bundle)?)?;
+
+        assert!(
+            dest_bundle.exists(),
+            "Missing metadata file '{}'",
+            dest_bundle.display()
+        );
+
+        let source = metadata_json.get("source").expect("source not found");
+        let hash = source.get("hash").expect("source.hash not found");
+        let language = source.get("language").expect("source.language not found");
+        let compiler = source.get("compiler").expect("source.compiler not found");
+        let wasm = source.get("wasm").expect("source.wasm not found");
+
+        let contract = metadata_json.get("contract").expect("contract not found");
+        let name = contract.get("name").expect("contract.name not found");
+        let version = contract.get("version").expect("contract.version not found");
+        let authors = contract
+            .get("authors")
+            .expect("contract.authors not found")
+            .as_array()
+            .expect("contract.authors is an array")
+            .iter()
+            .map(|author| author.as_str().expect("author is a string"))
+            .collect::<Vec<_>>();
+        let description = contract
+            .get("description")
+            .expect("contract.description not found");
+        let documentation = contract
+            .get("documentation")
+            .expect("contract.documentation not found");
+        let repository = contract
+            .get("repository")
+            .expect("contract.repository not found");
+        let homepage = contract
+            .get("homepage")
+            .expect("contract.homepage not found");
+        let license = contract.get("license").expect("contract.license not found");
+
+        let user = metadata_json.get("user").expect("user section not found");
+
+        // calculate wasm hash
+        let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
+        let expected_hash = crate::cmd::metadata::blake2_hash(&fs_wasm[..]);
+        let expected_wasm = build_byte_str(&fs_wasm);
+
+        let expected_language =
+            SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
+        let expected_rustc_version =
+            semver::Version::parse(&rustc_version::version()?.to_string())?;
+        let expected_compiler =
+            SourceCompiler::new(Compiler::RustC, expected_rustc_version).to_string();
+        let mut expected_user_metadata = serde_json::Map::new();
+        expected_user_metadata
+            .insert("some-user-provided-field".into(), "and-its-value".into());
+        expected_user_metadata.insert(
+            "more-user-provided-fields".into(),
+            serde_json::Value::Array(vec!["and".into(), "their".into(), "values".into()]),
+        );
+
+        assert_eq!(build_byte_str(&expected_hash.0[..]), hash.as_str().unwrap());
+        assert_eq!(expected_wasm, wasm.as_str().unwrap());
+        assert_eq!(expected_language, language.as_str().unwrap());
+        assert_eq!(expected_compiler, compiler.as_str().unwrap());
+        assert_eq!(
+            crate_metadata.contract_artifact_name,
+            name.as_str().unwrap()
+        );
+        assert_eq!(
+            crate_metadata.root_package.version.to_string(),
+            version.as_str().unwrap()
+        );
+        assert_eq!(crate_metadata.root_package.authors, authors);
+        assert_eq!("contract description", description.as_str().unwrap());
+        assert_eq!("http://documentation.com/", documentation.as_str().unwrap());
+        assert_eq!("http://repository.com/", repository.as_str().unwrap());
+        assert_eq!("http://homepage.com/", homepage.as_str().unwrap());
+        assert_eq!("Apache-2.0", license.as_str().unwrap());
+        assert_eq!(&expected_user_metadata, user.as_object().unwrap());
+
+        Ok(())
+    }
+
+    fn build_byte_str(bytes: &[u8]) -> String {
+        let mut str = String::new();
+        write!(str, "0x").expect("failed writing to string");
+        for byte in bytes {
+            write!(str, "{:02x}", byte).expect("failed writing to string");
+        }
+        str
     }
 }
