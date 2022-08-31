@@ -70,6 +70,9 @@ pub struct CallCommand {
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
+    /// Export the call output in JSON format.
+    #[clap(long, conflicts_with = "verbose")]
+    output_json: bool
 }
 
 impl CallCommand {

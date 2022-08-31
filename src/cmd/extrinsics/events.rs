@@ -26,7 +26,7 @@ use crate::{
 use colored::Colorize as _;
 use transcode::{
     ContractMessageTranscoder,
-    TranscoderBuilder,
+    TranscoderBuilder, Value,
 };
 
 use anyhow::Result;
@@ -35,6 +35,26 @@ use subxt::{
     events::StaticEvent,
     tx::TxEvents,
 };
+
+/// Field that represent data of the event from contract call
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Field {
+    pub name: String,
+    pub value: Value
+}
+
+/// Events produced from calling a contract
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Event {
+    pub name: String,
+    pub fields: Vec<Field>
+}
+
+/// Result of the contract call
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CallResult {
+    pub events: Vec<Event>
+}
 
 pub fn display_events(
     result: &TxEvents<DefaultConfig>,
