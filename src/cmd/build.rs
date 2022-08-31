@@ -68,16 +68,16 @@ const MAX_MEMORY_PAGES: u32 = 16;
 #[derive(Default)]
 pub(crate) struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
-    pub(crate) manifest_path: ManifestPath,
-    verbosity: Verbosity,
-    build_mode: BuildMode,
-    network: Network,
-    build_artifact: BuildArtifacts,
-    unstable_flags: UnstableFlags,
-    optimization_passes: OptimizationPasses,
-    keep_debug_symbols: bool,
-    skip_linting: bool,
-    output_type: OutputType,
+    pub manifest_path: ManifestPath,
+    pub verbosity: Verbosity,
+    pub build_mode: BuildMode,
+    pub network: Network,
+    pub build_artifact: BuildArtifacts,
+    pub unstable_flags: UnstableFlags,
+    pub optimization_passes: OptimizationPasses,
+    pub keep_debug_symbols: bool,
+    pub skip_linting: bool,
+    pub output_type: OutputType,
 }
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
@@ -333,15 +333,14 @@ fn exec_cargo_for_wasm_target(
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
-    let verbosity = if verbosity == Verbosity::Verbose {
-        // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
-        Verbosity::Default
-    } else {
-        verbosity
+    // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
+    let verbosity = match verbosity {
+        Verbosity::Verbose => Verbosity::Default,
+        Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
     };
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting", "--quiet"];
+    let args = vec!["--lib=ink_linting"];
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
@@ -378,18 +377,6 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
-        // when testing this function we set the `PATH` to the `working_dir`
-        // so that we can have mocked binaries in there which are executed
-        // instead of the real ones.
-        #[cfg(test)]
-        {
-            let default_dir = PathBuf::from(".");
-            let working_dir = _working_dir.unwrap_or(default_dir.as_path());
-            let path_env = std::env::var("PATH").unwrap();
-            let path_env = format!("{}:{}", working_dir.to_string_lossy(), path_env);
-            cmd.env("PATH", path_env);
-        }
-
         let mut child = if let Ok(child) = cmd
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -422,7 +409,14 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             .bright_yellow());
     }
 
-    if !execute_cmd(Command::new("dylint-link").arg("--version")) {
+    // On windows we cannot just run the linker with --version as there is no command
+    // which just ouputs some information. It always needs to do some linking in
+    // order to return successful exit code.
+    #[cfg(windows)]
+    let dylint_link_found = which::which("dylint-link").is_ok();
+    #[cfg(not(windows))]
+    let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
+    if !dylint_link_found {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
@@ -726,12 +720,21 @@ mod tests_ci_only {
         assert_compatible_ink_dependencies,
         assert_debug_mode_supported,
     };
-    use crate::{cmd::{
-        build::load_module,
-        BuildCommand,
-    }, util::tests::{
-        create_executable,
-    }, workspace::Manifest, BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions, Verbosity, VerbosityFlags, util};
+    use crate::{
+        cmd::{
+            build::load_module,
+            BuildCommand,
+        },
+        workspace::Manifest,
+        BuildArtifacts,
+        BuildMode,
+        ManifestPath,
+        OptimizationPasses,
+        OutputType,
+        UnstableOptions,
+        Verbosity,
+        VerbosityFlags,
+    };
     use semver::Version;
     use std::{
         ffi::OsStr,
@@ -822,6 +825,7 @@ mod tests_ci_only {
                 manifest_path,
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -862,6 +866,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path: manifest_path.clone(),
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -900,7 +905,7 @@ mod tests_ci_only {
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -942,7 +947,7 @@ mod tests_ci_only {
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -1034,7 +1039,7 @@ mod tests_ci_only {
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
             let res = cmd.exec().expect("build failed");
@@ -1084,6 +1089,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Debug,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1103,6 +1109,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Release,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1136,6 +1143,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1156,6 +1164,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Debug,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1176,6 +1185,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1195,6 +1205,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 output_type: OutputType::Json,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1252,6 +1263,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1276,14 +1288,18 @@ mod tests_ci_only {
     #[test]
     fn missing_cargo_dylint_installation_must_be_detected() {
         with_new_contract_project(|manifest_path| {
+            use super::util::tests::create_executable;
+
             // given
             let manifest_dir = manifest_path.directory().unwrap();
 
             // mock existing `dylint-link` binary
-            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
+            let _tmp0 =
+                create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
 
             // mock a non-existing `cargo dylint` installation.
-            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+            let _tmp1 =
+                create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
             // when
             let args = crate::cmd::build::ExecuteArgs {
