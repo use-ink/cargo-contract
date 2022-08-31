@@ -726,30 +726,69 @@ mod tests_ci_only {
         assert_compatible_ink_dependencies,
         assert_debug_mode_supported,
     };
-    use crate::{
-        cmd::{
-            build::load_module,
-            BuildCommand,
-        },
-        util::tests::{
-            create_executable,
-            with_new_contract_project,
-        },
-        workspace::Manifest,
-        BuildArtifacts,
-        BuildMode,
-        ManifestPath,
-        OptimizationPasses,
-        OutputType,
-        UnstableOptions,
-        Verbosity,
-        VerbosityFlags,
-    };
+    use crate::{cmd::{
+        build::load_module,
+        BuildCommand,
+    }, util::tests::{
+        create_executable,
+    }, workspace::Manifest, BuildArtifacts, BuildMode, ManifestPath, OptimizationPasses, OutputType, UnstableOptions, Verbosity, VerbosityFlags, util};
     use semver::Version;
     use std::{
         ffi::OsStr,
         path::Path,
+        fs, io,
     };
+
+    fn with_new_contract_project<F>(f: F)
+    where
+        F: FnOnce(ManifestPath) -> anyhow::Result<()>,
+    {
+        let pre_contract_name = "pre";
+        let target_tmp_dir = Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("target").join("tmp");
+        fs::create_dir_all(&target_tmp_dir).unwrap();
+        let working_dir = target_tmp_dir.join(pre_contract_name);
+        let working_manifest_path = working_dir.join("Cargo.toml");
+
+        if !working_manifest_path.exists() {
+            crate::cmd::new::execute(pre_contract_name, Some(target_tmp_dir))
+                .expect("new project creation failed");
+        }
+
+        let manifest_path = ManifestPath::new(working_manifest_path).unwrap();
+        // todo: wait on parallel builds? e.g. "Blocking waiting for file lock on package cache"
+        let args = crate::cmd::build::ExecuteArgs {
+            manifest_path: manifest_path.clone(),
+            skip_linting: true,
+            ..Default::default()
+        };
+
+        // pre building will block if another thread building, and then subsequent builds will be fast.
+        super::execute(args).expect("build failed");
+
+        util::tests::with_new_contract_project(|tmp_dir| {
+            let src_target = working_dir.join("target").join("ink");
+            let dst_target = tmp_dir.absolute_directory().unwrap().join("target").join("ink");
+            copy_dir_all(src_target.join("release"), dst_target.join("release"))?;
+            copy_dir_all(src_target.join("wasm32-unknown-unknown"), dst_target.join("wasm32-unknown-unknown"))?;
+            copy_dir_all(src_target.join("dylint"), dst_target.join("dylint"))?;
+            f(tmp_dir)
+        })
+    }
+
+
+    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
+        fs::create_dir_all(&dst)?;
+        for entry in fs::read_dir(src)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            if ty.is_dir() {
+                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            } else {
+                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            }
+        }
+        Ok(())
+    }
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
