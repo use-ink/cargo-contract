@@ -743,6 +743,7 @@ mod tests_ci_only {
         path::Path,
         fs, io,
     };
+    use std::path::PathBuf;
 
     fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
         fs::create_dir_all(&dst)?;
@@ -800,44 +801,55 @@ mod tests_ci_only {
             .any(|e| e.name() == "name")
     }
 
-    #[test]
-    fn build_tests() {
-        macro_rules! run_build_test {
-            ($test:expr) => {
-                ::std::println!("Running {}", stringify!($test));
-                match $test(&manifest_path) {
-                    Ok(()) => (),
-                    Err(err) => {
-                        ::std::println!("{} FAILED", stringify!($test));
-                    }
-                }
-                revert_contract_project_files(&working_dir)?;
-                copy_dir_all(&template_dir, &working_dir)?;
-            }
+    struct BuildTestContext {
+        template_dir: PathBuf,
+        working_dir: PathBuf,
+    }
+
+    impl BuildTestContext {
+        pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
+            crate::cmd::new::execute(&working_project_name, Some(tmp_dir))
+                .expect("new project creation failed");
+            let working_dir = tmp_dir.join(working_project_name);
+
+            let template_dir = tmp_dir.join(format!("{}_template", working_project_name));
+
+            fs::rename(&working_dir, &template_dir)?;
+            copy_dir_all(&template_dir, &working_dir)?;
+
+            Ok(Self { template_dir, working_dir })
         }
 
+        pub fn run_test(&self, name: &str, test: impl FnOnce(&ManifestPath) -> Result<()>) -> Result<()> {
+            println!("Running {}", name);
+            let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
+            match test(&manifest_path) {
+                Ok(()) => (),
+                Err(err) => {
+                    println!("{} FAILED", name);
+                }
+            }
+            revert_contract_project_files(&self.working_dir)?;
+            copy_dir_all(&self.template_dir, &self.working_dir)?;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn build_tests() {
         crate::util::tests::with_tmp_dir(|tmp_dir| {
-            let name = "build_tests_template";
-            crate::cmd::new::execute(&name, Some(tmp_dir))
-                .expect("new project creation failed");
-            let template_dir = tmp_dir.join(name);
+            let ctx = BuildTestContext::new(tmp_dir,"build_test")?;
 
-            let working_project_name = "build_tests";
-            let working_dir = tmp_dir.join(working_project_name);
-            let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
-
-            copy_dir_all(template_dir, working_dir)?;
-
-            run_build_test!(build_code_only);
-            run_build_test!(check_must_not_output_contract_artifacts_in_project_dir);
-            run_build_test!(optimization_passes_from_cli_must_take_precedence_over_profile);
-            run_build_test!(optimization_passes_from_profile_must_be_used);
-            run_build_test!(contract_lib_name_different_from_package_name_must_build);
-            run_build_test!(building_template_in_debug_mode_must_work);
-            run_build_test!(building_template_in_release_mode_must_work);
-            run_build_test!(keep_debug_symbols_in_debug_mode);
-            run_build_test!(keep_debug_symbols_in_release_mode);
-            run_build_test!(build_with_json_output_works);
+            ctx.run_test("build_code_only",build_code_only)?;
+            ctx.run_test("check_must_not_output_contract_artifacts_in_project_dir", check_must_not_output_contract_artifacts_in_project_dir)?;
+            ctx.run_test("optimization_passes_from_cli_must_take_precedence_over_profile", optimization_passes_from_cli_must_take_precedence_over_profile)?;
+            ctx.run_test("optimization_passes_from_profile_must_be_used", optimization_passes_from_profile_must_be_used)?;
+            ctx.run_test("building_template_in_debug_mode_must_work", contract_lib_name_different_from_package_name_must_build)?;
+            ctx.run_test("building_template_in_debug_mode_must_work", building_template_in_debug_mode_must_work)?;
+            ctx.run_test("building_template_in_release_mode_must_work", building_template_in_release_mode_must_work)?;
+            ctx.run_test("keep_debug_symbols_in_debug_mode", keep_debug_symbols_in_debug_mode)?;
+            ctx.run_test("keep_debug_symbols_in_release_mode", keep_debug_symbols_in_release_mode)?;
+            ctx.run_test("check_must_not_output_contract_artifacts_in_project_dir", build_with_json_output_works)?;
             Ok(())
         })
     }
@@ -912,7 +924,7 @@ mod tests_ci_only {
             OptimizationPasses::Three,
         );
         let cmd = BuildCommand {
-            manifest_path: manifest_path.directory().map(Path::to_path_buf),
+            manifest_path: Some(manifest_path.as_ref().into()),
             build_artifact: BuildArtifacts::All,
             build_release: false,
             build_offline: false,
@@ -952,7 +964,7 @@ mod tests_ci_only {
             OptimizationPasses::Three,
         );
         let cmd = BuildCommand {
-            manifest_path: manifest_path.directory().map(Path::to_path_buf),
+            manifest_path: Some(manifest_path.as_ref().into()),
             build_artifact: BuildArtifacts::All,
             build_release: false,
             build_offline: false,
@@ -1044,7 +1056,7 @@ mod tests_ci_only {
 
         // when
         let cmd = BuildCommand {
-            manifest_path: manifest_path.directory().map(Path::to_path_buf),
+            manifest_path: Some(manifest_path.as_ref().into()),
             build_artifact: BuildArtifacts::All,
             build_release: false,
             build_offline: false,
