@@ -5,8 +5,8 @@
 [![Latest Release][d1]][d2]
 [![stack-exchange][s1]][s2]
 
-[a1]: https://gitlab.parity.io/parity/mirrors/cargo-contract/badges/master/pipeline.svg
-[a2]: https://gitlab.parity.io/parity/mirrors/cargo-contract/pipelines
+[a1]: https://github.com/paritytech/cargo-contract/workflows/ci/badge.svg
+[a2]: https://github.com/paritytech/cargo-contract/actions?query=workflow%3Aci+branch%3Amaster
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
 [s1]: https://img.shields.io/badge/click-white.svg?logo=StackExchange&label=ink!%20Support%20on%20StackExchange&labelColor=white&color=blue
