@@ -68,7 +68,7 @@ use std::{
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Arguments to use when executing `build` or `check` commands.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
@@ -217,29 +217,28 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        let mut ret = Vec::new();
+        let mut build_results = Vec::new();
 
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                let mut args = ExecuteArgs {
+                    verbosity,
+                    build_mode,
+                    network,
+                    build_artifact: self.build_artifact,
+                    unstable_flags: unstable_flags.clone(),
+                    optimization_passes,
+                    keep_debug_symbols: self.keep_debug_symbols,
+                    skip_linting: self.skip_linting,
+                    output_type: output_type.clone(),
+                    ..Default::default()
+                };
                 for package_id in workspace_members {
-                    let manifest_path =
+                    args.manifest_path =
                         util::extract_subcontract_manifest_path(package_id)
                             .expect("Error extracting package manifest path");
-
-                    let args = ExecuteArgs {
-                        manifest_path,
-                        verbosity,
-                        build_mode,
-                        network,
-                        build_artifact: self.build_artifact,
-                        unstable_flags: unstable_flags.clone(),
-                        optimization_passes,
-                        keep_debug_symbols: self.keep_debug_symbols,
-                        skip_linting: self.skip_linting,
-                        output_type: output_type.clone(),
-                    };
-                    ret.push(execute(args)?);
+                    build_results.push(execute(args.clone())?);
                 }
             }
             false => {
@@ -255,10 +254,11 @@ impl BuildCommand {
                     skip_linting: self.skip_linting,
                     output_type,
                 };
-                ret.push(execute(args)?);
+                build_results.push(execute(args)?);
             }
         }
-        Ok(ret)
+
+        Ok(build_results)
     }
 }
 
@@ -299,7 +299,7 @@ impl CheckCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let mut ret = Vec::new();
+        let mut check_results = Vec::new();
 
         match self.check_all {
             true => {
@@ -321,7 +321,7 @@ impl CheckCommand {
                         skip_linting: false,
                         output_type: OutputType::default(),
                     };
-                    ret.push(execute(args)?);
+                    check_results.push(execute(args)?);
                 }
             }
             false => {
@@ -337,10 +337,10 @@ impl CheckCommand {
                     skip_linting: false,
                     output_type: OutputType::default(),
                 };
-                ret.push(execute(args)?);
+                check_results.push(execute(args)?);
             }
         }
-        Ok(ret)
+        Ok(check_results)
     }
 }
 
