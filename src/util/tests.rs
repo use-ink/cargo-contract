@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ManifestPath;
+use crate::{
+    ManifestPath,
+    OptimizationPasses,
+};
 use anyhow::{
     Context,
     Result,
@@ -266,6 +269,83 @@ impl TestContractManifest {
     ) -> Result<()> {
         self.package_mut()?.insert(key.into(), value);
         Ok(())
+    }
+
+    /// Set `optimization-passes` in `[package.metadata.contract]`
+    pub fn set_profile_optimization_passes(
+        &mut self,
+        passes: OptimizationPasses,
+    ) -> Result<Option<value::Value>> {
+        Ok(self
+            .toml
+            .entry("package")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("package section should be a table")?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata section should be a table")?
+            .entry("contract")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata.contract section should be a table")?
+            .insert(
+                "optimization-passes".to_string(),
+                value::Value::String(passes.to_string()),
+            ))
+    }
+
+    /// Set the dependency version of `package` to `version`.
+    pub fn set_dependency_version(
+        &mut self,
+        dependency: &str,
+        version: &str,
+    ) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("dependencies")
+            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+            .get_mut(dependency)
+            .ok_or_else(|| anyhow::anyhow!("{} dependency not found", dependency))?
+            .as_table_mut()
+            .ok_or_else(|| {
+                anyhow::anyhow!("{} dependency should be a table", dependency)
+            })?
+            .insert("version".into(), value::Value::String(version.into())))
+    }
+
+    /// Set the `lib` name to `name`.
+    pub fn set_lib_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
+    /// Set the `package` name to `name`.
+    pub fn set_package_name(&mut self, name: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("package")
+            .ok_or_else(|| anyhow::anyhow!("[package] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[package] should be a table"))?
+            .insert("name".into(), value::Value::String(name.into())))
+    }
+
+    /// Set the `lib` path to `path`.
+    pub fn set_lib_path(&mut self, path: &str) -> Result<Option<toml::Value>> {
+        Ok(self
+            .toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("[lib] section not found"))?
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("[lib] should be a table"))?
+            .insert("path".into(), value::Value::String(path.into())))
     }
 
     pub fn write(&self) -> Result<()> {

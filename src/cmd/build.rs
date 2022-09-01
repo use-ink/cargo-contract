@@ -730,7 +730,6 @@ mod tests_ci_only {
             BuildTestContext,
             TestContractManifest,
         },
-        workspace::Manifest,
         BuildArtifacts,
         BuildMode,
         ManifestPath,
@@ -753,24 +752,6 @@ mod tests_ci_only {
         fs,
         path::Path,
     };
-
-    /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
-    /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
-    fn write_optimization_passes_into_manifest(
-        cargo_toml_path: &Path,
-        passes: OptimizationPasses,
-    ) {
-        let manifest_path =
-            ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
-        let mut manifest =
-            Manifest::new(manifest_path.clone()).expect("manifest creation failed");
-        manifest
-            .set_profile_optimization_passes(passes)
-            .expect("setting `optimization-passes` in profile failed");
-        manifest
-            .write(&manifest_path)
-            .expect("writing manifest failed");
-    }
 
     fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
         load_module(p)
@@ -898,10 +879,10 @@ mod tests_ci_only {
         manifest_path: &ManifestPath,
     ) -> Result<()> {
         // given
-        write_optimization_passes_into_manifest(
-            manifest_path.as_ref(),
-            OptimizationPasses::Three,
-        );
+        let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+        test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
+        test_manifest.write()?;
+
         let cmd = BuildCommand {
             manifest_path: Some(manifest_path.as_ref().into()),
             build_artifact: BuildArtifacts::All,
@@ -939,10 +920,10 @@ mod tests_ci_only {
         manifest_path: &ManifestPath,
     ) -> Result<()> {
         // given
-        write_optimization_passes_into_manifest(
-            manifest_path.as_ref(),
-            OptimizationPasses::Three,
-        );
+        let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+        test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
+        test_manifest.write()?;
+
         let cmd = BuildCommand {
             manifest_path: Some(manifest_path.as_ref().into()),
             build_artifact: BuildArtifacts::All,
@@ -1001,13 +982,9 @@ mod tests_ci_only {
 
             // at the time of writing this test ink! already uses `parity-scale-codec`
             // in a version > 2, hence 1 is an incompatible version.
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            manifest
-                .set_dependency_version("scale", "1.0.0")
-                .expect("setting `scale` version failed");
-            manifest
-                .write(&manifest_path)
-                .expect("writing manifest failed");
+            let mut manifest = TestContractManifest::new(manifest_path.clone())?;
+            manifest.set_dependency_version("scale", "1.0.0")?;
+            manifest.write()?;
 
             // when
             let res =
@@ -1023,17 +1000,10 @@ mod tests_ci_only {
         manifest_path: &ManifestPath,
     ) -> Result<()> {
         // given
-        let mut manifest =
-            Manifest::new(manifest_path.clone()).expect("manifest creation failed");
-        let _ = manifest
-            .set_lib_name("some_lib_name")
-            .expect("setting lib name failed");
-        let _ = manifest
-            .set_package_name("some_package_name")
-            .expect("setting pacakge name failed");
-        manifest
-            .write(manifest_path)
-            .expect("writing manifest failed");
+        let mut manifest = TestContractManifest::new(manifest_path.clone())?;
+        manifest.set_lib_name("some_lib_name")?;
+        manifest.set_package_name("some_package_name")?;
+        manifest.write()?;
 
         // when
         let cmd = BuildCommand {
@@ -1133,15 +1103,12 @@ mod tests_ci_only {
         let old_lib_path = path.join(Path::new("lib.rs"));
         let new_lib_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
         let new_dir_path = path.join(Path::new("srcfoo"));
-        std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
-        std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
+        fs::create_dir_all(new_dir_path).expect("creating dir must work");
+        fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
 
-        let mut manifest =
-            Manifest::new(manifest_path.clone()).expect("creating manifest must work");
-        manifest
-            .set_lib_path("srcfoo/lib.rs")
-            .expect("setting lib path must work");
-        manifest.write(manifest_path).expect("writing must work");
+        let mut manifest = TestContractManifest::new(manifest_path.clone())?;
+        manifest.set_lib_path("srcfoo/lib.rs")?;
+        manifest.write()?;
 
         let args = crate::cmd::build::ExecuteArgs {
             manifest_path: manifest_path.clone(),
