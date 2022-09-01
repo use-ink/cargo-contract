@@ -725,7 +725,10 @@ mod tests_ci_only {
             build::load_module,
             BuildCommand,
         },
-        util::tests::with_new_contract_project,
+        util::tests::{
+            BuildTestContext,
+            with_new_contract_project
+        },
         workspace::Manifest,
         BuildArtifacts,
         BuildMode,
@@ -750,44 +753,9 @@ mod tests_ci_only {
         ffi::OsStr,
         fmt::Write,
         fs,
-        io,
-        path::{
-            Path,
-            PathBuf,
-        },
+        path::Path,
     };
     use toml::value;
-
-    fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
-        fs::create_dir_all(&dst)?;
-        for entry in fs::read_dir(src)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
-            if ty.is_dir() {
-                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            } else {
-                fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
-            }
-        }
-        Ok(())
-    }
-
-    fn revert_contract_project_files(dir: impl AsRef<Path>) -> io::Result<()> {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            // remove all except the target dir
-            if entry.file_name() == "target" {
-                continue
-            }
-            let ty = entry.file_type()?;
-            if ty.is_dir() {
-                fs::remove_dir_all(entry.path())?
-            } else {
-                fs::remove_file(entry.path())?
-            }
-        }
-        Ok(())
-    }
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
@@ -814,46 +782,7 @@ mod tests_ci_only {
             .any(|e| e.name() == "name")
     }
 
-    struct BuildTestContext {
-        template_dir: PathBuf,
-        working_dir: PathBuf,
-    }
 
-    impl BuildTestContext {
-        pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
-            crate::cmd::new::execute(working_project_name, Some(tmp_dir))
-                .expect("new project creation failed");
-            let working_dir = tmp_dir.join(working_project_name);
-
-            let template_dir = tmp_dir.join(format!("{}_template", working_project_name));
-
-            fs::rename(&working_dir, &template_dir)?;
-            copy_dir_all(&template_dir, &working_dir)?;
-
-            Ok(Self {
-                template_dir,
-                working_dir,
-            })
-        }
-
-        pub fn run_test(
-            &self,
-            name: &str,
-            test: impl FnOnce(&ManifestPath) -> Result<()>,
-        ) -> Result<()> {
-            println!("Running {}", name);
-            let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
-            match test(&manifest_path) {
-                Ok(()) => (),
-                Err(err) => {
-                    println!("{} FAILED: {:?}", name, err);
-                }
-            }
-            revert_contract_project_files(&self.working_dir)?;
-            copy_dir_all(&self.template_dir, &self.working_dir)?;
-            Ok(())
-        }
-    }
 
     #[test]
     fn build_tests() {

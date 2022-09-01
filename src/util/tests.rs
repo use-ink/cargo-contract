@@ -15,7 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ManifestPath;
+use anyhow::Result;
 use std::{
+    fs,
     ops::Deref,
     path::{
         Path,
@@ -31,7 +33,7 @@ use std::{
 /// Panics if `f` returns an `Err`.
 pub fn with_tmp_dir<F>(f: F)
 where
-    F: FnOnce(&Path) -> anyhow::Result<()>,
+    F: FnOnce(&Path) -> Result<()>,
 {
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.test.")
@@ -66,7 +68,7 @@ static COUNTER: AtomicU32 = AtomicU32::new(0);
 /// `ManifestPath` is passed into `f`.
 pub fn with_new_contract_project<F>(f: F)
 where
-    F: FnOnce(ManifestPath) -> anyhow::Result<()>,
+    F: FnOnce(ManifestPath) -> Result<()>,
 {
     with_tmp_dir(|tmp_dir| {
         let unique_name =
@@ -145,4 +147,91 @@ pub fn init_tracing_subscriber() {
         .with_max_level(tracing::Level::TRACE)
         .with_test_writer()
         .try_init();
+}
+
+/// Enables running a group of tests sequentially, each starting with the original template
+/// contract, but maintaining the target directory so compilation artifacts are maintained across
+/// each test.
+pub struct BuildTestContext {
+    template_dir: PathBuf,
+    working_dir: PathBuf,
+}
+
+impl BuildTestContext {
+    /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
+    /// template project for testing the build process.
+    pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
+        crate::cmd::new::execute(working_project_name, Some(tmp_dir))
+            .expect("new project creation failed");
+        let working_dir = tmp_dir.join(working_project_name);
+
+        let template_dir = tmp_dir.join(format!("{}_template", working_project_name));
+
+        fs::rename(&working_dir, &template_dir)?;
+        copy_dir_all(&template_dir, &working_dir)?;
+
+        Ok(Self {
+            template_dir,
+            working_dir,
+        })
+    }
+
+    /// Run the supplied test. Test failure will print the error to `stdout`, and this will still
+    /// return `Ok(())` in order that subsequent tests will still be run.
+    ///
+    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so after
+    /// completion those files are reverted to their original state for the next test.
+    ///
+    /// Importantly, the `target` directory is maintained so as to avoid recompiling all of the
+    /// dependencies for each test.
+    pub fn run_test(
+        &self,
+        name: &str,
+        test: impl FnOnce(&ManifestPath) -> Result<()>,
+    ) -> Result<()> {
+        println!("Running {}", name);
+        let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
+        match test(&manifest_path) {
+            Ok(()) => (),
+            Err(err) => {
+                println!("{} FAILED: {:?}", name, err);
+            }
+        }
+        // revert to the original template files, but keep the `target` dir from the previous run.
+        self.remove_all_except_target_dir()?;
+        copy_dir_all(&self.template_dir, &self.working_dir)?;
+        Ok(())
+    }
+
+    /// Deletes all files and folders in project dir (except the `target` directory)
+    fn remove_all_except_target_dir(&self) -> Result<()> {
+        for entry in fs::read_dir(&self.working_dir)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            if ty.is_dir() {
+                // remove all except the target dir
+                if !entry.file_name() == "target" {
+                    fs::remove_dir_all(entry.path())?
+                }
+            } else {
+                fs::remove_file(entry.path())?
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Copy contents of `src` to `dst` recursively.
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
