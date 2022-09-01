@@ -84,7 +84,7 @@ impl Deref for MockGuard {
 /// Creates an executable file at `path` with the content `content`.
 ///
 /// Currently works only on `unix`.
-#[cfg(all(unix, feature = "test-ci-only"))]
+#[cfg(unix)]
 pub fn create_executable(path: &Path, content: &str) -> MockGuard {
     use std::{
         env,

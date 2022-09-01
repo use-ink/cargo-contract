@@ -376,6 +376,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
 fn missing_cargo_dylint_installation_must_be_detected(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
@@ -400,6 +401,13 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // then
     assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
 
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn missing_cargo_dylint_installation_must_be_detected(
+    _manifest_path: &ManifestPath,
+) -> Result<()> {
     Ok(())
 }
 
