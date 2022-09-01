@@ -806,6 +806,11 @@ mod tests_ci_only {
                 "building_contract_with_source_file_in_subfolder_must_work",
                 building_contract_with_source_file_in_subfolder_must_work,
             )?;
+            #[cfg(unix)]
+            ctx.run_test(
+                "missing_cargo_dylint_installation_must_be_detected",
+                missing_cargo_dylint_installation_must_be_detected,
+            )?;
             ctx.run_test("generates_metadata", generates_metadata)?;
             Ok(())
         })
@@ -1244,35 +1249,32 @@ mod tests_ci_only {
         })
     }
 
-    #[cfg(unix)]
-    #[test]
-    fn missing_cargo_dylint_installation_must_be_detected() {
-        with_new_contract_project(|manifest_path| {
-            use super::util::tests::create_executable;
+    fn missing_cargo_dylint_installation_must_be_detected(
+        manifest_path: &ManifestPath,
+    ) -> Result<()> {
+        use super::util::tests::create_executable;
 
-            // given
-            let manifest_dir = manifest_path.directory().unwrap();
+        // given
+        let manifest_dir = manifest_path.directory().unwrap();
 
-            // mock existing `dylint-link` binary
-            let _tmp0 =
-                create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
+        // mock existing `dylint-link` binary
+        let _tmp0 =
+            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
 
-            // mock a non-existing `cargo dylint` installation.
-            let _tmp1 =
-                create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+        // mock a non-existing `cargo dylint` installation.
+        let _tmp1 = create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
-            // when
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                ..Default::default()
-            };
-            let res = super::execute(args).map(|_| ()).unwrap_err();
+        // when
+        let args = crate::cmd::build::ExecuteArgs {
+            manifest_path: manifest_path.clone(),
+            ..Default::default()
+        };
+        let res = super::execute(args).map(|_| ()).unwrap_err();
 
-            // then
-            assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
+        // then
+        assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
 
-            Ok(())
-        })
+        Ok(())
     }
 
     fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
