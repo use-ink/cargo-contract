@@ -15,40 +15,21 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result,
-    error_details,
-    parse_balance,
-    prompt_confirm_tx,
-    state_call,
-    submit_extrinsic,
-    Balance,
-    Client,
-    ContractMessageTranscoder,
-    CrateMetadata,
-    DefaultConfig,
-    ExtrinsicOpts,
-    PairSigner,
-    MAX_KEY_COL_WIDTH,
+    display_contract_exec_result, error_details, parse_balance, prompt_confirm_tx,
+    state_call, submit_extrinsic, Balance, Client, ContractMessageTranscoder,
+    CrateMetadata, DefaultConfig, ExtrinsicOpts, PairSigner, MAX_KEY_COL_WIDTH,
 };
 
 use crate::{
-    cmd::extrinsics::events::parse_events,
-    name_value_println,
-    DEFAULT_KEY_COL_WIDTH,
+    cmd::extrinsics::events::parse_events, name_value_println, DEFAULT_KEY_COL_WIDTH,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 
 use std::fmt::Debug;
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -122,7 +103,8 @@ impl CallCommand {
                     }
                 }
             } else {
-                self.call(&client, call_data, &signer, &transcoder).await
+                self.call(&client, call_data, &signer, &transcoder, self.output_json)
+                    .await
             }
         })
     }
@@ -152,11 +134,17 @@ impl CallCommand {
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
+        is_json: bool,
     ) -> Result<()> {
         tracing::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(client, data.clone(), signer)
+            .pre_submit_dry_run_gas_estimate(
+                client,
+                data.clone(),
+                signer,
+                self.output_json,
+            )
             .await?;
 
         if !self.extrinsic_opts.skip_confirm {
@@ -181,15 +169,22 @@ impl CallCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        let call_result = parse_events(
+        let mut call_result = parse_events(
             &result,
             transcoder,
             &client.metadata(),
-            Default::default()
+            Default::default(),
+            self.extrinsic_opts.verbosity()?,
         )?;
 
-        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
-        println!("{}", display);
+        call_result.estimated_gas = gas_limit;
+
+        let output: String = if is_json {
+            call_result.to_json()?
+        } else {
+            call_result.display()
+        };
+        println!("{}", output);
 
         Ok(())
     }
@@ -200,22 +195,25 @@ impl CallCommand {
         client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
+        is_json: bool,
     ) -> Result<u64> {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => {
-                    Err(anyhow!(
+                None => Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
-                }
-            }
+                )),
+            };
         }
-        super::print_dry_running_status(&self.message);
+        if !is_json {
+            super::print_dry_running_status(&self.message);
+        }
         let call_result = self.call_dry_run(data, signer).await?;
         match call_result.result {
             Ok(_) => {
-                super::print_gas_required_success(call_result.gas_required);
+                if !is_json {
+                    super::print_gas_required_success(call_result.gas_required);
+                }
                 let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
                 Ok(gas_limit)
             }

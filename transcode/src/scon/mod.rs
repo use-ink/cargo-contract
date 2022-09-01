@@ -77,7 +77,7 @@ impl serde::Serialize for Map {
             //because serde_json disallows non-string keys
             map.serialize_entry(&k.to_string(), v)?;
         }
-        todo!()
+        map.end()
     }
 }
 

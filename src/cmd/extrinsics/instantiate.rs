@@ -285,9 +285,10 @@ impl Exec {
             &self.transcoder,
             &self.client.metadata(),
             Default::default(),
+            self.verbosity
         )?;
 
-        let display = call_result.display(&self.verbosity);
+        let display = call_result.display();
         println!("{}", display);
 
         // The CodeStored event is only raised if the contract has not already been uploaded.
@@ -334,9 +335,10 @@ impl Exec {
             &self.transcoder,
             &self.client.metadata(),
             Default::default(),
+            self.verbosity
         )?;
 
-        let display = call_result.display(&self.verbosity);
+        let display = call_result.display();
         println!("{}", display);
 
         let instantiated = result

@@ -50,8 +50,12 @@ pub struct Event {
 }
 
 /// Result of the contract call
-#[derive(serde::Serialize)]
+#[derive(Default, serde::Serialize)]
 pub struct CallResult {
+    /// The verbosity flags.
+    pub verbosity: Verbosity,
+    /// Estimated amount of gas required to run a contract
+    pub estimated_gas: u64,
     /// Events that were produced from calling a contract
     pub events: Vec<Event>,
     /// The type of formatting to use for the build output.
@@ -60,11 +64,11 @@ pub struct CallResult {
 }
 
 impl CallResult {
-    pub fn display(&self, verbosity: &Verbosity) -> String {
+    /// Displays events in a human readable format
+    pub fn display(&self) -> String {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
-            "{:>width$}{}\n",
-            "",
+            "{:>width$}\n",
             "Events".bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
@@ -79,7 +83,7 @@ impl CallResult {
             );
 
             for field in &event.fields {
-                if verbosity.is_verbose() {
+                if self.verbosity.is_verbose() {
                     let _ = writeln!(
                         out,
                         "{:width$}{}: {}",
@@ -93,6 +97,11 @@ impl CallResult {
         }
         out
     }
+
+    /// Returns an event result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
 }
 
 /// Parses events and returns an object which can be serialised
@@ -101,6 +110,7 @@ pub fn parse_events(
     transcoder: &ContractMessageTranscoder,
     subxt_metadata: &subxt::Metadata,
     output_type: OutputType,
+    verbosity: Verbosity,
 ) -> Result<CallResult> {
     let mut events: Vec<Event> = vec![];
 
@@ -156,6 +166,8 @@ pub fn parse_events(
 
     Ok(CallResult {
         events,
+        verbosity,
         output_type,
+        ..Default::default()
     })
 }
