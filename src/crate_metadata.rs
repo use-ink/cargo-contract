@@ -144,7 +144,7 @@ impl CrateMetadata {
 pub fn get_cargo_workspace_members(
     manifest_path: &ManifestPath,
 ) -> Result<Vec<PackageId>> {
-    log::info!(
+    tracing::debug!(
         "Fetching cargo workspace members for {}",
         manifest_path.as_ref().to_string_lossy()
     );
