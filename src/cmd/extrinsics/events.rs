@@ -14,14 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{runtime_api::api::contracts::events::ContractEmitted, DefaultConfig};
-use crate::{OutputType, Verbosity, DEFAULT_KEY_COL_WIDTH};
+use super::{
+    runtime_api::api::contracts::events::ContractEmitted,
+    DefaultConfig,
+};
+use crate::{
+    OutputType,
+    Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
+};
 use colored::Colorize as _;
-use transcode::{ContractMessageTranscoder, TranscoderBuilder, Value};
+use transcode::{
+    ContractMessageTranscoder,
+    TranscoderBuilder,
+    Value,
+};
 
-use anyhow::{Ok, Result};
+use anyhow::{
+    Ok,
+    Result,
+};
 use std::fmt::Write;
-use subxt::{self, events::StaticEvent, tx::TxEvents};
+use subxt::{
+    self,
+    events::StaticEvent,
+    tx::TxEvents,
+};
 
 /// Field that represent data of the event from contract call
 #[derive(serde::Serialize)]
@@ -52,6 +70,12 @@ pub struct Event {
 /// Result of the contract call
 #[derive(Default, serde::Serialize)]
 pub struct CallResult {
+    /// Instantiated contract hash
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_hash: Option<String>,
+    /// Instantiated code hash
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_hash: Option<String>,
     /// The verbosity flags.
     pub verbosity: Verbosity,
     /// Estimated amount of gas required to run a contract
@@ -65,7 +89,7 @@ pub struct CallResult {
 
 impl CallResult {
     /// Displays events in a human readable format
-    pub fn display(&self) -> String {
+    pub fn display_events(&self) -> String {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",

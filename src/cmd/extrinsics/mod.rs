@@ -42,6 +42,7 @@ use std::{
     },
     path::PathBuf,
 };
+use transcode::Value;
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -116,6 +117,70 @@ pub struct ExtrinsicOpts {
     skip_confirm: bool,
 }
 
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct InstantiateDryRunResult {
+    /// Result of a dry run
+    pub result: String,
+    /// contract address
+    pub contract: String,
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Bytes,
+    pub gas_consumed: u64,
+    pub gas_required: u64,
+    /// Storage deposit after the operation
+    pub storage_deposit: String,
+}
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct CallDryRunResult {
+    /// Result of a dry run
+    pub result: String,
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Value,
+    pub gas_consumed: u64,
+    pub gas_required: u64,
+    /// Storage deposit after the operation
+    pub storage_deposit: String,
+}
+
+impl InstantiateDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+    }
+}
+
+impl CallDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+    }
+}
+
 impl ExtrinsicOpts {
     pub fn signer(&self) -> Result<sr25519::Pair> {
         sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
@@ -172,6 +237,22 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     );
 
     // print debug messages aligned, only first line has key
+    if let Some(debug_message) = debug_message_lines.next() {
+        name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
+    }
+
+    for debug_message in debug_message_lines {
+        name_value_println!("", format!("{}", debug_message), WIDTH);
+    }
+    Ok(())
+}
+
+pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
+    result: &ContractResult<R, Balance>,
+) -> Result<()> {
+    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
+        .context("Error decoding UTF8 debug message bytes")?
+        .lines();
     if let Some(debug_message) = debug_message_lines.next() {
         name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
     }

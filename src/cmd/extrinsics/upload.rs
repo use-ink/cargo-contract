@@ -16,6 +16,7 @@
 
 use super::{
     error_details,
+    events::parse_events,
     runtime_api::api,
     state_call,
     submit_extrinsic,
@@ -26,7 +27,7 @@ use super::{
     CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
-    PairSigner, events::parse_events,
+    PairSigner,
 };
 use crate::name_value_println;
 use anyhow::{
@@ -149,10 +150,10 @@ impl UploadCommand {
             transcoder,
             &client.metadata(),
             Default::default(),
-            self.extrinsic_opts.verbosity()?
+            self.extrinsic_opts.verbosity()?,
         )?;
 
-        let display = call_result.display();
+        let display = call_result.display_events();
         println!("{}", display);
 
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
