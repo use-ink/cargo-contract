@@ -301,7 +301,7 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        call_result.contract_hash = Some(instantiated.contract.to_ss58check());
+        call_result.contract = Some(instantiated.contract.to_ss58check());
 
         let output: String = if is_json {
             call_result.to_json()?
@@ -358,7 +358,7 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        call_result.contract_hash = Some(instantiated.contract.to_ss58check());
+        call_result.contract = Some(instantiated.contract.to_ss58check());
 
         let output: String = if is_json {
             call_result.to_json()?

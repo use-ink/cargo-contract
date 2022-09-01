@@ -72,7 +72,7 @@ pub struct Event {
 pub struct CallResult {
     /// Instantiated contract hash
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contract_hash: Option<String>,
+    pub contract: Option<String>,
     /// Instantiated code hash
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_hash: Option<String>,
