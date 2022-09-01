@@ -19,10 +19,7 @@ use crate::{
         build::load_module,
         BuildCommand,
     },
-    util::tests::{
-        BuildTestContext,
-        TestContractManifest,
-    },
+    util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
     ManifestPath,
@@ -44,61 +41,39 @@ use std::{
     path::Path,
 };
 
-#[test]
-fn build_tests() {
-    crate::util::tests::with_tmp_dir(|tmp_dir| {
-        let ctx = BuildTestContext::new(tmp_dir, "build_test")?;
-
-        ctx.run_test("build_code_only", build_code_only)?;
-        ctx.run_test(
-            "check_must_not_output_contract_artifacts_in_project_dir",
-            check_must_not_output_contract_artifacts_in_project_dir,
-        )?;
-        ctx.run_test(
-            "optimization_passes_from_cli_must_take_precedence_over_profile",
-            optimization_passes_from_cli_must_take_precedence_over_profile,
-        )?;
-        ctx.run_test(
-            "optimization_passes_from_profile_must_be_used",
-            optimization_passes_from_profile_must_be_used,
-        )?;
-        ctx.run_test(
-            "building_template_in_debug_mode_must_work",
-            contract_lib_name_different_from_package_name_must_build,
-        )?;
-        ctx.run_test(
-            "building_template_in_debug_mode_must_work",
-            building_template_in_debug_mode_must_work,
-        )?;
-        ctx.run_test(
-            "building_template_in_release_mode_must_work",
-            building_template_in_release_mode_must_work,
-        )?;
-        ctx.run_test(
-            "keep_debug_symbols_in_debug_mode",
-            keep_debug_symbols_in_debug_mode,
-        )?;
-        ctx.run_test(
-            "keep_debug_symbols_in_release_mode",
-            keep_debug_symbols_in_release_mode,
-        )?;
-        ctx.run_test(
-            "check_must_not_output_contract_artifacts_in_project_dir",
-            build_with_json_output_works,
-        )?;
-        ctx.run_test(
-            "building_contract_with_source_file_in_subfolder_must_work",
-            building_contract_with_source_file_in_subfolder_must_work,
-        )?;
-        #[cfg(unix)]
-        ctx.run_test(
-            "missing_cargo_dylint_installation_must_be_detected",
-            missing_cargo_dylint_installation_must_be_detected,
-        )?;
-        ctx.run_test("generates_metadata", generates_metadata)?;
-        Ok(())
-    })
+macro_rules! build_tests {
+    ( $($fn:ident),* ) => {
+        #[test]
+        fn build_tests() {
+            crate::util::tests::with_tmp_dir(|tmp_dir| {
+                let ctx = crate::util::tests::BuildTestContext::new(tmp_dir, "build_test")?;
+                $( ctx.run_test(stringify!($fn), $fn)?; )*
+                Ok(())
+            })
+        }
+    }
 }
+
+// All functions provided here are run sequentially as part of the same `#[test]`
+// sharing build artifacts (but nothing else) using the [`BuildTestContext`].
+//
+// The motivation for this is to considerably speed up these tests by only requiring dependencies
+// to be build once across all tests.
+build_tests!(
+    build_code_only,
+    check_must_not_output_contract_artifacts_in_project_dir,
+    optimization_passes_from_cli_must_take_precedence_over_profile,
+    optimization_passes_from_profile_must_be_used,
+    contract_lib_name_different_from_package_name_must_build,
+    building_template_in_debug_mode_must_work,
+    building_template_in_release_mode_must_work,
+    keep_debug_symbols_in_debug_mode,
+    keep_debug_symbols_in_release_mode,
+    build_with_json_output_works,
+    building_contract_with_source_file_in_subfolder_must_work,
+    missing_cargo_dylint_installation_must_be_detected,
+    generates_metadata
+);
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let args = crate::cmd::build::ExecuteArgs {
