@@ -86,7 +86,7 @@ pub(crate) struct ExecuteArgs {
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-#[derive(Debug, clap::Args)]
+#[derive(Debug, Default, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
     /// Subcontract
@@ -826,9 +826,8 @@ mod tests_ci_only {
             BuildCommand,
         },
         util::tests::{
-            with_many_new_subcontract_projects,
             with_new_contract_project,
-            with_new_subcontract_project,
+            with_new_subcontract_projects,
             with_tmp_dir,
         },
         workspace::Manifest,
@@ -1225,46 +1224,36 @@ mod tests_ci_only {
 
     #[test]
     fn building_subcontract_must_work() {
-        with_new_subcontract_project(|(manifest_path, subcontract)| {
-            let cmd = BuildCommand {
-                build_all: false,
-                package: Some(subcontract),
-                manifest_path: Some(manifest_path),
-                build_artifact: BuildArtifacts::All,
-                build_release: false,
-                build_offline: false,
-                verbosity: VerbosityFlags::default(),
-                unstable_options: UnstableOptions::default(),
-                optimization_passes: None,
-                keep_debug_symbols: false,
-                skip_linting: false,
-                output_json: false,
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        })
+        with_new_subcontract_projects(
+            |manifest_path| {
+                let cmd = BuildCommand {
+                    build_all: true,
+                    package: None,
+                    manifest_path: Some(manifest_path),
+                    ..Default::default()
+                };
+                cmd.exec().expect("build failed");
+                Ok(())
+            },
+            1,
+        )
     }
 
     #[test]
-    fn building_all_subcontracts_must_work() {
-        with_many_new_subcontract_projects(|manifest_path| {
-            let cmd = BuildCommand {
-                build_all: true,
-                package: None,
-                manifest_path: Some(manifest_path),
-                build_artifact: BuildArtifacts::All,
-                build_release: false,
-                build_offline: false,
-                verbosity: VerbosityFlags::default(),
-                unstable_options: UnstableOptions::default(),
-                optimization_passes: None,
-                keep_debug_symbols: false,
-                skip_linting: false,
-                output_json: false,
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        })
+    fn building_many_subcontracts_must_work() {
+        with_new_subcontract_projects(
+            |manifest_path| {
+                let cmd = BuildCommand {
+                    build_all: true,
+                    package: None,
+                    manifest_path: Some(manifest_path),
+                    ..Default::default()
+                };
+                cmd.exec().expect("build failed");
+                Ok(())
+            },
+            3,
+        )
     }
 
     #[test]
