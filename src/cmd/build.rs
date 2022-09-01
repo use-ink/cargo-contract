@@ -89,7 +89,7 @@ pub(crate) struct ExecuteArgs {
 #[derive(Debug, Default, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
-    /// Subcontract
+    /// Contract package to build
     #[clap(long, short)]
     package: Option<String>,
 
@@ -104,7 +104,7 @@ pub struct BuildCommand {
     /// Then no debug functionality is compiled into the contract.
     #[clap(long = "--release")]
     build_release: bool,
-    /// Build all subcontracts in the workspace
+    /// Build all contract packages in the workspace
     #[clap(long = "--all")]
     build_all: bool,
     /// Build offline
@@ -265,13 +265,13 @@ impl BuildCommand {
 #[derive(Debug, clap::Args)]
 #[clap(name = "check")]
 pub struct CheckCommand {
-    /// Subcontract
+    /// Contract package to check.
     #[clap(long, short)]
     package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    /// Check all subcontracts in the workspace
+    /// Check all contract packages in the workspace
     #[clap(long = "--all")]
     check_all: bool,
     #[clap(flatten)]

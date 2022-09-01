@@ -36,13 +36,13 @@ use std::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "test")]
 pub struct TestCommand {
-    /// Subcontract
+    /// Contract package to test.
     #[clap(long, short)]
     package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to test.
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
-    /// Test all subcontracts in the workspace
+    /// Test all contract packages in the workspace.
     #[clap(long = "--all")]
     test_all: bool,
     #[clap(flatten)]
