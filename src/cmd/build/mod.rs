@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println,
@@ -713,297 +716,22 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
-#[cfg(feature = "test-ci-only")]
+/// Testing individual functions where the build itself is not actually invoked. See [`tests`] for
+/// all tests which invoke the `build` command.
 #[cfg(test)]
-mod tests_ci_only {
+mod unit_tests {
     use super::{
         assert_compatible_ink_dependencies,
         assert_debug_mode_supported,
     };
     use crate::{
-        cmd::{
-            build::load_module,
-            BuildCommand,
+        util::tests::{
+            with_new_contract_project,
+            TestContractManifest,
         },
-        util::tests::with_new_contract_project,
-        workspace::Manifest,
-        BuildArtifacts,
-        BuildMode,
-        ManifestPath,
-        OptimizationPasses,
-        OutputType,
-        UnstableOptions,
         Verbosity,
-        VerbosityFlags,
     };
     use semver::Version;
-    use std::{
-        ffi::OsStr,
-        path::Path,
-    };
-
-    /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
-    /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
-    fn write_optimization_passes_into_manifest(
-        cargo_toml_path: &Path,
-        passes: OptimizationPasses,
-    ) {
-        let manifest_path =
-            ManifestPath::new(cargo_toml_path).expect("manifest path creation failed");
-        let mut manifest =
-            Manifest::new(manifest_path.clone()).expect("manifest creation failed");
-        manifest
-            .set_profile_optimization_passes(passes)
-            .expect("setting `optimization-passes` in profile failed");
-        manifest
-            .write(&manifest_path)
-            .expect("writing manifest failed");
-    }
-
-    fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
-        load_module(p)
-            .unwrap()
-            .custom_sections()
-            .any(|e| e.name() == "name")
-    }
-
-    #[test]
-    fn build_code_only() {
-        with_new_contract_project(|manifest_path| {
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_mode: BuildMode::Release,
-                build_artifact: BuildArtifacts::CodeOnly,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            let res = super::execute(args).expect("build failed");
-
-            // our ci has set `CARGO_TARGET_DIR` to cache artifacts.
-            // this dir does not include `/target/` as a path, hence
-            // we can't match for e.g. `foo_project/target/ink`.
-            //
-            // we also can't match for `/ink` here, since this would match
-            // for `/ink` being the root path.
-            assert!(res.target_directory.ends_with("ink"));
-
-            assert!(
-                res.metadata_result.is_none(),
-                "CodeOnly should not generate the metadata"
-            );
-
-            let optimized_size = res.optimization_result.unwrap().optimized_size;
-            assert!(optimized_size > 0.0);
-
-            // our optimized contract template should always be below 3k.
-            assert!(optimized_size < 3.0);
-
-            // we specified that debug symbols should be removed
-            // original code should have some but the optimized version should have them removed
-            assert!(!has_debug_symbols(&res.dest_wasm.unwrap()));
-
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn check_must_not_output_contract_artifacts_in_project_dir() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let project_dir = manifest_path.directory().expect("directory must exist");
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path: manifest_path.clone(),
-                build_artifact: BuildArtifacts::CheckOnly,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            // when
-            super::execute(args).expect("build failed");
-
-            // then
-            assert!(
-                !project_dir.join("target/ink/new_project.contract").exists(),
-                "found contract artifact in project directory!"
-            );
-            assert!(
-                !project_dir.join("target/ink/new_project.wasm").exists(),
-                "found wasm artifact in project directory!"
-            );
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn optimization_passes_from_cli_must_take_precedence_over_profile() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            write_optimization_passes_into_manifest(
-                manifest_path.as_ref(),
-                OptimizationPasses::Three,
-            );
-            let cmd = BuildCommand {
-                manifest_path: Some(manifest_path.into()),
-                build_artifact: BuildArtifacts::All,
-                build_release: false,
-                build_offline: false,
-                verbosity: VerbosityFlags::default(),
-                unstable_options: UnstableOptions::default(),
-
-                // we choose zero optimization passes as the "cli" parameter
-                optimization_passes: Some(OptimizationPasses::Zero),
-                keep_debug_symbols: false,
-                skip_linting: true,
-                output_json: false,
-            };
-
-            // when
-            let res = cmd.exec().expect("build failed");
-            let optimization = res
-                .optimization_result
-                .expect("no optimization result available");
-
-            // then
-            // The size does not exactly match the original size even without optimization
-            // passed because there is still some post processing happening.
-            let size_diff = optimization.original_size - optimization.optimized_size;
-            assert!(
-                0.0 < size_diff && size_diff < 10.0,
-                "The optimized size savings are larger than allowed or negative: {}",
-                size_diff,
-            );
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn optimization_passes_from_profile_must_be_used() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            write_optimization_passes_into_manifest(
-                manifest_path.as_ref(),
-                OptimizationPasses::Three,
-            );
-            let cmd = BuildCommand {
-                manifest_path: Some(manifest_path.into()),
-                build_artifact: BuildArtifacts::All,
-                build_release: false,
-                build_offline: false,
-                verbosity: VerbosityFlags::default(),
-                unstable_options: UnstableOptions::default(),
-
-                // we choose no optimization passes as the "cli" parameter
-                optimization_passes: None,
-                keep_debug_symbols: false,
-                skip_linting: true,
-                output_json: false,
-            };
-
-            // when
-            let res = cmd.exec().expect("build failed");
-            let optimization = res
-                .optimization_result
-                .expect("no optimization result available");
-
-            // then
-            // The size does not exactly match the original size even without optimization
-            // passed because there is still some post processing happening.
-            let size_diff = optimization.original_size - optimization.optimized_size;
-            assert!(
-                size_diff > (optimization.original_size / 2.0),
-                "The optimized size savings are too small: {}",
-                size_diff,
-            );
-
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn project_template_dependencies_must_be_ink_compatible() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            // the manifest path
-
-            // when
-            let res =
-                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
-
-            // then
-            assert!(res.is_ok());
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn detect_mismatching_parity_scale_codec_dependencies() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            // the manifest path
-
-            // at the time of writing this test ink! already uses `parity-scale-codec`
-            // in a version > 2, hence 1 is an incompatible version.
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            manifest
-                .set_dependency_version("scale", "1.0.0")
-                .expect("setting `scale` version failed");
-            manifest
-                .write(&manifest_path)
-                .expect("writing manifest failed");
-
-            // when
-            let res =
-                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
-
-            // then
-            assert!(res.is_err());
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn contract_lib_name_different_from_package_name_must_build() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let mut manifest =
-                Manifest::new(manifest_path.clone()).expect("manifest creation failed");
-            let _ = manifest
-                .set_lib_name("some_lib_name")
-                .expect("setting lib name failed");
-            let _ = manifest
-                .set_package_name("some_package_name")
-                .expect("setting pacakge name failed");
-            manifest
-                .write(&manifest_path)
-                .expect("writing manifest failed");
-
-            // when
-            let cmd = BuildCommand {
-                manifest_path: Some(manifest_path.into()),
-                build_artifact: BuildArtifacts::All,
-                build_release: false,
-                build_offline: false,
-                verbosity: VerbosityFlags::default(),
-                unstable_options: UnstableOptions::default(),
-                optimization_passes: None,
-                keep_debug_symbols: false,
-                skip_linting: true,
-                output_json: false,
-            };
-            let res = cmd.exec().expect("build failed");
-
-            // then
-            assert_eq!(
-                res.dest_wasm
-                    .expect("`dest_wasm` does not exist")
-                    .file_name(),
-                Some(OsStr::new("some_lib_name.wasm"))
-            );
-
-            Ok(())
-        })
-    }
 
     #[test]
     pub fn debug_mode_must_be_compatible() {
@@ -1032,234 +760,39 @@ mod tests_ci_only {
     }
 
     #[test]
-    fn building_template_in_debug_mode_must_work() {
+    fn project_template_dependencies_must_be_ink_compatible() {
         with_new_contract_project(|manifest_path| {
             // given
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_mode: BuildMode::Debug,
-                skip_linting: true,
-                ..Default::default()
-            };
+            // the manifest path
 
             // when
-            let res = super::execute(args);
+            let res =
+                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
 
             // then
-            assert!(res.is_ok(), "building template in debug mode failed!");
+            assert!(res.is_ok());
             Ok(())
         })
     }
 
     #[test]
-    fn building_template_in_release_mode_must_work() {
+    fn detect_mismatching_parity_scale_codec_dependencies() {
         with_new_contract_project(|manifest_path| {
             // given
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_mode: BuildMode::Release,
-                skip_linting: true,
-                ..Default::default()
-            };
+            // the manifest path
+
+            // at the time of writing this test ink! already uses `parity-scale-codec`
+            // in a version > 2, hence 1 is an incompatible version.
+            let mut manifest = TestContractManifest::new(manifest_path.clone())?;
+            manifest.set_dependency_version("scale", "1.0.0")?;
+            manifest.write()?;
 
             // when
-            let res = super::execute(args);
+            let res =
+                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
 
             // then
-            assert!(res.is_ok(), "building template in release mode failed!");
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn building_contract_with_source_file_in_subfolder_must_work() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let path = manifest_path.directory().expect("dir must exist");
-            let old_lib_path = path.join(Path::new("lib.rs"));
-            let new_lib_path = path.join(Path::new("srcfoo")).join(Path::new("lib.rs"));
-            let new_dir_path = path.join(Path::new("srcfoo"));
-            std::fs::create_dir_all(new_dir_path).expect("creating dir must work");
-            std::fs::rename(old_lib_path, new_lib_path).expect("moving file must work");
-
-            let mut manifest = Manifest::new(manifest_path.clone())
-                .expect("creating manifest must work");
-            manifest
-                .set_lib_path("srcfoo/lib.rs")
-                .expect("setting lib path must work");
-            manifest.write(&manifest_path).expect("writing must work");
-
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_artifact: BuildArtifacts::CheckOnly,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            // when
-            let res = super::execute(args);
-
-            // then
-            assert!(res.is_ok(), "building contract failed!");
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn keep_debug_symbols_in_debug_mode() {
-        with_new_contract_project(|manifest_path| {
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_mode: BuildMode::Debug,
-                build_artifact: BuildArtifacts::CodeOnly,
-                keep_debug_symbols: true,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            let res = super::execute(args).expect("build failed");
-
-            // we specified that debug symbols should be kept
-            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
-
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn keep_debug_symbols_in_release_mode() {
-        with_new_contract_project(|manifest_path| {
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_mode: BuildMode::Release,
-                build_artifact: BuildArtifacts::CodeOnly,
-                keep_debug_symbols: true,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            let res = super::execute(args).expect("build failed");
-
-            // we specified that debug symbols should be kept
-            assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
-
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn build_with_json_output_works() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                output_type: OutputType::Json,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            // when
-            let res = super::execute(args).expect("build failed");
-
-            // then
-            assert!(res.serialize_json().is_ok());
-            Ok(())
-        })
-    }
-
-    // This test has to be ignored until the next ink! rc.
-    // Before that we don't have the `__ink_dylint_…` markers available
-    // to actually run `dylint`.
-    #[test]
-    #[ignore]
-    fn dylint_must_find_issue() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            let contract = r#"
-            #![cfg_attr(not(feature = "std"), no_std)]
-
-            use ink_lang as ink;
-
-            #[ink::contract]
-            mod fail_mapping_01 {
-                use ink_storage::{traits::SpreadAllocate, Mapping};
-
-                #[ink(storage)]
-                #[derive(SpreadAllocate)]
-                pub struct MyContract {
-                    balances: Mapping<AccountId, Balance>,
-                }
-
-                impl MyContract {
-                    #[ink(constructor)]
-                    pub fn new() -> Self {
-                        Self {
-                            balances: Default::default(),
-                        }
-                    }
-
-                    /// Returns the total token supply.
-                    #[ink(message)]
-                    pub fn get(&self) {
-                        // ...
-                    }
-                }
-            }"#;
-            let project_dir = manifest_path.directory().expect("directory must exist");
-            let lib = project_dir.join("lib.rs");
-            std::fs::write(&lib, contract)?;
-
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                build_artifact: BuildArtifacts::CheckOnly,
-                skip_linting: true,
-                ..Default::default()
-            };
-
-            // when
-            let res = super::execute(args);
-
-            // then
-            match res {
-                Err(err) => {
-                    eprintln!("err: {:?}", err);
-                    assert!(err.to_string().contains(
-                        "help: add an `initialize_contract` function in this constructor"
-                    ));
-                }
-                _ => panic!("build succeeded, but must fail!"),
-            };
-            Ok(())
-        })
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn missing_cargo_dylint_installation_must_be_detected() {
-        with_new_contract_project(|manifest_path| {
-            use super::util::tests::create_executable;
-
-            // given
-            let manifest_dir = manifest_path.directory().unwrap();
-
-            // mock existing `dylint-link` binary
-            let _tmp0 =
-                create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
-
-            // mock a non-existing `cargo dylint` installation.
-            let _tmp1 =
-                create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
-
-            // when
-            let args = crate::cmd::build::ExecuteArgs {
-                manifest_path,
-                ..Default::default()
-            };
-            let res = super::execute(args).map(|_| ()).unwrap_err();
-
-            // then
-            assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
-
+            assert!(res.is_err());
             Ok(())
         })
     }
