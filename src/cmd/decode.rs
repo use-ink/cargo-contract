@@ -15,10 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    cmd::extrinsics::{
-        load_metadata,
-        ContractMessageTranscoder,
-    },
+    crate_metadata::CrateMetadata,
     util::decode_hex,
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -27,6 +24,7 @@ use anyhow::{
     Result,
 };
 use colored::Colorize as _;
+use transcode::ContractMessageTranscoder;
 
 #[derive(Debug, Clone, clap::Args)]
 #[clap(
@@ -51,8 +49,8 @@ enum DataType {
 
 impl DecodeCommand {
     pub fn run(&self) -> Result<()> {
-        let (_, contract_metadata) = load_metadata(None)?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        let crate_metadata = CrateMetadata::from_manifest_path(None)?;
+        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
 
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";
         let decoded_data = match self.r#type {

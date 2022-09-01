@@ -22,6 +22,7 @@ use crate::{
     maybe_println,
     util,
     validate_wasm,
+    wasm_opt::WasmOptHandler,
     workspace::{
         Manifest,
         ManifestPath,
@@ -52,12 +53,9 @@ use parity_wasm::elements::{
     Module,
     Section,
 };
-use regex::Regex;
 use semver::Version;
 use std::{
     convert::TryFrom,
-    ffi::OsStr,
-    fs::metadata,
     path::{
         Path,
         PathBuf,
@@ -73,16 +71,16 @@ const MAX_MEMORY_PAGES: u32 = 16;
 #[derive(Default)]
 pub(crate) struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
-    pub(crate) manifest_path: ManifestPath,
-    verbosity: Verbosity,
-    build_mode: BuildMode,
-    network: Network,
-    build_artifact: BuildArtifacts,
-    unstable_flags: UnstableFlags,
-    optimization_passes: OptimizationPasses,
-    keep_debug_symbols: bool,
-    skip_linting: bool,
-    output_type: OutputType,
+    pub manifest_path: ManifestPath,
+    pub verbosity: Verbosity,
+    pub build_mode: BuildMode,
+    pub network: Network,
+    pub build_artifact: BuildArtifacts,
+    pub unstable_flags: UnstableFlags,
+    pub optimization_passes: OptimizationPasses,
+    pub keep_debug_symbols: bool,
+    pub skip_linting: bool,
+    pub output_type: OutputType,
 }
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
@@ -376,8 +374,6 @@ fn exec_cargo_for_wasm_target(
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
 ) -> Result<()> {
-    util::assert_channel()?;
-
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
@@ -437,90 +433,65 @@ fn exec_cargo_for_wasm_target(
 fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
-    let tmp_dir = tempfile::Builder::new()
-        .prefix("cargo-contract-dylint_")
-        .tempdir()?;
-    tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
+    // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
+    let verbosity = match verbosity {
+        Verbosity::Verbose => Verbosity::Default,
+        Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
+    };
 
-    let driver = include_bytes!(concat!(env!("OUT_DIR"), "/ink-dylint-driver.zip"));
-    crate::util::unzip(driver, tmp_dir.path().to_path_buf(), None)?;
-
-    let manifest_path = crate_metadata.manifest_path.cargo_arg()?;
-    let args = vec!["--lib", "ink_linting", &manifest_path];
-    let tmp_dir_path = tmp_dir.path().as_os_str().to_string_lossy();
+    let target_dir = &crate_metadata.target_directory.to_string_lossy();
+    let args = vec!["--lib=ink_linting"];
     let env = vec![
-        ("DYLINT_LIBRARY_PATH", Some(tmp_dir_path.as_ref())),
-        // For tests we need to set the `DYLINT_DRIVER_PATH` to a tmp folder,
-        // otherwise tests running in parallel will try to write to the same
-        // file at the same time which will result in a `Text file busy` error.
-        #[cfg(test)]
-        ("DYLINT_DRIVER_PATH", Some(tmp_dir_path.as_ref())),
-        // We need to remove the `CARGO_TARGET_DIR` environment variable in
+        // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
         //
-        // This is because the ink! dylint driver crate found in `dylint` uses a
-        // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By
-        // removing this env variable we avoid issues with different Rust toolchains
-        // interfering with each other.
-        ("CARGO_TARGET_DIR", None),
+        // This is because we build from a temporary directory (to patch the manifest) but still
+        // want the output to live at a fixed path. `cargo dylint` does not accept this information
+        // on the command line.
+        ("CARGO_TARGET_DIR", Some(target_dir.as_ref())),
         // There are generally problems with having a custom `rustc` wrapper, while
         // executing `dylint` (which has a custom linker). Especially for `sccache`
         // there is this bug: https://github.com/mozilla/sccache/issues/1000.
         // Until we have a justification for leaving the wrapper we should unset it.
         ("RUSTC_WRAPPER", None),
     ];
-    let working_dir = crate_metadata
-        .manifest_path
-        .directory()
-        .unwrap_or_else(|| Path::new("."))
-        .canonicalize()?;
 
-    let verbosity = if verbosity == Verbosity::Verbose {
-        // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
-        Verbosity::Default
-    } else {
-        verbosity
-    };
-    util::invoke_cargo("dylint", &args, Some(working_dir), verbosity, env)?;
+    Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+        .with_root_package_manifest(|manifest| {
+            manifest.with_dylint()?;
+            Ok(())
+        })?
+        .using_temp(|manifest_path| {
+            util::invoke_cargo("dylint", &args, manifest_path.directory(), verbosity, env)
+                .map(|_| ())
+        })?;
 
     Ok(())
 }
 
 /// Checks if all requirements for `dylint` are installed.
 ///
-/// We require only an installed version of `cargo-dylint` here and don't
-/// check for an installed version of `dylint-link`. This is because
-/// `dylint-link` is only required for the `dylint` driver build process
-/// in `build.rs`.
+/// We require both `cargo-dylint` and `dylint-link` because the driver is being
+/// built at runtime on demand.
 ///
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let execute_cmd = |cmd: &mut Command| {
-        // when testing this function we set the `PATH` to the `working_dir`
-        // so that we can have mocked binaries in there which are executed
-        // instead of the real ones.
-        #[cfg(test)]
-        {
-            let default_dir = PathBuf::from(".");
-            let working_dir = _working_dir.unwrap_or(default_dir.as_path());
-            let path_env = std::env::var("PATH").unwrap();
-            let path_env = format!("{}:{}", working_dir.to_string_lossy(), path_env);
-            cmd.env("PATH", path_env);
-        }
-
-        cmd.stdout(std::process::Stdio::null())
+        let mut child = if let Ok(child) = cmd
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
-            .map_err(|err| {
-                tracing::debug!("Error spawning `{:?}`", cmd);
-                err
-            })?
-            .wait()
-            .map(|res| res.success())
-            .map_err(|err| {
-                tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
-                err
-            })
+        {
+            child
+        } else {
+            tracing::debug!("Error spawning `{:?}`", cmd);
+            return false
+        };
+
+        child.wait().map(|ret| ret.success()).unwrap_or_else(|err| {
+            tracing::debug!("Error waiting for `{:?}`: {:?}", cmd, err);
+            false
+        })
     };
 
     // when testing this function we should never fall back to a `cargo` specified
@@ -530,10 +501,25 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     #[cfg(test)]
     let cargo = "cargo";
 
-    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version"))? {
+    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
         anyhow::bail!("cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
+            .to_string()
+            .bright_yellow());
+    }
+
+    // On windows we cannot just run the linker with --version as there is no command
+    // which just ouputs some information. It always needs to do some linking in
+    // order to return successful exit code.
+    #[cfg(windows)]
+    let dylint_link_found = which::which("dylint-link").is_ok();
+    #[cfg(not(windows))]
+    let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
+    if !dylint_link_found {
+        anyhow::bail!("dylint-link was not found!\n\
+            Make sure it is installed and the binary is in your PATH environment.\n\n\
+            You can install it by executing `cargo install dylint-link`."
             .to_string()
             .bright_yellow());
     }
@@ -636,212 +622,6 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     Ok(())
 }
 
-/// Attempts to perform optional Wasm optimization using `binaryen`.
-///
-/// The intention is to reduce the size of bloated Wasm binaries as a result of missing
-/// optimizations (or bugs?) between Rust and Wasm.
-fn optimize_wasm(
-    crate_metadata: &CrateMetadata,
-    optimization_passes: OptimizationPasses,
-    keep_debug_symbols: bool,
-) -> Result<OptimizationResult> {
-    let mut dest_optimized = crate_metadata.dest_wasm.clone();
-    dest_optimized.set_file_name(format!(
-        "{}-opt.wasm",
-        crate_metadata.contract_artifact_name
-    ));
-    do_optimization(
-        crate_metadata.dest_wasm.as_os_str(),
-        dest_optimized.as_os_str(),
-        optimization_passes,
-        keep_debug_symbols,
-    )?;
-
-    if !dest_optimized.exists() {
-        return Err(anyhow::anyhow!(
-            "Optimization failed, optimized wasm output file `{}` not found.",
-            dest_optimized.display()
-        ))
-    }
-
-    let original_size = metadata(&crate_metadata.dest_wasm)?.len() as f64 / 1000.0;
-    let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
-
-    // overwrite existing destination wasm file with the optimised version
-    std::fs::rename(&dest_optimized, &crate_metadata.dest_wasm)?;
-    Ok(OptimizationResult {
-        dest_wasm: crate_metadata.dest_wasm.clone(),
-        original_size,
-        optimized_size,
-    })
-}
-
-/// Optimizes the Wasm supplied as `crate_metadata.dest_wasm` using
-/// the `wasm-opt` binary.
-///
-/// The supplied `optimization_level` denotes the number of optimization passes,
-/// resulting in potentially a lot of time spent optimizing.
-///
-/// If successful, the optimized Wasm is written to `dest_optimized`.
-fn do_optimization(
-    dest_wasm: &OsStr,
-    dest_optimized: &OsStr,
-    optimization_level: OptimizationPasses,
-    keep_debug_symbols: bool,
-) -> Result<()> {
-    // check `wasm-opt` is installed
-    let which = which::which("wasm-opt");
-    if which.is_err() {
-        anyhow::bail!(
-            "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
-            We use this tool to optimize the size of your contract's Wasm binary.\n\n\
-            wasm-opt is part of the binaryen package. You can find detailed\n\
-            installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
-            There are ready-to-install packages for many platforms:\n\
-            * Debian/Ubuntu: apt-get install binaryen\n\
-            * Homebrew: brew install binaryen\n\
-            * Arch Linux: pacman -S binaryen\n\
-            * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases"
-                .to_string()
-                .bright_yellow()
-        );
-    }
-    let wasm_opt_path = which
-        .as_ref()
-        .expect("we just checked if `which` returned an err; qed")
-        .as_path();
-    tracing::info!("Path to wasm-opt executable: {}", wasm_opt_path.display());
-
-    check_wasm_opt_version_compatibility(wasm_opt_path)?;
-
-    tracing::info!(
-        "Optimization level passed to wasm-opt: {}",
-        optimization_level
-    );
-    let mut command = Command::new(wasm_opt_path);
-    command
-        .arg(dest_wasm)
-        .arg(format!("-O{}", optimization_level))
-        .arg("-o")
-        .arg(dest_optimized)
-        // the memory in our module is imported, `wasm-opt` needs to be told that
-        // the memory is initialized to zeroes, otherwise it won't run the
-        // memory-packing pre-pass.
-        .arg("--zero-filled-memory");
-    if keep_debug_symbols {
-        command.arg("-g");
-    }
-    tracing::info!("Invoking wasm-opt with {:?}", command);
-    let output = command.output().map_err(|err| {
-        anyhow::anyhow!(
-            "Executing {} failed with {:?}",
-            wasm_opt_path.display(),
-            err
-        )
-    })?;
-
-    if !output.status.success() {
-        let err = str::from_utf8(&output.stderr)
-            .expect("Cannot convert stderr output of wasm-opt to string")
-            .trim();
-        anyhow::bail!(
-            "The wasm-opt optimization failed.\n\n\
-            The error which wasm-opt returned was: \n{}",
-            err
-        );
-    }
-    Ok(())
-}
-
-/// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
-/// compatible with `cargo-contract`.
-///
-/// Currently this must be a version >= 99.
-fn check_wasm_opt_version_compatibility(wasm_opt_path: &Path) -> Result<()> {
-    let mut cmd_res = Command::new(wasm_opt_path).arg("--version").output();
-
-    // The following condition is a workaround for a spurious CI failure:
-    // ```
-    // Executing `"/tmp/cargo-contract.test.GGnC0p/wasm-opt-mocked" --version` failed with
-    // Os { code: 26, kind: ExecutableFileBusy, message: "Text file busy" }
-    // ```
-    if cmd_res.is_err() && format!("{:?}", cmd_res).contains("ExecutableFileBusy") {
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        cmd_res = Command::new(wasm_opt_path).arg("--version").output();
-    }
-
-    let res = cmd_res.map_err(|err| {
-        anyhow::anyhow!(
-            "Executing `{:?} --version` failed with {:?}",
-            wasm_opt_path.display(),
-            err
-        )
-    })?;
-    if !res.status.success() {
-        let err = str::from_utf8(&res.stderr)
-            .expect("Cannot convert stderr output of wasm-opt to string")
-            .trim();
-        anyhow::bail!(
-            "Getting version information from wasm-opt failed.\n\
-            The error which wasm-opt returned was: \n{}",
-            err
-        );
-    }
-
-    // ```sh
-    // $ wasm-opt --version
-    // wasm-opt version 99 (version_99-79-gc12cc3f50)
-    // ```
-    let github_note = "\n\n\
-        If you tried installing from your system package manager the best\n\
-        way forward is to download a recent binary release directly:\n\n\
-        https://github.com/WebAssembly/binaryen/releases\n\n\
-        Make sure that the `wasm-opt` file from that release is in your `PATH`.";
-    let version_stdout = str::from_utf8(&res.stdout)
-        .expect("Cannot convert stdout output of wasm-opt to string")
-        .trim();
-    let re = Regex::new(r"wasm-opt version (\d+)").expect("invalid regex");
-    let captures = re.captures(version_stdout).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Unable to extract version information from '{}'.\n\
-            Your wasm-opt version is most probably too old. Make sure you use a version >= 99.{}",
-            version_stdout,
-            github_note,
-        )
-    })?;
-    let version_number: u32 = captures
-        .get(1) // first capture group is at index 1
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "Unable to extract version number from '{:?}'",
-                version_stdout
-            )
-        })?
-        .as_str()
-        .parse()
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Parsing version number failed with '{:?}' for '{:?}'",
-                err,
-                version_stdout
-            )
-        })?;
-
-    tracing::info!(
-        "The wasm-opt version output is '{}', which was parsed to '{}'",
-        version_stdout,
-        version_number
-    );
-    if version_number < 99 {
-        anyhow::bail!(
-            "Your wasm-opt version is {}, but we require a version >= 99.{}",
-            version_number,
-            github_note,
-        );
-    }
-    Ok(())
-}
-
 /// Asserts that the contract's dependencies are compatible to the ones used in ink!.
 ///
 /// This function utilizes `cargo tree`, which takes semver into consideration.
@@ -859,8 +639,8 @@ fn assert_compatible_ink_dependencies(
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
         let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, vec![])
-            .map_err(|_| {
-                anyhow::anyhow!(
+            .with_context(|| {
+                format!(
                     "Mismatching versions of `{}` were found!\n\
                      Please ensure that your contract and your ink! dependencies use a compatible \
                      version of this package.",
@@ -875,7 +655,7 @@ fn assert_compatible_ink_dependencies(
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
 pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
-    tracing::info!("Contract version: {:?}", ink_version);
+    tracing::debug!("Contract version: {:?}", ink_version);
     let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
         anyhow::bail!(
@@ -956,8 +736,12 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             format!("[4/{}]", build_artifact.steps()).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        let optimization_result =
-            optimize_wasm(&crate_metadata, optimization_passes, keep_debug_symbols)?;
+
+        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
+        let optimization_result = handler.optimize(
+            &crate_metadata.dest_wasm,
+            &crate_metadata.contract_artifact_name,
+        )?;
 
         Ok(optimization_result)
     };
@@ -1035,7 +819,6 @@ mod tests_ci_only {
     use super::{
         assert_compatible_ink_dependencies,
         assert_debug_mode_supported,
-        check_wasm_opt_version_compatibility,
     };
     use crate::{
         cmd::{
@@ -1059,15 +842,9 @@ mod tests_ci_only {
         VerbosityFlags,
     };
     use semver::Version;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
     use std::{
         ffi::OsStr,
-        io::Write,
-        path::{
-            Path,
-            PathBuf,
-        },
+        path::Path,
     };
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
@@ -1095,34 +872,6 @@ mod tests_ci_only {
             .any(|e| e.name() == "name")
     }
 
-    /// Creates an executable file at `path` with the content `content`.
-    ///
-    /// Currently works only on `unix`.
-    #[cfg(unix)]
-    fn create_executable(path: &Path, content: &str) {
-        {
-            let mut file = std::fs::File::create(&path).unwrap();
-            file.write_all(content.as_bytes())
-                .expect("writing of executable failed");
-        }
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
-            .expect("setting permissions failed");
-    }
-
-    /// Creates an executable `wasm-opt-mocked` file which outputs
-    /// "wasm-opt version `version`".
-    ///
-    /// Returns the path to this file.
-    ///
-    /// Currently works only on `unix`.
-    #[cfg(unix)]
-    fn mock_wasm_opt_version(tmp_dir: &Path, version: &str) -> PathBuf {
-        let path = tmp_dir.join("wasm-opt-mocked");
-        let content = format!("#!/bin/sh\necho \"wasm-opt version {}\"", version);
-        create_executable(&path, &content);
-        path
-    }
-
     #[test]
     fn build_code_only() {
         with_new_contract_project(|manifest_path| {
@@ -1130,6 +879,7 @@ mod tests_ci_only {
                 manifest_path,
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1170,6 +920,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path: manifest_path.clone(),
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1210,7 +961,7 @@ mod tests_ci_only {
                 // we choose zero optimization passes as the "cli" parameter
                 optimization_passes: Some(OptimizationPasses::Zero),
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -1257,7 +1008,7 @@ mod tests_ci_only {
                 // we choose no optimization passes as the "cli" parameter
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
 
@@ -1325,87 +1076,6 @@ mod tests_ci_only {
         })
     }
 
-    #[cfg(unix)]
-    #[test]
-    fn incompatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
-        with_tmp_dir(|path| {
-            // given
-            let path = mock_wasm_opt_version(path, "98 (version_13-79-gc12cc3f50)");
-
-            // when
-            let res = check_wasm_opt_version_compatibility(&path);
-
-            // then
-            assert!(res.is_err());
-            assert!(
-                format!("{:?}", res).starts_with(
-                    "Err(Your wasm-opt version is 98, but we require a version >= 99."
-                ),
-                "Expected a different output, found {:?}",
-                res
-            );
-
-            Ok(())
-        })
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn compatible_wasm_opt_version_must_be_detected_if_built_from_repo() {
-        with_tmp_dir(|path| {
-            // given
-            let path = mock_wasm_opt_version(path, "99 (version_99-79-gc12cc3f50");
-
-            // when
-            let res = check_wasm_opt_version_compatibility(&path);
-
-            // then
-            assert!(res.is_ok());
-
-            Ok(())
-        })
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn incompatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
-        with_tmp_dir(|path| {
-            // given
-            let path = mock_wasm_opt_version(path, "98");
-
-            // when
-            let res = check_wasm_opt_version_compatibility(&path);
-
-            // then
-            assert!(res.is_err());
-
-            // this println is here to debug a spuriously failing CI at the following assert.
-            eprintln!("error: {:?}", res);
-            assert!(format!("{:?}", res).starts_with(
-                "Err(Your wasm-opt version is 98, but we require a version >= 99."
-            ));
-
-            Ok(())
-        })
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn compatible_wasm_opt_version_must_be_detected_if_installed_as_package() {
-        with_tmp_dir(|path| {
-            // given
-            let path = mock_wasm_opt_version(path, "99");
-
-            // when
-            let res = check_wasm_opt_version_compatibility(&path);
-
-            // then
-            assert!(res.is_ok());
-
-            Ok(())
-        })
-    }
-
     #[test]
     fn contract_lib_name_different_from_package_name_must_build() {
         with_new_contract_project(|manifest_path| {
@@ -1434,7 +1104,7 @@ mod tests_ci_only {
                 unstable_options: UnstableOptions::default(),
                 optimization_passes: None,
                 keep_debug_symbols: false,
-                skip_linting: false,
+                skip_linting: true,
                 output_json: false,
             };
             let results = cmd.exec().expect("build failed");
@@ -1486,6 +1156,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Debug,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1505,6 +1176,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_mode: BuildMode::Release,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1538,6 +1210,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1602,6 +1275,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Debug,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1622,6 +1296,7 @@ mod tests_ci_only {
                 build_mode: BuildMode::Release,
                 build_artifact: BuildArtifacts::CodeOnly,
                 keep_debug_symbols: true,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1641,6 +1316,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 output_type: OutputType::Json,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1698,6 +1374,7 @@ mod tests_ci_only {
             let args = crate::cmd::build::ExecuteArgs {
                 manifest_path,
                 build_artifact: BuildArtifacts::CheckOnly,
+                skip_linting: true,
                 ..Default::default()
             };
 
@@ -1722,14 +1399,18 @@ mod tests_ci_only {
     #[test]
     fn missing_cargo_dylint_installation_must_be_detected() {
         with_new_contract_project(|manifest_path| {
+            use super::util::tests::create_executable;
+
             // given
             let manifest_dir = manifest_path.directory().unwrap();
 
             // mock existing `dylint-link` binary
-            create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
+            let _tmp0 =
+                create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
 
             // mock a non-existing `cargo dylint` installation.
-            create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+            let _tmp1 =
+                create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
             // when
             let args = crate::cmd::build::ExecuteArgs {

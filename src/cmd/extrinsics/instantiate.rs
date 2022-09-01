@@ -17,16 +17,18 @@
 use super::{
     display_contract_exec_result,
     display_events,
+    error_details,
     parse_balance,
     prompt_confirm_tx,
     runtime_api::api,
+    state_call,
     submit_extrinsic,
     Balance,
     Client,
     CodeHash,
     ContractAccount,
     ContractMessageTranscoder,
-    ContractsRpcError,
+    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -43,16 +45,10 @@ use anyhow::{
     Context,
     Result,
 };
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
-};
-use pallet_contracts_primitives::{
-    ContractResult,
-    InstantiateReturnValue,
-};
-use serde::Serialize;
+
+use pallet_contracts_primitives::ContractInstantiateResult;
+
+use scale::Encode;
 use sp_core::{
     crypto::Ss58Codec,
     Bytes,
@@ -63,18 +59,11 @@ use std::{
         Path,
         PathBuf,
     },
-    result,
 };
 use subxt::{
-    rpc::NumberOrHex,
     Config,
     OnlineClient,
 };
-
-type ContractInstantiateResult = ContractResult<
-    result::Result<InstantiateReturnValue<ContractAccount>, ContractsRpcError>,
-    Balance,
->;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -133,19 +122,20 @@ impl InstantiateCommand {
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<()> {
-        let (crate_metadata, contract_metadata) =
-            super::load_metadata(self.extrinsic_opts.manifest_path.as_ref())?;
-        let transcoder = ContractMessageTranscoder::new(&contract_metadata);
+        let crate_metadata = CrateMetadata::from_manifest_path(
+            self.extrinsic_opts.manifest_path.as_ref(),
+        )?;
+        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
-            tracing::info!("Contract code path: {}", wasm_path.display());
+            tracing::debug!("Contract code path: {}", wasm_path.display());
             let code = fs::read(&wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
-            Ok(Code::Upload(code.into()))
+            Ok(Code::Upload(code))
         }
 
         let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
@@ -162,7 +152,7 @@ impl InstantiateCommand {
             }
             (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
         }?;
-        let salt = self.salt.clone().unwrap_or_else(|| Bytes(Vec::new()));
+        let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
         let args = InstantiateArgs {
             constructor: self.constructor.clone(),
@@ -199,20 +189,20 @@ struct InstantiateArgs {
     gas_limit: Option<u64>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
-    salt: Bytes,
+    salt: Vec<u8>,
 }
 
-pub struct Exec<'a> {
+pub struct Exec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
     client: Client,
     signer: PairSigner,
-    transcoder: ContractMessageTranscoder<'a>,
+    transcoder: ContractMessageTranscoder,
 }
 
-impl<'a> Exec<'a> {
+impl Exec {
     async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
@@ -243,7 +233,7 @@ impl<'a> Exec<'a> {
                 }
                 Err(ref err) => {
                     let metadata = self.client.metadata();
-                    let err = err.error_details(&metadata)?;
+                    let err = error_details(err, &metadata)?;
                     name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                 }
@@ -269,7 +259,7 @@ impl<'a> Exec<'a> {
 
     async fn instantiate_with_code(
         &self,
-        code: Bytes,
+        code: Vec<u8>,
     ) -> Result<(Option<CodeHash>, ContractAccount)> {
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
@@ -285,7 +275,7 @@ impl<'a> Exec<'a> {
             self.args.storage_deposit_limit,
             code.to_vec(),
             self.args.data.clone(),
-            self.args.salt.0.clone(),
+            self.args.salt.clone(),
         );
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
@@ -331,7 +321,7 @@ impl<'a> Exec<'a> {
             self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
-            self.args.salt.0.clone(),
+            self.args.salt.clone(),
         );
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
@@ -356,30 +346,23 @@ impl<'a> Exec<'a> {
         name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
     }
 
-    async fn instantiate_dry_run(&self, code: Code) -> Result<ContractInstantiateResult> {
-        let cli = WsClientBuilder::default().build(&self.url).await?;
-        let gas_limit = self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let storage_deposit_limit = self
-            .args
-            .storage_deposit_limit
-            .as_ref()
-            .map(|limit| NumberOrHex::Hex((*limit).into()));
+    async fn instantiate_dry_run(
+        &self,
+        code: Code,
+    ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
+    {
+        let gas_limit = *self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
+        let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
-            value: NumberOrHex::Hex(self.args.value.into()),
-            gas_limit: NumberOrHex::Number(*gas_limit),
+            value: self.args.value,
+            gas_limit,
             storage_deposit_limit,
             code,
-            data: self.args.data.clone().into(),
+            data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
-        let params = rpc_params![call_request];
-        let result: ContractInstantiateResult = cli
-            .request("contracts_instantiate", params)
-            .await
-            .context("contracts_instantiate RPC error")?;
-
-        Ok(result)
+        state_call(&self.url, "ContractsApi_instantiate", &call_request).await
     }
 
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
@@ -406,7 +389,7 @@ impl<'a> Exec<'a> {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = err.error_details(&self.client.metadata())?;
+                let err = error_details(err, &self.client.metadata())?;
                 name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                 display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                     &instantiate_result,
@@ -418,24 +401,22 @@ impl<'a> Exec<'a> {
 }
 
 /// A struct that encodes RPC parameters required to instantiate a new smart contract.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode)]
 struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
-    value: NumberOrHex,
-    gas_limit: NumberOrHex,
-    storage_deposit_limit: Option<NumberOrHex>,
+    value: Balance,
+    gas_limit: u64,
+    storage_deposit_limit: Option<Balance>,
     code: Code,
-    data: Bytes,
-    salt: Bytes,
+    data: Vec<u8>,
+    salt: Vec<u8>,
 }
 
 /// Reference to an existing code hash or a new Wasm module.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode)]
 enum Code {
     /// A Wasm module as raw bytes.
-    Upload(Bytes),
+    Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
     Existing(<DefaultConfig as Config>::Hash),
 }

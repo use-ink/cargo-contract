@@ -53,7 +53,7 @@ fn main() {
     let out_dir: PathBuf = env::var("OUT_DIR")
         .expect("OUT_DIR should be set by cargo")
         .into();
-    let res = zip_template_and_build_dylint_driver(manifest_dir, out_dir);
+    let res = zip_template(&manifest_dir, &out_dir);
 
     match res {
         Ok(()) => std::process::exit(0),
@@ -62,58 +62,6 @@ fn main() {
             std::process::exit(1)
         }
     }
-}
-
-/// This method:
-///   * Creates a zip archive of the `new` project template.
-///   * Builds the `dylint` driver found in `ink_linting`, the compiled
-///     driver is put into a zip archive as well.
-fn zip_template_and_build_dylint_driver(
-    manifest_dir: PathBuf,
-    out_dir: PathBuf,
-) -> Result<()> {
-    zip_template(&manifest_dir, &out_dir)?;
-
-    check_dylint_link_installed()?;
-
-    // This zip file will contain the `dylint` driver, this is one file named in the form of
-    // `libink_linting@nightly-2021-11-04-x86_64-unknown-linux-gnu.so`. This file is obtained
-    // by building the crate in `ink_linting/`.
-    let dylint_driver_dst_file = out_dir.join("ink-dylint-driver.zip");
-
-    let ink_dylint_driver_dir = manifest_dir.join("ink_linting");
-    let ink_dylint_driver_dir = ink_dylint_driver_dir.canonicalize().map_err(|err| {
-        anyhow::anyhow!(
-            "Unable to canonicalize '{:?}': {:?}\nDoes the folder exist? {}",
-            ink_dylint_driver_dir,
-            err,
-            ink_dylint_driver_dir.exists()
-        )
-    })?;
-
-    // The `ink_linting/Cargo.toml` file is named `_Cargo.toml` in the repository.
-    // This is because we need to have the `ink_linting` folder part of the release,
-    // so that when somebody installs `cargo-contract` the `ink_linting` crate is
-    // build locally as part of that installation process.
-    // But if the file were named `Cargo.toml` then `cargo publish` would ignore
-    // the whole `ink_linting` folder and we wouldn't be able to specify the folder
-    // in the `cargo-contract/Cargo.toml` section of `[include]`.
-    //
-    // This is intended behavior:
-    //
-    // > Regardless of whether exclude or include is specified, the following files are always excluded:
-    // > * Any sub-packages will be skipped (any subdirectory that contains a Cargo.toml file).
-    //
-    // (from https://doc.rust-lang.org/cargo/reference/manifest.html#the-exclude-and-include-fields)
-    let original_name = ink_dylint_driver_dir.join("_Cargo.toml");
-
-    // After the build process of `ink_linting` happened we need to remove the `Cargo.toml` file.
-    // Otherwise the directory would be "dirty" and `cargo publish` would fail with `Source
-    // directory was modified by build.rs during cargo publish`.
-    let tmp_name = ink_dylint_driver_dir.join("Cargo.toml");
-    let _guard = tmp_file_guard::FileGuard::new(original_name, tmp_name);
-
-    build_and_zip_dylint_driver(ink_dylint_driver_dir, out_dir, dylint_driver_dst_file)
 }
 
 /// Creates a zip archive `template.zip` of the `new` project template in `out_dir`.
@@ -131,125 +79,6 @@ fn zip_template(manifest_dir: &Path, out_dir: &Path) -> Result<()> {
             template_dir.display(),
             template_dst_file.display()
         );
-    })
-}
-
-/// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
-/// linting rules.
-#[cfg(feature = "cargo-clippy")]
-fn build_and_zip_dylint_driver(
-    _ink_dylint_driver_dir: PathBuf,
-    _out_dir: PathBuf,
-    dylint_driver_dst_file: PathBuf,
-) -> Result<()> {
-    // For `clippy` runs it is not necessary to build the `dylint` driver.
-    // Furthermore the fixed Rust nightly specified in `ink_linting/rust-toolchain`
-    // contains a bug that results in an `error[E0786]: found invalid metadata files` ICE.
-    //
-    // We still have to create an empty file though, due to the `include_bytes!` macro.
-    File::create(dylint_driver_dst_file)
-        .map_err(|err| {
-            anyhow::anyhow!(
-                "Failed creating an empty ink-dylint-driver.zip file: {:?}",
-                err
-            )
-        })
-        .map(|_| ())
-}
-
-/// Builds the crate in `ink_linting/`. This crate contains the `dylint` driver with ink! specific
-/// linting rules.
-#[cfg(not(feature = "cargo-clippy"))]
-fn build_and_zip_dylint_driver(
-    ink_dylint_driver_dir: PathBuf,
-    out_dir: PathBuf,
-    dylint_driver_dst_file: PathBuf,
-) -> Result<()> {
-    let mut cmd = Command::new("cargo");
-    #[cfg(windows)]
-    {
-        // copied workaround from dylint for https://github.com/rust-lang/rustup/pull/2978
-        let cargo_home = match env::var("CARGO_HOME") {
-            Ok(value) => Ok(PathBuf::from(value)),
-            Err(error) => {
-                dirs::home_dir()
-                    .map(|path| path.join(".cargo"))
-                    .ok_or(error)
-            }
-        }?;
-        let old_path = crate::env::var("PATH")?;
-        let new_path = std::env::join_paths(
-            std::iter::once(Path::new(&cargo_home).join("bin"))
-                .chain(std::env::split_paths(&old_path)),
-        )?;
-        cmd.envs(vec![("PATH", new_path)]);
-    }
-
-    let manifest_arg = format!(
-        "--manifest-path={}",
-        ink_dylint_driver_dir.join("Cargo.toml").display()
-    );
-    let target_dir = format!("--target-dir={}", out_dir.display());
-    cmd.args(vec![
-        "build",
-        "--release",
-        "--locked",
-        &target_dir,
-        &manifest_arg,
-    ]);
-
-    // There are generally problems with having a custom `rustc` wrapper, while
-    // executing `dylint` (which has a custom linker). Especially for `sccache`
-    // there is this bug: https://github.com/mozilla/sccache/issues/1000.
-    // Until we have a justification for leaving the wrapper we should unset it.
-    cmd.env_remove("RUSTC_WRAPPER");
-
-    // We need to remove those environment variables because `dylint` uses a
-    // fixed Rust toolchain via the `ink_linting/rust-toolchain` file. By removing
-    // these env variables we avoid issues with different Rust toolchains
-    // interfering with each other.
-    cmd.env_remove("RUSTUP_TOOLCHAIN");
-    cmd.env_remove("CARGO_TARGET_DIR");
-
-    println!(
-        "Setting cargo working dir to '{}'",
-        ink_dylint_driver_dir.display()
-    );
-    cmd.current_dir(ink_dylint_driver_dir.clone());
-
-    println!("Invoking cargo: {:?}", cmd);
-
-    let child = cmd
-        // Capture the stdout to return from this function as bytes
-        .stdout(std::process::Stdio::piped())
-        .spawn()?;
-    let output = child.wait_with_output()?;
-
-    if !output.status.success() {
-        anyhow::bail!(
-            "`{:?}` failed with exit code: {:?}",
-            cmd,
-            output.status.code()
-        );
-    }
-
-    println!(
-        "Creating ink-dylint-driver.zip: destination archive '{}'",
-        dylint_driver_dst_file.display()
-    );
-
-    zip_dylint_driver(
-        &out_dir.join("release"),
-        &dylint_driver_dst_file,
-        CompressionMethod::Stored,
-    )
-    .map(|_| {
-        println!(
-            "Done: {} written to {}",
-            ink_dylint_driver_dir.display(),
-            dylint_driver_dst_file.display()
-        );
-        ()
     })
 }
 
@@ -300,66 +129,6 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
     Ok(())
 }
 
-/// Creates a zip archive at `dst_file` with the `dylint` driver found in `src_dir`.
-///
-/// `dylint` drivers have a file name of the form `libink_linting@toolchain.[so,dll]`.
-#[cfg(not(feature = "cargo-clippy"))]
-fn zip_dylint_driver(
-    src_dir: &Path,
-    dst_file: &Path,
-    method: CompressionMethod,
-) -> Result<()> {
-    if !src_dir.exists() {
-        anyhow::bail!("src_dir '{}' does not exist", src_dir.display());
-    }
-    if !src_dir.is_dir() {
-        anyhow::bail!("src_dir '{}' is not a directory", src_dir.display());
-    }
-
-    let file = File::create(dst_file)?;
-
-    let mut zip = ZipWriter::new(file);
-    let options = FileOptions::default()
-        .compression_method(method)
-        .unix_permissions(DEFAULT_UNIX_PERMISSIONS);
-
-    let mut buffer = Vec::new();
-
-    let walkdir = WalkDir::new(src_dir);
-    let it = walkdir.into_iter().filter_map(|e| e.ok());
-    let regex = regex::Regex::new(r#"(lib)?ink_linting@.+\.(dll|so|dylib)"#)
-        .expect("Regex is correct; qed");
-    let mut lib_found = false;
-
-    for entry in it {
-        let path = entry.path();
-        let name = path.strip_prefix(&src_dir)?.to_path_buf();
-        let file_path = name.as_os_str().to_string_lossy();
-
-        if path.is_file() && regex.is_match(&path.display().to_string()) {
-            zip.start_file(file_path, options)?;
-            let mut f = File::open(path)?;
-
-            f.read_to_end(&mut buffer)?;
-            zip.write_all(&*buffer)?;
-            buffer.clear();
-
-            zip.finish()?;
-            lib_found = true;
-            break
-        }
-    }
-
-    if !lib_found {
-        anyhow::bail!(
-            "Couldn't find compiled lint. Is your architecture ({}) defined in ./ink_linting/.cargo/config.toml?",
-            std::env::var("TARGET").unwrap(),
-        );
-    }
-
-    Ok(())
-}
-
 /// Generate the `cargo:` key output
 fn generate_cargo_keys() {
     let output = Command::new("git")
@@ -397,51 +166,4 @@ fn get_version(impl_commit: &str) -> String {
         impl_commit,
         current_platform::CURRENT_PLATFORM,
     )
-}
-
-/// Checks if `dylint-link` is installed, i.e. if the `dylint-link` executable
-/// can be executed with a `--version` argument.
-fn check_dylint_link_installed() -> Result<()> {
-    let which = which::which("dylint-link");
-    if which.is_err() {
-        anyhow::bail!(
-            "dylint-link was not found!\n\
-            Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install dylint-link`."
-        );
-    }
-    Ok(())
-}
-
-mod tmp_file_guard {
-    use std::path::PathBuf;
-
-    /// Holds the path to a file meant to be temporary.
-    pub struct FileGuard {
-        path: PathBuf,
-    }
-
-    impl FileGuard {
-        /// Create a new new file guard.
-        ///
-        /// Once the object instance is dropped the file will be removed automatically.
-        pub fn new(original_name: PathBuf, tmp_path: PathBuf) -> Self {
-            std::fs::copy(&original_name, &tmp_path).unwrap_or_else(|err| {
-                panic!(
-                    "Failed copying '{:?}' to '{:?}': {:?}",
-                    original_name, tmp_path, err
-                )
-            });
-            Self { path: tmp_path }
-        }
-    }
-
-    impl Drop for FileGuard {
-        // Once the struct instance is dropped we remove the file.
-        fn drop(&mut self) {
-            std::fs::remove_file(&self.path).unwrap_or_else(|err| {
-                panic!("Failed removing '{:?}': {:?}", self.path, err)
-            })
-        }
-    }
 }

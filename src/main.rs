@@ -20,6 +20,7 @@ mod cmd;
 mod crate_metadata;
 mod util;
 mod validate_wasm;
+mod wasm_opt;
 mod workspace;
 
 use self::{
@@ -59,6 +60,15 @@ use clap::{
     Subcommand,
 };
 use colored::Colorize;
+
+// These crates are only used when we run integration tests `--features integration-tests`. However
+// since we can't have optional `dev-dependencies` we pretend to use them during normal test runs
+// in order to satisfy the `unused_crate_dependencies` lint.
+#[cfg(test)]
+use assert_cmd as _;
+
+#[cfg(test)]
+use predicates as _;
 
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
@@ -250,8 +260,8 @@ impl BuildArtifacts {
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            BuildArtifacts::All => 5,
-            BuildArtifacts::CodeOnly => 3,
+            BuildArtifacts::All => 6,
+            BuildArtifacts::CodeOnly => 4,
             BuildArtifacts::CheckOnly => 2,
         }
     }

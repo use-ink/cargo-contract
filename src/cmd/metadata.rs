@@ -84,8 +84,6 @@ pub(crate) fn execute(
     total_steps: usize,
     unstable_options: &UnstableFlags,
 ) -> Result<MetadataResult> {
-    util::assert_channel()?;
-
     let target_directory = crate_metadata.target_directory.clone();
     let out_path_metadata = target_directory.join(METADATA_FILE);
 
@@ -100,7 +98,7 @@ pub(crate) fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        let mut current_progress = 4;
+        let mut current_progress = 5;
         maybe_println!(
             verbosity,
             " {} {}",
@@ -330,7 +328,7 @@ mod tests {
 
     #[test]
     fn generate_metadata() {
-        tracing_subscriber::fmt::init();
+        crate::util::tests::init_tracing_subscriber();
         with_new_contract_project(|manifest_path| {
             // add optional metadata fields
             let mut test_manifest = TestContractManifest::new(manifest_path)?;
@@ -359,7 +357,10 @@ mod tests {
             fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
             fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-            let mut args = crate::cmd::build::ExecuteArgs::default();
+            let mut args = crate::cmd::build::ExecuteArgs {
+                skip_linting: true,
+                ..Default::default()
+            };
             args.manifest_path = test_manifest.manifest_path;
 
             let build_result = cmd::build::execute(args)?;

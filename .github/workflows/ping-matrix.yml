@@ -1,4 +1,4 @@
-name: Pushes release updates to a Matrix room
+name: ping-matrix
 on:
   release:
     types:
@@ -6,7 +6,7 @@ on:
       - prereleased
       - published
 jobs:
-  ping_matrix:
+  ping:
     runs-on: ubuntu-latest
     steps:
       - name: send message
