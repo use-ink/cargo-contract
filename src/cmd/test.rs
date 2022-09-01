@@ -22,7 +22,10 @@ use crate::{
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use colored::Colorize;
 use std::{
     convert::TryFrom,
@@ -54,12 +57,10 @@ impl TestCommand {
                     ManifestPath::try_from(self.manifest_path.as_ref())?;
                 root_manifest_path
                     .subcontract_manifest_path(package)
-                    .unwrap_or_else(|| {
-                        panic!(
+                    .context(format!(
                         "error: package ID specification `{}` did not match any packages",
                         package
-                    )
-                    })
+                    ))?
             }
             None => ManifestPath::try_from(self.manifest_path.as_ref())?,
         };

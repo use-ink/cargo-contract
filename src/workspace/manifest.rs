@@ -98,23 +98,21 @@ impl ManifestPath {
     }
 
     /// Returns the ManifestPath of a subcontract in the workspace
-    pub fn subcontract_manifest_path(&self, package: &String) -> Option<ManifestPath> {
+    pub fn subcontract_manifest_path(&self, package: &String) -> Result<ManifestPath> {
         let mut cmd = MetadataCommand::new();
         let metadata = cmd
             .manifest_path(self.as_ref())
             .exec()
-            .expect("Error invoking `cargo metadata`");
-        let manifest_path =
-            match metadata.workspace_members.into_iter().find(|package_id| {
+            .context("Error invoking `cargo metadata`")?;
+        let manifest_path = metadata
+            .workspace_members
+            .into_iter()
+            .find(|package_id| {
                 extract_subcontract_name(package_id.clone()) == Some(package.to_string())
-            }) {
-                None => return None,
-                Some(package_id) => {
-                    extract_subcontract_manifest_path(package_id)
-                        .expect("Error extracting package manifest path")
-                }
-            };
-        Some(manifest_path)
+            })
+            .and_then(|id| extract_subcontract_manifest_path(id).ok())
+            .ok_or_else(|| anyhow::anyhow!("subcontract manifest not extracted"))?;
+        Ok(manifest_path)
     }
 }
 
