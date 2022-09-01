@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ManifestPath;
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use std::{
     fs,
     ops::Deref,
@@ -23,11 +26,8 @@ use std::{
         Path,
         PathBuf,
     },
-    sync::atomic::{
-        AtomicU32,
-        Ordering,
-    },
 };
+use toml::value;
 
 /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
 /// Panics if `f` returns an `Err`.
@@ -188,7 +188,7 @@ impl BuildTestContext {
             let ty = entry.file_type()?;
             if ty.is_dir() {
                 // remove all except the target dir
-                if !entry.file_name() == "target" {
+                if entry.file_name() != "target" {
                     fs::remove_dir_all(entry.path())?
                 }
             } else {
@@ -212,4 +212,64 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Modify a contracts `Cargo.toml` for testing purposes
+pub struct TestContractManifest {
+    toml: value::Table,
+    manifest_path: ManifestPath,
+}
+
+impl TestContractManifest {
+    pub fn new(manifest_path: ManifestPath) -> Result<Self> {
+        Ok(Self {
+            toml: toml::from_slice(&fs::read(&manifest_path)?)?,
+            manifest_path,
+        })
+    }
+
+    fn package_mut(&mut self) -> Result<&mut value::Table> {
+        self.toml
+            .get_mut("package")
+            .context("package section not found")?
+            .as_table_mut()
+            .context("package section should be a table")
+    }
+
+    /// Add a key/value to the `[package.metadata.contract.user]` section
+    pub fn add_user_metadata_value(
+        &mut self,
+        key: &'static str,
+        value: value::Value,
+    ) -> Result<()> {
+        self.package_mut()?
+            .entry("metadata")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata section should be a table")?
+            .entry("contract")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata.contract section should be a table")?
+            .entry("user")
+            .or_insert(value::Value::Table(Default::default()))
+            .as_table_mut()
+            .context("metadata.contract.user section should be a table")?
+            .insert(key.into(), value);
+        Ok(())
+    }
+
+    pub fn add_package_value(
+        &mut self,
+        key: &'static str,
+        value: value::Value,
+    ) -> Result<()> {
+        self.package_mut()?.insert(key.into(), value);
+        Ok(())
+    }
+
+    pub fn write(&self) -> Result<()> {
+        let toml = toml::to_string(&self.toml)?;
+        fs::write(&self.manifest_path, toml).map_err(Into::into)
+    }
 }

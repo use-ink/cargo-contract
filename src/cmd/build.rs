@@ -726,8 +726,9 @@ mod tests_ci_only {
             BuildCommand,
         },
         util::tests::{
+            with_new_contract_project,
             BuildTestContext,
-            with_new_contract_project
+            TestContractManifest,
         },
         workspace::Manifest,
         BuildArtifacts,
@@ -739,10 +740,7 @@ mod tests_ci_only {
         Verbosity,
         VerbosityFlags,
     };
-    use anyhow::{
-        Context,
-        Result,
-    };
+    use anyhow::Result;
     use contract_metadata::*;
     use semver::Version;
     use serde_json::{
@@ -755,7 +753,6 @@ mod tests_ci_only {
         fs,
         path::Path,
     };
-    use toml::value;
 
     /// Modifies the `Cargo.toml` under the supplied `cargo_toml_path` by
     /// setting `optimization-passes` in `[package.metadata.contract]` to `passes`.
@@ -781,8 +778,6 @@ mod tests_ci_only {
             .custom_sections()
             .any(|e| e.name() == "name")
     }
-
-
 
     #[test]
     fn build_tests() {
@@ -1313,65 +1308,6 @@ mod tests_ci_only {
         })
     }
 
-    struct TestContractManifest {
-        toml: value::Table,
-        manifest_path: ManifestPath,
-    }
-
-    impl TestContractManifest {
-        fn new(manifest_path: ManifestPath) -> anyhow::Result<Self> {
-            Ok(Self {
-                toml: toml::from_slice(&fs::read(&manifest_path)?)?,
-                manifest_path,
-            })
-        }
-
-        fn package_mut(&mut self) -> anyhow::Result<&mut value::Table> {
-            self.toml
-                .get_mut("package")
-                .context("package section not found")?
-                .as_table_mut()
-                .context("package section should be a table")
-        }
-
-        /// Add a key/value to the `[package.metadata.contract.user]` section
-        fn add_user_metadata_value(
-            &mut self,
-            key: &'static str,
-            value: value::Value,
-        ) -> anyhow::Result<()> {
-            self.package_mut()?
-                .entry("metadata")
-                .or_insert(value::Value::Table(Default::default()))
-                .as_table_mut()
-                .context("metadata section should be a table")?
-                .entry("contract")
-                .or_insert(value::Value::Table(Default::default()))
-                .as_table_mut()
-                .context("metadata.contract section should be a table")?
-                .entry("user")
-                .or_insert(value::Value::Table(Default::default()))
-                .as_table_mut()
-                .context("metadata.contract.user section should be a table")?
-                .insert(key.into(), value);
-            Ok(())
-        }
-
-        fn add_package_value(
-            &mut self,
-            key: &'static str,
-            value: value::Value,
-        ) -> anyhow::Result<()> {
-            self.package_mut()?.insert(key.into(), value);
-            Ok(())
-        }
-
-        fn write(&self) -> anyhow::Result<()> {
-            let toml = toml::to_string(&self.toml)?;
-            fs::write(&self.manifest_path, toml).map_err(Into::into)
-        }
-    }
-
     fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
         // add optional metadata fields
         let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
@@ -1392,7 +1328,7 @@ mod tests_ci_only {
         test_manifest.write()?;
 
         let crate_metadata =
-            crate::crate_metadata::CrateMetadata::collect(&test_manifest.manifest_path)?;
+            crate::crate_metadata::CrateMetadata::collect(manifest_path)?;
 
         // usually this file will be produced by a previous build step
         let final_contract_wasm_path = &crate_metadata.dest_wasm;
@@ -1403,7 +1339,7 @@ mod tests_ci_only {
             skip_linting: true,
             ..Default::default()
         };
-        args.manifest_path = test_manifest.manifest_path;
+        args.manifest_path = manifest_path.clone();
 
         let build_result = crate::cmd::build::execute(args)?;
         let dest_bundle = build_result
