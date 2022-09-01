@@ -106,7 +106,7 @@ impl ManifestPath {
             .expect("Error invoking `cargo metadata`");
         let manifest_path =
             match metadata.workspace_members.into_iter().find(|package_id| {
-                &extract_subcontract_name(package_id.clone()) == package
+                extract_subcontract_name(package_id.clone()) == Some(package.to_string())
             }) {
                 None => return None,
                 Some(package_id) => {

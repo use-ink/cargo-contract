@@ -160,11 +160,11 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 /// PackageId looks like this:
 /// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
 /// so we have to extract the package name via regex:
-pub fn extract_subcontract_name(package_id: PackageId) -> String {
-    let re = Regex::new(r"([^\s]+)").unwrap();
-    let caps = re.captures(package_id.repr.as_str()).unwrap();
-    let package = caps.get(1).unwrap().as_str();
-    String::from(package)
+pub fn extract_subcontract_name(package_id: PackageId) -> Option<String> {
+    let re = Regex::new(r"([^\s]+)").ok()?;
+    let caps = re.captures(package_id.repr.as_str())?;
+    let package = caps.get(1)?.as_str();
+    Some(String::from(package))
 }
 
 /// PackageId looks like this:
@@ -172,8 +172,16 @@ pub fn extract_subcontract_name(package_id: PackageId) -> String {
 /// so we have to extract the manifest_path via regex:
 pub fn extract_subcontract_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
     let re = Regex::new(r"\((.*)\)")?;
-    let caps = re.captures(package_id.repr.as_str()).unwrap();
-    let path_str = caps.get(1).unwrap().as_str().replace("path+file://", "");
+    let caps = re
+        .captures(package_id.repr.as_str())
+        .ok_or(regex::Error::Syntax(
+            "Cannot extract manifest path".to_string(),
+        ))?;
+    let path_str = caps
+        .get(1)
+        .ok_or_else(|| anyhow::anyhow!("Manifest not extracted"))?
+        .as_str()
+        .replace("path+file://", "");
 
     let mut path = PathBuf::new();
     path.push(path_str);
