@@ -287,7 +287,7 @@ impl Exec {
             Default::default(),
         )?;
 
-        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        let display = call_result.display(&self.verbosity);
         println!("{}", display);
 
         // The CodeStored event is only raised if the contract has not already been uploaded.
@@ -336,7 +336,7 @@ impl Exec {
             Default::default(),
         )?;
 
-        let display = call_result.display(&self.extrinsic_opts.verbosity()?);
+        let display = call_result.display(&self.verbosity);
         println!("{}", display);
 
         let instantiated = result
