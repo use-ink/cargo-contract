@@ -55,7 +55,7 @@ where
 {
     with_tmp_dir(|tmp_dir| {
         let project_name = "new_project";
-        crate::cmd::new::execute(&project_name, Some(tmp_dir))
+        crate::cmd::new::execute(project_name, Some(tmp_dir))
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(project_name);
         let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
