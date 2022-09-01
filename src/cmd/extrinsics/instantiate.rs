@@ -26,7 +26,6 @@ use super::{
     Balance,
     Client,
     CodeHash,
-    ContractAccount,
     ContractMessageTranscoder,
     CrateMetadata,
     DefaultConfig,
@@ -249,8 +248,7 @@ impl Exec {
                     self.instantiate_with_code(code, is_json).await?;
                 }
                 Code::Existing(code_hash) => {
-                    let contract_account = self.instantiate(code_hash).await?;
-                    name_value_println!("Contract", contract_account.to_ss58check());
+                    self.instantiate(code_hash, is_json).await?;
                 }
             }
             Ok(())
@@ -319,7 +317,7 @@ impl Exec {
         Ok(())
     }
 
-    async fn instantiate(&self, code_hash: CodeHash) -> Result<ContractAccount> {
+    async fn instantiate(&self, code_hash: CodeHash, is_json: bool) -> Result<()> {
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
             .await?;
@@ -346,7 +344,7 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        let call_result = parse_events(
+        let mut call_result = parse_events(
             &result,
             &self.transcoder,
             &self.client.metadata(),
@@ -354,14 +352,25 @@ impl Exec {
             self.verbosity,
         )?;
 
-        let display = call_result.display_events();
-        println!("{}", display);
+        call_result.estimated_gas = gas_limit;
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        Ok(instantiated.contract)
+        call_result.contract_hash = Some(instantiated.contract.to_ss58check());
+
+        let output: String = if is_json {
+            call_result.to_json()?
+        } else {
+            call_result.display_events()
+        };
+        println!("{}", output);
+        if !is_json {
+            name_value_println!("Contract", instantiated.contract.to_ss58check());
+        }
+
+        Ok(())
     }
 
     fn print_default_instantiate_preview(&self, gas_limit: u64) {

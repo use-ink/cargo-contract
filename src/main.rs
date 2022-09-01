@@ -536,10 +536,7 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::Upload(upload) => upload.run(),
         Command::Instantiate(instantiate) => instantiate.run(),
-        Command::Call(call) => {
-            // TODO: display the call result in json depending on the flag
-            call.run()
-        }
+        Command::Call(call) => call.run(),
         Command::Decode(decode) => decode.run(),
     }
 }

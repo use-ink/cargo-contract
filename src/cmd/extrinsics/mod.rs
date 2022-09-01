@@ -76,7 +76,6 @@ pub use upload::UploadCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
-type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
 type Client = OnlineClient<DefaultConfig>;
 
