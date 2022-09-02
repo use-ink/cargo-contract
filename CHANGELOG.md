@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0-alpha.2] - 2022-09-02
 
 ### Fixed 
-- Sync version of transcode crate to fix metadata parsing - [#todo](https://githubcom/paritytech/cargo-contract/pull/todo)
+- Sync version of transcode crate to fix metadata parsing - [#723](https://githubcom/paritytech/cargo-contract/pull/723)
 - Fix numbering of steps during `build` - [#715](https://githubcom/paritytech/cargo-contract/pull/715)
 
 ## [2.0.0-alpha.1] - 2022-08-24
