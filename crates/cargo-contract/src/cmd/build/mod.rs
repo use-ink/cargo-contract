@@ -84,6 +84,7 @@ pub(crate) struct ExecuteArgs {
     pub keep_debug_symbols: bool,
     pub skip_linting: bool,
     pub output_type: OutputType,
+    pub counter: Option<(usize, usize)>,
 }
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
@@ -217,16 +218,18 @@ impl BuildCommand {
             keep_debug_symbols: self.keep_debug_symbols,
             skip_linting: self.skip_linting,
             output_type,
+            counter: None,
         };
 
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for package_id in workspace_members {
-                    // override args.manifest_path for each workspace member
+                for (i, package_id) in workspace_members.iter().enumerate() {
+                    // override args for each workspace member
                     args.manifest_path =
-                        util::extract_subcontract_manifest_path(package_id)
+                        util::extract_subcontract_manifest_path(package_id.clone())
                             .expect("Error extracting package manifest path");
+                    args.counter = Some((i + 1, workspace_members.len()));
                     build_results.push(execute(args.clone())?);
                 }
             }
@@ -274,15 +277,18 @@ impl CheckCommand {
             keep_debug_symbols: false,
             skip_linting: false,
             output_type: OutputType::default(),
+            counter: None,
         };
 
         match self.check_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for package_id in workspace_members {
+                for (i, package_id) in workspace_members.iter().enumerate() {
+                    // override args for each workspace member
                     args.manifest_path =
-                        util::extract_subcontract_manifest_path(package_id)
+                        util::extract_subcontract_manifest_path(package_id.clone())
                             .expect("Error extracting package manifest path");
+                    args.counter = Some((i + 1, workspace_members.len()));
 
                     check_results.push(execute(args.clone())?);
                 }
@@ -627,6 +633,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         keep_debug_symbols,
         skip_linting,
         output_type,
+        counter,
     } = args;
 
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
@@ -637,6 +644,14 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     }
 
     let build = || -> Result<OptimizationResult> {
+        if let Some((x, y)) = counter {
+            maybe_println!(
+                verbosity,
+                "\n {} {}",
+                "Building contract".bright_purple().bold(),
+                format!("[{}/{}]", x, y).bold(),
+            );
+        }
         if skip_linting {
             maybe_println!(
                 verbosity,
