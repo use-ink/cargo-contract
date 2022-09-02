@@ -405,6 +405,7 @@ mod tests {
     use crate::scon::Hex;
     use ink_lang as ink;
 
+    #[allow(clippy::extra_unused_lifetimes)]
     #[ink::contract]
     pub mod transcode {
         #[ink(storage)]
@@ -479,8 +480,7 @@ mod tests {
             fn __ink_generate_metadata() -> ink_metadata::InkProject;
         }
 
-        let ink_project = unsafe { __ink_generate_metadata() };
-        ink_project
+        unsafe { __ink_generate_metadata() }
     }
 
     #[test]

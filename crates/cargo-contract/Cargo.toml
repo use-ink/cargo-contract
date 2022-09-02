@@ -1,0 +1,83 @@
+[package]
+name = "cargo-contract"
+version = "2.0.0-alpha.2"
+authors = ["Parity Technologies <admin@parity.io>"]
+build = "build.rs"
+edition = "2021"
+
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/"
+homepage = "https://www.parity.io/"
+description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
+include = [
+    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "src/**/*.scale",
+]
+
+[dependencies]
+anyhow = "1.0.63"
+clap = { version = "3.2.19", features = ["derive", "env"] }
+tracing = "0.1.36"
+tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
+heck = "0.4.0"
+zip = { version = "0.6.2", default-features = false }
+parity-wasm = "0.45.0"
+cargo_metadata = "0.15.0"
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+which = "4.3.0"
+colored = "2.0.0"
+toml = "0.5.9"
+rustc_version = "0.4.0"
+blake2 = "0.10.4"
+contract-metadata = { version = "2.0.0-alpha.2", path = "../metadata" }
+transcode = { package = "contract-transcode", version = "2.0.0-alpha.2", path = "../transcode" }
+semver = { version = "1.0.13", features = ["serde"] }
+serde = { version = "1.0.144", default-features = false, features = ["derive"] }
+serde_json = "1.0.85"
+tempfile = "3.3.0"
+url = { version = "2.2.2", features = ["serde"] }
+impl-serde = "0.3.2"
+regex = "1.6.0"
+
+# dependencies for extrinsics (deploying and calling a contract)
+async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
+sp-core = "6.0.0"
+pallet-contracts-primitives = "6.0.0"
+subxt = "0.23.0"
+hex = "0.4.3"
+jsonrpsee = { version = "0.15.1", features = ["ws-client"] }
+
+[build-dependencies]
+anyhow = "1.0.63"
+dirs = "4.0.0"
+zip = { version = "0.6.2", default-features = false }
+walkdir = "2.3.2"
+substrate-build-script-utils = "3.0.0"
+current_platform = "0.2.0"
+which = "4.3.0"
+regex = "1.6.0"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"
+pretty_assertions = "1.3.0"
+wabt = "0.10.0"
+regex = "1.6.0"
+predicates = "2.1.1"
+
+[features]
+# This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
+# generation code with `#[cfg(feature = "std")]`.
+default = ["std"]
+std = []
+
+# Enable this to execute long running tests, which usually are only run on the CI server
+#
+# Disabled by default
+test-ci-only = []
+
+# Enable this to execute tests which depend on a locally running contracts enabed chain
+# e.g.https://github.com/paritytech/canvas-node
+integration-tests = []
