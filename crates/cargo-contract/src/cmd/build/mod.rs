@@ -206,22 +206,24 @@ impl BuildCommand {
 
         let mut build_results = Vec::new();
 
+        let mut args = ExecuteArgs {
+            manifest_path: manifest_path.clone(),
+            verbosity,
+            build_mode,
+            network,
+            build_artifact: self.build_artifact,
+            unstable_flags,
+            optimization_passes,
+            keep_debug_symbols: self.keep_debug_symbols,
+            skip_linting: self.skip_linting,
+            output_type,
+        };
+
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                let mut args = ExecuteArgs {
-                    verbosity,
-                    build_mode,
-                    network,
-                    build_artifact: self.build_artifact,
-                    unstable_flags: unstable_flags.clone(),
-                    optimization_passes,
-                    keep_debug_symbols: self.keep_debug_symbols,
-                    skip_linting: self.skip_linting,
-                    output_type: output_type.clone(),
-                    ..Default::default()
-                };
                 for package_id in workspace_members {
+                    // override args.manifest_path for each workspace member
                     args.manifest_path =
                         util::extract_subcontract_manifest_path(package_id)
                             .expect("Error extracting package manifest path");
@@ -229,18 +231,6 @@ impl BuildCommand {
                 }
             }
             false => {
-                let args = ExecuteArgs {
-                    manifest_path,
-                    verbosity,
-                    build_mode,
-                    network,
-                    build_artifact: self.build_artifact,
-                    unstable_flags,
-                    optimization_passes,
-                    keep_debug_symbols: self.keep_debug_symbols,
-                    skip_linting: self.skip_linting,
-                    output_type,
-                };
                 build_results.push(execute(args)?);
             }
         }
@@ -273,42 +263,31 @@ impl CheckCommand {
 
         let mut check_results = Vec::new();
 
+        let mut args = ExecuteArgs {
+            manifest_path: manifest_path.clone(),
+            verbosity,
+            build_mode: BuildMode::Debug,
+            network: Network::default(),
+            build_artifact: BuildArtifacts::CheckOnly,
+            unstable_flags: unstable_flags.clone(),
+            optimization_passes: OptimizationPasses::Zero,
+            keep_debug_symbols: false,
+            skip_linting: false,
+            output_type: OutputType::default(),
+        };
+
         match self.check_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
                 for package_id in workspace_members {
-                    let manifest_path =
+                    args.manifest_path =
                         util::extract_subcontract_manifest_path(package_id)
                             .expect("Error extracting package manifest path");
 
-                    let args = ExecuteArgs {
-                        manifest_path,
-                        verbosity,
-                        build_mode: BuildMode::Debug,
-                        network: Network::default(),
-                        build_artifact: BuildArtifacts::CheckOnly,
-                        unstable_flags: unstable_flags.clone(),
-                        optimization_passes: OptimizationPasses::Zero,
-                        keep_debug_symbols: false,
-                        skip_linting: false,
-                        output_type: OutputType::default(),
-                    };
-                    check_results.push(execute(args)?);
+                    check_results.push(execute(args.clone())?);
                 }
             }
             false => {
-                let args = ExecuteArgs {
-                    manifest_path,
-                    verbosity,
-                    build_mode: BuildMode::Debug,
-                    network: Network::default(),
-                    build_artifact: BuildArtifacts::CheckOnly,
-                    unstable_flags,
-                    optimization_passes: OptimizationPasses::Zero,
-                    keep_debug_symbols: false,
-                    skip_linting: false,
-                    output_type: OutputType::default(),
-                };
                 check_results.push(execute(args)?);
             }
         }
