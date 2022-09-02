@@ -240,11 +240,12 @@ impl Exec {
                     }
                 }
                 Err(ref err) => {
+                    let metadata = self.client.metadata();
                     if is_json {
-                        eprintln!("{}", serde_json::to_string_pretty(err)?);
+                        let object = error_details_object(err, &metadata)?;
+                        eprintln!("{}", serde_json::to_string_pretty(&object)?);
                         Ok(())
                     } else {
-                        let metadata = self.client.metadata();
                         let err = error_details(err, &metadata)?;
                         name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)

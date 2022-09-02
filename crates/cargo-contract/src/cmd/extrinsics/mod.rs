@@ -321,26 +321,43 @@ fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<St
 }
 
 #[derive(serde::Serialize)]
+pub enum ErrorVariant {
+    #[serde(rename = "module_error")]
+    Module(ModuleError),
+    #[serde(rename = "generic_error")]
+    Generic(GenericError),
+}
+
+#[derive(serde::Serialize)]
 pub struct ModuleError {
     pub pallet: String,
     pub error: String,
     pub docs: Vec<String>,
 }
 
+#[derive(serde::Serialize)]
+pub struct GenericError {
+    error: String,
+}
+
 fn error_details_object(
     error: &DispatchError,
     metadata: &subxt::Metadata,
-) -> Result<ModuleError> {
+) -> Result<ErrorVariant> {
     match error {
         DispatchError::Module(err) => {
             let details = metadata.error(err.index, err.error)?;
-            Ok(ModuleError {
+            Ok(ErrorVariant::Module(ModuleError {
                 pallet: details.pallet().to_owned(),
                 error: details.error().to_owned(),
                 docs: details.docs().to_owned(),
-            })
+            }))
         }
-        err => Err(anyhow!(format!("DispatchError: {:?}", err))),
+        err => {
+            Ok(ErrorVariant::Generic(GenericError {
+                error: format!("DispatchError: {:?}", err),
+            }))
+        }
     }
 }
 

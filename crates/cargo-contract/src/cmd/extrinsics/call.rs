@@ -34,8 +34,11 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        error_details_object,
         events::parse_events,
         CallDryRunResult,
+        ErrorVariant,
+        GenericError,
     },
     name_value_println,
     DEFAULT_KEY_COL_WIDTH,
@@ -125,11 +128,13 @@ impl CallCommand {
                         }
                     }
                     Err(ref err) => {
+                        let metadata = client.metadata();
                         if self.output_json {
-                            eprintln!("{}", serde_json::to_string_pretty(err)?);
+                            let object = error_details_object(err, &metadata)?;
+                            eprintln!("{}", serde_json::to_string_pretty(&object)?);
                             Ok(())
                         } else {
-                            let err = error_details(err, &client.metadata())?;
+                            let err = error_details(err, &metadata)?;
                             name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
                             display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                         }
@@ -225,7 +230,14 @@ impl CallCommand {
             }
             Err(err) => {
                 if is_json {
-                    eprintln!("{}", serde_json::to_string_pretty(&err.to_string())?);
+                    eprintln!(
+                        "{}",
+                        serde_json::to_string_pretty(&ErrorVariant::Generic(
+                            GenericError {
+                                error: err.to_string()
+                            }
+                        ))?
+                    );
                     Ok(())
                 } else {
                     Err(err)
@@ -266,7 +278,8 @@ impl CallCommand {
             }
             Err(ref err) => {
                 if is_json {
-                    eprintln!("{}", serde_json::to_string_pretty(err)?);
+                    let object = error_details_object(err, &client.metadata())?;
+                    eprintln!("{}", serde_json::to_string_pretty(&object)?);
                 } else {
                     let err = error_details(err, &client.metadata())?;
                     name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
