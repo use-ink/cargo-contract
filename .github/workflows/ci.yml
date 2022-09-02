@@ -8,6 +8,7 @@ on:
       - v*
     paths-ignore:
       - 'README.md'
+      - 'CHANGELOG.md'
 jobs:
   fmt:
     runs-on: ubuntu-latest
