@@ -36,6 +36,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        error_details_object,
         InstantiateDryRunResult,
     },
     name_value_println,
@@ -122,6 +123,9 @@ fn parse_hex_bytes(input: &str) -> Result<Bytes> {
 }
 
 impl InstantiateCommand {
+    pub fn is_json(&self) -> bool {
+        self.output_json
+    }
     /// Instantiate a contract stored at the supplied code hash.
     /// Returns the account id of the instantiated contract if successful.
     ///
@@ -236,10 +240,15 @@ impl Exec {
                     }
                 }
                 Err(ref err) => {
-                    let metadata = self.client.metadata();
-                    let err = error_details(err, &metadata)?;
-                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                    if is_json {
+                        eprintln!("{}", serde_json::to_string_pretty(err)?);
+                        Ok(())
+                    } else {
+                        let metadata = self.client.metadata();
+                        let err = error_details(err, &metadata)?;
+                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                    }
                 }
             }
         } else {
@@ -257,7 +266,7 @@ impl Exec {
 
     async fn instantiate_with_code(&self, code: Vec<u8>, is_json: bool) -> Result<()> {
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
+            .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()), is_json)
             .await?;
 
         if !self.opts.skip_confirm {
@@ -319,7 +328,7 @@ impl Exec {
 
     async fn instantiate(&self, code_hash: CodeHash, is_json: bool) -> Result<()> {
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
+            .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash), is_json)
             .await?;
 
         if !self.opts.skip_confirm {
@@ -399,7 +408,11 @@ impl Exec {
     }
 
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
-    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<u64> {
+    async fn pre_submit_dry_run_gas_estimate(
+        &self,
+        code: Code,
+        is_json: bool,
+    ) -> Result<u64> {
         if self.opts.skip_dry_run {
             return match self.args.gas_limit {
                 Some(gas) => Ok(gas),
@@ -410,7 +423,9 @@ impl Exec {
                 }
             }
         }
-        super::print_dry_running_status(&self.args.constructor);
+        if !is_json {
+            super::print_dry_running_status(&self.args.constructor);
+        }
         let instantiate_result = self.instantiate_dry_run(code).await?;
         match instantiate_result.result {
             Ok(_) => {
@@ -422,11 +437,16 @@ impl Exec {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = error_details(err, &self.client.metadata())?;
-                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
-                    &instantiate_result,
-                )?;
+                if is_json {
+                    let object = error_details_object(err, &self.client.metadata())?;
+                    eprintln!("{}", serde_json::to_string_pretty(&object)?);
+                } else {
+                    let err = error_details(err, &self.client.metadata())?;
+                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                        &instantiate_result,
+                    )?;
+                }
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }

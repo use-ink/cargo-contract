@@ -486,14 +486,21 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
+    let suppress_err = match &args.cmd {
+        Command::Call(call_cmd) if call_cmd.is_json() => true,
+        Command::Instantiate(inst_cmd) if inst_cmd.is_json() => true,
+        _ => false,
+    };
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!(
-                "{} {}",
-                "ERROR:".bright_red().bold(),
-                format!("{:?}", err).bright_red()
-            );
+            if !suppress_err {
+                eprintln!(
+                    "{} {}",
+                    "ERROR:".bright_red().bold(),
+                    format!("{:?}", err).bright_red()
+                );
+            }
             std::process::exit(1);
         }
     }

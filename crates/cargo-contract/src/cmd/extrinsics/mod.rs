@@ -51,7 +51,10 @@ use crate::{
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::{ContractResult, StorageDeposit};
+use pallet_contracts_primitives::{
+    ContractResult,
+    StorageDeposit,
+};
 use scale::{
     Decode,
     Encode,
@@ -314,6 +317,30 @@ fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<St
             ))
         }
         err => Ok(format!("DispatchError: {:?}", err)),
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ModuleError {
+    pub pallet: String,
+    pub error: String,
+    pub docs: Vec<String>,
+}
+
+fn error_details_object(
+    error: &DispatchError,
+    metadata: &subxt::Metadata,
+) -> Result<ModuleError> {
+    match error {
+        DispatchError::Module(err) => {
+            let details = metadata.error(err.index, err.error)?;
+            Ok(ModuleError {
+                pallet: details.pallet().to_owned(),
+                error: details.error().to_owned(),
+                docs: details.docs().to_owned(),
+            })
+        }
+        err => Err(anyhow!(format!("DispatchError: {:?}", err))),
     }
 }
 

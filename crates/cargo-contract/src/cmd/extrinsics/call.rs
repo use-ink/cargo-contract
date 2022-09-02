@@ -81,6 +81,10 @@ pub struct CallCommand {
 }
 
 impl CallCommand {
+    pub fn is_json(&self) -> bool {
+        self.output_json
+    }
+
     pub fn run(&self) -> Result<()> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
@@ -121,9 +125,14 @@ impl CallCommand {
                         }
                     }
                     Err(ref err) => {
-                        let err = error_details(err, &client.metadata())?;
-                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                        if self.output_json {
+                            eprintln!("{}", serde_json::to_string_pretty(err)?);
+                            Ok(())
+                        } else {
+                            let err = error_details(err, &client.metadata())?;
+                            name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                        }
                     }
                 }
             } else {
@@ -191,26 +200,38 @@ impl CallCommand {
             data,
         );
 
-        let result = submit_extrinsic(client, &call, signer).await?;
+        let result = submit_extrinsic(client, &call, signer).await;
 
-        let mut call_result = parse_events(
-            &result,
-            transcoder,
-            &client.metadata(),
-            Default::default(),
-            self.extrinsic_opts.verbosity()?,
-        )?;
+        match result {
+            Ok(result) => {
+                let mut call_result = parse_events(
+                    &result,
+                    transcoder,
+                    &client.metadata(),
+                    Default::default(),
+                    self.extrinsic_opts.verbosity()?,
+                )?;
 
-        call_result.estimated_gas = gas_limit;
+                call_result.estimated_gas = gas_limit;
 
-        let output: String = if is_json {
-            call_result.to_json()?
-        } else {
-            call_result.display_events()
-        };
-        println!("{}", output);
+                let output: String = if is_json {
+                    call_result.to_json()?
+                } else {
+                    call_result.display_events()
+                };
+                println!("{}", output);
 
-        Ok(())
+                Ok(())
+            }
+            Err(err) => {
+                if is_json {
+                    eprintln!("{}", serde_json::to_string_pretty(&err.to_string())?);
+                    Ok(())
+                } else {
+                    Err(err)
+                }
+            }
+        }
     }
 
     /// Dry run the call before tx submission. Returns the gas required estimate.
@@ -244,9 +265,13 @@ impl CallCommand {
                 Ok(gas_limit)
             }
             Err(ref err) => {
-                let err = error_details(err, &client.metadata())?;
-                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                if is_json {
+                    eprintln!("{}", serde_json::to_string_pretty(err)?);
+                } else {
+                    let err = error_details(err, &client.metadata())?;
+                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                }
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
