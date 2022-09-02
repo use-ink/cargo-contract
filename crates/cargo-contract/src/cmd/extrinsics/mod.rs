@@ -51,7 +51,7 @@ use crate::{
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::ContractResult;
+use pallet_contracts_primitives::{ContractResult, StorageDeposit};
 use scale::{
     Decode,
     Encode,
@@ -129,7 +129,7 @@ pub struct InstantiateDryRunResult {
     pub gas_consumed: u64,
     pub gas_required: u64,
     /// Storage deposit after the operation
-    pub storage_deposit: String,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 /// Result of the contract call
 #[derive(serde::Serialize)]
@@ -142,7 +142,7 @@ pub struct CallDryRunResult {
     pub gas_consumed: u64,
     pub gas_required: u64,
     /// Storage deposit after the operation
-    pub storage_deposit: String,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 
 impl InstantiateDryRunResult {

@@ -223,7 +223,7 @@ impl Exec {
                         data: ret_val.result.data.clone(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: format!("{:?}", result.storage_deposit),
+                        storage_deposit: result.storage_deposit.clone(),
                     };
                     if is_json {
                         println!("{}", dry_run_result.to_json()?);
