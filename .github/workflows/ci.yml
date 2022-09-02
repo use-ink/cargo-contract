@@ -8,6 +8,7 @@ on:
       - v*
     paths-ignore:
       - 'README.md'
+      - 'CHANGELOG.md'
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -27,7 +28,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all --check
+          args: --check
 
   clippy:
     runs-on: ubuntu-latest
@@ -115,7 +116,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --all-features -- --test-threads=1
+          args: --all-features -- --test-threads=1
 
   template:
     strategy:
