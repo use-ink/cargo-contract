@@ -727,20 +727,40 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 exec_cargo_dylint(&crate_metadata, verbosity)?;
             }
 
+            if let Some((x, y)) = counter {
+                maybe_println!(
+                    verbosity,
+                    "\n {} {}",
+                    "Checking contract".bright_purple().bold(),
+                    format!("[{}/{}]", x, y).bold(),
+                );
+            }
+
             maybe_println!(
                 verbosity,
                 " {} {}",
                 format!("[2/{}]", build_artifact.steps()).bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
-            exec_cargo_for_wasm_target(
+            let res = exec_cargo_for_wasm_target(
                 &crate_metadata,
                 "check",
                 BuildMode::Release,
                 network,
                 verbosity,
                 &unstable_flags,
-            )?;
+            );
+
+            if res.is_ok() {
+                maybe_println!(
+                    verbosity,
+                    " {}",
+                    "Your contract's code was checked successfully.\n"
+                        .bright_purple()
+                        .bold()
+                );
+            }
+
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
