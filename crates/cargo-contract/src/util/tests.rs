@@ -65,34 +65,6 @@ where
     })
 }
 
-/// Creates many new subcontracts into a temporary directory.
-pub fn with_new_subcontract_projects<F>(f: F, n: u32)
-where
-    F: FnOnce(PathBuf) -> anyhow::Result<()>,
-{
-    with_tmp_dir(|tmp_dir| {
-        let mut project_names = Vec::new();
-        for i in 0..n {
-            let project_name = format!("new_project_{}", i);
-            crate::cmd::new::execute(&project_name, Some(tmp_dir))
-                .expect("new project creation failed");
-            project_names.push(project_name);
-        }
-
-        let manifest_path = tmp_dir.join("Cargo.toml");
-
-        let mut output = fs::File::create(manifest_path.clone())?;
-        write!(output, "[workspace]\n\n")?;
-        writeln!(output, "members = [")?;
-        for project_name in project_names {
-            writeln!(output, "  \"{}\",", project_name)?;
-        }
-        write!(output, "]")?;
-
-        f(manifest_path)
-    })
-}
-
 /// Deletes the mocked executable on `Drop`.
 pub struct MockGuard(PathBuf);
 

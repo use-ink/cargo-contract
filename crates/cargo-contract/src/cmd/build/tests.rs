@@ -19,10 +19,7 @@ use crate::{
         build::load_module,
         BuildCommand,
     },
-    util::tests::{
-        with_new_subcontract_projects,
-        TestContractManifest,
-    },
+    util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
     ManifestPath,
@@ -41,6 +38,7 @@ use std::{
     ffi::OsStr,
     fmt::Write,
     fs,
+    io::Write as io_Write,
     path::Path,
 };
 
@@ -75,7 +73,8 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
-    generates_metadata
+    generates_metadata,
+    building_subcontracts_must_work
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -336,6 +335,38 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     Ok(())
 }
 
+fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    let n_contracts = 3;
+    let mut project_names = Vec::new();
+    for i in 0..n_contracts {
+        let project_name = format!("new_project_{}", i);
+        crate::cmd::new::execute(&project_name, Some(path))
+            .expect("new project creation failed");
+        project_names.push(project_name);
+    }
+
+    // override manifest_path
+    let manifest_path = path.join("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    for project_name in project_names {
+        writeln!(output, "  \"{}\",", project_name)?;
+    }
+    write!(output, "]")?;
+
+    let cmd = BuildCommand {
+        build_all: true,
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    cmd.exec().expect("build failed");
+    Ok(())
+}
+
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
@@ -558,36 +589,4 @@ fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
         .unwrap()
         .custom_sections()
         .any(|e| e.name() == "name")
-}
-
-#[test]
-fn building_subcontract_must_work() {
-    with_new_subcontract_projects(
-        |manifest_path| {
-            let cmd = BuildCommand {
-                build_all: true,
-                manifest_path: Some(manifest_path),
-                ..Default::default()
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        },
-        1,
-    )
-}
-
-#[test]
-fn building_many_subcontracts_must_work() {
-    with_new_subcontract_projects(
-        |manifest_path| {
-            let cmd = BuildCommand {
-                build_all: true,
-                manifest_path: Some(manifest_path),
-                ..Default::default()
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        },
-        3,
-    )
 }
