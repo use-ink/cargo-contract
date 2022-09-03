@@ -272,7 +272,7 @@ impl CheckCommand {
             build_mode: BuildMode::Debug,
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags: unstable_flags.clone(),
+            unstable_flags,
             optimization_passes: OptimizationPasses::Zero,
             keep_debug_symbols: false,
             skip_linting: false,
