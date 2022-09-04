@@ -36,13 +36,16 @@ use std::{
 const WASM_OPT_INSTALLATION_SUGGESTION: &str =
     "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
     We use this tool to optimize the size of your contract's Wasm binary.\n\n\
-    wasm-opt is part of the binaryen package. You can find detailed\n\
-    installation instructions on https://github.com/WebAssembly/binaryen#tools.\n\n\
-    There are ready-to-install packages for many platforms:\n\
+    It can be installed with the command\n\n\
+        cargo install wasm-opt --locked\n\n\
+    Alternately, there are ready-to-install packages for many platforms:\n\
     * Debian/Ubuntu: apt-get install binaryen\n\
     * Homebrew: brew install binaryen\n\
     * Arch Linux: pacman -S binaryen\n\
-    * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases";
+    * Windows: binary releases at https://github.com/WebAssembly/binaryen/releases\n\n\"
+    wasm-opt is part of the binaryen toolset.\n\
+    You can find detailed\n\
+    installation instructions at https://github.com/WebAssembly/binaryen#tools.";
 
 /// A helpful struct for interacting with Binaryen's `wasm-opt` tool.
 pub struct WasmOptHandler {
