@@ -41,6 +41,7 @@ tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 impl-serde = "0.4.0"
 regex = "1.6.0"
+wasm-opt = { version = "0.110.0", optional = true }
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
@@ -70,8 +71,9 @@ predicates = "2.1.1"
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
 # generation code with `#[cfg(feature = "std")]`.
-default = ["std"]
+default = ["std", "integrated-wasm-opt"]
 std = []
+integrated-wasm-opt = ["wasm-opt"]
 
 # Enable this to execute long running tests, which usually are only run on the CI server
 #

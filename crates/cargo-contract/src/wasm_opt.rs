@@ -29,9 +29,14 @@ use std::{
         Path,
         PathBuf,
     },
-    process::Command,
     str,
 };
+
+#[cfg(feature = "wasm-opt")]
+use wasm_opt::integration::Command;
+
+#[cfg(not(feature = "wasm-opt"))]
+use std::process::Command;
 
 const WASM_OPT_INSTALLATION_SUGGESTION: &str =
     "wasm-opt not found! Make sure the binary is in your PATH environment.\n\n\
@@ -48,6 +53,12 @@ const WASM_OPT_INSTALLATION_SUGGESTION: &str =
     installation instructions at https://github.com/WebAssembly/binaryen#tools.";
 
 /// A helpful struct for interacting with Binaryen's `wasm-opt` tool.
+///
+/// This supports both the `wasm-opt` CLI and the `wasm-opt` crate,
+/// with the crate being used if both the `integrated-wasm-opt` cargo feature
+/// is active, and the `DISABLE_INTEGRATED_WASM_OPT` environment variable is not set.
+/// It is intended that once confidence in the crate is established support
+/// for the CLI will be removed.
 pub struct WasmOptHandler {
     /// The path to the `wasm-opt` binary.
     wasm_opt_path: PathBuf,
@@ -68,24 +79,35 @@ impl WasmOptHandler {
         optimization_level: OptimizationPasses,
         keep_debug_symbols: bool,
     ) -> Result<Self> {
-        let which = which::which("wasm-opt");
-        if which.is_err() {
-            anyhow::bail!(WASM_OPT_INSTALLATION_SUGGESTION.to_string().bright_yellow());
+        if Self::use_integrated_wasm_opt() {
+            Ok(Self {
+                wasm_opt_path: PathBuf::from("wasm-opt"),
+                optimization_level,
+                keep_debug_symbols,
+                _version: 0,
+            })
+        } else {
+            let which = which::which("wasm-opt");
+            if which.is_err() {
+                anyhow::bail!(WASM_OPT_INSTALLATION_SUGGESTION
+                    .to_string()
+                    .bright_yellow());
+            }
+
+            let wasm_opt_path =
+                which.expect("we just checked if `which` returned an err; qed");
+            tracing::debug!("Path to wasm-opt executable: {}", wasm_opt_path.display());
+
+            let version =
+                Self::check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
+
+            Ok(Self {
+                wasm_opt_path,
+                optimization_level,
+                keep_debug_symbols,
+                _version: version,
+            })
         }
-
-        let wasm_opt_path =
-            which.expect("we just checked if `which` returned an err; qed");
-        tracing::debug!("Path to wasm-opt executable: {}", wasm_opt_path.display());
-
-        let version =
-            Self::check_wasm_opt_version_compatibility(wasm_opt_path.as_path())?;
-
-        Ok(Self {
-            wasm_opt_path,
-            optimization_level,
-            keep_debug_symbols,
-            _version: version,
-        })
     }
 
     /// Attempts to perform optional Wasm optimization using Binaryen's `wasm-opt` tool.
@@ -123,24 +145,7 @@ impl WasmOptHandler {
 
         tracing::debug!("Invoking wasm-opt with {:?}", command);
 
-        let output = command.output().map_err(|err| {
-            anyhow::anyhow!(
-                "Executing {} failed with {:?}",
-                self.wasm_opt_path.display(),
-                err
-            )
-        })?;
-
-        if !output.status.success() {
-            let err = str::from_utf8(&output.stderr)
-                .expect("Cannot convert stderr output of wasm-opt to string")
-                .trim();
-            anyhow::bail!(
-                "The wasm-opt optimization failed.\n\n\
-                The error which wasm-opt returned was: \n{}",
-                err
-            );
-        }
+        self.run_wasm_opt(command)?;
 
         if !dest_optimized.exists() {
             return Err(anyhow::anyhow!(
@@ -159,6 +164,53 @@ impl WasmOptHandler {
             original_size,
             optimized_size,
         })
+    }
+
+    fn use_integrated_wasm_opt() -> bool {
+        if std::env::var("DISABLE_INTEGRATED_WASM_OPT").is_ok() {
+            false
+        } else {
+            cfg!(feature = "integrated-wasm-opt")
+        }
+    }
+
+    fn run_wasm_opt(&self, command: Command) -> Result<()> {
+        if Self::use_integrated_wasm_opt() {
+            self.run_wasm_opt_integrated(command)
+        } else {
+            self.run_wasm_opt_cli(command)
+        }
+    }
+
+    fn run_wasm_opt_integrated(&self, command: Command) -> Result<()> {
+        if cfg!(feature = "wasm-opt") {
+            Ok(wasm_opt::integration::run_from_command_args(command)?)
+        } else {
+            unreachable!("Not built with integrated wasm-opt")
+        }
+    }
+
+    fn run_wasm_opt_cli(&self, mut command: Command) -> Result<()> {
+        let output = command.output().map_err(|err| {
+            anyhow::anyhow!(
+                "Executing {} failed with {:?}",
+                self.wasm_opt_path.display(),
+                err
+            )
+        })?;
+
+        if !output.status.success() {
+            let err = str::from_utf8(&output.stderr)
+                .expect("Cannot convert stderr output of wasm-opt to string")
+                .trim();
+            anyhow::bail!(
+                "The wasm-opt optimization failed.\n\n\
+                 The error which wasm-opt returned was: \n{}",
+                err
+            );
+        }
+
+        Ok(())
     }
 
     /// Checks if the `wasm-opt` binary under `wasm_opt_path` returns a version
