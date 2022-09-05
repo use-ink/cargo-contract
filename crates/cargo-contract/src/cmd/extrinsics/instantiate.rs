@@ -16,8 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    error_details,
-    events::parse_events,
     parse_balance,
     prompt_confirm_tx,
     runtime_api::api,
@@ -36,8 +34,8 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
-        error_details_object,
-        InstantiateDryRunResult,
+        events::CallResult,
+        ErrorVariant,
     },
     name_value_println,
     util::decode_hex,
@@ -50,7 +48,10 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::ContractInstantiateResult;
+use pallet_contracts_primitives::{
+    ContractInstantiateResult,
+    StorageDeposit,
+};
 
 use scale::Encode;
 use sp_core::{
@@ -241,13 +242,12 @@ impl Exec {
                 }
                 Err(ref err) => {
                     let metadata = self.client.metadata();
+                    let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                     if is_json {
-                        let object = error_details_object(err, &metadata)?;
                         eprintln!("{}", serde_json::to_string_pretty(&object)?);
                         Ok(())
                     } else {
-                        let err = error_details(err, &metadata)?;
-                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                     }
                 }
@@ -285,11 +285,10 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        let mut call_result = parse_events(
+        let mut call_result = CallResult::from_events(
             &result,
             &self.transcoder,
             &self.client.metadata(),
-            Default::default(),
             self.verbosity,
         )?;
 
@@ -354,11 +353,10 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        let mut call_result = parse_events(
+        let mut call_result = CallResult::from_events(
             &result,
             &self.transcoder,
             &self.client.metadata(),
-            Default::default(),
             self.verbosity,
         )?;
 
@@ -438,12 +436,12 @@ impl Exec {
                 Ok(gas_limit)
             }
             Err(ref err) => {
+                let object =
+                    ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
                 if is_json {
-                    let object = error_details_object(err, &self.client.metadata())?;
                     eprintln!("{}", serde_json::to_string_pretty(&object)?);
                 } else {
-                    let err = error_details(err, &self.client.metadata())?;
-                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                         &instantiate_result,
                     )?;
@@ -451,6 +449,40 @@ impl Exec {
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
+    }
+}
+
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct InstantiateDryRunResult {
+    /// Result of a dry run
+    pub result: String,
+    /// contract address
+    pub contract: String,
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Bytes,
+    pub gas_consumed: u64,
+    pub gas_required: u64,
+    /// Storage deposit after the operation
+    pub storage_deposit: StorageDeposit<Balance>,
+}
+
+impl InstantiateDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }
 

@@ -39,11 +39,14 @@ use std::{
     str::FromStr,
 };
 
-use serde::ser::SerializeMap;
+use serde::{
+    ser::SerializeMap,
+    Serialize,
+};
 
 pub use self::parse::parse_value;
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum Value {
     Bool(bool),
     Char(char),
@@ -66,7 +69,7 @@ pub struct Map {
 
 // `IndexMap` is defined outside and can not be made serializable.
 // Therefore, we implement custom implementation for the wrapping `Map`
-impl serde::Serialize for Map {
+impl Serialize for Map {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -161,7 +164,7 @@ impl Map {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Tuple {
     ident: Option<String>,
     values: Vec<Value>,
@@ -194,7 +197,7 @@ impl Tuple {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Seq {
     elems: Vec<Value>,
 }
@@ -219,7 +222,7 @@ impl Seq {
     }
 }
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Hex {
     s: String,
     bytes: Vec<u8>,

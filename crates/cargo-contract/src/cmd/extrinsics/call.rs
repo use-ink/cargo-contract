@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    error_details,
     parse_balance,
     prompt_confirm_tx,
     state_call,
@@ -34,9 +33,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
-        error_details_object,
-        events::parse_events,
-        CallDryRunResult,
+        events::CallResult,
         ErrorVariant,
         GenericError,
     },
@@ -48,8 +45,12 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::ContractExecResult;
+use pallet_contracts_primitives::{
+    ContractExecResult,
+    StorageDeposit,
+};
 use scale::Encode;
+use transcode::Value;
 
 use std::fmt::Debug;
 use subxt::{
@@ -129,20 +130,18 @@ impl CallCommand {
                     }
                     Err(ref err) => {
                         let metadata = client.metadata();
+                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                         if self.output_json {
-                            let object = error_details_object(err, &metadata)?;
                             eprintln!("{}", serde_json::to_string_pretty(&object)?);
                             Ok(())
                         } else {
-                            let err = error_details(err, &metadata)?;
-                            name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                             display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
                         }
                     }
                 }
             } else {
-                self.call(&client, call_data, &signer, &transcoder, self.output_json)
-                    .await
+                self.call(&client, call_data, &signer, &transcoder).await
             }
         })
     }
@@ -172,7 +171,6 @@ impl CallCommand {
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-        is_json: bool,
     ) -> Result<()> {
         tracing::debug!("calling contract {:?}", self.contract);
 
@@ -209,17 +207,16 @@ impl CallCommand {
 
         match result {
             Ok(result) => {
-                let mut call_result = parse_events(
+                let mut call_result = CallResult::from_events(
                     &result,
                     transcoder,
                     &client.metadata(),
                     Default::default(),
-                    self.extrinsic_opts.verbosity()?,
                 )?;
 
                 call_result.estimated_gas = gas_limit;
 
-                let output: String = if is_json {
+                let output: String = if self.output_json {
                     call_result.to_json()?
                 } else {
                     call_result.display_events()
@@ -229,7 +226,7 @@ impl CallCommand {
                 Ok(())
             }
             Err(err) => {
-                if is_json {
+                if self.output_json {
                     eprintln!(
                         "{}",
                         serde_json::to_string_pretty(&ErrorVariant::Generic(
@@ -277,12 +274,11 @@ impl CallCommand {
                 Ok(gas_limit)
             }
             Err(ref err) => {
+                let object = ErrorVariant::from_dispatch_error(err, &client.metadata())?;
                 if is_json {
-                    let object = error_details_object(err, &client.metadata())?;
                     eprintln!("{}", serde_json::to_string_pretty(&object)?);
                 } else {
-                    let err = error_details(err, &client.metadata())?;
-                    name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
+                    name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
                 }
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
@@ -302,4 +298,35 @@ pub struct CallRequest {
     gas_limit: u64,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
+}
+
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct CallDryRunResult {
+    /// Result of a dry run
+    pub result: String,
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Value,
+    pub gas_consumed: u64,
+    pub gas_required: u64,
+    /// Storage deposit after the operation
+    pub storage_deposit: StorageDeposit<Balance>,
+}
+
+impl CallDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+    }
 }

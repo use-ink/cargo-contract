@@ -36,13 +36,13 @@ use jsonrpsee::{
     ws_client::WsClientBuilder,
 };
 use std::{
+    fmt::Display,
     io::{
         self,
         Write,
     },
     path::PathBuf,
 };
-use transcode::Value;
 
 use crate::{
     crate_metadata::CrateMetadata,
@@ -51,10 +51,7 @@ use crate::{
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::{
-    ContractResult,
-    StorageDeposit,
-};
+use pallet_contracts_primitives::ContractResult;
 use scale::{
     Decode,
     Encode,
@@ -117,70 +114,6 @@ pub struct ExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(long)]
     skip_confirm: bool,
-}
-
-/// Result of the contract call
-#[derive(serde::Serialize)]
-pub struct InstantiateDryRunResult {
-    /// Result of a dry run
-    pub result: String,
-    /// contract address
-    pub contract: String,
-    /// Was the operation reverted
-    pub reverted: bool,
-    pub data: Bytes,
-    pub gas_consumed: u64,
-    pub gas_required: u64,
-    /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
-}
-/// Result of the contract call
-#[derive(serde::Serialize)]
-pub struct CallDryRunResult {
-    /// Result of a dry run
-    pub result: String,
-    /// Was the operation reverted
-    pub reverted: bool,
-    pub data: Value,
-    pub gas_consumed: u64,
-    pub gas_required: u64,
-    /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
-}
-
-impl InstantiateDryRunResult {
-    /// Returns a result in json format
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!(
-            "Reverted",
-            format!("{:?}", self.reverted),
-            DEFAULT_KEY_COL_WIDTH
-        );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
-    }
-}
-
-impl CallDryRunResult {
-    /// Returns a result in json format
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!(
-            "Reverted",
-            format!("{:?}", self.reverted),
-            DEFAULT_KEY_COL_WIDTH
-        );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
-    }
 }
 
 impl ExtrinsicOpts {
@@ -305,21 +238,6 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<String> {
-    match error {
-        DispatchError::Module(err) => {
-            let details = metadata.error(err.index, err.error)?;
-            Ok(format!(
-                "ModuleError: {}::{}: {:?}",
-                details.pallet(),
-                details.error(),
-                details.docs()
-            ))
-        }
-        err => Ok(format!("DispatchError: {:?}", err)),
-    }
-}
-
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {
     #[serde(rename = "module_error")]
@@ -340,23 +258,39 @@ pub struct GenericError {
     error: String,
 }
 
-fn error_details_object(
-    error: &DispatchError,
-    metadata: &subxt::Metadata,
-) -> Result<ErrorVariant> {
-    match error {
-        DispatchError::Module(err) => {
-            let details = metadata.error(err.index, err.error)?;
-            Ok(ErrorVariant::Module(ModuleError {
-                pallet: details.pallet().to_owned(),
-                error: details.error().to_owned(),
-                docs: details.docs().to_owned(),
-            }))
+impl ErrorVariant {
+    pub fn from_dispatch_error(
+        error: &DispatchError,
+        metadata: &subxt::Metadata,
+    ) -> Result<ErrorVariant> {
+        match error {
+            DispatchError::Module(err) => {
+                let details = metadata.error(err.index, err.error)?;
+                Ok(ErrorVariant::Module(ModuleError {
+                    pallet: details.pallet().to_owned(),
+                    error: details.error().to_owned(),
+                    docs: details.docs().to_owned(),
+                }))
+            }
+            err => {
+                Ok(ErrorVariant::Generic(GenericError {
+                    error: format!("DispatchError: {:?}", err),
+                }))
+            }
         }
-        err => {
-            Ok(ErrorVariant::Generic(GenericError {
-                error: format!("DispatchError: {:?}", err),
-            }))
+    }
+}
+
+impl Display for ErrorVariant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorVariant::Module(err) => {
+                f.write_fmt(format_args!(
+                    "ModuleError: {}::{}: {:?}",
+                    err.pallet, err.error, err.docs
+                ))
+            }
+            ErrorVariant::Generic(err) => f.write_str(&err.error),
         }
     }
 }

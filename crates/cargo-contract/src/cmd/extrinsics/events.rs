@@ -19,7 +19,6 @@ use super::{
     DefaultConfig,
 };
 use crate::{
-    OutputType,
     Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -82,12 +81,75 @@ pub struct CallResult {
     pub estimated_gas: u64,
     /// Events that were produced from calling a contract
     pub events: Vec<Event>,
-    /// The type of formatting to use for the build output.
-    #[serde(skip_serializing)]
-    pub output_type: OutputType,
 }
 
 impl CallResult {
+    /// Parses events and returns an object which can be serialised
+    pub fn from_events(
+        result: &TxEvents<DefaultConfig>,
+        transcoder: &ContractMessageTranscoder,
+        subxt_metadata: &subxt::Metadata,
+        verbosity: Verbosity,
+    ) -> Result<CallResult> {
+        let mut events: Vec<Event> = vec![];
+
+        let runtime_metadata = subxt_metadata.runtime_metadata();
+        let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
+            .with_default_custom_type_transcoders()
+            .done();
+
+        for event in result.iter() {
+            let event = event?;
+            tracing::debug!("displaying event {:?}", event);
+
+            let event_metadata =
+                subxt_metadata.event(event.pallet_index(), event.variant_index())?;
+            let event_fields = event_metadata.fields();
+
+            let mut event_entry = Event {
+                pallet: event.pallet_name().to_string(),
+                name: event.variant_name().to_string(),
+                fields: vec![],
+            };
+
+            let event_data = &mut event.field_bytes();
+            let mut unnamed_field_name = 0;
+            for (field, field_ty) in event_fields {
+                if <ContractEmitted as StaticEvent>::is_event(
+                    event.pallet_name(),
+                    event.variant_name(),
+                ) && field.as_ref() == Some(&"data".to_string())
+                {
+                    tracing::debug!("event data: {:?}", hex::encode(&event_data));
+                    let contract_event = transcoder.decode_contract_event(event_data)?;
+                    let field = Field::new(String::from("data"), contract_event);
+                    event_entry.fields.push(field);
+                } else {
+                    let field_name = field.clone().unwrap_or_else(|| {
+                        let name = unnamed_field_name.to_string();
+                        unnamed_field_name += 1;
+                        name
+                    });
+
+                    let decoded_field = events_transcoder.decode(
+                        &runtime_metadata.types,
+                        *field_ty,
+                        event_data,
+                    )?;
+                    let field = Field::new(field_name, decoded_field);
+                    event_entry.fields.push(field);
+                }
+            }
+            events.push(event_entry);
+        }
+
+        Ok(CallResult {
+            events,
+            verbosity,
+            ..Default::default()
+        })
+    }
+
     /// Displays events in a human readable format
     pub fn display_events(&self) -> String {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
@@ -126,72 +188,4 @@ impl CallResult {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
-}
-
-/// Parses events and returns an object which can be serialised
-pub fn parse_events(
-    result: &TxEvents<DefaultConfig>,
-    transcoder: &ContractMessageTranscoder,
-    subxt_metadata: &subxt::Metadata,
-    output_type: OutputType,
-    verbosity: Verbosity,
-) -> Result<CallResult> {
-    let mut events: Vec<Event> = vec![];
-
-    let runtime_metadata = subxt_metadata.runtime_metadata();
-    let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
-        .with_default_custom_type_transcoders()
-        .done();
-
-    for event in result.iter() {
-        let event = event?;
-        tracing::debug!("displaying event {:?}", event);
-
-        let event_metadata =
-            subxt_metadata.event(event.pallet_index(), event.variant_index())?;
-        let event_fields = event_metadata.fields();
-
-        let mut event_entry = Event {
-            pallet: event.pallet_name().to_string(),
-            name: event.variant_name().to_string(),
-            fields: vec![],
-        };
-
-        let event_data = &mut event.field_bytes();
-        let mut unnamed_field_name = 0;
-        for (field, field_ty) in event_fields {
-            if <ContractEmitted as StaticEvent>::is_event(
-                event.pallet_name(),
-                event.variant_name(),
-            ) && field.as_ref() == Some(&"data".to_string())
-            {
-                tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                let contract_event = transcoder.decode_contract_event(event_data)?;
-                let field = Field::new(String::from("data"), contract_event);
-                event_entry.fields.push(field);
-            } else {
-                let field_name = field.clone().unwrap_or_else(|| {
-                    let name = unnamed_field_name.to_string();
-                    unnamed_field_name += 1;
-                    name
-                });
-
-                let decoded_field = events_transcoder.decode(
-                    &runtime_metadata.types,
-                    *field_ty,
-                    event_data,
-                )?;
-                let field = Field::new(field_name, decoded_field);
-                event_entry.fields.push(field);
-            }
-        }
-        events.push(event_entry);
-    }
-
-    Ok(CallResult {
-        events,
-        verbosity,
-        output_type,
-        ..Default::default()
-    })
 }

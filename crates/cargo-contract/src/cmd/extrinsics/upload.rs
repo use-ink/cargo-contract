@@ -15,8 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    error_details,
-    events::parse_events,
     runtime_api::api,
     state_call,
     submit_extrinsic,
@@ -29,7 +27,13 @@ use super::{
     ExtrinsicOpts,
     PairSigner,
 };
-use crate::name_value_println;
+use crate::{
+    cmd::extrinsics::{
+        events::CallResult,
+        ErrorVariant,
+    },
+    name_value_println,
+};
 use anyhow::{
     Context,
     Result,
@@ -91,7 +95,7 @@ impl UploadCommand {
                     }
                     Err(err) => {
                         let metadata = client.metadata();
-                        let err = error_details(&err, &metadata)?;
+                        let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                         name_value_println!("Result", err);
                     }
                 }
@@ -145,12 +149,11 @@ impl UploadCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        let call_result = parse_events(
+        let call_result = CallResult::from_events(
             &result,
             transcoder,
             &client.metadata(),
             Default::default(),
-            self.extrinsic_opts.verbosity()?,
         )?;
 
         let display = call_result.display_events();
