@@ -148,7 +148,7 @@ impl CallResult {
             verbosity,
             contract: Default::default(),
             code_hash: Default::default(),
-            estimated_gas: Default::default()
+            estimated_gas: Default::default(),
         })
     }
 
