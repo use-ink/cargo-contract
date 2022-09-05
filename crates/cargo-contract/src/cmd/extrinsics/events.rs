@@ -146,7 +146,9 @@ impl CallResult {
         Ok(CallResult {
             events,
             verbosity,
-            ..Default::default()
+            contract: Default::default(),
+            code_hash: Default::default(),
+            estimated_gas: Default::default()
         })
     }
 
