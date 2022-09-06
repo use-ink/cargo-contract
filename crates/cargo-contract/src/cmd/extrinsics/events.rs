@@ -75,8 +75,6 @@ pub struct CallResult {
     /// Instantiated code hash
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_hash: Option<String>,
-    /// The verbosity flags.
-    pub verbosity: Verbosity,
     /// Estimated amount of gas required to run a contract
     pub estimated_gas: u64,
     /// Events that were produced from calling a contract
@@ -89,7 +87,6 @@ impl CallResult {
         result: &TxEvents<DefaultConfig>,
         transcoder: &ContractMessageTranscoder,
         subxt_metadata: &subxt::Metadata,
-        verbosity: Verbosity,
     ) -> Result<CallResult> {
         let mut events: Vec<Event> = vec![];
 
@@ -145,7 +142,6 @@ impl CallResult {
 
         Ok(CallResult {
             events,
-            verbosity,
             contract: Default::default(),
             code_hash: Default::default(),
             estimated_gas: Default::default(),
@@ -153,7 +149,7 @@ impl CallResult {
     }
 
     /// Displays events in a human readable format
-    pub fn display_events(&self) -> String {
+    pub fn display_events(&self, verbosity: Verbosity) -> String {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
@@ -171,7 +167,7 @@ impl CallResult {
             );
 
             for field in &event.fields {
-                if self.verbosity.is_verbose() {
+                if verbosity.is_verbose() {
                     let _ = writeln!(
                         out,
                         "{:width$}{}: {}",

@@ -285,12 +285,8 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        let mut call_result = CallResult::from_events(
-            &result,
-            &self.transcoder,
-            &self.client.metadata(),
-            self.verbosity,
-        )?;
+        let mut call_result =
+            CallResult::from_events(&result, &self.transcoder, &self.client.metadata())?;
 
         call_result.estimated_gas = gas_limit;
 
@@ -315,7 +311,7 @@ impl Exec {
         let output: String = if is_json {
             call_result.to_json()?
         } else {
-            call_result.display_events()
+            call_result.display_events(self.verbosity)
         };
         println!("{}", output);
 
@@ -353,12 +349,8 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        let mut call_result = CallResult::from_events(
-            &result,
-            &self.transcoder,
-            &self.client.metadata(),
-            self.verbosity,
-        )?;
+        let mut call_result =
+            CallResult::from_events(&result, &self.transcoder, &self.client.metadata())?;
 
         call_result.estimated_gas = gas_limit;
 
@@ -371,7 +363,7 @@ impl Exec {
         let output: String = if is_json {
             call_result.to_json()?
         } else {
-            call_result.display_events()
+            call_result.display_events(self.verbosity)
         };
         println!("{}", output);
         if !is_json {

@@ -207,19 +207,15 @@ impl CallCommand {
 
         match result {
             Ok(result) => {
-                let mut call_result = CallResult::from_events(
-                    &result,
-                    transcoder,
-                    &client.metadata(),
-                    Default::default(),
-                )?;
+                let mut call_result =
+                    CallResult::from_events(&result, transcoder, &client.metadata())?;
 
                 call_result.estimated_gas = gas_limit;
 
                 let output: String = if self.output_json {
                     call_result.to_json()?
                 } else {
-                    call_result.display_events()
+                    call_result.display_events(self.extrinsic_opts.verbosity()?)
                 };
                 println!("{}", output);
 

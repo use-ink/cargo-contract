@@ -149,14 +149,10 @@ impl UploadCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        let call_result = CallResult::from_events(
-            &result,
-            transcoder,
-            &client.metadata(),
-            Default::default(),
-        )?;
+        let call_result =
+            CallResult::from_events(&result, transcoder, &client.metadata())?;
 
-        let display = call_result.display_events();
+        let display = call_result.display_events(self.extrinsic_opts.verbosity()?);
         println!("{}", display);
 
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
