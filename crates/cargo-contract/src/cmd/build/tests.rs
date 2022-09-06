@@ -74,7 +74,8 @@ build_tests!(
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
-    building_subcontracts_must_work
+    building_package_must_work,
+    building_all_must_work
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -195,6 +196,7 @@ fn optimization_passes_from_profile_must_be_used(
     test_manifest.write()?;
 
     let cmd = BuildCommand {
+        package: None,
         manifest_path: Some(manifest_path.as_ref().into()),
         build_artifact: BuildArtifacts::All,
         build_release: false,
@@ -242,6 +244,7 @@ fn contract_lib_name_different_from_package_name_must_build(
 
     // when
     let cmd = BuildCommand {
+        package: None,
         manifest_path: Some(manifest_path.as_ref().into()),
         build_artifact: BuildArtifacts::All,
         build_release: false,
@@ -335,9 +338,38 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     Ok(())
 }
 
-fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
+fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
     let path = manifest_path.directory().expect("dir must exist");
 
+    let project_name = "new_project";
+    crate::cmd::new::execute(&project_name, Some(path))
+        .expect("new project creation failed");
+
+    // delete original lib.rs
+    fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
+
+    // override manifest_path
+    let manifest_path = path.join("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    writeln!(output, "  \"{}\",", project_name)?;
+    write!(output, "]")?;
+
+    let cmd = BuildCommand {
+        package: Some(project_name.to_string()),
+        manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
+        ..Default::default()
+    };
+
+    cmd.exec().expect("build failed");
+    Ok(())
+}
+
+fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    // create subcontracts
     let n_contracts = 3;
     let mut project_names = Vec::new();
     for i in 0..n_contracts {
@@ -346,6 +378,9 @@ fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
             .expect("new project creation failed");
         project_names.push(project_name);
     }
+
+    // delete original lib.rs
+    fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
 
     // override manifest_path
     let manifest_path = path.join("Cargo.toml");
