@@ -469,9 +469,7 @@ impl Manifest {
                 .get("ink")
                 .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
                 .as_table()
-                .ok_or_else(|| {
-                    anyhow::anyhow!("ink dependency should be a table")
-                })?;
+                .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?;
 
             metadata::generate_package(dir, contract_package_name, ink_crate.clone())?;
         }
