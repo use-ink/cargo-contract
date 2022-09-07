@@ -474,9 +474,9 @@ mod tests {
         }
     }
 
-    fn generate_metadata() -> ink_metadata::InkProject {
+    fn generate_metadata() -> ink::metadata::InkProject {
         extern "Rust" {
-            fn __ink_generate_metadata() -> ink_metadata::InkProject;
+            fn __ink_generate_metadata() -> ink::metadata::InkProject;
         }
 
         unsafe { __ink_generate_metadata() }
