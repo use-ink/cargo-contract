@@ -40,7 +40,7 @@ use subxt::{
     tx::TxEvents,
 };
 
-/// Field that represent data of the event from contract call
+/// Field that represent data of an event from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Field {
     /// name of a field
@@ -55,7 +55,7 @@ impl Field {
     }
 }
 
-/// Events produced from calling a contract
+/// An event produced from from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Event {
     /// name of a pallet
@@ -66,28 +66,17 @@ pub struct Event {
     pub fields: Vec<Field>,
 }
 
-/// Result of the contract call
-#[derive(Default, serde::Serialize)]
-pub struct CallResult {
-    /// Instantiated contract hash
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub contract: Option<String>,
-    /// Instantiated code hash
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code_hash: Option<String>,
-    /// Estimated amount of gas required to run a contract
-    pub estimated_gas: u64,
-    /// Events that were produced from calling a contract
-    pub events: Vec<Event>,
-}
+/// Displays events produced from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct DisplayEvents(Vec<Event>);
 
-impl CallResult {
+impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events(
         result: &TxEvents<DefaultConfig>,
         transcoder: &ContractMessageTranscoder,
         subxt_metadata: &subxt::Metadata,
-    ) -> Result<CallResult> {
+    ) -> Result<DisplayEvents> {
         let mut events: Vec<Event> = vec![];
 
         let runtime_metadata = subxt_metadata.runtime_metadata();
@@ -140,12 +129,7 @@ impl CallResult {
             events.push(event_entry);
         }
 
-        Ok(CallResult {
-            events,
-            contract: Default::default(),
-            code_hash: Default::default(),
-            estimated_gas: Default::default(),
-        })
+        Ok(DisplayEvents(events))
     }
 
     /// Displays events in a human readable format
@@ -156,7 +140,7 @@ impl CallResult {
             "Events".bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
-        for event in &self.events {
+        for event in &self.0 {
             let _ = writeln!(
                 out,
                 "{:>width$} {} ➜ {}",

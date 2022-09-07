@@ -33,7 +33,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
-        events::CallResult,
+        events::DisplayEvents,
         ErrorVariant,
     },
     name_value_println,
@@ -206,15 +206,13 @@ impl CallCommand {
 
         match result {
             Ok(result) => {
-                let mut call_result =
-                    CallResult::from_events(&result, transcoder, &client.metadata())?;
+                let display_events =
+                    DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
 
-                call_result.estimated_gas = gas_limit;
-
-                let output: String = if self.output_json {
-                    call_result.to_json()?
+                let output = if self.output_json {
+                    display_events.to_json()?
                 } else {
-                    call_result.display_events(self.extrinsic_opts.verbosity()?)
+                    display_events.display_events(self.extrinsic_opts.verbosity()?)
                 };
                 println!("{}", output);
 
