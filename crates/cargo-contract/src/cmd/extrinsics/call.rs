@@ -33,9 +33,8 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
-        events::CallResult,
+        events::DisplayEvents,
         ErrorVariant,
-        GenericError,
     },
     name_value_println,
     DEFAULT_KEY_COL_WIDTH,
@@ -207,15 +206,13 @@ impl CallCommand {
 
         match result {
             Ok(result) => {
-                let mut call_result =
-                    CallResult::from_events(&result, transcoder, &client.metadata())?;
+                let display_events =
+                    DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
 
-                call_result.estimated_gas = gas_limit;
-
-                let output: String = if self.output_json {
-                    call_result.to_json()?
+                let output = if self.output_json {
+                    display_events.to_json()?
                 } else {
-                    call_result.display_events(self.extrinsic_opts.verbosity()?)
+                    display_events.display_events(self.extrinsic_opts.verbosity()?)
                 };
                 println!("{}", output);
 
@@ -223,17 +220,11 @@ impl CallCommand {
             }
             Err(err) => {
                 if self.output_json {
-                    eprintln!(
-                        "{}",
-                        serde_json::to_string_pretty(&ErrorVariant::Generic(
-                            GenericError {
-                                error: err.to_string()
-                            }
-                        ))?
-                    );
+                    let err = ErrorVariant::from_subxt_error(&err)?;
+                    eprintln!("{}", serde_json::to_string_pretty(&err)?);
                     Ok(())
                 } else {
-                    Err(err)
+                    Err(err.into())
                 }
             }
         }
