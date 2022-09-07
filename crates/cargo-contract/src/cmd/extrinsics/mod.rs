@@ -214,7 +214,7 @@ async fn submit_extrinsic<T, Call>(
     client: &OnlineClient<T>,
     call: &Call,
     signer: &(dyn tx::Signer<T> + Send + Sync),
-) -> Result<tx::TxEvents<T>>
+) -> core::result::Result<tx::TxEvents<T>, subxt::Error>
 where
     T: Config,
     <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
@@ -228,7 +228,6 @@ where
         .await?
         .wait_for_success()
         .await
-        .map_err(Into::into)
 }
 
 async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
@@ -275,6 +274,24 @@ impl ErrorVariant {
             err => {
                 Ok(ErrorVariant::Generic(GenericError {
                     error: format!("DispatchError: {:?}", err),
+                }))
+            }
+        }
+    }
+
+    /// Construct an [`ErrorVariant`] from a [`subxt::Error`].
+    pub fn from_subxt_error(error: &subxt::Error) -> Result<ErrorVariant> {
+        match error {
+            subxt::Error::Runtime(subxt::error::DispatchError::Module(module_err)) => {
+                Ok(ErrorVariant::Module(ModuleError {
+                    pallet: module_err.pallet.clone(),
+                    error: module_err.error.clone(),
+                    docs: module_err.description.clone(),
+                }))
+            }
+            err => {
+                Ok(ErrorVariant::Generic(GenericError {
+                    error: err.to_string(),
                 }))
             }
         }

@@ -35,7 +35,6 @@ use crate::{
         display_contract_exec_result_debug,
         events::CallResult,
         ErrorVariant,
-        GenericError,
     },
     name_value_println,
     DEFAULT_KEY_COL_WIDTH,
@@ -223,17 +222,11 @@ impl CallCommand {
             }
             Err(err) => {
                 if self.output_json {
-                    eprintln!(
-                        "{}",
-                        serde_json::to_string_pretty(&ErrorVariant::Generic(
-                            GenericError {
-                                error: err.to_string()
-                            }
-                        ))?
-                    );
+                    let err = ErrorVariant::from_subxt_error(&err)?;
+                    eprintln!("{}", serde_json::to_string_pretty(&err)?);
                     Ok(())
                 } else {
-                    Err(err)
+                    Err(err.into())
                 }
             }
         }
