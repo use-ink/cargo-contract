@@ -403,7 +403,6 @@ mod tests {
     use std::str::FromStr;
 
     use crate::scon::Hex;
-    use ink_lang as ink;
 
     #[allow(clippy::extra_unused_lifetimes)]
     #[ink::contract]

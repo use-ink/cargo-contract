@@ -38,9 +38,7 @@ sp-runtime = "6.0.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink_lang = "4.0.0-alpha.1"
-ink_primitives = "4.0.0-alpha.1"
-ink_storage = "4.0.0-alpha.1"
+ink = { package = "ink", git = "https://github.com/paritytech/ink", branch = "aj/ink_crate" }
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
