@@ -147,17 +147,22 @@ impl UploadCommand {
             .contracts()
             .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
 
-        let result = submit_extrinsic(client, &call, signer).await?;
-
-        let display_events =
-            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
-
-        let display = display_events.display_events(self.extrinsic_opts.verbosity()?);
-        println!("{}", display);
-
-        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
-
-        Ok(code_stored)
+        let result = submit_extrinsic(client, &call, signer).await;
+        match result {
+            Ok(result) => {
+                let events =
+                    DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+                println!(
+                    "{}",
+                    events.display_events(self.extrinsic_opts.verbosity()?)
+                );
+                let code_stored =
+                    result.find_first::<api::contracts::events::CodeStored>()?;
+                Ok(code_stored)
+            }
+            // TODO: add json output here too
+            Err(err) => Err(err.into()),
+        }
     }
 }
 

@@ -174,12 +174,7 @@ impl CallCommand {
         tracing::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(
-                client,
-                data.clone(),
-                signer,
-                self.output_json,
-            )
+            .pre_submit_dry_run_gas_estimate(client, data.clone(), signer)
             .await?;
 
         if !self.extrinsic_opts.skip_confirm {
@@ -236,7 +231,6 @@ impl CallCommand {
         client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
-        is_json: bool,
     ) -> Result<u64> {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
@@ -248,13 +242,13 @@ impl CallCommand {
                 }
             }
         }
-        if !is_json {
+        if !self.output_json {
             super::print_dry_running_status(&self.message);
         }
         let call_result = self.call_dry_run(data, signer).await?;
         match call_result.result {
             Ok(_) => {
-                if !is_json {
+                if !self.output_json {
                     super::print_gas_required_success(call_result.gas_required);
                 }
                 let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
@@ -262,7 +256,7 @@ impl CallCommand {
             }
             Err(ref err) => {
                 let object = ErrorVariant::from_dispatch_error(err, &client.metadata())?;
-                if is_json {
+                if self.output_json {
                     eprintln!("{}", serde_json::to_string_pretty(&object)?);
                 } else {
                     name_value_println!("Result", object, MAX_KEY_COL_WIDTH);

@@ -187,7 +187,7 @@ impl InstantiateCommand {
                 verbosity,
                 signer,
                 transcoder,
-                is_json: self.output_json,
+                output_json: self.output_json,
             };
 
             exec.exec(code, self.extrinsic_opts.dry_run).await
@@ -213,7 +213,7 @@ pub struct Exec {
     client: Client,
     signer: PairSigner,
     transcoder: ContractMessageTranscoder,
-    is_json: bool,
+    output_json: bool,
 }
 
 impl Exec {
@@ -232,7 +232,7 @@ impl Exec {
                         gas_required: result.gas_required,
                         storage_deposit: result.storage_deposit.clone(),
                     };
-                    if self.is_json {
+                    if self.output_json {
                         println!("{}", dry_run_result.to_json()?);
                         Ok(())
                     } else {
@@ -245,7 +245,7 @@ impl Exec {
                 Err(ref err) => {
                     let metadata = self.client.metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if self.is_json {
+                    if self.output_json {
                         eprintln!("{}", serde_json::to_string_pretty(&object)?);
                         Ok(())
                     } else {
@@ -285,18 +285,31 @@ impl Exec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await;
 
-        // The CodeStored event is only raised if the contract has not already been uploaded.
-        let code_hash = result
-            .find_first::<api::contracts::events::CodeStored>()?
-            .map(|code_stored| code_stored.code_hash);
+        match result {
+            Ok(result) => {
+                // The CodeStored event is only raised if the contract has not already been uploaded.
+                let code_hash = result
+                    .find_first::<api::contracts::events::CodeStored>()?
+                    .map(|code_stored| code_stored.code_hash);
 
-        let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
-            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
+                let instantiated = result
+                    .find_first::<api::contracts::events::Instantiated>()?
+                    .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, code_hash, instantiated.contract)
+                self.display_result(&result, code_hash, instantiated.contract)
+            }
+            Err(err) => {
+                let displayable_err = ErrorVariant::from_subxt_error(&err)?;
+                if self.output_json {
+                    println!("{}", serde_json::to_string_pretty(&displayable_err)?);
+                    Ok(())
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<()> {
@@ -324,13 +337,26 @@ impl Exec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await;
 
-        let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
-            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
+        match result {
+            Ok(result) => {
+                let instantiated = result
+                    .find_first::<api::contracts::events::Instantiated>()?
+                    .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, None, instantiated.contract)
+                self.display_result(&result, None, instantiated.contract)
+            }
+            Err(err) => {
+                let displayable_err = ErrorVariant::from_subxt_error(&err)?;
+                if self.output_json {
+                    println!("{}", serde_json::to_string_pretty(&displayable_err)?);
+                    Ok(())
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
     }
 
     fn display_result(
@@ -346,7 +372,7 @@ impl Exec {
         )?;
         let contract_address = contract_address.to_ss58check();
 
-        if self.is_json {
+        if self.output_json {
             let display_instantiate_result = InstantiateResult {
                 code_hash: code_hash.map(|ch| format!("{:?}", ch)),
                 contract: Some(contract_address),
@@ -403,7 +429,7 @@ impl Exec {
                 }
             }
         }
-        if !self.is_json {
+        if !self.output_json {
             super::print_dry_running_status(&self.args.constructor);
         }
         let instantiate_result = self.instantiate_dry_run(code).await?;
@@ -419,7 +445,7 @@ impl Exec {
             Err(ref err) => {
                 let object =
                     ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
-                if self.is_json {
+                if self.output_json {
                     eprintln!("{}", serde_json::to_string_pretty(&object)?);
                 } else {
                     name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
