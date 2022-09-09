@@ -15,21 +15,44 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api, state_call, submit_extrinsic, Balance, Client, CodeHash,
-    ContractMessageTranscoder, CrateMetadata, DefaultConfig, ExtrinsicOpts, PairSigner,
+    runtime_api::api,
+    state_call,
+    submit_extrinsic,
+    Balance,
+    Client,
+    CodeHash,
+    ContractMessageTranscoder,
+    CrateMetadata,
+    DefaultConfig,
+    ExtrinsicOpts,
+    PairSigner,
 };
 use crate::{
-    cmd::extrinsics::{events::DisplayEvents, ErrorVariant, GenericError},
+    cmd::extrinsics::{
+        events::DisplayEvents,
+        ErrorVariant,
+        GenericError,
+    },
     name_value_println,
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{
+    anyhow,
+    Context,
+    Result,
+};
 use colored::Colorize;
 
 use scale::Encode;
 
 use pallet_contracts_primitives::CodeUploadResult;
-use std::{fmt::Debug, path::PathBuf};
-use subxt::{Config, OnlineClient};
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -87,10 +110,7 @@ impl UploadCommand {
                         let metadata = client.metadata();
                         let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                         if self.output_json {
-                            return Err(anyhow!(
-                                "{}",
-                                serde_json::to_string_pretty(&err)?
-                            ));
+                            return Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
                         } else {
                             name_value_println!("Result", err);
                         }

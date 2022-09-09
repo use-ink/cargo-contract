@@ -25,8 +25,14 @@ mod workspace;
 
 use self::{
     cmd::{
-        metadata::MetadataResult, BuildCommand, CallCommand, CheckCommand, DecodeCommand,
-        InstantiateCommand, TestCommand, UploadCommand,
+        metadata::MetadataResult,
+        BuildCommand,
+        CallCommand,
+        CheckCommand,
+        DecodeCommand,
+        InstantiateCommand,
+        TestCommand,
+        UploadCommand,
     },
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
@@ -34,13 +40,25 @@ use self::{
 
 use std::{
     convert::TryFrom,
-    fmt::{Display, Formatter, Result as DisplayResult},
+    fmt::{
+        Display,
+        Formatter,
+        Result as DisplayResult,
+    },
     path::PathBuf,
     str::FromStr,
 };
 
-use anyhow::{Error, Result};
-use clap::{AppSettings, Args, Parser, Subcommand};
+use anyhow::{
+    Error,
+    Result,
+};
+use clap::{
+    AppSettings,
+    Args,
+    Parser,
+    Subcommand,
+};
 use colored::Colorize;
 
 // These crates are only used when we run integration tests `--features integration-tests`. However
@@ -380,7 +398,7 @@ impl BuildResult {
                     .to_string()
                     .bold()
             );
-            return out;
+            return out
         };
 
         let mut out = format!(
@@ -478,12 +496,12 @@ fn main() {
         Ok(()) => {}
         Err(err) => {
             if is_json {
-                //error message can be either plain text or json string
-                //we need to check whether the error message is json object
+                // error message can be either plain text or json string
+                // we need to check whether the error message is json object
                 let json_result =
                     serde_json::from_str::<serde_json::Value>(&err.to_string());
                 match json_result {
-                    //if so, serialise it back to string and print out
+                    // if so, serialise it back to string and print out
                     Ok(value) => {
                         eprintln!(
                             "{}",
@@ -491,7 +509,7 @@ fn main() {
                                 .expect("successful serialization")
                         );
                     }
-                    //otherwise we need to wrap it inside a serializable object
+                    // otherwise we need to wrap it inside a serializable object
                     Err(_) => {
                         eprintln!(
                             "{}",

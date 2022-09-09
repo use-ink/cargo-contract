@@ -15,25 +15,47 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result, parse_balance, prompt_confirm_tx, state_call,
-    submit_extrinsic, Balance, Client, ContractMessageTranscoder, CrateMetadata,
-    DefaultConfig, ExtrinsicOpts, PairSigner, MAX_KEY_COL_WIDTH,
+    display_contract_exec_result,
+    parse_balance,
+    prompt_confirm_tx,
+    state_call,
+    submit_extrinsic,
+    Balance,
+    Client,
+    ContractMessageTranscoder,
+    CrateMetadata,
+    DefaultConfig,
+    ExtrinsicOpts,
+    PairSigner,
+    MAX_KEY_COL_WIDTH,
 };
 
 use crate::{
     cmd::extrinsics::{
-        display_contract_exec_result_debug, events::DisplayEvents, ErrorVariant,
+        display_contract_exec_result_debug,
+        events::DisplayEvents,
+        ErrorVariant,
     },
-    name_value_println, DEFAULT_KEY_COL_WIDTH,
+    name_value_println,
+    DEFAULT_KEY_COL_WIDTH,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 
-use pallet_contracts_primitives::{ContractExecResult, StorageDeposit};
+use pallet_contracts_primitives::{
+    ContractExecResult,
+    StorageDeposit,
+};
 use scale::Encode;
 use transcode::Value;
 
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -211,10 +233,12 @@ impl CallCommand {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => Err(anyhow!(
+                None => {
+                    Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                )),
-            };
+                ))
+                }
+            }
         }
         if !self.output_json {
             super::print_dry_running_status(&self.message);
