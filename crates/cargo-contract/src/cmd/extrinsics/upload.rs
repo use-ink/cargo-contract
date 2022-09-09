@@ -31,6 +31,7 @@ use crate::{
     cmd::extrinsics::{
         events::DisplayEvents,
         ErrorVariant,
+        GenericError,
     },
     name_value_println,
 };
@@ -60,6 +61,9 @@ pub struct UploadCommand {
     wasm_path: Option<PathBuf>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
+    /// Export the call output in JSON format.
+    #[clap(long, conflicts_with = "verbose")]
+    output_json: bool,
 }
 
 impl UploadCommand {
@@ -86,17 +90,25 @@ impl UploadCommand {
             if self.extrinsic_opts.dry_run {
                 match self.upload_code_rpc(code, &signer).await? {
                     Ok(result) => {
-                        name_value_println!("Result", String::from("Success!"));
-                        name_value_println!(
-                            "Code hash",
-                            format!("{:?}", result.code_hash)
-                        );
-                        name_value_println!("Deposit", format!("{:?}", result.deposit));
+                        let upload_result = UploadDryRunResult {
+                            result: String::from("Success!"),
+                            code_hash: format!("{:?}", result.code_hash),
+                            deposit: result.deposit,
+                        };
+                        if self.output_json {
+                            println!("{}", upload_result.to_json()?);
+                        } else {
+                            upload_result.print();
+                        }
                     }
                     Err(err) => {
                         let metadata = client.metadata();
                         let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                        name_value_println!("Result", err);
+                        if self.output_json {
+                            eprintln!("{}", serde_json::to_string_pretty(&err)?);
+                        } else {
+                            name_value_println!("Result", err);
+                        }
                     }
                 }
                 Ok(())
@@ -105,10 +117,23 @@ impl UploadCommand {
                     .upload_code(&client, code, &signer, &transcoder)
                     .await?
                 {
-                    name_value_println!(
-                        "Code hash",
-                        format!("{:?}", code_stored.code_hash)
-                    );
+                    let upload_result = UploadResult {
+                        code_hash: format!("{:?}", code_stored.code_hash),
+                    };
+                    if self.output_json {
+                        println!("{}", upload_result.to_json()?);
+                    } else {
+                        upload_result.print();
+                    }
+                } else if self.output_json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&GenericError {
+                            error: String::from(
+                                "This contract has already been uploaded"
+                            )
+                        })?
+                    )
                 } else {
                     eprintln!(
                         "{} This contract has already been uploaded",
@@ -150,18 +175,26 @@ impl UploadCommand {
         let result = submit_extrinsic(client, &call, signer).await;
         match result {
             Ok(result) => {
-                let events =
+                let display_events =
                     DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
-                println!(
-                    "{}",
-                    events.display_events(self.extrinsic_opts.verbosity()?)
-                );
+
+                let output = if self.output_json {
+                    display_events.to_json()?
+                } else {
+                    display_events.display_events(self.extrinsic_opts.verbosity()?)
+                };
+                println!("{}", output);
                 let code_stored =
                     result.find_first::<api::contracts::events::CodeStored>()?;
                 Ok(code_stored)
             }
-            // TODO: add json output here too
-            Err(err) => Err(err.into()),
+            Err(err) => {
+                if self.output_json {
+                    let err = ErrorVariant::from_subxt_error(&err)?;
+                    eprintln!("{}", serde_json::to_string_pretty(&err)?);
+                }
+                Err(err.into())
+            }
         }
     }
 }
@@ -172,4 +205,38 @@ pub struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
+}
+
+#[derive(serde::Serialize)]
+pub struct UploadResult {
+    code_hash: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct UploadDryRunResult {
+    result: String,
+    code_hash: String,
+    deposit: Balance,
+}
+
+impl UploadResult {
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Code hash", format!("{:?}", self.code_hash));
+    }
+}
+
+impl UploadDryRunResult {
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result);
+        name_value_println!("Code hash", format!("{:?}", self.code_hash));
+        name_value_println!("Deposit", format!("{:?}", self.deposit));
+    }
 }

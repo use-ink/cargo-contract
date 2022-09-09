@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- `--output-json` support for `call` and `instantiate` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
+- `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
 
 ## [2.0.0-alpha.2] - 2022-09-02
 
