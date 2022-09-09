@@ -35,15 +35,11 @@ use crate::{
     name_value_println,
 };
 use anyhow::{
-    anyhow,
     Context,
     Result,
 };
-use colored::Colorize;
-
-use scale::Encode;
-
 use pallet_contracts_primitives::CodeUploadResult;
+use scale::Encode;
 use std::{
     fmt::Debug,
     path::PathBuf,
@@ -71,7 +67,7 @@ impl UploadCommand {
         self.output_json
     }
 
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> Result<(), ErrorVariant> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
@@ -109,7 +105,7 @@ impl UploadCommand {
                         let metadata = client.metadata();
                         let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                         if self.output_json {
-                            return Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
+                            return Err(err)
                         } else {
                             name_value_println!("Result", err);
                         }
@@ -129,21 +125,10 @@ impl UploadCommand {
                     } else {
                         upload_result.print();
                     }
-                } else if self.output_json {
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&ErrorVariant::from(
-                            "This contract has already been uploaded"
-                        ))?
-                    )
+                    Ok(())
                 } else {
-                    eprintln!(
-                        "{} This contract has already been uploaded",
-                        "warning:".yellow().bold(),
-                    );
+                    Err("This contract has already been uploaded".into())
                 }
-
-                Ok(())
             }
         })
     }
@@ -169,36 +154,24 @@ impl UploadCommand {
         code: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<api::contracts::events::CodeStored>> {
+    ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let call = super::runtime_api::api::tx()
             .contracts()
             .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
 
-        let result = submit_extrinsic(client, &call, signer).await;
-        match result {
-            Ok(result) => {
-                let display_events =
-                    DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+        let result = submit_extrinsic(client, &call, signer).await?;
+        let display_events =
+            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
 
-                let output = if self.output_json {
-                    display_events.to_json()?
-                } else {
-                    display_events.display_events(self.extrinsic_opts.verbosity()?)
-                };
-                println!("{}", output);
-                let code_stored =
-                    result.find_first::<api::contracts::events::CodeStored>()?;
-                Ok(code_stored)
-            }
-            Err(err) => {
-                if self.output_json {
-                    let err = ErrorVariant::from(err);
-                    Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
-                } else {
-                    Err(err.into())
-                }
-            }
-        }
+        let output = if self.output_json {
+            display_events.to_json()?
+        } else {
+            display_events.display_events(self.extrinsic_opts.verbosity()?)
+        };
+        println!("{}", output);
+        let code_stored =
+            result.find_first::<api::contracts::events::CodeStored>()?;
+        Ok(code_stored)
     }
 }
 

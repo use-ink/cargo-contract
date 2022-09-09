@@ -46,6 +46,12 @@ impl From<anyhow::Error> for ErrorVariant {
     }
 }
 
+impl From<&str> for ErrorVariant {
+    fn from(err: &str) -> Self {
+        Self::Generic(err.to_owned())
+    }
+}
+
 #[derive(serde::Serialize)]
 pub struct ModuleError {
     pub pallet: String,
