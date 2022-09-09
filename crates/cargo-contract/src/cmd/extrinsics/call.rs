@@ -88,7 +88,7 @@ impl CallCommand {
         self.output_json
     }
 
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> Result<(), ErrorVariant> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
@@ -119,22 +119,25 @@ impl CallCommand {
                         };
                         if self.output_json {
                             println!("{}", dry_run_result.to_json()?);
-                            Ok(())
                         } else {
                             dry_run_result.print();
                             display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                                 &result,
-                            )
+                            )?;
                         }
+                        Ok(())
                     }
                     Err(ref err) => {
                         let metadata = client.metadata();
                         let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                         if self.output_json {
-                            Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
+                            Err(object)
                         } else {
                             name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                                &result,
+                            )?;
+                            Ok(())
                         }
                     }
                 }
@@ -169,7 +172,7 @@ impl CallCommand {
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<()> {
+    ) -> Result<(), ErrorVariant> {
         tracing::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
@@ -196,31 +199,19 @@ impl CallCommand {
             data,
         );
 
-        let result = submit_extrinsic(client, &call, signer).await;
+        let result = submit_extrinsic(client, &call, signer).await?;
 
-        match result {
-            Ok(result) => {
-                let display_events =
-                    DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+        let display_events =
+            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
 
-                let output = if self.output_json {
-                    display_events.to_json()?
-                } else {
-                    display_events.display_events(self.extrinsic_opts.verbosity()?)
-                };
-                println!("{}", output);
+        let output = if self.output_json {
+            display_events.to_json()?
+        } else {
+            display_events.display_events(self.extrinsic_opts.verbosity()?)
+        };
+        println!("{}", output);
 
-                Ok(())
-            }
-            Err(err) => {
-                if self.output_json {
-                    let err = ErrorVariant::from(err);
-                    Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
-                } else {
-                    Err(err.into())
-                }
-            }
-        }
+        Ok(())
     }
 
     /// Dry run the call before tx submission. Returns the gas required estimate.
@@ -233,11 +224,9 @@ impl CallCommand {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => {
-                    Err(anyhow!(
+                None => Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
-                }
+                )),
             }
         }
         if !self.output_json {

@@ -169,8 +169,7 @@ impl UploadCommand {
             display_events.display_events(self.extrinsic_opts.verbosity()?)
         };
         println!("{}", output);
-        let code_stored =
-            result.find_first::<api::contracts::events::CodeStored>()?;
+        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
         Ok(code_stored)
     }
 }
