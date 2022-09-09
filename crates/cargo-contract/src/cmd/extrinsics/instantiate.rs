@@ -133,7 +133,7 @@ impl InstantiateCommand {
     ///
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> Result<(), ErrorVariant> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
@@ -217,7 +217,7 @@ pub struct Exec {
 }
 
 impl Exec {
-    async fn exec(&self, code: Code, dry_run: bool) -> Result<()> {
+    async fn exec(&self, code: Code, dry_run: bool) -> Result<(), ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
             let result = self.instantiate_dry_run(code).await?;
@@ -239,17 +239,19 @@ impl Exec {
                         dry_run_result.print();
                         display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                             &result,
-                        )
+                        )?;
+                        Ok(())
                     }
                 }
                 Err(ref err) => {
                     let metadata = self.client.metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                     if self.output_json {
-                        Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
+                        Err(object.into())
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
+                        Ok(())
                     }
                 }
             }
@@ -266,7 +268,7 @@ impl Exec {
         }
     }
 
-    async fn instantiate_with_code(&self, code: Vec<u8>) -> Result<()> {
+    async fn instantiate_with_code(&self, code: Vec<u8>) -> Result<(), ErrorVariant> {
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
             .await?;
@@ -284,34 +286,21 @@ impl Exec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        match result {
-            Ok(result) => {
-                // The CodeStored event is only raised if the contract has not already been uploaded.
-                let code_hash = result
-                    .find_first::<api::contracts::events::CodeStored>()?
-                    .map(|code_stored| code_stored.code_hash);
+        // The CodeStored event is only raised if the contract has not already been uploaded.
+        let code_hash = result
+            .find_first::<api::contracts::events::CodeStored>()?
+            .map(|code_stored| code_stored.code_hash);
 
-                let instantiated = result
-                    .find_first::<api::contracts::events::Instantiated>()?
-                    .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
+        let instantiated = result
+            .find_first::<api::contracts::events::Instantiated>()?
+            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-                self.display_result(&result, code_hash, instantiated.contract)
-            }
-            Err(err) => {
-                let displayable_err = ErrorVariant::from_subxt_error(&err)?;
-                if self.output_json {
-                    println!("{}", serde_json::to_string_pretty(&displayable_err)?);
-                    Ok(())
-                } else {
-                    Err(err.into())
-                }
-            }
-        }
+        self.display_result(&result, code_hash, instantiated.contract)
     }
 
-    async fn instantiate(&self, code_hash: CodeHash) -> Result<()> {
+    async fn instantiate(&self, code_hash: CodeHash) -> Result<(), ErrorVariant> {
         let gas_limit = self
             .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
             .await?;
@@ -336,26 +325,13 @@ impl Exec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await;
+        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        match result {
-            Ok(result) => {
-                let instantiated = result
-                    .find_first::<api::contracts::events::Instantiated>()?
-                    .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
+        let instantiated = result
+            .find_first::<api::contracts::events::Instantiated>()?
+            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-                self.display_result(&result, None, instantiated.contract)
-            }
-            Err(err) => {
-                let displayable_err = ErrorVariant::from_subxt_error(&err)?;
-                if self.output_json {
-                    println!("{}", serde_json::to_string_pretty(&displayable_err)?);
-                    Ok(())
-                } else {
-                    Err(err.into())
-                }
-            }
-        }
+        self.display_result(&result, None, instantiated.contract)
     }
 
     fn display_result(
@@ -363,7 +339,7 @@ impl Exec {
         result: &TxEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
-    ) -> Result<()> {
+    ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
             &self.transcoder,
@@ -377,10 +353,7 @@ impl Exec {
                 contract: Some(contract_address),
                 events,
             };
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&display_instantiate_result)?
-            )
+            println!("{}", display_instantiate_result.to_json()?)
         } else {
             if let Some(code_hash) = code_hash {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
@@ -469,6 +442,12 @@ pub struct InstantiateResult {
     code_hash: Option<String>,
     /// The events emitted from the instantiate extrinsic invocation.
     events: DisplayEvents,
+}
+
+impl InstantiateResult {
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
 }
 
 /// Result of the contract call

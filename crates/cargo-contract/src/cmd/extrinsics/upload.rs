@@ -31,7 +31,6 @@ use crate::{
     cmd::extrinsics::{
         events::DisplayEvents,
         ErrorVariant,
-        GenericError,
     },
     name_value_println,
 };
@@ -133,11 +132,9 @@ impl UploadCommand {
                 } else if self.output_json {
                     println!(
                         "{}",
-                        serde_json::to_string_pretty(&GenericError {
-                            error: String::from(
-                                "This contract has already been uploaded"
-                            )
-                        })?
+                        serde_json::to_string_pretty(&ErrorVariant::from(
+                            "This contract has already been uploaded"
+                        ))?
                     )
                 } else {
                     eprintln!(
@@ -195,7 +192,7 @@ impl UploadCommand {
             }
             Err(err) => {
                 if self.output_json {
-                    let err = ErrorVariant::from_subxt_error(&err)?;
+                    let err = ErrorVariant::from(err);
                     Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
                 } else {
                     Err(err.into())

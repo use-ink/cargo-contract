@@ -214,7 +214,7 @@ impl CallCommand {
             }
             Err(err) => {
                 if self.output_json {
-                    let err = ErrorVariant::from_subxt_error(&err)?;
+                    let err = ErrorVariant::from(err);
                     Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
                 } else {
                     Err(err.into())
