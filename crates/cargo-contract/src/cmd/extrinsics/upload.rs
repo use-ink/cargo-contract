@@ -15,43 +15,21 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api,
-    state_call,
-    submit_extrinsic,
-    Balance,
-    Client,
-    CodeHash,
-    ContractMessageTranscoder,
-    CrateMetadata,
-    DefaultConfig,
-    ExtrinsicOpts,
-    PairSigner,
+    runtime_api::api, state_call, submit_extrinsic, Balance, Client, CodeHash,
+    ContractMessageTranscoder, CrateMetadata, DefaultConfig, ExtrinsicOpts, PairSigner,
 };
 use crate::{
-    cmd::extrinsics::{
-        events::DisplayEvents,
-        ErrorVariant,
-        GenericError,
-    },
+    cmd::extrinsics::{events::DisplayEvents, ErrorVariant, GenericError},
     name_value_println,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::{anyhow, Context, Result};
 use colored::Colorize;
 
 use scale::Encode;
 
 use pallet_contracts_primitives::CodeUploadResult;
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-};
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use std::{fmt::Debug, path::PathBuf};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -67,6 +45,10 @@ pub struct UploadCommand {
 }
 
 impl UploadCommand {
+    pub fn is_json(&self) -> bool {
+        self.output_json
+    }
+
     pub fn run(&self) -> Result<()> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
@@ -105,7 +87,10 @@ impl UploadCommand {
                         let metadata = client.metadata();
                         let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                         if self.output_json {
-                            eprintln!("{}", serde_json::to_string_pretty(&err)?);
+                            return Err(anyhow!(
+                                "{}",
+                                serde_json::to_string_pretty(&err)?
+                            ));
                         } else {
                             name_value_println!("Result", err);
                         }
@@ -191,9 +176,10 @@ impl UploadCommand {
             Err(err) => {
                 if self.output_json {
                     let err = ErrorVariant::from_subxt_error(&err)?;
-                    eprintln!("{}", serde_json::to_string_pretty(&err)?);
+                    Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
+                } else {
+                    Err(err.into())
                 }
-                Err(err.into())
             }
         }
     }

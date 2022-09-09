@@ -15,47 +15,25 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    display_contract_exec_result,
-    parse_balance,
-    prompt_confirm_tx,
-    state_call,
-    submit_extrinsic,
-    Balance,
-    Client,
-    ContractMessageTranscoder,
-    CrateMetadata,
-    DefaultConfig,
-    ExtrinsicOpts,
-    PairSigner,
-    MAX_KEY_COL_WIDTH,
+    display_contract_exec_result, parse_balance, prompt_confirm_tx, state_call,
+    submit_extrinsic, Balance, Client, ContractMessageTranscoder, CrateMetadata,
+    DefaultConfig, ExtrinsicOpts, PairSigner, MAX_KEY_COL_WIDTH,
 };
 
 use crate::{
     cmd::extrinsics::{
-        display_contract_exec_result_debug,
-        events::DisplayEvents,
-        ErrorVariant,
+        display_contract_exec_result_debug, events::DisplayEvents, ErrorVariant,
     },
-    name_value_println,
-    DEFAULT_KEY_COL_WIDTH,
+    name_value_println, DEFAULT_KEY_COL_WIDTH,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 
-use pallet_contracts_primitives::{
-    ContractExecResult,
-    StorageDeposit,
-};
+use pallet_contracts_primitives::{ContractExecResult, StorageDeposit};
 use scale::Encode;
 use transcode::Value;
 
 use std::fmt::Debug;
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -131,8 +109,7 @@ impl CallCommand {
                         let metadata = client.metadata();
                         let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                         if self.output_json {
-                            eprintln!("{}", serde_json::to_string_pretty(&object)?);
-                            Ok(())
+                            Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                         } else {
                             name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                             display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
@@ -216,8 +193,7 @@ impl CallCommand {
             Err(err) => {
                 if self.output_json {
                     let err = ErrorVariant::from_subxt_error(&err)?;
-                    eprintln!("{}", serde_json::to_string_pretty(&err)?);
-                    Ok(())
+                    Err(anyhow!("{}", serde_json::to_string_pretty(&err)?))
                 } else {
                     Err(err.into())
                 }
@@ -235,12 +211,10 @@ impl CallCommand {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => {
-                    Err(anyhow!(
+                None => Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
-                }
-            }
+                )),
+            };
         }
         if !self.output_json {
             super::print_dry_running_status(&self.message);
@@ -257,12 +231,12 @@ impl CallCommand {
             Err(ref err) => {
                 let object = ErrorVariant::from_dispatch_error(err, &client.metadata())?;
                 if self.output_json {
-                    eprintln!("{}", serde_json::to_string_pretty(&object)?);
+                    Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                 } else {
                     name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                    Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
                 }
-                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
     }

@@ -246,8 +246,7 @@ impl Exec {
                     let metadata = self.client.metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                     if self.output_json {
-                        eprintln!("{}", serde_json::to_string_pretty(&object)?);
-                        Ok(())
+                        Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
@@ -446,14 +445,14 @@ impl Exec {
                 let object =
                     ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
                 if self.output_json {
-                    eprintln!("{}", serde_json::to_string_pretty(&object)?);
+                    Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                 } else {
                     name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                     display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                         &instantiate_result,
                     )?;
+                    Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
                 }
-                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
     }
