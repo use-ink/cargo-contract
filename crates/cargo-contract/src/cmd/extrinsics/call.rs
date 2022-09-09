@@ -224,9 +224,11 @@ impl CallCommand {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
                 Some(gas) => Ok(gas),
-                None => Err(anyhow!(
+                None => {
+                    Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                )),
+                ))
+                }
             }
         }
         if !self.output_json {
