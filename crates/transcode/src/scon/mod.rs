@@ -225,6 +225,7 @@ impl Seq {
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Hex {
     s: String,
+    #[serde(skip_serializing)]
     bytes: Vec<u8>,
 }
 
