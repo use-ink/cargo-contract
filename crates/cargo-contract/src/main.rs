@@ -510,10 +510,18 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Build(build) => {
             let results = build.exec()?;
 
-            for result in results {
+            for (i, result) in results.iter().enumerate() {
                 if matches!(result.output_type, OutputType::Json) {
                     println!("{}", result.serialize_json()?)
                 } else if result.verbosity.is_verbose() {
+                    if results.len() > 1 {
+                        println!(
+                            "\n{} [{}/{}]",
+                            "Results for contract".bright_cyan().bold(),
+                            i + 1,
+                            results.len()
+                        );
+                    }
                     println!("{}", result.display())
                 }
             }
