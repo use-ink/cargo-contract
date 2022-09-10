@@ -261,7 +261,7 @@ impl BuildCommand {
 #[clap(name = "check")]
 pub struct CheckCommand {
     /// Contract package to check.
-    #[clap(name = "check")]
+    #[clap(short, long)]
     package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, parse(from_os_str))]
