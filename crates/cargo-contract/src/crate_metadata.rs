@@ -158,6 +158,25 @@ pub fn get_cargo_workspace_members(
     Ok(metadata.workspace_members)
 }
 
+/// Check if a manifest is virtual (dependency graph has no root)
+pub fn is_virtual_manifest(manifest_path: &ManifestPath) -> Result<bool> {
+    let mut cmd = MetadataCommand::new();
+    let metadata = cmd
+        .manifest_path(manifest_path.as_ref())
+        .exec()
+        .context("Error invoking `cargo metadata`")?;
+    let root_package_id = metadata
+        .resolve
+        .as_ref()
+        .and_then(|resolve| resolve.root.as_ref());
+
+    if root_package_id.is_none() {
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
 /// Get the result of `cargo metadata`, together with the root package id.
 fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Package)> {
     tracing::debug!(
