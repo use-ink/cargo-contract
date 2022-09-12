@@ -19,7 +19,6 @@ use super::{
     DefaultConfig,
 };
 use crate::{
-    maybe_println,
     Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -27,92 +26,148 @@ use colored::Colorize as _;
 use transcode::{
     ContractMessageTranscoder,
     TranscoderBuilder,
+    Value,
 };
 
-use anyhow::Result;
+use anyhow::{
+    Ok,
+    Result,
+};
+use std::fmt::Write;
 use subxt::{
     self,
     events::StaticEvent,
     tx::TxEvents,
 };
 
-pub fn display_events(
-    result: &TxEvents<DefaultConfig>,
-    transcoder: &ContractMessageTranscoder,
-    subxt_metadata: &subxt::Metadata,
-    verbosity: &Verbosity,
-) -> Result<()> {
-    if matches!(verbosity, Verbosity::Quiet) {
-        return Ok(())
+/// Field that represent data of an event from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct Field {
+    /// name of a field
+    pub name: String,
+    /// value of a field
+    pub value: Value,
+}
+
+impl Field {
+    pub fn new(name: String, value: Value) -> Self {
+        Field { name, value }
+    }
+}
+
+/// An event produced from from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct Event {
+    /// name of a pallet
+    pub pallet: String,
+    /// name of the event
+    pub name: String,
+    /// data associated with the event
+    pub fields: Vec<Field>,
+}
+
+/// Displays events produced from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct DisplayEvents(Vec<Event>);
+
+impl DisplayEvents {
+    /// Parses events and returns an object which can be serialised
+    pub fn from_events(
+        result: &TxEvents<DefaultConfig>,
+        transcoder: &ContractMessageTranscoder,
+        subxt_metadata: &subxt::Metadata,
+    ) -> Result<DisplayEvents> {
+        let mut events: Vec<Event> = vec![];
+
+        let runtime_metadata = subxt_metadata.runtime_metadata();
+        let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
+            .with_default_custom_type_transcoders()
+            .done();
+
+        for event in result.iter() {
+            let event = event?;
+            tracing::debug!("displaying event {:?}", event);
+
+            let event_metadata =
+                subxt_metadata.event(event.pallet_index(), event.variant_index())?;
+            let event_fields = event_metadata.fields();
+
+            let mut event_entry = Event {
+                pallet: event.pallet_name().to_string(),
+                name: event.variant_name().to_string(),
+                fields: vec![],
+            };
+
+            let event_data = &mut event.field_bytes();
+            let mut unnamed_field_name = 0;
+            for (field, field_ty) in event_fields {
+                if <ContractEmitted as StaticEvent>::is_event(
+                    event.pallet_name(),
+                    event.variant_name(),
+                ) && field.as_ref() == Some(&"data".to_string())
+                {
+                    tracing::debug!("event data: {:?}", hex::encode(&event_data));
+                    let contract_event = transcoder.decode_contract_event(event_data)?;
+                    let field = Field::new(String::from("data"), contract_event);
+                    event_entry.fields.push(field);
+                } else {
+                    let field_name = field.clone().unwrap_or_else(|| {
+                        let name = unnamed_field_name.to_string();
+                        unnamed_field_name += 1;
+                        name
+                    });
+
+                    let decoded_field = events_transcoder.decode(
+                        &runtime_metadata.types,
+                        *field_ty,
+                        event_data,
+                    )?;
+                    let field = Field::new(field_name, decoded_field);
+                    event_entry.fields.push(field);
+                }
+            }
+            events.push(event_entry);
+        }
+
+        Ok(DisplayEvents(events))
     }
 
-    println!();
-
-    if matches!(verbosity, Verbosity::Verbose) {
-        println!("VERBOSE")
-    }
-
-    let runtime_metadata = subxt_metadata.runtime_metadata();
-    let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
-        .with_default_custom_type_transcoders()
-        .done();
-
-    const EVENT_FIELD_INDENT: usize = DEFAULT_KEY_COL_WIDTH - 3;
-
-    for event in result.iter() {
-        let event = event?;
-        tracing::debug!("displaying event {:?}", event);
-
-        let event_metadata =
-            subxt_metadata.event(event.pallet_index(), event.variant_index())?;
-        let event_fields = event_metadata.fields();
-
-        println!(
-            "{:>width$} {} ➜ {}",
-            "Event".bright_green().bold(),
-            event.pallet_name().bright_white(),
-            event.variant_name().bright_white().bold(),
+    /// Displays events in a human readable format
+    pub fn display_events(&self, verbosity: Verbosity) -> String {
+        let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
+        let mut out = format!(
+            "{:>width$}\n",
+            "Events".bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
-        let event_data = &mut event.field_bytes();
-        let mut unnamed_field_name = 0;
-        for (field, field_ty) in event_fields {
-            if <ContractEmitted as StaticEvent>::is_event(
-                event.pallet_name(),
-                event.variant_name(),
-            ) && field.as_ref() == Some(&"data".to_string())
-            {
-                tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                let contract_event = transcoder.decode_contract_event(event_data)?;
-                maybe_println!(
-                    verbosity,
-                    "{:width$}{}",
-                    "",
-                    format!("{}: {}", "data".bright_white(), contract_event),
-                    width = EVENT_FIELD_INDENT
-                );
-            } else {
-                let field_name = field.clone().unwrap_or_else(|| {
-                    let name = unnamed_field_name.to_string();
-                    unnamed_field_name += 1;
-                    name
-                });
+        for event in &self.0 {
+            let _ = writeln!(
+                out,
+                "{:>width$} {} ➜ {}",
+                "Event".bright_green().bold(),
+                event.pallet.bright_white(),
+                event.name.bright_white().bold(),
+                width = DEFAULT_KEY_COL_WIDTH
+            );
 
-                let decoded_field = events_transcoder.decode(
-                    &runtime_metadata.types,
-                    *field_ty,
-                    event_data,
-                )?;
-                maybe_println!(
-                    verbosity,
-                    "{:width$}{}",
-                    "",
-                    format!("{}: {}", field_name.bright_white(), decoded_field),
-                    width = EVENT_FIELD_INDENT
-                );
+            for field in &event.fields {
+                if verbosity.is_verbose() {
+                    let _ = writeln!(
+                        out,
+                        "{:width$}{}: {}",
+                        "",
+                        field.name.bright_white(),
+                        field.value,
+                        width = event_field_indent,
+                    );
+                }
             }
         }
+        out
     }
-    println!();
-    Ok(())
+
+    /// Returns an event result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
 }
