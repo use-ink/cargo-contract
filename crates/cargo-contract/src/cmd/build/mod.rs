@@ -345,7 +345,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     };
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting", "--no-build"];
+    let args = vec!["--lib=ink_linting"];
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
