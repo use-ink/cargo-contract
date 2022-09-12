@@ -22,7 +22,7 @@ pub enum ErrorVariant {
     #[serde(rename = "module_error")]
     Module(ModuleError),
     #[serde(rename = "generic_error")]
-    Generic(String),
+    Generic(GenericError),
 }
 
 impl From<subxt::Error> for ErrorVariant {
@@ -32,23 +32,23 @@ impl From<subxt::Error> for ErrorVariant {
                 ErrorVariant::Module(ModuleError {
                     pallet: module_err.pallet.clone(),
                     error: module_err.error.clone(),
-                    docs: module_err.description.clone(),
+                    docs: module_err.description,
                 })
             }
-            err => ErrorVariant::Generic(err.to_string()),
+            err => ErrorVariant::Generic(GenericError::from_message(err.to_string())),
         }
     }
 }
 
 impl From<anyhow::Error> for ErrorVariant {
     fn from(error: anyhow::Error) -> Self {
-        Self::Generic(format!("{}", error))
+        Self::Generic(GenericError::from_message(format!("{}", error)))
     }
 }
 
 impl From<&str> for ErrorVariant {
     fn from(err: &str) -> Self {
-        Self::Generic(err.to_owned())
+        Self::Generic(GenericError::from_message(err.to_owned()))
     }
 }
 
@@ -62,6 +62,12 @@ pub struct ModuleError {
 #[derive(serde::Serialize)]
 pub struct GenericError {
     error: String,
+}
+
+impl GenericError {
+    pub fn from_message(error: String) -> Self {
+        GenericError { error }
+    }
 }
 
 impl ErrorVariant {
@@ -78,7 +84,12 @@ impl ErrorVariant {
                     docs: details.docs().to_owned(),
                 }))
             }
-            err => Ok(ErrorVariant::Generic(format!("DispatchError: {:?}", err))),
+            err => {
+                Ok(ErrorVariant::Generic(GenericError::from_message(format!(
+                    "DispatchError: {:?}",
+                    err
+                ))))
+            }
         }
     }
 }
@@ -92,7 +103,7 @@ impl Display for ErrorVariant {
                     err.pallet, err.error, err.docs
                 ))
             }
-            ErrorVariant::Generic(err) => write!(f, "{}", err),
+            ErrorVariant::Generic(err) => write!(f, "{}", err.error),
         }
     }
 }

@@ -112,23 +112,21 @@ impl UploadCommand {
                     }
                 }
                 Ok(())
-            } else {
-                if let Some(code_stored) = self
-                    .upload_code(&client, code, &signer, &transcoder)
-                    .await?
-                {
-                    let upload_result = UploadResult {
-                        code_hash: format!("{:?}", code_stored.code_hash),
-                    };
-                    if self.output_json {
-                        println!("{}", upload_result.to_json()?);
-                    } else {
-                        upload_result.print();
-                    }
-                    Ok(())
+            } else if let Some(code_stored) = self
+                .upload_code(&client, code, &signer, &transcoder)
+                .await?
+            {
+                let upload_result = UploadResult {
+                    code_hash: format!("{:?}", code_stored.code_hash),
+                };
+                if self.output_json {
+                    println!("{}", upload_result.to_json()?);
                 } else {
-                    Err("This contract has already been uploaded".into())
+                    upload_result.print();
                 }
+                Ok(())
+            } else {
+                Err("This contract has already been uploaded".into())
             }
         })
     }
