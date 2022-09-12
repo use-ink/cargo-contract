@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod call;
+mod error;
 mod events;
 mod instantiate;
 mod runtime_api;
@@ -36,7 +37,6 @@ use jsonrpsee::{
     ws_client::WsClientBuilder,
 };
 use std::{
-    fmt::Display,
     io::{
         self,
         Write,
@@ -62,13 +62,13 @@ use sp_core::{
     Bytes,
 };
 use subxt::{
-    ext::sp_runtime::DispatchError,
     tx,
     Config,
     OnlineClient,
 };
 
 pub use call::CallCommand;
+pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
@@ -235,81 +235,6 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     let params = rpc_params![func, Bytes(args.encode())];
     let bytes: Bytes = cli.request("state_call", params).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
-}
-
-#[derive(serde::Serialize)]
-pub enum ErrorVariant {
-    #[serde(rename = "module_error")]
-    Module(ModuleError),
-    #[serde(rename = "generic_error")]
-    Generic(GenericError),
-}
-
-#[derive(serde::Serialize)]
-pub struct ModuleError {
-    pub pallet: String,
-    pub error: String,
-    pub docs: Vec<String>,
-}
-
-#[derive(serde::Serialize)]
-pub struct GenericError {
-    error: String,
-}
-
-impl ErrorVariant {
-    pub fn from_dispatch_error(
-        error: &DispatchError,
-        metadata: &subxt::Metadata,
-    ) -> Result<ErrorVariant> {
-        match error {
-            DispatchError::Module(err) => {
-                let details = metadata.error(err.index, err.error)?;
-                Ok(ErrorVariant::Module(ModuleError {
-                    pallet: details.pallet().to_owned(),
-                    error: details.error().to_owned(),
-                    docs: details.docs().to_owned(),
-                }))
-            }
-            err => {
-                Ok(ErrorVariant::Generic(GenericError {
-                    error: format!("DispatchError: {:?}", err),
-                }))
-            }
-        }
-    }
-
-    /// Construct an [`ErrorVariant`] from a [`subxt::Error`].
-    pub fn from_subxt_error(error: &subxt::Error) -> Result<ErrorVariant> {
-        match error {
-            subxt::Error::Runtime(subxt::error::DispatchError::Module(module_err)) => {
-                Ok(ErrorVariant::Module(ModuleError {
-                    pallet: module_err.pallet.clone(),
-                    error: module_err.error.clone(),
-                    docs: module_err.description.clone(),
-                }))
-            }
-            err => {
-                Ok(ErrorVariant::Generic(GenericError {
-                    error: err.to_string(),
-                }))
-            }
-        }
-    }
-}
-
-impl Display for ErrorVariant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorVariant::Module(err) => {
-                f.write_fmt(format_args!(
-                    "ModuleError: {}::{}: {:?}",
-                    err.pallet, err.error, err.docs
-                ))
-            }
-            ErrorVariant::Generic(err) => f.write_str(&err.error),
-        }
-    }
 }
 
 /// Prompt the user to confirm transaction submission

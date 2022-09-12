@@ -30,6 +30,7 @@ use self::{
         CallCommand,
         CheckCommand,
         DecodeCommand,
+        ErrorVariant,
         InstantiateCommand,
         TestCommand,
         UploadCommand,
@@ -50,6 +51,7 @@ use std::{
 };
 
 use anyhow::{
+    anyhow,
     Error,
     Result,
 };
@@ -486,55 +488,14 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
-    let is_json = match &args.cmd {
-        Command::Call(call_cmd) => call_cmd.is_json(),
-        Command::Instantiate(inst_cmd) => inst_cmd.is_json(),
-        Command::Upload(upld_cmd) => upld_cmd.is_json(),
-        _ => false,
-    };
+
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            if is_json {
-                // error message can be either plain text or json string
-                // we need to check whether the error message is json object
-                let json_result =
-                    serde_json::from_str::<serde_json::Value>(&err.to_string());
-                match json_result {
-                    // if so, serialise it back to string and print out
-                    Ok(value) => {
-                        eprintln!(
-                            "{}",
-                            serde_json::to_string_pretty(&value)
-                                .expect("successful serialization")
-                        );
-                    }
-                    // otherwise we need to wrap it inside a serializable object
-                    Err(_) => {
-                        eprintln!(
-                            "{}",
-                            serde_json::to_string_pretty(&JsonError {
-                                error: err.to_string()
-                            })
-                            .expect("successful serialization")
-                        )
-                    }
-                }
-            } else {
-                eprintln!(
-                    "{} {}",
-                    "ERROR:".bright_red().bold(),
-                    format!("{:?}", err).bright_red()
-                );
-            }
+            eprintln!("{}", err);
             std::process::exit(1);
         }
     }
-}
-
-#[derive(serde::Serialize)]
-struct JsonError {
-    error: String,
 }
 
 fn exec(cmd: Command) -> Result<()> {
@@ -545,7 +506,7 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Build(build) => {
-            let result = build.exec()?;
+            let result = build.exec().map_err(format_err)?;
 
             if matches!(result.output_type, OutputType::Json) {
                 println!("{}", result.serialize_json()?)
@@ -555,7 +516,7 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Check(check) => {
-            let res = check.exec()?;
+            let res = check.exec().map_err(format_err)?;
             assert!(
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
@@ -566,17 +527,48 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Test(test) => {
-            let res = test.exec()?;
+            let res = test.exec().map_err(format_err)?;
             if res.verbosity.is_verbose() {
                 println!("{}", res.display()?)
             }
             Ok(())
         }
-        Command::Upload(upload) => upload.run(),
-        Command::Instantiate(instantiate) => instantiate.run(),
-        Command::Call(call) => call.run(),
-        Command::Decode(decode) => decode.run(),
+        Command::Upload(upload) => {
+            upload
+                .run()
+                .map_err(|err| map_extrinsic_err(err, upload.is_json()))
+        }
+        Command::Instantiate(instantiate) => {
+            instantiate
+                .run()
+                .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
+        }
+        Command::Call(call) => {
+            call.run()
+                .map_err(|err| map_extrinsic_err(err, call.is_json()))
+        }
+        Command::Decode(decode) => decode.run().map_err(format_err),
     }
+}
+
+fn map_extrinsic_err(err: ErrorVariant, is_json: bool) -> Error {
+    if is_json {
+        anyhow!(
+            "{}",
+            serde_json::to_string_pretty(&err)
+                .expect("error serialization is infallible; qed")
+        )
+    } else {
+        format_err(err)
+    }
+}
+
+fn format_err<E: Display>(err: E) -> Error {
+    anyhow!(
+        "{} {}",
+        "ERROR:".bright_red().bold(),
+        format!("{}", err).bright_red()
+    )
 }
 
 #[cfg(test)]
