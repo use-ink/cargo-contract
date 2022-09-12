@@ -188,6 +188,8 @@ impl BuildCommand {
             false => Network::Online,
         };
 
+        let skip_linting = self.skip_linting || matches!(network, Network::Offline);
+
         let output_type = match self.output_json {
             true => OutputType::Json,
             false => OutputType::HumanReadable,
@@ -207,7 +209,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            skip_linting: self.skip_linting,
+            skip_linting,
             output_type,
         };
 
@@ -343,7 +345,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     };
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting"];
+    let args = vec!["--lib=ink_linting", "--no-build"];
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
