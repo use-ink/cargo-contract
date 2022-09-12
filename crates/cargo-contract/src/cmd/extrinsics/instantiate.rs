@@ -271,7 +271,7 @@ impl Exec {
 
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
-            gas_limit,
+            gas_limit.into(),
             self.args.storage_deposit_limit,
             code.to_vec(),
             self.args.data.clone(),
@@ -317,7 +317,7 @@ impl Exec {
 
         let call = api::tx().contracts().instantiate(
             self.args.value,
-            gas_limit,
+            gas_limit.into(),
             self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),

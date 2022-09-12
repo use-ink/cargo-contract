@@ -170,7 +170,7 @@ impl CallCommand {
         let call = super::runtime_api::api::tx().contracts().call(
             self.contract.clone().into(),
             self.value,
-            gas_limit,
+            gas_limit.into(),
             self.extrinsic_opts.storage_deposit_limit,
             data,
         );
