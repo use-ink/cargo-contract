@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 #[subxt::subxt(
-    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale",
+    runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale"
 )]
 pub mod api {
     #[subxt(substitute_type = "frame_support::weights::weight_v2::Weight")]
@@ -36,5 +36,3 @@ impl From<u64> for Weight {
         Self { ref_time }
     }
 }
-
-
