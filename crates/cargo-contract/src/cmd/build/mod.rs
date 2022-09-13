@@ -188,6 +188,8 @@ impl BuildCommand {
             false => Network::Online,
         };
 
+        // The nvocation of `cargo dylint` requires network access, so in offline mode the linting
+        // step must be skipped otherwise the build can fail.
         let skip_linting = self.skip_linting || matches!(network, Network::Offline);
 
         let output_type = match self.output_json {
