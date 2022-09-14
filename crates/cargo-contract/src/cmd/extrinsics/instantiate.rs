@@ -354,7 +354,11 @@ impl Exec {
         code: Code,
     ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
     {
-        let gas_limit = self.args.gas_limit.clone().unwrap_or(Weight::from_ref_time(5_000_000_000_000));
+        let gas_limit = self
+            .args
+            .gas_limit
+            .clone()
+            .unwrap_or(Weight::from_ref_time(5_000_000_000_000));
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
