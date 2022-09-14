@@ -20,7 +20,10 @@ use super::{
     error_details,
     parse_balance,
     prompt_confirm_tx,
-    runtime_api::api,
+    runtime_api::{
+        api,
+        Weight,
+    },
     state_call,
     submit_extrinsic,
     Balance,
@@ -158,7 +161,7 @@ impl InstantiateCommand {
             constructor: self.constructor.clone(),
             raw_args: self.args.clone(),
             value: self.value,
-            gas_limit: self.gas_limit,
+            gas_limit: self.gas_limit.map(Weight::from_ref_time),
             storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
             data,
             salt,
@@ -186,7 +189,7 @@ struct InstantiateArgs {
     constructor: String,
     raw_args: Vec<String>,
     value: Balance,
-    gas_limit: Option<u64>,
+    gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
     salt: Vec<u8>,
@@ -271,7 +274,7 @@ impl Exec {
 
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
-            gas_limit.into(),
+            gas_limit,
             self.args.storage_deposit_limit,
             code.to_vec(),
             self.args.data.clone(),
@@ -317,7 +320,7 @@ impl Exec {
 
         let call = api::tx().contracts().instantiate(
             self.args.value,
-            gas_limit.into(),
+            gas_limit,
             self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
@@ -340,7 +343,7 @@ impl Exec {
         Ok(instantiated.contract)
     }
 
-    fn print_default_instantiate_preview(&self, gas_limit: u64) {
+    fn print_default_instantiate_preview(&self, gas_limit: Weight) {
         name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
         name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
         name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
@@ -351,7 +354,7 @@ impl Exec {
         code: Code,
     ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
     {
-        let gas_limit = *self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
+        let gas_limit = self.args.gas_limit.clone().unwrap_or(Weight::from_ref_time(5_000_000_000_000));
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
@@ -366,7 +369,7 @@ impl Exec {
     }
 
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
-    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<u64> {
+    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match self.args.gas_limit {
                 Some(gas) => Ok(gas),
@@ -385,7 +388,7 @@ impl Exec {
                 let gas_limit = self
                     .args
                     .gas_limit
-                    .unwrap_or(instantiate_result.gas_required);
+                    .unwrap_or(Weight::from_ref_time(instantiate_result.gas_required));
                 Ok(gas_limit)
             }
             Err(ref err) => {
@@ -405,7 +408,7 @@ impl Exec {
 struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: u64,
+    gas_limit: Weight,
     storage_deposit_limit: Option<Balance>,
     code: Code,
     data: Vec<u8>,

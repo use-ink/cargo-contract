@@ -24,15 +24,21 @@ pub mod api {
 
 /// Copy of the `weight_v2::Weight` type defined in substrate.
 ///
-/// Allows for local trait impls.
-#[derive(scale::Encode, scale::Decode, scale::CompactAs, Debug)]
+/// Allows for local trait and inherent impls.
+#[derive(scale::Encode, scale::Decode, scale::CompactAs, Clone, Copy, Debug)]
 pub struct Weight {
     /// The weight of computational time used based on some reference hardware.
     ref_time: u64,
 }
 
-impl From<u64> for Weight {
-    fn from(ref_time: u64) -> Self {
+impl ToString for Weight {
+    fn to_string(&self) -> String {
+        self.ref_time.to_string()
+    }
+}
+
+impl Weight {
+    pub fn from_ref_time(ref_time: u64) -> Self {
         Self { ref_time }
     }
 }

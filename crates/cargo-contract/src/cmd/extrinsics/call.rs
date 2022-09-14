@@ -22,6 +22,10 @@ use super::{
     prompt_confirm_tx,
     state_call,
     submit_extrinsic,
+    runtime_api::{
+        api,
+        Weight,
+    },
     Balance,
     Client,
     ContractMessageTranscoder,
@@ -135,7 +139,7 @@ impl CallCommand {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: self.value,
-            gas_limit,
+            gas_limit: Weight::from_ref_time(gas_limit),
             storage_deposit_limit,
             input_data,
         };
@@ -167,10 +171,10 @@ impl CallCommand {
             })?;
         }
 
-        let call = super::runtime_api::api::tx().contracts().call(
+        let call = api::tx().contracts().call(
             self.contract.clone().into(),
             self.value,
-            gas_limit.into(),
+            gas_limit,
             self.extrinsic_opts.storage_deposit_limit,
             data,
         );
@@ -191,10 +195,10 @@ impl CallCommand {
         client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
-    ) -> Result<u64> {
+    ) -> Result<Weight> {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
-                Some(gas) => Ok(gas),
+                Some(gas) => Ok(Weight::from_ref_time(gas)),
                 None => {
                     Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
@@ -208,7 +212,7 @@ impl CallCommand {
             Ok(_) => {
                 super::print_gas_required_success(call_result.gas_required);
                 let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
-                Ok(gas_limit)
+                Ok(Weight::from_ref_time(gas_limit))
             }
             Err(ref err) => {
                 let err = error_details(err, &client.metadata())?;
@@ -228,7 +232,7 @@ pub struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: u64,
+    gas_limit: Weight,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
 }
