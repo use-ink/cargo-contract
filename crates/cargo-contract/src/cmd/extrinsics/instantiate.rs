@@ -357,8 +357,7 @@ impl Exec {
         let gas_limit = self
             .args
             .gas_limit
-            .clone()
-            .unwrap_or(Weight::from_ref_time(5_000_000_000_000));
+            .unwrap_or_else(|| Weight::from_ref_time(5_000_000_000_000));
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
@@ -389,10 +388,9 @@ impl Exec {
         match instantiate_result.result {
             Ok(_) => {
                 super::print_gas_required_success(instantiate_result.gas_required);
-                let gas_limit = self
-                    .args
-                    .gas_limit
-                    .unwrap_or(Weight::from_ref_time(instantiate_result.gas_required));
+                let gas_limit = self.args.gas_limit.unwrap_or_else(|| {
+                    Weight::from_ref_time(instantiate_result.gas_required)
+                });
                 Ok(gas_limit)
             }
             Err(ref err) => {
