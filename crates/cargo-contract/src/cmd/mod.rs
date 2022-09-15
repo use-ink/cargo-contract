@@ -32,6 +32,7 @@ mod extrinsics;
 
 pub(crate) use self::extrinsics::{
     CallCommand,
+    ErrorVariant,
     InstantiateCommand,
     UploadCommand,
 };

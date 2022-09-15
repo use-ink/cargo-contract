@@ -17,4 +17,28 @@
 #[subxt::subxt(
     runtime_metadata_path = "src/cmd/extrinsics/runtime_api/contracts_runtime.scale"
 )]
-pub mod api {}
+pub mod api {
+    #[subxt(substitute_type = "frame_support::weights::weight_v2::Weight")]
+    use crate::cmd::extrinsics::runtime_api::Weight;
+}
+
+/// Copy of the `weight_v2::Weight` type defined in substrate.
+///
+/// Allows for local trait and inherent impls.
+#[derive(scale::Encode, scale::Decode, scale::CompactAs, Clone, Copy, Debug)]
+pub struct Weight {
+    /// The weight of computational time used based on some reference hardware.
+    ref_time: u64,
+}
+
+impl ToString for Weight {
+    fn to_string(&self) -> String {
+        self.ref_time.to_string()
+    }
+}
+
+impl Weight {
+    pub fn from_ref_time(ref_time: u64) -> Self {
+        Self { ref_time }
+    }
+}

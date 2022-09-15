@@ -175,7 +175,7 @@ macro_rules! name_value_println {
         ::std::println!(
             "{:>width$} {}",
             $name.bright_purple().bold(),
-            $value.bright_white(),
+            $value,
             width = $width,
         );
     }};

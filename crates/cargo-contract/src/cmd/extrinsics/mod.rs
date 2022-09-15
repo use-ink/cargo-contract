@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod call;
+mod error;
 mod events;
 mod instantiate;
 mod runtime_api;
@@ -43,7 +44,6 @@ use std::{
     path::PathBuf,
 };
 
-use self::events::display_events;
 use crate::{
     crate_metadata::CrateMetadata,
     name_value_println,
@@ -62,13 +62,13 @@ use sp_core::{
     Bytes,
 };
 use subxt::{
-    ext::sp_runtime::DispatchError,
     tx,
     Config,
     OnlineClient,
 };
 
 pub use call::CallCommand;
+pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
@@ -76,7 +76,6 @@ pub use upload::UploadCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
-type ContractAccount = <DefaultConfig as Config>::AccountId;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
 type Client = OnlineClient<DefaultConfig>;
 
@@ -183,6 +182,22 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     Ok(())
 }
 
+pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
+    result: &ContractResult<R, Balance>,
+) -> Result<()> {
+    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
+        .context("Error decoding UTF8 debug message bytes")?
+        .lines();
+    if let Some(debug_message) = debug_message_lines.next() {
+        name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
+    }
+
+    for debug_message in debug_message_lines {
+        name_value_println!("", format!("{}", debug_message), WIDTH);
+    }
+    Ok(())
+}
+
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors
@@ -199,7 +214,7 @@ async fn submit_extrinsic<T, Call>(
     client: &OnlineClient<T>,
     call: &Call,
     signer: &(dyn tx::Signer<T> + Send + Sync),
-) -> Result<tx::TxEvents<T>>
+) -> core::result::Result<tx::TxEvents<T>, subxt::Error>
 where
     T: Config,
     <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
@@ -213,7 +228,6 @@ where
         .await?
         .wait_for_success()
         .await
-        .map_err(Into::into)
 }
 
 async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
@@ -221,21 +235,6 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     let params = rpc_params![func, Bytes(args.encode())];
     let bytes: Bytes = cli.request("state_call", params).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
-}
-
-fn error_details(error: &DispatchError, metadata: &subxt::Metadata) -> Result<String> {
-    match error {
-        DispatchError::Module(err) => {
-            let details = metadata.error(err.index, err.error)?;
-            Ok(format!(
-                "ModuleError: {}::{}: {:?}",
-                details.pallet(),
-                details.error(),
-                details.docs()
-            ))
-        }
-        err => Ok(format!("DispatchError: {:?}", err)),
-    }
 }
 
 /// Prompt the user to confirm transaction submission
