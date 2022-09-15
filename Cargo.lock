@@ -1424,14 +1424,16 @@ dependencies = [
 [[package]]
 name = "ink"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
- "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_lang",
- "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
+ "derive_more",
+ "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_macro",
+ "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "ink_storage",
+ "parity-scale-codec",
 ]
 
 [[package]]
@@ -1446,9 +1448,28 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "ink_codegen"
+version = "4.0.0-alpha.1"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+dependencies = [
+ "blake2",
+ "derive_more",
+ "either",
+ "heck",
+ "impl-serde 0.4.0",
+ "ink_ir",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "itertools",
+ "parity-scale-codec",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1469,10 +1490,11 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "blake2",
  "derive_more",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "parity-scale-codec",
  "rand 0.8.5",
  "secp256k1 0.24.0",
@@ -1510,17 +1532,18 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "arrayref",
  "blake2",
  "cfg-if",
  "derive_more",
- "ink_allocator 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_engine 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
+ "ink_allocator 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_engine 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_storage_traits",
  "num-traits",
  "parity-scale-codec",
  "paste",
@@ -1534,43 +1557,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "ink_lang"
+name = "ink_ir"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
-dependencies = [
- "derive_more",
- "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_lang_macro",
- "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_storage",
- "parity-scale-codec",
-]
-
-[[package]]
-name = "ink_lang_codegen"
-version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
-dependencies = [
- "blake2",
- "derive_more",
- "either",
- "heck",
- "impl-serde 0.4.0",
- "ink_lang_ir",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "itertools",
- "parity-scale-codec",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "ink_lang_ir"
-version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "blake2",
  "either",
@@ -1582,13 +1571,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "ink_lang_macro"
+name = "ink_macro"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
- "ink_lang_codegen",
- "ink_lang_ir",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
+ "ink_codegen",
+ "ink_ir",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "parity-scale-codec",
  "proc-macro2",
  "syn",
@@ -1611,12 +1600,12 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "derive_more",
  "impl-serde 0.4.0",
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "scale-info",
  "serde",
 ]
@@ -1633,7 +1622,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "cfg-if",
 ]
@@ -1653,39 +1642,28 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives_derive",
+ "derive_more",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "parity-scale-codec",
  "scale-info",
  "sha2-const",
 ]
 
 [[package]]
-name = "ink_primitives_derive"
-version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "synstructure",
-]
-
-[[package]]
 name = "ink_storage"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "array-init",
  "cfg-if",
  "derive_more",
- "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
- "ink_storage_derive",
+ "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_storage_traits",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -1693,22 +1671,36 @@ dependencies = [
 [[package]]
 name = "ink_storage_codegen"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
- "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=aj/ink_crate)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "syn",
 ]
 
 [[package]]
 name = "ink_storage_derive"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=aj/ink_crate#4ecf5519ae07a516e83d74a215f0de55b6ee56d5"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
 dependencies = [
  "ink_storage_codegen",
  "proc-macro2",
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "ink_storage_traits"
+version = "4.0.0-alpha.1"
+source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+dependencies = [
+ "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
+ "ink_storage_derive",
+ "parity-scale-codec",
+ "scale-info",
+ "syn",
 ]
 
 [[package]]
