@@ -30,6 +30,7 @@ use self::{
         CallCommand,
         CheckCommand,
         DecodeCommand,
+        ErrorVariant,
         InstantiateCommand,
         TestCommand,
         UploadCommand,
@@ -50,6 +51,7 @@ use std::{
 };
 
 use anyhow::{
+    anyhow,
     Error,
     Result,
 };
@@ -487,14 +489,11 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let Opts::Contract(args) = Opts::parse();
+
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!(
-                "{} {}",
-                "ERROR:".bright_red().bold(),
-                format!("{:?}", err).bright_red()
-            );
+            eprintln!("{}", err);
             std::process::exit(1);
         }
     }
@@ -508,7 +507,7 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Build(build) => {
-            let results = build.exec()?;
+            let results = build.exec().map_err(format_err)?;
 
             for (i, result) in results.iter().enumerate() {
                 if matches!(result.output_type, OutputType::Json) {
@@ -529,17 +528,20 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Check(check) => {
-            let results = check.exec()?;
+            let results = check.exec().map_err(format_err)?;
             for res in results {
                 assert!(
                     res.dest_wasm.is_none(),
                     "no dest_wasm must be on the generation result"
                 );
+                if res.verbosity.is_verbose() {
+                    println!("\nYour contract's code was built successfully.")
+                }
             }
             Ok(())
         }
         Command::Test(test) => {
-            let results = test.exec()?;
+            let results = test.exec().map_err(format_err)?;
             for res in results {
                 if res.verbosity.is_verbose() {
                     println!("{}", res.display()?)
@@ -547,11 +549,42 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Upload(upload) => upload.run(),
-        Command::Instantiate(instantiate) => instantiate.run(),
-        Command::Call(call) => call.run(),
-        Command::Decode(decode) => decode.run(),
+        Command::Upload(upload) => {
+            upload
+                .run()
+                .map_err(|err| map_extrinsic_err(err, upload.is_json()))
+        }
+        Command::Instantiate(instantiate) => {
+            instantiate
+                .run()
+                .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
+        }
+        Command::Call(call) => {
+            call.run()
+                .map_err(|err| map_extrinsic_err(err, call.is_json()))
+        }
+        Command::Decode(decode) => decode.run().map_err(format_err),
     }
+}
+
+fn map_extrinsic_err(err: ErrorVariant, is_json: bool) -> Error {
+    if is_json {
+        anyhow!(
+            "{}",
+            serde_json::to_string_pretty(&err)
+                .expect("error serialization is infallible; qed")
+        )
+    } else {
+        format_err(err)
+    }
+}
+
+fn format_err<E: Display>(err: E) -> Error {
+    anyhow!(
+        "{} {}",
+        "ERROR:".bright_red().bold(),
+        format!("{}", err).bright_red()
+    )
 }
 
 #[cfg(test)]

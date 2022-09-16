@@ -104,7 +104,7 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
     let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
-        let mut name = path.strip_prefix(&src_dir)?.to_path_buf();
+        let mut name = path.strip_prefix(src_dir)?.to_path_buf();
 
         // `Cargo.toml` files cause the folder to excluded from `cargo package` so need to be renamed
         if name.file_name() == Some(OsStr::new("_Cargo.toml")) {
@@ -132,7 +132,7 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
 /// Generate the `cargo:` key output
 fn generate_cargo_keys() {
     let output = Command::new("git")
-        .args(&["rev-parse", "--short", "HEAD"])
+        .args(["rev-parse", "--short", "HEAD"])
         .output();
 
     let commit = match output {

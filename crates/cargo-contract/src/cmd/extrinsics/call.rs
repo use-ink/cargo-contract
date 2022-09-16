@@ -16,10 +16,12 @@
 
 use super::{
     display_contract_exec_result,
-    display_events,
-    error_details,
     parse_balance,
     prompt_confirm_tx,
+    runtime_api::{
+        api,
+        Weight,
+    },
     state_call,
     submit_extrinsic,
     Balance,
@@ -31,7 +33,13 @@ use super::{
     PairSigner,
     MAX_KEY_COL_WIDTH,
 };
+
 use crate::{
+    cmd::extrinsics::{
+        display_contract_exec_result_debug,
+        events::DisplayEvents,
+        ErrorVariant,
+    },
     name_value_println,
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -40,8 +48,12 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::ContractExecResult;
+use pallet_contracts_primitives::{
+    ContractExecResult,
+    StorageDeposit,
+};
 use scale::Encode;
+use transcode::Value;
 
 use std::fmt::Debug;
 use subxt::{
@@ -70,10 +82,17 @@ pub struct CallCommand {
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
     value: Balance,
+    /// Export the call output in JSON format.
+    #[clap(long, conflicts_with = "verbose")]
+    output_json: bool,
 }
 
 impl CallCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn is_json(&self) -> bool {
+        self.output_json
+    }
+
+    pub fn run(&self) -> Result<(), ErrorVariant> {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
@@ -94,27 +113,36 @@ impl CallCommand {
                     Ok(ref ret_val) => {
                         let value = transcoder
                             .decode_return(&self.message, &mut &ret_val.data.0[..])?;
-                        name_value_println!(
-                            "Result",
-                            String::from("Success!"),
-                            DEFAULT_KEY_COL_WIDTH
-                        );
-                        name_value_println!(
-                            "Reverted",
-                            format!("{:?}", ret_val.did_revert()),
-                            DEFAULT_KEY_COL_WIDTH
-                        );
-                        name_value_println!(
-                            "Data",
-                            format!("{}", value),
-                            DEFAULT_KEY_COL_WIDTH
-                        );
-                        display_contract_exec_result::<_, DEFAULT_KEY_COL_WIDTH>(&result)
+                        let dry_run_result = CallDryRunResult {
+                            result: String::from("Success!"),
+                            reverted: ret_val.did_revert(),
+                            data: value,
+                            gas_consumed: result.gas_consumed,
+                            gas_required: result.gas_required,
+                            storage_deposit: result.storage_deposit.clone(),
+                        };
+                        if self.output_json {
+                            println!("{}", dry_run_result.to_json()?);
+                        } else {
+                            dry_run_result.print();
+                            display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
+                                &result,
+                            )?;
+                        }
+                        Ok(())
                     }
                     Err(ref err) => {
-                        let err = error_details(err, &client.metadata())?;
-                        name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)
+                        let metadata = client.metadata();
+                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
+                        if self.output_json {
+                            Err(object)
+                        } else {
+                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                                &result,
+                            )?;
+                            Ok(())
+                        }
                     }
                 }
             } else {
@@ -135,7 +163,7 @@ impl CallCommand {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: self.value,
-            gas_limit,
+            gas_limit: Weight::from_ref_time(gas_limit),
             storage_deposit_limit,
             input_data,
         };
@@ -148,7 +176,7 @@ impl CallCommand {
         data: Vec<u8>,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<()> {
+    ) -> Result<(), ErrorVariant> {
         tracing::debug!("calling contract {:?}", self.contract);
 
         let gas_limit = self
@@ -167,7 +195,7 @@ impl CallCommand {
             })?;
         }
 
-        let call = super::runtime_api::api::tx().contracts().call(
+        let call = api::tx().contracts().call(
             self.contract.clone().into(),
             self.value,
             gas_limit,
@@ -177,12 +205,17 @@ impl CallCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
 
-        display_events(
-            &result,
-            transcoder,
-            &client.metadata(),
-            &self.extrinsic_opts.verbosity()?,
-        )
+        let display_events =
+            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+
+        let output = if self.output_json {
+            display_events.to_json()?
+        } else {
+            display_events.display_events(self.extrinsic_opts.verbosity()?)
+        };
+        println!("{}", output);
+
+        Ok(())
     }
 
     /// Dry run the call before tx submission. Returns the gas required estimate.
@@ -191,10 +224,10 @@ impl CallCommand {
         client: &Client,
         data: Vec<u8>,
         signer: &PairSigner,
-    ) -> Result<u64> {
+    ) -> Result<Weight> {
         if self.extrinsic_opts.skip_dry_run {
             return match self.gas_limit {
-                Some(gas) => Ok(gas),
+                Some(gas) => Ok(Weight::from_ref_time(gas)),
                 None => {
                     Err(anyhow!(
                     "Gas limit `--gas` argument required if `--skip-dry-run` specified"
@@ -202,19 +235,27 @@ impl CallCommand {
                 }
             }
         }
-        super::print_dry_running_status(&self.message);
+        if !self.output_json {
+            super::print_dry_running_status(&self.message);
+        }
         let call_result = self.call_dry_run(data, signer).await?;
         match call_result.result {
             Ok(_) => {
-                super::print_gas_required_success(call_result.gas_required);
+                if !self.output_json {
+                    super::print_gas_required_success(call_result.gas_required);
+                }
                 let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
-                Ok(gas_limit)
+                Ok(Weight::from_ref_time(gas_limit))
             }
             Err(ref err) => {
-                let err = error_details(err, &client.metadata())?;
-                name_value_println!("Result", err, MAX_KEY_COL_WIDTH);
-                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
-                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+                let object = ErrorVariant::from_dispatch_error(err, &client.metadata())?;
+                if self.output_json {
+                    Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
+                } else {
+                    name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                    Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+                }
             }
         }
     }
@@ -228,7 +269,38 @@ pub struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: u64,
+    gas_limit: Weight,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
+}
+
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct CallDryRunResult {
+    /// Result of a dry run
+    pub result: String,
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Value,
+    pub gas_consumed: u64,
+    pub gas_required: u64,
+    /// Storage deposit after the operation
+    pub storage_deposit: StorageDeposit<Balance>,
+}
+
+impl CallDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+    }
 }
