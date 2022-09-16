@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 # todo: update to crates.io version once released
-ink = { package = "ink", git = "https://github.com/paritytech/ink", branch = "master" }
+ink = { package = "ink", git = "https://github.com/paritytech/ink", branch = "master", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
