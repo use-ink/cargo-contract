@@ -745,6 +745,15 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
+            if let Some((x, y)) = counter {
+                maybe_println!(
+                    verbosity,
+                    "\n {} {} {}",
+                    "Checking contract:".bright_purple().bold(),
+                    crate_metadata.contract_artifact_name,
+                    format!("[{}/{}]", x, y).bold(),
+                );
+            }
             if skip_linting {
                 maybe_println!(
                     verbosity,
@@ -760,16 +769,6 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     "Checking ink! linting rules".bright_green().bold()
                 );
                 exec_cargo_dylint(&crate_metadata, verbosity)?;
-            }
-
-            if let Some((x, y)) = counter {
-                maybe_println!(
-                    verbosity,
-                    "\n {} {} {}",
-                    "Checking contract:".bright_purple().bold(),
-                    crate_metadata.contract_artifact_name,
-                    format!("[{}/{}]", x, y).bold(),
-                );
             }
 
             maybe_println!(
