@@ -1,4 +1,4 @@
 [env]
-# We need to enable `RUSTC_BOOTSTRAP` so that the nightly ink!
-# features still work on stable.
-RUSTC_BOOTSTRAP = "1"
+# We need to enable `RUSTC_BOOTSTRAP` because of dependencies on ink! crates
+# which require nightly features
+#RUSTC_BOOTSTRAP = "1"
