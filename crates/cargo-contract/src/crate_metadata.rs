@@ -170,11 +170,7 @@ pub fn is_virtual_manifest(manifest_path: &ManifestPath) -> Result<bool> {
         .as_ref()
         .and_then(|resolve| resolve.root.as_ref());
 
-    if root_package_id.is_none() {
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    Ok(root_package_id.is_none())
 }
 
 /// Get the result of `cargo metadata`, together with the root package id.
