@@ -32,8 +32,6 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-    env:
-      RUSTC_BOOTSTRAP: 1
     steps:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -69,7 +67,6 @@ jobs:
         os: ["ubuntu-22.04", "macos-12", "windows-2022"]
     runs-on: ${{ matrix.os }}
     env:
-      RUSTC_BOOTSTRAP: 1
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
