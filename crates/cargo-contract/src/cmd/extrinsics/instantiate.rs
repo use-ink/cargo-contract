@@ -300,7 +300,7 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, code_hash, instantiated.contract)
+        self.display_result(&result, code_hash, instantiated.contract).await
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<(), ErrorVariant> {
@@ -334,10 +334,10 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, None, instantiated.contract)
+        self.display_result(&result, None, instantiated.contract).await
     }
 
-    fn display_result(
+    async fn display_result(
         &self,
         result: &TxEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
@@ -362,7 +362,7 @@ impl Exec {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
             }
             name_value_println!("Contract", contract_address);
-            println!("{}", events.display_events(self.verbosity))
+            println!("{}", events.display_events(self.verbosity, &self.client).await?)
         };
         Ok(())
     }

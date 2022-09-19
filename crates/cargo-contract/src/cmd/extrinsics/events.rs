@@ -15,7 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    denominate_units,
     runtime_api::api::contracts::events::ContractEmitted,
+    Client,
     DefaultConfig,
 };
 use crate::{
@@ -23,6 +25,7 @@ use crate::{
     DEFAULT_KEY_COL_WIDTH,
 };
 use colored::Colorize as _;
+use serde_json::json;
 use transcode::{
     ContractMessageTranscoder,
     TranscoderBuilder,
@@ -30,6 +33,7 @@ use transcode::{
 };
 
 use anyhow::{
+    Context,
     Ok,
     Result,
 };
@@ -47,11 +51,18 @@ pub struct Field {
     pub name: String,
     /// value of a field
     pub value: Value,
+    /// The name of a type as defined in the pallet Source Code
+    #[serde(skip_serializing)]
+    pub type_name: Option<String>,
 }
 
 impl Field {
-    pub fn new(name: String, value: Value) -> Self {
-        Field { name, value }
+    pub fn new(name: String, value: Value, type_name: Option<String>) -> Self {
+        Field {
+            name,
+            value,
+            type_name,
+        }
     }
 }
 
@@ -100,29 +111,40 @@ impl DisplayEvents {
 
             let event_data = &mut event.field_bytes();
             let mut unnamed_field_name = 0;
-            for (field, field_ty) in event_fields {
+            for field_metadata in event_fields {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field.as_ref() == Some(&"data".to_string())
+                ) && field_metadata.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let contract_event = transcoder.decode_contract_event(event_data)?;
-                    let field = Field::new(String::from("data"), contract_event);
+                    let field = Field::new(
+                        String::from("data"),
+                        contract_event,
+                        field_metadata.type_name().map(|s| s.to_string()),
+                    );
                     event_entry.fields.push(field);
                 } else {
-                    let field_name = field.clone().unwrap_or_else(|| {
-                        let name = unnamed_field_name.to_string();
-                        unnamed_field_name += 1;
-                        name
-                    });
+                    let field_name = field_metadata
+                        .name()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| {
+                            let name = unnamed_field_name.to_string();
+                            unnamed_field_name += 1;
+                            name
+                        });
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
-                        *field_ty,
+                        field_metadata.type_id(),
                         event_data,
                     )?;
-                    let field = Field::new(field_name, decoded_field);
+                    let field = Field::new(
+                        field_name,
+                        decoded_field,
+                        field_metadata.type_name().map(|s| s.to_string()),
+                    );
                     event_entry.fields.push(field);
                 }
             }
@@ -133,7 +155,26 @@ impl DisplayEvents {
     }
 
     /// Displays events in a human readable format
-    pub fn display_events(&self, verbosity: Verbosity) -> String {
+    pub async fn display_events(
+        &self,
+        verbosity: Verbosity,
+        client: &Client,
+    ) -> Result<String> {
+        let sys_props = client.rpc().system_properties().await?;
+
+        let default_decimals = json!(12);
+        let default_units = json!("UNIT");
+        let decimals = sys_props
+            .get("tokenDecimals")
+            .unwrap_or(&default_decimals)
+            .as_u64()
+            .context("error converting decimal to u64")?;
+        let symbol = sys_props
+            .get("tokenSymbol")
+            .unwrap_or(&default_units)
+            .as_str()
+            .context("error converting symbol to string")?;
+
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
@@ -152,18 +193,26 @@ impl DisplayEvents {
 
             for field in &event.fields {
                 if verbosity.is_verbose() {
+                    let mut value: String = field.value.to_string();
+                    if field.type_name == Some("T::Balance".to_string())
+                        || field.type_name == Some("BalanceOf<T>".to_string())
+                    {
+                        if let Value::UInt(balance) = field.value {
+                            value = denominate_units(balance, decimals as u128, symbol);
+                        }
+                    }
                     let _ = writeln!(
                         out,
                         "{:width$}{}: {}",
                         "",
                         field.name.bright_white(),
-                        field.value,
+                        value,
                         width = event_field_indent,
                     );
                 }
             }
         }
-        out
+        Ok(out)
     }
 
     /// Returns an event result in json format

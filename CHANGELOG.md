@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
+- Denominated units for Balances
 
 ## [2.0.0-alpha.2] - 2022-09-02
 

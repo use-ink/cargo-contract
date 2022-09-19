@@ -211,7 +211,7 @@ impl CallCommand {
         let output = if self.output_json {
             display_events.to_json()?
         } else {
-            display_events.display_events(self.extrinsic_opts.verbosity()?)
+            display_events.display_events(self.extrinsic_opts.verbosity()?, client).await?
         };
         println!("{}", output);
 

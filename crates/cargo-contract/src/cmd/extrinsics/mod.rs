@@ -278,3 +278,55 @@ fn print_gas_required_success(gas: u64) {
         width = DEFAULT_KEY_COL_WIDTH
     );
 }
+
+fn denominate_units<T: Into<u128>>(value: T, decimals: u128, symbol: &str) -> String {
+    let n: u128 = value.into();
+
+    if n == 0 {
+        return format!("0 {}", symbol)
+    }
+
+    let units = n / decimals;
+    if (1..1_000).contains(&units) {
+        let remainder = n % decimals;
+        if remainder > 0 {
+            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+            format!("{}.{} {}", units, remainder, symbol)
+        } else {
+            format!("0 {}", symbol)
+        }
+    } else if (1_000..1_000_000).contains(&units) {
+        let remainder = units % 1_000;
+        let units = units / 1_000;
+        if remainder > 0 {
+            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+            format!("{}.{} k{}", units, remainder, symbol)
+        } else {
+            format!("{} k{}", units, symbol)
+        }
+    } else if (1_000_000..1_000_000_000).contains(&units) {
+        let remainder = units % 1_000_000;
+        let units = units / 1_000_000;
+        if remainder > 0 {
+            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+            format!("{}.{} M{}", units, remainder, symbol)
+        } else {
+            format!("{} M{}", units, symbol)
+        }
+    } else if n / 1_000_000_000 > 0 {
+        let remainder = n % 1_000_000_000;
+        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+        let units = n / 1_000_000_000;
+        format!("{}.{} n{}", units, remainder, symbol)
+    } else if n / 1_000_000 > 0 {
+        let remainder = n % 1_000_000;
+        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+        let units = n / 1_000_000;
+        format!("{}.{} μ{}", units, remainder, symbol)
+    } else {
+        let remainder = n % 1_000;
+        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
+        let units = n / 1_000;
+        format!("{}.{} m{}", units, remainder, symbol)
+    }
+}
