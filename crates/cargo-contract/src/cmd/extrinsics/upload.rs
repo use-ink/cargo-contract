@@ -26,7 +26,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    TokeMetadata,
+    TokenMetadata,
 };
 use crate::{
     cmd::extrinsics::{
@@ -139,7 +139,7 @@ impl UploadCommand {
         signer: &PairSigner,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let token_metadata = TokeMetadata::query(client).await?;
+        let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
             .storage_deposit_limit
@@ -161,7 +161,7 @@ impl UploadCommand {
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
-        let token_metadata = TokeMetadata::query(client).await?;
+        let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
             .storage_deposit_limit

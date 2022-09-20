@@ -73,7 +73,7 @@ use std::option::Option;
 
 pub use balance::{
     BalanceVariant,
-    TokeMetadata,
+    TokenMetadata,
 };
 pub use call::CallCommand;
 pub use error::ErrorVariant;

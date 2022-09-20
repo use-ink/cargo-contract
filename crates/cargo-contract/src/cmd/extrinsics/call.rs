@@ -32,7 +32,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
-    TokeMetadata,
+    TokenMetadata,
     MAX_KEY_COL_WIDTH,
 };
 
@@ -161,7 +161,7 @@ impl CallCommand {
     ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let gas_limit = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let token_metadata = TokeMetadata::query(client).await?;
+        let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
             .storage_deposit_limit
@@ -204,7 +204,7 @@ impl CallCommand {
             })?;
         }
 
-        let token_metadata = TokeMetadata::query(client).await?;
+        let token_metadata = TokenMetadata::query(client).await?;
 
         let call = api::tx().contracts().call(
             self.contract.clone().into(),

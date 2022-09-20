@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2022 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -39,15 +39,15 @@ pub enum BalanceVariant {
 }
 
 #[derive(Debug, Clone)]
-pub struct TokeMetadata {
+pub struct TokenMetadata {
     /// Number of denomination used for denomination
     pub denomination: u128,
     /// Token symbol
     pub symbol: String,
 }
 
-impl TokeMetadata {
-    /// Query [TokeMetadata] through the node's RPC
+impl TokenMetadata {
+    /// Query [TokenMetadata] through the node's RPC
     pub async fn query(client: &Client) -> Result<Self> {
         let sys_props = client.rpc().system_properties().await?;
 
@@ -75,7 +75,7 @@ impl BalanceVariant {
     /// Converts BalanceVariant into Balance.
     ///
     /// Throws Error if [BalanceVariant::Denominated(String)] is in an incorrect format.
-    pub fn denominate_balance(&self, token_metadata: &TokeMetadata) -> Result<Balance> {
+    pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
         match self {
             BalanceVariant::Default(balance) => Ok(*balance),
             BalanceVariant::Denominated(input) => {
@@ -118,7 +118,7 @@ impl BalanceVariant {
     }
 
     /// Display token units in a denominated format.
-    pub fn from<T: Into<u128>>(value: T, token_metadata: Option<&TokeMetadata>) -> Self {
+    pub fn from<T: Into<u128>>(value: T, token_metadata: Option<&TokenMetadata>) -> Self {
         let n: u128 = value.into();
 
         if let Some(token_metadata) = token_metadata {
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn balance_variant_denominated_success() {
-        let tm = TokeMetadata {
+        let tm = TokenMetadata {
             denomination: 12,
             symbol: String::from("DOT"),
         };
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn balance_variant_denominated_equal() {
         let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
-        let tm = TokeMetadata {
+        let tm = TokenMetadata {
             denomination,
             symbol: String::from("DOT"),
         };
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn balance_variant_denominated_equal_fraction() {
         let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
-        let tm = TokeMetadata {
+        let tm = TokenMetadata {
             denomination,
             symbol: String::from("DOT"),
         };
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn balance_variant_denominated_equal_small_units() {
         let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
-        let tm = TokeMetadata {
+        let tm = TokenMetadata {
             denomination,
             symbol: String::from("DOT"),
         };

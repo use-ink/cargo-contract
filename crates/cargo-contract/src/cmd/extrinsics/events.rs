@@ -19,7 +19,7 @@ use super::{
     BalanceVariant,
     Client,
     DefaultConfig,
-    TokeMetadata,
+    TokenMetadata,
 };
 use crate::{
     Verbosity,
@@ -159,7 +159,7 @@ impl DisplayEvents {
         verbosity: Verbosity,
         client: &Client,
     ) -> Result<String> {
-        let token_metadata = TokeMetadata::query(client).await?;
+        let token_metadata = TokenMetadata::query(client).await?;
 
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(

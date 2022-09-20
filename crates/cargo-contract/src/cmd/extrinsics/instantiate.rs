@@ -40,7 +40,7 @@ use crate::{
         display_contract_exec_result_debug,
         events::DisplayEvents,
         ErrorVariant,
-        TokeMetadata,
+        TokenMetadata,
     },
     name_value_println,
     util::decode_hex,
@@ -174,7 +174,7 @@ impl InstantiateCommand {
         async_std::task::block_on(async move {
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            let token_metadata = TokeMetadata::query(&client).await?;
+            let token_metadata = TokenMetadata::query(&client).await?;
 
             let args = InstantiateArgs {
                 constructor: self.constructor.clone(),
