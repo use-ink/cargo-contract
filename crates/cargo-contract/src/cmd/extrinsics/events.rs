@@ -111,11 +111,12 @@ impl DisplayEvents {
                     let field = Field::new(String::from("data"), contract_event);
                     event_entry.fields.push(field);
                 } else {
-                    let field_name = field.name().map(ToOwned::to_owned).unwrap_or_else(|| {
-                        let name = unnamed_field_name.to_string();
-                        unnamed_field_name += 1;
-                        name
-                    });
+                    let field_name =
+                        field.name().map(ToOwned::to_owned).unwrap_or_else(|| {
+                            let name = unnamed_field_name.to_string();
+                            unnamed_field_name += 1;
+                            name
+                        });
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
