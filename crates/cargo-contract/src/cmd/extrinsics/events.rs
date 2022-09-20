@@ -100,18 +100,18 @@ impl DisplayEvents {
 
             let event_data = &mut event.field_bytes();
             let mut unnamed_field_name = 0;
-            for (field, field_ty) in event_fields {
+            for field in event_fields {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field.as_ref() == Some(&"data".to_string())
+                ) && field.name() == Some(&"data".to_string())
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let contract_event = transcoder.decode_contract_event(event_data)?;
                     let field = Field::new(String::from("data"), contract_event);
                     event_entry.fields.push(field);
                 } else {
-                    let field_name = field.clone().unwrap_or_else(|| {
+                    let field_name = field.name().map(ToOwned::to_owned).unwrap_or_else(|| {
                         let name = unnamed_field_name.to_string();
                         unnamed_field_name += 1;
                         name
@@ -119,7 +119,7 @@ impl DisplayEvents {
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
-                        *field_ty,
+                        field.type_id(),
                         event_data,
                     )?;
                     let field = Field::new(field_name, decoded_field);
