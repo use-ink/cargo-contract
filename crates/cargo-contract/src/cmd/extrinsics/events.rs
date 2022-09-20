@@ -104,7 +104,7 @@ impl DisplayEvents {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field.name() == Some(&"data".to_string())
+                ) && field.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let contract_event = transcoder.decode_contract_event(event_data)?;
