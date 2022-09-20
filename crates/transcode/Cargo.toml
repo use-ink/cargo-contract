@@ -23,8 +23,9 @@ env_logger = "0.9.1"
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "1.9.1"
-ink_env = "4.0.0-alpha.1"
-ink_metadata = { version = "4.0.0-alpha.1", features = ["derive"] }
+# todo: update to crates.io version once released
+ink_env = { package = "ink_env", git = "https://github.com/paritytech/ink", branch = "master" }
+ink_metadata = { package = "ink_metadata", git = "https://github.com/paritytech/ink", branch = "master", features = ["derive"] }
 itertools = "0.10.4"
 tracing = "0.1.36"
 nom = "7.1.1"
@@ -38,6 +39,7 @@ sp-runtime = "6.0.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
+# todo: update to crates.io version once released
 ink = { package = "ink", git = "https://github.com/paritytech/ink", branch = "master" }
 
 [features]
