@@ -138,6 +138,11 @@ impl ExtrinsicOpts {
             _ => res,
         }
     }
+
+    /// Get the storage deposit limit converted to compact for passing to extrinsics.
+    pub fn storage_deposit_limit(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
+    }
 }
 
 /// Parse Rust style integer balance literals which can contain underscores.

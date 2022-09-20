@@ -155,7 +155,7 @@ impl UploadCommand {
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let call = super::runtime_api::api::tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit());
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =

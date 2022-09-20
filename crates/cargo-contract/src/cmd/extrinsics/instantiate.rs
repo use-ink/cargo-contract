@@ -174,7 +174,7 @@ impl InstantiateCommand {
             raw_args: self.args.clone(),
             value: self.value,
             gas_limit: self.gas_limit.map(Weight::from_ref_time),
-            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
+            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit(),
             data,
             salt,
         };
@@ -203,7 +203,7 @@ struct InstantiateArgs {
     raw_args: Vec<String>,
     value: Balance,
     gas_limit: Option<Weight>,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<scale::Compact<Balance>>,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
@@ -495,7 +495,7 @@ struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<scale::Compact<Balance>>,
     code: Code,
     data: Vec<u8>,
     salt: Vec<u8>,
