@@ -174,7 +174,7 @@ impl InstantiateCommand {
             raw_args: self.args.clone(),
             value: self.value,
             gas_limit: self.gas_limit.map(Weight::from_ref_time),
-            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit(),
+            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
             data,
             salt,
         };
@@ -203,9 +203,15 @@ struct InstantiateArgs {
     raw_args: Vec<String>,
     value: Balance,
     gas_limit: Option<Weight>,
-    storage_deposit_limit: Option<scale::Compact<Balance>>,
+    storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
     salt: Vec<u8>,
+}
+
+impl InstantiateArgs {
+    fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
+    }
 }
 
 pub struct Exec {
@@ -283,7 +289,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code.to_vec(),
             self.args.data.clone(),
             self.args.salt.clone(),
@@ -322,7 +328,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code_hash,
             self.args.data.clone(),
             self.args.salt.clone(),
@@ -495,7 +501,7 @@ struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<scale::Compact<Balance>>,
+    storage_deposit_limit: Option<Balance>,
     code: Code,
     data: Vec<u8>,
     salt: Vec<u8>,
