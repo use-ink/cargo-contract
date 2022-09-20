@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod balance;
 mod call;
 mod error;
 mod events;
@@ -28,6 +29,7 @@ mod integration_tests;
 use anyhow::{
     anyhow,
     Context,
+    Ok,
     Result,
 };
 use colored::Colorize;
@@ -67,6 +69,12 @@ use subxt::{
     OnlineClient,
 };
 
+use std::option::Option;
+
+pub use balance::{
+    BalanceVariant,
+    TokeMetadata,
+};
 pub use call::CallCommand;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
@@ -107,7 +115,7 @@ pub struct ExtrinsicOpts {
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
     #[clap(long, parse(try_from_str = parse_balance))]
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<BalanceVariant>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -141,11 +149,13 @@ impl ExtrinsicOpts {
 }
 
 /// Parse Rust style integer balance literals which can contain underscores.
-fn parse_balance(input: &str) -> Result<Balance> {
-    input
-        .replace('_', "")
-        .parse::<Balance>()
-        .map_err(Into::into)
+fn parse_balance(input: &str) -> Result<BalanceVariant> {
+    let input = input.replace('_', "");
+    if input.contains('.') || input.ends_with(|ch: char| ch.is_alphabetic()) {
+        Ok(BalanceVariant::Denominated(input))
+    } else {
+        Ok(BalanceVariant::Default(input.parse::<Balance>()?))
+    }
 }
 
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
@@ -237,7 +247,7 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Prompt the user to confirm transaction submission
+/// Prompt the user to confirm transaction submission.
 fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     println!(
         "{} (skip with --skip-confirm)",
@@ -277,56 +287,4 @@ fn print_gas_required_success(gas: u64) {
         gas.to_string().bright_white(),
         width = DEFAULT_KEY_COL_WIDTH
     );
-}
-
-fn denominate_units<T: Into<u128>>(value: T, decimals: u128, symbol: &str) -> String {
-    let n: u128 = value.into();
-
-    if n == 0 {
-        return format!("0 {}", symbol)
-    }
-
-    let units = n / decimals;
-    if (1..1_000).contains(&units) {
-        let remainder = n % decimals;
-        if remainder > 0 {
-            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-            format!("{}.{} {}", units, remainder, symbol)
-        } else {
-            format!("0 {}", symbol)
-        }
-    } else if (1_000..1_000_000).contains(&units) {
-        let remainder = units % 1_000;
-        let units = units / 1_000;
-        if remainder > 0 {
-            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-            format!("{}.{} k{}", units, remainder, symbol)
-        } else {
-            format!("{} k{}", units, symbol)
-        }
-    } else if (1_000_000..1_000_000_000).contains(&units) {
-        let remainder = units % 1_000_000;
-        let units = units / 1_000_000;
-        if remainder > 0 {
-            let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-            format!("{}.{} M{}", units, remainder, symbol)
-        } else {
-            format!("{} M{}", units, symbol)
-        }
-    } else if n / 1_000_000_000 > 0 {
-        let remainder = n % 1_000_000_000;
-        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-        let units = n / 1_000_000_000;
-        format!("{}.{} n{}", units, remainder, symbol)
-    } else if n / 1_000_000 > 0 {
-        let remainder = n % 1_000_000;
-        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-        let units = n / 1_000_000;
-        format!("{}.{} μ{}", units, remainder, symbol)
-    } else {
-        let remainder = n % 1_000;
-        let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-        let units = n / 1_000;
-        format!("{}.{} m{}", units, remainder, symbol)
-    }
 }

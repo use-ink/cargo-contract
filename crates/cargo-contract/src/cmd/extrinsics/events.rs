@@ -15,17 +15,17 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    denominate_units,
     runtime_api::api::contracts::events::ContractEmitted,
+    BalanceVariant,
     Client,
     DefaultConfig,
+    TokeMetadata,
 };
 use crate::{
     Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
 use colored::Colorize as _;
-use serde_json::json;
 use transcode::{
     ContractMessageTranscoder,
     TranscoderBuilder,
@@ -33,7 +33,6 @@ use transcode::{
 };
 
 use anyhow::{
-    Context,
     Ok,
     Result,
 };
@@ -160,20 +159,7 @@ impl DisplayEvents {
         verbosity: Verbosity,
         client: &Client,
     ) -> Result<String> {
-        let sys_props = client.rpc().system_properties().await?;
-
-        let default_decimals = json!(12);
-        let default_units = json!("UNIT");
-        let decimals = sys_props
-            .get("tokenDecimals")
-            .unwrap_or(&default_decimals)
-            .as_u64()
-            .context("error converting decimal to u64")?;
-        let symbol = sys_props
-            .get("tokenSymbol")
-            .unwrap_or(&default_units)
-            .as_str()
-            .context("error converting symbol to string")?;
+        let token_metadata = TokeMetadata::query(client).await?;
 
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
@@ -198,7 +184,8 @@ impl DisplayEvents {
                         || field.type_name == Some("BalanceOf<T>".to_string())
                     {
                         if let Value::UInt(balance) = field.value {
-                            value = denominate_units(balance, decimals as u128, symbol);
+                            value = BalanceVariant::from(balance, Some(&token_metadata))
+                                .to_string();
                         }
                     }
                     let _ = writeln!(
