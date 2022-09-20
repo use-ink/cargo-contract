@@ -46,7 +46,8 @@ regex = "1.6.0"
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
 sp-core = "6.0.0"
 pallet-contracts-primitives = "6.0.0"
-subxt = "0.23.0"
+# todo: before merging, use new subxt release once available
+subxt = { git = "https://github.com/paritytech/subxt", branch = "aj/compact-generic-params" }
 hex = "0.4.3"
 jsonrpsee = { version = "0.15.1", features = ["ws-client"] }
 
