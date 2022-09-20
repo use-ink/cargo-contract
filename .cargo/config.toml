@@ -1,4 +1,0 @@
-[env]
-# We need to enable `RUSTC_BOOTSTRAP` because of dependencies on ink! crates
-# which require nightly features
-RUSTC_BOOTSTRAP = "1"

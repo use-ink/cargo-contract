@@ -1424,7 +1424,7 @@ dependencies = [
 [[package]]
 name = "ink"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "derive_more",
  "ink_env 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
@@ -1448,7 +1448,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "cfg-if",
 ]
@@ -1456,7 +1456,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1490,7 +1490,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1532,7 +1532,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1559,7 +1559,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "blake2",
  "either",
@@ -1573,7 +1573,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -1600,7 +1600,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "derive_more",
  "impl-serde 0.4.0",
@@ -1622,7 +1622,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "cfg-if",
 ]
@@ -1642,19 +1642,19 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "derive_more",
  "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "parity-scale-codec",
  "scale-info",
- "sha2-const",
+ "xxhash-rust",
 ]
 
 [[package]]
 name = "ink_storage"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -1671,7 +1671,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_codegen"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "ink_primitives 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "syn",
@@ -1680,7 +1680,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_derive"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "ink_storage_codegen",
  "proc-macro2",
@@ -1692,7 +1692,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "4.0.0-alpha.1"
-source = "git+https://github.com/paritytech/ink?branch=master#3eb6eb06db97de1d418b62816fd6c97a973aa82b"
+source = "git+https://github.com/paritytech/ink?branch=master#74b2248f249a963d9e2f039a939a97b5e15e519e"
 dependencies = [
  "ink_metadata 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
  "ink_prelude 4.0.0-alpha.1 (git+https://github.com/paritytech/ink?branch=master)",
@@ -2983,12 +2983,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha2-const"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5edcd790916d95ff81bdc1505b09c74d30d47a755929cc8c71c59cbbfa99f91b"
-
-[[package]]
 name = "sha3"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3829,7 +3823,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
@@ -4206,6 +4200,12 @@ checksum = "30b31594f29d27036c383b53b59ed3476874d518f0efb151b27a4c275141390e"
 dependencies = [
  "tap",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074914ea4eec286eb8d1fd745768504f420a1f7b7919185682a4a267bed7d2e7"
 
 [[package]]
 name = "yansi"
