@@ -5,7 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.3] - 2022-09-21
+
+### Added
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
+
+### Fixed
+- Skip linting if running building in --offline mode -  [#737](https://github.com/paritytech/cargo-contract/pull/737)
 
 ## [2.0.0-alpha.2] - 2022-09-02
 
