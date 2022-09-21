@@ -627,7 +627,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-alpha.2"
+version = "2.0.0-alpha.3"
 dependencies = [
  "impl-serde 0.4.0",
  "pretty_assertions",
