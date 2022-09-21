@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0-alpha.3] - 2022-09-21
 
+This release supports compatibility with the [`v4.0.0-alpha.3`](https://github.com/paritytech/ink/releases/tag/v4.0.0-alpha.3)
+release of `ink!`. It is *not* backwards compatible with older versions of `ink!`.
+
 ### Added
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
 
