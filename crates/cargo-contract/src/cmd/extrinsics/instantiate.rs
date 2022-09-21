@@ -309,7 +309,8 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, code_hash, instantiated.contract)
+            let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, code_hash, instantiated.contract, &token_metadata)
             .await
     }
 
@@ -344,7 +345,8 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, None, instantiated.contract)
+        let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, None, instantiated.contract, &token_metadata)
             .await
     }
 
@@ -353,6 +355,7 @@ impl Exec {
         result: &TxEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
+        token_metadata: &TokenMetadata
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
@@ -375,7 +378,7 @@ impl Exec {
             name_value_println!("Contract", contract_address);
             println!(
                 "{}",
-                events.display_events(self.verbosity, &self.client).await?
+                events.display_events(self.verbosity, token_metadata)?
             )
         };
         Ok(())

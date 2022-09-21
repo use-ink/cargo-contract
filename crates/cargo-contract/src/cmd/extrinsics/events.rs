@@ -17,7 +17,6 @@
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
     BalanceVariant,
-    Client,
     DefaultConfig,
     TokenMetadata,
 };
@@ -154,12 +153,11 @@ impl DisplayEvents {
     }
 
     /// Displays events in a human readable format
-    pub async fn display_events(
+    pub fn display_events(
         &self,
         verbosity: Verbosity,
-        client: &Client,
+        token_metadata: &TokenMetadata
     ) -> Result<String> {
-        let token_metadata = TokenMetadata::query(client).await?;
 
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
@@ -184,7 +182,7 @@ impl DisplayEvents {
                         || field.type_name == Some("BalanceOf<T>".to_string())
                     {
                         if let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::from(balance, Some(&token_metadata))
+                            value = BalanceVariant::from(balance, Some(token_metadata))
                                 .to_string();
                         }
                     }

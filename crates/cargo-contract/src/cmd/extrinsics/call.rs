@@ -227,8 +227,7 @@ impl CallCommand {
             display_events.to_json()?
         } else {
             display_events
-                .display_events(self.extrinsic_opts.verbosity()?, client)
-                .await?
+                .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
         println!("{}", output);
 
