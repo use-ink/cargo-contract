@@ -221,6 +221,19 @@ mod tests {
     }
 
     #[test]
+    fn balance_variant_denominated_incorrect_token() {
+        let tm = TokenMetadata {
+            denomination: 12,
+            symbol: String::from("DOT"),
+        };
+        let bv = parse_balance("500MKSM").expect("successful parsing. qed");
+        assert!(
+            bv.denominate_balance(&tm).is_err(),
+            "balances denominated should fail because of an incorrect token"
+        );
+    }
+
+    #[test]
     fn balance_variant_denominated_equal() {
         let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
         let tm = TokenMetadata {
