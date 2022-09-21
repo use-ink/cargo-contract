@@ -29,8 +29,6 @@ fn decode_works() {
     let contract = r#"
 		#![cfg_attr(not(feature = "std"), no_std)]
 
-		use ink_lang as ink;
-
 		#[ink::contract]
 		mod switcher {
 			#[ink(event)]
