@@ -289,7 +289,7 @@ impl Manifest {
         let ink_dylint = {
             let mut map = value::Table::new();
             map.insert("git".into(), "https://github.com/paritytech/ink/".into());
-            map.insert("branch".into(), "master".into());
+            map.insert("tag".into(), "v4.0.0-alpha.3".into());
             map.insert("pattern".into(), "linting/".into());
             value::Value::Table(map)
         };
