@@ -23,9 +23,9 @@ env_logger = "0.9.1"
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "1.9.1"
-ink_env = "4.0.0-alpha.1"
-ink_metadata = { version = "4.0.0-alpha.1", features = ["derive"] }
-itertools = "0.10.4"
+ink_env = "4.0.0-alpha.3"
+ink_metadata = { package = "ink_metadata", version = "4.0.0-alpha.3" }
+itertools = "0.10.5"
 tracing = "0.1.36"
 nom = "7.1.1"
 nom-supreme = { version = "0.7.0", features = ["error"] }
@@ -38,9 +38,7 @@ sp-runtime = "6.0.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink_lang = "4.0.0-alpha.1"
-ink_primitives = "4.0.0-alpha.1"
-ink_storage = "4.0.0-alpha.1"
+ink = "4.0.0-alpha.3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

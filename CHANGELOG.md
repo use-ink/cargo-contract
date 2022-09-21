@@ -13,6 +13,7 @@ release of `ink!`. It is *not* backwards compatible with older versions of `ink!
 
 ### Added
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
+- Use new ink entrance crate - [#728](https://github.com/paritytech/cargo-contract/pull/728)
 
 ### Fixed
 - Skip linting if running building in --offline mode -  [#737](https://github.com/paritytech/cargo-contract/pull/737)

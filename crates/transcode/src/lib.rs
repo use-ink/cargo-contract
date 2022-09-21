@@ -403,7 +403,6 @@ mod tests {
     use std::str::FromStr;
 
     use crate::scon::Hex;
-    use ink_lang as ink;
 
     #[allow(clippy::extra_unused_lifetimes)]
     #[ink::contract]
@@ -475,9 +474,9 @@ mod tests {
         }
     }
 
-    fn generate_metadata() -> ink_metadata::InkProject {
+    fn generate_metadata() -> InkProject {
         extern "Rust" {
-            fn __ink_generate_metadata() -> ink_metadata::InkProject;
+            fn __ink_generate_metadata() -> InkProject;
         }
 
         unsafe { __ink_generate_metadata() }
