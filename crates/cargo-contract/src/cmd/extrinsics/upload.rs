@@ -162,12 +162,8 @@ impl UploadCommand {
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
-        let storage_deposit_limit = self
-            .extrinsic_opts
-            .storage_deposit_limit
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
-            .transpose()?;
+        let storage_deposit_limit =
+            self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
         let call = super::runtime_api::api::tx()
             .contracts()
             .upload_code(code, storage_deposit_limit);

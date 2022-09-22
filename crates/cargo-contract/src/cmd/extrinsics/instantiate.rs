@@ -217,6 +217,12 @@ struct InstantiateArgs {
     salt: Vec<u8>,
 }
 
+impl InstantiateArgs {
+    fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
+    }
+}
+
 pub struct Exec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
@@ -292,7 +298,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code.to_vec(),
             self.args.data.clone(),
             self.args.salt.clone(),
@@ -309,7 +315,7 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-            let token_metadata = TokenMetadata::query(&self.client).await?;
+        let token_metadata = TokenMetadata::query(&self.client).await?;
         self.display_result(&result, code_hash, instantiated.contract, &token_metadata)
             .await
     }
@@ -333,7 +339,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code_hash,
             self.args.data.clone(),
             self.args.salt.clone(),
@@ -355,7 +361,7 @@ impl Exec {
         result: &TxEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
-        token_metadata: &TokenMetadata
+        token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
@@ -376,10 +382,7 @@ impl Exec {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
             }
             name_value_println!("Contract", contract_address);
-            println!(
-                "{}",
-                events.display_events(self.verbosity, token_metadata)?
-            )
+            println!("{}", events.display_events(self.verbosity, token_metadata)?)
         };
         Ok(())
     }

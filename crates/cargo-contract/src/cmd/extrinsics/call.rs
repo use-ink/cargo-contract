@@ -210,11 +210,7 @@ impl CallCommand {
             self.contract.clone().into(),
             self.value.denominate_balance(&token_metadata)?,
             gas_limit,
-            self.extrinsic_opts
-                .storage_deposit_limit
-                .as_ref()
-                .map(|bv| bv.denominate_balance(&token_metadata))
-                .transpose()?,
+            self.extrinsic_opts.storage_deposit_limit(&token_metadata)?,
             data,
         );
 

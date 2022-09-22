@@ -156,9 +156,8 @@ impl DisplayEvents {
     pub fn display_events(
         &self,
         verbosity: Verbosity,
-        token_metadata: &TokenMetadata
+        token_metadata: &TokenMetadata,
     ) -> Result<String> {
-
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
