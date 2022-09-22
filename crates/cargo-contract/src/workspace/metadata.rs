@@ -31,7 +31,7 @@ use toml::value;
 pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
     contract_package_name: &str,
-    mut ink_metadata_dependency: value::Table,
+    mut ink_crate_dependency: value::Table,
 ) -> Result<()> {
     let dir = target_dir.as_ref();
     tracing::debug!(
@@ -59,12 +59,12 @@ pub(super) fn generate_package<P: AsRef<Path>>(
     contract.insert("package".into(), contract_package_name.into());
 
     // make ink_metadata dependency use default features
-    ink_metadata_dependency.remove("default-features");
-    ink_metadata_dependency.remove("features");
-    ink_metadata_dependency.remove("optional");
+    ink_crate_dependency.remove("default-features");
+    ink_crate_dependency.remove("features");
+    ink_crate_dependency.remove("optional");
 
     // add ink dependencies copied from contract manifest
-    deps.insert("ink_metadata".into(), ink_metadata_dependency.into());
+    deps.insert("ink".into(), ink_crate_dependency.into());
     let cargo_toml = toml::to_string(&cargo_toml)?;
 
     fs::write(dir.join("Cargo.toml"), cargo_toml)?;
