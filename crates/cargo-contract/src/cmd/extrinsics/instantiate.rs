@@ -208,6 +208,12 @@ struct InstantiateArgs {
     salt: Vec<u8>,
 }
 
+impl InstantiateArgs {
+    fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
+    }
+}
+
 pub struct Exec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
@@ -283,7 +289,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code.to_vec(),
             self.args.data.clone(),
             self.args.salt.clone(),
@@ -322,7 +328,7 @@ impl Exec {
         let call = api::tx().contracts().instantiate(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit_compact(),
             code_hash,
             self.args.data.clone(),
             self.args.salt.clone(),

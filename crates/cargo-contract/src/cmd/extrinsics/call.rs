@@ -199,7 +199,7 @@ impl CallCommand {
             self.contract.clone().into(),
             self.value,
             gas_limit,
-            self.extrinsic_opts.storage_deposit_limit,
+            self.extrinsic_opts.storage_deposit_limit(),
             data,
         );
 
