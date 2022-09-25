@@ -14,8 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    str::FromStr,
+};
 
+use rust_decimal::{
+    self,
+    Decimal,
+};
+use rust_decimal_macros::dec;
 use serde_json::json;
 
 use super::{
@@ -82,36 +90,43 @@ impl BalanceVariant {
                 if let Some(balance_str) =
                     input.strip_suffix(&format!("k{}", token_metadata.symbol))
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * 1_000.0) as Balance * token_metadata.denomination)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(balance * dec!(1_000))?
+                        * token_metadata.denomination)
                 } else if let Some(balance_str) =
                     input.strip_suffix(&format!("M{}", token_metadata.symbol))
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * 1_000_000.0) as Balance * token_metadata.denomination)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(balance * dec!(1_000_000))?
+                        * token_metadata.denomination)
                 } else if let Some(balance_str) =
                     input.strip_suffix(&format!("n{}", token_metadata.symbol))
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * 1_000_000_000.0) as Balance)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(balance * dec!(1_000_000_000))?
+                        * token_metadata.denomination)
                 } else if let Some(balance_str) =
                     input.strip_suffix(&format!("μ{}", token_metadata.symbol))
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * 1_000_000.0) as Balance)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(balance * dec!(1_000_000))?)
                 } else if let Some(balance_str) =
                     input.strip_suffix(&format!("m{}", token_metadata.symbol))
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * 1_000.0) as Balance)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(balance * dec!(1_000))?)
                 } else if let Some(balance_str) =
                     input.strip_suffix(&token_metadata.symbol)
                 {
-                    let balance: f64 = balance_str.parse()?;
-                    Ok((balance * token_metadata.denomination as f64) as Balance)
+                    let balance = Decimal::from_str(balance_str)?;
+                    Ok(<Balance>::try_from(
+                        balance * Decimal::from(token_metadata.denomination),
+                    )?)
                 } else {
-                    let balance: f64 = input.parse()?;
-                    Ok((balance * token_metadata.denomination as f64) as Balance)
+                    let balance = Decimal::from_str(input)?;
+                    Ok(<Balance>::try_from(
+                        balance * Decimal::from(token_metadata.denomination),
+                    )?)
                 }
             }
         }
