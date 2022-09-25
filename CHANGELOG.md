@@ -5,9 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Fix storage deposit limit encoding - [#751](https://github.com/paritytech/cargo-contract/pull/751)
+
+## [2.0.0-alpha.3] - 2022-09-21
+
+This release supports compatibility with the [`v4.0.0-alpha.3`](https://github.com/paritytech/ink/releases/tag/v4.0.0-alpha.3)
+release of `ink!`. It is *not* backwards compatible with older versions of `ink!`.
+
+### Added
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
 - Denominated units for Balances - [#750](https://github.com/paritytech/cargo-contract/pull/750)
 - Use new ink entrance crate - [#728](https://github.com/paritytech/cargo-contract/pull/728)
+
+### Fixed
+- Skip linting if running building in --offline mode -  [#737](https://github.com/paritytech/cargo-contract/pull/737)
 
 ## [2.0.0-alpha.2] - 2022-09-02
 
