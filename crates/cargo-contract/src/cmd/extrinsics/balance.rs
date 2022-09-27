@@ -485,4 +485,30 @@ mod tests {
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
+
+    #[test]
+    fn small_number_of_decimals_zero() {
+        let decimals = 6;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 0;
+        let bv = parse_balance("0.4μDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn small_number_of_decimals_more_than_zero() {
+        let decimals = 6;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5;
+        let bv = parse_balance("5.4μDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
 }
