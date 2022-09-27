@@ -181,7 +181,7 @@ impl DisplayEvents {
                         || field.type_name == Some("BalanceOf<T>".to_string())
                     {
                         if let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::from(balance, Some(token_metadata))
+                            value = BalanceVariant::from(balance, Some(token_metadata))?
                                 .to_string();
                         }
                     }

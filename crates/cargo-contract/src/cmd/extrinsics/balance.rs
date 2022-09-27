@@ -14,16 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    fmt::Display,
-    str::FromStr,
-};
+use std::fmt::Display;
 
 use rust_decimal::{
     self,
+    prelude::FromPrimitive,
     Decimal,
 };
-use rust_decimal_macros::dec;
 use serde_json::json;
 
 use super::{
@@ -43,15 +40,33 @@ pub enum BalanceVariant {
     /// Default format: no symbol, no denomination
     Default(Balance),
     /// Denominated format: symbol and denomination are present
-    Denominated(String),
+    Denominated(DenominatedBalance),
 }
 
 #[derive(Debug, Clone)]
 pub struct TokenMetadata {
     /// Number of denomination used for denomination
-    pub denomination: u128,
+    pub denomination: usize,
     /// Token symbol
     pub symbol: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DenominatedBalance {
+    value: Decimal,
+    unit: UnitPrefix,
+    symbol: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnitPrefix {
+    Giga,
+    Mega,
+    Kilo,
+    One,
+    Milli,
+    Micro,
+    Nano,
 }
 
 impl TokenMetadata {
@@ -61,20 +76,58 @@ impl TokenMetadata {
 
         let default_decimals = json!(12);
         let default_units = json!("UNIT");
-        let decimals = sys_props
+        let denomination = sys_props
             .get("tokenDecimal")
             .unwrap_or(&default_decimals)
             .as_u64()
-            .context("error converting decimal to u64")?;
+            .context("error converting decimal to u64")?
+            as usize;
         let symbol = sys_props
             .get("tokenSymbol")
             .unwrap_or(&default_units)
             .as_str()
             .context("error converting symbol to string")?;
-        let denomination: u128 = format!("1{}", "0".repeat(decimals as usize)).parse()?;
         Ok(Self {
             denomination,
             symbol: symbol.to_string(),
+        })
+    }
+}
+
+impl TryFrom<String> for DenominatedBalance {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let symbols = value
+            .trim_start_matches(|ch: char| ch.is_numeric() || ch == '.' || ch == ',');
+        let unit_char = symbols
+            .chars()
+            .next()
+            .context("no units or symbols present")?;
+        let unit: UnitPrefix = match unit_char {
+            'G' => UnitPrefix::Giga,
+            'M' => UnitPrefix::Mega,
+            'K' => UnitPrefix::Kilo,
+            'm' => UnitPrefix::Milli,
+            '\u{3bc}' => UnitPrefix::Micro,
+            'n' => UnitPrefix::Nano,
+            _ => UnitPrefix::One,
+        };
+        let symbol = if unit != UnitPrefix::One {
+            let (start, _) = symbols
+                .char_indices()
+                .nth(1)
+                .context("cannot find the first char's index")?;
+            symbols[start..].to_string()
+        } else {
+            String::new()
+        };
+        let value = value.trim_end_matches(|ch: char| ch.is_alphabetic());
+        let value = Decimal::from_str_exact(value)?;
+        Ok(Self {
+            value,
+            unit,
+            symbol,
         })
     }
 }
@@ -86,103 +139,118 @@ impl BalanceVariant {
     pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
         match self {
             BalanceVariant::Default(balance) => Ok(*balance),
-            BalanceVariant::Denominated(input) => {
-                if let Some(balance_str) =
-                    input.strip_suffix(&format!("k{}", token_metadata.symbol))
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(balance * dec!(1_000))?
-                        * token_metadata.denomination)
-                } else if let Some(balance_str) =
-                    input.strip_suffix(&format!("M{}", token_metadata.symbol))
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(balance * dec!(1_000_000))?
-                        * token_metadata.denomination)
-                } else if let Some(balance_str) =
-                    input.strip_suffix(&format!("n{}", token_metadata.symbol))
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(balance * dec!(1_000_000_000))?
-                        * token_metadata.denomination)
-                } else if let Some(balance_str) =
-                    input.strip_suffix(&format!("μ{}", token_metadata.symbol))
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(balance * dec!(1_000_000))?)
-                } else if let Some(balance_str) =
-                    input.strip_suffix(&format!("m{}", token_metadata.symbol))
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(balance * dec!(1_000))?)
-                } else if let Some(balance_str) =
-                    input.strip_suffix(&token_metadata.symbol)
-                {
-                    let balance = Decimal::from_str(balance_str)?;
-                    Ok(<Balance>::try_from(
-                        balance * Decimal::from(token_metadata.denomination),
-                    )?)
-                } else {
-                    let balance = Decimal::from_str(input)?;
-                    Ok(<Balance>::try_from(
-                        balance * Decimal::from(token_metadata.denomination),
-                    )?)
-                }
+            BalanceVariant::Denominated(den_balance) => {
+                let zeros: usize = (token_metadata.denomination as isize
+                    + match den_balance.unit {
+                        UnitPrefix::Giga => 9,
+                        UnitPrefix::Mega => 6,
+                        UnitPrefix::Kilo => 3,
+                        UnitPrefix::One => 0,
+                        UnitPrefix::Milli => -3,
+                        UnitPrefix::Micro => -6,
+                        UnitPrefix::Nano => -9,
+                    })
+                .try_into()?;
+                let multiple =
+                    Decimal::from_str_exact(&format!("1{}", "0".repeat(zeros)))?;
+                let balance: Balance = (den_balance.value * multiple).try_into()?;
+                Ok(balance)
             }
         }
     }
 
     /// Display token units in a denominated format.
-    pub fn from<T: Into<u128>>(value: T, token_metadata: Option<&TokenMetadata>) -> Self {
+    pub fn from<T: Into<u128>>(
+        value: T,
+        token_metadata: Option<&TokenMetadata>,
+    ) -> Result<Self> {
         let n: u128 = value.into();
 
         if let Some(token_metadata) = token_metadata {
             if n == 0 {
-                return BalanceVariant::Denominated(format!("0{}", token_metadata.symbol))
+                return Ok(BalanceVariant::Denominated(DenominatedBalance {
+                    value: Decimal::ZERO,
+                    unit: UnitPrefix::One,
+                    symbol: token_metadata.symbol.clone(),
+                }))
             }
 
-            let units_result = n / token_metadata.denomination;
-            let mut symbol = "";
-            let remainder: u128;
-            let units: u128;
-            if (1..1_000).contains(&units_result) {
-                remainder = n % token_metadata.denomination;
-                units = units_result;
-            } else if (1_000..1_000_000).contains(&units_result) {
-                remainder = units_result % 1_000;
-                units = units_result / 1_000;
-                symbol = "k";
-            } else if (1_000_000..1_000_000_000).contains(&units_result) {
-                remainder = units_result % 1_000_000;
-                units = units_result / 1_000_000;
-                symbol = "M";
-            } else if n / 1_000_000_000 > 0 {
-                remainder = n % 1_000_000_000;
-                units = n / 1_000_000_000;
-                symbol = "n";
-            } else if n / 1_000_000 > 0 {
-                remainder = n % 1_000_000;
-                units = n / 1_000_000;
-                symbol = "μ";
+            let number_of_digits = n.to_string().len();
+
+            let giga_units_zeros = token_metadata.denomination + 9;
+            let mega_units_zeros = token_metadata.denomination + 6;
+            let kilo_units_zeros = token_metadata.denomination + 3;
+            let one_unit_zeros = token_metadata.denomination;
+            let milli_units_zeros = token_metadata.denomination - 3;
+            let micro_units_zeros = token_metadata.denomination - 6;
+            let nano_units_zeros = token_metadata.denomination - 9;
+
+            let multiple: Decimal;
+            let unit: UnitPrefix;
+            if number_of_digits > giga_units_zeros {
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(giga_units_zeros)
+                ))?;
+                unit = UnitPrefix::Giga;
+            } else if number_of_digits <= giga_units_zeros
+                && number_of_digits > mega_units_zeros
+            {
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(mega_units_zeros)
+                ))?;
+                unit = UnitPrefix::Mega;
+            } else if number_of_digits <= mega_units_zeros
+                && number_of_digits > kilo_units_zeros
+            {
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(kilo_units_zeros)
+                ))?;
+                unit = UnitPrefix::Mega;
+            } else if number_of_digits <= kilo_units_zeros
+                && number_of_digits > one_unit_zeros
+            {
+                multiple =
+                    Decimal::from_str_exact(&format!("1{}", "0".repeat(one_unit_zeros)))?;
+                unit = UnitPrefix::Mega;
+            } else if number_of_digits <= one_unit_zeros
+                && number_of_digits > milli_units_zeros
+            {
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(milli_units_zeros)
+                ))?;
+                unit = UnitPrefix::Mega;
+            } else if number_of_digits <= milli_units_zeros
+                && number_of_digits > micro_units_zeros
+            {
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(micro_units_zeros)
+                ))?;
+                unit = UnitPrefix::Mega;
             } else {
-                remainder = n % 1_000;
-                units = n / 1_000;
-                symbol = "m";
+                multiple = Decimal::from_str_exact(&format!(
+                    "1{}",
+                    "0".repeat(nano_units_zeros)
+                ))?;
+                unit = UnitPrefix::Mega;
             }
-            if remainder > 0 {
-                let remainder = remainder.to_string().trim_end_matches('0').to_owned();
-                BalanceVariant::Denominated(format!(
-                    "{}.{}{}{}",
-                    units, remainder, symbol, token_metadata.symbol
-                ))
-            } else {
-                BalanceVariant::Denominated(format!(
-                    "{}{}{}",
-                    units, symbol, token_metadata.symbol
-                ))
-            }
+            let value = Decimal::from_u128(n)
+                .context("value can not be converted into decimal")?
+                / multiple;
+
+            let den_balance = DenominatedBalance {
+                value,
+                unit,
+                symbol: token_metadata.symbol.clone(),
+            };
+
+            Ok(BalanceVariant::Denominated(den_balance))
         } else {
-            BalanceVariant::Default(n)
+            Ok(BalanceVariant::Default(n))
         }
     }
 }
@@ -191,8 +259,23 @@ impl Display for BalanceVariant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BalanceVariant::Default(balance) => f.write_str(&balance.to_string()),
-            BalanceVariant::Denominated(input) => f.write_str(input),
+            BalanceVariant::Denominated(input) => f.write_str(&input.to_string()),
         }
+    }
+}
+
+impl Display for DenominatedBalance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let prefix = match self.unit {
+            UnitPrefix::Giga => "G",
+            UnitPrefix::Mega => "M",
+            UnitPrefix::Kilo => "K",
+            UnitPrefix::One => "",
+            UnitPrefix::Milli => "m",
+            UnitPrefix::Micro => "μ",
+            UnitPrefix::Nano => "n",
+        };
+        f.write_fmt(format_args!("{}{}{}", self.value, prefix, self.symbol))
     }
 }
 
@@ -225,7 +308,7 @@ mod tests {
     #[test]
     fn balance_variant_denominated_success() {
         let tm = TokenMetadata {
-            denomination: 12,
+            denomination: 10,
             symbol: String::from("DOT"),
         };
         let bv = parse_balance("500MDOT").expect("successful parsing. qed");
@@ -236,26 +319,13 @@ mod tests {
     }
 
     #[test]
-    fn balance_variant_denominated_incorrect_token() {
-        let tm = TokenMetadata {
-            denomination: 12,
-            symbol: String::from("DOT"),
-        };
-        let bv = parse_balance("500MKSM").expect("successful parsing. qed");
-        assert!(
-            bv.denominate_balance(&tm).is_err(),
-            "balances denominated should fail because of an incorrect token"
-        );
-    }
-
-    #[test]
     fn balance_variant_denominated_equal() {
-        let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
+        let decimals = 10;
         let tm = TokenMetadata {
-            denomination,
+            denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 500 * 1_000_000 * denomination;
+        let balance: Balance = 500 * 1_000_000 * 10_000_000_000;
         let bv = parse_balance("500MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -263,12 +333,12 @@ mod tests {
 
     #[test]
     fn balance_variant_denominated_equal_fraction() {
-        let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
+        let decimals = 10;
         let tm = TokenMetadata {
-            denomination,
+            denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = (500 * 1_000_000 + 500_000) * denomination;
+        let balance: Balance = 5_005_000_000_000_000_000;
         let bv = parse_balance("500.5MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -276,13 +346,142 @@ mod tests {
 
     #[test]
     fn balance_variant_denominated_equal_small_units() {
-        let denomination: u128 = format!("1{}", "0".repeat(12)).parse().unwrap();
+        let decimals = 10;
         let tm = TokenMetadata {
-            denomination,
+            denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 500 * 1_000_000 + 500_000;
+        let balance: Balance = 5_005_000;
         let bv = parse_balance("500.5μDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+    #[test]
+    fn smallest_value() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 1;
+        let bv = parse_balance("0.1nDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn value_less_than_precision() {
+        // here we test if the user tries to input the denominated balance
+        // which results in value less than zero
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 0;
+        let bv = parse_balance("0.0001nDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn giga() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005_000_000_000_000_000_000;
+        let bv = parse_balance("500.5GDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn kilo() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005_000_000_000_000;
+        let bv = parse_balance("500.5KDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn unit() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005_000_000_000;
+        let bv = parse_balance("500.5DOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn milli() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005_000_000;
+        let bv = parse_balance("500.5mDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+    #[test]
+    fn micro() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005_000;
+        let bv = parse_balance("500.5μDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+    #[test]
+    fn nano() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_005;
+        let bv = parse_balance("500.5nDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn different_digits() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 5_235_456_210_000_000;
+        let bv = parse_balance("523.545621KDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
+        assert_eq!(balance, balance_parsed);
+    }
+
+    #[test]
+    fn non_standard_denomination() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance: Balance = 50_015_000_000_000;
+        let bv = parse_balance("5001.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }

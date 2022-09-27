@@ -82,6 +82,8 @@ pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
+use self::balance::DenominatedBalance;
+
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
@@ -165,7 +167,9 @@ impl ExtrinsicOpts {
 fn parse_balance(input: &str) -> Result<BalanceVariant> {
     let input = input.replace('_', "");
     if input.contains('.') || input.ends_with(|ch: char| ch.is_alphabetic()) {
-        Ok(BalanceVariant::Denominated(input))
+        Ok(BalanceVariant::Denominated(DenominatedBalance::try_from(
+            input,
+        )?))
     } else {
         Ok(BalanceVariant::Default(input.parse::<Balance>()?))
     }

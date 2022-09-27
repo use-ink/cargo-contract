@@ -488,7 +488,6 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rust_decimal",
- "rust_decimal_macros",
  "rustc_version",
  "semver",
  "serde",
@@ -2577,16 +2576,6 @@ dependencies = [
  "arrayvec 0.7.2",
  "num-traits",
  "serde",
-]
-
-[[package]]
-name = "rust_decimal_macros"
-version = "1.26.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4903d8db81d2321699ca8318035d6ff805c548868df435813968795a802171b2"
-dependencies = [
- "quote",
- "rust_decimal",
 ]
 
 [[package]]
