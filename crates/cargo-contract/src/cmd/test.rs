@@ -61,7 +61,7 @@ impl TestCommand {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
                 for (i, package_id) in workspace_members.iter().enumerate() {
                     let manifest_path =
-                        util::extract_subcontract_manifest_path(package_id.clone())
+                        ManifestPath::new_from_subcontract_package_id(package_id.clone())
                             .expect("Error extracting package manifest path");
 
                     ret.push(execute(

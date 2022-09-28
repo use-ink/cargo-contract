@@ -235,7 +235,7 @@ impl BuildCommand {
             for (i, package_id) in workspace_members.iter().enumerate() {
                 // override args for each workspace member
                 args.manifest_path =
-                    util::extract_subcontract_manifest_path(package_id.clone())
+                    ManifestPath::new_from_subcontract_package_id(package_id.clone())
                         .expect("Error extracting package manifest path");
                 args.counter = Some((i + 1, workspace_members.len()));
                 build_results.push(execute(args.clone())?);
@@ -300,7 +300,7 @@ impl CheckCommand {
             for (i, package_id) in workspace_members.iter().enumerate() {
                 // override args for each workspace member
                 args.manifest_path =
-                    util::extract_subcontract_manifest_path(package_id.clone())
+                    ManifestPath::new_from_subcontract_package_id(package_id.clone())
                         .expect("Error extracting package manifest path");
                 args.counter = Some((i + 1, workspace_members.len()));
                 check_results.push(execute(args.clone())?);
