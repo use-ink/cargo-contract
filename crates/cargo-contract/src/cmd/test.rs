@@ -111,7 +111,7 @@ pub(crate) fn execute(
     verbosity: Verbosity,
     counter: Option<(usize, usize)>,
 ) -> Result<TestResult> {
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     if let Some((x, y)) = counter {
         maybe_println!(
             verbosity,
