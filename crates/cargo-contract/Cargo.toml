@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "2.0.0-alpha.2"
+version = "2.0.0-alpha.3"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -19,7 +19,7 @@ include = [
 
 [dependencies]
 anyhow = "1.0.65"
-clap = { version = "3.2.21", features = ["derive", "env"] }
+clap = { version = "3.2.22", features = ["derive", "env"] }
 tracing = "0.1.36"
 tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
 heck = "0.4.0"
@@ -32,8 +32,8 @@ colored = "2.0.0"
 toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
-contract-metadata = { version = "2.0.0-alpha.2", path = "../metadata" }
-transcode = { package = "contract-transcode", version = "2.0.0-alpha.2", path = "../transcode" }
+contract-metadata = { version = "2.0.0-alpha.3", path = "../metadata" }
+transcode = { package = "contract-transcode", version = "2.0.0-alpha.3", path = "../transcode" }
 semver = { version = "1.0.14", features = ["serde"] }
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 serde_json = "1.0.85"

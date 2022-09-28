@@ -101,16 +101,16 @@ impl CrateMetadata {
             .packages
             .iter()
             .find_map(|package| {
-                if package.name == "ink_lang" {
+                if package.name == "ink" {
                     Some(
                         Version::parse(&package.version.to_string())
-                            .expect("Invalid ink_lang version string"),
+                            .expect("Invalid ink crate version string"),
                     )
                 } else {
                     None
                 }
             })
-            .ok_or_else(|| anyhow::anyhow!("No 'ink_lang' dependency found"))?;
+            .ok_or_else(|| anyhow::anyhow!("No 'ink' dependency found"))?;
 
         let ExtraMetadata {
             documentation,

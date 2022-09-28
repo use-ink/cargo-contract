@@ -379,7 +379,7 @@ fn exec_cargo_for_wasm_target(
             args.push("--offline");
         }
         if build_mode == BuildMode::Debug {
-            args.push("--features=ink_env/ink-debug");
+            args.push("--features=ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
         }

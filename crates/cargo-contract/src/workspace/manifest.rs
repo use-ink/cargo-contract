@@ -314,7 +314,7 @@ impl Manifest {
         let ink_dylint = {
             let mut map = value::Table::new();
             map.insert("git".into(), "https://github.com/paritytech/ink/".into());
-            map.insert("branch".into(), "master".into());
+            map.insert("tag".into(), "v4.0.0-alpha.3".into());
             map.insert("pattern".into(), "linting/".into());
             value::Value::Table(map)
         };
@@ -487,18 +487,16 @@ impl Manifest {
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?;
 
-            let ink_metadata = self
+            let ink_crate = self
                 .toml
                 .get("dependencies")
                 .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
-                .get("ink_metadata")
-                .ok_or_else(|| anyhow::anyhow!("ink_metadata dependency not found"))?
+                .get("ink")
+                .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
                 .as_table()
-                .ok_or_else(|| {
-                    anyhow::anyhow!("ink_metadata dependency should be a table")
-                })?;
+                .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?;
 
-            metadata::generate_package(dir, contract_package_name, ink_metadata.clone())?;
+            metadata::generate_package(dir, contract_package_name, ink_crate.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
