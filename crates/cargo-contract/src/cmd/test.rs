@@ -25,10 +25,7 @@ use crate::{
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
 use colored::Colorize;
 use std::{
     convert::TryFrom,
@@ -54,19 +51,8 @@ pub struct TestCommand {
 
 impl TestCommand {
     pub fn exec(&self) -> Result<Vec<TestResult>> {
-        let manifest_path = match self.package.as_ref() {
-            Some(package) => {
-                let root_manifest_path =
-                    ManifestPath::try_from(self.manifest_path.as_ref())?;
-                root_manifest_path
-                    .subcontract_manifest_path(package)
-                    .context(format!(
-                        "error: package ID specification `{}` did not match any packages",
-                        package
-                    ))?
-            }
-            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
-        };
+        let manifest_path =
+            ManifestPath::new_maybe_from_package(&self.manifest_path, &self.package)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let mut ret = Vec::new();

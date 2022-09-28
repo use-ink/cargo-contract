@@ -67,6 +67,26 @@ impl ManifestPath {
         })
     }
 
+    /// Create a new ['ManifestPath'] from a Package name if available, from a PathBuf if not
+    pub fn new_maybe_from_package(
+        manifest_path: &Option<PathBuf>,
+        package: &Option<String>,
+    ) -> Result<Self> {
+        let manifest_path = match package {
+            Some(package) => {
+                let root_manifest_path = ManifestPath::try_from(manifest_path.as_ref())?;
+                root_manifest_path
+                    .subcontract_manifest_path(package)
+                    .context(format!(
+                        "error: package ID specification `{}` did not match any packages",
+                        package
+                    ))?
+            }
+            None => ManifestPath::try_from(manifest_path.as_ref())?,
+        };
+        Ok(manifest_path)
+    }
+
     /// Create an arg `--manifest-path=` for `cargo` command
     pub fn cargo_arg(&self) -> Result<String> {
         let path = self.path.canonicalize().map_err(|err| {
