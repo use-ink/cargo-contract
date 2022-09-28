@@ -200,7 +200,7 @@ fn optimization_passes_from_profile_must_be_used(
         manifest_path: Some(manifest_path.as_ref().into()),
         build_artifact: BuildArtifacts::All,
         build_release: false,
-        build_all: false,
+        build_workspace: false,
         build_offline: false,
         verbosity: VerbosityFlags::default(),
         unstable_options: UnstableOptions::default(),
@@ -248,7 +248,7 @@ fn contract_lib_name_different_from_package_name_must_build(
         manifest_path: Some(manifest_path.as_ref().into()),
         build_artifact: BuildArtifacts::All,
         build_release: false,
-        build_all: false,
+        build_workspace: false,
         build_offline: false,
         verbosity: VerbosityFlags::default(),
         unstable_options: UnstableOptions::default(),
@@ -395,7 +395,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     write!(output, "]")?;
 
     let cmd = BuildCommand {
-        build_all: true,
+        build_workspace: true,
         manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
         ..Default::default()
     };

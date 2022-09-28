@@ -109,8 +109,8 @@ pub struct BuildCommand {
     #[clap(long = "--release")]
     build_release: bool,
     /// Build all contract packages in the workspace
-    #[clap(long = "--all")]
-    build_all: bool,
+    #[clap(long = "--workspace")]
+    build_workspace: bool,
     /// Build offline
     #[clap(long = "--offline")]
     build_offline: bool,
@@ -243,7 +243,7 @@ impl BuildCommand {
             Ok(())
         };
 
-        if self.build_all || is_virtual_manifest(&manifest_path)? {
+        if self.build_workspace || is_virtual_manifest(&manifest_path)? {
             build_all()?;
         } else {
             build_results.push(execute(args)?);
@@ -263,8 +263,8 @@ pub struct CheckCommand {
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// Check all contract packages in the workspace
-    #[clap(long = "--all")]
-    check_all: bool,
+    #[clap(long = "--workspace")]
+    check_workspace: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -308,7 +308,7 @@ impl CheckCommand {
             Ok(())
         };
 
-        if self.check_all || is_virtual_manifest(&manifest_path)? {
+        if self.check_workspace || is_virtual_manifest(&manifest_path)? {
             check_all()?;
         } else {
             check_results.push(execute(args)?);

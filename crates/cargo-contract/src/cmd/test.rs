@@ -43,8 +43,8 @@ pub struct TestCommand {
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// Test all contract packages in the workspace.
-    #[clap(long = "--all")]
-    test_all: bool,
+    #[clap(long = "--workspace")]
+    test_workspace: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
 }
@@ -56,7 +56,7 @@ impl TestCommand {
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let mut ret = Vec::new();
-        match self.test_all {
+        match self.test_workspace {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
                 for (i, package_id) in workspace_members.iter().enumerate() {
