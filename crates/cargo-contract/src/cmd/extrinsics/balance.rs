@@ -124,7 +124,9 @@ impl TryFrom<String> for DenominatedBalance {
             String::new()
         };
         let value = value.trim_end_matches(|ch: char| ch.is_alphabetic());
-        let value = Decimal::from_str_exact(value)?.normalize();
+        let value = Decimal::from_str_exact(value)
+            .context("Error while parsing the value. Please denominate and normalize the balance first.")?
+            .normalize();
         Ok(Self {
             value,
             unit,
@@ -569,5 +571,21 @@ mod tests {
         let bv = parse_balance("0.4μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
+    }
+
+    #[test]
+    fn big_input_to_denominate() {
+        // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
+        let s = "79_228_162_514_264_337_593_543_950_336DOT";
+        let bv = parse_balance(s);
+        assert!(bv.is_err())
+    }
+
+    #[test]
+    fn big_input_to_raw() {
+        // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
+        let s = "79_228_162_514_264_337_593_543_950_336";
+        let bv = parse_balance(s);
+        assert!(bv.is_ok())
     }
 }
