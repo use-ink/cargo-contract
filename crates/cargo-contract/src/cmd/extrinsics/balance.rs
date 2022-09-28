@@ -29,6 +29,7 @@ use super::{
 };
 
 use anyhow::{
+    anyhow,
     Context,
     Ok,
     Result,
@@ -123,7 +124,7 @@ impl TryFrom<String> for DenominatedBalance {
             String::new()
         };
         let value = value.trim_end_matches(|ch: char| ch.is_alphabetic());
-        let value = Decimal::from_str_exact(value)?;
+        let value = Decimal::from_str_exact(value)?.normalize();
         Ok(Self {
             value,
             unit,
@@ -135,7 +136,43 @@ impl TryFrom<String> for DenominatedBalance {
 impl BalanceVariant {
     /// Converts BalanceVariant into Balance.
     ///
-    /// Throws Error if [BalanceVariant::Denominated(String)] is in an incorrect format.
+    /// It is a reverse process of `from<T: Into<u128>>()`
+    ///
+    /// Throws Error if `value` is of nigher precision that allowed.
+    ///
+    /// ```rust
+    ///  use anyhow::{Result, Ok};
+    ///  let decimals = 6;
+    ///  let tm = TokenMetadata {
+    ///        denomination: decimals,
+    ///        symbol: String::from("DOT"),
+    /// };
+    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
+    ///     value: Decimal::new(4, 1),
+    ///     unit: UnitPrefix::Micro,
+    ///     symbol: String::new("DOT")
+    /// });
+    /// let result = sample_den_balance.denominate_balance(tm);
+    /// assert!(result.is_err());
+    /// ```
+    ///
+    /// Otherwise, [Balance] is returned:
+    /// ```rust
+    ///  use anyhow::{Result, Ok};
+    ///  let decimals = 6;
+    ///  let tm = TokenMetadata {
+    ///        denomination: decimals,
+    ///        symbol: String::from("DOT"),
+    /// };
+    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
+    ///     value: Decimal::new(4123, 0),
+    ///     unit: UnitPrefix::Micro,
+    ///     symbol: String::new("DOT")
+    /// });
+    /// let balance = 4123;
+    /// let result = sample_den_balance.denominate_balance(tm).unwrap()
+    /// assert_eq!(balance, result);
+    /// ```
     pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
         match self {
             BalanceVariant::Default(balance) => Ok(*balance),
@@ -153,13 +190,50 @@ impl BalanceVariant {
                 .try_into()?;
                 let multiple =
                     Decimal::from_str_exact(&format!("1{}", "0".repeat(zeros)))?;
+                let fract_scale = den_balance.value.fract().scale();
+                let mantissa_difference = zeros as isize - fract_scale as isize;
+                if mantissa_difference < 0 {
+                    return Err(anyhow!(
+                        "Given precision of a Balance value is higher than allowed"
+                    ))
+                }
                 let balance: Balance = (den_balance.value * multiple).try_into()?;
                 Ok(balance)
             }
         }
     }
 
+    /// # Summary
     /// Display token units in a denominated format.
+    ///
+    /// I takes `value` of `Into<u128>` and [TokenMetadata]
+    /// and calculates the value in an denominated format
+    /// by manipulating the denomination.
+    ///
+    /// If the number is divisible by 10^(`denomination` + `unit_zeros`),
+    /// It sets the [UnitPrefix] and divides the `value` into `Decimal`
+    ///
+    /// If no [TokenMetadata] was present, than that means
+    /// that [Balance] is to be displayed in *normal* format
+    /// and `BalanceVariant::Default` is returned
+    ///
+    /// # Examples
+    /// ```rust
+    ///  use anyhow::{Result, Ok};
+    ///  let decimals = 10;
+    ///  let tm = TokenMetadata {
+    ///        denomination: decimals,
+    ///        symbol: String::from("DOT"),
+    /// };
+    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
+    ///     value: Decimal::new(5005, 1),
+    ///     unit: UnitPrefix::Mega,
+    ///     symbol: String::new("DOT")
+    /// });
+    /// let balance: Balance = 5_005_000_000_000_000_000;
+    /// let den_balance = BalanceVariant::from(balance, Some(tm));
+    /// assert_eq!(Ok(sample_den_balance), Ok(den_balance));
+    /// ```
     pub fn from<T: Into<u128>>(
         value: T,
         token_metadata: Option<&TokenMetadata>,
@@ -378,10 +452,9 @@ mod tests {
             denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 0;
-        let bv = parse_balance("0.0001nDOT").expect("successful parsing. qed");
-        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
-        assert_eq!(balance, balance_parsed);
+        let bv = parse_balance("0.01546nDOT").expect("successful parsing. qed");
+        let balance_parsed = bv.denominate_balance(&tm);
+        assert!(balance_parsed.is_err())
     }
 
     #[test]
@@ -493,22 +566,8 @@ mod tests {
             denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 0;
         let bv = parse_balance("0.4μDOT").expect("successful parsing. qed");
-        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
-        assert_eq!(balance, balance_parsed);
-    }
-
-    #[test]
-    fn small_number_of_decimals_more_than_zero() {
-        let decimals = 6;
-        let tm = TokenMetadata {
-            denomination: decimals,
-            symbol: String::from("DOT"),
-        };
-        let balance: Balance = 5;
-        let bv = parse_balance("5.4μDOT").expect("successful parsing. qed");
-        let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
-        assert_eq!(balance, balance_parsed);
+        let balance_parsed = bv.denominate_balance(&tm);
+        assert!(balance_parsed.is_err())
     }
 }
