@@ -50,7 +50,7 @@ pub struct VerifyCommand {
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
     contract: PathBuf,
-    ///
+    /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
 }
