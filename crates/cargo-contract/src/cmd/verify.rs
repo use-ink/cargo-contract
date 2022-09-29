@@ -66,22 +66,36 @@ impl VerifyCommand {
         file.read_to_string(&mut contents)?;
 
         let metadata: ContractMetadata = serde_json::from_str(&contents)?;
-        let build_info = metadata.source.build_info.as_ref().unwrap();
-        let build_info: BuildInfo =
-            serde_json::from_value(build_info.clone().into()).unwrap();
+        let build_info = if let Some(info) = metadata.source.build_info {
+            info
+        } else {
+            anyhow::bail!(
+                "\nThe metadata does not contain any build information which can be used to \
+                verify a contract."
+                .to_string()
+                .bright_yellow()
+            )
+        };
+
+        let build_info: BuildInfo = serde_json::from_value(build_info.clone().into())?;
+
+        tracing::debug!(
+            "Parsed the following build info from the metadata: {:?}",
+            &build_info,
+        );
 
         // 2. Call `cargo contract build` with the `BuildInfo` from the metadata.
         let expected_rustc_version = build_info.rustc_version;
         let rustc_version = rustc_version::version()
             .expect("`rustc` always has a version associated with it.");
 
-        anyhow::ensure!(
-            rustc_version == expected_rustc_version,
-            "You are trying to `verify` a contract using the `{rustc_version}` toolchain.\n\
+        let rustc_matches = rustc_version == expected_rustc_version;
+        let mismatched_rustc = format!(
+            "\nYou are trying to `verify` a contract using the `{rustc_version}` toolchain.\n\
              However, the original contract was built using `{expected_rustc_version}`. Please\n\
              install the correct toolchain (`rustup install {expected_rustc_version}`) and\n\
-             re-run the `verify` command.",
-        );
+             re-run the `verify` command.",);
+        anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
         let expected_wasm_opt_version = build_info.wasm_opt_settings.version;
         let keep_debug_symbols = build_info.wasm_opt_settings.keep_debug_symbols;
@@ -91,12 +105,13 @@ impl VerifyCommand {
         )?;
         let wasm_opt_version = handler.version();
 
-        anyhow::ensure!(
-            wasm_opt_version == expected_wasm_opt_version,
-            "You are trying to `verify` a contract using `wasm-opt` version {wasm_opt_version}`.\n\
-             However, the original contract was built using `wasm-opt` version {expected_wasm_opt_version}`.\n\
+        let wasm_opt_matches = wasm_opt_version == expected_wasm_opt_version;
+        let mismatched_wasm_opt = format!(
+            "\nYou are trying to `verify` a contract using `wasm-opt` version `{wasm_opt_version}`.\n\
+             However, the original contract was built using `wasm-opt` version `{expected_wasm_opt_version}`.\n\
              Please install the matching version and re-run the `verify` command.",
         );
+        anyhow::ensure!(wasm_opt_matches, mismatched_wasm_opt.bright_yellow());
 
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
@@ -114,9 +129,30 @@ impl VerifyCommand {
         let build_result = execute(args)?;
 
         // 3. Grab the built Wasm contract and compare it with the Wasm from the metadata.
-        let reference_wasm = metadata.source.wasm.unwrap();
+        let reference_wasm = if let Some(wasm) = metadata.source.wasm {
+            wasm
+        } else {
+            anyhow::bail!(
+                "\nThe metadata for the reference contract does not contain a Wasm binary,\n\
+                therefore we are unable to verify the contract."
+                .to_string()
+                .bright_yellow()
+            )
+        };
 
-        let built_wasm_path = build_result.dest_wasm.unwrap();
+        let built_wasm_path = if let Some(wasm) = build_result.dest_wasm {
+            wasm
+        } else {
+            // Since we're building the contract ourselves this should always be populated,
+            // but we'll bail out here just in case.
+            anyhow::bail!(
+                "\nThe metadata for the workspace contract does not contain a Wasm binary,\n\
+                therefore we are unable to verify the contract."
+                .to_string()
+                .bright_yellow()
+            )
+        };
+
         let fs_wasm = std::fs::read(built_wasm_path)?;
         let built_wasm = SourceWasm::new(fs_wasm);
 
