@@ -77,8 +77,7 @@ impl VerifyCommand {
         );
 
         let expected_wasm_opt_version = build_info.wasm_opt_settings.version;
-        // TODO: Will either want to add this to BuildInfo or assume release (so no)
-        let keep_debug_symbols = false;
+        let keep_debug_symbols = build_info.wasm_opt_settings.keep_debug_symbols;
         let handler = crate::wasm_opt::WasmOptHandler::new(
             build_info.wasm_opt_settings.optimization_passes,
             keep_debug_symbols,
