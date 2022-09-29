@@ -107,6 +107,8 @@ pub struct WasmOptSettings {
     pub version: u32,
     /// The level of optimization used during the `wasm-opt` run.
     pub optimization_passes: OptimizationPasses,
+    /// Whether or not the Wasm name section should be kept.
+    pub keep_debug_symbols: bool,
 }
 
 /// Generates a file with metadata describing the ABI of the smart contract.

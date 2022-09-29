@@ -673,6 +673,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             wasm_opt_settings: WasmOptSettings {
                 version: handler.version(),
                 optimization_passes,
+                keep_debug_symbols,
             },
         };
 
