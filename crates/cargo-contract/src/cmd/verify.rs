@@ -22,11 +22,14 @@ use crate::{
         },
         metadata::BuildInfo,
     },
+    maybe_println,
     workspace::ManifestPath,
     BuildArtifacts,
+    Verbosity,
+    VerbosityFlags,
 };
-
 use anyhow::Result;
+use colored::Colorize;
 use contract_metadata::{
     ContractMetadata,
     SourceWasm,
@@ -47,11 +50,15 @@ pub struct VerifyCommand {
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
     contract: PathBuf,
+    ///
+    #[clap(flatten)]
+    verbosity: VerbosityFlags,
 }
 
 impl VerifyCommand {
     pub fn run(&self) -> Result<()> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         // 1. Read the given metadata, and pull out the `BuildInfo`
         let mut file = File::open(&self.contract)?;
@@ -93,7 +100,7 @@ impl VerifyCommand {
 
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
-            verbosity: Default::default(),
+            verbosity,
             build_mode: build_info.build_mode,
             network: Default::default(),
             build_artifact: BuildArtifacts::CodeOnly,
@@ -120,14 +127,20 @@ impl VerifyCommand {
                 &built_wasm
             );
 
-            anyhow::bail!(
-                "Failed to verify the authenticity of `{}` contract againt the workspace found at {:?}.",
-                metadata.contract.name,
-                manifest_path.as_ref(),
+            anyhow::bail!(format!(
+                "\nFailed to verify the authenticity of {} contract againt the workspace \n\
+                found at {}.",
+                format!("`{}`", metadata.contract.name).bright_white(),
+                format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
             );
         }
 
-        tracing::info!("Succesfully verified `{}`!", &metadata.contract.name);
+        maybe_println!(
+            verbosity,
+            " \n{} {}",
+            "Succesfully verified contract".bright_green().bold(),
+            format!("`{}`!", &metadata.contract.name).bold(),
+        );
 
         Ok(())
     }
