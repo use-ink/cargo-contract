@@ -81,8 +81,8 @@ impl VerifyCommand {
             )
         };
 
-        let build_info: BuildInfo = serde_json::from_value(build_info.clone().into())
-            .context(format!(
+        let build_info: BuildInfo =
+            serde_json::from_value(build_info.into()).context(format!(
                 "Failed to deserialize the build info from {}",
                 path.display()
             ))?;
