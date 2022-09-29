@@ -1,0 +1,24 @@
+[package]
+name = "contract-metadata"
+version = "2.0.0-alpha.3"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-metadata"
+homepage = "https://www.substrate.io/"
+description = "Library defining metadata for smart contracts on substrate"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
+
+[dependencies]
+impl-serde = "0.4.0"
+semver = { version = "1.0.14", features = ["serde"] }
+serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+serde_json = "1.0.85"
+url = { version = "2.3.1", features = ["serde"] }
+
+[dev-dependencies]
+pretty_assertions = "1.3.0"

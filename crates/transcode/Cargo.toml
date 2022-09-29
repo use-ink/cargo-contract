@@ -1,0 +1,47 @@
+[package]
+name = "contract-transcode"
+version = "2.0.0-alpha.3"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-transcode"
+homepage = "https://www.substrate.io/"
+description = "Library encoding calls for smart contracts on substrate"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1.0.65"
+contract-metadata = { version = "2.0.0-alpha.3", path = "../metadata" }
+env_logger = "0.9.1"
+escape8259 = "0.5.2"
+hex = "0.4.3"
+indexmap = "1.9.1"
+ink_env = "4.0.0-alpha.3"
+ink_metadata = { package = "ink_metadata", version = "4.0.0-alpha.3" }
+itertools = "0.10.5"
+tracing = "0.1.36"
+nom = "7.1.1"
+nom-supreme = { version = "0.7.0", features = ["error"] }
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+scale-info = { version = "2.2.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+serde_json = "1.0.85"
+sp-core = "6.0.0"
+sp-runtime = "6.0.0"
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+ink = "4.0.0-alpha.3"
+
+[features]
+# This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
+# generation code with `#[cfg(feature = "std")]`.
+default = ["std"]
+std = []

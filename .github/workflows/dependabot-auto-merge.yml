@@ -1,10 +1,8 @@
-name: auto-merge
-
+name: dependabot-auto-merge
 on:
   pull_request:
-
 jobs:
-  auto-merge:
+  merge:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
