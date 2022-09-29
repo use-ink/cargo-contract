@@ -28,7 +28,10 @@ use crate::{
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use colored::Colorize;
 use contract_metadata::{
     ContractMetadata,
@@ -37,7 +40,6 @@ use contract_metadata::{
 
 use std::{
     fs::File,
-    io::prelude::Read,
     path::PathBuf,
 };
 
@@ -61,11 +63,13 @@ impl VerifyCommand {
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         // 1. Read the given metadata, and pull out the `BuildInfo`
-        let mut file = File::open(&self.contract)?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
+        let path = &self.contract;
+        let file = File::open(path)
+            .context(format!("Failed to open contract bundle {}", path.display()))?;
 
-        let metadata: ContractMetadata = serde_json::from_str(&contents)?;
+        let metadata: ContractMetadata = serde_json::from_reader(&file).context(
+            format!("Failed to deserialize contract bundle {}", path.display()),
+        )?;
         let build_info = if let Some(info) = metadata.source.build_info {
             info
         } else {
@@ -77,7 +81,11 @@ impl VerifyCommand {
             )
         };
 
-        let build_info: BuildInfo = serde_json::from_value(build_info.clone().into())?;
+        let build_info: BuildInfo = serde_json::from_value(build_info.clone().into())
+            .context(format!(
+                "Failed to deserialize the build info from {}",
+                path.display()
+            ))?;
 
         tracing::debug!(
             "Parsed the following build info from the metadata: {:?}",
