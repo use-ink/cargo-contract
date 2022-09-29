@@ -24,7 +24,6 @@ use anyhow::{
 };
 use std::{
     fs,
-    io::Write,
     ops::Deref,
     path::{
         Path,
@@ -89,6 +88,7 @@ impl Deref for MockGuard {
 pub fn create_executable(path: &Path, content: &str) -> MockGuard {
     use std::{
         env,
+        io::Write,
         os::unix::fs::PermissionsExt,
     };
     let mut guard = MockGuard(path.to_path_buf());
