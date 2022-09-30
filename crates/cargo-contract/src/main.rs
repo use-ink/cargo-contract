@@ -56,7 +56,6 @@ use anyhow::{
     Result,
 };
 use clap::{
-    AppSettings,
     Args,
     Parser,
     Subcommand,
@@ -79,7 +78,7 @@ pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[clap(name = "contract")]
     #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
-    #[clap(setting = AppSettings::DeriveDisplayOrder)]
+    #[clap(action = ArgAction::DeriveDisplayOrder)]
     Contract(ContractArgs),
 }
 
@@ -241,7 +240,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ArgEnum, serde::Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
@@ -458,7 +457,7 @@ enum Command {
         /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
-        #[clap(short, long, parse(from_os_str))]
+        #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
     },
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file

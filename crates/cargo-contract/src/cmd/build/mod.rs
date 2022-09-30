@@ -90,7 +90,7 @@ pub(crate) struct ExecuteArgs {
 #[clap(name = "build")]
 pub struct BuildCommand {
     /// Path to the `Cargo.toml` of the contract to build
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// By default the contract is compiled with debug functionality
     /// included. This enables the contract to output debug messages,
@@ -115,7 +115,7 @@ pub struct BuildCommand {
     ///
     /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
     ///    only checks for compilation errors.
-    #[clap(long = "generate", arg_enum, default_value = "all")]
+    #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
@@ -223,7 +223,7 @@ impl BuildCommand {
 #[clap(name = "check")]
 pub struct CheckCommand {
     /// Path to the `Cargo.toml` of the contract to build
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
