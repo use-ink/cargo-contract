@@ -98,13 +98,13 @@ pub struct BuildCommand {
     ///
     /// A production contract should always be build in `release` mode!
     /// Then no debug functionality is compiled into the contract.
-    #[clap(long = "--release")]
+    #[clap(long = "release")]
     build_release: bool,
     /// Build offline
-    #[clap(long = "--offline")]
+    #[clap(long = "offline")]
     build_offline: bool,
     /// Skips linting checks during the build process
-    #[clap(long = "--skip-linting")]
+    #[clap(long)]
     skip_linting: bool,
     /// Which build artifacts to generate.
     ///
