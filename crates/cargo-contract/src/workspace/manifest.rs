@@ -26,7 +26,6 @@ use super::{
 use crate::OptimizationPasses;
 
 use std::{
-    collections::HashSet,
     convert::TryFrom,
     fs,
     path::{
@@ -477,11 +476,6 @@ impl<'a> PathRewrite<'a> {
         section_name: &str,
     ) -> Result<()> {
         if let Some(dependencies) = toml.get_mut(section_name) {
-            let exclude = self
-                .exclude_deps
-                .into_iter()
-                .map(|s| s.clone())
-                .collect::<HashSet<_>>();
             let table = dependencies
                 .as_table_mut()
                 .ok_or_else(|| anyhow::anyhow!("dependencies should be a table"))?;
@@ -492,7 +486,7 @@ impl<'a> PathRewrite<'a> {
                     package_name.to_string()
                 };
 
-                if !exclude.contains(&package_name) {
+                if !self.exclude_deps.contains(&package_name) {
                     if let Some(dependency) = value.as_table_mut() {
                         if let Some(dep_path) = dependency.get_mut("path") {
                             self.to_absolute_path(
