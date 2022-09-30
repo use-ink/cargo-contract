@@ -316,6 +316,16 @@ impl Manifest {
         Ok(self)
     }
 
+    /// Replace relative paths with absolute paths with the working directory.
+    ///
+    /// Enables the use of a temporary amended copy of the manifest.
+    ///
+    /// # Rewrites
+    ///
+    /// - `[lib]/path`
+    /// - `[dependencies]`
+    ///
+    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
     pub fn rewrite_relative_paths(&mut self, exclude_deps: &[String]) -> Result<()> {
         let manifest_dir = self.path.absolute_directory()?;
         let path_rewrite = PathRewrite {
@@ -373,6 +383,7 @@ impl Manifest {
     }
 }
 
+/// Replace relative paths with absolute paths with the working directory.
 struct PathRewrite<'a> {
     exclude_deps: &'a [String],
     manifest_dir: PathBuf,
@@ -380,15 +391,6 @@ struct PathRewrite<'a> {
 
 impl<'a> PathRewrite<'a> {
     /// Replace relative paths with absolute paths with the working directory.
-    ///
-    /// Enables the use of a temporary amended copy of the manifest.
-    ///
-    /// # Rewrites
-    ///
-    /// - `[lib]/path`
-    /// - `[dependencies]`
-    ///
-    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
     fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = toml.get_mut("lib") {
