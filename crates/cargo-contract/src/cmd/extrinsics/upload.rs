@@ -53,7 +53,7 @@ use subxt::{
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
     /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[clap(parse(from_os_str))]
+    #[clap(value_parser)]
     wasm_path: Option<PathBuf>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,

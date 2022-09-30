@@ -33,14 +33,14 @@ use transcode::ContractMessageTranscoder;
 )]
 pub struct DecodeCommand {
     /// The type of data to encode.
-    #[clap(arg_enum, short, long)]
+    #[clap(value_enum, short, long)]
     r#type: DataType,
     /// The data to decode; this has to be a hex value starting with `0x`.
     #[clap(short, long)]
     data: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 enum DataType {
     Event,
     Message,
