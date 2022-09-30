@@ -316,124 +316,13 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Replace relative paths with absolute paths with the working directory.
-    ///
-    /// Enables the use of a temporary amended copy of the manifest.
-    ///
-    /// # Rewrites
-    ///
-    /// - `[lib]/path`
-    /// - `[dependencies]`
-    ///
-    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
-    pub(super) fn rewrite_relative_paths<I, S>(
-        &mut self,
-        exclude_deps: I,
-    ) -> Result<&mut Self>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
-    {
-        let abs_path = self.path.as_ref().canonicalize()?;
-        let abs_dir = abs_path
-            .parent()
-            .expect("The manifest path is a file path so has a parent; qed");
-
-        let to_absolute = |value_id: String,
-                           existing_path: &mut value::Value|
-         -> Result<()> {
-            let path_str = existing_path
-                .as_str()
-                .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
-            #[cfg(windows)]
-            // On Windows path separators are `\`, hence we need to replace the `/` in
-            // e.g. `src/lib.rs`.
-            let path_str = &path_str.replace("/", "\\");
-            let path = PathBuf::from(path_str);
-            if path.is_relative() {
-                let lib_abs = abs_dir.join(path);
-                tracing::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
-                *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
-            }
-            Ok(())
+    pub fn rewrite_relative_paths(&mut self, exclude_deps: &[String]) -> Result<()> {
+        let manifest_dir = self.path.absolute_directory()?;
+        let path_rewrite = PathRewrite {
+            exclude_deps,
+            manifest_dir,
         };
-
-        let rewrite_path =
-            |table_value: &mut value::Value, table_section: &str, default: &str| {
-                let table = table_value.as_table_mut().ok_or_else(|| {
-                    anyhow::anyhow!("'[{}]' section should be a table", table_section)
-                })?;
-
-                match table.get_mut("path") {
-                    Some(existing_path) => {
-                        to_absolute(format!("[{}]/path", table_section), existing_path)
-                    }
-                    None => {
-                        let default_path = PathBuf::from(default);
-                        if !default_path.exists() {
-                            anyhow::bail!(
-                                "No path specified, and the default `{}` was not found",
-                                default
-                            )
-                        }
-                        let path = abs_dir.join(default_path);
-                        tracing::debug!("Adding default path '{}'", path.display());
-                        table.insert(
-                            "path".into(),
-                            value::Value::String(path.to_string_lossy().into()),
-                        );
-                        Ok(())
-                    }
-                }
-            };
-
-        // Rewrite `[lib] path = /path/to/lib.rs`
-        if let Some(lib) = self.toml.get_mut("lib") {
-            rewrite_path(lib, "lib", "src/lib.rs")?;
-        }
-
-        // Rewrite `[[bin]] path = /path/to/main.rs`
-        if let Some(bin) = self.toml.get_mut("bin") {
-            let bins = bin.as_array_mut().ok_or_else(|| {
-                anyhow::anyhow!("'[[bin]]' section should be a table array")
-            })?;
-
-            // Rewrite `[[bin]] path =` value to an absolute path.
-            for bin in bins {
-                rewrite_path(bin, "[bin]", "src/main.rs")?;
-            }
-        }
-
-        // Rewrite any dependency relative paths
-        if let Some(dependencies) = self.toml.get_mut("dependencies") {
-            let exclude = exclude_deps
-                .into_iter()
-                .map(|s| s.as_ref().to_string())
-                .collect::<HashSet<_>>();
-            let table = dependencies
-                .as_table_mut()
-                .ok_or_else(|| anyhow::anyhow!("dependencies should be a table"))?;
-            for (name, value) in table {
-                let package_name = {
-                    let package = value.get("package");
-                    let package_name = package.and_then(|p| p.as_str()).unwrap_or(name);
-                    package_name.to_string()
-                };
-
-                if !exclude.contains(&package_name) {
-                    if let Some(dependency) = value.as_table_mut() {
-                        if let Some(dep_path) = dependency.get_mut("path") {
-                            to_absolute(
-                                format!("dependency {}", package_name),
-                                dep_path,
-                            )?;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(self)
+        path_rewrite.rewrite_relative_paths(&mut self.toml)
     }
 
     /// Writes the amended manifest to the given path.
@@ -480,6 +369,139 @@ impl Manifest {
             manifest_path.as_ref().display()
         );
         fs::write(manifest_path, updated_toml)?;
+        Ok(())
+    }
+}
+
+struct PathRewrite<'a> {
+    exclude_deps: &'a [String],
+    manifest_dir: PathBuf,
+}
+
+impl<'a> PathRewrite<'a> {
+    /// Replace relative paths with absolute paths with the working directory.
+    ///
+    /// Enables the use of a temporary amended copy of the manifest.
+    ///
+    /// # Rewrites
+    ///
+    /// - `[lib]/path`
+    /// - `[dependencies]`
+    ///
+    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
+    fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
+        // Rewrite `[lib] path = /path/to/lib.rs`
+        if let Some(lib) = toml.get_mut("lib") {
+            self.rewrite_path(lib, "lib", "src/lib.rs")?;
+        }
+
+        // Rewrite `[[bin]] path = /path/to/main.rs`
+        if let Some(bin) = toml.get_mut("bin") {
+            let bins = bin.as_array_mut().ok_or_else(|| {
+                anyhow::anyhow!("'[[bin]]' section should be a table array")
+            })?;
+
+            // Rewrite `[[bin]] path =` value to an absolute path.
+            for bin in bins {
+                self.rewrite_path(bin, "[bin]", "src/main.rs")?;
+            }
+        }
+
+        self.rewrite_dependencies_relative_paths(toml, "dependencies")?;
+        self.rewrite_dependencies_relative_paths(toml, "dev-dependencies")?;
+
+        Ok(())
+    }
+
+    fn rewrite_path(
+        &self,
+        table_value: &mut value::Value,
+        table_section: &str,
+        default: &str,
+    ) -> Result<()> {
+        let table = table_value.as_table_mut().ok_or_else(|| {
+            anyhow::anyhow!("'[{}]' section should be a table", table_section)
+        })?;
+
+        match table.get_mut("path") {
+            Some(existing_path) => {
+                self.to_absolute_path(format!("[{}]/path", table_section), existing_path)
+            }
+            None => {
+                let default_path = PathBuf::from(default);
+                if !default_path.exists() {
+                    anyhow::bail!(
+                        "No path specified, and the default `{}` was not found",
+                        default
+                    )
+                }
+                let path = self.manifest_dir.join(default_path);
+                tracing::debug!("Adding default path '{}'", path.display());
+                table.insert(
+                    "path".into(),
+                    value::Value::String(path.to_string_lossy().into()),
+                );
+                Ok(())
+            }
+        }
+    }
+
+    /// Expand a relative path to an absolute path.
+    fn to_absolute_path(
+        &self,
+        value_id: String,
+        existing_path: &mut value::Value,
+    ) -> Result<()> {
+        let path_str = existing_path
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("{} should be a string", value_id))?;
+        #[cfg(windows)]
+        // On Windows path separators are `\`, hence we need to replace the `/` in
+        // e.g. `src/lib.rs`.
+        let path_str = &path_str.replace("/", "\\");
+        let path = PathBuf::from(path_str);
+        if path.is_relative() {
+            let lib_abs = self.manifest_dir.join(path);
+            tracing::debug!("Rewriting {} to '{}'", value_id, lib_abs.display());
+            *existing_path = value::Value::String(lib_abs.to_string_lossy().into())
+        }
+        Ok(())
+    }
+
+    /// Rewrite the relative paths of dependencies.
+    fn rewrite_dependencies_relative_paths(
+        &self,
+        toml: &mut value::Table,
+        section_name: &str,
+    ) -> Result<()> {
+        if let Some(dependencies) = toml.get_mut(section_name) {
+            let exclude = self
+                .exclude_deps
+                .into_iter()
+                .map(|s| s.clone())
+                .collect::<HashSet<_>>();
+            let table = dependencies
+                .as_table_mut()
+                .ok_or_else(|| anyhow::anyhow!("dependencies should be a table"))?;
+            for (name, value) in table {
+                let package_name = {
+                    let package = value.get("package");
+                    let package_name = package.and_then(|p| p.as_str()).unwrap_or(name);
+                    package_name.to_string()
+                };
+
+                if !exclude.contains(&package_name) {
+                    if let Some(dependency) = value.as_table_mut() {
+                        if let Some(dep_path) = dependency.get_mut("path") {
+                            self.to_absolute_path(
+                                format!("dependency {}", package_name),
+                                dep_path,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
         Ok(())
     }
 }
