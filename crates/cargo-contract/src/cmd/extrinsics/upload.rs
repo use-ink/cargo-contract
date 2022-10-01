@@ -53,7 +53,7 @@ use subxt::{
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
     /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[clap(parse(from_os_str))]
+    #[clap(value_parser)]
     wasm_path: Option<PathBuf>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
@@ -155,7 +155,7 @@ impl UploadCommand {
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let call = super::runtime_api::api::tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit);
+            .upload_code(code, self.extrinsic_opts.storage_deposit_limit());
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =

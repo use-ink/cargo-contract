@@ -40,7 +40,7 @@ pub struct TestCommand {
     #[clap(long, short)]
     package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to test.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// Test all contract packages in the workspace.
     #[clap(long = "workspace")]

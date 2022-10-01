@@ -83,13 +83,13 @@ type Client = OnlineClient<DefaultConfig>;
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
         long,
-        parse(try_from_str),
+        value_parser,
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
@@ -106,7 +106,7 @@ pub struct ExtrinsicOpts {
     dry_run: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[clap(long, parse(try_from_str = parse_balance))]
+    #[clap(long, value_parser = parse_balance)]
     storage_deposit_limit: Option<Balance>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
@@ -137,6 +137,11 @@ impl ExtrinsicOpts {
             }
             _ => res,
         }
+    }
+
+    /// Get the storage deposit limit converted to compact for passing to extrinsics.
+    pub fn storage_deposit_limit(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
     }
 }
 
