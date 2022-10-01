@@ -101,6 +101,11 @@ impl ManifestPath {
             .as_str()
             .replace("path+file://", "");
 
+        #[cfg(windows)]
+        // On Windows path separators are `\`, hence we need to replace the `/` in
+        // e.g. `src/lib.rs`.
+        let path_str = format!("{}{}", "\\\\?", &path_str.replace('/', "\\"));
+
         let mut path = PathBuf::new();
         path.push(path_str);
         path.push("Cargo.toml");
