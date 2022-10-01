@@ -106,16 +106,16 @@ pub struct BuildCommand {
     ///
     /// A production contract should always be build in `release` mode!
     /// Then no debug functionality is compiled into the contract.
-    #[clap(long = "--release")]
+    #[clap(long = "release")]
     build_release: bool,
     /// Build all contract packages in the workspace
-    #[clap(long = "--workspace")]
+    #[clap(long = "workspace")]
     build_workspace: bool,
     /// Build offline
-    #[clap(long = "--offline")]
+    #[clap(long = "offline")]
     build_offline: bool,
     /// Skips linting checks during the build process
-    #[clap(long = "--skip-linting")]
+    #[clap(long = "skip-linting")]
     skip_linting: bool,
     /// Which build artifacts to generate.
     ///
@@ -263,7 +263,7 @@ pub struct CheckCommand {
     #[clap(long, parse(from_os_str))]
     manifest_path: Option<PathBuf>,
     /// Check all contract packages in the workspace
-    #[clap(long = "--workspace")]
+    #[clap(long = "workspace")]
     check_workspace: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
