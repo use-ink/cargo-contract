@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0-alpha.4] - 2022-10-03
 
+### Fixed
 - Fix storage deposit limit encoding - [#751](https://github.com/paritytech/cargo-contract/pull/751)
 - Rewrite relative path for `dev-dependency` - [#760](https://github.com/paritytech/cargo-contract/pull/760)
 
