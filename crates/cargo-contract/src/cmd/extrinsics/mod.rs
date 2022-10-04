@@ -82,8 +82,6 @@ pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
-use self::balance::DenominatedBalance;
-
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
@@ -93,13 +91,13 @@ type Client = OnlineClient<DefaultConfig>;
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
         long,
-        parse(try_from_str),
+        value_parser,
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
@@ -116,7 +114,7 @@ pub struct ExtrinsicOpts {
     dry_run: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[clap(long, parse(try_from_str = parse_balance))]
+    #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
@@ -160,18 +158,6 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?
             .map(Into::into))
-    }
-}
-
-/// Parse Rust style integer balance literals which can contain underscores.
-fn parse_balance(input: &str) -> Result<BalanceVariant> {
-    let input = input.replace('_', "");
-    if input.contains('.') || input.ends_with(|ch: char| ch.is_alphabetic()) {
-        Ok(BalanceVariant::Denominated(DenominatedBalance::try_from(
-            input,
-        )?))
-    } else {
-        Ok(BalanceVariant::Default(input.parse::<Balance>()?))
     }
 }
 

@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    str::FromStr,
+};
 
 use rust_decimal::{
     self,
@@ -95,10 +98,23 @@ impl TokenMetadata {
     }
 }
 
-impl TryFrom<String> for DenominatedBalance {
-    type Error = anyhow::Error;
+impl FromStr for BalanceVariant {
+    type Err = anyhow::Error;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let input = input.replace('_', "");
+        if input.contains('.') || input.ends_with(|ch: char| ch.is_alphabetic()) {
+            Ok(BalanceVariant::Denominated(DenominatedBalance::from_str(&input)?))
+        } else {
+            Ok(BalanceVariant::Default(input.parse::<Balance>()?))
+        }
+    }
+}
+
+impl FromStr for DenominatedBalance {
+    type Err = anyhow::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let symbols = value
             .trim_start_matches(|ch: char| ch.is_numeric() || ch == '.' || ch == ',');
         let unit_char = symbols
@@ -357,18 +373,16 @@ impl Display for DenominatedBalance {
 
 #[cfg(test)]
 mod tests {
-    use crate::cmd::extrinsics::parse_balance;
-
     use super::*;
 
     #[test]
     fn correct_balances_parses_success() {
         assert!(
-            parse_balance("500DOT").is_ok(),
+            BalanceVariant::from_str("500DOT").is_ok(),
             "<500DOT> was not parsed correctly"
         );
         assert!(
-            parse_balance("500").is_ok(),
+            BalanceVariant::from_str("500").is_ok(),
             "<500> was not parsed correctly"
         );
     }
@@ -376,7 +390,7 @@ mod tests {
     #[test]
     fn incorrect_balances() {
         assert!(
-            parse_balance("500%").is_err(),
+            BalanceVariant::from_str("500%").is_err(),
             "expected to fail parsing incorrect balance"
         );
     }
@@ -387,7 +401,7 @@ mod tests {
             denomination: 10,
             symbol: String::from("DOT"),
         };
-        let bv = parse_balance("500MDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
         assert!(
             bv.denominate_balance(&tm).is_ok(),
             "balances could not be denominated correctly"
@@ -402,7 +416,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 500 * 1_000_000 * 10_000_000_000;
-        let bv = parse_balance("500MDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -415,7 +429,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000_000;
-        let bv = parse_balance("500.5MDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -428,7 +442,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000;
-        let bv = parse_balance("500.5μDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -440,7 +454,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 1;
-        let bv = parse_balance("0.1nDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("0.1nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -454,7 +468,7 @@ mod tests {
             denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let bv = parse_balance("0.01546nDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("0.01546nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -467,7 +481,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000_000_000;
-        let bv = parse_balance("500.5GDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5GDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -480,7 +494,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000;
-        let bv = parse_balance("500.5KDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5KDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -493,7 +507,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000;
-        let bv = parse_balance("500.5DOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -506,7 +520,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000;
-        let bv = parse_balance("500.5mDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5mDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -518,7 +532,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000;
-        let bv = parse_balance("500.5μDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -530,7 +544,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005;
-        let bv = parse_balance("500.5nDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -543,7 +557,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_235_456_210_000_000;
-        let bv = parse_balance("523.545621KDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("523.545621KDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -556,7 +570,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 50_015_000_000_000;
-        let bv = parse_balance("5001.5DOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("5001.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -568,7 +582,7 @@ mod tests {
             denomination: decimals,
             symbol: String::from("DOT"),
         };
-        let bv = parse_balance("0.4μDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("0.4μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -577,7 +591,7 @@ mod tests {
     fn big_input_to_denominate() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336DOT";
-        let bv = parse_balance(s);
+        let bv = BalanceVariant::from_str(s);
         assert!(bv.is_err())
     }
 
@@ -585,7 +599,7 @@ mod tests {
     fn big_input_to_raw() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336";
-        let bv = parse_balance(s);
+        let bv = BalanceVariant::from_str(s);
         assert!(bv.is_ok())
     }
 }

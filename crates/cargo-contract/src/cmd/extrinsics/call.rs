@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    parse_balance,
     prompt_confirm_tx,
     runtime_api::{
         api,
@@ -73,7 +72,7 @@ pub struct CallCommand {
     #[clap(long, short)]
     message: String,
     /// The arguments of the contract message to call.
-    #[clap(long, multiple_values = true)]
+    #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
@@ -82,7 +81,7 @@ pub struct CallCommand {
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
     /// The value to be transferred as part of the call.
-    #[clap(name = "value", long, parse(try_from_str = parse_balance), default_value = "0")]
+    #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
