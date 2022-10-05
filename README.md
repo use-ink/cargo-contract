@@ -34,6 +34,9 @@ More relevant links:
 
 ## Installation
 
+In addition to Rust, installation requires a C++ compiler that supports C++17.
+Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
+
 * Step 1: `rustup component add rust-src`.
 
 * Step 2: Install `dylint`
