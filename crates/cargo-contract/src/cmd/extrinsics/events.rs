@@ -107,13 +107,17 @@ impl DisplayEvents {
                 ) && field.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    if let Result::Ok(contract_event) =
-                        transcoder.decode_contract_event(event_data)
-                    {
-                        let field = Field::new(String::from("data"), contract_event);
-                        event_entry.fields.push(field);
-                    } else {
-                        tracing::warn!("Decoding contract event failed. It might have come from another contract.");
+                    match transcoder.decode_contract_event(event_data) {
+                        Result::Ok(contract_event) => {
+                            let field = Field::new(String::from("data"), contract_event);
+                            event_entry.fields.push(field);
+                        }
+                        Err(err) => {
+                            tracing::warn!(
+                                "Decoding contract event failed: {:?}. It might have come from another contract.",
+                                err
+                            )
+                        }
                     }
                 } else {
                     let field_name =
