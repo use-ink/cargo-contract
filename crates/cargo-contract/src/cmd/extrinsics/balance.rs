@@ -41,16 +41,16 @@ use anyhow::{
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BalanceVariant {
-    /// Default format: no symbol, no denomination
+    /// Default format: no symbol, no token_decimals
     Default(Balance),
-    /// Denominated format: symbol and denomination are present
+    /// Denominated format: symbol and token_decimals are present
     Denominated(DenominatedBalance),
 }
 
 #[derive(Debug, Clone)]
 pub struct TokenMetadata {
-    /// Number of denomination used for denomination
-    pub denomination: usize,
+    /// Number of token_decimals used for denomination
+    pub token_decimals: usize,
     /// Token symbol
     pub symbol: String,
 }
@@ -80,8 +80,8 @@ impl TokenMetadata {
 
         let default_decimals = json!(12);
         let default_units = json!("UNIT");
-        let denomination = sys_props
-            .get("tokenDecimal")
+        let token_decimals = sys_props
+            .get("tokenDecimals")
             .unwrap_or(&default_decimals)
             .as_u64()
             .context("error converting decimal to u64")?
@@ -92,7 +92,7 @@ impl TokenMetadata {
             .as_str()
             .context("error converting symbol to string")?;
         Ok(Self {
-            denomination,
+            token_decimals,
             symbol: symbol.to_string(),
         })
     }
@@ -164,7 +164,7 @@ impl BalanceVariant {
     ///  use anyhow::{Result, Ok};
     ///  let decimals = 6;
     ///  let tm = TokenMetadata {
-    ///        denomination: decimals,
+    ///        token_decimals: decimals,
     ///        symbol: String::from("DOT"),
     /// };
     /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
@@ -181,7 +181,7 @@ impl BalanceVariant {
     ///  use anyhow::{Result, Ok};
     ///  let decimals = 6;
     ///  let tm = TokenMetadata {
-    ///        denomination: decimals,
+    ///        token_decimals: decimals,
     ///        symbol: String::from("DOT"),
     /// };
     /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
@@ -197,7 +197,7 @@ impl BalanceVariant {
         match self {
             BalanceVariant::Default(balance) => Ok(*balance),
             BalanceVariant::Denominated(den_balance) => {
-                let zeros: usize = (token_metadata.denomination as isize
+                let zeros: usize = (token_metadata.token_decimals as isize
                     + match den_balance.unit {
                         UnitPrefix::Giga => 9,
                         UnitPrefix::Mega => 6,
@@ -228,9 +228,9 @@ impl BalanceVariant {
     ///
     /// I takes `value` of `Into<u128>` and [TokenMetadata]
     /// and calculates the value in an denominated format
-    /// by manipulating the denomination.
+    /// by manipulating the token_decimals.
     ///
-    /// If the number is divisible by 10^(`denomination` + `unit_zeros`),
+    /// If the number is divisible by 10^(`token_decimals` + `unit_zeros`),
     /// It sets the [UnitPrefix] and divides the `value` into `Decimal`
     ///
     /// If no [TokenMetadata] was present, than that means
@@ -242,7 +242,7 @@ impl BalanceVariant {
     ///  use anyhow::{Result, Ok};
     ///  let decimals = 10;
     ///  let tm = TokenMetadata {
-    ///        denomination: decimals,
+    ///        token_decimals: decimals,
     ///        symbol: String::from("DOT"),
     /// };
     /// let sample_den_balance = BalanceVariant::Denominated(DenominatedBalance {
@@ -271,13 +271,13 @@ impl BalanceVariant {
 
             let number_of_digits = n.to_string().len();
 
-            let giga_units_zeros = token_metadata.denomination + 9;
-            let mega_units_zeros = token_metadata.denomination + 6;
-            let kilo_units_zeros = token_metadata.denomination + 3;
-            let one_unit_zeros = token_metadata.denomination;
-            let milli_units_zeros = token_metadata.denomination.checked_sub(3);
-            let micro_units_zeros = token_metadata.denomination.checked_sub(6);
-            let nano_units_zeros = token_metadata.denomination.checked_sub(9);
+            let giga_units_zeros = token_metadata.token_decimals + 9;
+            let mega_units_zeros = token_metadata.token_decimals + 6;
+            let kilo_units_zeros = token_metadata.token_decimals + 3;
+            let one_unit_zeros = token_metadata.token_decimals;
+            let milli_units_zeros = token_metadata.token_decimals.checked_sub(3);
+            let micro_units_zeros = token_metadata.token_decimals.checked_sub(6);
+            let nano_units_zeros = token_metadata.token_decimals.checked_sub(9);
 
             let multiple: Decimal;
             let unit: UnitPrefix;
@@ -404,7 +404,7 @@ mod tests {
     #[test]
     fn balance_variant_denominated_success() {
         let tm = TokenMetadata {
-            denomination: 10,
+            token_decimals: 10,
             symbol: String::from("DOT"),
         };
         let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
@@ -418,7 +418,7 @@ mod tests {
     fn balance_variant_denominated_equal() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 500 * 1_000_000 * 10_000_000_000;
@@ -431,7 +431,7 @@ mod tests {
     fn balance_variant_denominated_equal_fraction() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000_000;
@@ -444,7 +444,7 @@ mod tests {
     fn balance_variant_denominated_equal_small_units() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000;
@@ -456,7 +456,7 @@ mod tests {
     fn smallest_value() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 1;
@@ -471,7 +471,7 @@ mod tests {
         // which results in value less than zero
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let bv =
@@ -484,7 +484,7 @@ mod tests {
     fn giga() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000_000_000;
@@ -497,7 +497,7 @@ mod tests {
     fn kilo() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000;
@@ -510,7 +510,7 @@ mod tests {
     fn unit() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000;
@@ -523,7 +523,7 @@ mod tests {
     fn milli() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000;
@@ -535,7 +535,7 @@ mod tests {
     fn micro() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000;
@@ -547,7 +547,7 @@ mod tests {
     fn nano() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005;
@@ -560,7 +560,7 @@ mod tests {
     fn different_digits() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_235_456_210_000_000;
@@ -571,10 +571,10 @@ mod tests {
     }
 
     #[test]
-    fn non_standard_denomination() {
+    fn non_standard_token_decimals() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance: Balance = 50_015_000_000_000;
@@ -587,7 +587,7 @@ mod tests {
     fn small_number_of_decimals_zero() {
         let decimals = 6;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let bv = BalanceVariant::from_str("0.4μDOT").expect("successful parsing. qed");
@@ -615,7 +615,7 @@ mod tests {
     fn convert_from_u128() {
         let decimals = 6;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
@@ -633,7 +633,7 @@ mod tests {
     fn convert_one_from_u128() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
@@ -651,7 +651,7 @@ mod tests {
     fn convert_small_from_u128() {
         let decimals = 10;
         let tm = TokenMetadata {
-            denomination: decimals,
+            token_decimals: decimals,
             symbol: String::from("DOT"),
         };
         // 10_000_000_000 - One
