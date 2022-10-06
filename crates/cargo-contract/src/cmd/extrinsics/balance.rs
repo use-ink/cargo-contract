@@ -281,37 +281,36 @@ impl BalanceVariant {
 
             let multiple: Decimal;
             let unit: UnitPrefix;
-            if number_of_digits > giga_units_zeros {
+            if (giga_units_zeros + 1..).contains(&number_of_digits) {
                 multiple = Decimal::from_str_exact(&format!(
                     "1{}",
                     "0".repeat(giga_units_zeros)
                 ))?;
                 unit = UnitPrefix::Giga;
-            } else if number_of_digits <= giga_units_zeros
-                && number_of_digits > mega_units_zeros
+            } else if (mega_units_zeros + 1..=giga_units_zeros)
+                .contains(&number_of_digits)
             {
                 multiple = Decimal::from_str_exact(&format!(
                     "1{}",
                     "0".repeat(mega_units_zeros)
                 ))?;
                 unit = UnitPrefix::Mega;
-            } else if number_of_digits <= mega_units_zeros
-                && number_of_digits > kilo_units_zeros
+            } else if (kilo_units_zeros + 1..=mega_units_zeros)
+                .contains(&number_of_digits)
             {
                 multiple = Decimal::from_str_exact(&format!(
                     "1{}",
                     "0".repeat(kilo_units_zeros)
                 ))?;
                 unit = UnitPrefix::Kilo;
-            } else if number_of_digits <= kilo_units_zeros
-                && number_of_digits > one_unit_zeros
+            } else if (one_unit_zeros + 1..=kilo_units_zeros).contains(&number_of_digits)
             {
                 multiple =
                     Decimal::from_str_exact(&format!("1{}", "0".repeat(one_unit_zeros)))?;
                 unit = UnitPrefix::One;
-            } else if number_of_digits <= one_unit_zeros
-                && milli_units_zeros.is_some()
-                && number_of_digits > milli_units_zeros.unwrap()
+            } else if milli_units_zeros.is_some()
+                && (milli_units_zeros.unwrap() + 1..=one_unit_zeros)
+                    .contains(&number_of_digits)
             {
                 multiple = Decimal::from_str_exact(&format!(
                     "1{}",
@@ -320,8 +319,8 @@ impl BalanceVariant {
                 unit = UnitPrefix::Milli;
             } else if milli_units_zeros.is_some()
                 && micro_units_zeros.is_some()
-                && number_of_digits <= milli_units_zeros.unwrap()
-                && number_of_digits > micro_units_zeros.unwrap()
+                && (micro_units_zeros.unwrap() + 1..=milli_units_zeros.unwrap())
+                    .contains(&number_of_digits)
             {
                 multiple = Decimal::from_str_exact(&format!(
                     "1{}",
@@ -625,6 +624,46 @@ mod tests {
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 1),
             unit: UnitPrefix::Kilo,
+            symbol: String::from("DOT"),
+        });
+        assert_eq!(sample, denominated_balance);
+    }
+
+    #[test]
+    fn convert_one_from_u128() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        let balance = 532_500_000_000_u128;
+        let denominated_balance =
+            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let sample = BalanceVariant::Denominated(DenominatedBalance {
+            value: Decimal::new(5325, 2),
+            unit: UnitPrefix::One,
+            symbol: String::from("DOT"),
+        });
+        assert_eq!(sample, denominated_balance);
+    }
+
+    #[test]
+    fn convert_small_from_u128() {
+        let decimals = 10;
+        let tm = TokenMetadata {
+            denomination: decimals,
+            symbol: String::from("DOT"),
+        };
+        // 10_000_000_000 - One
+        // 10_000_000 - Milli
+        // 10_000 - Micro
+        // 532_500 - 52.25 Micro
+        let balance = 532_500_u128;
+        let denominated_balance =
+            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let sample = BalanceVariant::Denominated(DenominatedBalance {
+            value: Decimal::new(5325, 2),
+            unit: UnitPrefix::Micro,
             symbol: String::from("DOT"),
         });
         assert_eq!(sample, denominated_balance);
