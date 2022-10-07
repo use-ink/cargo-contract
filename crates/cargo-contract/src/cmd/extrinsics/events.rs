@@ -29,10 +29,7 @@ use transcode::{
     Value,
 };
 
-use anyhow::{
-    Ok,
-    Result,
-};
+use anyhow::Result;
 use std::fmt::Write;
 use subxt::{
     self,
@@ -108,7 +105,7 @@ impl DisplayEvents {
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     match transcoder.decode_contract_event(event_data) {
-                        Result::Ok(contract_event) => {
+                        Ok(contract_event) => {
                             let field = Field::new(String::from("data"), contract_event);
                             event_entry.fields.push(field);
                         }
