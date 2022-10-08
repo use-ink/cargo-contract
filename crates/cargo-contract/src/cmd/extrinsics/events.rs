@@ -29,10 +29,7 @@ use transcode::{
     Value,
 };
 
-use anyhow::{
-    Ok,
-    Result,
-};
+use anyhow::Result;
 use std::fmt::Write;
 use subxt::{
     self,
@@ -107,9 +104,18 @@ impl DisplayEvents {
                 ) && field.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    let contract_event = transcoder.decode_contract_event(event_data)?;
-                    let field = Field::new(String::from("data"), contract_event);
-                    event_entry.fields.push(field);
+                    match transcoder.decode_contract_event(event_data) {
+                        Ok(contract_event) => {
+                            let field = Field::new(String::from("data"), contract_event);
+                            event_entry.fields.push(field);
+                        }
+                        Err(err) => {
+                            tracing::warn!(
+                                "Decoding contract event failed: {:?}. It might have come from another contract.",
+                                err
+                            )
+                        }
+                    }
                 } else {
                     let field_name =
                         field.name().map(ToOwned::to_owned).unwrap_or_else(|| {

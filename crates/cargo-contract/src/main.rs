@@ -50,6 +50,7 @@ use std::{
     str::FromStr,
 };
 
+use ::wasm_opt::OptimizationOptions;
 use anyhow::{
     anyhow,
     Error,
@@ -70,6 +71,12 @@ use assert_cmd as _;
 
 #[cfg(test)]
 use predicates as _;
+
+#[cfg(test)]
+use regex as _;
+
+// Only used on windows.
+use which as _;
 
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
@@ -155,6 +162,22 @@ impl FromStr for OptimizationPasses {
 impl From<String> for OptimizationPasses {
     fn from(str: String) -> Self {
         OptimizationPasses::from_str(&str).expect("conversion failed")
+    }
+}
+
+impl From<OptimizationPasses> for OptimizationOptions {
+    fn from(passes: OptimizationPasses) -> OptimizationOptions {
+        match passes {
+            OptimizationPasses::Zero => OptimizationOptions::new_opt_level_0(),
+            OptimizationPasses::One => OptimizationOptions::new_opt_level_1(),
+            OptimizationPasses::Two => OptimizationOptions::new_opt_level_2(),
+            OptimizationPasses::Three => OptimizationOptions::new_opt_level_3(),
+            OptimizationPasses::Four => OptimizationOptions::new_opt_level_4(),
+            OptimizationPasses::S => OptimizationOptions::new_optimize_for_size(),
+            OptimizationPasses::Z => {
+                OptimizationOptions::new_optimize_for_size_aggressively()
+            }
+        }
     }
 }
 
