@@ -74,8 +74,12 @@ build_tests!(
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
-    building_package_must_work,
-    building_all_must_work
+    building_without_flag_must_work,
+    building_without_flag_virtual_workspace_must_work,
+    building_package_flag_must_work,
+    building_package_flag_virtual_workspace_must_work,
+    building_workspace_flag_must_work,
+    building_workspace_flag_virtual_workspace_must_work
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -338,36 +342,48 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     Ok(())
 }
 
-fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
+fn building_without_flag_must_work(manifest_path: &ManifestPath) -> Result<()> {
     let path = manifest_path.directory().expect("dir must exist");
 
-    let project_name = "new_project";
-    crate::cmd::new::execute(project_name, Some(path))
-        .expect("new project creation failed");
+    // create subcontracts
+    let n_contracts = 3;
+    let mut project_names = Vec::new();
+    for i in 0..n_contracts {
+        let project_name = format!("new_project_{}", i);
+        crate::cmd::new::execute(&project_name, Some(path))
+            .expect("new project creation failed");
+        project_names.push(project_name);
+    }
 
-    // delete original lib.rs
-    fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
+    let original_manifest = fs::read_to_string(manifest_path.clone())?;
 
-    // override manifest_path
+    // add subcontract to manifest
     let mut manifest_path = path.to_path_buf();
     manifest_path.push("Cargo.toml");
     let mut output = fs::File::create(manifest_path.clone())?;
     write!(output, "[workspace]\n\n")?;
     writeln!(output, "members = [")?;
-    writeln!(output, "  \"{}\",", project_name)?;
-    write!(output, "]")?;
+    for project_name in project_names {
+        writeln!(output, "  \"{}\",", project_name)?;
+    }
+    writeln!(output, "]")?;
+
+    // keep original manifest
+    write!(output, "{}", original_manifest)?;
 
     let cmd = BuildCommand {
-        package: Some(project_name.to_string()),
         manifest_path: Some(manifest_path),
         ..Default::default()
     };
 
-    cmd.exec().expect("build failed");
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), 1); // only builds top level contract
     Ok(())
 }
 
-fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
+fn building_without_flag_virtual_workspace_must_work(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
     let path = manifest_path.directory().expect("dir must exist");
 
     // create subcontracts
@@ -383,7 +399,150 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     // delete original lib.rs
     fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
 
-    // override manifest_path
+    // override manifest to create virtual workspace
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    for project_name in project_names {
+        writeln!(output, "  \"{}\",", project_name)?;
+    }
+    write!(output, "]")?;
+
+    let cmd = BuildCommand {
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), n_contracts); // builds all contracts
+    Ok(())
+}
+
+fn building_package_flag_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    let project_name = "new_project";
+    crate::cmd::new::execute(project_name, Some(path))
+        .expect("new project creation failed");
+
+    let original_manifest = fs::read_to_string(manifest_path.clone())?;
+
+    // add subcontract to manifest
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    writeln!(output, "  \"{}\",", project_name)?;
+    writeln!(output, "]")?;
+
+    // keep original manifest
+    write!(output, "{}", original_manifest)?;
+
+    let cmd = BuildCommand {
+        package: Some(project_name.to_string()),
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), 1); // only builds specified package
+    Ok(())
+}
+
+fn building_package_flag_virtual_workspace_must_work(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    let project_name = "new_project";
+    crate::cmd::new::execute(project_name, Some(path))
+        .expect("new project creation failed");
+
+    // delete original lib.rs
+    fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
+
+    // override manifest to create virtual workspace
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    writeln!(output, "  \"{}\",", project_name)?;
+    write!(output, "]")?;
+
+    let cmd = BuildCommand {
+        package: Some(project_name.to_string()),
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), 1); // only builds specified package
+    Ok(())
+}
+
+fn building_workspace_flag_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    // create subcontracts
+    let n_contracts = 3;
+    let mut project_names = Vec::new();
+    for i in 0..n_contracts {
+        let project_name = format!("new_project_{}", i);
+        crate::cmd::new::execute(&project_name, Some(path))
+            .expect("new project creation failed");
+        project_names.push(project_name);
+    }
+
+    let original_manifest = fs::read_to_string(manifest_path.clone())?;
+
+    // add subcontract to manifest
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    for project_name in project_names {
+        writeln!(output, "  \"{}\",", project_name)?;
+    }
+    writeln!(output, "]")?;
+
+    // keep original manifest
+    write!(output, "{}", original_manifest)?;
+
+    let cmd = BuildCommand {
+        build_workspace: true,
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), n_contracts + 1); // builds all subcontracts plus top level contract
+    Ok(())
+}
+
+fn building_workspace_flag_virtual_workspace_must_work(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    // create subcontracts
+    let n_contracts = 3;
+    let mut project_names = Vec::new();
+    for i in 0..n_contracts {
+        let project_name = format!("new_project_{}", i);
+        crate::cmd::new::execute(&project_name, Some(path))
+            .expect("new project creation failed");
+        project_names.push(project_name);
+    }
+
+    // delete original lib.rs
+    fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
+
+    // override manifest to create virtual workspace
     let mut manifest_path = path.to_path_buf();
     manifest_path.push("Cargo.toml");
     let mut output = fs::File::create(manifest_path.clone())?;
@@ -400,7 +559,8 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
         ..Default::default()
     };
 
-    cmd.exec().expect("build failed");
+    let results = cmd.exec().expect("build failed");
+    assert_eq!(results.len(), n_contracts); // builds all contracts
     Ok(())
 }
 
