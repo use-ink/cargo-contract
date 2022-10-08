@@ -17,6 +17,7 @@
 use crate::{
     crate_metadata::{
         get_cargo_workspace_members,
+        is_virtual_manifest,
         CrateMetadata,
     },
     maybe_println,
@@ -55,25 +56,30 @@ impl TestCommand {
             ManifestPath::new_maybe_from_package(&self.manifest_path, &self.package)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let mut ret = Vec::new();
-        match self.test_workspace {
-            true => {
-                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for (i, package_id) in workspace_members.iter().enumerate() {
-                    let manifest_path =
-                        ManifestPath::new_from_subcontract_package_id(package_id.clone())
-                            .expect("Error extracting package manifest path");
+        let mut test_results = Vec::new();
 
-                    ret.push(execute(
-                        &manifest_path,
-                        verbosity,
-                        Some((i + 1, workspace_members.len())),
-                    )?)
-                }
+        let mut test_all = || -> Result<()> {
+            let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+            for (i, package_id) in workspace_members.iter().enumerate() {
+                let subcontract_manifest_path =
+                    ManifestPath::new_from_subcontract_package_id(package_id.clone())
+                        .expect("Error extracting package manifest path");
+                test_results.push(execute(
+                    &subcontract_manifest_path,
+                    verbosity,
+                    Some((i + 1, workspace_members.len())),
+                )?);
             }
-            false => ret.push(execute(&manifest_path, verbosity, None)?),
+            Ok(())
+        };
+
+        if self.test_workspace || is_virtual_manifest(&manifest_path)? {
+            test_all()?;
+        } else {
+            test_results.push(execute(&manifest_path, verbosity, None)?)
         }
-        Ok(ret)
+
+        Ok(test_results)
     }
 }
 
