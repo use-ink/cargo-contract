@@ -133,13 +133,13 @@ pub fn init_tracing_subscriber() {
 /// Enables running a group of tests sequentially, each starting with the original template
 /// contract, but maintaining the target directory so compilation artifacts are maintained across
 /// each test.
-pub struct BuildTestContext {
+pub struct CmdTestContext {
     template_dir: PathBuf,
     working_dir: PathBuf,
 }
 
-impl BuildTestContext {
-    /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
+impl CmdTestContext {
+    /// Create a new `CmdTestContext`, running the `new` command to create a blank contract
     /// template project for testing the build process.
     pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
         crate::cmd::new::execute(working_project_name, Some(tmp_dir))

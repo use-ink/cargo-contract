@@ -47,7 +47,7 @@ macro_rules! build_tests {
         #[test]
         fn build_tests() {
             crate::util::tests::with_tmp_dir(|tmp_dir| {
-                let ctx = crate::util::tests::BuildTestContext::new(tmp_dir, "build_test")?;
+                let ctx = crate::util::tests::CmdTestContext::new(tmp_dir, "build_test")?;
                 $( ctx.run_test(stringify!($fn), $fn)?; )*
                 Ok(())
             })
@@ -56,7 +56,7 @@ macro_rules! build_tests {
 }
 
 // All functions provided here are run sequentially as part of the same `#[test]`
-// sharing build artifacts (but nothing else) using the [`BuildTestContext`].
+// sharing build artifacts (but nothing else) using the [`CmdTestContext`].
 //
 // The motivation for this is to considerably speed up these tests by only requiring dependencies
 // to be build once across all tests.

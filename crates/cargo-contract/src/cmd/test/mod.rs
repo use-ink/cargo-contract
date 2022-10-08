@@ -33,8 +33,11 @@ use std::{
     path::PathBuf,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Executes smart contract tests off-chain by delegating to `cargo test`.
-#[derive(Debug, clap::Args)]
+#[derive(Debug, clap::Args, Default)]
 #[clap(name = "test")]
 pub struct TestCommand {
     /// Contract package to test
