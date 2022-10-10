@@ -34,25 +34,18 @@ More relevant links:
 
 ## Installation
 
+In addition to Rust, installation requires a C++ compiler that supports C++17.
+Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
+
 * Step 1: `rustup component add rust-src`.
 
-* Step 2: Install `binaryen` in a version >= 99:
-
-  * [Debian/Ubuntu](https://tracker.debian.org/pkg/binaryen): `apt-get install binaryen`
-  * [Homebrew](https://formulae.brew.sh/formula/binaryen): `brew install binaryen`
-  * [Arch Linux](https://archlinux.org/packages/community/x86_64/binaryen/): `pacman -S binaryen`
-  * Windows: [binary releases are available](https://github.com/WebAssembly/binaryen/releases)
-
-  There's only an old version in your distributions package manager? Just use a
-  [binary release](https://github.com/WebAssembly/binaryen/releases).
-
-* Step 3: Install `dylint`
+* Step 2: Install `dylint`
   * (MacOS) `brew install openssl`
   * `cargo install cargo-dylint dylint-link`.
 
-* Step 4: `cargo install --force --locked cargo-contract`.
+* Step 3: `cargo install --force --locked cargo-contract`.
 
-You can always update the `cargo-contract` binary to the latest version by running the Step 4.
+You can always update the `cargo-contract` binary to the latest version by running the Step 3.
 
 ### Installation using Docker Image
 

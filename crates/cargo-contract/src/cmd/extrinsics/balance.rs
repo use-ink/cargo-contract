@@ -20,7 +20,6 @@ use std::{
 };
 
 use rust_decimal::{
-    self,
     prelude::FromPrimitive,
     Decimal,
 };

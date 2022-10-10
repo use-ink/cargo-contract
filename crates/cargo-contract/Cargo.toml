@@ -19,9 +19,9 @@ include = [
 
 [dependencies]
 anyhow = "1.0.65"
-clap = { version = "4.0.8", features = ["derive", "env"] }
-tracing = "0.1.36"
-tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
+clap = { version = "4.0.10", features = ["derive", "env"] }
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 heck = "0.4.0"
 zip = { version = "0.6.2", default-features = false }
 parity-wasm = "0.45.0"
@@ -40,8 +40,8 @@ serde_json = "1.0.85"
 tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 impl-serde = "0.4.0"
-regex = "1.6.0"
 rust_decimal = "1.26"
+wasm-opt = "0.110.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
