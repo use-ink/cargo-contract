@@ -14,28 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    fmt::Display,
-    str::FromStr,
-};
+use std::{fmt::Display, str::FromStr};
 
-use rust_decimal::{
-    prelude::FromPrimitive,
-    Decimal,
-};
+use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde_json::json;
 
-use super::{
-    Balance,
-    Client,
-};
+use super::{Balance, Client};
 
-use anyhow::{
-    anyhow,
-    Context,
-    Ok,
-    Result,
-};
+use anyhow::{anyhow, Context, Ok, Result};
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,7 +200,7 @@ impl BalanceVariant {
                 if mantissa_difference < 0 {
                     return Err(anyhow!(
                         "Given precision of a Balance value is higher than allowed"
-                    ))
+                    ));
                 }
                 let balance: Balance = (den_balance.value * multiple).try_into()?;
                 Ok(balance)
@@ -265,7 +251,7 @@ impl BalanceVariant {
                     value: Decimal::ZERO,
                     unit: UnitPrefix::One,
                     symbol: token_metadata.symbol.clone(),
-                }))
+                }));
             }
 
             let number_of_digits = n.to_string().len();
@@ -278,63 +264,48 @@ impl BalanceVariant {
             let micro_units_zeros = token_metadata.token_decimals.checked_sub(6);
             let nano_units_zeros = token_metadata.token_decimals.checked_sub(9);
 
-            let multiple: Decimal;
             let unit: UnitPrefix;
+            let zeros: usize;
             if (giga_units_zeros + 1..).contains(&number_of_digits) {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(giga_units_zeros)
-                ))?;
+                zeros = giga_units_zeros;
                 unit = UnitPrefix::Giga;
             } else if (mega_units_zeros + 1..=giga_units_zeros)
                 .contains(&number_of_digits)
             {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(mega_units_zeros)
-                ))?;
+                zeros = mega_units_zeros;
                 unit = UnitPrefix::Mega;
             } else if (kilo_units_zeros + 1..=mega_units_zeros)
                 .contains(&number_of_digits)
             {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(kilo_units_zeros)
-                ))?;
+                zeros = kilo_units_zeros;
                 unit = UnitPrefix::Kilo;
             } else if (one_unit_zeros + 1..=kilo_units_zeros).contains(&number_of_digits)
             {
-                multiple =
-                    Decimal::from_str_exact(&format!("1{}", "0".repeat(one_unit_zeros)))?;
+                zeros = one_unit_zeros;
                 unit = UnitPrefix::One;
             } else if milli_units_zeros.is_some()
                 && (milli_units_zeros.unwrap() + 1..=one_unit_zeros)
                     .contains(&number_of_digits)
             {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(milli_units_zeros.unwrap())
-                ))?;
+                zeros = milli_units_zeros.expect("the number is checked to be >= 0. qed");
                 unit = UnitPrefix::Milli;
             } else if milli_units_zeros.is_some()
                 && micro_units_zeros.is_some()
                 && (micro_units_zeros.unwrap() + 1..=milli_units_zeros.unwrap())
                     .contains(&number_of_digits)
             {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(micro_units_zeros.unwrap())
-                ))?;
+                zeros = micro_units_zeros.expect("the number is checked to be >= 0. qed");
                 unit = UnitPrefix::Micro;
             } else if nano_units_zeros.is_some() {
-                multiple = Decimal::from_str_exact(&format!(
-                    "1{}",
-                    "0".repeat(nano_units_zeros.unwrap())
-                ))?;
+                zeros = nano_units_zeros.expect("the number is checked to be >= 0. qed");
                 unit = UnitPrefix::Nano;
             } else {
-                return Err(anyhow!("Invalid denomination"))
+                return Err(anyhow!("Invalid denomination"));
             }
+            let multiple = Decimal::from_str_exact(&format!(
+                "1{}",
+                "0".repeat(zeros)
+            ))?;
             let value = Decimal::from_u128(n)
                 .context("value can not be converted into decimal")?
                 / multiple;
