@@ -14,14 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::Display,
+    str::FromStr,
+};
 
-use rust_decimal::{prelude::FromPrimitive, Decimal};
+use rust_decimal::{
+    prelude::FromPrimitive,
+    Decimal,
+};
 use serde_json::json;
 
-use super::{Balance, Client};
+use super::{
+    Balance,
+    Client,
+};
 
-use anyhow::{anyhow, Context, Ok, Result};
+use anyhow::{
+    anyhow,
+    Context,
+    Ok,
+    Result,
+};
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -200,7 +214,7 @@ impl BalanceVariant {
                 if mantissa_difference < 0 {
                     return Err(anyhow!(
                         "Given precision of a Balance value is higher than allowed"
-                    ));
+                    ))
                 }
                 let balance: Balance = (den_balance.value * multiple).try_into()?;
                 Ok(balance)
@@ -251,7 +265,7 @@ impl BalanceVariant {
                     value: Decimal::ZERO,
                     unit: UnitPrefix::One,
                     symbol: token_metadata.symbol.clone(),
-                }));
+                }))
             }
 
             let number_of_digits = n.to_string().len();
@@ -287,25 +301,31 @@ impl BalanceVariant {
                 && (milli_units_zeros.unwrap() + 1..=one_unit_zeros)
                     .contains(&number_of_digits)
             {
-                zeros = milli_units_zeros.expect("the number is checked to be >= 0. qed");
+                zeros = match milli_units_zeros {
+                    Some(val) => val,
+                    None => return Err(anyhow!("the number is checked to be >= 0. qed")),
+                };
                 unit = UnitPrefix::Milli;
             } else if milli_units_zeros.is_some()
                 && micro_units_zeros.is_some()
                 && (micro_units_zeros.unwrap() + 1..=milli_units_zeros.unwrap())
                     .contains(&number_of_digits)
             {
-                zeros = micro_units_zeros.expect("the number is checked to be >= 0. qed");
+                zeros = match micro_units_zeros {
+                    Some(val) => val,
+                    None => return Err(anyhow!("the number is checked to be >= 0. qed")),
+                };
                 unit = UnitPrefix::Micro;
             } else if nano_units_zeros.is_some() {
-                zeros = nano_units_zeros.expect("the number is checked to be >= 0. qed");
+                zeros = match nano_units_zeros {
+                    Some(val) => val,
+                    None => return Err(anyhow!("the number is checked to be >= 0. qed")),
+                };
                 unit = UnitPrefix::Nano;
             } else {
-                return Err(anyhow!("Invalid denomination"));
+                return Err(anyhow!("Invalid denomination"))
             }
-            let multiple = Decimal::from_str_exact(&format!(
-                "1{}",
-                "0".repeat(zeros)
-            ))?;
+            let multiple = Decimal::from_str_exact(&format!("1{}", "0".repeat(zeros)))?;
             let value = Decimal::from_u128(n)
                 .context("value can not be converted into decimal")?
                 / multiple;
