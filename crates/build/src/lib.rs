@@ -14,33 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod crate_metadata;
+mod workspace;
+mod validate_wasm;
+mod wasm_opt;
+pub mod util;
 #[cfg(test)]
 mod tests;
 
-use crate::{
+pub use self::{
     crate_metadata::CrateMetadata,
-    maybe_println,
-    util,
-    validate_wasm,
-    wasm_opt::WasmOptHandler,
     workspace::{
         Manifest,
         ManifestPath,
         Profile,
         Workspace,
     },
-    BuildArtifacts,
-    BuildMode,
-    BuildResult,
-    Network,
-    OptimizationPasses,
-    OptimizationResult,
-    OutputType,
-    UnstableFlags,
-    UnstableOptions,
-    Verbosity,
-    VerbosityFlags,
+    wasm_opt::OptimizationPasses,
 };
+
 use anyhow::{
     Context,
     Result,
@@ -56,6 +48,7 @@ use parity_wasm::elements::{
 use semver::Version;
 use std::{
     convert::TryFrom,
+    fmt::Display,
     path::{
         Path,
         PathBuf,
@@ -82,6 +75,233 @@ pub(crate) struct ExecuteArgs {
     pub skip_linting: bool,
     pub output_type: OutputType,
 }
+
+/// Denotes if output should be printed to stdout.
+#[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
+pub enum Verbosity {
+    /// Use default output
+    Default,
+    /// No output printed to stdout
+    Quiet,
+    /// Use verbose output
+    Verbose,
+}
+
+impl Default for Verbosity {
+    fn default() -> Self {
+        Verbosity::Default
+    }
+}
+
+impl Verbosity {
+    /// Returns `true` if output should be printed (i.e. verbose output is set).
+    pub(crate) fn is_verbose(&self) -> bool {
+        match self {
+            Verbosity::Quiet => false,
+            Verbosity::Default | Verbosity::Verbose => true,
+        }
+    }
+}
+
+/// Use network connection to build contracts and generate metadata or use cached dependencies only.
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+pub enum Network {
+    /// Use network
+    Online,
+    /// Use cached dependencies.
+    Offline,
+}
+
+impl Default for Network {
+    fn default() -> Network {
+        Network::Online
+    }
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        match self {
+            Self::Online => write!(f, ""),
+            Self::Offline => write!(f, "--offline"),
+        }
+    }
+}
+
+/// Describes which artifacts to generate
+#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
+#[clap(name = "build-artifacts")]
+pub enum BuildArtifacts {
+    /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
+    #[clap(name = "all")]
+    All,
+    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
+    /// skipped
+    #[clap(name = "code-only")]
+    CodeOnly,
+    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
+    /// compilation errors.
+    #[clap(name = "check-only")]
+    CheckOnly,
+}
+
+impl BuildArtifacts {
+    /// Returns the number of steps required to complete a build artifact.
+    /// Used as output on the cli.
+    pub fn steps(&self) -> usize {
+        match self {
+            BuildArtifacts::All => 6,
+            BuildArtifacts::CodeOnly => 4,
+            BuildArtifacts::CheckOnly => 2,
+        }
+    }
+}
+
+impl Default for BuildArtifacts {
+    fn default() -> Self {
+        BuildArtifacts::All
+    }
+}
+
+/// The mode to build the contract in.
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+pub enum BuildMode {
+    /// Functionality to output debug messages is build into the contract.
+    Debug,
+    /// The contract is build without any debugging functionality.
+    Release,
+}
+
+impl Default for BuildMode {
+    fn default() -> BuildMode {
+        BuildMode::Debug
+    }
+}
+
+impl Display for BuildMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        match self {
+            Self::Debug => write!(f, "debug"),
+            Self::Release => write!(f, "release"),
+        }
+    }
+}
+
+/// The type of output to display at the end of a build.
+pub enum OutputType {
+    /// Output build results in a human readable format.
+    HumanReadable,
+    /// Output the build results JSON formatted.
+    Json,
+}
+
+impl Default for OutputType {
+    fn default() -> Self {
+        OutputType::HumanReadable
+    }
+}
+
+/// Result of the metadata generation process.
+#[derive(serde::Serialize)]
+pub struct BuildResult {
+    /// Path to the resulting Wasm file.
+    pub dest_wasm: Option<PathBuf>,
+    /// Result of the metadata generation.
+    pub metadata_result: Option<MetadataResult>,
+    /// Path to the directory where output files are written to.
+    pub target_directory: PathBuf,
+    /// If existent the result of the optimization.
+    pub optimization_result: Option<OptimizationResult>,
+    /// The mode to build the contract in.
+    pub build_mode: BuildMode,
+    /// Which build artifacts were generated.
+    pub build_artifact: BuildArtifacts,
+    /// The verbosity flags.
+    pub verbosity: Verbosity,
+    /// The type of formatting to use for the build output.
+    #[serde(skip_serializing)]
+    pub output_type: OutputType,
+}
+
+impl BuildResult {
+    pub fn display(&self) -> String {
+        let optimization = self.display_optimization();
+        let size_diff = format!(
+            "\nOriginal wasm size: {}, Optimized: {}\n\n",
+            format!("{:.1}K", optimization.0).bold(),
+            format!("{:.1}K", optimization.1).bold(),
+        );
+        debug_assert!(
+            optimization.1 > 0.0,
+            "optimized file size must be greater 0"
+        );
+
+        let build_mode = format!(
+            "The contract was built in {} mode.\n\n",
+            format!("{}", self.build_mode).to_uppercase().bold(),
+        );
+
+        if self.build_artifact == BuildArtifacts::CodeOnly {
+            let out = format!(
+                "{}{}Your contract's code is ready. You can find it here:\n{}",
+                size_diff,
+                build_mode,
+                self.dest_wasm
+                    .as_ref()
+                    .expect("wasm path must exist")
+                    .display()
+                    .to_string()
+                    .bold()
+            );
+            return out
+        };
+
+        let mut out = format!(
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
+            size_diff,
+            build_mode,
+            self.target_directory.display().to_string().bold(),
+        );
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
+            let bundle = format!(
+                "  - {} (code + metadata)\n",
+                util::base_name(&metadata_result.dest_bundle).bold()
+            );
+            out.push_str(&bundle);
+        }
+        if let Some(dest_wasm) = self.dest_wasm.as_ref() {
+            let wasm = format!(
+                "  - {} (the contract's code)\n",
+                util::base_name(dest_wasm).bold()
+            );
+            out.push_str(&wasm);
+        }
+        if let Some(metadata_result) = self.metadata_result.as_ref() {
+            let metadata = format!(
+                "  - {} (the contract's metadata)",
+                util::base_name(&metadata_result.dest_metadata).bold()
+            );
+            out.push_str(&metadata);
+        }
+        out
+    }
+
+    /// Returns a tuple of `(original_size, optimized_size)`.
+    ///
+    /// Panics if no optimization result is available.
+    fn display_optimization(&self) -> (f64, f64) {
+        let optimization = self
+            .optimization_result
+            .as_ref()
+            .expect("optimization result must exist");
+        (optimization.original_size, optimization.optimized_size)
+    }
+
+    /// Display the build results in a pretty formatted JSON string.
+    pub fn serialize_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+}
+
 
 /// Executes the supplied cargo command on the project in the specified directory, defaults to the
 /// current directory.

@@ -638,6 +638,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
+name = "contract-build"
+version = "2.0.0-alpha.4"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "clap",
+ "colored",
+ "heck",
+ "hex",
+ "impl-serde 0.4.0",
+ "parity-scale-codec",
+ "parity-wasm 0.45.0",
+ "pretty_assertions",
+ "rustc_version",
+ "semver",
+ "serde",
+ "serde_json",
+ "toml",
+ "tracing",
+ "tracing-subscriber 0.3.16",
+ "url",
+ "wasm-opt",
+ "zip",
+]
+
+[[package]]
 name = "contract-metadata"
 version = "2.0.0-alpha.4"
 dependencies = [
