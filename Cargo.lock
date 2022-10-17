@@ -473,6 +473,7 @@ dependencies = [
  "cargo_metadata",
  "clap",
  "colored",
+ "contract-build",
  "contract-metadata",
  "contract-transcode",
  "current_platform",

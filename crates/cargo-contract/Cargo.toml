@@ -33,6 +33,7 @@ toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
 contract-metadata = { version = "2.0.0-alpha.4", path = "../metadata" }
+contract-build = { version = "2.0.0-alpha.4", path = "../build" }
 transcode = { package = "contract-transcode", version = "2.0.0-alpha.4", path = "../transcode" }
 semver = { version = "1.0.14", features = ["serde"] }
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }

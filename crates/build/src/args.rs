@@ -14,19 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    metadata::MetadataResult,
-    util,
-    wasm_opt::OptimizationResult,
-};
 use anyhow::Result;
 use clap::Args;
-use colored::Colorize;
 use std::{
     convert::TryFrom,
     fmt,
-    path::PathBuf,
 };
+
+#[derive(Default, Clone, Debug, Args)]
+pub struct VerbosityFlags {
+    /// No output printed to stdout
+    #[clap(long)]
+    quiet: bool,
+    /// Use verbose output
+    #[clap(long)]
+    verbose: bool,
+}
+
+impl TryFrom<&VerbosityFlags> for Verbosity {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
+        match (value.quiet, value.verbose) {
+            (false, false) => Ok(Verbosity::Default),
+            (true, false) => Ok(Verbosity::Quiet),
+            (false, true) => Ok(Verbosity::Verbose),
+            (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
+        }
+    }
+}
 
 /// Denotes if output should be printed to stdout.
 #[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
@@ -152,110 +168,8 @@ impl Default for OutputType {
     }
 }
 
-/// Result of the metadata generation process.
-#[derive(serde::Serialize)]
-pub struct BuildResult {
-    /// Path to the resulting Wasm file.
-    pub dest_wasm: Option<PathBuf>,
-    /// Result of the metadata generation.
-    pub metadata_result: Option<MetadataResult>,
-    /// Path to the directory where output files are written to.
-    pub target_directory: PathBuf,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<OptimizationResult>,
-    /// The mode to build the contract in.
-    pub build_mode: BuildMode,
-    /// Which build artifacts were generated.
-    pub build_artifact: BuildArtifacts,
-    /// The verbosity flags.
-    pub verbosity: Verbosity,
-    /// The type of formatting to use for the build output.
-    #[serde(skip_serializing)]
-    pub output_type: OutputType,
-}
-
-impl BuildResult {
-    pub fn display(&self) -> String {
-        let optimization = self.display_optimization();
-        let size_diff = format!(
-            "\nOriginal wasm size: {}, Optimized: {}\n\n",
-            format!("{:.1}K", optimization.0).bold(),
-            format!("{:.1}K", optimization.1).bold(),
-        );
-        debug_assert!(
-            optimization.1 > 0.0,
-            "optimized file size must be greater 0"
-        );
-
-        let build_mode = format!(
-            "The contract was built in {} mode.\n\n",
-            format!("{}", self.build_mode).to_uppercase().bold(),
-        );
-
-        if self.build_artifact == BuildArtifacts::CodeOnly {
-            let out = format!(
-                "{}{}Your contract's code is ready. You can find it here:\n{}",
-                size_diff,
-                build_mode,
-                self.dest_wasm
-                    .as_ref()
-                    .expect("wasm path must exist")
-                    .display()
-                    .to_string()
-                    .bold()
-            );
-            return out
-        };
-
-        let mut out = format!(
-            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
-            size_diff,
-            build_mode,
-            self.target_directory.display().to_string().bold(),
-        );
-        if let Some(metadata_result) = self.metadata_result.as_ref() {
-            let bundle = format!(
-                "  - {} (code + metadata)\n",
-                util::base_name(&metadata_result.dest_bundle).bold()
-            );
-            out.push_str(&bundle);
-        }
-        if let Some(dest_wasm) = self.dest_wasm.as_ref() {
-            let wasm = format!(
-                "  - {} (the contract's code)\n",
-                util::base_name(dest_wasm).bold()
-            );
-            out.push_str(&wasm);
-        }
-        if let Some(metadata_result) = self.metadata_result.as_ref() {
-            let metadata = format!(
-                "  - {} (the contract's metadata)",
-                util::base_name(&metadata_result.dest_metadata).bold()
-            );
-            out.push_str(&metadata);
-        }
-        out
-    }
-
-    /// Returns a tuple of `(original_size, optimized_size)`.
-    ///
-    /// Panics if no optimization result is available.
-    fn display_optimization(&self) -> (f64, f64) {
-        let optimization = self
-            .optimization_result
-            .as_ref()
-            .expect("optimization result must exist");
-        (optimization.original_size, optimization.optimized_size)
-    }
-
-    /// Display the build results in a pretty formatted JSON string.
-    pub fn serialize_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-}
-
 #[derive(Default, Clone, Debug, Args)]
-struct UnstableOptions {
+pub struct UnstableOptions {
     /// Use the original manifest (Cargo.toml), do not modify for build optimizations
     #[clap(long = "unstable-options", short = 'Z', number_of_values = 1)]
     options: Vec<String>,

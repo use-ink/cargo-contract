@@ -40,9 +40,10 @@ use crate::{
         events::DisplayEvents,
         ErrorVariant,
     },
-    name_value_println,
     DEFAULT_KEY_COL_WIDTH,
 };
+use contract_build::name_value_println;
+
 use anyhow::{
     anyhow,
     Result,

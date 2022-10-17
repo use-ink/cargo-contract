@@ -40,10 +40,12 @@ use crate::{
         events::DisplayEvents,
         ErrorVariant,
     },
+    DEFAULT_KEY_COL_WIDTH,
+};
+use contract_build::{
     name_value_println,
     util::decode_hex,
     Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,

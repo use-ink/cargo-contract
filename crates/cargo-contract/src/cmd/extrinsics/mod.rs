@@ -44,12 +44,12 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{
-    crate_metadata::CrateMetadata,
+use crate::DEFAULT_KEY_COL_WIDTH;
+use contract_build::{
+    CrateMetadata,
     name_value_println,
     Verbosity,
     VerbosityFlags,
-    DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
 use scale::{

@@ -20,7 +20,6 @@ mod cmd;
 
 use self::{
     cmd::{
-        metadata::MetadataResult,
         BuildCommand,
         CallCommand,
         CheckCommand,
@@ -33,7 +32,10 @@ use self::{
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::ManifestPath,
 };
-
+use contract_build::{
+    metadata::MetadataResult,
+    name_value_println,
+};
 use std::{
     convert::TryFrom,
     fmt::{
@@ -98,29 +100,6 @@ impl FromStr for HexData {
 
     fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
         hex::decode(input).map(HexData)
-    }
-}
-
-#[derive(Default, Clone, Debug, Args)]
-pub struct VerbosityFlags {
-    /// No output printed to stdout
-    #[clap(long)]
-    quiet: bool,
-    /// Use verbose output
-    #[clap(long)]
-    verbose: bool,
-}
-
-impl TryFrom<&VerbosityFlags> for Verbosity {
-    type Error = Error;
-
-    fn try_from(value: &VerbosityFlags) -> Result<Self, Self::Error> {
-        match (value.quiet, value.verbose) {
-            (false, false) => Ok(Verbosity::Default),
-            (true, false) => Ok(Verbosity::Quiet),
-            (false, true) => Ok(Verbosity::Verbose),
-            (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
-        }
     }
 }
 

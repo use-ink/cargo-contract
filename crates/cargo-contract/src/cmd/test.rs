@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
+use contract_build::{
     maybe_println,
     util,
-    workspace::ManifestPath,
+    ManifestPath,
     Verbosity,
     VerbosityFlags,
 };
