@@ -15,7 +15,9 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
 anyhow = "1.0.65"
+blake2 = "0.10.4"
 cargo_metadata = "0.15.0"
+contract-metadata = { version = "2.0.0-alpha.4", path = "../metadata" }
 colored = "2.0.0"
 clap = { version = "4.0.15", features = ["derive", "env"] }
 heck = "0.4.0"
@@ -30,6 +32,7 @@ parity-wasm = "0.45.0"
 semver = { version = "1.0.14", features = ["serde"] }
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
 serde_json = "1.0.86"
+tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 wasm-opt = "0.110.1"
 zip = { version = "0.6.3", default-features = false }

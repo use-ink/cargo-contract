@@ -642,9 +642,11 @@ name = "contract-build"
 version = "2.0.0-alpha.4"
 dependencies = [
  "anyhow",
+ "blake2",
  "cargo_metadata",
  "clap",
  "colored",
+ "contract-metadata",
  "heck",
  "hex",
  "impl-serde 0.4.0",
@@ -655,6 +657,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "tempfile",
  "toml",
  "tracing",
  "tracing-subscriber 0.3.16",

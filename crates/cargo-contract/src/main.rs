@@ -17,11 +17,6 @@
 #![deny(unused_crate_dependencies)]
 
 mod cmd;
-mod crate_metadata;
-mod util;
-mod validate_wasm;
-mod wasm_opt;
-mod workspace;
 
 use self::{
     cmd::{
@@ -126,37 +121,6 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
             (false, true) => Ok(Verbosity::Verbose),
             (true, true) => anyhow::bail!("Cannot pass both --quiet and --verbose flags"),
         }
-    }
-}
-
-#[derive(Default, Clone, Debug, Args)]
-struct UnstableOptions {
-    /// Use the original manifest (Cargo.toml), do not modify for build optimizations
-    #[clap(long = "unstable-options", short = 'Z', number_of_values = 1)]
-    options: Vec<String>,
-}
-
-#[derive(Clone, Default)]
-struct UnstableFlags {
-    original_manifest: bool,
-}
-
-impl TryFrom<&UnstableOptions> for UnstableFlags {
-    type Error = Error;
-
-    fn try_from(value: &UnstableOptions) -> Result<Self, Self::Error> {
-        let valid_flags = ["original-manifest"];
-        let invalid_flags = value
-            .options
-            .iter()
-            .filter(|o| !valid_flags.contains(&o.as_str()))
-            .collect::<Vec<_>>();
-        if !invalid_flags.is_empty() {
-            anyhow::bail!("Unknown unstable-options {:?}", invalid_flags)
-        }
-        Ok(UnstableFlags {
-            original_manifest: value.options.contains(&"original-manifest".to_owned()),
-        })
     }
 }
 

@@ -14,23 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod args;
 mod crate_metadata;
-mod workspace;
-mod validate_wasm;
-mod wasm_opt;
-pub mod util;
+mod metadata;
 #[cfg(test)]
 mod tests;
+pub mod util;
+mod validate_wasm;
+mod wasm_opt;
+mod workspace;
 
 pub use self::{
+    args::{
+        BuildArtifacts,
+        BuildMode,
+        BuildResult,
+        Network,
+        OutputType,
+        UnstableFlags,
+        Verbosity,
+    },
     crate_metadata::CrateMetadata,
+    wasm_opt::{
+        OptimizationPasses,
+        OptimizationResult,
+        WasmOptHandler,
+    },
     workspace::{
         Manifest,
         ManifestPath,
         Profile,
         Workspace,
     },
-    wasm_opt::OptimizationPasses,
 };
 
 use anyhow::{
@@ -47,12 +62,7 @@ use parity_wasm::elements::{
 };
 use semver::Version;
 use std::{
-    convert::TryFrom,
-    fmt::Display,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::Path,
     process::Command,
     str,
 };
@@ -62,7 +72,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Default)]
-pub(crate) struct ExecuteArgs {
+pub struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
     pub verbosity: Verbosity,
@@ -76,232 +86,155 @@ pub(crate) struct ExecuteArgs {
     pub output_type: OutputType,
 }
 
-/// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
-pub enum Verbosity {
-    /// Use default output
-    Default,
-    /// No output printed to stdout
-    Quiet,
-    /// Use verbose output
-    Verbose,
-}
+impl ExecuteArgs {
+    /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
+    ///
+    /// It does so by invoking `cargo build` and then post processing the final binary.
+    pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+        let ExecuteArgs {
+            manifest_path,
+            verbosity,
+            build_mode,
+            network,
+            build_artifact,
+            unstable_flags,
+            optimization_passes,
+            keep_debug_symbols,
+            skip_linting,
+            output_type,
+        } = args;
 
-impl Default for Verbosity {
-    fn default() -> Self {
-        Verbosity::Default
-    }
-}
+        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
-impl Verbosity {
-    /// Returns `true` if output should be printed (i.e. verbose output is set).
-    pub(crate) fn is_verbose(&self) -> bool {
-        match self {
-            Verbosity::Quiet => false,
-            Verbosity::Default | Verbosity::Verbose => true,
+        assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
+        if build_mode == BuildMode::Debug {
+            assert_debug_mode_supported(&crate_metadata.ink_version)?;
         }
-    }
-}
 
-/// Use network connection to build contracts and generate metadata or use cached dependencies only.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
-pub enum Network {
-    /// Use network
-    Online,
-    /// Use cached dependencies.
-    Offline,
-}
+        let build = || -> Result<OptimizationResult> {
+            if skip_linting {
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[1/{}]", build_artifact.steps()).bold(),
+                    "Skip ink! linting rules".bright_yellow().bold()
+                );
+            } else {
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[1/{}]", build_artifact.steps()).bold(),
+                    "Checking ink! linting rules".bright_green().bold()
+                );
+                exec_cargo_dylint(&crate_metadata, verbosity)?;
+            }
 
-impl Default for Network {
-    fn default() -> Network {
-        Network::Online
-    }
-}
-
-impl Display for Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
-        match self {
-            Self::Online => write!(f, ""),
-            Self::Offline => write!(f, "--offline"),
-        }
-    }
-}
-
-/// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
-#[clap(name = "build-artifacts")]
-pub enum BuildArtifacts {
-    /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
-    #[clap(name = "all")]
-    All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
-    /// skipped
-    #[clap(name = "code-only")]
-    CodeOnly,
-    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
-    /// compilation errors.
-    #[clap(name = "check-only")]
-    CheckOnly,
-}
-
-impl BuildArtifacts {
-    /// Returns the number of steps required to complete a build artifact.
-    /// Used as output on the cli.
-    pub fn steps(&self) -> usize {
-        match self {
-            BuildArtifacts::All => 6,
-            BuildArtifacts::CodeOnly => 4,
-            BuildArtifacts::CheckOnly => 2,
-        }
-    }
-}
-
-impl Default for BuildArtifacts {
-    fn default() -> Self {
-        BuildArtifacts::All
-    }
-}
-
-/// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
-pub enum BuildMode {
-    /// Functionality to output debug messages is build into the contract.
-    Debug,
-    /// The contract is build without any debugging functionality.
-    Release,
-}
-
-impl Default for BuildMode {
-    fn default() -> BuildMode {
-        BuildMode::Debug
-    }
-}
-
-impl Display for BuildMode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
-        match self {
-            Self::Debug => write!(f, "debug"),
-            Self::Release => write!(f, "release"),
-        }
-    }
-}
-
-/// The type of output to display at the end of a build.
-pub enum OutputType {
-    /// Output build results in a human readable format.
-    HumanReadable,
-    /// Output the build results JSON formatted.
-    Json,
-}
-
-impl Default for OutputType {
-    fn default() -> Self {
-        OutputType::HumanReadable
-    }
-}
-
-/// Result of the metadata generation process.
-#[derive(serde::Serialize)]
-pub struct BuildResult {
-    /// Path to the resulting Wasm file.
-    pub dest_wasm: Option<PathBuf>,
-    /// Result of the metadata generation.
-    pub metadata_result: Option<MetadataResult>,
-    /// Path to the directory where output files are written to.
-    pub target_directory: PathBuf,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<OptimizationResult>,
-    /// The mode to build the contract in.
-    pub build_mode: BuildMode,
-    /// Which build artifacts were generated.
-    pub build_artifact: BuildArtifacts,
-    /// The verbosity flags.
-    pub verbosity: Verbosity,
-    /// The type of formatting to use for the build output.
-    #[serde(skip_serializing)]
-    pub output_type: OutputType,
-}
-
-impl BuildResult {
-    pub fn display(&self) -> String {
-        let optimization = self.display_optimization();
-        let size_diff = format!(
-            "\nOriginal wasm size: {}, Optimized: {}\n\n",
-            format!("{:.1}K", optimization.0).bold(),
-            format!("{:.1}K", optimization.1).bold(),
-        );
-        debug_assert!(
-            optimization.1 > 0.0,
-            "optimized file size must be greater 0"
-        );
-
-        let build_mode = format!(
-            "The contract was built in {} mode.\n\n",
-            format!("{}", self.build_mode).to_uppercase().bold(),
-        );
-
-        if self.build_artifact == BuildArtifacts::CodeOnly {
-            let out = format!(
-                "{}{}Your contract's code is ready. You can find it here:\n{}",
-                size_diff,
-                build_mode,
-                self.dest_wasm
-                    .as_ref()
-                    .expect("wasm path must exist")
-                    .display()
-                    .to_string()
-                    .bold()
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[2/{}]", build_artifact.steps()).bold(),
+                "Building cargo project".bright_green().bold()
             );
-            return out
+            exec_cargo_for_wasm_target(
+                &crate_metadata,
+                "build",
+                build_mode,
+                network,
+                verbosity,
+                &unstable_flags,
+            )?;
+
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[3/{}]", build_artifact.steps()).bold(),
+                "Post processing wasm file".bright_green().bold()
+            );
+            post_process_wasm(&crate_metadata)?;
+
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("[4/{}]", build_artifact.steps()).bold(),
+                "Optimizing wasm file".bright_green().bold()
+            );
+
+            let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
+            let optimization_result = handler.optimize(
+                &crate_metadata.dest_wasm,
+                &crate_metadata.contract_artifact_name,
+            )?;
+
+            Ok(optimization_result)
         };
 
-        let mut out = format!(
-            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
-            size_diff,
+        let (opt_result, metadata_result) = match build_artifact {
+            BuildArtifacts::CheckOnly => {
+                if skip_linting {
+                    maybe_println!(
+                        verbosity,
+                        " {} {}",
+                        format!("[1/{}]", build_artifact.steps()).bold(),
+                        "Skip ink! linting rules".bright_yellow().bold()
+                    );
+                } else {
+                    maybe_println!(
+                        verbosity,
+                        " {} {}",
+                        format!("[1/{}]", build_artifact.steps()).bold(),
+                        "Checking ink! linting rules".bright_green().bold()
+                    );
+                    exec_cargo_dylint(&crate_metadata, verbosity)?;
+                }
+
+                maybe_println!(
+                    verbosity,
+                    " {} {}",
+                    format!("[2/{}]", build_artifact.steps()).bold(),
+                    "Executing `cargo check`".bright_green().bold()
+                );
+                exec_cargo_for_wasm_target(
+                    &crate_metadata,
+                    "check",
+                    BuildMode::Release,
+                    network,
+                    verbosity,
+                    &unstable_flags,
+                )?;
+                (None, None)
+            }
+            BuildArtifacts::CodeOnly => {
+                let optimization_result = build()?;
+                (Some(optimization_result), None)
+            }
+            BuildArtifacts::All => {
+                let optimization_result = build()?;
+
+                let metadata_result = metadata::execute(
+                    &crate_metadata,
+                    optimization_result.dest_wasm.as_path(),
+                    network,
+                    verbosity,
+                    build_artifact.steps(),
+                    &unstable_flags,
+                )?;
+                (Some(optimization_result), Some(metadata_result))
+            }
+        };
+        let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
+
+        Ok(BuildResult {
+            dest_wasm,
+            metadata_result,
+            target_directory: crate_metadata.target_directory,
+            optimization_result: opt_result,
             build_mode,
-            self.target_directory.display().to_string().bold(),
-        );
-        if let Some(metadata_result) = self.metadata_result.as_ref() {
-            let bundle = format!(
-                "  - {} (code + metadata)\n",
-                util::base_name(&metadata_result.dest_bundle).bold()
-            );
-            out.push_str(&bundle);
-        }
-        if let Some(dest_wasm) = self.dest_wasm.as_ref() {
-            let wasm = format!(
-                "  - {} (the contract's code)\n",
-                util::base_name(dest_wasm).bold()
-            );
-            out.push_str(&wasm);
-        }
-        if let Some(metadata_result) = self.metadata_result.as_ref() {
-            let metadata = format!(
-                "  - {} (the contract's metadata)",
-                util::base_name(&metadata_result.dest_metadata).bold()
-            );
-            out.push_str(&metadata);
-        }
-        out
-    }
-
-    /// Returns a tuple of `(original_size, optimized_size)`.
-    ///
-    /// Panics if no optimization result is available.
-    fn display_optimization(&self) -> (f64, f64) {
-        let optimization = self
-            .optimization_result
-            .as_ref()
-            .expect("optimization result must exist");
-        (optimization.original_size, optimization.optimized_size)
-    }
-
-    /// Display the build results in a pretty formatted JSON string.
-    pub fn serialize_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
+            build_artifact,
+            verbosity,
+            output_type,
+        })
     }
 }
-
 
 /// Executes the supplied cargo command on the project in the specified directory, defaults to the
 /// current directory.
@@ -452,9 +385,9 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.
     #[cfg(not(test))]
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     #[cfg(test)]
-        let cargo = "cargo";
+    let cargo = "cargo";
 
     if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
         anyhow::bail!("cargo-dylint was not found!\n\
@@ -468,9 +401,9 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     // which just ouputs some information. It always needs to do some linking in
     // order to return successful exit code.
     #[cfg(windows)]
-        let dylint_link_found = which::which("dylint-link").is_ok();
+    let dylint_link_found = which::which("dylint-link").is_ok();
     #[cfg(not(windows))]
-        let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
+    let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
     if !dylint_link_found {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
@@ -620,154 +553,6 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
-///
-/// It does so by invoking `cargo build` and then post processing the final binary.
-pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
-    let ExecuteArgs {
-        manifest_path,
-        verbosity,
-        build_mode,
-        network,
-        build_artifact,
-        unstable_flags,
-        optimization_passes,
-        keep_debug_symbols,
-        skip_linting,
-        output_type,
-    } = args;
-
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-
-    assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
-    if build_mode == BuildMode::Debug {
-        assert_debug_mode_supported(&crate_metadata.ink_version)?;
-    }
-
-    let build = || -> Result<OptimizationResult> {
-        if skip_linting {
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
-                "Skip ink! linting rules".bright_yellow().bold()
-            );
-        } else {
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
-                "Checking ink! linting rules".bright_green().bold()
-            );
-            exec_cargo_dylint(&crate_metadata, verbosity)?;
-        }
-
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("[2/{}]", build_artifact.steps()).bold(),
-            "Building cargo project".bright_green().bold()
-        );
-        exec_cargo_for_wasm_target(
-            &crate_metadata,
-            "build",
-            build_mode,
-            network,
-            verbosity,
-            &unstable_flags,
-        )?;
-
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("[3/{}]", build_artifact.steps()).bold(),
-            "Post processing wasm file".bright_green().bold()
-        );
-        post_process_wasm(&crate_metadata)?;
-
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("[4/{}]", build_artifact.steps()).bold(),
-            "Optimizing wasm file".bright_green().bold()
-        );
-
-        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
-        let optimization_result = handler.optimize(
-            &crate_metadata.dest_wasm,
-            &crate_metadata.contract_artifact_name,
-        )?;
-
-        Ok(optimization_result)
-    };
-
-    let (opt_result, metadata_result) = match build_artifact {
-        BuildArtifacts::CheckOnly => {
-            if skip_linting {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Skip ink! linting rules".bright_yellow().bold()
-                );
-            } else {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Checking ink! linting rules".bright_green().bold()
-                );
-                exec_cargo_dylint(&crate_metadata, verbosity)?;
-            }
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[2/{}]", build_artifact.steps()).bold(),
-                "Executing `cargo check`".bright_green().bold()
-            );
-            exec_cargo_for_wasm_target(
-                &crate_metadata,
-                "check",
-                BuildMode::Release,
-                network,
-                verbosity,
-                &unstable_flags,
-            )?;
-            (None, None)
-        }
-        BuildArtifacts::CodeOnly => {
-            let optimization_result = build()?;
-            (Some(optimization_result), None)
-        }
-        BuildArtifacts::All => {
-            let optimization_result = build()?;
-
-            let metadata_result = super::metadata::execute(
-                &crate_metadata,
-                optimization_result.dest_wasm.as_path(),
-                network,
-                verbosity,
-                build_artifact.steps(),
-                &unstable_flags,
-            )?;
-            (Some(optimization_result), Some(metadata_result))
-        }
-    };
-    let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
-
-    Ok(BuildResult {
-        dest_wasm,
-        metadata_result,
-        target_directory: crate_metadata.target_directory,
-        optimization_result: opt_result,
-        build_mode,
-        build_artifact,
-        verbosity,
-        output_type,
-    })
-}
-
 /// Testing individual functions where the build itself is not actually invoked. See [`tests`] for
 /// all tests which invoke the `build` command.
 #[cfg(test)]
@@ -790,11 +575,11 @@ mod unit_tests {
         assert_debug_mode_supported(
             &Version::parse("3.0.0-rc4").expect("parsing must work"),
         )
-            .expect("debug mode must be compatible");
+        .expect("debug mode must be compatible");
         assert_debug_mode_supported(
             &Version::parse("4.0.0-rc1").expect("parsing must work"),
         )
-            .expect("debug mode must be compatible");
+        .expect("debug mode must be compatible");
         assert_debug_mode_supported(&Version::parse("5.0.0").expect("parsing must work"))
             .expect("debug mode must be compatible");
     }
@@ -804,7 +589,7 @@ mod unit_tests {
         let res = assert_debug_mode_supported(
             &Version::parse("3.0.0-rc3").expect("parsing must work"),
         )
-            .expect_err("assertion must fail");
+        .expect_err("assertion must fail");
         assert_eq!(
             res.to_string(),
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"

@@ -18,8 +18,10 @@ use anyhow::Result;
 use wasm_opt::OptimizationOptions;
 
 use std::{
+    fmt,
     fs::metadata,
     path::PathBuf,
+    str,
 };
 
 /// A helpful struct for interacting with Binaryen's `wasm-opt` tool.
@@ -102,8 +104,8 @@ pub enum OptimizationPasses {
     Z,
 }
 
-impl Display for OptimizationPasses {
-    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+impl fmt::Display for OptimizationPasses {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let out = match self {
             OptimizationPasses::Zero => "0",
             OptimizationPasses::One => "1",
@@ -123,8 +125,8 @@ impl Default for OptimizationPasses {
     }
 }
 
-impl FromStr for OptimizationPasses {
-    type Err = Error;
+impl str::FromStr for OptimizationPasses {
+    type Err = anyhow::Error;
 
     fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
         // We need to replace " here, since the input string could come
@@ -146,7 +148,7 @@ impl FromStr for OptimizationPasses {
 
 impl From<String> for OptimizationPasses {
     fn from(str: String) -> Self {
-        OptimizationPasses::from_str(&str).expect("conversion failed")
+        <OptimizationPasses as str::FromStr>::from_str(&str).expect("conversion failed")
     }
 }
 
