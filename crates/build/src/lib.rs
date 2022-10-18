@@ -95,7 +95,7 @@ impl ExecuteArgs {
     /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
     ///
     /// It does so by invoking `cargo build` and then post processing the final binary.
-    pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+    pub fn execute(self) -> Result<BuildResult> {
         let ExecuteArgs {
             manifest_path,
             verbosity,
@@ -107,7 +107,7 @@ impl ExecuteArgs {
             keep_debug_symbols,
             skip_linting,
             output_type,
-        } = args;
+        } = self;
 
         let crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
