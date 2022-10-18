@@ -475,6 +475,7 @@ dependencies = [
  "colored",
  "contract-build",
  "contract-metadata",
+ "contract-test-utils",
  "contract-transcode",
  "current_platform",
  "dirs",
@@ -677,6 +678,64 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
+]
+
+[[package]]
+name = "contract-template"
+version = "2.0.0-alpha.4"
+dependencies = [
+ "anyhow",
+ "blake2",
+ "cargo_metadata",
+ "clap",
+ "colored",
+ "contract-metadata",
+ "heck",
+ "hex",
+ "impl-serde 0.4.0",
+ "parity-scale-codec",
+ "parity-wasm 0.45.0",
+ "pretty_assertions",
+ "rustc_version",
+ "semver",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "tracing",
+ "tracing-subscriber 0.3.16",
+ "url",
+ "wasm-opt",
+ "zip",
+]
+
+[[package]]
+name = "contract-test-utils"
+version = "2.0.0-alpha.4"
+dependencies = [
+ "anyhow",
+ "blake2",
+ "cargo_metadata",
+ "clap",
+ "colored",
+ "contract-metadata",
+ "heck",
+ "hex",
+ "impl-serde 0.4.0",
+ "parity-scale-codec",
+ "parity-wasm 0.45.0",
+ "pretty_assertions",
+ "rustc_version",
+ "semver",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "tracing",
+ "tracing-subscriber 0.3.16",
+ "url",
+ "wasm-opt",
+ "zip",
 ]
 
 [[package]]

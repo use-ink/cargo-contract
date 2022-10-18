@@ -1,0 +1,41 @@
+[package]
+name = "contract-test-utils"
+version = "2.0.0-alpha.4"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-metadata"
+homepage = "https://www.substrate.io/"
+description = "Library for testing cargo-contract"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
+
+[dependencies]
+anyhow = "1.0.65"
+blake2 = "0.10.4"
+cargo_metadata = "0.15.0"
+contract-metadata = { version = "2.0.0-alpha.4", path = "../metadata" }
+colored = "2.0.0"
+clap = { version = "4.0.15", features = ["derive", "env"] }
+heck = "0.4.0"
+hex = "0.4.3"
+impl-serde = "0.4.0"
+rustc_version = "0.4.0"
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+toml = "0.5.9"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+parity-wasm = "0.45.0"
+semver = { version = "1.0.14", features = ["serde"] }
+serde = { version = "1.0.145", default-features = false, features = ["derive"] }
+serde_json = "1.0.86"
+tempfile = "3.3.0"
+url = { version = "2.3.1", features = ["serde"] }
+wasm-opt = "0.110.1"
+zip = { version = "0.6.3", default-features = false }
+
+[dev-dependencies]
+pretty_assertions = "1.3.0"

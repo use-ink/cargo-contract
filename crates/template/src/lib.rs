@@ -23,8 +23,8 @@ use std::{
 use anyhow::Result;
 
 pub(crate) fn execute<P>(name: &str, dir: Option<P>) -> Result<()>
-where
-    P: AsRef<Path>,
+    where
+        P: AsRef<Path>,
 {
     if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
         anyhow::bail!(
@@ -61,15 +61,26 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use contract_test_utils::{
-        with_new_contract_project,
-        with_tmp_dir,
-    };
+
+    /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
+    /// Panics if `f` returns an `Err`.
+    pub fn with_tmp_dir<F>(f: F)
+    where
+        F: FnOnce(&Path) -> Result<()>,
+    {
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("contract-template.test.")
+            .tempdir()
+            .expect("temporary directory creation failed");
+
+        // catch test panics in order to clean up temp dir which will be very large
+        f(&tmp_dir.path().canonicalize().unwrap()).expect("Error executing test with tmp dir")
+    }
 
     #[test]
     fn rejects_hyphenated_name() {
-        with_new_contract_project(|manifest_path| {
-            let result = execute("rejects-hyphenated-name", Some(manifest_path));
+        with_tmp_dir(|path| {
+            let result = execute("rejects-hyphenated-name", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -81,8 +92,8 @@ mod tests {
 
     #[test]
     fn rejects_name_with_period() {
-        with_new_contract_project(|manifest_path| {
-            let result = execute("../xxx", Some(manifest_path));
+        with_tmp_dir(|path| {
+            let result = execute("../xxx", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -94,8 +105,8 @@ mod tests {
 
     #[test]
     fn rejects_name_beginning_with_number() {
-        with_new_contract_project(|manifest_path| {
-            let result = execute("1xxx", Some(manifest_path));
+        with_tmp_dir(|path| {
+            let result = execute("1xxx", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
