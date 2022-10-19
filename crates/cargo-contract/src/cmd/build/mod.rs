@@ -671,7 +671,6 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             cargo_contract_version,
             build_mode,
             wasm_opt_settings: WasmOptSettings {
-                version: handler.version(),
                 optimization_passes,
                 keep_debug_symbols,
             },

@@ -103,8 +103,6 @@ impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
 /// Settings used when optimizing the Wasm binary using Binaryen's `wasm-opt`.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct WasmOptSettings {
-    /// Version of `wasm-opt`.
-    pub version: u32,
     /// The level of optimization used during the `wasm-opt` run.
     pub optimization_passes: OptimizationPasses,
     /// Whether or not the Wasm name section should be kept.
