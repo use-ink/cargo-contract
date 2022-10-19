@@ -33,7 +33,7 @@ use std::{
 #[clap(name = "test")]
 pub struct TestCommand {
     /// Path to the `Cargo.toml` of the contract to test.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,

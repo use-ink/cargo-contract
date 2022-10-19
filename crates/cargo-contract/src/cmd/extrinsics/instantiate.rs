@@ -79,23 +79,23 @@ pub struct InstantiateCommand {
     /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
     /// Use to instantiate contracts which have not yet been uploaded.
     /// If the contract has already been uploaded use `--code-hash` instead.
-    #[clap(parse(from_os_str))]
+    #[clap(value_parser)]
     wasm_path: Option<PathBuf>,
     /// The hash of the smart contract code already uploaded to the chain.
     /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
     /// first.
-    #[clap(long, parse(try_from_str = parse_code_hash))]
+    #[clap(long, value_parser = parse_code_hash)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     /// The name of the contract constructor to call
     #[clap(name = "constructor", long, default_value = "new")]
     constructor: String,
     /// The constructor arguments, encoded as strings
-    #[clap(long, multiple_values = true)]
+    #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
-    #[clap(name = "value", long, default_value = "0", parse(try_from_str = parse_balance))]
+    #[clap(name = "value", long, default_value = "0", value_parser = parse_balance)]
     value: Balance,
     /// Maximum amount of gas to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
@@ -103,7 +103,7 @@ pub struct InstantiateCommand {
     gas_limit: Option<u64>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
     /// of the same contract code from the same account.
-    #[clap(long, parse(try_from_str = parse_hex_bytes))]
+    #[clap(long, value_parser = parse_hex_bytes)]
     salt: Option<Bytes>,
     /// Export the instantiate output in JSON format.
     #[clap(long, conflicts_with = "verbose")]

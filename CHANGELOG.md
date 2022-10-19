@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add Rust specific build info to metadata - [#680](https://github.com/paritytech/cargo-contract/pull/680)
 
+### Changed
+- Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract`.
+
+## [2.0.0-alpha.4] - 2022-10-03
+
 ### Fixed
 - Fix storage deposit limit encoding - [#751](https://github.com/paritytech/cargo-contract/pull/751)
+- Rewrite relative path for `dev-dependency` - [#760](https://github.com/paritytech/cargo-contract/pull/760)
 
 ## [2.0.0-alpha.3] - 2022-09-21
 

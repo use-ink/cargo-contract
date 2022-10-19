@@ -50,13 +50,13 @@ use std::{
     str::FromStr,
 };
 
+use ::wasm_opt::OptimizationOptions;
 use anyhow::{
     anyhow,
     Error,
     Result,
 };
 use clap::{
-    AppSettings,
     Args,
     Parser,
     Subcommand,
@@ -72,6 +72,12 @@ use assert_cmd as _;
 #[cfg(test)]
 use predicates as _;
 
+#[cfg(test)]
+use regex as _;
+
+// Only used on windows.
+use which as _;
+
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
 #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
@@ -79,7 +85,7 @@ pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[clap(name = "contract")]
     #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
-    #[clap(setting = AppSettings::DeriveDisplayOrder)]
+    #[clap(action = ArgAction::DeriveDisplayOrder)]
     Contract(ContractArgs),
 }
 
@@ -156,6 +162,22 @@ impl FromStr for OptimizationPasses {
 impl From<String> for OptimizationPasses {
     fn from(str: String) -> Self {
         OptimizationPasses::from_str(&str).expect("conversion failed")
+    }
+}
+
+impl From<OptimizationPasses> for OptimizationOptions {
+    fn from(passes: OptimizationPasses) -> OptimizationOptions {
+        match passes {
+            OptimizationPasses::Zero => OptimizationOptions::new_opt_level_0(),
+            OptimizationPasses::One => OptimizationOptions::new_opt_level_1(),
+            OptimizationPasses::Two => OptimizationOptions::new_opt_level_2(),
+            OptimizationPasses::Three => OptimizationOptions::new_opt_level_3(),
+            OptimizationPasses::Four => OptimizationOptions::new_opt_level_4(),
+            OptimizationPasses::S => OptimizationOptions::new_optimize_for_size(),
+            OptimizationPasses::Z => {
+                OptimizationOptions::new_optimize_for_size_aggressively()
+            }
+        }
     }
 }
 
@@ -241,7 +263,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ArgEnum, serde::Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
@@ -458,7 +480,7 @@ enum Command {
         /// The name of the newly created smart contract
         name: String,
         /// The optional target directory for the contract project
-        #[clap(short, long, parse(from_os_str))]
+        #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
     },
     /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
