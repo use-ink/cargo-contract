@@ -68,7 +68,7 @@ use std::{
 const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Version of the currently executing `cargo-contract` binary.
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Default)]
