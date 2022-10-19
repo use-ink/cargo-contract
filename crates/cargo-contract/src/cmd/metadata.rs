@@ -82,7 +82,7 @@ struct ExtendedMetadataResult {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct BuildInfo {
     /// The stable version of `rustc` used to build the contract.
-    pub rustc_version: Version,
+    pub rustc_version: String,
     /// The version of `cargo-contract` used to build the contract.
     pub cargo_contract_version: Version,
     /// The type of build that was used when building the contract.

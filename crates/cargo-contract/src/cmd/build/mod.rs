@@ -666,8 +666,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             };
 
         let build_info = BuildInfo {
-            rustc_version: rustc_version::version()
-                .expect("`rustc` always has a version associated with it."),
+            rustc_version: crate::util::rustc_toolchain()?,
             cargo_contract_version,
             build_mode,
             wasm_opt_settings: WasmOptSettings {
