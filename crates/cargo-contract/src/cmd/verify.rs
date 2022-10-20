@@ -93,15 +93,15 @@ impl VerifyCommand {
         );
 
         // 2. Call `cargo contract build` with the `BuildInfo` from the metadata.
-        let expected_rustc_version = build_info.rustc_version;
-        let rustc_version = rustc_version::version()
+        let expected_rust_toolchain = build_info.rust_toolchain;
+        let rust_toolchain = crate::util::rust_toolchain()
             .expect("`rustc` always has a version associated with it.");
 
-        let rustc_matches = rustc_version == expected_rustc_version;
+        let rustc_matches = rust_toolchain == expected_rust_toolchain;
         let mismatched_rustc = format!(
-            "\nYou are trying to `verify` a contract using the `{rustc_version}` toolchain.\n\
-             However, the original contract was built using `{expected_rustc_version}`. Please\n\
-             install the correct toolchain (`rustup install {expected_rustc_version}`) and\n\
+            "\nYou are trying to `verify` a contract using the `{rust_toolchain}` toolchain.\n\
+             However, the original contract was built using `{expected_rust_toolchain}`. Please\n\
+             install the correct toolchain (`rustup install {expected_rust_toolchain}`) and\n\
              re-run the `verify` command.",);
         anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
