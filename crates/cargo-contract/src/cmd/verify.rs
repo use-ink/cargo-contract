@@ -19,6 +19,7 @@ use crate::{
         build::{
             execute,
             ExecuteArgs,
+            VERSION,
         },
         metadata::BuildInfo,
     },
@@ -92,7 +93,7 @@ impl VerifyCommand {
             &build_info,
         );
 
-        // 2. Call `cargo contract build` with the `BuildInfo` from the metadata.
+        // 2. Check that the build info from the metadata matches our current setup.
         let expected_rust_toolchain = build_info.rust_toolchain;
         let rust_toolchain = crate::util::rust_toolchain()
             .expect("`rustc` always has a version associated with it.");
@@ -105,22 +106,26 @@ impl VerifyCommand {
              re-run the `verify` command.",);
         anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
-        let expected_wasm_opt_version = build_info.wasm_opt_settings.version;
-        let keep_debug_symbols = build_info.wasm_opt_settings.keep_debug_symbols;
-        let handler = crate::wasm_opt::WasmOptHandler::new(
-            build_info.wasm_opt_settings.optimization_passes,
-            keep_debug_symbols,
-        )?;
-        let wasm_opt_version = handler.version();
+        let expected_cargo_contract_version = build_info.cargo_contract_version;
+        let cargo_contract_version = semver::Version::parse(VERSION)?;
 
-        let wasm_opt_matches = wasm_opt_version == expected_wasm_opt_version;
-        let mismatched_wasm_opt = format!(
-            "\nYou are trying to `verify` a contract using `wasm-opt` version `{wasm_opt_version}`.\n\
-             However, the original contract was built using `wasm-opt` version `{expected_wasm_opt_version}`.\n\
+        // Note, assuming both versions of `cargo-contract` were installed with the same lockfile
+        // (e.g `--locked`) then the versions of `wasm-opt` should also match.
+        let cargo_contract_matches =
+            cargo_contract_version == expected_cargo_contract_version;
+        let mismatched_cargo_contract = format!(
+            "\nYou are trying to `verify` a contract using `cargo-contract` version \
+            `{cargo_contract_version}`.\n\
+             However, the original contract was built using `cargo-contract` version \
+             `{expected_cargo_contract_version}`.\n\
              Please install the matching version and re-run the `verify` command.",
         );
-        anyhow::ensure!(wasm_opt_matches, mismatched_wasm_opt.bright_yellow());
+        anyhow::ensure!(
+            cargo_contract_matches,
+            mismatched_cargo_contract.bright_yellow()
+        );
 
+        // 3. Call `cargo contract build` with the `BuildInfo` from the metadata.
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
             verbosity,
@@ -129,14 +134,14 @@ impl VerifyCommand {
             build_artifact: BuildArtifacts::CodeOnly,
             unstable_flags: Default::default(),
             optimization_passes: build_info.wasm_opt_settings.optimization_passes,
-            keep_debug_symbols,
+            keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
             skip_linting: true,
             output_type: Default::default(),
         };
 
         let build_result = execute(args)?;
 
-        // 3. Grab the built Wasm contract and compare it with the Wasm from the metadata.
+        // 4. Grab the built Wasm contract and compare it with the Wasm from the metadata.
         let reference_wasm = if let Some(wasm) = metadata.source.wasm {
             wasm
         } else {
