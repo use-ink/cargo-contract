@@ -668,7 +668,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         };
 
         let build_info = BuildInfo {
-            rustc_version: crate::util::rustc_toolchain()?,
+            rust_toolchain: crate::util::rust_toolchain()?,
             cargo_contract_version,
             build_mode,
             wasm_opt_settings: WasmOptSettings {
