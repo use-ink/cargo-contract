@@ -48,7 +48,7 @@ use std::{
 #[clap(name = "verify")]
 pub struct VerifyCommand {
     /// Path to the `Cargo.toml` of the contract to verify.
-    #[clap(long, parse(from_os_str))]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
     contract: PathBuf,
