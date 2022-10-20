@@ -67,6 +67,9 @@ use std::{
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
 
+/// Version of the currently executing `cargo-contract` binary.
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Default)]
 pub(crate) struct ExecuteArgs {
@@ -284,6 +287,7 @@ fn exec_cargo_for_wasm_target(
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = &crate_metadata.target_directory;
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
+
         let mut args = vec![
             "--target=wasm32-unknown-unknown",
             "-Zbuild-std",
@@ -576,6 +580,8 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
+    use crate::cmd::metadata::BuildInfo;
+
     let ExecuteArgs {
         manifest_path,
         verbosity,
@@ -596,7 +602,9 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    let build = || -> Result<OptimizationResult> {
+    let build = || -> Result<(OptimizationResult, BuildInfo)> {
+        use crate::cmd::metadata::WasmOptSettings;
+
         if skip_linting {
             maybe_println!(
                 verbosity,
@@ -650,7 +658,26 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &crate_metadata.contract_artifact_name,
         )?;
 
-        Ok(optimization_result)
+        let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
+            version
+        } else {
+            anyhow::bail!(
+                "Unable to parse version number for the currently running \
+                    `cargo-contract` binary."
+            );
+        };
+
+        let build_info = BuildInfo {
+            rust_toolchain: crate::util::rust_toolchain()?,
+            cargo_contract_version,
+            build_mode,
+            wasm_opt_settings: WasmOptSettings {
+                optimization_passes,
+                keep_debug_symbols,
+            },
+        };
+
+        Ok((optimization_result, build_info))
     };
 
     let (opt_result, metadata_result) = match build_artifact {
@@ -689,11 +716,11 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let optimization_result = build()?;
+            let (optimization_result, _build_info) = build()?;
             (Some(optimization_result), None)
         }
         BuildArtifacts::All => {
-            let optimization_result = build()?;
+            let (optimization_result, build_info) = build()?;
 
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
@@ -702,7 +729,9 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 build_artifact.steps(),
                 &unstable_flags,
+                build_info,
             )?;
+
             (Some(optimization_result), Some(metadata_result))
         }
     };

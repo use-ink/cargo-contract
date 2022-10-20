@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add Rust specific build info to metadata - [#680](https://github.com/paritytech/cargo-contract/pull/680)
+
 ### Changed
 - Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract`.
 
