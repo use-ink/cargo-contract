@@ -20,7 +20,7 @@ use anyhow::{
 };
 
 use super::{
-    metadata,
+    metadata::MetadataPackage,
     Profile,
 };
 use crate::OptimizationPasses;
@@ -124,7 +124,7 @@ pub struct Manifest {
     path: ManifestPath,
     toml: value::Table,
     /// True if a metadata package should be generated for this manifest
-    metadata_package: bool,
+    metadata_package: Option<MetadataPackage>,
 }
 
 impl Manifest {
@@ -138,7 +138,7 @@ impl Manifest {
         Ok(Manifest {
             path: manifest_path,
             toml,
-            metadata_package: false,
+            metadata_package: None,
         })
     }
 
@@ -251,7 +251,10 @@ impl Manifest {
     }
 
     /// Adds a metadata package to the manifest workspace for generating metadata
-    pub fn with_metadata_package(&mut self) -> Result<&mut Self> {
+    pub fn with_metadata_package(
+        &mut self,
+        ink_event_metadata_externs: Vec<String>,
+    ) -> Result<&mut Self> {
         let workspace = self
             .toml
             .entry("workspace")
@@ -280,7 +283,31 @@ impl Manifest {
             members.push(METADATA_PACKAGE_PATH.into());
         }
 
-        self.metadata_package = true;
+        let contract_package_name = self
+            .toml
+            .get("package")
+            .ok_or_else(|| anyhow::anyhow!("package section not found"))?
+            .get("name")
+            .ok_or_else(|| anyhow::anyhow!("[package] name field not found"))?
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?
+            .to_owned();
+
+        let ink_crate = self
+            .toml
+            .get("dependencies")
+            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+            .get("ink")
+            .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
+            .as_table()
+            .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?
+            .clone();
+
+        self.metadata_package = Some(MetadataPackage::new(
+            contract_package_name,
+            ink_crate,
+            ink_event_metadata_externs,
+        ));
         Ok(self)
     }
 
@@ -341,7 +368,7 @@ impl Manifest {
                 .context(format!("Creating directory '{}'", dir.display()))?;
         }
 
-        if self.metadata_package {
+        if let Some(metadata_package) = &self.metadata_package {
             let dir = if let Some(manifest_dir) = manifest_path.directory() {
                 manifest_dir.join(METADATA_PACKAGE_PATH)
             } else {
@@ -351,25 +378,7 @@ impl Manifest {
             fs::create_dir_all(&dir)
                 .context(format!("Creating directory '{}'", dir.display()))?;
 
-            let contract_package_name = self
-                .toml
-                .get("package")
-                .ok_or_else(|| anyhow::anyhow!("package section not found"))?
-                .get("name")
-                .ok_or_else(|| anyhow::anyhow!("[package] name field not found"))?
-                .as_str()
-                .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?;
-
-            let ink_crate = self
-                .toml
-                .get("dependencies")
-                .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
-                .get("ink")
-                .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
-                .as_table()
-                .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?;
-
-            metadata::generate_package(dir, contract_package_name, ink_crate.clone())?;
+            metadata_package.generate(dir)?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

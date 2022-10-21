@@ -21,53 +21,73 @@ use std::{
 };
 use toml::value;
 
-/// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to
-/// generate contract metadata.
-///
-/// # Note
-///
-/// `ink!` dependencies are copied from the containing contract workspace to ensure the same
-/// versions are utilized.
-pub(super) fn generate_package<P: AsRef<Path>>(
-    target_dir: P,
-    contract_package_name: &str,
-    mut ink_crate_dependency: value::Table,
-) -> Result<()> {
-    let dir = target_dir.as_ref();
-    tracing::debug!(
-        "Generating metadata package for {} in {}",
-        contract_package_name,
-        dir.display()
-    );
+/// Info for generating a metadata package.
+pub struct MetadataPackage {
+    contract_package_name: String,
+    ink_crate: value::Table,
+    ink_event_metadata_externs: Vec<String>,
+}
 
-    let cargo_toml = include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
-    let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
+impl MetadataPackage {
+    /// Construct a new [`MetadataPackage`].
+    pub fn new(
+        contract_package_name: String,
+        ink_crate: value::Table,
+        ink_event_metadata_externs: Vec<String>,
+    ) -> Self {
+        Self {
+            ink_event_metadata_externs,
+            contract_package_name,
+            ink_crate,
+        }
+    }
 
-    let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
-    let deps = cargo_toml
-        .get_mut("dependencies")
-        .expect("[dependencies] section specified in the template")
-        .as_table_mut()
-        .expect("[dependencies] is a table specified in the template");
+    /// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to
+    /// generate contract metadata.
+    ///
+    /// # Note
+    ///
+    /// `ink!` dependencies are copied from the containing contract workspace to ensure the same
+    /// versions are utilized.
+    pub fn generate<P: AsRef<Path>>(&self, target_dir: P) -> Result<()> {
+        let dir = target_dir.as_ref();
+        tracing::debug!(
+            "Generating metadata package for {} in {}",
+            self.contract_package_name,
+            dir.display()
+        );
 
-    // initialize contract dependency
-    let contract = deps
-        .get_mut("contract")
-        .expect("contract dependency specified in the template")
-        .as_table_mut()
-        .expect("contract dependency is a table specified in the template");
-    contract.insert("package".into(), contract_package_name.into());
+        let cargo_toml =
+            include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
+        let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
 
-    // make ink_metadata dependency use default features
-    ink_crate_dependency.remove("default-features");
-    ink_crate_dependency.remove("features");
-    ink_crate_dependency.remove("optional");
+        let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
+        let deps = cargo_toml
+            .get_mut("dependencies")
+            .expect("[dependencies] section specified in the template")
+            .as_table_mut()
+            .expect("[dependencies] is a table specified in the template");
 
-    // add ink dependencies copied from contract manifest
-    deps.insert("ink".into(), ink_crate_dependency.into());
-    let cargo_toml = toml::to_string(&cargo_toml)?;
+        // initialize contract dependency
+        let contract = deps
+            .get_mut("contract")
+            .expect("contract dependency specified in the template")
+            .as_table_mut()
+            .expect("contract dependency is a table specified in the template");
+        contract.insert("package".into(), self.contract_package_name.clone().into());
 
-    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-    fs::write(dir.join("main.rs"), main_rs)?;
-    Ok(())
+        // make ink_metadata dependency use default features
+        let mut ink_crate_dependency = self.ink_crate.clone();
+        ink_crate_dependency.remove("default-features");
+        ink_crate_dependency.remove("features");
+        ink_crate_dependency.remove("optional");
+
+        // add ink dependencies copied from contract manifest
+        deps.insert("ink".into(), ink_crate_dependency.into());
+        let cargo_toml = toml::to_string(&cargo_toml)?;
+
+        fs::write(dir.join("Cargo.toml"), cargo_toml)?;
+        fs::write(dir.join("main.rs"), main_rs)?;
+        Ok(())
+    }
 }
