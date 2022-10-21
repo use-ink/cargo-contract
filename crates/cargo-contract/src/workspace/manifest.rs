@@ -293,19 +293,8 @@ impl Manifest {
             .ok_or_else(|| anyhow::anyhow!("[package] name should be a string"))?
             .to_owned();
 
-        let ink_crate = self
-            .toml
-            .get("dependencies")
-            .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
-            .get("ink")
-            .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
-            .as_table()
-            .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?
-            .clone();
-
         self.metadata_package = Some(MetadataPackage::new(
             contract_package_name,
-            ink_crate,
             ink_event_metadata_externs,
         ));
         Ok(self)
@@ -378,7 +367,16 @@ impl Manifest {
             fs::create_dir_all(&dir)
                 .context(format!("Creating directory '{}'", dir.display()))?;
 
-            metadata_package.generate(dir)?;
+            let ink_crate = self
+                .toml
+                .get("dependencies")
+                .ok_or_else(|| anyhow::anyhow!("[dependencies] section not found"))?
+                .get("ink")
+                .ok_or_else(|| anyhow::anyhow!("ink dependency not found"))?
+                .as_table()
+                .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?;
+
+            metadata_package.generate(dir, ink_crate.clone())?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

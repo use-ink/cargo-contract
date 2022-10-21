@@ -24,7 +24,6 @@ use toml::value;
 /// Info for generating a metadata package.
 pub struct MetadataPackage {
     contract_package_name: String,
-    ink_crate: value::Table,
     ink_event_metadata_externs: Vec<String>,
 }
 
@@ -32,13 +31,11 @@ impl MetadataPackage {
     /// Construct a new [`MetadataPackage`].
     pub fn new(
         contract_package_name: String,
-        ink_crate: value::Table,
         ink_event_metadata_externs: Vec<String>,
     ) -> Self {
         Self {
             ink_event_metadata_externs,
             contract_package_name,
-            ink_crate,
         }
     }
 
@@ -49,7 +46,7 @@ impl MetadataPackage {
     ///
     /// `ink!` dependencies are copied from the containing contract workspace to ensure the same
     /// versions are utilized.
-    pub fn generate<P: AsRef<Path>>(&self, target_dir: P) -> Result<()> {
+    pub fn generate<P: AsRef<Path>>(&self, target_dir: P, mut ink_crate_dependency: value::Table) -> Result<()> {
         let dir = target_dir.as_ref();
         tracing::debug!(
             "Generating metadata package for {} in {}",
@@ -77,7 +74,6 @@ impl MetadataPackage {
         contract.insert("package".into(), self.contract_package_name.clone().into());
 
         // make ink_metadata dependency use default features
-        let mut ink_crate_dependency = self.ink_crate.clone();
         ink_crate_dependency.remove("default-features");
         ink_crate_dependency.remove("features");
         ink_crate_dependency.remove("optional");
