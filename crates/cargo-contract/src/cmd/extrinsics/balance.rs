@@ -16,6 +16,7 @@
 
 use std::{
     fmt::Display,
+    result::Result::Ok,
     str::FromStr,
 };
 
@@ -33,7 +34,6 @@ use super::{
 use anyhow::{
     anyhow,
     Context,
-    Ok,
     Result,
 };
 
@@ -100,15 +100,19 @@ impl TokenMetadata {
 impl FromStr for BalanceVariant {
     type Err = anyhow::Error;
 
+    /// Attempts to parse the balance either in plain or denominated formats
+    /// If the balance is provide without the token symbol,
+    /// then it is treated as raw.
+    /// Otherwise, the balance is attempted to be parsed in a denominated format
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let input = input.replace('_', "");
-        if input.contains('.') || input.ends_with(|ch: char| ch.is_alphabetic()) {
-            Ok(BalanceVariant::Denominated(DenominatedBalance::from_str(
-                &input,
-            )?))
-        } else {
-            Ok(BalanceVariant::Default(input.parse::<Balance>()?))
-        }
+        // if we cannot parse the balance in raw format
+        // it means it is in a denominated format
+        let result = match input.parse::<Balance>() {
+            Ok(balance) => BalanceVariant::Default(balance),
+            Err(_) => BalanceVariant::Denominated(DenominatedBalance::from_str(&input)?),
+        };
+        Ok(result)
     }
 }
 
@@ -380,6 +384,14 @@ mod tests {
         assert!(
             BalanceVariant::from_str("500").is_ok(),
             "<500> was not parsed correctly"
+        );
+        assert!(
+            BalanceVariant::from_str("1.0").is_err(),
+            "<1.0> was not parsed correctly. Units must be provided"
+        );
+        assert!(
+            BalanceVariant::from_str("1.0DOT").is_ok(),
+            "<1.0DOt> was not parsed correctly"
         );
     }
 
