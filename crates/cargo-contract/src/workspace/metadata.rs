@@ -56,7 +56,7 @@ impl MetadataPackage {
 
         let cargo_toml =
             include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
-        let main_rs = include_str!("../../templates/tools/generate-metadata/main.rs");
+        let main_rs = self.generate_main();
 
         let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
         let deps = cargo_toml
@@ -83,7 +83,41 @@ impl MetadataPackage {
         let cargo_toml = toml::to_string(&cargo_toml)?;
 
         fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-        fs::write(dir.join("main.rs"), main_rs)?;
+        fs::write(dir.join("main.rs"), main_rs.to_string())?;
         Ok(())
+    }
+
+    /// Generate the `main.rs` file to be executed to generate the metadata.
+    fn generate_main(&self) -> proc_macro2::TokenStream {
+        let ink_event_metadata_fns = self.ink_event_metadata_externs
+            .iter()
+            .map(|event_metadata_fn| quote::format_ident!("{}", event_metadata_fn))
+            .collect::<Vec<_>>();
+
+        quote::quote!(
+            extern crate contract;
+
+            extern "Rust" {
+                // Note: The ink! metadata codegen generates an implementation for this function,
+                // which is what we end up linking to here.
+                fn __ink_generate_metadata() -> ::ink::metadata::InkProject;
+
+                // All `#[ink::event_definition]`s export a unique function to fetch their
+                // respective metadata, which we link to here.
+                #( fn #ink_event_metadata_fns () -> ::ink::metadata::EventSpec; )*
+            }
+
+            fn main() -> Result<(), std::io::Error> {
+                let metadata = unsafe { __ink_generate_metadata() };
+
+                // gather metadata of all the event definitions linked in the contract binary.
+                #( let _event_metadata = unsafe { #ink_event_metadata_fns () }; )*
+                // todo: append to metadata
+
+                let contents = serde_json::to_string_pretty(&metadata)?;
+                print!("{}", contents);
+                Ok(())
+            }
+        )
     }
 }
