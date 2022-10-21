@@ -18,7 +18,7 @@ include = [
 ]
 
 [dependencies]
-anyhow = "1.0.65"
+anyhow = "1.0.66"
 clap = { version = "4.0.18", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
@@ -51,7 +51,7 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.15.1", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.65"
+anyhow = "1.0.66"
 dirs = "4.0.0"
 zip = { version = "0.6.3", default-features = false }
 walkdir = "2.3.2"
