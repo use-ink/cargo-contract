@@ -22,7 +22,9 @@ use crate::{
         ManifestPath,
         Workspace,
     },
+    BuildMode,
     Network,
+    OptimizationPasses,
     UnstableFlags,
     Verbosity,
 };
@@ -74,6 +76,40 @@ struct ExtendedMetadataResult {
     user: Option<User>,
 }
 
+/// Information about the settings used to build a particular ink! contract.
+///
+/// Note that this should be an optional part of the metadata since it may not necessarily
+/// translate to other languages (e.g ask!, Solidity).
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct BuildInfo {
+    /// The Rust toolchain used to build the contract.
+    pub rust_toolchain: String,
+    /// The version of `cargo-contract` used to build the contract.
+    pub cargo_contract_version: Version,
+    /// The type of build that was used when building the contract.
+    pub build_mode: BuildMode,
+    /// Information about the `wasm-opt` optimization settings.
+    pub wasm_opt_settings: WasmOptSettings,
+}
+
+impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
+    type Error = serde_json::Error;
+
+    fn try_from(build_info: BuildInfo) -> Result<Self, Self::Error> {
+        let tmp = serde_json::to_string(&build_info)?;
+        serde_json::from_str(&tmp)
+    }
+}
+
+/// Settings used when optimizing the Wasm binary using Binaryen's `wasm-opt`.
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct WasmOptSettings {
+    /// The level of optimization used during the `wasm-opt` run.
+    pub optimization_passes: OptimizationPasses,
+    /// Whether or not the Wasm name section should be kept.
+    pub keep_debug_symbols: bool,
+}
+
 /// Generates a file with metadata describing the ABI of the smart contract.
 ///
 /// It does so by generating and invoking a temporary workspace member.
@@ -84,6 +120,7 @@ pub(crate) fn execute(
     verbosity: Verbosity,
     total_steps: usize,
     unstable_options: &UnstableFlags,
+    build_info: BuildInfo,
 ) -> Result<MetadataResult> {
     let target_directory = crate_metadata.target_directory.clone();
     let out_path_metadata = target_directory.join(METADATA_FILE);
@@ -96,7 +133,7 @@ pub(crate) fn execute(
         source,
         contract,
         user,
-    } = extended_metadata(crate_metadata, final_contract_wasm)?;
+    } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         let mut current_progress = 5;
@@ -189,6 +226,7 @@ pub(crate) fn execute(
 fn extended_metadata(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
+    build_info: BuildInfo,
 ) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
     let ink_version = &crate_metadata.ink_version;
@@ -211,7 +249,13 @@ fn extended_metadata(
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
         let wasm = fs::read(final_contract_wasm)?;
         let hash = blake2_hash(wasm.as_slice());
-        Source::new(Some(SourceWasm::new(wasm)), hash, lang, compiler)
+        Source::new(
+            Some(SourceWasm::new(wasm)),
+            hash,
+            lang,
+            compiler,
+            Some(build_info.try_into()?),
+        )
     };
 
     // Required contract fields

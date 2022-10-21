@@ -106,7 +106,7 @@ impl FromStr for HexData {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum OptimizationPasses {
     Zero,
     One,
@@ -298,7 +298,7 @@ impl Default for BuildArtifacts {
 }
 
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     Debug,
