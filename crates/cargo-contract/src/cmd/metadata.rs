@@ -90,12 +90,32 @@ pub(crate) fn execute(
     let fname_bundle = format!("{}.contract", crate_metadata.contract_artifact_name);
     let out_path_bundle = target_directory.join(fname_bundle);
 
+    let wasm = fs::read(final_contract_wasm)?;
+
+    let module: parity_wasm::elements::Module = parity_wasm::deserialize_buffer(&wasm)?;
+    let events =
+        module.import_section()
+            .map(|section| section.entries())
+            .unwrap_or(&[])
+            .iter()
+            .filter_map(|entry| {
+                println!("FIELD {}", entry.field());
+                if entry.field().starts_with("__ink_event_metadata") {
+                    Some(entry.field().clone())
+                } else {
+                    None
+                }
+            });
+    for event in events {
+        println!("EVENT {}", event)
+    }
+
     // build the extended contract project metadata
     let ExtendedMetadataResult {
         source,
         contract,
         user,
-    } = extended_metadata(crate_metadata, final_contract_wasm)?;
+    } = extended_metadata(crate_metadata, wasm)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         let mut current_progress = 5;
@@ -170,7 +190,7 @@ pub(crate) fn execute(
 /// Generate the extended contract project metadata
 fn extended_metadata(
     crate_metadata: &CrateMetadata,
-    final_contract_wasm: &Path,
+    wasm: Vec<u8>,
 ) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
     let ink_version = &crate_metadata.ink_version;
@@ -191,7 +211,6 @@ fn extended_metadata(
     let source = {
         let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-        let wasm = fs::read(final_contract_wasm)?;
         let hash = blake2_hash(wasm.as_slice());
         Source::new(Some(SourceWasm::new(wasm)), hash, lang, compiler)
     };
