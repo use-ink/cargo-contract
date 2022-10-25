@@ -100,7 +100,9 @@ impl MetadataPackage {
             extern "Rust" {
                 // Note: The ink! metadata codegen generates an implementation for this function,
                 // which is what we end up linking to here.
-                fn __ink_generate_metadata() -> ::ink::metadata::InkProject;
+                fn __ink_generate_metadata(
+                    events: ::ink::prelude::vec::Vec<::ink::metadata::EventSpec>
+                ) -> ::ink::metadata::InkProject;
 
                 // All `#[ink::event_definition]`s export a unique function to fetch their
                 // respective metadata, which we link to here.
@@ -108,11 +110,15 @@ impl MetadataPackage {
             }
 
             fn main() -> Result<(), std::io::Error> {
-                let metadata = unsafe { __ink_generate_metadata() };
-
-                // gather metadata of all the event definitions linked in the contract binary.
-                #( let _event_metadata = unsafe { #ink_event_metadata_fns () }; )*
-                // todo: append to metadata
+                let metadata = unsafe {
+                    __ink_generate_metadata(
+                        ::ink::prelude::vec![
+                            #(
+                                #ink_event_metadata_fns ()
+                            ),*
+                        ]
+                    )
+                };
 
                 let contents = serde_json::to_string_pretty(&metadata)?;
                 print!("{}", contents);
