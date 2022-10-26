@@ -82,7 +82,7 @@ pub(crate) struct ExecuteArgs {
     pub unstable_flags: UnstableFlags,
     pub optimization_passes: OptimizationPasses,
     pub keep_debug_symbols: bool,
-    pub skip_linting: bool,
+    pub lint: bool,
     pub output_type: OutputType,
 }
 
@@ -106,9 +106,9 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Skips linting checks during the build process
+    /// Performs linting checks during the build process
     #[clap(long)]
-    skip_linting: bool,
+    lint: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
@@ -191,9 +191,11 @@ impl BuildCommand {
             false => Network::Online,
         };
 
-        // The invocation of `cargo dylint` requires network access, so in offline mode the linting
-        // step must be skipped otherwise the build can fail.
-        let skip_linting = self.skip_linting || matches!(network, Network::Offline);
+        if self.lint && matches!(network, Network::Offline) {
+            anyhow::bail!(
+                "Linting requires network access in order to download available lints"
+            )
+        }
 
         let output_type = match self.output_json {
             true => OutputType::Json,
@@ -214,7 +216,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            skip_linting,
+            lint: self.lint,
             output_type,
         };
 
@@ -250,7 +252,7 @@ impl CheckCommand {
             unstable_flags,
             optimization_passes: OptimizationPasses::Zero,
             keep_debug_symbols: false,
-            skip_linting: false,
+            lint: false,
             output_type: OutputType::default(),
         };
 
@@ -591,7 +593,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         optimization_passes,
         keep_debug_symbols,
-        skip_linting,
+        lint,
         output_type,
     } = args;
 
@@ -602,17 +604,8 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    let build = || -> Result<(OptimizationResult, BuildInfo)> {
-        use crate::cmd::metadata::WasmOptSettings;
-
-        if skip_linting {
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
-                "Skip ink! linting rules".bright_yellow().bold()
-            );
-        } else {
+    let maybe_lint = || -> Result<(usize, usize)> {
+        if lint {
             maybe_println!(
                 verbosity,
                 " {} {}",
@@ -620,12 +613,21 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 "Checking ink! linting rules".bright_green().bold()
             );
             exec_cargo_dylint(&crate_metadata, verbosity)?;
+            Ok((2, build_artifact.steps() + 1))
+        } else {
+            Ok((1, build_artifact.steps()))
         }
+    };
+
+    let build = || -> Result<(OptimizationResult, BuildInfo)> {
+        use crate::cmd::metadata::WasmOptSettings;
+
+        let (next_step, total_steps) = maybe_lint()?;
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[2/{}]", build_artifact.steps()).bold(),
+            format!("[{}/{}]", next_step, total_steps).bold(),
             "Building cargo project".bright_green().bold()
         );
         exec_cargo_for_wasm_target(
@@ -640,7 +642,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[3/{}]", build_artifact.steps()).bold(),
+            format!("[{}/{}]", next_step + 1, total_steps).bold(),
             "Post processing wasm file".bright_green().bold()
         );
         post_process_wasm(&crate_metadata)?;
@@ -648,7 +650,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[4/{}]", build_artifact.steps()).bold(),
+            format!("[{}/{}]", next_step + 2, total_steps).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
 
@@ -682,27 +684,12 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            if skip_linting {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Skip ink! linting rules".bright_yellow().bold()
-                );
-            } else {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Checking ink! linting rules".bright_green().bold()
-                );
-                exec_cargo_dylint(&crate_metadata, verbosity)?;
-            }
+            let (next_step, total_steps) = maybe_lint()?;
 
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("[2/{}]", build_artifact.steps()).bold(),
+                format!("[{}/{}]", next_step, total_steps).bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
             exec_cargo_for_wasm_target(
