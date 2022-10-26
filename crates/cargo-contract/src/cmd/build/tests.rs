@@ -80,7 +80,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -120,7 +120,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -158,7 +158,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         // we choose zero optimization passes as the "cli" parameter
         optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
-        lint: true,
+        lint: false,
         output_json: false,
     };
 
@@ -199,7 +199,7 @@ fn optimization_passes_from_profile_must_be_used(
         // we choose no optimization passes as the "cli" parameter
         optimization_passes: None,
         keep_debug_symbols: false,
-        lint: true,
+        lint: false,
         output_json: false,
     };
 
@@ -241,7 +241,7 @@ fn contract_lib_name_different_from_package_name_must_build(
         unstable_options: UnstableOptions::default(),
         optimization_passes: None,
         keep_debug_symbols: false,
-        lint: true,
+        lint: false,
         output_json: false,
     };
     let res = cmd.exec().expect("build failed");
@@ -262,7 +262,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -281,7 +281,7 @@ fn building_template_in_release_mode_must_work(
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -311,7 +311,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -329,7 +329,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -347,7 +347,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -364,7 +364,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
-        lint: true,
+        lint: false,
         ..Default::default()
     };
 
@@ -436,7 +436,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = crate::cmd::build::ExecuteArgs {
-        lint: true,
+        lint: false,
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();
