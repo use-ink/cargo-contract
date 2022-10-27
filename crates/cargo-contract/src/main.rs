@@ -282,11 +282,11 @@ pub enum BuildArtifacts {
 impl BuildArtifacts {
     /// Returns the number of steps required to complete a build artifact.
     /// Used as output on the cli.
-    pub fn steps(&self) -> usize {
+    pub fn steps(&self) -> BuildSteps {
         match self {
-            BuildArtifacts::All => 5,
-            BuildArtifacts::CodeOnly => 4,
-            BuildArtifacts::CheckOnly => 1,
+            BuildArtifacts::All => BuildSteps::new(5),
+            BuildArtifacts::CodeOnly => BuildSteps::new(4),
+            BuildArtifacts::CheckOnly => BuildSteps::new(1),
         }
     }
 }
@@ -294,6 +294,32 @@ impl BuildArtifacts {
 impl Default for BuildArtifacts {
     fn default() -> Self {
         BuildArtifacts::All
+    }
+}
+
+/// Track and display the current and total number of steps.
+#[derive(Debug, Clone, Copy)]
+pub struct BuildSteps {
+    pub current_step: usize,
+    pub total_steps: usize,
+}
+
+impl BuildSteps {
+    pub fn new(total_steps: usize) -> Self {
+        Self {
+            current_step: 1,
+            total_steps,
+        }
+    }
+
+    pub fn increment_current(&mut self) {
+        self.current_step += 1;
+    }
+}
+
+impl Display for BuildSteps {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        write!(f, "[{}/{}]", self.current_step, self.total_steps)
     }
 }
 

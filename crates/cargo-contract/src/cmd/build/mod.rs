@@ -32,6 +32,7 @@ use crate::{
     BuildArtifacts,
     BuildMode,
     BuildResult,
+    BuildSteps,
     Network,
     OptimizationPasses,
     OptimizationResult,
@@ -604,34 +605,36 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    let maybe_lint = || -> Result<(usize, usize)> {
+    let maybe_lint = || -> Result<BuildSteps> {
         if lint {
-            let total_steps = build_artifact.steps() + 1;
+            let mut steps = build_artifact.steps();
+            steps.total_steps += 1;
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("[1/{}]", total_steps).bold(),
+                format!("{}", steps).bold(),
                 "Checking ink! linting rules".bright_green().bold()
             );
+            steps.increment_current();
             exec_cargo_dylint(&crate_metadata, verbosity)?;
-            Ok((2, build_artifact.steps() + 1))
+            Ok(steps)
         } else {
-            Ok((1, build_artifact.steps()))
+            Ok(build_artifact.steps())
         }
     };
 
-    let build = || -> Result<(OptimizationResult, BuildInfo, usize, usize)> {
+    let build = || -> Result<(OptimizationResult, BuildInfo, BuildSteps)> {
         use crate::cmd::metadata::WasmOptSettings;
 
-        let (mut next_step, total_steps) = maybe_lint()?;
+        let mut build_steps = maybe_lint()?;
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", next_step, total_steps).bold(),
+            format!("{}", build_steps).bold(),
             "Building cargo project".bright_green().bold()
         );
-        next_step += 1;
+        build_steps.increment_current();
         exec_cargo_for_wasm_target(
             &crate_metadata,
             "build",
@@ -644,19 +647,19 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", next_step, total_steps).bold(),
+            format!("{}", build_steps).bold(),
             "Post processing wasm file".bright_green().bold()
         );
-        next_step += 1;
+        build_steps.increment_current();
         post_process_wasm(&crate_metadata)?;
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", next_step, total_steps).bold(),
+            format!("{}", build_steps).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
-        next_step += 1;
+        build_steps.increment_current();
 
         let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
         let optimization_result = handler.optimize(
@@ -683,17 +686,17 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             },
         };
 
-        Ok((optimization_result, build_info, next_step, total_steps))
+        Ok((optimization_result, build_info, build_steps))
     };
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            let (next_step, total_steps) = maybe_lint()?;
+            let build_steps = maybe_lint()?;
 
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("[{}/{}]", next_step, total_steps).bold(),
+                format!("{}", build_steps).bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
             exec_cargo_for_wasm_target(
@@ -707,19 +710,18 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let (optimization_result, _build_info, _, _) = build()?;
+            let (optimization_result, _build_info, _) = build()?;
             (Some(optimization_result), None)
         }
         BuildArtifacts::All => {
-            let (optimization_result, build_info, next_step, total_steps) = build()?;
+            let (optimization_result, build_info, build_steps) = build()?;
 
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
                 network,
                 verbosity,
-                next_step,
-                total_steps,
+                build_steps,
                 &unstable_flags,
                 build_info,
             )?;
