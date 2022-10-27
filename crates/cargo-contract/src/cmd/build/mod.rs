@@ -423,7 +423,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     }
 
     // On windows we cannot just run the linker with --version as there is no command
-    // which just ouputs some information. It always needs to do some linking in
+    // which just outputs some information. It always needs to do some linking in
     // order to return successful exit code.
     #[cfg(windows)]
     let dylint_link_found = which::which("dylint-link").is_ok();
@@ -606,10 +606,11 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let maybe_lint = || -> Result<(usize, usize)> {
         if lint {
+            let total_steps = build_artifact.steps() + 1;
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("[1/{}]", build_artifact.steps()).bold(),
+                format!("[1/{}]", total_steps).bold(),
                 "Checking ink! linting rules".bright_green().bold()
             );
             exec_cargo_dylint(&crate_metadata, verbosity)?;
@@ -619,10 +620,10 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let build = || -> Result<(OptimizationResult, BuildInfo)> {
+    let build = || -> Result<(OptimizationResult, BuildInfo, usize, usize)> {
         use crate::cmd::metadata::WasmOptSettings;
 
-        let (next_step, total_steps) = maybe_lint()?;
+        let (mut next_step, total_steps) = maybe_lint()?;
 
         maybe_println!(
             verbosity,
@@ -630,6 +631,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             format!("[{}/{}]", next_step, total_steps).bold(),
             "Building cargo project".bright_green().bold()
         );
+        next_step += 1;
         exec_cargo_for_wasm_target(
             &crate_metadata,
             "build",
@@ -642,17 +644,19 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", next_step + 1, total_steps).bold(),
+            format!("[{}/{}]", next_step, total_steps).bold(),
             "Post processing wasm file".bright_green().bold()
         );
+        next_step += 1;
         post_process_wasm(&crate_metadata)?;
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", next_step + 2, total_steps).bold(),
+            format!("[{}/{}]", next_step, total_steps).bold(),
             "Optimizing wasm file".bright_green().bold()
         );
+        next_step += 1;
 
         let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
         let optimization_result = handler.optimize(
@@ -679,7 +683,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             },
         };
 
-        Ok((optimization_result, build_info))
+        Ok((optimization_result, build_info, next_step, total_steps))
     };
 
     let (opt_result, metadata_result) = match build_artifact {
@@ -703,18 +707,19 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let (optimization_result, _build_info) = build()?;
+            let (optimization_result, _build_info, _, _) = build()?;
             (Some(optimization_result), None)
         }
         BuildArtifacts::All => {
-            let (optimization_result, build_info) = build()?;
+            let (optimization_result, build_info, next_step, total_steps) = build()?;
 
             let metadata_result = super::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
                 network,
                 verbosity,
-                build_artifact.steps(),
+                next_step,
+                total_steps,
                 &unstable_flags,
                 build_info,
             )?;
