@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract`.
+- Make linting opt in with `--lint` - [#799](https://github.com/paritytech/cargo-contract/pull/799)
 
 ## [2.0.0-alpha.4] - 2022-10-03
 

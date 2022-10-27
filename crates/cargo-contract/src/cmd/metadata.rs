@@ -23,6 +23,7 @@ use crate::{
         Workspace,
     },
     BuildMode,
+    BuildSteps,
     Network,
     OptimizationPasses,
     UnstableFlags,
@@ -117,7 +118,7 @@ pub(crate) fn execute(
     final_contract_wasm: &Path,
     network: Network,
     verbosity: Verbosity,
-    total_steps: usize,
+    mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
@@ -135,11 +136,10 @@ pub(crate) fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        let mut current_progress = 5;
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", current_progress, total_steps).bold(),
+            format!("{}", build_steps).bold(),
             "Generating metadata".bright_green().bold()
         );
         let target_dir_arg =
@@ -167,13 +167,13 @@ pub(crate) fn execute(
             metadata.remove_source_wasm_attribute();
             let contents = serde_json::to_string_pretty(&metadata)?;
             fs::write(&out_path_metadata, contents)?;
-            current_progress += 1;
+            build_steps.increment_current();
         }
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("[{}/{}]", current_progress, total_steps).bold(),
+            format!("{}", build_steps).bold(),
             "Generating bundle".bright_green().bold()
         );
         let contents = serde_json::to_string(&metadata)?;
