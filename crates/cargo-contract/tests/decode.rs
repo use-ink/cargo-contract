@@ -74,7 +74,6 @@ fn decode_works() {
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir)
         .arg("build")
-        .arg("--skip-linting")
         .assert()
         .success();
 
