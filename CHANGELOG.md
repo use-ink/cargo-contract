@@ -6,12 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.5] - 2022-10-27
+
 ### Added
 - Add Rust specific build info to metadata - [#680](https://github.com/paritytech/cargo-contract/pull/680)
 
 ### Changed
-- Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract`.
+- Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract` - [#766](https://github.com/paritytech/cargo-contract/pull/766).
 - Make linting opt in with `--lint` - [#799](https://github.com/paritytech/cargo-contract/pull/799)
+
+### Fixed
+-  Log failure instead of failing when decoding an event - [#769](https://github.com/paritytech/cargo-contract/pull/769)
 
 ## [2.0.0-alpha.4] - 2022-10-03
 
