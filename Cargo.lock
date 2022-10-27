@@ -464,7 +464,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -640,7 +640,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "impl-serde 0.4.0",
  "pretty_assertions",
@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "anyhow",
  "assert_matches",
