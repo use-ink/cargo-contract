@@ -394,6 +394,7 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // when
     let args = crate::cmd::build::ExecuteArgs {
         manifest_path: manifest_path.clone(),
+        lint: true,
         ..Default::default()
     };
     let res = super::execute(args).map(|_| ()).unwrap_err();
