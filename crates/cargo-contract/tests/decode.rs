@@ -72,10 +72,7 @@ fn decode_works() {
     std::fs::write(&lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
-    cargo_contract(&project_dir)
-        .arg("build")
-        .assert()
-        .success();
+    cargo_contract(&project_dir).arg("build").assert().success();
 
     let msg_data: &str = "babebabe01";
     let msg_decoded: &str = r#"switch { value: true }"#;
