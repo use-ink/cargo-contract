@@ -223,7 +223,7 @@ impl BalanceVariant {
                 let balance: Balance = den_balance
                     .value
                     .checked_mul(multiple)
-                    .context("error while converting balance to raw format.")?
+                    .context("error while converting balance to raw format. Overflow during multiplication!")?
                     .try_into()?;
                 Ok(balance)
             }
