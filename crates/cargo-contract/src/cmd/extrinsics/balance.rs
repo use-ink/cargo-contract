@@ -129,7 +129,7 @@ impl FromStr for DenominatedBalance {
         let unit: UnitPrefix = match unit_char {
             'G' => UnitPrefix::Giga,
             'M' => UnitPrefix::Mega,
-            'K' => UnitPrefix::Kilo,
+            'k' => UnitPrefix::Kilo,
             'm' => UnitPrefix::Milli,
             '\u{3bc}' => UnitPrefix::Micro,
             'n' => UnitPrefix::Nano,
@@ -220,7 +220,11 @@ impl BalanceVariant {
                         "Given precision of a Balance value is higher than allowed"
                     ))
                 }
-                let balance: Balance = (den_balance.value * multiple).try_into()?;
+                let balance: Balance = den_balance
+                    .value
+                    .checked_mul(multiple)
+                    .context("error while converting balance to raw format.")?
+                    .try_into()?;
                 Ok(balance)
             }
         }
@@ -361,7 +365,7 @@ impl Display for DenominatedBalance {
         let prefix = match self.unit {
             UnitPrefix::Giga => "G",
             UnitPrefix::Mega => "M",
-            UnitPrefix::Kilo => "K",
+            UnitPrefix::Kilo => "k",
             UnitPrefix::One => "",
             UnitPrefix::Milli => "m",
             UnitPrefix::Micro => "μ",
@@ -503,7 +507,7 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance: Balance = 5_005_000_000_000_000;
-        let bv = BalanceVariant::from_str("500.5KDOT").expect("successful parsing. qed");
+        let bv = BalanceVariant::from_str("500.5kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -567,7 +571,7 @@ mod tests {
         };
         let balance: Balance = 5_235_456_210_000_000;
         let bv =
-            BalanceVariant::from_str("523.545621KDOT").expect("successful parsing. qed");
+            BalanceVariant::from_str("523.545621kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
