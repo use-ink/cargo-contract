@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    parse_balance,
     prompt_confirm_tx,
     runtime_api::{
         api,
@@ -25,6 +24,7 @@ use super::{
     state_call,
     submit_extrinsic,
     Balance,
+    BalanceVariant,
     Client,
     CodeHash,
     ContractMessageTranscoder,
@@ -39,6 +39,7 @@ use crate::{
         display_contract_exec_result_debug,
         events::DisplayEvents,
         ErrorVariant,
+        TokenMetadata,
     },
     name_value_println,
     util::decode_hex,
@@ -95,8 +96,8 @@ pub struct InstantiateCommand {
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
-    #[clap(name = "value", long, default_value = "0", value_parser = parse_balance)]
-    value: Balance,
+    #[clap(name = "value", long, default_value = "0")]
+    value: BalanceVariant,
     /// Maximum amount of gas to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
     #[clap(name = "gas", long)]
@@ -169,18 +170,25 @@ impl InstantiateCommand {
         }?;
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let args = InstantiateArgs {
-            constructor: self.constructor.clone(),
-            raw_args: self.args.clone(),
-            value: self.value,
-            gas_limit: self.gas_limit.map(Weight::from_ref_time),
-            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
-            data,
-            salt,
-        };
-
         async_std::task::block_on(async move {
             let client = OnlineClient::from_url(url.clone()).await?;
+
+            let token_metadata = TokenMetadata::query(&client).await?;
+
+            let args = InstantiateArgs {
+                constructor: self.constructor.clone(),
+                raw_args: self.args.clone(),
+                value: self.value.denominate_balance(&token_metadata)?,
+                gas_limit: self.gas_limit.map(Weight::from_ref_time),
+                storage_deposit_limit: self
+                    .extrinsic_opts
+                    .storage_deposit_limit
+                    .as_ref()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+                data,
+                salt,
+            };
 
             let exec = Exec {
                 args,
@@ -306,7 +314,9 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, code_hash, instantiated.contract)
+        let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, code_hash, instantiated.contract, &token_metadata)
+            .await
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<(), ErrorVariant> {
@@ -340,14 +350,17 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, None, instantiated.contract)
+        let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, None, instantiated.contract, &token_metadata)
+            .await
     }
 
-    fn display_result(
+    async fn display_result(
         &self,
         result: &TxEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
+        token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
@@ -368,7 +381,7 @@ impl Exec {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
             }
             name_value_println!("Contract", contract_address);
-            println!("{}", events.display_events(self.verbosity))
+            println!("{}", events.display_events(self.verbosity, token_metadata)?)
         };
         Ok(())
     }

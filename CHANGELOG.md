@@ -31,6 +31,7 @@ release of `ink!`. It is *not* backwards compatible with older versions of `ink!
 
 ### Added
 - `--output-json` support for `call`, `instantiate` and `upload` commands - [#722](https://github.com/paritytech/cargo-contract/pull/722)
+- Denominated units for Balances - [#750](https://github.com/paritytech/cargo-contract/pull/750)
 - Use new ink entrance crate - [#728](https://github.com/paritytech/cargo-contract/pull/728)
 
 ### Fixed
