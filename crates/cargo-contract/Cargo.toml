@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -32,15 +32,15 @@ colored = "2.0.0"
 toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.4"
-contract-metadata = { version = "2.0.0-alpha.4", path = "../metadata" }
-transcode = { package = "contract-transcode", version = "2.0.0-alpha.4", path = "../transcode" }
+contract-metadata = { version = "2.0.0-alpha.5", path = "../metadata" }
+transcode = { package = "contract-transcode", version = "2.0.0-alpha.5", path = "../transcode" }
 semver = { version = "1.0.14", features = ["serde"] }
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 serde_json = "1.0.87"
 tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 impl-serde = "0.4.0"
-wasm-opt = "0.110.1"
+wasm-opt = "0.110.2"
 proc-macro2 = "1.0.47"
 quote = "1.0.21"
 

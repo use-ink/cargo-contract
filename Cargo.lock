@@ -464,7 +464,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -642,7 +642,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "impl-serde 0.4.0",
  "pretty_assertions",
@@ -654,7 +654,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0-alpha.4"
+version = "2.0.0-alpha.5"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -802,9 +802,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.75"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b7df2292959b7e22a5cb39d37b7e72b2c748b12f956cc409b529fddcdc8857b"
+checksum = "6b7d4e43b25d3c994662706a1d4fcfc32aaa6afd287502c111b237093bb23f3a"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -814,9 +814,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.75"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0806e5c64f74bd64b94d857b1c28cc3d493579a65f5f31e7d3451706d4025405"
+checksum = "84f8829ddc213e2c1368e51a2564c552b65a8cb6a28f31e576270ac81d5e5827"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -829,15 +829,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.75"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2069b1573efd6e5901004e8fdca2e28bc6f47f86dc24da81182851e71cf3208"
+checksum = "e72537424b474af1460806647c41d4b6d35d09ef7fe031c5c2fa5766047cc56a"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.75"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d980827d1ec28ea6e0db545fceaa611eb8e43f70eff8c1c33cc2c96ffa0f0476"
+checksum = "309e4fb93eed90e1e14bea0da16b209f81813ba9fc7830c20ed151dd7bc0a4d7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4081,9 +4081,9 @@ checksum = "d554b7f530dee5964d9a9468d95c1f8b8acae4f282807e7d27d4b03099a46744"
 
 [[package]]
 name = "wasm-opt"
-version = "0.110.1"
+version = "0.110.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92186976135b1af91a88c255c15d273b393d73f8032c8ca373a1e69ea1b56ec5"
+checksum = "b68e8037b4daf711393f4be2056246d12d975651b14d581520ad5d1f19219cec"
 dependencies = [
  "anyhow",
  "libc",
@@ -4097,9 +4097,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-opt-cxx-sys"
-version = "0.110.1"
+version = "0.110.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dc16d755d1a6bc0555e43adc5cfd7ae66f3ad590b3394a949ba616248dd84ff"
+checksum = "91adbad477e97bba3fbd21dd7bfb594e7ad5ceb9169ab1c93ab9cb0ada636b6f"
 dependencies = [
  "anyhow",
  "cxx",
@@ -4109,9 +4109,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-opt-sys"
-version = "0.110.1"
+version = "0.110.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d7d039c9786215a640602f861c6e9e7eb6ba855fb105b36e62a79a45ef173b2"
+checksum = "ec4fa5a322a4e6ac22fd141f498d56afbdbf9df5debeac32380d2dcaa3e06941"
 dependencies = [
  "anyhow",
  "cc",
