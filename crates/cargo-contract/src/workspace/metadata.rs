@@ -46,7 +46,11 @@ impl MetadataPackage {
     ///
     /// `ink!` dependencies are copied from the containing contract workspace to ensure the same
     /// versions are utilized.
-    pub fn generate<P: AsRef<Path>>(&self, target_dir: P, mut ink_crate_dependency: value::Table) -> Result<()> {
+    pub fn generate<P: AsRef<Path>>(
+        &self,
+        target_dir: P,
+        mut ink_crate_dependency: value::Table,
+    ) -> Result<()> {
         let dir = target_dir.as_ref();
         tracing::debug!(
             "Generating metadata package for {} in {}",
@@ -89,7 +93,8 @@ impl MetadataPackage {
 
     /// Generate the `main.rs` file to be executed to generate the metadata.
     fn generate_main(&self) -> proc_macro2::TokenStream {
-        let ink_event_metadata_fns = self.ink_event_metadata_externs
+        let ink_event_metadata_fns = self
+            .ink_event_metadata_externs
             .iter()
             .map(|event_metadata_fn| quote::format_ident!("{}", event_metadata_fn))
             .collect::<Vec<_>>();
