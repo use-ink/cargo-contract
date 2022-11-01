@@ -58,6 +58,7 @@
 
 mod byte_str;
 
+use anyhow::{Result, Context};
 use semver::Version;
 use serde::{
     de,
@@ -75,7 +76,7 @@ use std::{
         Formatter,
         Result as DisplayResult,
     },
-    str::FromStr,
+    str::FromStr, path::Path, fs::File,
 };
 use url::Url;
 
@@ -112,6 +113,20 @@ impl ContractMetadata {
 
     pub fn remove_source_wasm_attribute(&mut self) {
         self.source.wasm = None;
+    }
+
+    /// Reads the file and tries to parse it as instance of `ContractMetadata`.
+    pub fn load<P>(metadata_path: &P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let path = metadata_path.as_ref();
+        let file = File::open(path)
+            .context(format!("Failed to open metadata file {}", path.display()))?;
+        serde_json::from_reader(file).context(format!(
+            "Failed to deserialize metadata file {}",
+            path.display()
+        ))
     }
 }
 

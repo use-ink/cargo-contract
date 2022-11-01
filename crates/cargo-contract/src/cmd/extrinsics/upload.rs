@@ -71,12 +71,18 @@ impl UploadCommand {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
-        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
+        let contract_metadata =
+            contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
+        let transcoder = ContractMessageTranscoder::from_metadata(contract_metadata)
+            .context(format!(
+                "Failed to deserialize ink project metadata from contract metadata {}",
+                crate_metadata.metadata_path().display()
+            ))?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let wasm_path = match &self.wasm_path {
             Some(wasm_path) => wasm_path.clone(),
-            None => crate_metadata.dest_wasm,
+            None => crate_metadata.dest_wasm.clone(),
         };
 
         tracing::debug!("Contract code path: {}", wasm_path.display());
@@ -126,7 +132,13 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                Err("This contract has already been uploaded".into())
+                let code_hash = contract_metadata::ContractMetadata::load(
+                    &crate_metadata.metadata_path(),
+                )?.source.hash;
+                Err(format!(
+                    "This contract has already been uploaded with code hash: {:?}",
+                    code_hash
+                ).as_str().into())
             }
         })
     }
