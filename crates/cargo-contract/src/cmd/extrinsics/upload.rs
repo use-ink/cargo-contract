@@ -133,7 +133,7 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                Err(anyhow::anyhow!("This contract has already been uploaded with code hash: {:?}", code_hash))
+                Err(anyhow::anyhow!("This contract has already been uploaded with code hash: {:?}", code_hash).into())
             }
         })
     }
