@@ -131,7 +131,7 @@ impl ContractMetadata {
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CodeHash(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
