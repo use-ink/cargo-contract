@@ -341,8 +341,12 @@ impl ContractMessageTranscoder {
 impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
     type Error = anyhow::Error;
 
-    fn try_from(metadata: contract_metadata::ContractMetadata) -> Result<Self, Self::Error> {
-        Ok(Self::new(serde_json::from_value(serde_json::Value::Object(metadata.abi))?))
+    fn try_from(
+        metadata: contract_metadata::ContractMetadata,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new(serde_json::from_value(
+            serde_json::Value::Object(metadata.abi),
+        )?))
     }
 }
 

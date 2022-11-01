@@ -74,8 +74,8 @@ impl UploadCommand {
         let contract_metadata =
             contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
         let code_hash = contract_metadata.source.hash;
-        let transcoder = ContractMessageTranscoder::try_from(contract_metadata)
-            .context(format!(
+        let transcoder =
+            ContractMessageTranscoder::try_from(contract_metadata).context(format!(
                 "Failed to deserialize ink project metadata from contract metadata {}",
                 crate_metadata.metadata_path().display()
             ))?;
@@ -133,7 +133,11 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                Err(anyhow::anyhow!("This contract has already been uploaded with code hash: {:?}", code_hash).into())
+                Err(anyhow::anyhow!(
+                    "This contract has already been uploaded with code hash: {:?}",
+                    code_hash
+                )
+                .into())
             }
         })
     }

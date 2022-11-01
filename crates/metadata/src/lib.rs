@@ -58,7 +58,10 @@
 
 mod byte_str;
 
-use anyhow::{Result, Context};
+use anyhow::{
+    Context,
+    Result,
+};
 use semver::Version;
 use serde::{
     de,
@@ -76,7 +79,9 @@ use std::{
         Formatter,
         Result as DisplayResult,
     },
-    str::FromStr, path::Path, fs::File,
+    fs::File,
+    path::Path,
+    str::FromStr,
 };
 use url::Url;
 
