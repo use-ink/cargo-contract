@@ -73,7 +73,7 @@ impl UploadCommand {
         )?;
         let contract_metadata =
             contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
-        let transcoder = ContractMessageTranscoder::from_metadata(contract_metadata)
+        let transcoder = ContractMessageTranscoder::try_from(contract_metadata)
             .context(format!(
                 "Failed to deserialize ink project metadata from contract metadata {}",
                 crate_metadata.metadata_path().display()

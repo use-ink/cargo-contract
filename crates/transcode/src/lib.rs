@@ -178,13 +178,6 @@ impl ContractMessageTranscoder {
         Ok(Self::new(ink_metadata))
     }
 
-    /// Constructs an instance of `Self` out of a contract metadata.
-    ///
-    /// Returns error if can't deserialize metadata's ABI.
-    pub fn from_metadata(metadata: contract_metadata::ContractMetadata) -> Result<Self> {
-        Ok(Self::new(serde_json::from_value(serde_json::Value::Object(metadata.abi))?))
-    }
-
     pub fn encode<I, S>(&self, name: &str, args: I) -> Result<Vec<u8>>
     where
         I: IntoIterator<Item = S>,
@@ -342,6 +335,14 @@ impl ContractMessageTranscoder {
         } else {
             Ok(Value::Unit)
         }
+    }
+}
+
+impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
+    type Error = anyhow::Error;
+
+    fn try_from(metadata: contract_metadata::ContractMetadata) -> Result<Self, Self::Error> {
+        Ok(Self::new(serde_json::from_value(serde_json::Value::Object(metadata.abi))?))
     }
 }
 
