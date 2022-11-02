@@ -24,6 +24,7 @@ pub use self::{
         Manifest,
         ManifestPath,
     },
+    metadata::EventDefinitionIds,
     profile::Profile,
 };
 
@@ -152,10 +153,10 @@ impl Workspace {
     pub(super) fn with_metadata_gen_package(
         &mut self,
         package_path: PathBuf,
-        ink_event_metadata_externs: Vec<String>,
+        ink_event_metadata_ids: EventDefinitionIds,
     ) -> Result<&mut Self> {
         self.with_contract_manifest(&package_path, |manifest| {
-            manifest.with_metadata_package(ink_event_metadata_externs)?;
+            manifest.with_metadata_package(ink_event_metadata_ids)?;
             Ok(())
         })
     }
