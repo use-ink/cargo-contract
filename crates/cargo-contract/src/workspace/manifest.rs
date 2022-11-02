@@ -20,10 +20,7 @@ use anyhow::{
 };
 
 use super::{
-    metadata::{
-        EventDefinitionIds,
-        MetadataPackage
-    },
+    metadata::MetadataPackage,
     Profile,
 };
 use crate::OptimizationPasses;
@@ -256,7 +253,7 @@ impl Manifest {
     /// Adds a metadata package to the manifest workspace for generating metadata
     pub fn with_metadata_package(
         &mut self,
-        event_definition_ids: EventDefinitionIds,
+        ink_event_metadata_externs: Vec<String>,
     ) -> Result<&mut Self> {
         let workspace = self
             .toml
@@ -298,7 +295,7 @@ impl Manifest {
 
         self.metadata_package = Some(MetadataPackage::new(
             contract_package_name,
-            event_definition_ids,
+            ink_event_metadata_externs,
         ));
         Ok(self)
     }

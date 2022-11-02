@@ -24,17 +24,17 @@ use toml::value;
 /// Info for generating a metadata package.
 pub struct MetadataPackage {
     contract_package_name: String,
-    event_definition_ids: EventDefinitionIds,
+    ink_event_metadata_externs: Vec<String>,
 }
 
 impl MetadataPackage {
     /// Construct a new [`MetadataPackage`].
     pub fn new(
         contract_package_name: String,
-        event_definition_ids: EventDefinitionIds,
+        ink_event_metadata_externs: Vec<String>,
     ) -> Self {
         Self {
-            event_definition_ids,
+            ink_event_metadata_externs,
             contract_package_name,
         }
     }
@@ -93,7 +93,11 @@ impl MetadataPackage {
 
     /// Generate the `main.rs` file to be executed to generate the metadata.
     fn generate_main(&self) -> proc_macro2::TokenStream {
-        let event_definition_ids = &self.event_definition_ids.ids;
+        let ink_event_metadata_fns = self
+            .ink_event_metadata_externs
+            .iter()
+            .map(|event_metadata_fn| quote::format_ident!("{}", event_metadata_fn))
+            .collect::<Vec<_>>();
 
         quote::quote!(
             extern crate contract;
@@ -104,46 +108,27 @@ impl MetadataPackage {
                 fn __ink_generate_metadata(
                     events: ::ink::prelude::vec::Vec<::ink::metadata::EventSpec>
                 ) -> ::ink::metadata::InkProject;
+
+                // All `#[ink::event_definition]`s export a unique function to fetch their
+                // respective metadata, which we link to here.
+                #( fn #ink_event_metadata_fns () -> ::ink::metadata::EventSpec; )*
             }
 
             fn main() -> Result<(), std::io::Error> {
-                // gather metadata for all `#[ink::event_definition]`s imported by the contract
-                let event_definitions = ::ink::prelude::vec![
-                    #(
-                        <<::ink::reflect::EventDefinitionRegistry as
-                            ::ink::reflect::EventDefinition<{ #event_definition_ids }>>::Type as
-                                ::ink::metadata::EventMetadata>::event_spec()
-                    ),*
-                ];
-
-                let metadata = unsafe { __ink_generate_metadata(event_definitions) };
+                let metadata = unsafe {
+                    __ink_generate_metadata(
+                        ::ink::prelude::vec![
+                            #(
+                                #ink_event_metadata_fns ()
+                            ),*
+                        ]
+                    )
+                };
 
                 let contents = serde_json::to_string_pretty(&metadata)?;
                 print!("{}", contents);
                 Ok(())
             }
         )
-    }
-}
-
-/// The identifiers of all event definitions imported into a contract.
-///
-/// These are used to generate function calls to extract metadata from all the events which could
-/// be emitted by a contract.
-#[derive(Debug)]
-pub struct EventDefinitionIds {
-    ids: Vec<u128>
-}
-
-impl TryFrom<&[u8]> for EventDefinitionIds {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
-        let mut cursor = 0;
-        let mut buf = [0u8; 16];
-        let mut ids = Vec::new();
-        buf.copy_from_slice(&value[cursor..cursor + 16]);
-        ids.push(u128::from_be_bytes(buf));
-        Ok(Self { ids })
     }
 }

@@ -19,7 +19,6 @@ use crate::{
     maybe_println,
     util,
     workspace::{
-        EventDefinitionIds,
         ManifestPath,
         Workspace,
     },
@@ -60,7 +59,7 @@ use std::{
 use url::Url;
 
 const METADATA_FILE: &str = "metadata.json";
-const INK_EVENT_DEFINITION_IDS_SECTION: &str = "__ink_event_definition_ids";
+const INK_EVENT_METADATA_SECTION_PREFIX: &str = "__ink_event_metadata_";
 
 /// Metadata generation result.
 #[derive(serde::Serialize)]
@@ -186,12 +185,19 @@ pub(crate) fn execute(
 
     let module: parity_wasm::elements::Module =
         parity_wasm::deserialize_file(&crate_metadata.original_wasm)?;
-    let ink_event_defintion_ids_section = module
+    let ink_event_metadata_externs = module
         .custom_sections()
-        .find(|s| s.name() == INK_EVENT_DEFINITION_IDS_SECTION)
-        .ok_or_else(|| anyhow::anyhow!("Expected a section named {}", INK_EVENT_DEFINITION_IDS_SECTION))?;
-    println!("{:?}", ink_event_defintion_ids_section.payload());
-    let event_definition_ids = EventDefinitionIds::try_from(ink_event_defintion_ids_section.payload())?;
+        .filter_map(|section| {
+            if section
+                .name()
+                .starts_with(INK_EVENT_METADATA_SECTION_PREFIX)
+            {
+                Some(section.name().to_owned())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
 
     if unstable_options.original_manifest {
         generate_metadata(&crate_metadata.manifest_path)?;
@@ -205,7 +211,7 @@ pub(crate) fn execute(
             })?
             .with_metadata_gen_package(
                 crate_metadata.manifest_path.absolute_directory()?,
-                event_definition_ids,
+                ink_event_metadata_externs,
             )?
             .using_temp(generate_metadata)?;
     }
