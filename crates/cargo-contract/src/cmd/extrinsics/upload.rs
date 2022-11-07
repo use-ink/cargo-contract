@@ -26,6 +26,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
+    TokenMetadata,
 };
 use crate::{
     cmd::extrinsics::{
@@ -71,7 +72,14 @@ impl UploadCommand {
         let crate_metadata = CrateMetadata::from_manifest_path(
             self.extrinsic_opts.manifest_path.as_ref(),
         )?;
-        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
+        let contract_metadata =
+            contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
+        let code_hash = contract_metadata.source.hash;
+        let transcoder =
+            ContractMessageTranscoder::try_from(contract_metadata).context(format!(
+                "Failed to deserialize ink project metadata from contract metadata {}",
+                crate_metadata.metadata_path().display()
+            ))?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let wasm_path = match &self.wasm_path {
@@ -88,7 +96,7 @@ impl UploadCommand {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
-                match self.upload_code_rpc(code, &signer).await? {
+                match self.upload_code_rpc(code, &client, &signer).await? {
                     Ok(result) => {
                         let upload_result = UploadDryRunResult {
                             result: String::from("Success!"),
@@ -126,7 +134,11 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
-                Err("This contract has already been uploaded".into())
+                Err(anyhow::anyhow!(
+                    "This contract has already been uploaded with code hash: {:?}",
+                    code_hash
+                )
+                .into())
             }
         })
     }
@@ -134,10 +146,17 @@ impl UploadCommand {
     async fn upload_code_rpc(
         &self,
         code: Vec<u8>,
+        client: &Client,
         signer: &PairSigner,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let storage_deposit_limit = self.extrinsic_opts.storage_deposit_limit;
+        let token_metadata = TokenMetadata::query(client).await?;
+        let storage_deposit_limit = self
+            .extrinsic_opts
+            .storage_deposit_limit
+            .as_ref()
+            .map(|bv| bv.denominate_balance(&token_metadata))
+            .transpose()?;
         let call_request = CodeUploadRequest {
             origin: signer.account_id().clone(),
             code,
@@ -153,9 +172,12 @@ impl UploadCommand {
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
+        let token_metadata = TokenMetadata::query(client).await?;
+        let storage_deposit_limit =
+            self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
         let call = super::runtime_api::api::tx()
             .contracts()
-            .upload_code(code, self.extrinsic_opts.storage_deposit_limit());
+            .upload_code(code, storage_deposit_limit);
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =
@@ -164,7 +186,9 @@ impl UploadCommand {
         let output = if self.output_json {
             display_events.to_json()?
         } else {
-            display_events.display_events(self.extrinsic_opts.verbosity()?)
+            let token_metadata = TokenMetadata::query(client).await?;
+            display_events
+                .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
         println!("{}", output);
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;

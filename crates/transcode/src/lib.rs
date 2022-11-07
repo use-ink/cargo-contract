@@ -137,7 +137,6 @@ use scale_info::{
 };
 use std::{
     fmt::Debug,
-    fs::File,
     path::Path,
 };
 
@@ -166,13 +165,8 @@ impl ContractMessageTranscoder {
         P: AsRef<Path>,
     {
         let path = metadata_path.as_ref();
-        let file = File::open(path)
-            .context(format!("Failed to open metadata file {}", path.display()))?;
-        let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-            .context(format!(
-                "Failed to deserialize metadata file {}",
-                path.display()
-            ))?;
+        let metadata: contract_metadata::ContractMetadata =
+            contract_metadata::ContractMetadata::load(&metadata_path)?;
         let ink_metadata = serde_json::from_value(serde_json::Value::Object(
             metadata.abi,
         ))
@@ -341,6 +335,18 @@ impl ContractMessageTranscoder {
         } else {
             Ok(Value::Unit)
         }
+    }
+}
+
+impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        metadata: contract_metadata::ContractMetadata,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new(serde_json::from_value(
+            serde_json::Value::Object(metadata.abi),
+        )?))
     }
 }
 

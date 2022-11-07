@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    parse_balance,
     prompt_confirm_tx,
     runtime_api::{
         api,
@@ -25,12 +24,14 @@ use super::{
     state_call,
     submit_extrinsic,
     Balance,
+    BalanceVariant,
     Client,
     ContractMessageTranscoder,
     CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
+    TokenMetadata,
     MAX_KEY_COL_WIDTH,
 };
 
@@ -80,8 +81,8 @@ pub struct CallCommand {
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
     /// The value to be transferred as part of the call.
-    #[clap(name = "value", long, value_parser = parse_balance, default_value = "0")]
-    value: Balance,
+    #[clap(name = "value", long, default_value = "0")]
+    value: BalanceVariant,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
@@ -107,7 +108,7 @@ impl CallCommand {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
-                let result = self.call_dry_run(call_data, &signer).await?;
+                let result = self.call_dry_run(call_data, &client, &signer).await?;
 
                 match result.result {
                     Ok(ref ret_val) => {
@@ -154,15 +155,22 @@ impl CallCommand {
     async fn call_dry_run(
         &self,
         input_data: Vec<u8>,
+        client: &Client,
         signer: &PairSigner,
     ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let gas_limit = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let storage_deposit_limit = self.extrinsic_opts.storage_deposit_limit;
+        let token_metadata = TokenMetadata::query(client).await?;
+        let storage_deposit_limit = self
+            .extrinsic_opts
+            .storage_deposit_limit
+            .as_ref()
+            .map(|bv| bv.denominate_balance(&token_metadata))
+            .transpose()?;
         let call_request = CallRequest {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
-            value: self.value,
+            value: self.value.denominate_balance(&token_metadata)?,
             gas_limit: Weight::from_ref_time(gas_limit),
             storage_deposit_limit,
             input_data,
@@ -195,11 +203,13 @@ impl CallCommand {
             })?;
         }
 
+        let token_metadata = TokenMetadata::query(client).await?;
+
         let call = api::tx().contracts().call(
             self.contract.clone().into(),
-            self.value,
+            self.value.denominate_balance(&token_metadata)?,
             gas_limit,
-            self.extrinsic_opts.storage_deposit_limit(),
+            self.extrinsic_opts.storage_deposit_limit(&token_metadata)?,
             data,
         );
 
@@ -211,7 +221,8 @@ impl CallCommand {
         let output = if self.output_json {
             display_events.to_json()?
         } else {
-            display_events.display_events(self.extrinsic_opts.verbosity()?)
+            display_events
+                .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
         println!("{}", output);
 
@@ -238,7 +249,7 @@ impl CallCommand {
         if !self.output_json {
             super::print_dry_running_status(&self.message);
         }
-        let call_result = self.call_dry_run(data, signer).await?;
+        let call_result = self.call_dry_run(data, client, signer).await?;
         match call_result.result {
             Ok(_) => {
                 if !self.output_json {

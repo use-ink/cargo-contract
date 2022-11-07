@@ -16,7 +16,9 @@
 
 use super::{
     runtime_api::api::contracts::events::ContractEmitted,
+    BalanceVariant,
     DefaultConfig,
+    TokenMetadata,
 };
 use crate::{
     Verbosity,
@@ -44,11 +46,18 @@ pub struct Field {
     pub name: String,
     /// value of a field
     pub value: Value,
+    /// The name of a type as defined in the pallet Source Code
+    #[serde(skip_serializing)]
+    pub type_name: Option<String>,
 }
 
 impl Field {
-    pub fn new(name: String, value: Value) -> Self {
-        Field { name, value }
+    pub fn new(name: String, value: Value, type_name: Option<String>) -> Self {
+        Field {
+            name,
+            value,
+            type_name,
+        }
     }
 }
 
@@ -97,16 +106,20 @@ impl DisplayEvents {
 
             let event_data = &mut event.field_bytes();
             let mut unnamed_field_name = 0;
-            for field in event_fields {
+            for field_metadata in event_fields {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field.name() == Some("data")
+                ) && field_metadata.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     match transcoder.decode_contract_event(event_data) {
                         Ok(contract_event) => {
-                            let field = Field::new(String::from("data"), contract_event);
+                            let field = Field::new(
+                                String::from("data"),
+                                contract_event,
+                                field_metadata.type_name().map(|s| s.to_string()),
+                            );
                             event_entry.fields.push(field);
                         }
                         Err(err) => {
@@ -117,8 +130,10 @@ impl DisplayEvents {
                         }
                     }
                 } else {
-                    let field_name =
-                        field.name().map(ToOwned::to_owned).unwrap_or_else(|| {
+                    let field_name = field_metadata
+                        .name()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| {
                             let name = unnamed_field_name.to_string();
                             unnamed_field_name += 1;
                             name
@@ -126,10 +141,14 @@ impl DisplayEvents {
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
-                        field.type_id(),
+                        field_metadata.type_id(),
                         event_data,
                     )?;
-                    let field = Field::new(field_name, decoded_field);
+                    let field = Field::new(
+                        field_name,
+                        decoded_field,
+                        field_metadata.type_name().map(|s| s.to_string()),
+                    );
                     event_entry.fields.push(field);
                 }
             }
@@ -140,7 +159,11 @@ impl DisplayEvents {
     }
 
     /// Displays events in a human readable format
-    pub fn display_events(&self, verbosity: Verbosity) -> String {
+    pub fn display_events(
+        &self,
+        verbosity: Verbosity,
+        token_metadata: &TokenMetadata,
+    ) -> Result<String> {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
@@ -159,18 +182,27 @@ impl DisplayEvents {
 
             for field in &event.fields {
                 if verbosity.is_verbose() {
+                    let mut value: String = field.value.to_string();
+                    if field.type_name == Some("T::Balance".to_string())
+                        || field.type_name == Some("BalanceOf<T>".to_string())
+                    {
+                        if let Value::UInt(balance) = field.value {
+                            value = BalanceVariant::from(balance, Some(token_metadata))?
+                                .to_string();
+                        }
+                    }
                     let _ = writeln!(
                         out,
                         "{:width$}{}: {}",
                         "",
                         field.name.bright_white(),
-                        field.value,
+                        value,
                         width = event_field_indent,
                     );
                 }
             }
         }
-        out
+        Ok(out)
     }
 
     /// Returns an event result in json format

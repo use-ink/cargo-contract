@@ -58,6 +58,10 @@
 
 mod byte_str;
 
+use anyhow::{
+    Context,
+    Result,
+};
 use semver::Version;
 use serde::{
     de,
@@ -75,6 +79,8 @@ use std::{
         Formatter,
         Result as DisplayResult,
     },
+    fs::File,
+    path::Path,
     str::FromStr,
 };
 use url::Url;
@@ -113,10 +119,24 @@ impl ContractMetadata {
     pub fn remove_source_wasm_attribute(&mut self) {
         self.source.wasm = None;
     }
+
+    /// Reads the file and tries to parse it as instance of `ContractMetadata`.
+    pub fn load<P>(metadata_path: &P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let path = metadata_path.as_ref();
+        let file = File::open(path)
+            .context(format!("Failed to open metadata file {}", path.display()))?;
+        serde_json::from_reader(file).context(format!(
+            "Failed to deserialize metadata file {}",
+            path.display()
+        ))
+    }
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CodeHash(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",

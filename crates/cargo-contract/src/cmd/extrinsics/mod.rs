@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod balance;
 mod call;
 mod error;
 mod events;
@@ -28,6 +29,7 @@ mod integration_tests;
 use anyhow::{
     anyhow,
     Context,
+    Ok,
     Result,
 };
 use colored::Colorize;
@@ -67,6 +69,12 @@ use subxt::{
     OnlineClient,
 };
 
+use std::option::Option;
+
+pub use balance::{
+    BalanceVariant,
+    TokenMetadata,
+};
 pub use call::CallCommand;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
@@ -106,8 +114,8 @@ pub struct ExtrinsicOpts {
     dry_run: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[clap(long, value_parser = parse_balance)]
-    storage_deposit_limit: Option<Balance>,
+    #[clap(long)]
+    storage_deposit_limit: Option<BalanceVariant>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -140,17 +148,17 @@ impl ExtrinsicOpts {
     }
 
     /// Get the storage deposit limit converted to compact for passing to extrinsics.
-    pub fn storage_deposit_limit(&self) -> Option<scale::Compact<Balance>> {
-        self.storage_deposit_limit.map(Into::into)
+    pub fn storage_deposit_limit(
+        &self,
+        token_metadata: &TokenMetadata,
+    ) -> Result<Option<scale::Compact<Balance>>> {
+        Ok(self
+            .storage_deposit_limit
+            .as_ref()
+            .map(|bv| bv.denominate_balance(token_metadata))
+            .transpose()?
+            .map(Into::into))
     }
-}
-
-/// Parse Rust style integer balance literals which can contain underscores.
-fn parse_balance(input: &str) -> Result<Balance> {
-    input
-        .replace('_', "")
-        .parse::<Balance>()
-        .map_err(Into::into)
 }
 
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
@@ -242,7 +250,7 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Prompt the user to confirm transaction submission
+/// Prompt the user to confirm transaction submission.
 fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     println!(
         "{} (skip with --skip-confirm)",
