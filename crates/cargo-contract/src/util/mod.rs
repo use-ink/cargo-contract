@@ -213,7 +213,7 @@ pub fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p)?;
+                    fs::create_dir_all(p)?;
                 }
             }
             let mut outfile = fs::OpenOptions::new()
