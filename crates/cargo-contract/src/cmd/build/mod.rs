@@ -552,7 +552,7 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", &args, manifest_path.directory(), verbosity, vec![])
+        let _ = util::invoke_cargo("tree", args, manifest_path.directory(), verbosity, vec![])
             .with_context(|| {
                 format!(
                     "Mismatching versions of `{}` were found!\n\

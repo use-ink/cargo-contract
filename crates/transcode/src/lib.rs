@@ -281,7 +281,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Message with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
@@ -308,7 +308,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Constructor with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract constructor '{}'", msg_spec.label());
@@ -493,7 +493,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("new", &["true"])?;
+        let encoded = transcoder.encode("new", ["true"])?;
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
@@ -508,7 +508,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_id",
-            &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+            ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
         )?;
 
         // encoded args follow the 4 byte selector
@@ -529,7 +529,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_ids_vec",
-            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+            ["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
         )?;
 
         // encoded args follow the 4 byte selector
@@ -554,7 +554,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
+        let encoded = transcoder.encode("primitive_vec_args", ["[1, 2]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
@@ -571,7 +571,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "uint_args",
-            &[
+            [
                 "0x00",
                 "0xDEAD",
                 "0xDEADBEEF",
@@ -600,7 +600,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded =
-            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+            transcoder.encode("uint_array_args", ["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];

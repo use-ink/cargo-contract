@@ -173,7 +173,7 @@ async fn build_upload_instantiate_call() {
     tracing::debug!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
-        .args(&["--suri", "//Alice"])
+        .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
@@ -190,10 +190,10 @@ async fn build_upload_instantiate_call() {
     tracing::debug!("Instantiating the contract with code hash `{}`", code_hash);
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
-        .args(&["--constructor", "new"])
-        .args(&["--args", "true"])
-        .args(&["--code-hash", code_hash])
-        .args(&["--suri", "//Alice"])
+        .args(["--constructor", "new"])
+        .args(["--args", "true"])
+        .args(["--code-hash", code_hash])
+        .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
@@ -211,9 +211,9 @@ async fn build_upload_instantiate_call() {
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())
             .arg("call")
-            .args(&["--message", "get"])
-            .args(&["--contract", contract_account])
-            .args(&["--suri", "//Alice"])
+            .args(["--message", "get"])
+            .args(["--contract", contract_account])
+            .args(["--suri", "//Alice"])
             .arg("--dry-run")
             .assert()
             .stdout(predicate::str::contains(expected.to_string()));
@@ -225,9 +225,9 @@ async fn build_upload_instantiate_call() {
     tracing::debug!("Calling flip on the contract `{}`", contract_account);
     cargo_contract(project_path.as_path())
         .arg("call")
-        .args(&["--message", "flip"])
-        .args(&["--contract", contract_account])
-        .args(&["--suri", "//Alice"])
+        .args(["--message", "flip"])
+        .args(["--contract", contract_account])
+        .args(["--suri", "//Alice"])
         .assert()
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
