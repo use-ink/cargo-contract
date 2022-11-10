@@ -101,7 +101,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
             errs.push(parse_linker_error(field));
         }
 
-        match check_import(field) {
+        match check_import(section.module(), field) {
             Ok(_) => true,
             Err(err) => {
                 errs.push(err);
@@ -123,20 +123,20 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 }
 
 /// Returns `true` if the import is allowed.
-fn check_import(field: &str) -> Result<(), String> {
-    let allowed_prefixes = ["seal", "memory"];
-    if allowed_prefixes
-        .iter()
-        .any(|prefix| field.starts_with(prefix))
+fn check_import(module: &str, field: &str) -> Result<(), String> {
+    println!("module {}, field {}", module, field);
+    if module.starts_with("seal")
+        || module == "__unstable__"
+        || field.starts_with("memory")
     {
         Ok(())
     } else {
-        let msg = format!(
+        Err(format!(
             "An unexpected import function was found in the contract Wasm: {}.\n\
-            The only allowed import functions are those starting with one of the following prefixes:\n\
-            {}", field, allowed_prefixes.join(", ")
-        );
-        Err(msg)
+            Import funtions must either be prefixed with 'memory', or part \
+            of a module prefixed with 'seal' or '__unstable__",
+            field
+        ))
     }
 }
 
@@ -294,7 +294,8 @@ mod tests {
         let contract = r#"
             (module
                 (type (;0;) (func (param i32 i32 i32)))
-                (import "env" "seal_foo" (func (;5;) (type 0)))
+                (import "seal" "foo" (func (;5;) (type 0)))
+                (import "__unstable__" "bar" (func (;5;) (type 0)))
                 (import "env" "memory" (func (;5;) (type 0)))
                 (func (;5;) (type 0))
             )"#;
