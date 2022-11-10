@@ -124,7 +124,6 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 
 /// Returns `true` if the import is allowed.
 fn check_import(module: &str, field: &str) -> Result<(), String> {
-    println!("module {}, field {}", module, field);
     if module.starts_with("seal")
         || module == "__unstable__"
         || field.starts_with("memory")
