@@ -46,12 +46,12 @@ wasm-opt = "0.110.2"
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
 # todo: [AJ] release new versions of these substrate crates
-sp-core = { git = "https://github.com/paritytech/substrate", package = "sp-core" }
-pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", package = "pallet-contracts-primitives" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", package = "sp-core" }
+pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33", package = "pallet-contracts-primitives" }
 # todo: [AJ] new version of subxt with updated substrate dependencies
-subxt = "0.24.0"
+subxt = { git = "https://github.com/paritytech/subxt", branch = "aj/update-substrate-crates", package = "subxt" }
 hex = "0.4.3"
-jsonrpsee = { version = "0.15.1", features = ["ws-client"] }
+jsonrpsee = { version = "0.16.0", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.66"
