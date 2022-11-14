@@ -113,7 +113,7 @@ impl CallCommand {
                 match result.result {
                     Ok(ref ret_val) => {
                         let value = transcoder
-                            .decode_return(&self.message, &mut &ret_val.data.0[..])?;
+                            .decode_return(&self.message, &mut &ret_val.data[..])?;
                         let dry_run_result = CallDryRunResult {
                             result: String::from("Success!"),
                             reverted: ret_val.did_revert(),

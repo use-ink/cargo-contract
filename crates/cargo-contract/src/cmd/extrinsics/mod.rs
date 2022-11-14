@@ -64,6 +64,7 @@ use sp_core::{
     Bytes,
 };
 use subxt::{
+    blocks,
     tx,
     Config,
     OnlineClient,
@@ -227,7 +228,7 @@ async fn submit_extrinsic<T, Call>(
     client: &OnlineClient<T>,
     call: &Call,
     signer: &(dyn tx::Signer<T> + Send + Sync),
-) -> core::result::Result<tx::TxEvents<T>, subxt::Error>
+) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
     <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,

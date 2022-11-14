@@ -70,7 +70,7 @@ use std::{
     },
 };
 use subxt::{
-    tx::TxEvents,
+    blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
 };
@@ -244,7 +244,7 @@ impl Exec {
                         result: String::from("Success!"),
                         contract: ret_val.account_id.to_ss58check(),
                         reverted: ret_val.result.did_revert(),
-                        data: ret_val.result.data.clone(),
+                        data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
                         storage_deposit: result.storage_deposit.clone(),
@@ -357,7 +357,7 @@ impl Exec {
 
     async fn display_result(
         &self,
-        result: &TxEvents<DefaultConfig>,
+        result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
         token_metadata: &TokenMetadata,
