@@ -149,7 +149,7 @@ impl InstantiateCommand {
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
             tracing::debug!("Contract code path: {}", wasm_path.display());
-            let code = fs::read(&wasm_path)
+            let code = fs::read(wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
             Ok(Code::Upload(code))
         }
