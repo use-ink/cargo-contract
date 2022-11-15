@@ -161,8 +161,6 @@ impl CallCommand {
         signer: &PairSigner,
     ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let ref_time = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let proof_size = self.proof_size.unwrap_or(u64::MAX);
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
@@ -174,7 +172,7 @@ impl CallCommand {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&token_metadata)?,
-            gas_limit: Weight::from_parts(ref_time, proof_size),
+            gas_limit: None,
             storage_deposit_limit,
             input_data,
         };
@@ -289,7 +287,7 @@ pub struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
 }

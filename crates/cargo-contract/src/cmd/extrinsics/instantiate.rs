@@ -399,14 +399,11 @@ impl Exec {
         code: Code,
     ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
     {
-        let ref_time = *self.args.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
-        let proof_size = self.args.proof_size.unwrap_or(u64::MAX);
-
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
             value: self.args.value,
-            gas_limit: Weight::from_parts(ref_time, proof_size),
+            gas_limit: None,
             storage_deposit_limit,
             code,
             data: self.args.data.clone(),
@@ -520,7 +517,7 @@ impl InstantiateDryRunResult {
 struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     code: Code,
     data: Vec<u8>,
