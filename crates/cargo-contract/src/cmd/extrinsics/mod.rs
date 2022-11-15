@@ -63,6 +63,7 @@ use sp_core::{
     sr25519,
     Bytes,
 };
+use sp_weights::Weight;
 use subxt::{
     blocks,
     tx,
@@ -284,7 +285,7 @@ fn print_dry_running_status(msg: &str) {
     );
 }
 
-fn print_gas_required_success(gas: u64) {
+fn print_gas_required_success(gas: Weight) {
     println!(
         "{:>width$} Gas required estimated at {}",
         "Success!".green().bold(),

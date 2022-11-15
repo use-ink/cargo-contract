@@ -19,30 +19,5 @@
 )]
 pub mod api {
     #[subxt(substitute_type = "sp_weights::weight_v2::Weight")]
-    use crate::cmd::extrinsics::runtime_api::Weight;
-}
-
-/// Copy of the `weight_v2::Weight` type defined in substrate.
-///
-/// Allows for local trait and inherent impls.
-#[derive(scale::Encode, scale::Decode, Clone, Copy, Debug)]
-pub struct Weight {
-    #[codec(compact)]
-    /// The weight of computational time used based on some reference hardware.
-    pub ref_time: u64,
-    #[codec(compact)]
-    /// The weight of storage space used by proof of validity.
-    pub proof_size: u64,
-}
-
-impl ToString for Weight {
-    fn to_string(&self) -> String {
-        self.ref_time.to_string()
-    }
-}
-
-impl Weight {
-    pub fn from_ref_time(ref_time: u64) -> Self {
-        Self { ref_time, proof_size: 0 }
-    }
+    use ::sp_weights::Weight;
 }

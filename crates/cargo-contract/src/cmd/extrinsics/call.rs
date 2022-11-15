@@ -17,10 +17,7 @@
 use super::{
     display_contract_exec_result,
     prompt_confirm_tx,
-    runtime_api::{
-        api,
-        Weight,
-    },
+    runtime_api::api,
     state_call,
     submit_extrinsic,
     Balance,
@@ -54,6 +51,7 @@ use pallet_contracts_primitives::{
     StorageDeposit,
 };
 use scale::Encode;
+use sp_weights::Weight;
 use transcode::Value;
 
 use std::fmt::Debug;
@@ -76,10 +74,14 @@ pub struct CallCommand {
     args: Vec<String>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// Maximum amount of gas to be used for this command.
-    /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
+    /// Maximum amount of gas (execution time) to be used for this command.
+    /// If not specified will perform a dry-run to estimate the gas consumed for the call.
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
+    /// Maximum proof size for this call.
+    /// If not specified will perform a dry-run to estimate the proof size required for the call.
+    #[clap(long)]
+    proof_size: Option<u64>,
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
@@ -159,7 +161,8 @@ impl CallCommand {
         signer: &PairSigner,
     ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
-        let gas_limit = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
+        let ref_time = *self.gas_limit.as_ref().unwrap_or(&5_000_000_000_000);
+        let proof_size = self.proof_size.unwrap_or(u64::MAX);
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
@@ -171,7 +174,7 @@ impl CallCommand {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&token_metadata)?,
-            gas_limit: Weight::from_ref_time(gas_limit),
+            gas_limit: Weight::from_parts(ref_time, proof_size),
             storage_deposit_limit,
             input_data,
         };
@@ -237,11 +240,11 @@ impl CallCommand {
         signer: &PairSigner,
     ) -> Result<Weight> {
         if self.extrinsic_opts.skip_dry_run {
-            return match self.gas_limit {
-                Some(gas) => Ok(Weight::from_ref_time(gas)),
-                None => {
+            return match (self.gas_limit, self.proof_size) {
+                (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
+                _ => {
                     Err(anyhow!(
-                    "Gas limit `--gas` argument required if `--skip-dry-run` specified"
+                    "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
                 ))
                 }
             }
@@ -255,8 +258,14 @@ impl CallCommand {
                 if !self.output_json {
                     super::print_gas_required_success(call_result.gas_required);
                 }
-                let gas_limit = self.gas_limit.unwrap_or(call_result.gas_required);
-                Ok(Weight::from_ref_time(gas_limit))
+                // use user specified values where provided, otherwise use the estimates
+                let ref_time = self
+                    .gas_limit
+                    .unwrap_or(call_result.gas_required.ref_time());
+                let proof_size = self
+                    .proof_size
+                    .unwrap_or(call_result.gas_required.proof_size());
+                Ok(Weight::from_parts(ref_time, proof_size))
             }
             Err(ref err) => {
                 let object = ErrorVariant::from_dispatch_error(err, &client.metadata())?;
@@ -293,8 +302,8 @@ pub struct CallDryRunResult {
     /// Was the operation reverted
     pub reverted: bool,
     pub data: Value,
-    pub gas_consumed: u64,
-    pub gas_required: u64,
+    pub gas_consumed: Weight,
+    pub gas_required: Weight,
     /// Storage deposit after the operation
     pub storage_deposit: StorageDeposit<Balance>,
 }

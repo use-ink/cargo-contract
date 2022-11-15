@@ -481,6 +481,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core",
+ "sp-weights",
  "substrate-build-script-utils",
  "subxt",
  "tempfile",
