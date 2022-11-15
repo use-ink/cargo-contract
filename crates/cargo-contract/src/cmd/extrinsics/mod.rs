@@ -310,14 +310,14 @@ pub enum StorageDeposit {
     Charge(Balance),
 }
 
-impl From<pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
-    fn from(deposit: pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
+impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
+    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
         match deposit {
             pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
-                Self::Refund(balance)
+                Self::Refund(*balance)
             }
             pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
-                Self::Charge(balance)
+                Self::Charge(*balance)
             }
         }
     }

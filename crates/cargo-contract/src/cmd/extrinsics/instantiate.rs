@@ -249,7 +249,7 @@ impl Exec {
                         data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: result.storage_deposit.into(),
+                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
                     };
                     if self.output_json {
                         println!("{}", dry_run_result.to_json()?);
