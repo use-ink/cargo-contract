@@ -259,10 +259,10 @@ impl CallCommand {
                 // use user specified values where provided, otherwise use the estimates
                 let ref_time = self
                     .gas_limit
-                    .unwrap_or(call_result.gas_required.ref_time());
+                    .unwrap_or_else(||call_result.gas_required.ref_time());
                 let proof_size = self
                     .proof_size
-                    .unwrap_or(call_result.gas_required.proof_size());
+                    .unwrap_or_else(||call_result.gas_required.proof_size());
                 Ok(Weight::from_parts(ref_time, proof_size))
             }
             Err(ref err) => {

@@ -435,11 +435,11 @@ impl Exec {
                 let ref_time = self
                     .args
                     .gas_limit
-                    .unwrap_or(instantiate_result.gas_required.ref_time());
+                    .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
                 let proof_size = self
                     .args
                     .proof_size
-                    .unwrap_or(instantiate_result.gas_required.proof_size());
+                    .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
                 Ok(Weight::from_parts(ref_time, proof_size))
             }
             Err(ref err) => {
