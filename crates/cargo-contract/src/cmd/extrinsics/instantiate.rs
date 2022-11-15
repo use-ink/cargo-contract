@@ -29,6 +29,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
+    StorageDeposit,
     MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -49,10 +50,7 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::{
-    ContractInstantiateResult,
-    StorageDeposit,
-};
+use pallet_contracts_primitives::ContractInstantiateResult;
 
 use scale::Encode;
 use sp_core::{
@@ -251,7 +249,7 @@ impl Exec {
                         data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: result.storage_deposit.clone(),
+                        storage_deposit: result.storage_deposit.into(),
                     };
                     if self.output_json {
                         println!("{}", dry_run_result.to_json()?);
@@ -496,7 +494,7 @@ pub struct InstantiateDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
+    pub storage_deposit: StorageDeposit,
 }
 
 impl InstantiateDryRunResult {

@@ -293,3 +293,32 @@ fn print_gas_required_success(gas: Weight) {
         width = DEFAULT_KEY_COL_WIDTH
     );
 }
+
+/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
+/// for json output.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
+pub enum StorageDeposit {
+    /// The transaction reduced storage consumption.
+    ///
+    /// This means that the specified amount of balance was transferred from the involved
+    /// contracts to the call origin.
+    Refund(Balance),
+    /// The transaction increased overall storage usage.
+    ///
+    /// This means that the specified amount of balance was transferred from the call origin
+    /// to the contracts involved.
+    Charge(Balance),
+}
+
+impl From<pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
+    fn from(deposit: pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
+        match deposit {
+            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
+                Self::Refund(balance)
+            }
+            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
+                Self::Charge(balance)
+            }
+        }
+    }
+}

@@ -28,6 +28,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
+    StorageDeposit,
     TokenMetadata,
     MAX_KEY_COL_WIDTH,
 };
@@ -46,10 +47,7 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::{
-    ContractExecResult,
-    StorageDeposit,
-};
+use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
 use transcode::Value;
@@ -122,7 +120,7 @@ impl CallCommand {
                             data: value,
                             gas_consumed: result.gas_consumed,
                             gas_required: result.gas_required,
-                            storage_deposit: result.storage_deposit.clone(),
+                            storage_deposit: result.storage_deposit.into(),
                         };
                         if self.output_json {
                             println!("{}", dry_run_result.to_json()?);
@@ -305,7 +303,7 @@ pub struct CallDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
+    pub storage_deposit: StorageDeposit,
 }
 
 impl CallDryRunResult {
