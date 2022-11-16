@@ -63,7 +63,9 @@ use sp_core::{
     sr25519,
     Bytes,
 };
+use sp_weights::Weight;
 use subxt::{
+    blocks,
     tx,
     Config,
     OnlineClient,
@@ -227,7 +229,7 @@ async fn submit_extrinsic<T, Call>(
     client: &OnlineClient<T>,
     call: &Call,
     signer: &(dyn tx::Signer<T> + Send + Sync),
-) -> core::result::Result<tx::TxEvents<T>, subxt::Error>
+) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
     <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
@@ -283,11 +285,40 @@ fn print_dry_running_status(msg: &str) {
     );
 }
 
-fn print_gas_required_success(gas: u64) {
+fn print_gas_required_success(gas: Weight) {
     println!(
         "{:>width$} Gas required estimated at {}",
         "Success!".green().bold(),
         gas.to_string().bright_white(),
         width = DEFAULT_KEY_COL_WIDTH
     );
+}
+
+/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
+/// for json output.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
+pub enum StorageDeposit {
+    /// The transaction reduced storage consumption.
+    ///
+    /// This means that the specified amount of balance was transferred from the involved
+    /// contracts to the call origin.
+    Refund(Balance),
+    /// The transaction increased overall storage usage.
+    ///
+    /// This means that the specified amount of balance was transferred from the call origin
+    /// to the contracts involved.
+    Charge(Balance),
+}
+
+impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
+    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
+        match deposit {
+            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
+                Self::Refund(*balance)
+            }
+            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
+                Self::Charge(*balance)
+            }
+        }
+    }
 }
