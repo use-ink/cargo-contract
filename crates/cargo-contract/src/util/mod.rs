@@ -55,6 +55,11 @@ fn assert_channel() -> Result<()> {
                 meta.semver
             )
         }
+        Channel::Nightly => {
+            anyhow::bail!(
+                "Nightly is used, contract should be built using stable",
+            )
+        }
         _ => {
             anyhow::bail!(
                 "Using the {:?} channel is not supported. \
