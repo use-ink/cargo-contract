@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "2.0.0-alpha.5"
+version = "2.0.0-beta"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -18,7 +18,7 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0.66"
-contract-metadata = { version = "2.0.0-alpha.5", path = "../metadata" }
+contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
 env_logger = "0.9.3"
 escape8259 = "0.5.2"
 hex = "0.4.3"
