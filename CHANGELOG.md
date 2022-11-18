@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0-beta]
+
+TODO: description + add links to PRs below
+
+### Changed
+- Update to weights v2 (#809)
+- Update validation for renamed FFI functions (#816)
+- Denominated units for balances in events (#750)
+- Upgrade wasm-opt to 0.110.2 (#802)
+
+### Added
+- Log code hash if contract is already uploaded. (#805)
 
 ## [2.0.0-alpha.5] - 2022-10-27
 
