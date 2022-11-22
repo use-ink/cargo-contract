@@ -35,4 +35,5 @@ pub(crate) use self::extrinsics::{
     ErrorVariant,
     InstantiateCommand,
     UploadCommand,
+    RemoveCommand
 };
