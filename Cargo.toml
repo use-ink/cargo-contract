@@ -1,3 +1,13 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
+
+# We want to reduce the size of build outputs in the CI to increase the effectiveness
+# of the cache. Hence we need to apply some basic optimizations and disable everything
+# that increases binary size.
+[profile.debug-ci]
+inherits = "dev"
+opt-level = 1
+incremental = false
+debug = false
+panic = "abort"

@@ -51,13 +51,13 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --all-targets -- -D warnings
+          args: --profile debug-ci --all-features --all-targets -- -D warnings
 
       - name: Clippy without features
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets -- -D warnings
+          args: --profile debug-ci --all-targets -- -D warnings
 
   test:
     strategy:
@@ -116,7 +116,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features -- --test-threads=1
+          args: --profile debug-ci --all-features -- --test-threads=1
 
   template:
     strategy:
@@ -174,9 +174,9 @@ jobs:
           wasm-opt --version &&
           cargo -vV &&
           cargo dylint --version &&
-          cargo run -- contract --version &&
-          cargo run -- contract new --target-dir ${{ runner.temp }} foobar &&
-          cargo run -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run -- contract test --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
+          cargo run --profile debug-ci -- contract --version &&
+          cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
+          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          cargo run --profile debug-ci -- contract test --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
