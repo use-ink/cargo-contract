@@ -106,6 +106,7 @@ mod util;
 pub use self::{
     scon::{
         Map,
+        Tuple,
         Value,
     },
     transcoder::{
@@ -611,15 +612,20 @@ mod tests {
     }
 
     #[test]
-    fn decode_primitive_return() -> Result<()> {
+    fn decode_primitive_return() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = true.encode();
-        let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
+        let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
+        let decoded = transcoder
+            .decode_return("get", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
 
-        assert_eq!(Value::Bool(true), decoded);
-        Ok(())
+        let expected = Value::Tuple(Tuple::new(
+            "Ok".into(),
+            [Value::Bool(true)].into_iter().collect(),
+        ));
+        assert_eq!(expected, decoded);
     }
 
     #[test]
