@@ -21,6 +21,7 @@ mod events;
 mod instantiate;
 mod runtime_api;
 mod upload;
+mod remove;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
@@ -83,6 +84,7 @@ pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
+pub use remove::RemoveCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
