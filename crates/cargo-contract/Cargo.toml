@@ -40,7 +40,7 @@ serde_json = "1.0.89"
 tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 impl-serde = "0.4.0"
-rust_decimal = "1.26"
+rust_decimal = "1.27"
 wasm-opt = "0.110.2"
 
 # dependencies for extrinsics (deploying and calling a contract)
