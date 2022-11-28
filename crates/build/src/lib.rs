@@ -17,6 +17,7 @@
 mod args;
 mod crate_metadata;
 pub mod metadata;
+mod new;
 #[cfg(test)]
 mod tests;
 pub mod util;

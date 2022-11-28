@@ -20,7 +20,6 @@ include = [
 [dependencies]
 contract-build = { version = "2.0.0-beta", path = "../build" }
 contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
-contract-template = { version = "2.0.0-beta", path = "../template" }
 transcode = { package = "contract-transcode", version = "2.0.0-beta", path = "../transcode" }
 
 anyhow = "1.0.66"
