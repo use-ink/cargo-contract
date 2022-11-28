@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "2.0.0-alpha.4"
+version = "2.0.0-beta"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,56 +18,57 @@ include = [
 ]
 
 [dependencies]
-anyhow = "1.0.65"
-clap = { version = "4.0.15", features = ["derive", "env"] }
+anyhow = "1.0.66"
+clap = { version = "4.0.27", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 heck = "0.4.0"
 zip = { version = "0.6.3", default-features = false }
 parity-wasm = "0.45.0"
-cargo_metadata = "0.15.0"
+cargo_metadata = "0.15.2"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.3.0"
 colored = "2.0.0"
 toml = "0.5.9"
 rustc_version = "0.4.0"
-blake2 = "0.10.4"
-contract-metadata = { version = "2.0.0-alpha.4", path = "../metadata" }
-contract-build = { version = "2.0.0-alpha.4", path = "../build" }
-transcode = { package = "contract-transcode", version = "2.0.0-alpha.4", path = "../transcode" }
+blake2 = "0.10.5"
+contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
+transcode = { package = "contract-transcode", version = "2.0.0-beta", path = "../transcode" }
 semver = { version = "1.0.14", features = ["serde"] }
-serde = { version = "1.0.145", default-features = false, features = ["derive"] }
-serde_json = "1.0.86"
+serde = { version = "1.0.147", default-features = false, features = ["derive"] }
+serde_json = "1.0.89"
 tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 impl-serde = "0.4.0"
-wasm-opt = "0.110.1"
+rust_decimal = "1.27"
+wasm-opt = "0.110.2"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "6.0.0"
-pallet-contracts-primitives = "6.0.0"
-subxt = "0.24.0"
+sp-core = "7.0.0"
+sp-weights = "4.0.0"
+pallet-contracts-primitives = "7.0.0"
+subxt = "0.25.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.15.1", features = ["ws-client"] }
+jsonrpsee = { version = "0.16.1", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.65"
+anyhow = "1.0.66"
 dirs = "4.0.0"
 zip = { version = "0.6.3", default-features = false }
 walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 current_platform = "0.2.0"
 which = "4.3.0"
-regex = "1.6.0"
+regex = "1.7.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.4"
+assert_cmd = "2.0.6"
 contract-test-utils = { version = "2.0.0-alpha.4", path = "../test-utils" }
 pretty_assertions = "1.3.0"
 wabt = "0.10.0"
-regex = "1.6.0"
-predicates = "2.1.1"
+regex = "1.7.0"
+predicates = "2.1.3"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

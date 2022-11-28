@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod balance;
 mod call;
 mod error;
 mod events;
@@ -28,6 +29,7 @@ mod integration_tests;
 use anyhow::{
     anyhow,
     Context,
+    Ok,
     Result,
 };
 use colored::Colorize;
@@ -61,12 +63,20 @@ use sp_core::{
     sr25519,
     Bytes,
 };
+use sp_weights::Weight;
 use subxt::{
+    blocks,
     tx,
     Config,
     OnlineClient,
 };
 
+use std::option::Option;
+
+pub use balance::{
+    BalanceVariant,
+    TokenMetadata,
+};
 pub use call::CallCommand;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
@@ -106,8 +116,8 @@ pub struct ExtrinsicOpts {
     dry_run: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the storage
     /// consumed.
-    #[clap(long, value_parser = parse_balance)]
-    storage_deposit_limit: Option<Balance>,
+    #[clap(long)]
+    storage_deposit_limit: Option<BalanceVariant>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -140,17 +150,17 @@ impl ExtrinsicOpts {
     }
 
     /// Get the storage deposit limit converted to compact for passing to extrinsics.
-    pub fn storage_deposit_limit(&self) -> Option<scale::Compact<Balance>> {
-        self.storage_deposit_limit.map(Into::into)
+    pub fn storage_deposit_limit(
+        &self,
+        token_metadata: &TokenMetadata,
+    ) -> Result<Option<scale::Compact<Balance>>> {
+        Ok(self
+            .storage_deposit_limit
+            .as_ref()
+            .map(|bv| bv.denominate_balance(token_metadata))
+            .transpose()?
+            .map(Into::into))
     }
-}
-
-/// Parse Rust style integer balance literals which can contain underscores.
-fn parse_balance(input: &str) -> Result<Balance> {
-    input
-        .replace('_', "")
-        .parse::<Balance>()
-        .map_err(Into::into)
 }
 
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
@@ -219,7 +229,7 @@ async fn submit_extrinsic<T, Call>(
     client: &OnlineClient<T>,
     call: &Call,
     signer: &(dyn tx::Signer<T> + Send + Sync),
-) -> core::result::Result<tx::TxEvents<T>, subxt::Error>
+) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
     <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
@@ -242,7 +252,7 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Prompt the user to confirm transaction submission
+/// Prompt the user to confirm transaction submission.
 fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     println!(
         "{} (skip with --skip-confirm)",
@@ -275,11 +285,40 @@ fn print_dry_running_status(msg: &str) {
     );
 }
 
-fn print_gas_required_success(gas: u64) {
+fn print_gas_required_success(gas: Weight) {
     println!(
         "{:>width$} Gas required estimated at {}",
         "Success!".green().bold(),
         gas.to_string().bright_white(),
         width = DEFAULT_KEY_COL_WIDTH
     );
+}
+
+/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
+/// for json output.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
+pub enum StorageDeposit {
+    /// The transaction reduced storage consumption.
+    ///
+    /// This means that the specified amount of balance was transferred from the involved
+    /// contracts to the call origin.
+    Refund(Balance),
+    /// The transaction increased overall storage usage.
+    ///
+    /// This means that the specified amount of balance was transferred from the call origin
+    /// to the contracts involved.
+    Charge(Balance),
+}
+
+impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
+    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
+        match deposit {
+            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
+                Self::Refund(*balance)
+            }
+            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
+                Self::Charge(*balance)
+            }
+        }
+    }
 }

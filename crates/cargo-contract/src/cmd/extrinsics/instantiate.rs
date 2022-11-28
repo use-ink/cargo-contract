@@ -16,15 +16,12 @@
 
 use super::{
     display_contract_exec_result,
-    parse_balance,
     prompt_confirm_tx,
-    runtime_api::{
-        api,
-        Weight,
-    },
+    runtime_api::api,
     state_call,
     submit_extrinsic,
     Balance,
+    BalanceVariant,
     Client,
     CodeHash,
     ContractMessageTranscoder,
@@ -32,6 +29,7 @@ use super::{
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
+    StorageDeposit,
     MAX_KEY_COL_WIDTH,
 };
 use crate::{
@@ -39,6 +37,7 @@ use crate::{
         display_contract_exec_result_debug,
         events::DisplayEvents,
         ErrorVariant,
+        TokenMetadata,
     },
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -53,16 +52,14 @@ use anyhow::{
     Result,
 };
 
-use pallet_contracts_primitives::{
-    ContractInstantiateResult,
-    StorageDeposit,
-};
+use pallet_contracts_primitives::ContractInstantiateResult;
 
 use scale::Encode;
 use sp_core::{
     crypto::Ss58Codec,
     Bytes,
 };
+use sp_weights::Weight;
 use std::{
     fs,
     path::{
@@ -71,7 +68,7 @@ use std::{
     },
 };
 use subxt::{
-    tx::TxEvents,
+    blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
 };
@@ -97,12 +94,16 @@ pub struct InstantiateCommand {
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
-    #[clap(name = "value", long, default_value = "0", value_parser = parse_balance)]
-    value: Balance,
+    #[clap(name = "value", long, default_value = "0")]
+    value: BalanceVariant,
     /// Maximum amount of gas to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
+    /// Maximum proof size for this instantiation.
+    /// If not specified will perform a dry-run to estimate the proof size required.
+    #[clap(long)]
+    proof_size: Option<u64>,
     /// A salt used in the address derivation of the new contract. Use to create multiple instances
     /// of the same contract code from the same account.
     #[clap(long, value_parser = parse_hex_bytes)]
@@ -150,7 +151,7 @@ impl InstantiateCommand {
 
         fn load_code(wasm_path: &Path) -> Result<Code> {
             tracing::debug!("Contract code path: {}", wasm_path.display());
-            let code = fs::read(&wasm_path)
+            let code = fs::read(wasm_path)
                 .context(format!("Failed to read from {}", wasm_path.display()))?;
             Ok(Code::Upload(code))
         }
@@ -171,18 +172,26 @@ impl InstantiateCommand {
         }?;
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let args = InstantiateArgs {
-            constructor: self.constructor.clone(),
-            raw_args: self.args.clone(),
-            value: self.value,
-            gas_limit: self.gas_limit.map(Weight::from_ref_time),
-            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit,
-            data,
-            salt,
-        };
-
         async_std::task::block_on(async move {
             let client = OnlineClient::from_url(url.clone()).await?;
+
+            let token_metadata = TokenMetadata::query(&client).await?;
+
+            let args = InstantiateArgs {
+                constructor: self.constructor.clone(),
+                raw_args: self.args.clone(),
+                value: self.value.denominate_balance(&token_metadata)?,
+                gas_limit: self.gas_limit,
+                proof_size: self.proof_size,
+                storage_deposit_limit: self
+                    .extrinsic_opts
+                    .storage_deposit_limit
+                    .as_ref()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+                data,
+                salt,
+            };
 
             let exec = Exec {
                 args,
@@ -204,7 +213,8 @@ struct InstantiateArgs {
     constructor: String,
     raw_args: Vec<String>,
     value: Balance,
-    gas_limit: Option<Weight>,
+    gas_limit: Option<u64>,
+    proof_size: Option<u64>,
     storage_deposit_limit: Option<Balance>,
     data: Vec<u8>,
     salt: Vec<u8>,
@@ -238,10 +248,10 @@ impl Exec {
                         result: String::from("Success!"),
                         contract: ret_val.account_id.to_ss58check(),
                         reverted: ret_val.result.did_revert(),
-                        data: ret_val.result.data.clone(),
+                        data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: result.storage_deposit.clone(),
+                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
                     };
                     if self.output_json {
                         println!("{}", dry_run_result.to_json()?);
@@ -308,7 +318,9 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, code_hash, instantiated.contract)
+        let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, code_hash, instantiated.contract, &token_metadata)
+            .await
     }
 
     async fn instantiate(&self, code_hash: CodeHash) -> Result<(), ErrorVariant> {
@@ -342,14 +354,17 @@ impl Exec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        self.display_result(&result, None, instantiated.contract)
+        let token_metadata = TokenMetadata::query(&self.client).await?;
+        self.display_result(&result, None, instantiated.contract, &token_metadata)
+            .await
     }
 
-    fn display_result(
+    async fn display_result(
         &self,
-        result: &TxEvents<DefaultConfig>,
+        result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
         contract_address: sp_core::crypto::AccountId32,
+        token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
@@ -370,7 +385,7 @@ impl Exec {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
             }
             name_value_println!("Contract", contract_address);
-            println!("{}", events.display_events(self.verbosity))
+            println!("{}", events.display_events(self.verbosity, token_metadata)?)
         };
         Ok(())
     }
@@ -386,15 +401,11 @@ impl Exec {
         code: Code,
     ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
     {
-        let gas_limit = self
-            .args
-            .gas_limit
-            .unwrap_or_else(|| Weight::from_ref_time(5_000_000_000_000));
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: self.signer.account_id().clone(),
             value: self.args.value,
-            gas_limit,
+            gas_limit: None,
             storage_deposit_limit,
             code,
             data: self.args.data.clone(),
@@ -406,12 +417,12 @@ impl Exec {
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
     async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<Weight> {
         if self.opts.skip_dry_run {
-            return match self.args.gas_limit {
-                Some(gas) => Ok(gas),
-                None => {
+            return match (self.args.gas_limit, self.args.proof_size) {
+                (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
+                _ => {
                     Err(anyhow!(
-                    "Gas limit `--gas` argument required if `--skip-dry-run` specified"
-                ))
+                        "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+                    ))
                 }
             }
         }
@@ -421,11 +432,19 @@ impl Exec {
         let instantiate_result = self.instantiate_dry_run(code).await?;
         match instantiate_result.result {
             Ok(_) => {
-                super::print_gas_required_success(instantiate_result.gas_required);
-                let gas_limit = self.args.gas_limit.unwrap_or_else(|| {
-                    Weight::from_ref_time(instantiate_result.gas_required)
-                });
-                Ok(gas_limit)
+                if !self.output_json {
+                    super::print_gas_required_success(instantiate_result.gas_required);
+                }
+                // use user specified values where provided, otherwise use the estimates
+                let ref_time = self
+                    .args
+                    .gas_limit
+                    .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
+                let proof_size = self
+                    .args
+                    .proof_size
+                    .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
+                Ok(Weight::from_parts(ref_time, proof_size))
             }
             Err(ref err) => {
                 let object =
@@ -473,10 +492,10 @@ pub struct InstantiateDryRunResult {
     /// Was the operation reverted
     pub reverted: bool,
     pub data: Bytes,
-    pub gas_consumed: u64,
-    pub gas_required: u64,
+    pub gas_consumed: Weight,
+    pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
+    pub storage_deposit: StorageDeposit,
 }
 
 impl InstantiateDryRunResult {
@@ -502,7 +521,7 @@ impl InstantiateDryRunResult {
 struct InstantiateRequest {
     origin: <DefaultConfig as Config>::AccountId,
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     code: Code,
     data: Vec<u8>,

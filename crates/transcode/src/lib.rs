@@ -106,6 +106,7 @@ mod util;
 pub use self::{
     scon::{
         Map,
+        Tuple,
         Value,
     },
     transcoder::{
@@ -137,7 +138,6 @@ use scale_info::{
 };
 use std::{
     fmt::Debug,
-    fs::File,
     path::Path,
 };
 
@@ -166,13 +166,8 @@ impl ContractMessageTranscoder {
         P: AsRef<Path>,
     {
         let path = metadata_path.as_ref();
-        let file = File::open(path)
-            .context(format!("Failed to open metadata file {}", path.display()))?;
-        let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-            .context(format!(
-                "Failed to deserialize metadata file {}",
-                path.display()
-            ))?;
+        let metadata: contract_metadata::ContractMetadata =
+            contract_metadata::ContractMetadata::load(&metadata_path)?;
         let ink_metadata = serde_json::from_value(serde_json::Value::Object(
             metadata.abi,
         ))
@@ -287,7 +282,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Message with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
@@ -314,7 +309,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Constructor with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract constructor '{}'", msg_spec.label());
@@ -341,6 +336,18 @@ impl ContractMessageTranscoder {
         } else {
             Ok(Value::Unit)
         }
+    }
+}
+
+impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        metadata: contract_metadata::ContractMetadata,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new(serde_json::from_value(
+            serde_json::Value::Object(metadata.abi),
+        )?))
     }
 }
 
@@ -487,7 +494,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("new", &["true"])?;
+        let encoded = transcoder.encode("new", ["true"])?;
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
@@ -502,7 +509,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_id",
-            &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+            ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
         )?;
 
         // encoded args follow the 4 byte selector
@@ -523,7 +530,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_ids_vec",
-            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+            ["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
         )?;
 
         // encoded args follow the 4 byte selector
@@ -548,7 +555,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
+        let encoded = transcoder.encode("primitive_vec_args", ["[1, 2]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
@@ -565,7 +572,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "uint_args",
-            &[
+            [
                 "0x00",
                 "0xDEAD",
                 "0xDEADBEEF",
@@ -594,7 +601,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded =
-            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+            transcoder.encode("uint_array_args", ["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
@@ -605,15 +612,20 @@ mod tests {
     }
 
     #[test]
-    fn decode_primitive_return() -> Result<()> {
+    fn decode_primitive_return() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = true.encode();
-        let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
+        let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
+        let decoded = transcoder
+            .decode_return("get", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
 
-        assert_eq!(Value::Bool(true), decoded);
-        Ok(())
+        let expected = Value::Tuple(Tuple::new(
+            "Ok".into(),
+            [Value::Bool(true)].into_iter().collect(),
+        ));
+        assert_eq!(expected, decoded);
     }
 
     #[test]

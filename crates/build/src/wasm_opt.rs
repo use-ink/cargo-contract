@@ -71,7 +71,7 @@ impl WasmOptHandler {
             // memory-packing pre-pass.
             .zero_filled_memory(true)
             .debug_info(self.keep_debug_symbols)
-            .run(&dest_wasm, &dest_optimized)?;
+            .run(dest_wasm, &dest_optimized)?;
 
         if !dest_optimized.exists() {
             return Err(anyhow::anyhow!(
@@ -80,11 +80,11 @@ impl WasmOptHandler {
             ))
         }
 
-        let original_size = metadata(&dest_wasm)?.len() as f64 / 1000.0;
+        let original_size = metadata(dest_wasm)?.len() as f64 / 1000.0;
         let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
 
         // Overwrite existing destination wasm file with the optimised version
-        std::fs::rename(&dest_optimized, &dest_wasm)?;
+        std::fs::rename(&dest_optimized, dest_wasm)?;
         Ok(OptimizationResult {
             dest_wasm: dest_wasm.clone(),
             original_size,

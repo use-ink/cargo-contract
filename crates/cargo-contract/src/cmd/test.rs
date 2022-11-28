@@ -75,7 +75,7 @@ pub(crate) fn execute(
     );
 
     let stdout =
-        util::invoke_cargo("test", &[""], manifest_path.directory(), verbosity, vec![])?;
+        util::invoke_cargo("test", [""], manifest_path.directory(), verbosity, vec![])?;
 
     Ok(TestResult { stdout, verbosity })
 }

@@ -28,7 +28,9 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler = SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
 //! let wasm = SourceWasm::new(vec![0u8]);
-//! let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+//! // Optional information about how the contract was build
+//! let build_info: Map<String, Value> = Map::new();
+//! let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler, Some(build_info));
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
@@ -56,6 +58,10 @@
 
 mod byte_str;
 
+use anyhow::{
+    Context,
+    Result,
+};
 use semver::Version;
 use serde::{
     de,
@@ -73,6 +79,8 @@ use std::{
         Formatter,
         Result as DisplayResult,
     },
+    fs::File,
+    path::Path,
     str::FromStr,
 };
 use url::Url;
@@ -111,10 +119,24 @@ impl ContractMetadata {
     pub fn remove_source_wasm_attribute(&mut self) {
         self.source.wasm = None;
     }
+
+    /// Reads the file and tries to parse it as instance of `ContractMetadata`.
+    pub fn load<P>(metadata_path: &P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let path = metadata_path.as_ref();
+        let file = File::open(path)
+            .context(format!("Failed to open metadata file {}", path.display()))?;
+        serde_json::from_reader(file).context(format!(
+            "Failed to deserialize metadata file {}",
+            path.display()
+        ))
+    }
 }
 
 /// Representation of the Wasm code hash.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CodeHash(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
@@ -137,6 +159,11 @@ pub struct Source {
     /// with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wasm: Option<SourceWasm>,
+    /// Extra information about the environment in which the contract was built.
+    ///
+    /// Useful for producing deterministic builds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_info: Option<Map<String, Value>>,
 }
 
 impl Source {
@@ -146,12 +173,14 @@ impl Source {
         hash: CodeHash,
         language: SourceLanguage,
         compiler: SourceCompiler,
+        build_info: Option<Map<String, Value>>,
     ) -> Self {
         Source {
             hash,
             language,
             compiler,
             wasm,
+            build_info,
         }
     }
 }
@@ -646,7 +675,25 @@ mod tests {
             Version::parse("1.46.0-nightly").unwrap(),
         );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
-        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let build_info = json! {
+            {
+                "example_compiler_version": 42,
+                "example_settings": [],
+                "example_name": "increment"
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let source = Source::new(
+            Some(wasm),
+            CodeHash([0u8; 32]),
+            language,
+            compiler,
+            Some(build_info),
+        );
+
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
@@ -690,7 +737,12 @@ mod tests {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
                     "compiler": "rustc 1.46.0-nightly",
-                    "wasm": "0x000102"
+                    "wasm": "0x000102",
+                    "build_info": {
+                        "example_compiler_version": 42,
+                        "example_settings": [],
+                        "example_name": "increment"
+                    }
                 },
                 "contract": {
                     "name": "incrementer",
@@ -729,7 +781,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let source = Source::new(None, CodeHash([0u8; 32]), language, compiler);
+        let source = Source::new(None, CodeHash([0u8; 32]), language, compiler, None);
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
@@ -782,7 +834,24 @@ mod tests {
             Version::parse("1.46.0-nightly").unwrap(),
         );
         let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
-        let source = Source::new(Some(wasm), CodeHash([0u8; 32]), language, compiler);
+        let build_info = json! {
+            {
+                "example_compiler_version": 42,
+                "example_settings": [],
+                "example_name": "increment",
+            }
+        }
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let source = Source::new(
+            Some(wasm),
+            CodeHash([0u8; 32]),
+            language,
+            compiler,
+            Some(build_info),
+        );
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))

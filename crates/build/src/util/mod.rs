@@ -65,6 +65,14 @@ fn assert_channel() -> Result<()> {
     }
 }
 
+// Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
+pub(crate) fn rust_toolchain() -> Result<String> {
+    let meta = rustc_version::version_meta()?;
+    let toolchain = format!("{:?}-{}", meta.channel, meta.host,).to_lowercase();
+
+    Ok(toolchain)
+}
+
 /// Invokes `cargo` with the subcommand `command` and the supplied `args`.
 ///
 /// In case `working_dir` is set, the command will be invoked with that folder
@@ -205,7 +213,7 @@ pub fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p)?;
+                    fs::create_dir_all(p)?;
                 }
             }
             let mut outfile = fs::OpenOptions::new()

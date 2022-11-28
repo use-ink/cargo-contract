@@ -77,7 +77,7 @@ impl ErrorVariant {
     ) -> anyhow::Result<ErrorVariant> {
         match error {
             DispatchError::Module(err) => {
-                let details = metadata.error(err.index, err.error)?;
+                let details = metadata.error(err.index, err.error[0])?;
                 Ok(ErrorVariant::Module(ModuleError {
                     pallet: details.pallet().to_owned(),
                     error: details.error().to_owned(),
