@@ -18,23 +18,22 @@
 
 mod cmd;
 
-use self::{
-    cmd::{
-        BuildCommand,
-        CallCommand,
-        CheckCommand,
-        DecodeCommand,
-        ErrorVariant,
-        InstantiateCommand,
-        TestCommand,
-        UploadCommand,
-    },
-    util::DEFAULT_KEY_COL_WIDTH,
-    workspace::ManifestPath,
+use self::cmd::{
+    BuildCommand,
+    CallCommand,
+    CheckCommand,
+    DecodeCommand,
+    ErrorVariant,
+    InstantiateCommand,
+    TestCommand,
+    UploadCommand,
 };
 use contract_build::{
     metadata::MetadataResult,
     name_value_println,
+    util::DEFAULT_KEY_COL_WIDTH,
+    ManifestPath,
+    OutputType,
 };
 use std::{
     convert::TryFrom,
@@ -154,7 +153,7 @@ fn main() {
 fn exec(cmd: Command) -> Result<()> {
     match &cmd {
         Command::New { name, target_dir } => {
-            contract_template::new_contract_project(name, target_dir.as_ref())?;
+            contract_build::new_contract_project(name, target_dir.as_ref())?;
             println!("Created contract {}", name);
             Ok(())
         }

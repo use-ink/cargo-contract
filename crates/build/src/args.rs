@@ -63,7 +63,7 @@ impl Default for Verbosity {
 
 impl Verbosity {
     /// Returns `true` if output should be printed (i.e. verbose output is set).
-    pub(crate) fn is_verbose(&self) -> bool {
+    pub fn is_verbose(&self) -> bool {
         match self {
             Verbosity::Quiet => false,
             Verbosity::Default | Verbosity::Verbose => true,

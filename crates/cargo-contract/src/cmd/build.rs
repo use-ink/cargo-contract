@@ -26,6 +26,8 @@ use contract_build::{
     BuildMode,
     BuildResult,
     ExecuteArgs,
+    Manifest,
+    ManifestPath,
     Network,
     OptimizationPasses,
     OptimizationResult,
@@ -136,21 +138,6 @@ impl BuildCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        // The CLI flag `optimization-passes` overwrites optimization passes which are
-        // potentially defined in the `Cargo.toml` profile.
-        let optimization_passes = match self.optimization_passes {
-            Some(opt_passes) => opt_passes,
-            None => {
-                let mut manifest = Manifest::new(manifest_path.clone())?;
-                match manifest.get_profile_optimization_passes() {
-                    // if no setting is found, neither on the cli nor in the profile,
-                    // then we use the default
-                    None => OptimizationPasses::default(),
-                    Some(opt_passes) => opt_passes,
-                }
-            }
-        };
-
         let build_mode = match self.build_release {
             true => BuildMode::Release,
             false => BuildMode::Debug,
@@ -178,13 +165,13 @@ impl BuildCommand {
             network,
             build_artifact: self.build_artifact,
             unstable_flags,
-            optimization_passes,
+            optimization_passes: self.optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            skip_linting,
+            lint: self.lint,
             output_type,
         };
 
-        args.execute()
+        contract_build::execute(args)
     }
 }
 
@@ -214,12 +201,12 @@ impl CheckCommand {
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags,
-            optimization_passes: OptimizationPasses::Zero,
+            optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
             lint: false,
             output_type: OutputType::default(),
         };
 
-        args.execute()
+        contract_build::execute(args)
     }
 }

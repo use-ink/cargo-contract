@@ -37,20 +37,18 @@ pub use self::{
         Verbosity,
         VerbosityFlags,
     },
+    crate_metadata::CrateMetadata,
     metadata::{
         BuildInfo,
         MetadataResult,
         WasmOptSettings,
     },
+    new::new_contract_project,
+    util::DEFAULT_KEY_COL_WIDTH,
     wasm_opt::{
         OptimizationPasses,
         OptimizationResult,
     },
-};
-
-use crate::{
-    crate_metadata::CrateMetadata,
-    wasm_opt::WasmOptHandler,
     workspace::{
         Manifest,
         ManifestPath,
@@ -58,6 +56,8 @@ use crate::{
         Workspace,
     },
 };
+
+use crate::wasm_opt::WasmOptHandler;
 
 use anyhow::{
     Context,

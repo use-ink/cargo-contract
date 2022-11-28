@@ -73,7 +73,7 @@ pub(crate) fn rust_toolchain() -> Result<String> {
 ///     vector.
 ///
 /// If successful, returns the stdout bytes.
-pub(crate) fn invoke_cargo<I, S, P>(
+pub fn invoke_cargo<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
