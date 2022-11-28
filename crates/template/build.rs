@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    borrow::Cow,
     env,
     ffi::OsStr,
     fs::File,
@@ -28,7 +27,6 @@ use std::{
         Path,
         PathBuf,
     },
-    process::Command,
 };
 
 use anyhow::Result;

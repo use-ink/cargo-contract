@@ -18,6 +18,10 @@ include = [
 ]
 
 [dependencies]
+contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
+contract-template = { version = "2.0.0-beta", path = "../template" }
+transcode = { package = "contract-transcode", version = "2.0.0-beta", path = "../transcode" }
+
 anyhow = "1.0.66"
 clap = { version = "4.0.27", features = ["derive", "env"] }
 tracing = "0.1.37"
@@ -32,8 +36,6 @@ colored = "2.0.0"
 toml = "0.5.9"
 rustc_version = "0.4.0"
 blake2 = "0.10.5"
-contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
-transcode = { package = "contract-transcode", version = "2.0.0-beta", path = "../transcode" }
 semver = { version = "1.0.14", features = ["serde"] }
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 serde_json = "1.0.89"
@@ -54,13 +56,9 @@ jsonrpsee = { version = "0.16.1", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.66"
-dirs = "4.0.0"
-zip = { version = "0.6.3", default-features = false }
-walkdir = "2.3.2"
 substrate-build-script-utils = "3.0.0"
 current_platform = "0.2.0"
 which = "4.3.0"
-regex = "1.7.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.6"
