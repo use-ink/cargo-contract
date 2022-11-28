@@ -48,8 +48,8 @@ use std::{
 
 use crate::DEFAULT_KEY_COL_WIDTH;
 use contract_build::{
-    CrateMetadata,
     name_value_println,
+    CrateMetadata,
     Verbosity,
     VerbosityFlags,
 };

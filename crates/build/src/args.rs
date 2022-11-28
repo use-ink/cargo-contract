@@ -156,7 +156,6 @@ impl fmt::Display for BuildSteps {
     }
 }
 
-
 /// The mode to build the contract in.
 #[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BuildMode {

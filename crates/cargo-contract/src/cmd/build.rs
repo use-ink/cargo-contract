@@ -14,13 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use anyhow::{
+    Context,
+    Result,
+};
+use colored::Colorize;
 use contract_build::{
-    ExecuteArgs,
     maybe_println,
     util,
     BuildArtifacts,
     BuildMode,
     BuildResult,
+    ExecuteArgs,
     Network,
     OptimizationPasses,
     OptimizationResult,
@@ -30,11 +35,6 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::{
-    Context,
-    Result,
-};
-use colored::Colorize;
 use parity_wasm::elements::{
     External,
     Internal,

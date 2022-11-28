@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use anyhow::Result;
+use colored::Colorize;
 use contract_build::{
     maybe_println,
     util,
@@ -21,8 +23,6 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::Result;
-use colored::Colorize;
 use std::{
     convert::TryFrom,
     path::PathBuf,

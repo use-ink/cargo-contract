@@ -189,8 +189,8 @@ impl TestContractManifest {
         &mut self,
         passes: P,
     ) -> Result<Option<value::Value>>
-        where
-            P: ToString,
+    where
+        P: ToString,
     {
         Ok(self
             .toml

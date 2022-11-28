@@ -20,9 +20,7 @@ use super::{
     DefaultConfig,
     TokenMetadata,
 };
-use crate::{
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use colored::Colorize as _;
 use contract_build::Verbosity;
 use transcode::{

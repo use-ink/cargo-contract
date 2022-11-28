@@ -15,15 +15,15 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::DEFAULT_KEY_COL_WIDTH;
-use contract_build::{
-    CrateMetadata,
-    util,
-};
 use anyhow::{
     Context,
     Result,
 };
 use colored::Colorize as _;
+use contract_build::{
+    util,
+    CrateMetadata,
+};
 use transcode::ContractMessageTranscoder;
 
 #[derive(Debug, Clone, clap::Args)]

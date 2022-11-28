@@ -41,15 +41,15 @@ use crate::{
     },
     DEFAULT_KEY_COL_WIDTH,
 };
-use contract_build::{
-    name_value_println,
-    util::decode_hex,
-    Verbosity,
-};
 use anyhow::{
     anyhow,
     Context,
     Result,
+};
+use contract_build::{
+    name_value_println,
+    util::decode_hex,
+    Verbosity,
 };
 
 use pallet_contracts_primitives::ContractInstantiateResult;

@@ -33,8 +33,8 @@ use std::{
 };
 
 pub fn execute<P>(name: &str, dir: Option<P>) -> Result<()>
-    where
-        P: AsRef<Path>,
+where
+    P: AsRef<Path>,
 {
     if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
         anyhow::bail!(
@@ -132,7 +132,6 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,7 +148,8 @@ mod tests {
             .expect("temporary directory creation failed");
 
         // catch test panics in order to clean up temp dir which will be very large
-        f(&tmp_dir.path().canonicalize().unwrap()).expect("Error executing test with tmp dir")
+        f(&tmp_dir.path().canonicalize().unwrap())
+            .expect("Error executing test with tmp dir")
     }
 
     #[test]

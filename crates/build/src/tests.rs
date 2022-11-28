@@ -14,7 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{util::tests::TestContractManifest, BuildArtifacts, BuildMode, ExecuteArgs, ManifestPath, OptimizationPasses, OutputType, UnstableOptions, VerbosityFlags, Verbosity};
+use crate::{
+    util::tests::TestContractManifest,
+    BuildArtifacts,
+    BuildMode,
+    ExecuteArgs,
+    ManifestPath,
+    OptimizationPasses,
+    OutputType,
+    UnstableOptions,
+    Verbosity,
+    VerbosityFlags,
+};
 use anyhow::Result;
 use contract_metadata::*;
 use serde_json::{
@@ -25,7 +36,10 @@ use std::{
     ffi::OsStr,
     fmt::Write,
     fs,
-    path::{Path, PathBuf},
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 
 macro_rules! build_tests {

@@ -44,7 +44,7 @@ pub use self::{
     wasm_opt::{
         OptimizationPasses,
         OptimizationResult,
-    }
+    },
 };
 
 use crate::{
