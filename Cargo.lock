@@ -723,6 +723,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.3.16",
  "url",
+ "wabt",
  "wasm-opt",
  "zip",
 ]

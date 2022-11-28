@@ -14,17 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    util::tests::TestContractManifest,
-    BuildArtifacts,
-    BuildMode,
-    ExecuteArgs,
-    ManifestPath,
-    OptimizationPasses,
-    OutputType,
-    UnstableOptions,
-    VerbosityFlags,
-};
+use crate::{util::tests::TestContractManifest, BuildArtifacts, BuildMode, ExecuteArgs, ManifestPath, OptimizationPasses, OutputType, UnstableOptions, VerbosityFlags, Verbosity};
 use anyhow::Result;
 use contract_metadata::*;
 use serde_json::{
@@ -41,14 +31,15 @@ use std::{
 macro_rules! build_tests {
     ( $($fn:ident),* ) => {
         #[test]
-        fn build_tests() {
+        fn build_tests() -> Result<()> {
             let tmp_dir = ::tempfile::Builder::new()
                 .prefix("cargo-contract-build.test.")
                 .tempdir()
                 .expect("temporary directory creation failed");
 
-            let ctx = crate::tests::BuildTestContext::new(tmp_dir, "build_test")?;
+            let ctx = crate::tests::BuildTestContext::new(tmp_dir.path(), "build_test")?;
             $( ctx.run_test(stringify!($fn), $fn)?; )*
+            Ok(())
         }
     }
 }
@@ -146,23 +137,21 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    let cmd = BuildCommand {
-        manifest_path: Some(manifest_path.as_ref().into()),
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        verbosity: Verbosity::Default,
+        build_mode: Default::default(),
+        network: Default::default(),
         build_artifact: BuildArtifacts::All,
-        build_release: false,
-        build_offline: false,
-        verbosity: VerbosityFlags::default(),
-        unstable_options: UnstableOptions::default(),
-
-        // we choose zero optimization passes as the "cli" parameter
+        unstable_flags: Default::default(),
         optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
         lint: false,
-        output_json: false,
+        output_type: OutputType::Json,
     };
 
     // when
-    let res = cmd.exec().expect("build failed");
+    let res = crate::execute(args).expect("build failed");
     let optimization = res
         .optimization_result
         .expect("no optimization result available");
@@ -187,23 +176,22 @@ fn optimization_passes_from_profile_must_be_used(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    let cmd = BuildCommand {
-        manifest_path: Some(manifest_path.as_ref().into()),
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        verbosity: Verbosity::Default,
+        build_mode: Default::default(),
+        network: Default::default(),
         build_artifact: BuildArtifacts::All,
-        build_release: false,
-        build_offline: false,
-        verbosity: VerbosityFlags::default(),
-        unstable_options: UnstableOptions::default(),
-
-        // we choose no optimization passes as the "cli" parameter
+        unstable_flags: Default::default(),
+        // no optimization passes specified.
         optimization_passes: None,
         keep_debug_symbols: false,
         lint: false,
-        output_json: false,
+        output_type: OutputType::Json,
     };
 
     // when
-    let res = cmd.exec().expect("build failed");
+    let res = crate::execute(args).expect("build failed");
     let optimization = res
         .optimization_result
         .expect("no optimization result available");
@@ -231,19 +219,19 @@ fn contract_lib_name_different_from_package_name_must_build(
     manifest.write()?;
 
     // when
-    let cmd = BuildCommand {
-        manifest_path: Some(manifest_path.as_ref().into()),
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        verbosity: Verbosity::Default,
+        build_mode: Default::default(),
+        network: Default::default(),
         build_artifact: BuildArtifacts::All,
-        build_release: false,
-        build_offline: false,
-        verbosity: VerbosityFlags::default(),
-        unstable_options: UnstableOptions::default(),
-        optimization_passes: None,
+        unstable_flags: Default::default(),
+        optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
         lint: false,
-        output_json: false,
+        output_type: OutputType::HumanReadable,
     };
-    let res = cmd.exec().expect("build failed");
+    let res = crate::execute(args).expect("build failed");
 
     // then
     assert_eq!(

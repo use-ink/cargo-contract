@@ -51,6 +51,7 @@ use crate::{
     crate_metadata::CrateMetadata,
     wasm_opt::WasmOptHandler,
     workspace::{
+        Manifest,
         ManifestPath,
         Profile,
         Workspace,
@@ -95,7 +96,7 @@ pub struct ExecuteArgs {
     pub network: Network,
     pub build_artifact: BuildArtifacts,
     pub unstable_flags: UnstableFlags,
-    pub optimization_passes: OptimizationPasses,
+    pub optimization_passes: Option<OptimizationPasses>,
     pub keep_debug_symbols: bool,
     pub lint: bool,
     pub output_type: OutputType,
@@ -537,6 +538,21 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         lint,
         output_type,
     } = args;
+
+    // The CLI flag `optimization-passes` overwrites optimization passes which are
+    // potentially defined in the `Cargo.toml` profile.
+    let optimization_passes = match optimization_passes {
+        Some(opt_passes) => opt_passes,
+        None => {
+            let mut manifest = Manifest::new(manifest_path.clone())?;
+            match manifest.get_profile_optimization_passes() {
+                // if no setting is found, neither on the cli nor in the profile,
+                // then we use the default
+                None => OptimizationPasses::default(),
+                Some(opt_passes) => opt_passes,
+            }
+        }
+    };
 
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
 
