@@ -14,10 +14,11 @@ description = "Setup and deployment tool for developing Wasm based smart contrac
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
-    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "src/**/*.scale",
+    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "src/**/*.scale",
 ]
 
 [dependencies]
+contract-build = { version = "2.0.0-beta", path = "../build" }
 contract-metadata = { version = "2.0.0-beta", path = "../metadata" }
 contract-template = { version = "2.0.0-beta", path = "../template" }
 transcode = { package = "contract-transcode", version = "2.0.0-beta", path = "../transcode" }

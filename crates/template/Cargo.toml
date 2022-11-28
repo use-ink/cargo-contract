@@ -11,7 +11,7 @@ documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Templates for ink! smart contracts"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "templates"]
 
 [dependencies]
 anyhow = "1.0.65"
