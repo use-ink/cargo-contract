@@ -535,7 +535,6 @@ dependencies = [
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "predicates",
- "pretty_assertions",
  "regex",
  "rust_decimal",
  "serde",
@@ -544,10 +543,10 @@ dependencies = [
  "sp-weights",
  "substrate-build-script-utils",
  "subxt",
+ "tempfile",
  "tracing",
  "tracing-subscriber 0.3.16",
  "url",
- "wabt",
  "which",
 ]
 

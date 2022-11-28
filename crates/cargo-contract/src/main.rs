@@ -56,12 +56,12 @@ use colored::Colorize;
 // in order to satisfy the `unused_crate_dependencies` lint.
 #[cfg(test)]
 use assert_cmd as _;
-
 #[cfg(test)]
 use predicates as _;
-
 #[cfg(test)]
 use regex as _;
+#[cfg(test)]
+use tempfile as _;
 
 // Only used on windows.
 use which as _;
@@ -213,55 +213,4 @@ fn format_err<E: Display>(err: E) -> Error {
         "ERROR:".bright_red().bold(),
         format!("{}", err).bright_red()
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn build_result_seralization_sanity_check() {
-        // given
-        let raw_result = r#"{
-  "dest_wasm": "/path/to/contract.wasm",
-  "metadata_result": {
-    "dest_metadata": "/path/to/metadata.json",
-    "dest_bundle": "/path/to/contract.contract"
-  },
-  "target_directory": "/path/to/target",
-  "optimization_result": {
-    "dest_wasm": "/path/to/contract.wasm",
-    "original_size": 64.0,
-    "optimized_size": 32.0
-  },
-  "build_mode": "Debug",
-  "build_artifact": "All",
-  "verbosity": "Quiet"
-}"#;
-
-        let build_result = BuildResult {
-            dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
-            metadata_result: Some(MetadataResult {
-                dest_metadata: PathBuf::from("/path/to/metadata.json"),
-                dest_bundle: PathBuf::from("/path/to/contract.contract"),
-            }),
-            target_directory: PathBuf::from("/path/to/target"),
-            optimization_result: Some(OptimizationResult {
-                dest_wasm: PathBuf::from("/path/to/contract.wasm"),
-                original_size: 64.0,
-                optimized_size: 32.0,
-            }),
-            build_mode: Default::default(),
-            build_artifact: Default::default(),
-            verbosity: Verbosity::Quiet,
-            output_type: OutputType::Json,
-        };
-
-        // when
-        let serialized_result = build_result.serialize_json();
-
-        // then
-        assert!(serialized_result.is_ok());
-        assert_eq!(serialized_result.unwrap(), raw_result);
-    }
 }

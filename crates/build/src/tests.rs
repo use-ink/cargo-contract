@@ -22,9 +22,7 @@ use crate::{
     ManifestPath,
     OptimizationPasses,
     OutputType,
-    UnstableOptions,
     Verbosity,
-    VerbosityFlags,
 };
 use anyhow::Result;
 use contract_metadata::*;
@@ -561,7 +559,7 @@ impl BuildTestContext {
     /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
     /// template project for testing the build process.
     pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
-        contract_template::new_contract_project(working_project_name, Some(tmp_dir))
+        crate::new_contract_project(working_project_name, Some(tmp_dir))
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(working_project_name);
 

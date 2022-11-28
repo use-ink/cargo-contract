@@ -14,10 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    ManifestPath,
-    OptimizationPasses,
-};
+use crate::ManifestPath;
 use anyhow::{
     Context,
     Result,
@@ -55,7 +52,7 @@ where
 {
     with_tmp_dir(|tmp_dir| {
         let project_name = "new_project";
-        contract_template::new_contract_project(project_name, Some(tmp_dir))
+        crate::new_contract_project(project_name, Some(tmp_dir))
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(project_name);
         let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
