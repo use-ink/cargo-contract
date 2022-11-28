@@ -538,7 +538,6 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rust_decimal",
- "semver",
  "serde",
  "serde_json",
  "sp-core",
@@ -549,7 +548,6 @@ dependencies = [
  "tracing-subscriber 0.3.16",
  "url",
  "wabt",
- "wasm-opt",
  "which",
 ]
 

@@ -29,24 +29,16 @@ use self::cmd::{
     UploadCommand,
 };
 use contract_build::{
-    metadata::MetadataResult,
     name_value_println,
     util::DEFAULT_KEY_COL_WIDTH,
-    ManifestPath,
     OutputType,
 };
 use std::{
-    convert::TryFrom,
-    fmt::{
-        Display,
-        Formatter,
-        Result as DisplayResult,
-    },
+    fmt::Display,
     path::PathBuf,
     str::FromStr,
 };
 
-use ::wasm_opt::OptimizationOptions;
 use anyhow::{
     anyhow,
     Error,

@@ -29,19 +29,10 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use semver::Version;
 use std::{
     convert::TryFrom,
-    path::{
-        Path,
-        PathBuf,
-    },
-    process::Command,
-    str,
+    path::PathBuf,
 };
-
-/// This is the maximum number of pages available for a contract to allocate.
-const MAX_MEMORY_PAGES: u32 = 16;
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
