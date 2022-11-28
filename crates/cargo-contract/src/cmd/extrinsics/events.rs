@@ -35,8 +35,8 @@ use anyhow::Result;
 use std::fmt::Write;
 use subxt::{
     self,
+    blocks::ExtrinsicEvents,
     events::StaticEvent,
-    tx::TxEvents,
 };
 
 /// Field that represent data of an event from invoking a contract extrinsic.
@@ -79,7 +79,7 @@ pub struct DisplayEvents(Vec<Event>);
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events(
-        result: &TxEvents<DefaultConfig>,
+        result: &ExtrinsicEvents<DefaultConfig>,
         transcoder: &ContractMessageTranscoder,
         subxt_metadata: &subxt::Metadata,
     ) -> Result<DisplayEvents> {

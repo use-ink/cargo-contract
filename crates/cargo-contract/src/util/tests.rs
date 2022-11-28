@@ -92,7 +92,7 @@ pub fn create_executable(path: &Path, content: &str) -> MockGuard {
         os::unix::fs::PermissionsExt,
     };
     let mut guard = MockGuard(path.to_path_buf());
-    let mut file = std::fs::File::create(&path).unwrap();
+    let mut file = std::fs::File::create(path).unwrap();
     let path = path.canonicalize().unwrap();
     guard.0 = path.clone();
     file.write_all(content.as_bytes())

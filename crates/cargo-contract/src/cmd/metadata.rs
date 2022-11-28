@@ -147,7 +147,7 @@ pub(crate) fn execute(
             format!("--target-dir={}", target_directory.to_string_lossy());
         let stdout = util::invoke_cargo(
             "run",
-            &[
+            [
                 "--package",
                 "metadata-gen",
                 &manifest_path.cargo_arg()?,

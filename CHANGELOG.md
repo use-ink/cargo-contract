@@ -4,7 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+- Fixed having non-JSON output after calling `instantiate` with `--output-json` - [#839](https://github.com/paritytech/cargo-contract/pull/839/files)
+
+## [2.0.0-beta] - 2022-11-22
+
+This release supports the ink! [`v4.0.0-beta`](https://github.com/paritytech/ink/releases/tag/v4.0.0-beta) release.
+
+### Changed
+- Update to weights v2 - [#809](https://github.com/paritytech/cargo-contract/pull/809)
+- Update validation for renamed FFI functions - [#816](https://github.com/paritytech/cargo-contract/pull/816)
+- Denominated units for balances in events - [#750](https://github.com/paritytech/cargo-contract/pull/750)
+- Upgrade wasm-opt to 0.110.2 - [#802](https://github.com/paritytech/cargo-contract/pull/802)
+
+### Added
+- Log code hash if contract is already uploaded - [#805](https://github.com/paritytech/cargo-contract/pull/805)
 
 ## [2.0.0-alpha.5] - 2022-10-27
 
