@@ -14,35 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::{
-    Context,
-    Result,
-};
-use colored::Colorize;
+use anyhow::Result;
 use contract_build::{
-    maybe_println,
-    util,
     BuildArtifacts,
     BuildMode,
     BuildResult,
     ExecuteArgs,
-    Manifest,
     ManifestPath,
     Network,
     OptimizationPasses,
-    OptimizationResult,
     OutputType,
     UnstableFlags,
     UnstableOptions,
     Verbosity,
     VerbosityFlags,
-};
-use parity_wasm::elements::{
-    External,
-    Internal,
-    MemoryType,
-    Module,
-    Section,
 };
 use semver::Version;
 use std::{
