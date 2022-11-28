@@ -687,8 +687,6 @@ mod tests {
 
     #[test]
     fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-        env_logger::init();
-
         type AccountId = sp_runtime::AccountId32;
 
         #[allow(dead_code)]
