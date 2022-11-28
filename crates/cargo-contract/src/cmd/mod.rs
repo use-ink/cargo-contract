@@ -16,7 +16,6 @@
 
 pub mod build;
 pub mod decode;
-pub mod new;
 pub mod test;
 
 pub(crate) use self::{

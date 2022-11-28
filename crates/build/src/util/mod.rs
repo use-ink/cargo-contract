@@ -22,23 +22,11 @@ use anyhow::{
     Context,
     Result,
 };
-use heck::ToUpperCamelCase as _;
 use rustc_version::Channel;
 use semver::Version;
 use std::{
     ffi::OsStr,
-    fs,
-    io::{
-        Cursor,
-        Read,
-        Seek,
-        SeekFrom,
-        Write,
-    },
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::Path,
     process::Command,
 };
 
