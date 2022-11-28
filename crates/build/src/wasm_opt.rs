@@ -93,7 +93,7 @@ impl WasmOptHandler {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum OptimizationPasses {
     Zero,
     One,

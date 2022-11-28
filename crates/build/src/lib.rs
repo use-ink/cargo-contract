@@ -24,11 +24,32 @@ mod validate_wasm;
 mod wasm_opt;
 mod workspace;
 
+pub use self::{
+    args::{
+        BuildArtifacts,
+        BuildMode,
+        BuildSteps,
+        Network,
+        OutputType,
+        UnstableFlags,
+        UnstableOptions,
+        Verbosity,
+        VerbosityFlags,
+    },
+    metadata::{
+        BuildInfo,
+        MetadataResult,
+        WasmOptSettings,
+    },
+    wasm_opt::{
+        OptimizationPasses,
+        OptimizationResult,
+    }
+};
+
 use crate::{
     crate_metadata::CrateMetadata,
     maybe_println,
-    util,
-    validate_wasm,
     wasm_opt::WasmOptHandler,
     workspace::{
         Manifest,
@@ -36,18 +57,6 @@ use crate::{
         Profile,
         Workspace,
     },
-    BuildArtifacts,
-    BuildMode,
-    BuildResult,
-    BuildSteps,
-    Network,
-    OptimizationPasses,
-    OptimizationResult,
-    OutputType,
-    UnstableFlags,
-    UnstableOptions,
-    Verbosity,
-    VerbosityFlags,
 };
 
 use anyhow::{
@@ -92,272 +101,6 @@ pub struct ExecuteArgs {
     pub keep_debug_symbols: bool,
     pub lint: bool,
     pub output_type: OutputType,
-}
-
-/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
-///
-/// It does so by invoking `cargo build` and then post processing the final binary.
-#[derive(Debug, clap::Args)]
-#[clap(name = "build")]
-pub struct BuildCommand {
-    /// Path to the `Cargo.toml` of the contract to build
-    #[clap(long, value_parser)]
-    manifest_path: Option<PathBuf>,
-    /// By default the contract is compiled with debug functionality
-    /// included. This enables the contract to output debug messages,
-    /// but increases the contract size and the amount of gas used.
-    ///
-    /// A production contract should always be build in `release` mode!
-    /// Then no debug functionality is compiled into the contract.
-    #[clap(long = "release")]
-    build_release: bool,
-    /// Build offline
-    #[clap(long = "offline")]
-    build_offline: bool,
-    /// Performs linting checks during the build process
-    #[clap(long)]
-    lint: bool,
-    /// Which build artifacts to generate.
-    ///
-    /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
-    ///
-    /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
-    ///   `<name>.contract` file is skipped.
-    ///
-    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
-    ///    only checks for compilation errors.
-    #[clap(long = "generate", value_enum, default_value = "all")]
-    build_artifact: BuildArtifacts,
-    #[clap(flatten)]
-    verbosity: VerbosityFlags,
-    #[clap(flatten)]
-    unstable_options: UnstableOptions,
-    /// Number of optimization passes, passed as an argument to `wasm-opt`.
-    ///
-    /// - `0`: execute no optimization passes
-    ///
-    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
-    ///
-    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
-    ///
-    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
-    ///
-    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
-    /// but is useful on more nested / complex / less-optimized input)
-    ///
-    /// - `s`, execute default optimization passes, focusing on code size
-    ///
-    /// - `z`, execute default optimization passes, super-focusing on code size
-    ///
-    /// - The default value is `z`
-    ///
-    /// - It is possible to define the number of optimization passes in the
-    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
-    ///   The CLI argument always takes precedence over the profile value.
-    #[clap(long)]
-    optimization_passes: Option<OptimizationPasses>,
-    /// Do not remove symbols (Wasm name section) when optimizing.
-    ///
-    /// This is useful if one wants to analyze or debug the optimized binary.
-    #[clap(long)]
-    keep_debug_symbols: bool,
-
-    /// Export the build output in JSON format.
-    #[clap(long, conflicts_with = "verbose")]
-    output_json: bool,
-}
-
-impl BuildCommand {
-    pub fn exec(&self) -> Result<BuildResult> {
-        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
-        let unstable_flags: UnstableFlags =
-            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-
-        // The CLI flag `optimization-passes` overwrites optimization passes which are
-        // potentially defined in the `Cargo.toml` profile.
-        let optimization_passes = match self.optimization_passes {
-            Some(opt_passes) => opt_passes,
-            None => {
-                let mut manifest = Manifest::new(manifest_path.clone())?;
-                match manifest.get_profile_optimization_passes() {
-                    // if no setting is found, neither on the cli nor in the profile,
-                    // then we use the default
-                    None => OptimizationPasses::default(),
-                    Some(opt_passes) => opt_passes,
-                }
-            }
-        };
-
-        let build_mode = match self.build_release {
-            true => BuildMode::Release,
-            false => BuildMode::Debug,
-        };
-
-        let network = match self.build_offline {
-            true => Network::Offline,
-            false => Network::Online,
-        };
-
-        if self.lint && matches!(network, Network::Offline) {
-            anyhow::bail!(
-                "Linting requires network access in order to download available lints"
-            )
-        }
-
-        let output_type = match self.output_json {
-            true => OutputType::Json,
-            false => OutputType::HumanReadable,
-        };
-
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
-        }
-
-        let args = ExecuteArgs {
-            manifest_path,
-            verbosity,
-            build_mode,
-            network,
-            build_artifact,
-            unstable_flags,
-            optimization_passes,
-            keep_debug_symbols,
-            skip_linting,
-            output_type,
-        } = self;
-
-        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
-
-        assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
-        if build_mode == BuildMode::Debug {
-            assert_debug_mode_supported(&crate_metadata.ink_version)?;
-        }
-
-        let build = || -> Result<OptimizationResult> {
-            if skip_linting {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Skip ink! linting rules".bright_yellow().bold()
-                );
-            } else {
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[1/{}]", build_artifact.steps()).bold(),
-                    "Checking ink! linting rules".bright_green().bold()
-                );
-                exec_cargo_dylint(&crate_metadata, verbosity)?;
-            }
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[2/{}]", build_artifact.steps()).bold(),
-                "Building cargo project".bright_green().bold()
-            );
-            exec_cargo_for_wasm_target(
-                &crate_metadata,
-                "build",
-                build_mode,
-                network,
-                verbosity,
-                &unstable_flags,
-            )?;
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[3/{}]", build_artifact.steps()).bold(),
-                "Post processing wasm file".bright_green().bold()
-            );
-            post_process_wasm(&crate_metadata)?;
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("[4/{}]", build_artifact.steps()).bold(),
-                "Optimizing wasm file".bright_green().bold()
-            );
-
-            let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
-            let optimization_result = handler.optimize(
-                &crate_metadata.dest_wasm,
-                &crate_metadata.contract_artifact_name,
-            )?;
-
-            Ok(optimization_result)
-        };
-
-        let (opt_result, metadata_result) = match build_artifact {
-            BuildArtifacts::CheckOnly => {
-                if skip_linting {
-                    maybe_println!(
-                        verbosity,
-                        " {} {}",
-                        format!("[1/{}]", build_artifact.steps()).bold(),
-                        "Skip ink! linting rules".bright_yellow().bold()
-                    );
-                } else {
-                    maybe_println!(
-                        verbosity,
-                        " {} {}",
-                        format!("[1/{}]", build_artifact.steps()).bold(),
-                        "Checking ink! linting rules".bright_green().bold()
-                    );
-                    exec_cargo_dylint(&crate_metadata, verbosity)?;
-                }
-
-                maybe_println!(
-                    verbosity,
-                    " {} {}",
-                    format!("[2/{}]", build_artifact.steps()).bold(),
-                    "Executing `cargo check`".bright_green().bold()
-                );
-                exec_cargo_for_wasm_target(
-                    &crate_metadata,
-                    "check",
-                    BuildMode::Release,
-                    network,
-                    verbosity,
-                    &unstable_flags,
-                )?;
-                (None, None)
-            }
-            BuildArtifacts::CodeOnly => {
-                let optimization_result = build()?;
-                (Some(optimization_result), None)
-            }
-            BuildArtifacts::All => {
-                let optimization_result = build()?;
-
-                let metadata_result = metadata::execute(
-                    &crate_metadata,
-                    optimization_result.dest_wasm.as_path(),
-                    network,
-                    verbosity,
-                    build_artifact.steps(),
-                    &unstable_flags,
-                )?;
-                (Some(optimization_result), Some(metadata_result))
-            }
-        };
-        let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
-
-        Ok(BuildResult {
-            dest_wasm,
-            metadata_result,
-            target_directory: crate_metadata.target_directory,
-            optimization_result: opt_result,
-            build_mode,
-            build_artifact,
-            verbosity,
-            output_type,
-        })
-    }
 }
 
 /// Result of the build process.

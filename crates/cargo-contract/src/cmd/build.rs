@@ -76,9 +76,9 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Skips linting checks during the build process
+    /// Performs linting checks during the build process
     #[clap(long)]
-    skip_linting: bool,
+    lint: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
@@ -161,10 +161,6 @@ impl BuildCommand {
             false => Network::Online,
         };
 
-        // The invocation of `cargo dylint` requires network access, so in offline mode the linting
-        // step must be skipped otherwise the build can fail.
-        let skip_linting = self.skip_linting || matches!(network, Network::Offline);
-
         let output_type = match self.output_json {
             true => OutputType::Json,
             false => OutputType::HumanReadable,
@@ -220,7 +216,7 @@ impl CheckCommand {
             unstable_flags,
             optimization_passes: OptimizationPasses::Zero,
             keep_debug_symbols: false,
-            skip_linting: false,
+            lint: false,
             output_type: OutputType::default(),
         };
 
