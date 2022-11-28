@@ -154,7 +154,7 @@ fn main() {
 fn exec(cmd: Command) -> Result<()> {
     match &cmd {
         Command::New { name, target_dir } => {
-            contract_template::execute(name, target_dir.as_ref())?;
+            contract_template::new_contract_project(name, target_dir.as_ref())?;
             println!("Created contract {}", name);
             Ok(())
         }

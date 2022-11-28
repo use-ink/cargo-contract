@@ -32,7 +32,8 @@ use std::{
     },
 };
 
-pub fn execute<P>(name: &str, dir: Option<P>) -> Result<()>
+/// Creates a new contract project from the template.
+pub fn new_contract_project<P>(name: &str, dir: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -155,7 +156,7 @@ mod tests {
     #[test]
     fn rejects_hyphenated_name() {
         with_tmp_dir(|path| {
-            let result = execute("rejects-hyphenated-name", Some(path));
+            let result = new_contract_project("rejects-hyphenated-name", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -168,7 +169,7 @@ mod tests {
     #[test]
     fn rejects_name_with_period() {
         with_tmp_dir(|path| {
-            let result = execute("../xxx", Some(path));
+            let result = new_contract_project("../xxx", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -181,7 +182,7 @@ mod tests {
     #[test]
     fn rejects_name_beginning_with_number() {
         with_tmp_dir(|path| {
-            let result = execute("1xxx", Some(path));
+            let result = new_contract_project("1xxx", Some(path));
             assert!(result.is_err(), "Should fail");
             assert_eq!(
                 result.err().unwrap().to_string(),
@@ -195,8 +196,8 @@ mod tests {
     fn contract_cargo_project_already_exists() {
         with_tmp_dir(|path| {
             let name = "test_contract_cargo_project_already_exists";
-            let _ = execute(name, Some(path));
-            let result = execute(name, Some(path));
+            let _ = new_contract_project(name, Some(path));
+            let result = new_contract_project(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
@@ -214,7 +215,7 @@ mod tests {
             let dir = path.join(name);
             fs::create_dir_all(&dir).unwrap();
             fs::File::create(dir.join(".gitignore")).unwrap();
-            let result = execute(name, Some(path));
+            let result = new_contract_project(name, Some(path));
 
             assert!(result.is_err(), "Should fail");
             assert_eq!(
