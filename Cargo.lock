@@ -530,7 +530,6 @@ dependencies = [
  "colored",
  "contract-metadata",
  "contract-template",
- "contract-test-utils",
  "contract-transcode",
  "current_platform",
  "heck",
@@ -708,6 +707,7 @@ dependencies = [
  "clap",
  "colored",
  "contract-metadata",
+ "contract-template",
  "heck",
  "hex",
  "impl-serde",
@@ -765,35 +765,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.3.16",
  "walkdir",
- "zip",
-]
-
-[[package]]
-name = "contract-test-utils"
-version = "2.0.0-alpha.4"
-dependencies = [
- "anyhow",
- "blake2",
- "cargo_metadata",
- "clap",
- "colored",
- "contract-metadata",
- "heck",
- "hex",
- "impl-serde",
- "parity-scale-codec",
- "parity-wasm",
- "pretty_assertions",
- "rustc_version",
- "semver",
- "serde",
- "serde_json",
- "tempfile",
- "toml",
- "tracing",
- "tracing-subscriber 0.3.16",
- "url",
- "wasm-opt",
  "zip",
 ]
 

@@ -49,10 +49,8 @@ pub use self::{
 
 use crate::{
     crate_metadata::CrateMetadata,
-    maybe_println,
     wasm_opt::WasmOptHandler,
     workspace::{
-        Manifest,
         ManifestPath,
         Profile,
         Workspace,
@@ -526,9 +524,7 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
-    use crate::cmd::metadata::BuildInfo;
-
+pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
         verbosity,
@@ -568,8 +564,6 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     };
 
     let build = || -> Result<(OptimizationResult, BuildInfo, BuildSteps)> {
-        use crate::cmd::metadata::WasmOptSettings;
-
         let mut build_steps = maybe_lint()?;
 
         maybe_println!(
@@ -660,7 +654,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::All => {
             let (optimization_result, build_info, build_steps) = build()?;
 
-            let metadata_result = super::metadata::execute(
+            let metadata_result = crate::metadata::execute(
                 &crate_metadata,
                 optimization_result.dest_wasm.as_path(),
                 network,

@@ -15,13 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    cmd::{
-        build::load_module,
-        BuildCommand,
-    },
     util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
+    ExecuteArgs,
     ManifestPath,
     OptimizationPasses,
     OutputType,
@@ -38,18 +35,20 @@ use std::{
     ffi::OsStr,
     fmt::Write,
     fs,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 macro_rules! build_tests {
     ( $($fn:ident),* ) => {
         #[test]
         fn build_tests() {
-            crate::util::tests::with_tmp_dir(|tmp_dir| {
-                let ctx = crate::util::tests::BuildTestContext::new(tmp_dir, "build_test")?;
-                $( ctx.run_test(stringify!($fn), $fn)?; )*
-                Ok(())
-            })
+            let tmp_dir = ::tempfile::Builder::new()
+                .prefix("cargo-contract-build.test.")
+                .tempdir()
+                .expect("temporary directory creation failed");
+
+            let ctx = crate::tests::BuildTestContext::new(tmp_dir, "build_test")?;
+            $( ctx.run_test(stringify!($fn), $fn)?; )*
         }
     }
 }
@@ -76,7 +75,7 @@ build_tests!(
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -117,7 +116,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
 ) -> Result<()> {
     // given
     let project_dir = manifest_path.directory().expect("directory must exist");
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -259,7 +258,7 @@ fn contract_lib_name_different_from_package_name_must_build(
 
 fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Result<()> {
     // given
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         lint: false,
@@ -278,7 +277,7 @@ fn building_template_in_release_mode_must_work(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     // given
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         lint: false,
@@ -308,7 +307,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     manifest.set_lib_path("srcfoo/lib.rs")?;
     manifest.write()?;
 
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -324,7 +323,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
 }
 
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -342,7 +341,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
 }
 
 fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()> {
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -361,7 +360,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
 
 fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     // given
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
         lint: false,
@@ -392,7 +391,7 @@ fn missing_cargo_dylint_installation_must_be_detected(
     let _tmp1 = create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
 
     // when
-    let args = crate::cmd::build::ExecuteArgs {
+    let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         lint: true,
         ..Default::default()
@@ -436,13 +435,13 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
-    let mut args = crate::cmd::build::ExecuteArgs {
+    let mut args = ExecuteArgs {
         lint: false,
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();
 
-    let build_result = crate::cmd::build::execute(args)?;
+    let build_result = crate::execute(args)?;
     let dest_bundle = build_result
         .metadata_result
         .expect("Metadata should be generated")
@@ -492,7 +491,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     // calculate wasm hash
     let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
-    let expected_hash = crate::cmd::metadata::blake2_hash(&fs_wasm[..]);
+    let expected_hash = crate::metadata::blake2_hash(&fs_wasm[..]);
     let expected_wasm = build_byte_str(&fs_wasm);
 
     let expected_language =
@@ -542,8 +541,95 @@ fn build_byte_str(bytes: &[u8]) -> String {
 }
 
 fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
-    load_module(p)
+    crate::load_module(p)
         .unwrap()
         .custom_sections()
         .any(|e| e.name() == "name")
+}
+
+/// Enables running a group of tests sequentially, each starting with the original template
+/// contract, but maintaining the target directory so compilation artifacts are maintained across
+/// each test.
+pub struct BuildTestContext {
+    template_dir: PathBuf,
+    working_dir: PathBuf,
+}
+
+impl BuildTestContext {
+    /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
+    /// template project for testing the build process.
+    pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
+        contract_template::execute(working_project_name, Some(tmp_dir))
+            .expect("new project creation failed");
+        let working_dir = tmp_dir.join(working_project_name);
+
+        let template_dir = tmp_dir.join(format!("{}_template", working_project_name));
+
+        fs::rename(&working_dir, &template_dir)?;
+        copy_dir_all(&template_dir, &working_dir)?;
+
+        Ok(Self {
+            template_dir,
+            working_dir,
+        })
+    }
+
+    /// Run the supplied test. Test failure will print the error to `stdout`, and this will still
+    /// return `Ok(())` in order that subsequent tests will still be run.
+    ///
+    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so after
+    /// completion those files are reverted to their original state for the next test.
+    ///
+    /// Importantly, the `target` directory is maintained so as to avoid recompiling all of the
+    /// dependencies for each test.
+    pub fn run_test(
+        &self,
+        name: &str,
+        test: impl FnOnce(&ManifestPath) -> Result<()>,
+    ) -> Result<()> {
+        println!("Running {}", name);
+        let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
+        match test(&manifest_path) {
+            Ok(()) => (),
+            Err(err) => {
+                println!("{} FAILED: {:?}", name, err);
+            }
+        }
+        // revert to the original template files, but keep the `target` dir from the previous run.
+        self.remove_all_except_target_dir()?;
+        copy_dir_all(&self.template_dir, &self.working_dir)?;
+        Ok(())
+    }
+
+    /// Deletes all files and folders in project dir (except the `target` directory)
+    fn remove_all_except_target_dir(&self) -> Result<()> {
+        for entry in fs::read_dir(&self.working_dir)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            if ty.is_dir() {
+                // remove all except the target dir
+                if entry.file_name() != "target" {
+                    fs::remove_dir_all(entry.path())?
+                }
+            } else {
+                fs::remove_file(entry.path())?
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Copy contents of `src` to `dst` recursively.
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }

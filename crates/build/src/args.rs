@@ -115,11 +115,11 @@ pub enum BuildArtifacts {
 impl BuildArtifacts {
     /// Returns the number of steps required to complete a build artifact.
     /// Used as output on the cli.
-    pub fn steps(&self) -> usize {
+    pub fn steps(&self) -> BuildSteps {
         match self {
-            BuildArtifacts::All => 6,
-            BuildArtifacts::CodeOnly => 4,
-            BuildArtifacts::CheckOnly => 2,
+            BuildArtifacts::All => BuildSteps::new(5),
+            BuildArtifacts::CodeOnly => BuildSteps::new(4),
+            BuildArtifacts::CheckOnly => BuildSteps::new(1),
         }
     }
 }
@@ -130,8 +130,35 @@ impl Default for BuildArtifacts {
     }
 }
 
+/// Track and display the current and total number of steps.
+#[derive(Debug, Clone, Copy)]
+pub struct BuildSteps {
+    pub current_step: usize,
+    pub total_steps: usize,
+}
+
+impl BuildSteps {
+    pub fn new(total_steps: usize) -> Self {
+        Self {
+            current_step: 1,
+            total_steps,
+        }
+    }
+
+    pub fn increment_current(&mut self) {
+        self.current_step += 1;
+    }
+}
+
+impl fmt::Display for BuildSteps {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}/{}]", self.current_step, self.total_steps)
+    }
+}
+
+
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     Debug,
