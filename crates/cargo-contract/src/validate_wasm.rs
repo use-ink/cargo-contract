@@ -291,7 +291,6 @@ mod tests {
             (module
                 (type (;0;) (func (param i32 i32 i32)))
                 (import "seal" "foo" (func (;5;) (type 0)))
-                (import "__unstable__" "bar" (func (;5;) (type 0)))
                 (import "env" "memory" (func (;5;) (type 0)))
                 (func (;5;) (type 0))
             )"#;
