@@ -122,18 +122,15 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
     Ok(())
 }
 
-/// Returns `true` if the import is allowed.
+/// Returns `Ok` if the import is allowed.
 fn check_import(module: &str, field: &str) -> Result<(), String> {
-    if module.starts_with("seal")
-        || module == "__unstable__"
-        || field.starts_with("memory")
-    {
+    if module.starts_with("seal") || field.starts_with("memory") {
         Ok(())
     } else {
         Err(format!(
             "An unexpected import function was found in the contract Wasm: {}.\n\
             Import funtions must either be prefixed with 'memory', or part \
-            of a module prefixed with 'seal' or '__unstable__",
+            of a module prefixed with 'seal'",
             field
         ))
     }
