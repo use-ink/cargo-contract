@@ -111,22 +111,6 @@ pub fn create_executable(path: &Path, content: &str) -> MockGuard {
     guard
 }
 
-/// Init a tracing subscriber for logging in tests.
-///
-/// Be aware that this enables `TRACE` by default. It also ignores any error
-/// while setting up the logger.
-///
-/// The logs are not shown by default, logs are only shown when the test fails
-/// or if [`nocapture`](https://doc.rust-lang.org/cargo/commands/cargo-test.html#display-options)
-/// is being used.
-#[cfg(any(feature = "integration-tests", feature = "test-ci-only"))]
-pub fn init_tracing_subscriber() {
-    let _ = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .with_test_writer()
-        .try_init();
-}
-
 /// Modify a contracts `Cargo.toml` for testing purposes
 pub struct TestContractManifest {
     toml: value::Table,

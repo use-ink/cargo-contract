@@ -83,7 +83,7 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use crate::{
+    use contract_build::{
         util::tests::with_new_contract_project,
         Verbosity,
     };
