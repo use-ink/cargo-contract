@@ -84,24 +84,32 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use contract_build::{
-        util::tests::with_new_contract_project,
         Verbosity,
+        ManifestPath,
     };
     use regex::Regex;
 
     #[test]
     fn passing_tests_yield_stdout() {
-        with_new_contract_project(|manifest_path| {
-            let ok_output_pattern =
-                Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
-                    .expect("regex pattern compilation failed");
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("cargo-contract.test.")
+            .tempdir()
+            .expect("temporary directory creation failed");
 
-            let res = super::execute(&manifest_path, Verbosity::Default)
-                .expect("test execution failed");
+        let project_name = "test_project";
+        contract_build::new_contract_project(project_name, Some(&tmp_dir))
+            .expect("new project creation failed");
+        let working_dir = tmp_dir.path().join(project_name);
+        let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))
+            .expect("invalid manifest path");
 
-            assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
+        let ok_output_pattern =
+            Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
+                .expect("regex pattern compilation failed");
 
-            Ok(())
-        })
+        let res = super::execute(&manifest_path, Verbosity::Default)
+            .expect("test execution failed");
+
+        assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
     }
 }

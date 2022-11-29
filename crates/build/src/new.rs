@@ -136,22 +136,7 @@ fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Creates a temporary directory and passes the `tmp_dir` path to `f`.
-    /// Panics if `f` returns an `Err`.
-    pub fn with_tmp_dir<F>(f: F)
-    where
-        F: FnOnce(&Path) -> Result<()>,
-    {
-        let tmp_dir = tempfile::Builder::new()
-            .prefix("contract-template.test.")
-            .tempdir()
-            .expect("temporary directory creation failed");
-
-        // catch test panics in order to clean up temp dir which will be very large
-        f(&tmp_dir.path().canonicalize().unwrap())
-            .expect("Error executing test with tmp dir")
-    }
+    use crate::util::tests::with_tmp_dir;
 
     #[test]
     fn rejects_hyphenated_name() {
