@@ -541,7 +541,9 @@ fn post_process_wasm(
         maybe_println!(
             verbosity,
             " {}",
-            "Skipping wasm validation! Contract code may be invalid.".bright_yellow().bold()
+            "Skipping wasm validation! Contract code may be invalid."
+                .bright_yellow()
+                .bold()
         );
     }
 
