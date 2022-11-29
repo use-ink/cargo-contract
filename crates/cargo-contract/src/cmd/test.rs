@@ -84,8 +84,8 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use contract_build::{
-        Verbosity,
         ManifestPath,
+        Verbosity,
     };
     use regex::Regex;
 
