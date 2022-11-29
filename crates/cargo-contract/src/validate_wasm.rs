@@ -112,7 +112,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 
     if original_imports_len != filtered_imports.count() {
         anyhow::bail!(format!(
-            "Validation of the Wasm failed.\n\n\n{}",
+            "Validation of the Wasm failed.\n\n\n{}\n\nIgnore with `--skip-wasm-validation`",
             errs.into_iter()
                 .map(|err| format!("{} {}", "ERROR:".to_string().bold(), err))
                 .collect::<Vec<String>>()
