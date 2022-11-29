@@ -522,7 +522,11 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
 }
 
 /// Performs required post-processing steps on the Wasm artifact.
-fn post_process_wasm(crate_metadata: &CrateMetadata, skip_wasm_validation: bool) -> Result<()> {
+fn post_process_wasm(
+    crate_metadata: &CrateMetadata,
+    skip_wasm_validation: bool,
+    verbosity: &Verbosity,
+) -> Result<()> {
     // Deserialize Wasm module from a file.
     let mut module = load_module(&crate_metadata.original_wasm)
         .context("Loading of original wasm failed")?;
@@ -533,6 +537,12 @@ fn post_process_wasm(crate_metadata: &CrateMetadata, skip_wasm_validation: bool)
 
     if !skip_wasm_validation {
         validate_wasm::validate_import_section(&module)?;
+    } else {
+        maybe_println!(
+            verbosity,
+            " {}",
+            "Skipping wasm validation! Contract code may be invalid.".bright_yellow().bold()
+        );
     }
 
     debug_assert!(
@@ -660,7 +670,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             "Post processing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
-        post_process_wasm(&crate_metadata, skip_wasm_validation)?;
+        post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
 
         maybe_println!(
             verbosity,
