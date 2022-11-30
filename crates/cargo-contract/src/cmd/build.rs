@@ -101,10 +101,12 @@ pub struct BuildCommand {
     /// This is useful if one wants to analyze or debug the optimized binary.
     #[clap(long)]
     keep_debug_symbols: bool,
-
     /// Export the build output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// Don't perform wasm validation checks e.g. for permitted imports.
+    #[clap(long)]
+    skip_wasm_validation: bool,
 }
 
 impl BuildCommand {
@@ -145,6 +147,7 @@ impl BuildCommand {
             keep_debug_symbols: self.keep_debug_symbols,
             lint: self.lint,
             output_type,
+            skip_wasm_validation: self.skip_wasm_validation
         };
 
         contract_build::execute(args)
@@ -181,6 +184,7 @@ impl CheckCommand {
             keep_debug_symbols: false,
             lint: false,
             output_type: OutputType::default(),
+            skip_wasm_validation: false,
         };
 
         contract_build::execute(args)
