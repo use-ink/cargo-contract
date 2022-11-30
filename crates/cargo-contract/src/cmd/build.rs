@@ -147,7 +147,7 @@ impl BuildCommand {
             keep_debug_symbols: self.keep_debug_symbols,
             lint: self.lint,
             output_type,
-            skip_wasm_validation: self.skip_wasm_validation
+            skip_wasm_validation: self.skip_wasm_validation,
         };
 
         contract_build::execute(args)
