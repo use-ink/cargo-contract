@@ -16,6 +16,8 @@
 
 #![deny(unused_crate_dependencies)]
 
+use which as _;
+
 mod args;
 mod crate_metadata;
 pub mod metadata;

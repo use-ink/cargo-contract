@@ -712,6 +712,7 @@ dependencies = [
  "wabt",
  "walkdir",
  "wasm-opt",
+ "which",
  "zip",
 ]
 
