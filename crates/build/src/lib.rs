@@ -103,6 +103,7 @@ pub struct ExecuteArgs {
     pub keep_debug_symbols: bool,
     pub lint: bool,
     pub output_type: OutputType,
+    pub skip_wasm_validation: bool,
 }
 
 /// Result of the build process.
@@ -462,7 +463,11 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
 }
 
 /// Performs required post-processing steps on the Wasm artifact.
-fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
+fn post_process_wasm(
+    crate_metadata: &CrateMetadata,
+    skip_wasm_validation: bool,
+    verbosity: &Verbosity,
+) -> Result<()> {
     // Deserialize Wasm module from a file.
     let mut module = load_module(&crate_metadata.original_wasm)
         .context("Loading of original wasm failed")?;
@@ -471,7 +476,17 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
-    validate_wasm::validate_import_section(&module)?;
+    if !skip_wasm_validation {
+        validate_wasm::validate_import_section(&module)?;
+    } else {
+        maybe_println!(
+            verbosity,
+            " {}",
+            "Skipping wasm validation! Contract code may be invalid."
+                .bright_yellow()
+                .bold()
+        );
+    }
 
     debug_assert!(
         !module.clone().into_bytes().unwrap().is_empty(),
@@ -540,6 +555,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         keep_debug_symbols,
         lint,
         output_type,
+        skip_wasm_validation,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -608,7 +624,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             "Post processing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
-        post_process_wasm(&crate_metadata)?;
+        post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
 
         maybe_println!(
             verbosity,

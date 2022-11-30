@@ -160,6 +160,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         keep_debug_symbols: false,
         lint: false,
         output_type: OutputType::Json,
+        skip_wasm_validation: false,
     };
 
     // when
@@ -200,6 +201,7 @@ fn optimization_passes_from_profile_must_be_used(
         keep_debug_symbols: false,
         lint: false,
         output_type: OutputType::Json,
+        skip_wasm_validation: false,
     };
 
     // when
@@ -242,6 +244,7 @@ fn contract_lib_name_different_from_package_name_must_build(
         keep_debug_symbols: false,
         lint: false,
         output_type: OutputType::HumanReadable,
+        skip_wasm_validation: false,
     };
     let res = crate::execute(args).expect("build failed");
 
