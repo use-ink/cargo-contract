@@ -112,7 +112,7 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
 
     if original_imports_len != filtered_imports.count() {
         anyhow::bail!(format!(
-            "Validation of the Wasm failed.\n\n\n{}",
+            "Validation of the Wasm failed.\n\n\n{}\n\nIgnore with `--skip-wasm-validation`",
             errs.into_iter()
                 .map(|err| format!("{} {}", "ERROR:".to_string().bold(), err))
                 .collect::<Vec<String>>()
@@ -122,18 +122,15 @@ pub fn validate_import_section(module: &Module) -> Result<()> {
     Ok(())
 }
 
-/// Returns `true` if the import is allowed.
+/// Returns `Ok` if the import is allowed.
 fn check_import(module: &str, field: &str) -> Result<(), String> {
-    if module.starts_with("seal")
-        || module == "__unstable__"
-        || field.starts_with("memory")
-    {
+    if module.starts_with("seal") || field.starts_with("memory") {
         Ok(())
     } else {
         Err(format!(
             "An unexpected import function was found in the contract Wasm: {}.\n\
             Import funtions must either be prefixed with 'memory', or part \
-            of a module prefixed with 'seal' or '__unstable__",
+            of a module prefixed with 'seal'",
             field
         ))
     }
@@ -294,7 +291,6 @@ mod tests {
             (module
                 (type (;0;) (func (param i32 i32 i32)))
                 (import "seal" "foo" (func (;5;) (type 0)))
-                (import "__unstable__" "bar" (func (;5;) (type 0)))
                 (import "env" "memory" (func (;5;) (type 0)))
                 (func (;5;) (type 0))
             )"#;

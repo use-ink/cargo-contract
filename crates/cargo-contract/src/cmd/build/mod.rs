@@ -85,6 +85,7 @@ pub(crate) struct ExecuteArgs {
     pub keep_debug_symbols: bool,
     pub lint: bool,
     pub output_type: OutputType,
+    pub skip_wasm_validation: bool,
 }
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
@@ -158,6 +159,9 @@ pub struct BuildCommand {
     /// Export the build output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// Don't perform wasm validation checks e.g. for permitted imports.
+    #[clap(long)]
+    skip_wasm_validation: bool,
 }
 
 impl BuildCommand {
@@ -219,6 +223,7 @@ impl BuildCommand {
             keep_debug_symbols: self.keep_debug_symbols,
             lint: self.lint,
             output_type,
+            skip_wasm_validation: self.skip_wasm_validation,
         };
 
         execute(args)
@@ -255,6 +260,7 @@ impl CheckCommand {
             keep_debug_symbols: false,
             lint: false,
             output_type: OutputType::default(),
+            skip_wasm_validation: false,
         };
 
         execute(args)
@@ -516,7 +522,11 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
 }
 
 /// Performs required post-processing steps on the Wasm artifact.
-fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
+fn post_process_wasm(
+    crate_metadata: &CrateMetadata,
+    skip_wasm_validation: bool,
+    verbosity: &Verbosity,
+) -> Result<()> {
     // Deserialize Wasm module from a file.
     let mut module = load_module(&crate_metadata.original_wasm)
         .context("Loading of original wasm failed")?;
@@ -525,7 +535,17 @@ fn post_process_wasm(crate_metadata: &CrateMetadata) -> Result<()> {
     ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
     strip_custom_sections(&mut module);
 
-    validate_wasm::validate_import_section(&module)?;
+    if !skip_wasm_validation {
+        validate_wasm::validate_import_section(&module)?;
+    } else {
+        maybe_println!(
+            verbosity,
+            " {}",
+            "Skipping wasm validation! Contract code may be invalid."
+                .bright_yellow()
+                .bold()
+        );
+    }
 
     debug_assert!(
         !module.clone().into_bytes().unwrap().is_empty(),
@@ -596,6 +616,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         keep_debug_symbols,
         lint,
         output_type,
+        skip_wasm_validation,
     } = args;
 
     let crate_metadata = CrateMetadata::collect(&manifest_path)?;
@@ -651,7 +672,7 @@ pub(crate) fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             "Post processing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
-        post_process_wasm(&crate_metadata)?;
+        post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
 
         maybe_println!(
             verbosity,
