@@ -78,10 +78,10 @@ pub use balance::{
     TokenMetadata,
 };
 pub use call::CallCommand;
+pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
-pub use contract_transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 
 type Balance = u128;

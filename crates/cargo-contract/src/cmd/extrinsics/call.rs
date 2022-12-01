@@ -48,10 +48,10 @@ use anyhow::{
     Result,
 };
 
+use contract_transcode::Value;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
-use contract_transcode::Value;
 
 use std::fmt::Debug;
 use subxt::{
