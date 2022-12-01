@@ -24,7 +24,7 @@ use contract_build::{
     util,
     CrateMetadata,
 };
-use transcode::ContractMessageTranscoder;
+use contract_transcode::ContractMessageTranscoder;
 
 #[derive(Debug, Clone, clap::Args)]
 #[clap(

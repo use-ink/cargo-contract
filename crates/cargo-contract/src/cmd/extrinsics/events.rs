@@ -23,7 +23,7 @@ use super::{
 use crate::DEFAULT_KEY_COL_WIDTH;
 use colored::Colorize as _;
 use contract_build::Verbosity;
-use transcode::{
+use contract_transcode::{
     ContractMessageTranscoder,
     TranscoderBuilder,
     Value,

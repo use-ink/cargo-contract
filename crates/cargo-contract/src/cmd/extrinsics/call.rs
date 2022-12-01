@@ -51,7 +51,7 @@ use anyhow::{
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
-use transcode::Value;
+use contract_transcode::Value;
 
 use std::fmt::Debug;
 use subxt::{
