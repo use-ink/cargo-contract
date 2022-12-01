@@ -16,8 +16,6 @@
 
 pub mod build;
 pub mod decode;
-pub mod metadata;
-pub mod new;
 pub mod test;
 
 pub(crate) use self::{

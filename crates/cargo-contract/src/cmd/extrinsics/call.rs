@@ -39,18 +39,19 @@ use crate::{
         events::DisplayEvents,
         ErrorVariant,
     },
-    name_value_println,
     DEFAULT_KEY_COL_WIDTH,
 };
+use contract_build::name_value_println;
+
 use anyhow::{
     anyhow,
     Result,
 };
 
+use contract_transcode::Value;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
-use transcode::Value;
 
 use std::fmt::Debug;
 use subxt::{

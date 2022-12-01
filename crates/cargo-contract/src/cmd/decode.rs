@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    crate_metadata::CrateMetadata,
-    util::decode_hex,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use anyhow::{
     Context,
     Result,
 };
 use colored::Colorize as _;
-use transcode::ContractMessageTranscoder;
+use contract_build::{
+    util,
+    CrateMetadata,
+};
+use contract_transcode::ContractMessageTranscoder;
 
 #[derive(Debug, Clone, clap::Args)]
 #[clap(
@@ -56,17 +56,17 @@ impl DecodeCommand {
         let decoded_data = match self.r#type {
             DataType::Event => {
                 transcoder.decode_contract_event(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
                 )?
             }
             DataType::Message => {
                 transcoder.decode_contract_message(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
                 )?
             }
             DataType::Constructor => {
                 transcoder.decode_contract_constructor(
-                    &mut &decode_hex(&self.data).context(ERR_MSG)?[..],
+                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
                 )?
             }
         };

@@ -20,12 +20,10 @@ use super::{
     DefaultConfig,
     TokenMetadata,
 };
-use crate::{
-    Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use colored::Colorize as _;
-use transcode::{
+use contract_build::Verbosity;
+use contract_transcode::{
     ContractMessageTranscoder,
     TranscoderBuilder,
     Value,

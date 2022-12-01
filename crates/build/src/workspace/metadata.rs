@@ -58,8 +58,7 @@ impl MetadataPackage {
             dir.display()
         );
 
-        let cargo_toml =
-            include_str!("../../templates/tools/generate-metadata/_Cargo.toml");
+        let cargo_toml = include_str!("../../templates/generate-metadata/_Cargo.toml");
         let main_rs = self.generate_main();
 
         let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
