@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 #![doc = include_str!("../README.md")]
-
 #![deny(unused_crate_dependencies)]
 
 use which as _;
