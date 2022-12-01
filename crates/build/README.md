@@ -5,19 +5,33 @@ A crate for building [`ink!`](https://github.com/paritytech/ink) smart contracts
 
 ## Usage
 
-```Rust
-let args = contract_build::ExecuteArgs {
-    manifest_path,
-    verbosity,
-    build_mode,
-    network,
-    build_artifact
-    unstable_flags,
-    optimization_passes,
-    keep_debug_symbols,
-    lint,
-    output_type,
+```rust
+use contract_build::{
+    ManifestPath,
+    Verbosity,
+    BuildArtifacts,
+    BuildMode,
+    Network,
+    OptimizationPasses,
+    OutputType,
+    UnstableFlags,
 };
 
-contract_build::execute(args)
+let manifest_path = ManifestPath::new("my-contract/Cargo.toml").unwrap();
+
+let args = contract_build::ExecuteArgs {
+    manifest_path,
+    verbosity: Verbosity::Default,
+    build_mode: BuildMode::Release,
+    network: Network::Online,
+    build_artifact: BuildArtifacts::All,
+    unstable_flags: UnstableFlags::default(),
+    optimization_passes: Some(OptimizationPasses::default()),
+    keep_debug_symbols: false,
+    lint: false,
+    output_type: OutputType::Json,
+    skip_wasm_validation: false,
+};
+
+contract_build::execute(args);
 ```
