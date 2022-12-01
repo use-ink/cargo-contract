@@ -121,6 +121,22 @@ impl ContractsNodeProcess {
     }
 }
 
+/// Init a tracing subscriber for logging in tests.
+///
+/// Be aware that this enables `TRACE` by default. It also ignores any error
+/// while setting up the logger.
+///
+/// The logs are not shown by default, logs are only shown when the test fails
+/// or if [`nocapture`](https://doc.rust-lang.org/cargo/commands/cargo-test.html#display-options)
+/// is being used.
+#[cfg(any(feature = "integration-tests", feature = "test-ci-only"))]
+pub fn init_tracing_subscriber() {
+    let _ = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .with_test_writer()
+        .try_init();
+}
+
 /// Sanity test the whole lifecycle of:
 ///   new -> build -> upload -> instantiate -> call
 ///
@@ -136,7 +152,7 @@ impl ContractsNodeProcess {
 #[ignore]
 #[async_std::test]
 async fn build_upload_instantiate_call() {
-    crate::util::tests::init_tracing_subscriber();
+    init_tracing_subscriber();
 
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
