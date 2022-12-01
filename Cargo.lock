@@ -524,29 +524,19 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "async-std",
- "blake2",
- "cargo_metadata",
  "clap",
  "colored",
+ "contract-build",
  "contract-metadata",
  "contract-transcode",
  "current_platform",
- "dirs",
- "heck",
  "hex",
- "impl-serde",
  "jsonrpsee",
  "pallet-contracts-primitives",
  "parity-scale-codec",
- "parity-wasm",
  "predicates",
- "pretty_assertions",
- "proc-macro2",
- "quote",
  "regex",
  "rust_decimal",
- "rustc_version",
- "semver",
  "serde",
  "serde_json",
  "sp-core",
@@ -554,15 +544,10 @@ dependencies = [
  "substrate-build-script-utils",
  "subxt",
  "tempfile",
- "toml",
  "tracing",
  "tracing-subscriber 0.3.16",
  "url",
- "wabt",
- "walkdir",
- "wasm-opt",
  "which",
- "zip",
 ]
 
 [[package]]
@@ -698,6 +683,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd7bef69dc86e3c610e4e7aed41035e2a7ed12e72dd7530f61327a6579a4390b"
 dependencies = [
  "crossbeam-utils",
+]
+
+[[package]]
+name = "contract-build"
+version = "2.0.0-beta"
+dependencies = [
+ "anyhow",
+ "blake2",
+ "cargo_metadata",
+ "clap",
+ "colored",
+ "contract-metadata",
+ "heck",
+ "hex",
+ "impl-serde",
+ "parity-scale-codec",
+ "parity-wasm",
+ "pretty_assertions",
+ "rustc_version",
+ "semver",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "tracing",
+ "url",
+ "wabt",
+ "walkdir",
+ "wasm-opt",
+ "which",
+ "zip",
 ]
 
 [[package]]
@@ -999,26 +1015,6 @@ dependencies = [
  "block-buffer 0.10.3",
  "crypto-common",
  "subtle",
-]
-
-[[package]]
-name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
 ]
 
 [[package]]
@@ -2821,17 +2817,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "redox_users"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
-dependencies = [
- "getrandom 0.2.8",
- "redox_syscall",
- "thiserror",
 ]
 
 [[package]]
