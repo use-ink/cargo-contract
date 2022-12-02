@@ -22,36 +22,11 @@ use anyhow::{
     Context,
     Result,
 };
-use rustc_version::Channel;
-use semver::Version;
 use std::{
     ffi::OsStr,
     path::Path,
     process::Command,
 };
-
-/// This makes sure we are building with a minimum `stable` toolchain version.
-fn assert_channel() -> Result<()> {
-    let meta = rustc_version::version_meta()?;
-    let min_version = Version::new(1, 63, 0);
-    match meta.channel {
-        Channel::Stable if meta.semver >= min_version => Ok(()),
-        Channel::Stable => {
-            anyhow::bail!(
-                "The minimum Rust version is {}. You are using {}.",
-                min_version,
-                meta.semver
-            )
-        }
-        _ => {
-            anyhow::bail!(
-                "Using the {:?} channel is not supported. \
-                Contracts should be built using a \"stable\" toolchain.",
-                format!("{:?}", meta.channel).to_lowercase(),
-            )
-        }
-    }
-}
 
 // Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
 pub(crate) fn rust_toolchain() -> Result<String> {
@@ -85,7 +60,6 @@ where
     S: AsRef<OsStr>,
     P: AsRef<Path>,
 {
-    assert_channel()?;
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
 
@@ -100,9 +74,6 @@ where
         tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
-
-    // Allow nightly features on a stable toolchain
-    cmd.env("RUSTC_BOOTSTRAP", "1");
 
     cmd.arg(command);
     cmd.args(args);

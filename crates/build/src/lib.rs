@@ -256,10 +256,15 @@ fn exec_cargo_for_wasm_target(
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
         }
-        let env = vec![(
+        let mut env = vec![(
             "RUSTFLAGS",
             Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp"),
         )];
+        // if rustc_version::version_meta()?.channel == Channel::Stable {
+        //     // Allow nightly features on a stable toolchain
+        //     env.push(("RUSTC_BOOTSTRAP", Some("1")))
+        // }
+
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
         Ok(())
