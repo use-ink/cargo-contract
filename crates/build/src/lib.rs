@@ -260,10 +260,10 @@ fn exec_cargo_for_wasm_target(
             "RUSTFLAGS",
             Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp"),
         )];
-        // if rustc_version::version_meta()?.channel == Channel::Stable {
-        //     // Allow nightly features on a stable toolchain
-        //     env.push(("RUSTC_BOOTSTRAP", Some("1")))
-        // }
+        if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
+            // Allow nightly features on a stable toolchain
+            env.push(("RUSTC_BOOTSTRAP", Some("1")))
+        }
 
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
