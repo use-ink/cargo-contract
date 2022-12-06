@@ -20,6 +20,7 @@ use contract_build::{
     BuildMode,
     BuildResult,
     ExecuteArgs,
+    Features,
     ManifestPath,
     Network,
     OptimizationPasses,
@@ -68,6 +69,8 @@ pub struct BuildCommand {
     ///    only checks for compilation errors.
     #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
+    #[clap(flatten)]
+    features: Features,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -140,6 +143,7 @@ impl BuildCommand {
             manifest_path,
             verbosity,
             build_mode,
+            features: self.features.clone(),
             network,
             build_artifact: self.build_artifact,
             unstable_flags,
@@ -163,6 +167,8 @@ pub struct CheckCommand {
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
+    features: Features,
+    #[clap(flatten)]
     unstable_options: UnstableOptions,
 }
 
@@ -177,6 +183,7 @@ impl CheckCommand {
             manifest_path,
             verbosity,
             build_mode: BuildMode::Debug,
+            features: self.features.clone(),
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags,

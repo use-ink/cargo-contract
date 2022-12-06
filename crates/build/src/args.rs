@@ -224,3 +224,28 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
         })
     }
 }
+
+/// Define the standard `cargo` features args to be passed through.
+#[derive(Default, Clone, Debug, Args)]
+pub struct Features {
+    /// Space or comma separated list of features to activate
+    #[clap(long)]
+    features: Vec<String>,
+}
+
+impl Features {
+    /// Appends a feature.
+    pub fn push(&mut self, feature: &str) {
+        self.features.push(feature.to_owned())
+    }
+
+    /// Appends the raw features args to pass through to the `cargo` invocation.
+    pub fn append_to_args<'a>(&'a self, args: &mut Vec<&'a str>) {
+        if !self.features.is_empty() {
+            args.push("--features");
+            for feature in &self.features {
+                args.push(feature)
+            }
+        }
+    }
+}
