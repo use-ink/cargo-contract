@@ -152,6 +152,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
+        features: Default::default(),
         build_mode: Default::default(),
         network: Default::default(),
         build_artifact: BuildArtifacts::All,
@@ -192,6 +193,7 @@ fn optimization_passes_from_profile_must_be_used(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
+        features: Default::default(),
         build_mode: Default::default(),
         network: Default::default(),
         build_artifact: BuildArtifacts::All,
@@ -236,6 +238,7 @@ fn contract_lib_name_different_from_package_name_must_build(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
+        features: Default::default(),
         build_mode: Default::default(),
         network: Default::default(),
         build_artifact: BuildArtifacts::All,

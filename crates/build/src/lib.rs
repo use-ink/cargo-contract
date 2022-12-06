@@ -234,7 +234,7 @@ impl BuildResult {
 fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
     command: &str,
-    features: Features,
+    features: &Features,
     build_mode: BuildMode,
     network: Network,
     verbosity: Verbosity,
@@ -251,14 +251,20 @@ fn exec_cargo_for_wasm_target(
             "--release",
             &target_dir,
         ];
-        let mut features = features.cargo_args()
+        let mut features = features.features().to_vec();
         if network == Network::Offline {
             args.push("--offline");
         }
         if build_mode == BuildMode::Debug {
-            args.push("--features=ink/ink-debug");
+            features.push("ink/ink-debug".to_owned());
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
+        }
+        if !features.is_empty() {
+            args.push("--features");
+            for feature in &features {
+                args.push(feature)
+            }
         }
         let mut env = vec![(
             "RUSTFLAGS",
@@ -624,6 +630,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         exec_cargo_for_wasm_target(
             &crate_metadata,
             "build",
+            &features,
             build_mode,
             network,
             verbosity,
@@ -688,6 +695,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             exec_cargo_for_wasm_target(
                 &crate_metadata,
                 "check",
+                &features,
                 BuildMode::Release,
                 network,
                 verbosity,
