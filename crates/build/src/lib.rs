@@ -251,21 +251,16 @@ fn exec_cargo_for_wasm_target(
             "--release",
             &target_dir,
         ];
-        let mut features = features.features().to_vec();
+        let mut features = features.clone();
         if network == Network::Offline {
             args.push("--offline");
         }
         if build_mode == BuildMode::Debug {
-            features.push("ink/ink-debug".to_owned());
+            features.push("ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort");
         }
-        if !features.is_empty() {
-            args.push("--features");
-            for feature in &features {
-                args.push(feature)
-            }
-        }
+        features.append_to_args(&mut args);
         let mut env = vec![(
             "RUSTFLAGS",
             Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp"),

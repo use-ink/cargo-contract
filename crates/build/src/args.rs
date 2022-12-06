@@ -234,8 +234,18 @@ pub struct Features {
 }
 
 impl Features {
-    /// Returns the raw features args to pass through to the `cargo` invocation.
-    pub fn features(&self) -> &[String] {
-        &self.features
+    /// Appends a feature.
+    pub fn push(&mut self, feature: &str) {
+        self.features.push(feature.to_owned())
+    }
+
+    /// Appends the raw features args to pass through to the `cargo` invocation.
+    pub fn append_to_args<'a>(&'a self, args: &mut Vec<&'a str>) {
+        if !self.features.is_empty() {
+            args.push("--features");
+            for feature in &self.features {
+                args.push(feature)
+            }
+        }
     }
 }
