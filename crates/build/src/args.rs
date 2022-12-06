@@ -224,3 +224,30 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
         })
     }
 }
+
+/// Define the standard `cargo` features args to be passed through.
+#[derive(Default, Clone, Debug, Args)]
+pub struct Features {
+    /// Space or comma separated list of features to activate
+    #[clap(long, num_args = 1.., conflicts_with_all(["all_features", "no_default_features"]))]
+    features: Vec<String>,
+    /// Activate all available features
+    #[clap(long, conflicts_with_all(["features", "no_default_features"]))]
+    all_features: bool,
+    /// Do not activate the `default` feature
+    #[clap(long, conflicts_with_all(["features", "all_features"]))]
+    no_default_features: bool,
+}
+
+impl Features {
+    /// Returns the raw features args to pass through to the `cargo` invocation.
+    pub fn cargo_args(&self) -> &[String] {
+        if self.features.is_empty() {
+            &self.features
+        } else if self.all_features {
+            &["--all-features".to_owned()]
+        } else if self.no_default_features {
+            &["--no-default-features".to_owned()]
+        }
+    }
+}

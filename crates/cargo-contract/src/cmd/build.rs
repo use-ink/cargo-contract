@@ -20,6 +20,7 @@ use contract_build::{
     BuildMode,
     BuildResult,
     ExecuteArgs,
+    Features,
     ManifestPath,
     Network,
     OptimizationPasses,
@@ -68,6 +69,8 @@ pub struct BuildCommand {
     ///    only checks for compilation errors.
     #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
+    #[clap(flatten)]
+    features: Features,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -135,6 +138,8 @@ impl BuildCommand {
         if matches!(output_type, OutputType::Json) {
             verbosity = Verbosity::Quiet;
         }
+
+        println!("FEATURES {:?}", self.features);
 
         let args = ExecuteArgs {
             manifest_path,

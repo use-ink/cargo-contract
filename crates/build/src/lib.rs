@@ -35,6 +35,7 @@ pub use self::{
         BuildArtifacts,
         BuildMode,
         BuildSteps,
+        Features,
         Network,
         OutputType,
         UnstableFlags,
@@ -99,6 +100,7 @@ pub struct ExecuteArgs {
     pub manifest_path: ManifestPath,
     pub verbosity: Verbosity,
     pub build_mode: BuildMode,
+    pub features: Features,
     pub network: Network,
     pub build_artifact: BuildArtifacts,
     pub unstable_flags: UnstableFlags,
@@ -232,6 +234,7 @@ impl BuildResult {
 fn exec_cargo_for_wasm_target(
     crate_metadata: &CrateMetadata,
     command: &str,
+    features: Features,
     build_mode: BuildMode,
     network: Network,
     verbosity: Verbosity,
@@ -248,6 +251,7 @@ fn exec_cargo_for_wasm_target(
             "--release",
             &target_dir,
         ];
+        let mut features = features.cargo_args()
         if network == Network::Offline {
             args.push("--offline");
         }
@@ -555,6 +559,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
         verbosity,
+        features,
         build_mode,
         network,
         build_artifact,
