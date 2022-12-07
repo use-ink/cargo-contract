@@ -4,8 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [2.0.0-beta.1] - 2022-12-07
+
+### Changed
+- Pass `--features` through to `cargo` - [#853](https://github.com/paritytech/cargo-contract/pull/853/files)
+- Remove rust toolchain channel check - [#848](https://github.com/paritytech/cargo-contract/pull/848/files)
+- Bump minimum requirement of `scale-info` in template to `2.3` - [#847](https://github.com/paritytech/cargo-contract/pull/847/files)
+- Remove `unstable` module check, add `--skip-wasm-validation` - [#846](https://github.com/paritytech/cargo-contract/pull/846/files)
+- Extract lib for invoking contract build - [#787](https://github.com/paritytech/cargo-contract/pull/787/files)
+
+### Fixed
 - Fixed having non-JSON output after calling `instantiate` with `--output-json` - [#839](https://github.com/paritytech/cargo-contract/pull/839/files)
+- add `-C target-cpu=mvp` rust flag to build command - [#838](https://github.com/paritytech/cargo-contract/pull/838/files)
 
 ## [2.0.0-beta] - 2022-11-22
 
