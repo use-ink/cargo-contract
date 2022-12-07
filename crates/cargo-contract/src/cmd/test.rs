@@ -14,15 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
+use anyhow::Result;
+use colored::Colorize;
+use contract_build::{
     maybe_println,
     util,
-    workspace::ManifestPath,
+    Features,
+    ManifestPath,
     Verbosity,
     VerbosityFlags,
 };
-use anyhow::Result;
-use colored::Colorize;
 use std::{
     convert::TryFrom,
     path::PathBuf,
@@ -37,6 +38,8 @@ pub struct TestCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
+    #[clap(flatten)]
+    features: Features,
 }
 
 impl TestCommand {
@@ -44,7 +47,7 @@ impl TestCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        execute(&manifest_path, verbosity)
+        execute(&manifest_path, verbosity, &self.features)
     }
 }
 
@@ -62,10 +65,11 @@ impl TestResult {
     }
 }
 
-/// Executes `cargo +nightly test`.
+/// Executes `cargo test`.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
+    features: &Features,
 ) -> Result<TestResult> {
     maybe_println!(
         verbosity,
@@ -74,8 +78,11 @@ pub(crate) fn execute(
         "Running tests".bright_green().bold()
     );
 
+    let mut args = Vec::new();
+    features.append_to_args(&mut args);
+
     let stdout =
-        util::invoke_cargo("test", [""], manifest_path.directory(), verbosity, vec![])?;
+        util::invoke_cargo("test", args, manifest_path.directory(), verbosity, vec![])?;
 
     Ok(TestResult { stdout, verbosity })
 }
@@ -83,25 +90,35 @@ pub(crate) fn execute(
 #[cfg(feature = "test-ci-only")]
 #[cfg(test)]
 mod tests_ci_only {
-    use crate::{
-        util::tests::with_new_contract_project,
+    use contract_build::{
+        Features,
+        ManifestPath,
         Verbosity,
     };
     use regex::Regex;
 
     #[test]
     fn passing_tests_yield_stdout() {
-        with_new_contract_project(|manifest_path| {
-            let ok_output_pattern =
-                Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
-                    .expect("regex pattern compilation failed");
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("cargo-contract.test.")
+            .tempdir()
+            .expect("temporary directory creation failed");
 
-            let res = super::execute(&manifest_path, Verbosity::Default)
+        let project_name = "test_project";
+        contract_build::new_contract_project(project_name, Some(&tmp_dir))
+            .expect("new project creation failed");
+        let working_dir = tmp_dir.path().join(project_name);
+        let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))
+            .expect("invalid manifest path");
+
+        let ok_output_pattern =
+            Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
+                .expect("regex pattern compilation failed");
+
+        let res =
+            super::execute(&manifest_path, Verbosity::Default, &Features::default())
                 .expect("test execution failed");
 
-            assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
-
-            Ok(())
-        })
+        assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
     }
 }

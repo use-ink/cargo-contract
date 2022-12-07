@@ -47,12 +47,12 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{
-    crate_metadata::CrateMetadata,
+use crate::DEFAULT_KEY_COL_WIDTH;
+use contract_build::{
     name_value_println,
+    CrateMetadata,
     Verbosity,
     VerbosityFlags,
-    DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
 use scale::{
@@ -79,10 +79,10 @@ pub use balance::{
     TokenMetadata,
 };
 pub use call::CallCommand;
+pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
-pub use transcode::ContractMessageTranscoder;
 pub use upload::UploadCommand;
 pub use remove::RemoveCommand;
 

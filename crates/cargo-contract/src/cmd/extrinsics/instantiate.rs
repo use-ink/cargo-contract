@@ -39,15 +39,17 @@ use crate::{
         ErrorVariant,
         TokenMetadata,
     },
-    name_value_println,
-    util::decode_hex,
-    Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
     Context,
     Result,
+};
+use contract_build::{
+    name_value_println,
+    util::decode_hex,
+    Verbosity,
 };
 
 use pallet_contracts_primitives::ContractInstantiateResult;
@@ -430,7 +432,9 @@ impl Exec {
         let instantiate_result = self.instantiate_dry_run(code).await?;
         match instantiate_result.result {
             Ok(_) => {
-                super::print_gas_required_success(instantiate_result.gas_required);
+                if !self.output_json {
+                    super::print_gas_required_success(instantiate_result.gas_required);
+                }
                 // use user specified values where provided, otherwise use the estimates
                 let ref_time = self
                     .args

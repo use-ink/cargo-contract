@@ -14,17 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    OptimizationPasses,
-    OptimizationResult,
-};
-
 use anyhow::Result;
 use wasm_opt::OptimizationOptions;
 
 use std::{
+    fmt,
     fs::metadata,
     path::PathBuf,
+    str,
 };
 
 /// A helpful struct for interacting with Binaryen's `wasm-opt` tool.
@@ -94,4 +91,90 @@ impl WasmOptHandler {
             optimized_size,
         })
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum OptimizationPasses {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    S,
+    Z,
+}
+
+impl fmt::Display for OptimizationPasses {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let out = match self {
+            OptimizationPasses::Zero => "0",
+            OptimizationPasses::One => "1",
+            OptimizationPasses::Two => "2",
+            OptimizationPasses::Three => "3",
+            OptimizationPasses::Four => "4",
+            OptimizationPasses::S => "s",
+            OptimizationPasses::Z => "z",
+        };
+        write!(f, "{}", out)
+    }
+}
+
+impl Default for OptimizationPasses {
+    fn default() -> OptimizationPasses {
+        OptimizationPasses::Z
+    }
+}
+
+impl str::FromStr for OptimizationPasses {
+    type Err = anyhow::Error;
+
+    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
+        // We need to replace " here, since the input string could come
+        // from either the CLI or the `Cargo.toml` profile section.
+        // If it is from the profile it could e.g. be "3" or 3.
+        let normalized_input = input.replace('"', "").to_lowercase();
+        match normalized_input.as_str() {
+            "0" => Ok(OptimizationPasses::Zero),
+            "1" => Ok(OptimizationPasses::One),
+            "2" => Ok(OptimizationPasses::Two),
+            "3" => Ok(OptimizationPasses::Three),
+            "4" => Ok(OptimizationPasses::Four),
+            "s" => Ok(OptimizationPasses::S),
+            "z" => Ok(OptimizationPasses::Z),
+            _ => anyhow::bail!("Unknown optimization passes for option {}", input),
+        }
+    }
+}
+
+impl From<String> for OptimizationPasses {
+    fn from(str: String) -> Self {
+        <OptimizationPasses as str::FromStr>::from_str(&str).expect("conversion failed")
+    }
+}
+
+impl From<OptimizationPasses> for OptimizationOptions {
+    fn from(passes: OptimizationPasses) -> OptimizationOptions {
+        match passes {
+            OptimizationPasses::Zero => OptimizationOptions::new_opt_level_0(),
+            OptimizationPasses::One => OptimizationOptions::new_opt_level_1(),
+            OptimizationPasses::Two => OptimizationOptions::new_opt_level_2(),
+            OptimizationPasses::Three => OptimizationOptions::new_opt_level_3(),
+            OptimizationPasses::Four => OptimizationOptions::new_opt_level_4(),
+            OptimizationPasses::S => OptimizationOptions::new_optimize_for_size(),
+            OptimizationPasses::Z => {
+                OptimizationOptions::new_optimize_for_size_aggressively()
+            }
+        }
+    }
+}
+
+/// Result of the optimization process.
+#[derive(serde::Serialize)]
+pub struct OptimizationResult {
+    /// The path of the optimized Wasm file.
+    pub dest_wasm: PathBuf,
+    /// The original Wasm size.
+    pub original_size: f64,
+    /// The Wasm size after optimizations have been applied.
+    pub optimized_size: f64,
 }
