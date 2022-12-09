@@ -298,7 +298,7 @@ fn exec_cargo_for_wasm_target(
         }
         let env = vec![(
             "RUSTFLAGS",
-            Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto"),
+            Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp"),
         )];
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
