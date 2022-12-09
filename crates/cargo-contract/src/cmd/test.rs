@@ -19,6 +19,7 @@ use colored::Colorize;
 use contract_build::{
     maybe_println,
     util,
+    Features,
     ManifestPath,
     Verbosity,
     VerbosityFlags,
@@ -37,6 +38,8 @@ pub struct TestCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
+    #[clap(flatten)]
+    features: Features,
 }
 
 impl TestCommand {
@@ -44,7 +47,7 @@ impl TestCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        execute(&manifest_path, verbosity)
+        execute(&manifest_path, verbosity, &self.features)
     }
 }
 
@@ -62,10 +65,11 @@ impl TestResult {
     }
 }
 
-/// Executes `cargo +nightly test`.
+/// Executes `cargo test`.
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
+    features: &Features,
 ) -> Result<TestResult> {
     maybe_println!(
         verbosity,
@@ -74,8 +78,11 @@ pub(crate) fn execute(
         "Running tests".bright_green().bold()
     );
 
+    let mut args = Vec::new();
+    features.append_to_args(&mut args);
+
     let stdout =
-        util::invoke_cargo("test", [""], manifest_path.directory(), verbosity, vec![])?;
+        util::invoke_cargo("test", args, manifest_path.directory(), verbosity, vec![])?;
 
     Ok(TestResult { stdout, verbosity })
 }
@@ -84,6 +91,7 @@ pub(crate) fn execute(
 #[cfg(test)]
 mod tests_ci_only {
     use contract_build::{
+        Features,
         ManifestPath,
         Verbosity,
     };
@@ -107,8 +115,9 @@ mod tests_ci_only {
             Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
                 .expect("regex pattern compilation failed");
 
-        let res = super::execute(&manifest_path, Verbosity::Default)
-            .expect("test execution failed");
+        let res =
+            super::execute(&manifest_path, Verbosity::Default, &Features::default())
+                .expect("test execution failed");
 
         assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
     }
