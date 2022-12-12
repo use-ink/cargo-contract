@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2022-12-12
+
+### Fixed
+- Avoid non-MVP WASM features in built contract [#838](https://github.com/paritytech/cargo-contract/pull/838)
+
+
 ## [1.5.0] - 2022-08-15
 
 - Fix windows dylint build (#690)
