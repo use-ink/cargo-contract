@@ -22,7 +22,6 @@ use super::{
 use crate::{
     cmd::extrinsics::{events::DisplayEvents, ErrorVariant},
     name_value_println,
-    util::decode_hex,
 };
 use anyhow::{anyhow, Context, Result};
 use pallet_contracts_primitives::CodeUploadResult;
@@ -43,24 +42,13 @@ pub struct RemoveCommand {
     /// The hash of the smart contract code already uploaded to the chain.
     /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
     /// first.
-    #[clap(long, value_parser = parse_code_hash)]
+    #[clap(long, value_parser = super::parse_code_hash)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-}
-
-/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
-    let bytes = decode_hex(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(arr.into())
 }
 
 impl RemoveCommand {
