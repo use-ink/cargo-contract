@@ -109,7 +109,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
 
     // we specified that debug symbols should be removed
     // original code should have some but the optimized version should have them removed
-    assert!(!has_debug_symbols(&res.dest_wasm.unwrap()));
+    assert!(!has_debug_symbols(res.dest_wasm.unwrap()));
 
     Ok(())
 }
@@ -341,7 +341,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
     let res = super::execute(args).expect("build failed");
 
     // we specified that debug symbols should be kept
-    assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
+    assert!(has_debug_symbols(res.dest_wasm.unwrap()));
 
     Ok(())
 }
@@ -359,7 +359,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
     let res = super::execute(args).expect("build failed");
 
     // we specified that debug symbols should be kept
-    assert!(has_debug_symbols(&res.dest_wasm.unwrap()));
+    assert!(has_debug_symbols(res.dest_wasm.unwrap()));
 
     Ok(())
 }
