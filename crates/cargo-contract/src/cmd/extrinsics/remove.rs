@@ -36,12 +36,6 @@ use subxt::{Config, OnlineClient};
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
-    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[clap(value_parser)]
-    wasm_path: Option<PathBuf>,
-    /// The hash of the smart contract code already uploaded to the chain.
-    /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
-    /// first.
     #[clap(long, value_parser = super::parse_code_hash)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
@@ -65,56 +59,14 @@ impl RemoveCommand {
         let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        fn load_code(wasm_path: &Path) -> Result<Code> {
-            tracing::debug!("Contract code path: {}", wasm_path.display());
-            let code = fs::read(wasm_path)
-                .context(format!("Failed to read from {}", wasm_path.display()))?;
-            Ok(Code::Upload(code))
-        }
-
-        let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-            (Some(_), Some(_)) => Err(anyhow!(
-                "Specify either `--wasm-path` or `--code-hash` but not both"
-            )),
-            (Some(wasm_path), None) => load_code(wasm_path),
-            (None, None) => {
-                // default to the target contract wasm in the current project,
-                // inferred via the crate metadata.
-                load_code(&crate_metadata.dest_wasm)
-            }
-            (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
-        }?;
-
         let code_hash = contract_metadata.source.hash;
 
         async_std::task::block_on(async {
+
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
-            if self.extrinsic_opts.dry_run {
-                match self.remove_code_rpc(code, &client, &signer).await? {
-                    Ok(result) => {
-                        let remove_result = RemoveDryRunResult {
-                            result: String::from("Success!"),
-                            code_hash: format!("{:?}", result.code_hash),
-                        };
-                        if self.output_json {
-                            println!("{}", remove_result.to_json()?);
-                        } else {
-                            remove_result.print();
-                        }
-                    }
-                    Err(err) => {
-                        let metadata = client.metadata();
-                        let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                        if self.output_json {
-                            return Err(err);
-                        } else {
-                            name_value_println!("Result", err);
-                        }
-                    }
-                }
-                Ok(())
-            } else if let Some(code_stored) = self
+
+            if let Some(code_stored) = self
                 .remove_code(&client, sp_core::H256(code_hash.0), &signer, &transcoder)
                 .await?
             {
@@ -135,21 +87,6 @@ impl RemoveCommand {
                 .into())
             }
         })
-    }
-
-    async fn remove_code_rpc(
-        &self,
-        code: Code,
-        client: &Client,
-        signer: &PairSigner,
-    ) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let url = self.extrinsic_opts.url_to_string();
-        let token_metadata = TokenMetadata::query(client).await?;
-        let call_request = CodeRemoveRequest {
-            origin: signer.account_id().clone(),
-            code,
-        };
-        state_call(&url, "ContractsApi_remove_code", call_request).await
     }
 
     async fn remove_code(
@@ -181,13 +118,6 @@ impl RemoveCommand {
     }
 }
 
-/// A struct that encodes RPC parameters required for a call to remove a new code.
-#[derive(Encode)]
-pub struct CodeRemoveRequest {
-    origin: <DefaultConfig as Config>::AccountId,
-    code: Code,
-}
-
 /// Reference to an existing code hash or a new Wasm module.
 #[derive(Encode)]
 enum Code {
@@ -201,13 +131,6 @@ enum Code {
 pub struct RemoveResult {
     code_hash: String,
 }
-
-#[derive(serde::Serialize)]
-pub struct RemoveDryRunResult {
-    result: String,
-    code_hash: String,
-}
-
 impl RemoveResult {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
