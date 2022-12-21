@@ -39,13 +39,13 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 * Step 1: `rustup component add rust-src`.
 
-* Step 2: `cargo install --force --locked cargo-contract`.
-
-* Step 3: (**Optional**) Install `dylint` for linting.
+* Step 2: (**Optional**) Install `dylint` for linting.
   * (MacOS) `brew install openssl`
   * `cargo install cargo-dylint dylint-link`.
 
-You can always update the `cargo-contract` binary to the latest version by running the Step 2.
+* Step 3: `cargo install --force --locked cargo-contract`.
+
+You can always update the `cargo-contract` binary to the latest version by running the Step 3.
 
 ### Installation using Docker Image
 
