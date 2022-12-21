@@ -78,8 +78,8 @@ impl Transcoder {
 /// Construct a [`Transcoder`], allows registering custom transcoders for certain types.
 pub struct TranscoderBuilder {
     types_by_path: TypesByPath,
-    encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
-    decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
+    encoders: HashMap<u32, Box<dyn CustomTypeEncoder + Send + Sync>>,
+    decoders: HashMap<u32, Box<dyn CustomTypeDecoder + Send + Sync>>,
 }
 
 impl TranscoderBuilder {
@@ -106,7 +106,7 @@ impl TranscoderBuilder {
     pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
     where
         T: TypeInfo + 'static,
-        U: CustomTypeEncoder + CustomTypeDecoder + Clone + 'static,
+        U: CustomTypeEncoder + CustomTypeDecoder + Clone + Send + Sync + 'static,
     {
         self.register_custom_type_encoder::<T, U>(transcoder.clone())
             .register_custom_type_decoder::<T, U>(transcoder)
@@ -115,7 +115,7 @@ impl TranscoderBuilder {
     pub fn register_custom_type_encoder<T, U>(self, encoder: U) -> Self
     where
         T: TypeInfo + 'static,
-        U: CustomTypeEncoder + 'static,
+        U: CustomTypeEncoder + Send + Sync + 'static,
     {
         let mut this = self;
 
@@ -144,7 +144,7 @@ impl TranscoderBuilder {
     pub fn register_custom_type_decoder<T, U>(self, encoder: U) -> Self
     where
         T: TypeInfo + 'static,
-        U: CustomTypeDecoder + 'static,
+        U: CustomTypeDecoder + Send + Sync + 'static,
     {
         let mut this = self;
 
