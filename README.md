@@ -39,7 +39,7 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 * Step 1: `rustup component add rust-src`.
 
-* Step 2: (**Optional**) Install `dylint` for linting.
+* Step 2: Install `dylint` for linting.
   * (MacOS) `brew install openssl`
   * `cargo install cargo-dylint dylint-link`.
 
