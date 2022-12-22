@@ -22,7 +22,7 @@ contract-build = { version = "2.0.0-beta.1", path = "../build" }
 contract-metadata = { version = "2.0.0-beta.1", path = "../metadata" }
 contract-transcode = { version = "2.0.0-beta.1", path = "../transcode" }
 
-anyhow = "1.0.66"
+anyhow = "1.0.68"
 clap = { version = "4.0.29", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
@@ -44,7 +44,7 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.66"
+anyhow = "1.0.68"
 substrate-build-script-utils = "3.0.0"
 current_platform = "0.2.0"
 which = "4.3.0"
