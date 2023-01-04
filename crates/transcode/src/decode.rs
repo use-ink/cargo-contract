@@ -92,7 +92,7 @@ impl<'a> Decoder<'a> {
         })?;
 
         let mut elems = Vec::new();
-        while elems.len() < len as usize {
+        while elems.len() < len {
             let elem = self.decode_type(type_id, ty, input)?;
             elems.push(elem)
         }

@@ -22,15 +22,15 @@ contract-build = { version = "2.0.0-beta.1", path = "../build" }
 contract-metadata = { version = "2.0.0-beta.1", path = "../metadata" }
 contract-transcode = { version = "2.0.0-beta.1", path = "../transcode" }
 
-anyhow = "1.0.66"
-clap = { version = "4.0.29", features = ["derive", "env"] }
+anyhow = "1.0.68"
+clap = { version = "4.0.32", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.3.0"
 colored = "2.0.0"
-serde = { version = "1.0.149", default-features = false, features = ["derive"] }
-serde_json = "1.0.89"
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }
+serde_json = "1.0.91"
 url = { version = "2.3.1", features = ["serde"] }
 rust_decimal = "1.27"
 
@@ -44,7 +44,7 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.66"
+anyhow = "1.0.68"
 substrate-build-script-utils = "3.0.0"
 current_platform = "0.2.0"
 which = "4.3.0"
@@ -52,7 +52,7 @@ which = "4.3.0"
 [dev-dependencies]
 assert_cmd = "2.0.7"
 regex = "1.7.0"
-predicates = "2.1.4"
+predicates = "2.1.5"
 tempfile = "3.3.0"
 
 [features]
