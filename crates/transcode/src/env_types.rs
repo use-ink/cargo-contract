@@ -134,12 +134,12 @@ impl From<&Path<PortableForm>> for PathKey {
 pub type TypesByPath = HashMap<PathKey, u32>;
 
 /// Implement this trait to define custom encoding for a type in a `scale-info` type registry.
-pub trait CustomTypeEncoder {
+pub trait CustomTypeEncoder: Send + Sync {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
 }
 
 /// Implement this trait to define custom decoding for a type in a `scale-info` type registry.
-pub trait CustomTypeDecoder {
+pub trait CustomTypeDecoder: Send + Sync {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
 
