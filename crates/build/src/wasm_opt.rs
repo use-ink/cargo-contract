@@ -66,6 +66,10 @@ impl WasmOptHandler {
         );
 
         OptimizationOptions::from(self.optimization_level)
+            // Binaryen (and wasm-opt) now enables the `SignExt` and `MutableGlobals`
+            // features by default, so we want to disable those for now since
+            // `pallet-contracts` still needs to enable these.
+            .mvp_features_only()
             // the memory in our module is imported, `wasm-opt` needs to be told that
             // the memory is initialized to zeroes, otherwise it won't run the
             // memory-packing pre-pass.
