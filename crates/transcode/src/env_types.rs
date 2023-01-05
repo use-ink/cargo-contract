@@ -45,15 +45,15 @@ use std::{
 /// Provides custom encoding and decoding for predefined environment types.
 #[derive(Default)]
 pub struct EnvTypesTranscoder {
-    encoders: HashMap<u32, Box<dyn CustomTypeEncoder + Send + Sync>>,
-    decoders: HashMap<u32, Box<dyn CustomTypeDecoder + Send + Sync>>,
+    encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+    decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
 }
 
 impl EnvTypesTranscoder {
     /// Construct an `EnvTypesTranscoder` from the given type registry.
     pub fn new(
-        encoders: HashMap<u32, Box<dyn CustomTypeEncoder + Send + Sync>>,
-        decoders: HashMap<u32, Box<dyn CustomTypeDecoder + Send + Sync>>,
+        encoders: HashMap<u32, Box<dyn CustomTypeEncoder>>,
+        decoders: HashMap<u32, Box<dyn CustomTypeDecoder>>,
     ) -> Self {
         Self { encoders, decoders }
     }
