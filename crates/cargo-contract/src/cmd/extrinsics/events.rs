@@ -25,6 +25,7 @@ use colored::Colorize as _;
 use contract_build::Verbosity;
 use contract_transcode::{
     ContractMessageTranscoder,
+    Hex,
     TranscoderBuilder,
     Value,
 };
@@ -78,7 +79,7 @@ impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events(
         result: &ExtrinsicEvents<DefaultConfig>,
-        transcoder: &ContractMessageTranscoder,
+        transcoder: Option<&ContractMessageTranscoder>,
         subxt_metadata: &subxt::Metadata,
     ) -> Result<DisplayEvents> {
         let mut events: Vec<Event> = vec![];
@@ -111,22 +112,25 @@ impl DisplayEvents {
                 ) && field_metadata.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    match transcoder.decode_contract_event(event_data) {
-                        Ok(contract_event) => {
-                            let field = Field::new(
-                                String::from("data"),
-                                contract_event,
-                                field_metadata.type_name().map(|s| s.to_string()),
-                            );
-                            event_entry.fields.push(field);
+                    let event_value = if let Some(transcoder) = transcoder {
+                        match transcoder.decode_contract_event(event_data) {
+                            Ok(contract_event) => contract_event,
+                            Err(err) => {
+                                tracing::warn!(
+                                        "Decoding contract event failed: {:?}. It might have come from another contract.",
+                                        err
+                                    )
+                            }
                         }
-                        Err(err) => {
-                            tracing::warn!(
-                                "Decoding contract event failed: {:?}. It might have come from another contract.",
-                                err
-                            )
-                        }
-                    }
+                    } else {
+                        Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+                    };
+                    let field = Field::new(
+                        String::from("data"),
+                        event_value,
+                        field_metadata.type_name().map(|s| s.to_string()),
+                    );
+                    event_entry.fields.push(field);
                 } else {
                     let field_name = field_metadata
                         .name()

@@ -22,7 +22,6 @@ use super::{
     Client,
     CodeHash,
     ContractMessageTranscoder,
-    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -35,10 +34,7 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use std::{
@@ -71,27 +67,13 @@ impl UploadCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let crate_metadata = CrateMetadata::from_manifest_path(
-            self.extrinsic_opts.manifest_path.as_ref(),
-        )?;
-        let contract_metadata =
-            contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
-        let code_hash = contract_metadata.source.hash;
-        let transcoder =
-            ContractMessageTranscoder::try_from(contract_metadata).context(format!(
-                "Failed to deserialize ink project metadata from contract metadata {}",
-                crate_metadata.metadata_path().display()
-            ))?;
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let wasm_path = match &self.wasm_path {
-            Some(wasm_path) => wasm_path.clone(),
-            None => crate_metadata.dest_wasm,
-        };
-
-        tracing::debug!("Contract code path: {}", wasm_path.display());
-        let code = std::fs::read(&wasm_path)
-            .context(format!("Failed to read from {}", wasm_path.display()))?;
+        let code = artifacts
+            .code
+            .ok_or_else(|| anyhow::anyhow!("Contract code not found"))?; // todo: add more detail
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
@@ -123,7 +105,7 @@ impl UploadCommand {
                 }
                 Ok(())
             } else if let Some(code_stored) = self
-                .upload_code(&client, code, &signer, &transcoder)
+                .upload_code(&client, code, &signer, transcoder.as_ref())
                 .await?
             {
                 let upload_result = UploadResult {
@@ -173,7 +155,7 @@ impl UploadCommand {
         client: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder,
+        transcoder: Option<&ContractMessageTranscoder>,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
