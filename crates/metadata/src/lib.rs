@@ -121,7 +121,7 @@ impl ContractMetadata {
     }
 
     /// Reads the file and tries to parse it as instance of `ContractMetadata`.
-    pub fn load<P>(metadata_path: &P) -> Result<Self>
+    pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {

@@ -72,6 +72,7 @@ use subxt::{
 };
 
 use std::option::Option;
+use std::path::Path;
 
 pub use balance::{
     BalanceVariant,
@@ -82,6 +83,8 @@ pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
+use contract_build::metadata::METADATA_FILE;
+use contract_metadata::ContractMetadata;
 pub use upload::UploadCommand;
 
 type Balance = u128;
@@ -93,8 +96,11 @@ type Client = OnlineClient<DefaultConfig>;
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser)]
+    #[clap(long, value_parser, conflicts_with = "wasm_path")]
     manifest_path: Option<PathBuf>,
+    /// Path to the Wasm contract code: either the raw `.wasm` file or a `.contract` bundle.
+    #[clap(value_parser)]
+    wasm_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
@@ -160,6 +166,46 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?
             .map(Into::into))
+    }
+}
+
+/// Contract artifacts for use with extrinsic commands.
+#[derive(Debug)]
+pub struct ContractArtifacts {
+    pub metadata: Option<ContractMetadata>,
+    pub code: Vec<u8>
+}
+
+impl ContractArtifacts {
+    /// Load contract code and
+    pub fn from_artifact_path(path: &Path) -> Result<Self> {
+        let (metadata, code) = match path.extension().and_then(|ext| ext.to_str()) {
+            Some("contract") => {
+                let metadata = ContractMetadata::load(path)?;
+                let code = metadata
+                    .clone()
+                    .source.wasm
+                    .ok_or(anyhow::anyhow!("`.contract` bundle must contain the source wasm"))?;
+                (Some(metadata), code.0)
+            },
+            Some("wasm") => {
+                let code = std::fs::read(path)?;
+                let dir = path.parent().map_or_else(|| PathBuf::new(), PathBuf::from);
+                let metadata_path = dir.join(METADATA_FILE);
+                if !metadata_path.exists() {
+                    (None, code)
+                } else {
+                    let metadata = ContractMetadata::load(&metadata_path)?;
+                    (Some(metadata), code)
+                }
+            }
+            Some(ext) => anyhow::bail!("Invalid artifact extension {ext}, expected `.contract` or `.wasm`"),
+            None => anyhow::bail!("Artifact path has no extension, expected `.contract` or `.wasm`")
+        };
+        Ok(Self {
+            metadata,
+            code
+        })
     }
 }
 

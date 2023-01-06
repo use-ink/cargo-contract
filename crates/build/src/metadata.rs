@@ -58,7 +58,7 @@ use std::{
 };
 use url::Url;
 
-const METADATA_FILE: &str = "metadata.json";
+pub const METADATA_FILE: &str = "metadata.json";
 
 /// Metadata generation result.
 #[derive(serde::Serialize)]
