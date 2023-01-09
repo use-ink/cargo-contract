@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta.2] - 2023-01-09
+
+### Changed
+- Upgrade wasm-opt to 0.111.0 [#888](https://github.com/paritytech/cargo-contract/pull/888)
+- Enable `wasm-opt` MVP features only [#891](https://github.com/paritytech/cargo-contract/pull/891)
+- Require env_type transcoders to be Send + Sync [#879](https://github.com/paritytech/cargo-contract/pull/879)
+
+### Fixed
+- Add determinism arg to upload TX (#870)
+
 ## [2.0.0-beta.1] - 2022-12-07
 
 ### Changed
