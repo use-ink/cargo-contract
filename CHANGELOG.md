@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Require env_type transcoders to be Send + Sync [#879](https://github.com/paritytech/cargo-contract/pull/879)
 
 ### Fixed
-- Add determinism arg to upload TX (#870)
+- Add determinism arg to upload TX [#870](https://github.com/paritytech/cargo-contract/pull/870)
 
 ## [2.0.0-beta.1] - 2022-12-07
 
