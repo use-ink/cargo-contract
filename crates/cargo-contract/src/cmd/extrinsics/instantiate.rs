@@ -25,7 +25,6 @@ use super::{
     Client,
     CodeHash,
     ContractMessageTranscoder,
-    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -62,29 +61,17 @@ use sp_core::{
 use sp_weights::Weight;
 use std::{
     fs,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::Path,
 };
 use subxt::{
     blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
 };
+use crate::cmd::extrinsics::WasmCode;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
-    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    /// Use to instantiate contracts which have not yet been uploaded.
-    /// If the contract has already been uploaded use `--code-hash` instead.
-    #[clap(value_parser)]
-    wasm_path: Option<PathBuf>,
-    /// The hash of the smart contract code already uploaded to the chain.
-    /// If the contract has not already been uploaded use `--wasm-path` or run the `upload` command
-    /// first.
-    #[clap(long, value_parser = parse_code_hash)]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
     /// The name of the contract constructor to call
     #[clap(name = "constructor", long, default_value = "new")]
     constructor: String,
@@ -140,10 +127,8 @@ impl InstantiateCommand {
     /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
     /// the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let crate_metadata = CrateMetadata::from_manifest_path(
-            self.extrinsic_opts.manifest_path.as_ref(),
-        )?;
-        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url_to_string();
@@ -156,20 +141,22 @@ impl InstantiateCommand {
             Ok(Code::Upload(code))
         }
 
-        let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-            (Some(_), Some(_)) => {
-                Err(anyhow!(
-                    "Specify either `--wasm-path` or `--code-hash` but not both"
-                ))
-            }
-            (Some(wasm_path), None) => load_code(wasm_path),
-            (None, None) => {
-                // default to the target contract wasm in the current project,
-                // inferred via the crate metadata.
-                load_code(&crate_metadata.dest_wasm)
-            }
-            (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
-        }?;
+        // let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
+        //     (Some(_), Some(_)) => {
+        //         Err(anyhow!(
+        //             "Specify either `--wasm-path` or `--code-hash` but not both"
+        //         ))
+        //     }
+        //     (Some(wasm_path), None) => load_code(wasm_path),
+        //     (None, None) => {
+        //         // default to the target contract wasm in the current project,
+        //         // inferred via the crate metadata.
+        //         load_code(&crate_metadata.dest_wasm)
+        //     }
+        //     (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
+        // }?;
+
+
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
         async_std::task::block_on(async move {
@@ -204,7 +191,7 @@ impl InstantiateCommand {
                 output_json: self.output_json,
             };
 
-            exec.exec(code, self.extrinsic_opts.dry_run).await
+            exec.exec(self.extrinsic_opts.dry_run).await
         })
     }
 }
@@ -216,6 +203,7 @@ struct InstantiateArgs {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     storage_deposit_limit: Option<Balance>,
+    code: WasmCode,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
@@ -238,10 +226,10 @@ pub struct Exec {
 }
 
 impl Exec {
-    async fn exec(&self, code: Code, dry_run: bool) -> Result<(), ErrorVariant> {
+    async fn exec(&self, dry_run: bool) -> Result<(), ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         if dry_run {
-            let result = self.instantiate_dry_run(code).await?;
+            let result = self.instantiate_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
                     let dry_run_result = InstantiateDryRunResult {
@@ -287,6 +275,10 @@ impl Exec {
             }
             Ok(())
         }
+    }
+
+    fn code(&self) -> Code {
+        todo!()
     }
 
     async fn instantiate_with_code(&self, code: Vec<u8>) -> Result<(), ErrorVariant> {
@@ -368,7 +360,7 @@ impl Exec {
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
             result,
-            &self.transcoder,
+            Some(&self.transcoder),
             &self.client.metadata(),
         )?;
         let contract_address = contract_address.to_ss58check();
@@ -398,7 +390,6 @@ impl Exec {
 
     async fn instantiate_dry_run(
         &self,
-        code: Code,
     ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
     {
         let storage_deposit_limit = self.args.storage_deposit_limit;

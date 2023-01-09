@@ -197,7 +197,7 @@ pub struct ContractArtifacts {
     /// The deserialized contract metadata if the expected metadata file exists.
     metadata: Option<ContractMetadata>,
     /// The Wasm code of the contract if available.
-    pub code: Option<Vec<u8>>,
+    pub code: Option<WasmCode>,
 }
 
 impl ContractArtifacts {
@@ -207,11 +207,11 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.wasm.map(|wasm| wasm.0);
+                    let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
                 Some("wasm") => {
-                    let code = Some(std::fs::read(path)?);
+                    let code = Some(WasmCode(std::fs::read(path)?));
                     let dir = path.parent().map_or_else(|| PathBuf::new(), PathBuf::from);
                     let metadata_path = dir.join(METADATA_FILE);
                     if !metadata_path.exists() {
@@ -251,6 +251,16 @@ impl ContractArtifacts {
         })?;
         ContractMessageTranscoder::try_from(metadata)
             .context("Failed to deserialize ink project metadata from contract metadata")
+    }
+}
+
+/// The Wasm code of a contract.
+#[derive(Debug)]
+pub struct WasmCode(Vec<u8>);
+
+impl WasmCode {
+    pub fn code_hash(&self) -> [u8; 32] {
+        contract_build::code_hash(&self.0)
     }
 }
 

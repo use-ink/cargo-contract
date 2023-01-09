@@ -146,6 +146,12 @@ pub struct CodeHash(
     pub [u8; 32],
 );
 
+impl From<[u8; 32]> for CodeHash {
+    fn from(value: [u8; 32]) -> Self {
+        CodeHash(value)
+    }
+}
+
 /// Information about the contract's Wasm code.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {

@@ -16,6 +16,7 @@
 
 use crate::{
     crate_metadata::CrateMetadata,
+    code_hash,
     maybe_println,
     util,
     workspace::{
@@ -31,13 +32,8 @@ use crate::{
 };
 
 use anyhow::Result;
-use blake2::digest::{
-    consts::U32,
-    Digest as _,
-};
 use colored::Colorize;
 use contract_metadata::{
-    CodeHash,
     Compiler,
     Contract,
     ContractMetadata,
@@ -233,7 +229,7 @@ fn extended_metadata(
         let hash = code_hash(wasm.as_slice());
         Source::new(
             Some(SourceWasm::new(wasm)),
-            hash,
+            hash.into(),
             lang,
             compiler,
             Some(build_info.try_into()?),
@@ -279,12 +275,4 @@ fn extended_metadata(
         contract,
         user,
     })
-}
-
-/// Returns the blake2 hash of the code slice.
-pub fn code_hash(code: &[u8]) -> CodeHash {
-    let mut blake2 = blake2::Blake2b::<U32>::new();
-    blake2.update(code);
-    let result = blake2.finalize();
-    CodeHash(result.into())
 }
