@@ -21,7 +21,6 @@ use super::{
     Balance,
     Client,
     CodeHash,
-    ContractMessageTranscoder,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -35,6 +34,7 @@ use crate::{
     name_value_println,
 };
 use anyhow::Result;
+use contract_build::metadata::code_hash;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use std::{
@@ -68,12 +68,12 @@ impl UploadCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let transcoder = artifacts.contract_transcoder()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let code = artifacts
             .code
             .ok_or_else(|| anyhow::anyhow!("Contract code not found"))?; // todo: add more detail
+        let code_hash = code_hash(&code);
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
@@ -104,9 +104,8 @@ impl UploadCommand {
                     }
                 }
                 Ok(())
-            } else if let Some(code_stored) = self
-                .upload_code(&client, code, &signer, transcoder.as_ref())
-                .await?
+            } else if let Some(code_stored) =
+                self.upload_code(&client, code, &signer).await?
             {
                 let upload_result = UploadResult {
                     code_hash: format!("{:?}", code_stored.code_hash),
@@ -119,8 +118,7 @@ impl UploadCommand {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "This contract has already been uploaded with code hash: {:?}",
-                    code_hash
+                    "This contract has already been uploaded with code hash: {code_hash:?}"
                 )
                 .into())
             }
@@ -155,7 +153,6 @@ impl UploadCommand {
         client: &Client,
         code: Vec<u8>,
         signer: &PairSigner,
-        transcoder: Option<&ContractMessageTranscoder>,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
@@ -168,7 +165,7 @@ impl UploadCommand {
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =
-            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+            DisplayEvents::from_events(&result, None, &client.metadata())?;
 
         let output = if self.output_json {
             display_events.to_json()?

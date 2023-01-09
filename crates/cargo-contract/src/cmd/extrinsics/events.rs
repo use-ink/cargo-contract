@@ -31,7 +31,10 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
-use std::fmt::Write;
+use std::{
+    fmt::Write,
+    str::FromStr,
+};
 use subxt::{
     self,
     blocks::ExtrinsicEvents,
@@ -117,9 +120,10 @@ impl DisplayEvents {
                             Ok(contract_event) => contract_event,
                             Err(err) => {
                                 tracing::warn!(
-                                        "Decoding contract event failed: {:?}. It might have come from another contract.",
-                                        err
-                                    )
+                                    "Decoding contract event failed: {:?}. It might have come from another contract.",
+                                    err
+                                );
+                                Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
                             }
                         }
                     } else {

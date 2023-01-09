@@ -497,7 +497,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     // calculate wasm hash
     let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
-    let expected_hash = crate::metadata::blake2_hash(&fs_wasm[..]);
+    let expected_hash = crate::metadata::code_hash(&fs_wasm[..]);
     let expected_wasm = build_byte_str(&fs_wasm);
 
     let expected_language =

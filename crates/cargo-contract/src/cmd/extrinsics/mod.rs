@@ -192,29 +192,33 @@ impl ExtrinsicOpts {
 /// Contract artifacts for use with extrinsic commands.
 #[derive(Debug)]
 pub struct ContractArtifacts {
-    pub metadata: Option<ContractMetadata>,
+    /// The expected path of the file containing the contract metadata.
+    metadata_path: PathBuf,
+    /// The deserialized contract metadata if the expected metadata file exists.
+    metadata: Option<ContractMetadata>,
+    /// The Wasm code of the contract if available.
     pub code: Option<Vec<u8>>,
 }
 
 impl ContractArtifacts {
     /// Given a contract artifact path, load the contract code and metadata where possible.
     pub fn from_artifact_path(path: &Path) -> Result<Self> {
-        let (metadata, code) =
+        let (metadata_path, metadata, code) =
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
                     let code = metadata.clone().source.wasm.map(|wasm| wasm.0);
-                    (Some(metadata), code)
+                    (PathBuf::from(path), Some(metadata), code)
                 }
                 Some("wasm") => {
                     let code = Some(std::fs::read(path)?);
                     let dir = path.parent().map_or_else(|| PathBuf::new(), PathBuf::from);
                     let metadata_path = dir.join(METADATA_FILE);
                     if !metadata_path.exists() {
-                        (None, code)
+                        (metadata_path, None, code)
                     } else {
                         let metadata = ContractMetadata::load(&metadata_path)?;
-                        (Some(metadata), code)
+                        (metadata_path, Some(metadata), code)
                     }
                 }
                 Some(ext) => anyhow::bail!(
@@ -226,19 +230,27 @@ impl ContractArtifacts {
                     )
                 }
             };
-        Ok(Self { metadata, code })
+        Ok(Self {
+            metadata_path,
+            metadata,
+            code,
+        })
     }
 
-    pub fn contract_transcoder(&self) -> Result<Option<ContractMessageTranscoder>> {
-        if let Some(metadata) = self.metadata.as_ref() {
-            let transcoder = ContractMessageTranscoder::try_from(metadata.clone())
-                .context(
-                    "Failed to deserialize ink project metadata from contract metadata",
-                )?;
-            Ok(Some(transcoder))
-        } else {
-            Ok(None)
-        }
+    /// Construct a [`ContractMessageTranscoder`] from contract metadata.
+    ///
+    /// ## Errors
+    /// - No contract metadata could be found.
+    /// - Invalid contract metadata.
+    pub fn contract_transcoder(&self) -> Result<ContractMessageTranscoder> {
+        let metadata = self.metadata.clone().ok_or_else(|| {
+            anyhow!(
+                "No contract metadata found. Expected file {}",
+                self.metadata_path.as_path().display()
+            )
+        })?;
+        ContractMessageTranscoder::try_from(metadata)
+            .context("Failed to deserialize ink project metadata from contract metadata")
     }
 }
 

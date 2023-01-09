@@ -230,7 +230,7 @@ fn extended_metadata(
         let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
         let wasm = fs::read(final_contract_wasm)?;
-        let hash = blake2_hash(wasm.as_slice());
+        let hash = code_hash(wasm.as_slice());
         Source::new(
             Some(SourceWasm::new(wasm)),
             hash,
@@ -281,8 +281,8 @@ fn extended_metadata(
     })
 }
 
-/// Returns the blake2 hash of the submitted slice.
-pub fn blake2_hash(code: &[u8]) -> CodeHash {
+/// Returns the blake2 hash of the code slice.
+pub fn code_hash(code: &[u8]) -> CodeHash {
     let mut blake2 = blake2::Blake2b::<U32>::new();
     blake2.update(code);
     let result = blake2.finalize();
