@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api,
+    runtime_api::api::{
+        self,
+        runtime_types::pallet_contracts::wasm::Determinism,
+    },
     state_call,
     submit_extrinsic,
     Balance,
@@ -30,11 +33,11 @@ use crate::{
     cmd::extrinsics::{
         events::DisplayEvents,
         ErrorVariant,
+        WasmCode,
     },
     name_value_println,
 };
 use anyhow::Result;
-use contract_build::metadata::code_hash;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use std::{
@@ -45,8 +48,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-
-use super::runtime_api::api::runtime_types::pallet_contracts::wasm::Determinism;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -73,7 +74,7 @@ impl UploadCommand {
         let code = artifacts
             .code
             .ok_or_else(|| anyhow::anyhow!("Contract code not found"))?; // todo: add more detail
-        let code_hash = code_hash(&code);
+        let code_hash = code.code_hash();
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
@@ -127,7 +128,7 @@ impl UploadCommand {
 
     async fn upload_code_rpc(
         &self,
-        code: Vec<u8>,
+        code: WasmCode,
         client: &Client,
         signer: &PairSigner,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
@@ -141,7 +142,7 @@ impl UploadCommand {
             .transpose()?;
         let call_request = CodeUploadRequest {
             origin: signer.account_id().clone(),
-            code,
+            code: code.0,
             storage_deposit_limit,
             determinism: Determinism::Deterministic,
         };
@@ -151,14 +152,14 @@ impl UploadCommand {
     async fn upload_code(
         &self,
         client: &Client,
-        code: Vec<u8>,
+        code: WasmCode,
         signer: &PairSigner,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
         let call = super::runtime_api::api::tx().contracts().upload_code(
-            code,
+            code.0,
             storage_deposit_limit,
             Determinism::Deterministic,
         );

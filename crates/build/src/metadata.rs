@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    crate_metadata::CrateMetadata,
     code_hash,
+    crate_metadata::CrateMetadata,
     maybe_println,
     util,
     workspace::{

@@ -37,6 +37,7 @@ use crate::{
         events::DisplayEvents,
         ErrorVariant,
         TokenMetadata,
+        WasmCode,
     },
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -68,7 +69,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use crate::cmd::extrinsics::WasmCode;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -155,7 +155,6 @@ impl InstantiateCommand {
         //     }
         //     (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
         // }?;
-
 
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
