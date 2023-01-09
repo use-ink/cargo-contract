@@ -50,6 +50,8 @@ use subxt::{
     OnlineClient,
 };
 
+use super::runtime_api::api::runtime_types::pallet_contracts::wasm::Determinism;
+
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
@@ -161,6 +163,7 @@ impl UploadCommand {
             origin: signer.account_id().clone(),
             code,
             storage_deposit_limit,
+            determinism: Determinism::Deterministic,
         };
         state_call(&url, "ContractsApi_upload_code", call_request).await
     }
@@ -175,9 +178,11 @@ impl UploadCommand {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
-        let call = super::runtime_api::api::tx()
-            .contracts()
-            .upload_code(code, storage_deposit_limit);
+        let call = super::runtime_api::api::tx().contracts().upload_code(
+            code,
+            storage_deposit_limit,
+            Determinism::Deterministic,
+        );
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =
@@ -202,6 +207,7 @@ pub struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
+    determinism: Determinism,
 }
 
 #[derive(serde::Serialize)]

@@ -69,7 +69,7 @@ fn decode_works() {
     let project_dir = tmp_dir.path().to_path_buf().join("switcher");
 
     let lib = project_dir.join("lib.rs");
-    std::fs::write(&lib, contract).expect("Failed to write contract lib.rs");
+    std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir).arg("build").assert().success();
