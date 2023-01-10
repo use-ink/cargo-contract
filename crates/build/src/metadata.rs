@@ -118,11 +118,8 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
-    let target_directory = crate_metadata.target_directory.clone();
-    let out_path_metadata = target_directory.join(METADATA_FILE);
-
-    let fname_bundle = format!("{}.contract", crate_metadata.contract_artifact_name);
-    let out_path_bundle = target_directory.join(fname_bundle);
+    let out_path_metadata = crate_metadata.metadata_path();
+    let out_path_bundle = crate_metadata.contract_bundle_path();
 
     // build the extended contract project metadata
     let ExtendedMetadataResult {
@@ -138,8 +135,10 @@ pub(crate) fn execute(
             format!("{}", build_steps).bold(),
             "Generating metadata".bright_green().bold()
         );
-        let target_dir_arg =
-            format!("--target-dir={}", target_directory.to_string_lossy());
+        let target_dir_arg = format!(
+            "--target-dir={}",
+            crate_metadata.target_directory.to_string_lossy()
+        );
         let stdout = util::invoke_cargo(
             "run",
             [

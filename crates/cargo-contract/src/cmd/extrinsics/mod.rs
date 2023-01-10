@@ -139,10 +139,19 @@ impl ExtrinsicOpts {
     /// Load contract artifacts.
     pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
         let artifact_path = match (self.manifest_path.as_ref(), self.file.as_ref()) {
-            (_, None) => {
-                let crate_metadata =
-                    CrateMetadata::from_manifest_path(self.manifest_path.as_ref())?;
-                crate_metadata.metadata_path()
+            (manifest_path, None) => {
+                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+
+                if crate_metadata.contract_bundle_path().exists() {
+                    crate_metadata.contract_bundle_path()
+                } else if crate_metadata.metadata_path().exists() {
+                    crate_metadata.metadata_path()
+                } else {
+                    anyhow::bail!(
+                        "Failed to find any contract artifacts in target directory. \n\
+                        Run `cargo contract build --release` to generate the artifacts."
+                    )
+                }
             }
             (None, Some(artifact_file)) => artifact_file.clone(),
             (Some(_), Some(_)) => {
@@ -203,6 +212,7 @@ pub struct ContractArtifacts {
 impl ContractArtifacts {
     /// Given a contract artifact path, load the contract code and metadata where possible.
     pub fn from_artifact_path(path: &Path) -> Result<Self> {
+        tracing::debug!("Loading contracts artifacts from `{}`", path.display());
         let (metadata_path, metadata, code) =
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
