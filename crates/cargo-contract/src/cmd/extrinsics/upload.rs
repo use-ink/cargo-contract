@@ -40,10 +40,7 @@ use crate::{
 use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-};
+use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
@@ -52,9 +49,6 @@ use subxt::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
-    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[clap(value_parser)]
-    wasm_path: Option<PathBuf>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.

@@ -97,13 +97,13 @@ type Client = OnlineClient<DefaultConfig>;
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
-    /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser, conflicts_with = "artifact_path")]
-    manifest_path: Option<PathBuf>,
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
     #[clap(value_parser)]
     file: Option<PathBuf>,
+    /// Path to the `Cargo.toml` of the contract.
+    #[clap(long, value_parser, conflicts_with = "artifact_path")]
+    manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
