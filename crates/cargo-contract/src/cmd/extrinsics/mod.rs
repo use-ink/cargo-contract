@@ -237,18 +237,29 @@ impl ContractArtifacts {
         })
     }
 
-    /// Construct a [`ContractMessageTranscoder`] from contract metadata.
+    /// Get contract metadata, if available.
     ///
     /// ## Errors
     /// - No contract metadata could be found.
     /// - Invalid contract metadata.
-    pub fn contract_transcoder(&self) -> Result<ContractMessageTranscoder> {
-        let metadata = self.metadata.clone().ok_or_else(|| {
+    pub fn metadata(&self) -> Result<ContractMetadata> {
+        self.metadata.clone().ok_or_else(|| {
             anyhow!(
                 "No contract metadata found. Expected file {}",
                 self.metadata_path.as_path().display()
             )
-        })?;
+        })
+    }
+
+    /// Get the code hash from the contract metadata.
+    pub fn code_hash(&self) -> Result<[u8; 32]> {
+        let metadata = self.metadata()?;
+        Ok(metadata.source.hash.0)
+    }
+
+    /// Construct a [`ContractMessageTranscoder`] from contract metadata.
+    pub fn contract_transcoder(&self) -> Result<ContractMessageTranscoder> {
+        let metadata = self.metadata()?;
         ContractMessageTranscoder::try_from(metadata)
             .context("Failed to deserialize ink project metadata from contract metadata")
     }

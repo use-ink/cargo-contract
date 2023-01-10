@@ -37,13 +37,11 @@ use crate::{
         events::DisplayEvents,
         ErrorVariant,
         TokenMetadata,
-        WasmCode,
     },
     DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
-    Context,
     Result,
 };
 use contract_build::{
@@ -60,10 +58,6 @@ use sp_core::{
     Bytes,
 };
 use sp_weights::Weight;
-use std::{
-    fs,
-    path::Path,
-};
 use subxt::{
     blocks::ExtrinsicEvents,
     Config,
@@ -100,17 +94,6 @@ pub struct InstantiateCommand {
     output_json: bool,
 }
 
-/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
-    let bytes = decode_hex(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(arr.into())
-}
-
 /// Parse hex encoded bytes.
 fn parse_hex_bytes(input: &str) -> Result<Bytes> {
     let bytes = decode_hex(input)?;
@@ -133,29 +116,12 @@ impl InstantiateCommand {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
         let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
-
-        fn load_code(wasm_path: &Path) -> Result<Code> {
-            tracing::debug!("Contract code path: {}", wasm_path.display());
-            let code = fs::read(wasm_path)
-                .context(format!("Failed to read from {}", wasm_path.display()))?;
-            Ok(Code::Upload(code))
-        }
-
-        // let code = match (self.wasm_path.as_ref(), self.code_hash.as_ref()) {
-        //     (Some(_), Some(_)) => {
-        //         Err(anyhow!(
-        //             "Specify either `--wasm-path` or `--code-hash` but not both"
-        //         ))
-        //     }
-        //     (Some(wasm_path), None) => load_code(wasm_path),
-        //     (None, None) => {
-        //         // default to the target contract wasm in the current project,
-        //         // inferred via the crate metadata.
-        //         load_code(&crate_metadata.dest_wasm)
-        //     }
-        //     (None, Some(code_hash)) => Ok(Code::Existing(*code_hash)),
-        // }?;
-
+        let code = if let Some(code) = artifacts.code {
+            Code::Upload(code.0)
+        } else {
+            let code_hash = artifacts.code_hash()?;
+            Code::Existing(code_hash.into())
+        };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
         async_std::task::block_on(async move {
@@ -175,6 +141,7 @@ impl InstantiateCommand {
                     .as_ref()
                     .map(|bv| bv.denominate_balance(&token_metadata))
                     .transpose()?,
+                code,
                 data,
                 salt,
             };
@@ -202,7 +169,7 @@ struct InstantiateArgs {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     storage_deposit_limit: Option<Balance>,
-    code: WasmCode,
+    code: Code,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
@@ -264,27 +231,24 @@ impl Exec {
                 }
             }
         } else {
-            match code {
+            let gas_limit = self.pre_submit_dry_run_gas_estimate().await?;
+            match self.args.code.clone() {
                 Code::Upload(code) => {
-                    self.instantiate_with_code(code).await?;
+                    self.instantiate_with_code(code, gas_limit).await?;
                 }
                 Code::Existing(code_hash) => {
-                    self.instantiate(code_hash).await?;
+                    self.instantiate(code_hash, gas_limit).await?;
                 }
             }
             Ok(())
         }
     }
 
-    fn code(&self) -> Code {
-        todo!()
-    }
-
-    async fn instantiate_with_code(&self, code: Vec<u8>) -> Result<(), ErrorVariant> {
-        let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(Code::Upload(code.clone()))
-            .await?;
-
+    async fn instantiate_with_code(
+        &self,
+        code: Vec<u8>,
+        gas_limit: Weight,
+    ) -> Result<(), ErrorVariant> {
         if !self.opts.skip_confirm {
             prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
         }
@@ -314,11 +278,11 @@ impl Exec {
             .await
     }
 
-    async fn instantiate(&self, code_hash: CodeHash) -> Result<(), ErrorVariant> {
-        let gas_limit = self
-            .pre_submit_dry_run_gas_estimate(Code::Existing(code_hash))
-            .await?;
-
+    async fn instantiate(
+        &self,
+        code_hash: CodeHash,
+        gas_limit: Weight,
+    ) -> Result<(), ErrorVariant> {
         if !self.opts.skip_confirm {
             prompt_confirm_tx(|| {
                 self.print_default_instantiate_preview(gas_limit);
@@ -397,7 +361,7 @@ impl Exec {
             value: self.args.value,
             gas_limit: None,
             storage_deposit_limit,
-            code,
+            code: self.args.code.clone(),
             data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
@@ -405,7 +369,7 @@ impl Exec {
     }
 
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
-    async fn pre_submit_dry_run_gas_estimate(&self, code: Code) -> Result<Weight> {
+    async fn pre_submit_dry_run_gas_estimate(&self) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.args.gas_limit, self.args.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -419,7 +383,7 @@ impl Exec {
         if !self.output_json {
             super::print_dry_running_status(&self.args.constructor);
         }
-        let instantiate_result = self.instantiate_dry_run(code).await?;
+        let instantiate_result = self.instantiate_dry_run().await?;
         match instantiate_result.result {
             Ok(_) => {
                 if !self.output_json {
@@ -519,7 +483,7 @@ struct InstantiateRequest {
 }
 
 /// Reference to an existing code hash or a new Wasm module.
-#[derive(Encode)]
+#[derive(Clone, Encode)]
 enum Code {
     /// A Wasm module as raw bytes.
     Upload(Vec<u8>),
