@@ -222,7 +222,7 @@ impl ContractArtifacts {
                 }
                 Some("wasm") => {
                     let code = Some(WasmCode(std::fs::read(path)?));
-                    let dir = path.parent().map_or_else(|| PathBuf::new(), PathBuf::from);
+                    let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
                     let metadata_path = dir.join(METADATA_FILE);
                     if !metadata_path.exists() {
                         (metadata_path, None, code)
