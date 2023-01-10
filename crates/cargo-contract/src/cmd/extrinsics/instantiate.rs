@@ -490,22 +490,3 @@ enum Code {
     /// The code hash of an on-chain Wasm blob.
     Existing(<DefaultConfig as Config>::Hash),
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_code_hash_works() {
-        // with 0x prefix
-        assert!(parse_code_hash(
-            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok());
-        // without 0x prefix
-        assert!(parse_code_hash(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok())
-    }
-}
