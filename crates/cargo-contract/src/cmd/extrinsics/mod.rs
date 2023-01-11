@@ -99,10 +99,10 @@ type Client = OnlineClient<DefaultConfig>;
 pub struct ExtrinsicOpts {
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
-    #[clap(value_parser)]
+    #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser, conflicts_with = "artifact_path")]
+    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// Websockets url of a substrate node.
     #[clap(
