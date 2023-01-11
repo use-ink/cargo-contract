@@ -4,12 +4,14 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    # ignore Substrate pallets major updates.
+    # automated Substrate releases cause dependabot PR spam, so these must be updated manually when required.
+    ignore:
+      - dependency-name: "sp-*"
+        update-types: [ "major" ]
+      - dependency-name: "pallet-*"
+        update-types: [ "major" ]
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
       interval: daily
-  - ignore:
-    - dependency-name: sp-core
-    - dependency-name: sp-runtime
-    - dependency-name: sp-weights
-    - dependency-name: pallet-contracts-primitives
