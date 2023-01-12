@@ -71,13 +71,18 @@ use subxt::{
     OnlineClient,
 };
 
-use std::option::Option;
+use std::{
+    option::Option,
+    path::Path,
+};
 
 pub use balance::{
     BalanceVariant,
     TokenMetadata,
 };
 pub use call::CallCommand;
+use contract_build::metadata::METADATA_FILE;
+use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
@@ -92,6 +97,10 @@ type Client = OnlineClient<DefaultConfig>;
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
+    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
+    /// or a `.json` metadata file.
+    #[clap(value_parser, conflicts_with = "manifest_path")]
+    file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
@@ -127,8 +136,34 @@ pub struct ExtrinsicOpts {
 }
 
 impl ExtrinsicOpts {
+    /// Load contract artifacts.
+    pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
+        let artifact_path = match (self.manifest_path.as_ref(), self.file.as_ref()) {
+            (manifest_path, None) => {
+                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+
+                if crate_metadata.contract_bundle_path().exists() {
+                    crate_metadata.contract_bundle_path()
+                } else if crate_metadata.metadata_path().exists() {
+                    crate_metadata.metadata_path()
+                } else {
+                    anyhow::bail!(
+                        "Failed to find any contract artifacts in target directory. \n\
+                        Run `cargo contract build --release` to generate the artifacts."
+                    )
+                }
+            }
+            (None, Some(artifact_file)) => artifact_file.clone(),
+            (Some(_), Some(_)) => {
+                anyhow::bail!("conflicting options: --manifest-path and --file")
+            }
+        };
+        ContractArtifacts::from_artifact_path(artifact_path.as_path())
+    }
+
+    /// Returns the signer for contract extrinsics.
     pub fn signer(&self) -> Result<sr25519::Pair> {
-        sr25519::Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
             .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
 
@@ -160,6 +195,102 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?
             .map(Into::into))
+    }
+}
+
+/// Contract artifacts for use with extrinsic commands.
+#[derive(Debug)]
+pub struct ContractArtifacts {
+    /// The original artifact path
+    artifacts_path: PathBuf,
+    /// The expected path of the file containing the contract metadata.
+    metadata_path: PathBuf,
+    /// The deserialized contract metadata if the expected metadata file exists.
+    metadata: Option<ContractMetadata>,
+    /// The Wasm code of the contract if available.
+    pub code: Option<WasmCode>,
+}
+
+impl ContractArtifacts {
+    /// Given a contract artifact path, load the contract code and metadata where possible.
+    pub fn from_artifact_path(path: &Path) -> Result<Self> {
+        tracing::debug!("Loading contracts artifacts from `{}`", path.display());
+        let (metadata_path, metadata, code) =
+            match path.extension().and_then(|ext| ext.to_str()) {
+                Some("contract") | Some("json") => {
+                    let metadata = ContractMetadata::load(path)?;
+                    let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
+                    (PathBuf::from(path), Some(metadata), code)
+                }
+                Some("wasm") => {
+                    let code = Some(WasmCode(std::fs::read(path)?));
+                    let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
+                    let metadata_path = dir.join(METADATA_FILE);
+                    if !metadata_path.exists() {
+                        (metadata_path, None, code)
+                    } else {
+                        let metadata = ContractMetadata::load(&metadata_path)?;
+                        (metadata_path, Some(metadata), code)
+                    }
+                }
+                Some(ext) => anyhow::bail!(
+                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.wasm`"
+                ),
+                None => {
+                    anyhow::bail!(
+                        "Artifact path has no extension, expected `.contract`, `.json`, or `.wasm`"
+                    )
+                }
+            };
+        Ok(Self {
+            artifacts_path: path.into(),
+            metadata_path,
+            metadata,
+            code,
+        })
+    }
+
+    /// Get the path of the artifact file used to load the artifacts.
+    pub fn artifact_path(&self) -> &Path {
+        self.artifacts_path.as_path()
+    }
+
+    /// Get contract metadata, if available.
+    ///
+    /// ## Errors
+    /// - No contract metadata could be found.
+    /// - Invalid contract metadata.
+    pub fn metadata(&self) -> Result<ContractMetadata> {
+        self.metadata.clone().ok_or_else(|| {
+            anyhow!(
+                "No contract metadata found. Expected file {}",
+                self.metadata_path.as_path().display()
+            )
+        })
+    }
+
+    /// Get the code hash from the contract metadata.
+    pub fn code_hash(&self) -> Result<[u8; 32]> {
+        let metadata = self.metadata()?;
+        Ok(metadata.source.hash.0)
+    }
+
+    /// Construct a [`ContractMessageTranscoder`] from contract metadata.
+    pub fn contract_transcoder(&self) -> Result<ContractMessageTranscoder> {
+        let metadata = self.metadata()?;
+        ContractMessageTranscoder::try_from(metadata)
+            .context("Failed to deserialize ink project metadata from contract metadata")
+    }
+}
+
+/// The Wasm code of a contract.
+#[derive(Debug)]
+pub struct WasmCode(Vec<u8>);
+
+impl WasmCode {
+    /// The hash of the contract code: uniquely identifies the contract code on-chain.
+    pub fn code_hash(&self) -> [u8; 32] {
+        contract_build::code_hash(&self.0)
     }
 }
 
