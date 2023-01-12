@@ -732,6 +732,18 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
+/// Returns the blake2 hash of the code slice.
+pub fn code_hash(code: &[u8]) -> [u8; 32] {
+    use blake2::digest::{
+        consts::U32,
+        Digest as _,
+    };
+    let mut blake2 = blake2::Blake2b::<U32>::new();
+    blake2.update(code);
+    let result = blake2.finalize();
+    result.into()
+}
+
 /// Testing individual functions where the build itself is not actually invoked. See [`tests`] for
 /// all tests which invoke the `build` command.
 #[cfg(test)]

@@ -97,6 +97,17 @@ cargo contract call \
 - `--message` the name of the contract message to invoke.
 - `--args` accepts a space separated list of values, encoded in order as the arguments of the message to invoke. 
 
+## Specifying the contract artifact
+
+The above examples assume the working directory is the contract source code where the `Cargo.toml` file is located.
+This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional 
+argument to each of the extrinsic commands which allows specifying the contract artifact file directly. E.g.
+
+
+`cargo upload ../path/to/mycontract.wasm`
+`cargo instantiate ../path/to/mycontract.contract`
+`cargo call ..path/to/metadata.json`
+
 
 
 

@@ -24,7 +24,6 @@ use super::{
     BalanceVariant,
     Client,
     ContractMessageTranscoder,
-    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -95,10 +94,9 @@ impl CallCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let crate_metadata = CrateMetadata::from_manifest_path(
-            self.extrinsic_opts.manifest_path.as_ref(),
-        )?;
-        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
+
         let call_data = transcoder.encode(&self.message, &self.args)?;
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
@@ -218,7 +216,7 @@ impl CallCommand {
         let result = submit_extrinsic(client, &call, signer).await?;
 
         let display_events =
-            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+            DisplayEvents::from_events(&result, Some(transcoder), &client.metadata())?;
 
         let output = if self.output_json {
             display_events.to_json()?
