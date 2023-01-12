@@ -101,7 +101,7 @@ cargo contract call \
 
 The above examples assume the working directory is the contract source code where the `Cargo.toml` file is located.
 This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional 
-argument to each of the extrinsic commands which allows specifying the contract artifact file directly. e.g.
+argument to each of the extrinsic commands which allows specifying the contract artifact file directly. E.g.
 
 
 `cargo upload ../path/to/mycontract.wasm`
