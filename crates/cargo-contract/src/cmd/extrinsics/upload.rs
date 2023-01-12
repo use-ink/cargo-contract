@@ -65,10 +65,11 @@ impl UploadCommand {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
+        let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
             anyhow::anyhow!(
                 "Contract code not found from artifact file {}",
-                artifacts.artifacts_path().display()
+                artifacts_path.display()
             )
         })?;
         let code_hash = code.code_hash();
