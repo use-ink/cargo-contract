@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "2.0.0-beta.2"
+version = "2.0.0-rc"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -687,7 +687,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "2.0.0-beta.2"
+version = "2.0.0-rc"
 dependencies = [
  "anyhow",
  "blake2",
@@ -718,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-beta.2"
+version = "2.0.0-rc"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -731,7 +731,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0-beta.2"
+version = "2.0.0-rc"
 dependencies = [
  "anyhow",
  "assert_matches",

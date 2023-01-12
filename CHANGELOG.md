@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc] - 2023-01-12
+
+First release candidate for compatibility with `ink! 4.0-rc`.
+
+### Changed
+-  Extrinsics: allow specifying contract artifact directly [#893](https://github.com/paritytech/cargo-contract/pull/893)
+
 ## [2.0.0-beta.2] - 2023-01-09
 
 ### Changed
