@@ -138,7 +138,7 @@ impl CrateMetadata {
         self.target_directory.join(METADATA_FILE)
     }
 
-    /// Get the path of the contract bundle, containing metadata + code
+    /// Get the path of the contract bundle, containing metadata + code.
     pub fn contract_bundle_path(&self) -> PathBuf {
         let target_directory = self.target_directory.clone();
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
