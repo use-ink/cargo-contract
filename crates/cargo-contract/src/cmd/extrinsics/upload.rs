@@ -65,9 +65,12 @@ impl UploadCommand {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let code = artifacts
-            .code
-            .ok_or_else(|| anyhow::anyhow!("Contract code not found"))?; // todo: add more detail
+        let code = artifacts.code.ok_or_else(|| {
+            anyhow::anyhow!(
+                "Contract code not found from artifact file {}",
+                artifacts.artifacts_path().display()
+            )
+        })?;
         let code_hash = code.code_hash();
 
         async_std::task::block_on(async {

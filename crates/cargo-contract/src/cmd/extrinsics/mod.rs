@@ -201,6 +201,8 @@ impl ExtrinsicOpts {
 /// Contract artifacts for use with extrinsic commands.
 #[derive(Debug)]
 pub struct ContractArtifacts {
+    /// The original artifact path
+    artifacts_path: PathBuf,
     /// The expected path of the file containing the contract metadata.
     metadata_path: PathBuf,
     /// The deserialized contract metadata if the expected metadata file exists.
@@ -241,10 +243,16 @@ impl ContractArtifacts {
                 }
             };
         Ok(Self {
+            artifacts_path: path.into(),
             metadata_path,
             metadata,
             code,
         })
+    }
+
+    /// Get the path of the artifact file used to load the artifacts.
+    pub fn artifact_path(&self) -> &Path {
+        self.artifacts_path.as_path()
     }
 
     /// Get contract metadata, if available.
@@ -280,6 +288,7 @@ impl ContractArtifacts {
 pub struct WasmCode(Vec<u8>);
 
 impl WasmCode {
+    /// The hash of the contract code: uniquely identifies the contract code on-chain.
     pub fn code_hash(&self) -> [u8; 32] {
         contract_build::code_hash(&self.0)
     }
