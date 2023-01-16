@@ -627,7 +627,8 @@ fn do_optimization(
         // the memory in our module is imported, `wasm-opt` needs to be told that
         // the memory is initialized to zeroes, otherwise it won't run the
         // memory-packing pre-pass.
-        .arg("--zero-filled-memory");
+        .arg("--zero-filled-memory")
+        .arg("--mvp-features");
     if keep_debug_symbols {
         command.arg("-g");
     }
