@@ -15,14 +15,15 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api,
+    runtime_api::api::{
+        self,
+        runtime_types::pallet_contracts::wasm::Determinism,
+    },
     state_call,
     submit_extrinsic,
     Balance,
     Client,
     CodeHash,
-    ContractMessageTranscoder,
-    CrateMetadata,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -32,32 +33,22 @@ use crate::{
     cmd::extrinsics::{
         events::DisplayEvents,
         ErrorVariant,
+        WasmCode,
     },
     name_value_println,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-};
+use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
 };
 
-use super::runtime_api::api::runtime_types::pallet_contracts::wasm::Determinism;
-
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
-    /// Path to Wasm contract code, defaults to `./target/ink/<name>.wasm`.
-    #[clap(value_parser)]
-    wasm_path: Option<PathBuf>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
@@ -71,27 +62,17 @@ impl UploadCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let crate_metadata = CrateMetadata::from_manifest_path(
-            self.extrinsic_opts.manifest_path.as_ref(),
-        )?;
-        let contract_metadata =
-            contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
-        let code_hash = contract_metadata.source.hash;
-        let transcoder =
-            ContractMessageTranscoder::try_from(contract_metadata).context(format!(
-                "Failed to deserialize ink project metadata from contract metadata {}",
-                crate_metadata.metadata_path().display()
-            ))?;
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let wasm_path = match &self.wasm_path {
-            Some(wasm_path) => wasm_path.clone(),
-            None => crate_metadata.dest_wasm,
-        };
-
-        tracing::debug!("Contract code path: {}", wasm_path.display());
-        let code = std::fs::read(&wasm_path)
-            .context(format!("Failed to read from {}", wasm_path.display()))?;
+        let artifacts_path = artifacts.artifact_path().to_path_buf();
+        let code = artifacts.code.ok_or_else(|| {
+            anyhow::anyhow!(
+                "Contract code not found from artifact file {}",
+                artifacts_path.display()
+            )
+        })?;
+        let code_hash = code.code_hash();
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
@@ -122,9 +103,8 @@ impl UploadCommand {
                     }
                 }
                 Ok(())
-            } else if let Some(code_stored) = self
-                .upload_code(&client, code, &signer, &transcoder)
-                .await?
+            } else if let Some(code_stored) =
+                self.upload_code(&client, code, &signer).await?
             {
                 let upload_result = UploadResult {
                     code_hash: format!("{:?}", code_stored.code_hash),
@@ -137,8 +117,7 @@ impl UploadCommand {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "This contract has already been uploaded with code hash: {:?}",
-                    code_hash
+                    "This contract has already been uploaded with code hash: {code_hash:?}"
                 )
                 .into())
             }
@@ -147,7 +126,7 @@ impl UploadCommand {
 
     async fn upload_code_rpc(
         &self,
-        code: Vec<u8>,
+        code: WasmCode,
         client: &Client,
         signer: &PairSigner,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
@@ -161,7 +140,7 @@ impl UploadCommand {
             .transpose()?;
         let call_request = CodeUploadRequest {
             origin: signer.account_id().clone(),
-            code,
+            code: code.0,
             storage_deposit_limit,
             determinism: Determinism::Deterministic,
         };
@@ -171,22 +150,21 @@ impl UploadCommand {
     async fn upload_code(
         &self,
         client: &Client,
-        code: Vec<u8>,
+        code: WasmCode,
         signer: &PairSigner,
-        transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
         let call = super::runtime_api::api::tx().contracts().upload_code(
-            code,
+            code.0,
             storage_deposit_limit,
             Determinism::Deterministic,
         );
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =
-            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+            DisplayEvents::from_events(&result, None, &client.metadata())?;
 
         let output = if self.output_json {
             display_events.to_json()?

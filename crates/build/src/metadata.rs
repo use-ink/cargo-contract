@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    code_hash,
     crate_metadata::CrateMetadata,
     maybe_println,
     util,
@@ -31,13 +32,8 @@ use crate::{
 };
 
 use anyhow::Result;
-use blake2::digest::{
-    consts::U32,
-    Digest as _,
-};
 use colored::Colorize;
 use contract_metadata::{
-    CodeHash,
     Compiler,
     Contract,
     ContractMetadata,
@@ -58,7 +54,7 @@ use std::{
 };
 use url::Url;
 
-const METADATA_FILE: &str = "metadata.json";
+pub const METADATA_FILE: &str = "metadata.json";
 
 /// Metadata generation result.
 #[derive(serde::Serialize)]
@@ -122,11 +118,8 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
-    let target_directory = crate_metadata.target_directory.clone();
-    let out_path_metadata = target_directory.join(METADATA_FILE);
-
-    let fname_bundle = format!("{}.contract", crate_metadata.contract_artifact_name);
-    let out_path_bundle = target_directory.join(fname_bundle);
+    let out_path_metadata = crate_metadata.metadata_path();
+    let out_path_bundle = crate_metadata.contract_bundle_path();
 
     // build the extended contract project metadata
     let ExtendedMetadataResult {
@@ -142,8 +135,10 @@ pub(crate) fn execute(
             format!("{}", build_steps).bold(),
             "Generating metadata".bright_green().bold()
         );
-        let target_dir_arg =
-            format!("--target-dir={}", target_directory.to_string_lossy());
+        let target_dir_arg = format!(
+            "--target-dir={}",
+            crate_metadata.target_directory.to_string_lossy()
+        );
         let stdout = util::invoke_cargo(
             "run",
             [
@@ -230,10 +225,10 @@ fn extended_metadata(
         let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
         let wasm = fs::read(final_contract_wasm)?;
-        let hash = blake2_hash(wasm.as_slice());
+        let hash = code_hash(wasm.as_slice());
         Source::new(
             Some(SourceWasm::new(wasm)),
-            hash,
+            hash.into(),
             lang,
             compiler,
             Some(build_info.try_into()?),
@@ -279,12 +274,4 @@ fn extended_metadata(
         contract,
         user,
     })
-}
-
-/// Returns the blake2 hash of the submitted slice.
-pub fn blake2_hash(code: &[u8]) -> CodeHash {
-    let mut blake2 = blake2::Blake2b::<U32>::new();
-    blake2.update(code);
-    let result = blake2.finalize();
-    CodeHash(result.into())
 }

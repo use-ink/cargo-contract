@@ -105,6 +105,7 @@ mod util;
 
 pub use self::{
     scon::{
+        Hex,
         Map,
         Tuple,
         Value,

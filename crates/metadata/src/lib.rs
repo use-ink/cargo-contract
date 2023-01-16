@@ -121,7 +121,7 @@ impl ContractMetadata {
     }
 
     /// Reads the file and tries to parse it as instance of `ContractMetadata`.
-    pub fn load<P>(metadata_path: &P) -> Result<Self>
+    pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {
@@ -145,6 +145,12 @@ pub struct CodeHash(
     /// The raw bytes of the hash.
     pub [u8; 32],
 );
+
+impl From<[u8; 32]> for CodeHash {
+    fn from(value: [u8; 32]) -> Self {
+        CodeHash(value)
+    }
+}
 
 /// Information about the contract's Wasm code.
 #[derive(Clone, Debug, Deserialize, Serialize)]
