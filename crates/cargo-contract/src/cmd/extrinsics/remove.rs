@@ -15,29 +15,20 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api, state_call, submit_extrinsic, Balance, Client, CodeHash,
-    ContractMessageTranscoder, CrateMetadata, DefaultConfig, ExtrinsicOpts, PairSigner,
-    TokenMetadata,
+    runtime_api::api, submit_extrinsic, Client, CodeHash, ContractMessageTranscoder,
+    CrateMetadata, ExtrinsicOpts, PairSigner, TokenMetadata,
 };
 use crate::{
     cmd::extrinsics::{events::DisplayEvents, ErrorVariant},
     name_value_println,
 };
-use anyhow::{anyhow, Context, Result};
-use pallet_contracts_primitives::CodeUploadResult;
-use scale::Encode;
-use std::{
-    fmt::Debug,
-    fs,
-    path::{Path, PathBuf},
-};
-use subxt::{Config, OnlineClient};
+use anyhow::Result;
+use std::fmt::Debug;
+use subxt::{OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
-    #[clap(long, value_parser = super::parse_code_hash)]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
@@ -56,17 +47,17 @@ impl RemoveCommand {
         )?;
         let contract_metadata =
             contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
-        let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let code_hash = contract_metadata.source.hash;
 
         async_std::task::block_on(async {
-
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            if let Some(code_stored) = self
+            if let Some(_code_stored) = self
                 .remove_code(&client, sp_core::H256(code_hash.0), &signer, &transcoder)
                 .await?
             {
@@ -82,7 +73,7 @@ impl RemoveCommand {
             } else {
                 Err(anyhow::anyhow!(
                     "This contract with code hash: {:?} does not exist",
-           code_hash
+                    code_hash
                 )
                 .into())
             }
@@ -96,14 +87,13 @@ impl RemoveCommand {
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
-        let token_metadata = TokenMetadata::query(client).await?;
         let call = super::runtime_api::api::tx()
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
 
         let result = submit_extrinsic(client, &call, signer).await?;
         let display_events =
-            DisplayEvents::from_events(&result, transcoder, &client.metadata())?;
+            DisplayEvents::from_events(&result, Some(transcoder), &client.metadata())?;
 
         let output = if self.output_json {
             display_events.to_json()?
@@ -119,14 +109,6 @@ impl RemoveCommand {
 }
 
 /// Reference to an existing code hash or a new Wasm module.
-#[derive(Encode)]
-enum Code {
-    /// A Wasm module as raw bytes.
-    Upload(Vec<u8>),
-    /// The code hash of an on-chain Wasm blob.
-    Existing(<DefaultConfig as Config>::Hash),
-}
-
 #[derive(serde::Serialize)]
 pub struct RemoveResult {
     code_hash: String,
@@ -137,17 +119,6 @@ impl RemoveResult {
     }
 
     pub fn print(&self) {
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
-    }
-
-}
-impl RemoveDryRunResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", self.result);
         name_value_println!("Code hash", format!("{:?}", self.code_hash));
     }
 }

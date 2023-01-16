@@ -54,7 +54,6 @@ use contract_build::{
     CrateMetadata,
     Verbosity,
     VerbosityFlags,
-    util
 };
 use pallet_contracts_primitives::ContractResult;
 use scale::{
@@ -430,15 +429,15 @@ fn print_gas_required_success(gas: Weight) {
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
-    let bytes = util::decode_hex(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(arr.into())
-}
+// pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+//     let bytes = util::decode_hex(input)?;
+//     if bytes.len() != 32 {
+//         anyhow::bail!("Code hash should be 32 bytes in length")
+//     }
+//     let mut arr = [0u8; 32];
+//     arr.copy_from_slice(&bytes);
+//     Ok(arr.into())
+// }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
 /// for json output.
@@ -469,22 +468,22 @@ impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDepo
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn parse_code_hash_works() {
-        // with 0x prefix
-        assert!(parse_code_hash(
-            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok());
-        // without 0x prefix
-        assert!(parse_code_hash(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok())
-    }
-}
+//     #[test]
+//     fn parse_code_hash_works() {
+//         // with 0x prefix
+//         assert!(parse_code_hash(
+//             "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+//         )
+//         .is_ok());
+//         // without 0x prefix
+//         assert!(parse_code_hash(
+//             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+//         )
+//         .is_ok())
+//     }
+// }
 
