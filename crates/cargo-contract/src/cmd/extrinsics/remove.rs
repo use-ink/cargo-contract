@@ -24,7 +24,7 @@ use crate::{
 };
 use anyhow::Result;
 use std::fmt::Debug;
-use subxt::{OnlineClient};
+use subxt::OnlineClient;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
@@ -57,12 +57,12 @@ impl RemoveCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            if let Some(_code_stored) = self
+            if let Some(code_removed) = self
                 .remove_code(&client, sp_core::H256(code_hash.0), &signer, &transcoder)
                 .await?
             {
                 let remove_result = RemoveResult {
-                    code_hash: format!("{:?}", sp_core::H256(code_hash.0)),
+                    code_hash: format!("{:?}", code_removed.code_hash),
                 };
                 if self.output_json {
                     println!("{}", remove_result.to_json()?);
@@ -72,9 +72,7 @@ impl RemoveCommand {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "This contract with code hash: {:?} does not exist",
-                    code_hash
-                )
+                    "This contract could not have been removed for the supplied code hash: {code_hash:?}"                )
                 .into())
             }
         })
@@ -86,7 +84,7 @@ impl RemoveCommand {
         code_hash: CodeHash,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
+    ) -> Result<Option<api::contracts::events::CodeRemoved>, ErrorVariant> {
         let call = super::runtime_api::api::tx()
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
@@ -103,8 +101,8 @@ impl RemoveCommand {
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
         println!("{}", output);
-        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
-        Ok(code_stored)
+        let code_removed = result.find_first::<api::contracts::events::CodeRemoved>()?;
+        Ok(code_removed)
     }
 }
 
