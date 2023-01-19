@@ -25,9 +25,9 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
+    RemoveCommand,
     TestCommand,
     UploadCommand,
-    RemoveCommand
 };
 use contract_build::{
     name_value_println,
@@ -196,9 +196,11 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
         Command::Decode(decode) => decode.run().map_err(format_err),
-        Command::Remove(remove) => remove
-            .run()
-            .map_err(|err| map_extrinsic_err(err, remove.is_json())),
+        Command::Remove(remove) => {
+            remove
+                .run()
+                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
+        }
     }
 }
 

@@ -19,9 +19,9 @@ mod call;
 mod error;
 mod events;
 mod instantiate;
+mod remove;
 mod runtime_api;
 mod upload;
-mod remove;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
@@ -88,9 +88,9 @@ use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
+pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
-pub use remove::RemoveCommand;
 
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
@@ -486,4 +486,3 @@ impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDepo
 //         .is_ok())
 //     }
 // }
-

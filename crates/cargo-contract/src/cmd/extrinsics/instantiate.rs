@@ -488,5 +488,5 @@ enum Code {
     /// A Wasm module as raw bytes.
     Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
-    Existing(<DefaultConfig as Config>::Hash)
+    Existing(<DefaultConfig as Config>::Hash),
 }

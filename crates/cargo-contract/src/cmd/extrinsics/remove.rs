@@ -15,11 +15,21 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api, submit_extrinsic, Client, CodeHash, ContractMessageTranscoder,
-    CrateMetadata, ExtrinsicOpts, PairSigner, TokenMetadata,
+    runtime_api::api,
+    submit_extrinsic,
+    Client,
+    CodeHash,
+    ContractMessageTranscoder,
+    CrateMetadata,
+    ExtrinsicOpts,
+    PairSigner,
+    TokenMetadata,
 };
 use crate::{
-    cmd::extrinsics::{events::DisplayEvents, ErrorVariant},
+    cmd::extrinsics::{
+        events::DisplayEvents,
+        ErrorVariant,
+    },
     name_value_println,
 };
 use anyhow::Result;

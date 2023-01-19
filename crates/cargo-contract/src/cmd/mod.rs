@@ -32,6 +32,6 @@ pub(crate) use self::extrinsics::{
     CallCommand,
     ErrorVariant,
     InstantiateCommand,
+    RemoveCommand,
     UploadCommand,
-    RemoveCommand
 };
