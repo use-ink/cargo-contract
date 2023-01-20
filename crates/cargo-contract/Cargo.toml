@@ -27,7 +27,7 @@ clap = { version = "4.1.1", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-which = "4.3.0"
+which = "4.4.0"
 colored = "2.0.0"
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 serde_json = "1.0.91"
@@ -47,7 +47,7 @@ jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 anyhow = "1.0.68"
 substrate-build-script-utils = "3.0.0"
 current_platform = "0.2.0"
-which = "4.3.0"
+which = "4.4.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.8"
