@@ -20,7 +20,6 @@ use super::{
     Client,
     CodeHash,
     ContractMessageTranscoder,
-    CrateMetadata,
     ExtrinsicOpts,
     PairSigner,
     TokenMetadata,
@@ -52,23 +51,25 @@ impl RemoveCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let crate_metadata = CrateMetadata::from_manifest_path(
-            self.extrinsic_opts.manifest_path.as_ref(),
-        )?;
-        let contract_metadata =
-            contract_metadata::ContractMetadata::load(&crate_metadata.metadata_path())?;
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        let code_hash = contract_metadata.source.hash;
+        let artifacts_path = artifacts.artifact_path().to_path_buf();
+        let code = artifacts.code.ok_or_else(|| {
+            anyhow::anyhow!(
+                "Contract code not found from artifact file {}",
+                artifacts_path.display()
+            )
+        })?;
+        let code_hash = code.code_hash();
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if let Some(code_removed) = self
-                .remove_code(&client, sp_core::H256(code_hash.0), &signer, &transcoder)
+                .remove_code(&client, sp_core::H256(code_hash), &signer, &transcoder)
                 .await?
             {
                 let remove_result = RemoveResult {
@@ -82,7 +83,7 @@ impl RemoveCommand {
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "This contract could not have been removed for the supplied code hash: {code_hash:?}"                )
+                    "This contract could not have been removed for the supplied code hash: {code_hash:?}")
                 .into())
             }
         })
