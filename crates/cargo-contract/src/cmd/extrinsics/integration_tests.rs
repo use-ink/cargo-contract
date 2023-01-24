@@ -290,7 +290,6 @@ async fn build_upload_remove() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {}", stderr);
 
-
     tracing::debug!("Removing the contract");
     let output = cargo_contract(project_path.as_path())
         .arg("remove")
