@@ -120,7 +120,7 @@ pub struct TestContractManifest {
 impl TestContractManifest {
     pub fn new(manifest_path: ManifestPath) -> Result<Self> {
         Ok(Self {
-            toml: toml::from_slice(&fs::read(&manifest_path)?)?,
+            toml: serde_json::from_slice(&fs::read(&manifest_path)?)?,
             manifest_path,
         })
     }
