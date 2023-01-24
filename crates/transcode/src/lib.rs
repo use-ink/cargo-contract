@@ -645,7 +645,7 @@ mod tests {
         let expected = Value::Tuple(Tuple::new(
             "Err".into(),
             [Value::Tuple(Tuple::new(
-                Some("CouldNotReadInput".into()),
+                Some("CouldNotReadInput"),
                 Vec::new(),
             ))]
             .to_vec(),
