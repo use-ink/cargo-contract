@@ -116,8 +116,9 @@ impl UploadCommand {
                 }
                 Ok(())
             } else {
+                let code_hash = hex::encode(&code_hash);
                 Err(anyhow::anyhow!(
-                    "This contract has already been uploaded with code hash: {code_hash:?}"
+                    "This contract has already been uploaded with code hash: 0x{code_hash}"
                 )
                 .into())
             }
