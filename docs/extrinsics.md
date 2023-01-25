@@ -97,6 +97,16 @@ cargo contract call \
 - `--message` the name of the contract message to invoke.
 - `--args` accepts a space separated list of values, encoded in order as the arguments of the message to invoke. 
 
+### `remove`
+
+Remove the Wasm code of the contract to the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
+dispatchable.
+
+e.g. `cargo contract remove --suri //Alice`
+
+Assumes that `cargo contract build` and `cargo contract upload` have already been run to produce the contract artifacts.
+Yet be sure your contract has not been instantiated ie it is not used by any contract.
+
 ## Specifying the contract artifact
 
 The above examples assume the working directory is the contract source code where the `Cargo.toml` file is located.

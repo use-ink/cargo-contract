@@ -128,6 +128,10 @@ This can be either an event, an invocation of a contract message, or an invocati
 
 The argument has to be given as hex-encoding, starting with `0x`.
 
+##### `cargo contract remove`
+
+Remove a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE).
