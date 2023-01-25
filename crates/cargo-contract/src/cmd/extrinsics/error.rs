@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt::Display;
 use sp_runtime::DispatchError;
+use std::fmt::Display;
 
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {

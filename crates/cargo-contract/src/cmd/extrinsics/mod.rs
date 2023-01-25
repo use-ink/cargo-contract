@@ -366,7 +366,8 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
+        Default,
 {
     client
         .tx()

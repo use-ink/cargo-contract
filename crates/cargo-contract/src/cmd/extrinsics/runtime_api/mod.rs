@@ -23,4 +23,4 @@
         with = "::sp_weights::Weight"
     )
 )]
-pub mod api { }
+pub mod api {}
