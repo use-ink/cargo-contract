@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::fmt::Display;
-use subxt::ext::sp_runtime::DispatchError;
+use sp_runtime::DispatchError;
 
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {

@@ -66,6 +66,7 @@ use sp_core::{
 use sp_weights::Weight;
 use subxt::{
     blocks,
+    config::ExtrinsicParams,
     tx,
     Config,
     OnlineClient,
@@ -363,7 +364,7 @@ async fn submit_extrinsic<T, Call>(
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
-    <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
+    <T::ExtrinsicParams as ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
     Call: tx::TxPayload,
 {
     client
