@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "2.0.0-beta.2"
+version = "2.0.0-rc"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -18,13 +18,13 @@ anyhow = "1.0.68"
 blake2 = "0.10.6"
 cargo_metadata = "0.15.0"
 colored = "2.0.0"
-clap = { version = "4.0.32", features = ["derive", "env"] }
+clap = { version = "4.1.4", features = ["derive", "env"] }
 heck = "0.4.0"
 hex = "0.4.3"
 impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-toml = "0.5.10"
+toml = "0.6.0"
 tracing = "0.1.37"
 parity-wasm = "0.45.0"
 proc-macro2 = "1"
@@ -35,10 +35,10 @@ serde_json = "1.0.91"
 tempfile = "3.3.0"
 url = { version = "2.3.1", features = ["serde"] }
 wasm-opt = "0.111.0"
-which = "4.3.0"
+which = "4.4.0"
 zip = { version = "0.6.3", default-features = false }
 
-contract-metadata = { version = "2.0.0-beta.2", path = "../metadata" }
+contract-metadata = { version = "2.0.0-rc", path = "../metadata" }
 
 [build-dependencies]
 anyhow = "1.0.68"

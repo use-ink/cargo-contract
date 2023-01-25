@@ -25,16 +25,21 @@ use colored::Colorize as _;
 use contract_build::Verbosity;
 use contract_transcode::{
     ContractMessageTranscoder,
+    Hex,
     TranscoderBuilder,
     Value,
 };
 
 use anyhow::Result;
-use std::fmt::Write;
+use std::{
+    fmt::Write,
+    str::FromStr,
+};
 use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
+    metadata::EventFieldMetadata,
 };
 
 /// Field that represent data of an event from invoking a contract extrinsic.
@@ -78,7 +83,7 @@ impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events(
         result: &ExtrinsicEvents<DefaultConfig>,
-        transcoder: &ContractMessageTranscoder,
+        transcoder: Option<&ContractMessageTranscoder>,
         subxt_metadata: &subxt::Metadata,
     ) -> Result<DisplayEvents> {
         let mut events: Vec<Event> = vec![];
@@ -111,22 +116,12 @@ impl DisplayEvents {
                 ) && field_metadata.name() == Some("data")
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    match transcoder.decode_contract_event(event_data) {
-                        Ok(contract_event) => {
-                            let field = Field::new(
-                                String::from("data"),
-                                contract_event,
-                                field_metadata.type_name().map(|s| s.to_string()),
-                            );
-                            event_entry.fields.push(field);
-                        }
-                        Err(err) => {
-                            tracing::warn!(
-                                "Decoding contract event failed: {:?}. It might have come from another contract.",
-                                err
-                            )
-                        }
-                    }
+                    let field = contract_event_data_field(
+                        transcoder,
+                        field_metadata,
+                        event_data,
+                    )?;
+                    event_entry.fields.push(field);
                 } else {
                     let field_name = field_metadata
                         .name()
@@ -165,7 +160,7 @@ impl DisplayEvents {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
-            "Events".bold(),
+            "Events".bright_purple().bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
         for event in &self.0 {
@@ -207,4 +202,32 @@ impl DisplayEvents {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
+}
+
+/// Construct the contract event data field, attempting to decode the event using the
+/// [`ContractMessageTranscoder`] if available.
+fn contract_event_data_field(
+    transcoder: Option<&ContractMessageTranscoder>,
+    field_metadata: &EventFieldMetadata,
+    event_data: &mut &[u8],
+) -> Result<Field> {
+    let event_value = if let Some(transcoder) = transcoder {
+        match transcoder.decode_contract_event(event_data) {
+            Ok(contract_event) => contract_event,
+            Err(err) => {
+                tracing::warn!(
+                    "Decoding contract event failed: {:?}. It might have come from another contract.",
+                    err
+                );
+                Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+            }
+        }
+    } else {
+        Value::Hex(Hex::from_str(&hex::encode(event_data))?)
+    };
+    Ok(Field::new(
+        String::from("data"),
+        event_value,
+        field_metadata.type_name().map(|s| s.to_string()),
+    ))
 }

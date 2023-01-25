@@ -105,6 +105,7 @@ mod util;
 
 pub use self::{
     scon::{
+        Hex,
         Map,
         Tuple,
         Value,
@@ -624,6 +625,30 @@ mod tests {
         let expected = Value::Tuple(Tuple::new(
             "Ok".into(),
             [Value::Bool(true)].into_iter().collect(),
+        ));
+        assert_eq!(expected, decoded);
+    }
+
+    #[test]
+    fn decode_lang_error() {
+        use ink::primitives::LangError;
+
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded =
+            Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
+        let decoded = transcoder
+            .decode_return("get", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
+
+        let expected = Value::Tuple(Tuple::new(
+            "Err".into(),
+            [Value::Tuple(Tuple::new(
+                Some("CouldNotReadInput"),
+                Vec::new(),
+            ))]
+            .to_vec(),
         ));
         assert_eq!(expected, decoded);
     }

@@ -82,7 +82,7 @@ jobs:
 
       - name: Install wasm-opt
         if: ${{ runner.os == 'Windows' }}
-        uses: engineerd/configurator@v0.0.8
+        uses: engineerd/configurator@v0.0.9
         with:
           name: wasm-opt.exe
           url: https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz
@@ -139,7 +139,7 @@ jobs:
 
       - name: Install wasm-opt
         if: ${{ runner.os == 'Windows' }}
-        uses: engineerd/configurator@v0.0.8
+        uses: engineerd/configurator@v0.0.9
         with:
           name: wasm-opt.exe
           url: https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz
