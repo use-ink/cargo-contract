@@ -550,7 +550,7 @@ dependencies = [
  "serde_json",
  "sp-core",
  "sp-runtime",
- "sp-weights 9.0.0",
+ "sp-weights",
  "substrate-build-script-utils",
  "subxt",
  "tempfile",
@@ -2515,7 +2515,7 @@ dependencies = [
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",
- "sp-weights 8.0.0",
+ "sp-weights",
 ]
 
 [[package]]
@@ -3502,21 +3502,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp-arithmetic"
-version = "10.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb16ffd6331b8cecb158bde7dd8803d3aec7c21166a9b679814a9f2b983dea5"
-dependencies = [
- "integer-sqrt",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-std",
- "static_assertions",
-]
-
-[[package]]
 name = "sp-core"
 version = "11.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3667,11 +3652,11 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-application-crypto",
- "sp-arithmetic 9.0.0",
+ "sp-arithmetic",
  "sp-core",
  "sp-io",
  "sp-std",
- "sp-weights 8.0.0",
+ "sp-weights",
 ]
 
 [[package]]
@@ -3808,23 +3793,7 @@ dependencies = [
  "scale-info",
  "serde",
  "smallvec",
- "sp-arithmetic 9.0.0",
- "sp-core",
- "sp-debug-derive",
- "sp-std",
-]
-
-[[package]]
-name = "sp-weights"
-version = "9.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cc2211e5a18ca23024c14b9500da99cc95c56219b4edc5c406cd7632414bac0"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
- "smallvec",
- "sp-arithmetic 10.0.0",
+ "sp-arithmetic",
  "sp-core",
  "sp-debug-derive",
  "sp-std",
