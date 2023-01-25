@@ -149,7 +149,6 @@ pub fn init_tracing_subscriber() {
 /// ** This test is ignored for now since the substrate-contracts-node is not installed on CI **
 /// It will be addressed in a follow up PR, for now it can be run locally by commenting out the
 /// `ignore` attribute below
-#[ignore]
 #[async_std::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
@@ -193,22 +192,14 @@ async fn build_upload_instantiate_call() {
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {}", stderr);
 
-    // find the code hash in the output
-    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
-    let caps = regex.captures(stdout).expect("Failed to find codehash");
-    let code_hash = caps.get(1).unwrap().as_str();
-    assert_eq!(64, code_hash.len());
-
-    tracing::debug!("Instantiating the contract with code hash `{}`", code_hash);
+    tracing::debug!("Instantiating the contract");
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
         .args(["--args", "true"])
-        .args(["--code-hash", code_hash])
         .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
