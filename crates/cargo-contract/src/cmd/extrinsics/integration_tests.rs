@@ -149,6 +149,7 @@ pub fn init_tracing_subscriber() {
 /// ** This test is ignored for now since the substrate-contracts-node is not installed on CI **
 /// It will be addressed in a follow up PR, for now it can be run locally by commenting out the
 /// `ignore` attribute below
+#[ignore]
 #[async_std::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
@@ -192,7 +193,6 @@ async fn build_upload_instantiate_call() {
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {}", stderr);
 
@@ -248,6 +248,7 @@ async fn build_upload_instantiate_call() {
 
 /// Sanity test the whole lifecycle of:
 /// build -> upload -> remove
+#[ignore]
 #[async_std::test]
 async fn build_upload_remove() {
     init_tracing_subscriber();
@@ -286,7 +287,6 @@ async fn build_upload_remove() {
         .output()
         .expect("failed to execute process");
     println!("status: {}", output.status);
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {}", stderr);
 
@@ -296,7 +296,6 @@ async fn build_upload_remove() {
         .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "remove failed: {}", stderr);
 
