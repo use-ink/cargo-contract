@@ -336,11 +336,11 @@ impl Exec {
             };
             println!("{}", display_instantiate_result.to_json()?)
         } else {
+            println!("{}", events.display_events(self.verbosity, token_metadata)?);
             if let Some(code_hash) = code_hash {
                 name_value_println!("Code hash", format!("{:?}", code_hash));
             }
             name_value_println!("Contract", contract_address);
-            println!("{}", events.display_events(self.verbosity, token_metadata)?)
         };
         Ok(())
     }

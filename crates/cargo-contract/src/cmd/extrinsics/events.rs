@@ -160,7 +160,7 @@ impl DisplayEvents {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
-            "Events".bold(),
+            "Events".bright_purple().bold(),
             width = DEFAULT_KEY_COL_WIDTH
         );
         for event in &self.0 {
