@@ -114,7 +114,7 @@ impl CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
             root_package,
-            contract_artifact_name: package_name.to_string(),
+            contract_artifact_name: package_name,
             original_wasm: original_wasm.into(),
             dest_wasm: dest_wasm.into(),
             ink_version,
