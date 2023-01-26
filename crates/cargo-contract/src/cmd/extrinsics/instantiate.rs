@@ -288,7 +288,7 @@ impl Exec {
                 self.print_default_instantiate_preview(gas_limit);
                 name_value_println!(
                     "Code hash",
-                    format!("{:?}", code_hash),
+                    format!("{code_hash:?}"),
                     DEFAULT_KEY_COL_WIDTH
                 );
             })?;
@@ -330,7 +330,7 @@ impl Exec {
 
         if self.output_json {
             let display_instantiate_result = InstantiateResult {
-                code_hash: code_hash.map(|ch| format!("{:?}", ch)),
+                code_hash: code_hash.map(|ch| format!("{ch:?}")),
                 contract: Some(contract_address),
                 events,
             };
@@ -338,7 +338,7 @@ impl Exec {
         } else {
             println!("{}", events.display_events(self.verbosity, token_metadata)?);
             if let Some(code_hash) = code_hash {
-                name_value_println!("Code hash", format!("{:?}", code_hash));
+                name_value_println!("Code hash", format!("{code_hash:?}"));
             }
             name_value_println!("Contract", contract_address);
         };

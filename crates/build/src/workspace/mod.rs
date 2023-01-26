@@ -65,8 +65,7 @@ impl Workspace {
                     .find(|p| p.id == *package_id)
                     .unwrap_or_else(|| {
                         panic!(
-                            "Package '{}' is a member and should be in the packages list",
-                            package_id
+                            "Package '{package_id}' is a member and should be in the packages list"
                         )
                     });
                 let manifest_path = ManifestPath::new(&package.manifest_path)?;
