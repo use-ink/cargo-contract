@@ -31,7 +31,6 @@ use serde_json::{
     Value,
 };
 use std::{
-    ffi::OsStr,
     fmt::Write,
     fs,
     path::{
