@@ -128,10 +128,9 @@ fn check_import(module: &str, field: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "An unexpected import function was found in the contract Wasm: {}.\n\
+            "An unexpected import function was found in the contract Wasm: {field}.\n\
             Import funtions must either be prefixed with 'memory', or part \
-            of a module prefixed with 'seal'",
-            field
+            of a module prefixed with 'seal'"
         ))
     }
 }

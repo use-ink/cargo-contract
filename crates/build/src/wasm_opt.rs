@@ -58,7 +58,7 @@ impl WasmOptHandler {
         // We'll create a temporary file for our optimized Wasm binary. Note that we'll later
         // overwrite this with the original path of the Wasm binary.
         let mut dest_optimized = dest_wasm.clone();
-        dest_optimized.set_file_name(format!("{}-opt.wasm", contract_artifact_name));
+        dest_optimized.set_file_name(format!("{contract_artifact_name}-opt.wasm"));
 
         tracing::debug!(
             "Optimization level passed to wasm-opt: {}",
@@ -119,7 +119,7 @@ impl fmt::Display for OptimizationPasses {
             OptimizationPasses::S => "s",
             OptimizationPasses::Z => "z",
         };
-        write!(f, "{}", out)
+        write!(f, "{out}")
     }
 }
 

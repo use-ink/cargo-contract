@@ -229,7 +229,7 @@ impl CallCommand {
             display_events
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
-        println!("{}", output);
+        println!("{output}");
 
         Ok(())
     }

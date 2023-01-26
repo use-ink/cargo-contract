@@ -195,7 +195,7 @@ async fn build_upload_instantiate_call() {
     println!("status: {}", output.status);
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "upload code failed: {}", stderr);
+    assert!(output.status.success(), "upload code failed: {stderr}");
 
     // find the code hash in the output
     let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
@@ -214,7 +214,7 @@ async fn build_upload_instantiate_call() {
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "instantiate failed: {}", stderr);
+    assert!(output.status.success(), "instantiate failed: {stderr}");
 
     // find the contract address in the output
     let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
@@ -222,7 +222,7 @@ async fn build_upload_instantiate_call() {
         .captures(stdout)
         .expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
-    assert_eq!(48, contract_account.len(), "{:?}", stdout);
+    assert_eq!(48, contract_account.len(), "{stdout:?}");
 
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())

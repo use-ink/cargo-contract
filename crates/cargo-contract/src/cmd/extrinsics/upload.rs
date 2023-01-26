@@ -174,7 +174,7 @@ impl UploadCommand {
             display_events
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
-        println!("{}", output);
+        println!("{output}");
         let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
         Ok(code_stored)
     }
