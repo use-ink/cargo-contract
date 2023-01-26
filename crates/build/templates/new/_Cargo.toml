@@ -11,11 +11,12 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
 [lib]
-name = "{{name}}"
 path = "lib.rs"
 crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
+    # Defaults to "rlib" so this contract can be used as a dependency.
+	# Replace with "cdylib" for Wasm builds.
+    # This is done automatically by `cargo-contract`.
+	"rlib",
 ]
 
 [features]
