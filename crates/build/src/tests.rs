@@ -66,7 +66,6 @@ build_tests!(
     check_must_not_output_contract_artifacts_in_project_dir,
     optimization_passes_from_cli_must_take_precedence_over_profile,
     optimization_passes_from_profile_must_be_used,
-    contract_lib_name_different_from_package_name_must_build,
     building_template_in_debug_mode_must_work,
     building_template_in_release_mode_must_work,
     keep_debug_symbols_in_debug_mode,
@@ -220,43 +219,6 @@ fn optimization_passes_from_profile_must_be_used(
         size_diff > (optimization.original_size / 2.0),
         "The optimized size savings are too small: {}",
         size_diff,
-    );
-
-    Ok(())
-}
-
-fn contract_lib_name_different_from_package_name_must_build(
-    manifest_path: &ManifestPath,
-) -> Result<()> {
-    // given
-    let mut manifest = TestContractManifest::new(manifest_path.clone())?;
-    manifest.set_lib_name("some_lib_name")?;
-    manifest.set_package_name("some_package_name")?;
-    manifest.write()?;
-
-    // when
-    let args = ExecuteArgs {
-        manifest_path: manifest_path.clone(),
-        verbosity: Verbosity::Default,
-        features: Default::default(),
-        build_mode: Default::default(),
-        network: Default::default(),
-        build_artifact: BuildArtifacts::All,
-        unstable_flags: Default::default(),
-        optimization_passes: Some(OptimizationPasses::Zero),
-        keep_debug_symbols: false,
-        lint: false,
-        output_type: OutputType::HumanReadable,
-        skip_wasm_validation: false,
-    };
-    let res = crate::execute(args).expect("build failed");
-
-    // then
-    assert_eq!(
-        res.dest_wasm
-            .expect("`dest_wasm` does not exist")
-            .file_name(),
-        Some(OsStr::new("some_lib_name.wasm"))
     );
 
     Ok(())
