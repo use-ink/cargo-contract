@@ -34,7 +34,7 @@ use contract_build::{
     OutputType,
 };
 use std::{
-    fmt::Display,
+    fmt::Debug,
     path::PathBuf,
     str::FromStr,
 };
@@ -136,7 +136,7 @@ fn main() {
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("{err:#}");
+            eprintln!("{err:?}");
             std::process::exit(1);
         }
     }
@@ -207,10 +207,10 @@ fn map_extrinsic_err(err: ErrorVariant, is_json: bool) -> Error {
     }
 }
 
-fn format_err<E: Display>(err: E) -> Error {
+fn format_err<E: Debug>(err: E) -> Error {
     anyhow!(
         "{} {}",
         "ERROR:".bright_red().bold(),
-        format!("{err}").bright_red()
+        format!("{err:?}").bright_red()
     )
 }
