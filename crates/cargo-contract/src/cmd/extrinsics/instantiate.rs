@@ -53,10 +53,7 @@ use contract_build::{
 use pallet_contracts_primitives::ContractInstantiateResult;
 
 use scale::Encode;
-use sp_core::{
-    crypto::Ss58Codec,
-    Bytes,
-};
+use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
     blocks::ExtrinsicEvents,
@@ -200,7 +197,7 @@ impl Exec {
                 Ok(ref ret_val) => {
                     let dry_run_result = InstantiateDryRunResult {
                         result: String::from("Success!"),
-                        contract: ret_val.account_id.to_ss58check(),
+                        contract: ret_val.account_id.to_string(),
                         reverted: ret_val.result.did_revert(),
                         data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
@@ -318,7 +315,7 @@ impl Exec {
         &self,
         result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
-        contract_address: sp_core::crypto::AccountId32,
+        contract_address: subxt::utils::AccountId32,
         token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
@@ -326,7 +323,7 @@ impl Exec {
             Some(&self.transcoder),
             &self.client.metadata(),
         )?;
-        let contract_address = contract_address.to_ss58check();
+        let contract_address = contract_address.to_string();
 
         if self.output_json {
             let display_instantiate_result = InstantiateResult {

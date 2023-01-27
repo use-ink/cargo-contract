@@ -66,6 +66,7 @@ use sp_core::{
 use sp_weights::Weight;
 use subxt::{
     blocks,
+    config,
     tx,
     Config,
     OnlineClient,
@@ -356,15 +357,17 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
 ///
 /// Currently this will report success once the transaction is included in a block. In the future
 /// there could be a flag to wait for finality before reporting success.
-async fn submit_extrinsic<T, Call>(
+async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
     call: &Call,
-    signer: &(dyn tx::Signer<T> + Send + Sync),
+    signer: &Signer,
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
-    <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
     Call: tx::TxPayload,
+    Signer: tx::Signer<T>,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
+        Default,
 {
     client
         .tx()
