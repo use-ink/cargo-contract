@@ -12,12 +12,6 @@ scale-info = { version = "2.3", default-features = false, features = ["derive"],
 
 [lib]
 path = "lib.rs"
-crate-type = [
-    # Defaults to "rlib" so this contract can be used as a dependency.
-	# Replace with "cdylib" for Wasm builds.
-    # This is done automatically by `cargo-contract`.
-	"rlib",
-]
 
 [features]
 default = ["std"]
