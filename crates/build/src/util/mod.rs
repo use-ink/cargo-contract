@@ -95,7 +95,7 @@ where
         // capture the stdout to return from this function as bytes
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .context(format!("Error executing `{:?}`", cmd))?;
+        .context(format!("Error executing `{cmd:?}`"))?;
     let output = child.wait_with_output()?;
 
     if output.status.success() {

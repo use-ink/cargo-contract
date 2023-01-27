@@ -429,7 +429,7 @@ impl<'a> PathRewrite<'a> {
 
         match table.get_mut("path") {
             Some(existing_path) => {
-                self.to_absolute_path(format!("[{}]/path", table_section), existing_path)
+                self.to_absolute_path(format!("[{table_section}]/path"), existing_path)
             }
             None => {
                 let default_path = PathBuf::from(default);
@@ -493,7 +493,7 @@ impl<'a> PathRewrite<'a> {
                     if let Some(dependency) = value.as_table_mut() {
                         if let Some(dep_path) = dependency.get_mut("path") {
                             self.to_absolute_path(
-                                format!("dependency {}", package_name),
+                                format!("dependency {package_name}"),
                                 dep_path,
                             )?;
                         }

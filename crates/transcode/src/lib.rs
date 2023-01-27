@@ -620,7 +620,7 @@ mod tests {
         let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
         let decoded = transcoder
             .decode_return("get", &mut &encoded[..])
-            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
             "Ok".into(),
@@ -640,7 +640,7 @@ mod tests {
             Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
         let decoded = transcoder
             .decode_return("get", &mut &encoded[..])
-            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
             "Err".into(),

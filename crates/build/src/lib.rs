@@ -530,10 +530,9 @@ fn assert_compatible_ink_dependencies(
         let _ = util::invoke_cargo("tree", args, manifest_path.directory(), verbosity, vec![])
             .with_context(|| {
                 format!(
-                    "Mismatching versions of `{}` were found!\n\
+                    "Mismatching versions of `{dependency}` were found!\n\
                      Please ensure that your contract and your ink! dependencies use a compatible \
-                     version of this package.",
-                    dependency
+                     version of this package."
                 )
             })?;
     }
@@ -602,7 +601,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("{}", steps).bold(),
+                format!("{steps}").bold(),
                 "Checking ink! linting rules".bright_green().bold()
             );
             steps.increment_current();
@@ -619,7 +618,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Building cargo project".bright_green().bold()
         );
         build_steps.increment_current();
@@ -636,7 +635,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Post processing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
@@ -645,7 +644,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Optimizing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
@@ -685,7 +684,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("{}", build_steps).bold(),
+                format!("{build_steps}").bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
             exec_cargo_for_wasm_target(
