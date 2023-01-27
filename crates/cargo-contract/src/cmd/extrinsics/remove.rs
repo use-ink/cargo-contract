@@ -15,33 +15,21 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api,
-    submit_extrinsic,
-    Client,
-    CodeHash,
-    ContractMessageTranscoder,
-    DefaultConfig,
-    ExtrinsicOpts,
-    PairSigner,
-    TokenMetadata,
+    runtime_api::api, submit_extrinsic, Client, CodeHash, ContractMessageTranscoder,
+    DefaultConfig, ExtrinsicOpts, PairSigner, TokenMetadata,
 };
 use crate::{
-    cmd::extrinsics::{
-        events::DisplayEvents,
-        ErrorVariant,
-        parse_code_hash
-    },
+    cmd::extrinsics::{events::DisplayEvents, parse_code_hash, ErrorVariant},
     name_value_println,
 };
-use anyhow::{anyhow, Result, Ok};
+use anyhow::{Ok, Result};
 use std::fmt::Debug;
-use subxt::{OnlineClient, Config};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
-     /// The hash of the smart contract code already uploaded to the chain.
-     /// It is possible to also use --
+    /// The hash of the smart contract code already uploaded to the chain.
     #[clap(long, value_parser = parse_code_hash)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
@@ -63,42 +51,47 @@ impl RemoveCommand {
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let artifacts_code = artifacts.code.ok_or_else(|| {
-            anyhow::anyhow!(
-                "Contract code not found from artifact file {}",
-                artifacts_path.display()
-            )
-        })?;
-
-        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref(), ) {
+        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
             (Some(code_hash), Some(_)) => {
                 code_hash;
+                Ok(())
             }
             (Some(code_hash), None) => {
                 code_hash;
+                Ok(())
             }
             (None, Some(_)) => {
-                artifacts_code.code_hash();
+                artifacts.code_hash()?;
+                Ok(())
             }
             (None, None) => {
-               Err("Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path");
+                Err(
+                anyhow::anyhow!(
+                "No code_hash was provided or contract code was not found from artifact file {}. Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path", 
+                artifacts_path.display()
+            ).into())
             }
         };
-    
+
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if let Some(code_removed) = self
-                .remove_code(&client, sp_core::H256(final_code_hash), &signer, &transcoder)
+                .remove_code(
+                    &client,
+                    sp_core::H256(final_code_hash),
+                    &signer,
+                    &transcoder,
+                )
                 .await?
             {
                 let remove_result = code_removed.code_hash;
-                
+
                 if self.output_json {
                     println!("{}", remove_result);
                 } else {
-                    name_value_println!("Code hash", format!("{:?}",remove_result));
+                    name_value_println!("Code hash", format!("{:?}", remove_result));
                 }
                 Ok(())
             } else {
