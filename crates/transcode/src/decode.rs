@@ -180,7 +180,8 @@ impl<'a> Decoder<'a> {
         let discriminant = input.read_byte()?;
         let variant = variant_type
             .variants()
-            .get(discriminant as usize)
+            .iter()
+            .find(|v| v.index == discriminant)
             .ok_or_else(|| {
                 anyhow::anyhow!("No variant found with discriminant {}", discriminant)
             })?;
