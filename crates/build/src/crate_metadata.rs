@@ -79,12 +79,11 @@ impl CrateMetadata {
                 // package name
                 use colored::Colorize;
                 eprintln!(
-                    "{} {}",
-                    "warning:".yellow().bold(),
-                    "the `name` field in the `[lib]` section of the `Cargo.toml`, \
+                    "{} the `name` field in the `[lib]` section of the `Cargo.toml`, \
                     is no longer used for the name of generated contract artifacts. \
                     The package name is used instead. Remove the `[lib] name` to \
-                    stop this warning."
+                    stop this warning.",
+                    "warning:".yellow().bold(),
                 );
             }
         }
