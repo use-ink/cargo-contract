@@ -153,9 +153,12 @@ impl Manifest {
             .toml
             .get_mut("lib")
             .ok_or_else(|| anyhow::anyhow!("lib section not found"))?;
+
         let crate_types = lib
-            .get_mut("crate-type")
-            .ok_or_else(|| anyhow::anyhow!("crate-type section not found"))?;
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))?
+            .entry("crate-type")
+            .or_insert(value::Value::Array(Default::default()));
 
         crate_types
             .as_array_mut()
