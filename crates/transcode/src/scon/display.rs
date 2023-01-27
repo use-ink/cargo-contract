@@ -67,7 +67,7 @@ impl<'a> Debug for DisplayMap<'a> {
             Some(ref name) => {
                 let mut builder = f.debug_struct(name);
                 for (name, value) in self.0.map.iter() {
-                    builder.field(&format!("{}", name), &DisplayValue(value));
+                    builder.field(&format!("{name}"), &DisplayValue(value));
                 }
                 builder.finish()
             }
@@ -109,7 +109,7 @@ impl<'a> Debug for DisplaySeq<'a> {
 
 impl Debug for Hex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:#x}", self)
+        write!(f, "{self:#x}")
     }
 }
 
@@ -135,14 +135,10 @@ mod tests {
                 .into_iter()
                 .collect(),
         ));
-        assert_eq!(
-            r#"M { a: 1 }"#,
-            format!("{}", map),
-            "non-alternate same line"
-        );
+        assert_eq!(r#"M { a: 1 }"#, format!("{map}"), "non-alternate same line");
         assert_eq!(
             "M {\n    a: 1,\n}",
-            format!("{:#}", map),
+            format!("{map:#}"),
             "alternate indented (pretty)"
         );
     }

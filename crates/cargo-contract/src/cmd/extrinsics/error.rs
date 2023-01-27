@@ -42,7 +42,7 @@ impl From<subxt::Error> for ErrorVariant {
 
 impl From<anyhow::Error> for ErrorVariant {
     fn from(error: anyhow::Error) -> Self {
-        Self::Generic(GenericError::from_message(format!("{:?}", error)))
+        Self::Generic(GenericError::from_message(format!("{error:?}")))
     }
 }
 
@@ -86,8 +86,7 @@ impl ErrorVariant {
             }
             err => {
                 Ok(ErrorVariant::Generic(GenericError::from_message(format!(
-                    "DispatchError: {:?}",
-                    err
+                    "DispatchError: {err:?}"
                 ))))
             }
         }

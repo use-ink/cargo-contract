@@ -203,6 +203,6 @@ pub struct Hash;
 impl CustomTypeDecoder for Hash {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let hash = sp_core::H256::decode(input)?;
-        Ok(Value::Hex(Hex::from_str(&format!("{:?}", hash))?))
+        Ok(Value::Hex(Hex::from_str(&format!("{hash:?}"))?))
     }
 }
