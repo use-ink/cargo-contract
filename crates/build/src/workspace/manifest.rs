@@ -165,6 +165,21 @@ impl Manifest {
             .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
     }
 
+    /// Set the contents of the `[lib] crate-types = []` section.
+    ///
+    /// Overwrites any existing crate types.
+    pub fn with_crate_types<'a, I>(&mut self, new_crate_types: I) -> Result<&mut Self>
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        let existing_crate_types = self.get_crate_types_mut()?;
+        existing_crate_types.clear();
+        for crate_type in new_crate_types.into_iter() {
+            existing_crate_types.push(crate_type.into())
+        }
+        Ok(self)
+    }
+
     /// Add a value to the `[lib] crate-types = []` section.
     ///
     /// If the value already exists, does nothing.

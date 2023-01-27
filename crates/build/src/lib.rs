@@ -288,8 +288,7 @@ fn exec_cargo_for_wasm_target(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
-                    .with_added_crate_type("cdylib")?
-                    .with_removed_crate_type("rlib")?
+                    .with_crate_types(["cdylib"])?
                     .with_profile_release_defaults(Profile::default_contract_release())?
                     .with_workspace()?;
                 Ok(())
