@@ -20,6 +20,7 @@ use super::{
     Client,
     CodeHash,
     ContractMessageTranscoder,
+    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
     TokenMetadata,
@@ -28,16 +29,21 @@ use crate::{
     cmd::extrinsics::{
         events::DisplayEvents,
         ErrorVariant,
+        parse_code_hash
     },
     name_value_println,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result, Ok};
 use std::fmt::Debug;
-use subxt::OnlineClient;
+use subxt::{OnlineClient, Config};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
+     /// The hash of the smart contract code already uploaded to the chain.
+     /// It is possible to also use --
+    #[clap(long, value_parser = parse_code_hash)]
+    code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
@@ -56,34 +62,48 @@ impl RemoveCommand {
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts.code.ok_or_else(|| {
+
+        let artifacts_code = artifacts.code.ok_or_else(|| {
             anyhow::anyhow!(
                 "Contract code not found from artifact file {}",
                 artifacts_path.display()
             )
         })?;
-        let code_hash = code.code_hash();
 
+        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref(), ) {
+            (Some(code_hash), Some(_)) => {
+                code_hash;
+            }
+            (Some(code_hash), None) => {
+                code_hash;
+            }
+            (None, Some(_)) => {
+                artifacts_code.code_hash();
+            }
+            (None, None) => {
+               Err("Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path");
+            }
+        };
+    
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if let Some(code_removed) = self
-                .remove_code(&client, sp_core::H256(code_hash), &signer, &transcoder)
+                .remove_code(&client, sp_core::H256(final_code_hash), &signer, &transcoder)
                 .await?
             {
-                let remove_result = RemoveResult {
-                    code_hash: format!("{:?}", code_removed.code_hash),
-                };
+                let remove_result = code_removed.code_hash;
+                
                 if self.output_json {
-                    println!("{}", remove_result.to_json()?);
+                    println!("{}", remove_result);
                 } else {
-                    remove_result.print();
+                    name_value_println!("Code hash", format!("{:?}",remove_result));
                 }
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
-                    "This contract could not have been removed for the supplied code hash: {code_hash:?}")
+                    "This contract could not have been removed for the supplied code hash: {final_code_hash:?}")
                 .into())
             }
         })
@@ -95,7 +115,7 @@ impl RemoveCommand {
         code_hash: CodeHash,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<api::contracts::events::CodeRemoved>, ErrorVariant> {
+    ) -> Result<Option<api::contracts::events::CodeRemoved>, anyhow::Error> {
         let call = super::runtime_api::api::tx()
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
@@ -114,20 +134,5 @@ impl RemoveCommand {
         println!("{}", output);
         let code_removed = result.find_first::<api::contracts::events::CodeRemoved>()?;
         Ok(code_removed)
-    }
-}
-
-/// Reference to an existing code hash or a new Wasm module.
-#[derive(serde::Serialize)]
-pub struct RemoveResult {
-    code_hash: String,
-}
-impl RemoveResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
     }
 }
