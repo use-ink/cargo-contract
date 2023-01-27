@@ -155,8 +155,8 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
     let mut cmd = MetadataCommand::new();
     let metadata = cmd
         .manifest_path(manifest_path.as_ref())
-        .exec()
-        .context("Error invoking `cargo metadata`")?;
+        .exec()?;
+        // .with_context(|| format!("Error invoking `cargo metadata` for {}", manifest_path.as_ref().display()))?;
     let root_package_id = metadata
         .resolve
         .as_ref()

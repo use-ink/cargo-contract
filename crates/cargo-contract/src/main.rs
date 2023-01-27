@@ -136,7 +136,7 @@ fn main() {
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("{err}");
+            eprintln!("{err:#}");
             std::process::exit(1);
         }
     }
