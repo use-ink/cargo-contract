@@ -66,8 +66,28 @@ impl CrateMetadata {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
-        // Normalize the package and lib name.
+        // Normalize the package name.
         let package_name = root_package.name.replace('-', "_");
+
+        if let Some(lib_name) = &root_package
+            .targets
+            .iter()
+            .find(|target| target.kind.iter().any(|t| t == "cdylib"))
+        {
+            if lib_name.name != root_package.name {
+                // warn user if they still specify a lib name different from the
+                // package name
+                use colored::Colorize;
+                eprintln!(
+                    "{} {}",
+                    "warning:".yellow().bold(),
+                    "the `name` field in the `[lib]` section of the `Cargo.toml`, \
+                    is no longer used for the name of generated contract artifacts. \
+                    The package name is used instead. Remove the `[lib] name` to \
+                    stop this warning."
+                );
+            }
+        }
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
