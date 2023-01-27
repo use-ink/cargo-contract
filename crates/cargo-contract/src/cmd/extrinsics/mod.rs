@@ -68,6 +68,7 @@ use sp_core::{
 use sp_weights::Weight;
 use subxt::{
     blocks,
+    config,
     tx,
     Config,
     OnlineClient,
@@ -180,7 +181,7 @@ impl ExtrinsicOpts {
         let mut res = self.url.to_string();
         match (self.url.port(), self.url.port_or_known_default()) {
             (None, Some(port)) => {
-                res.insert_str(res.len() - 1, &format!(":{}", port));
+                res.insert_str(res.len() - 1, &format!(":{port}"));
                 res
             }
             _ => res,
@@ -322,11 +323,11 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
 
     // print debug messages aligned, only first line has key
     if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
+        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!("", format!("{}", debug_message), WIDTH);
+        name_value_println!("", format!("{debug_message}"), WIDTH);
     }
     Ok(())
 }
@@ -338,11 +339,11 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
     if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{}", debug_message), WIDTH);
+        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
     }
 
     for debug_message in debug_message_lines {
-        name_value_println!("", format!("{}", debug_message), WIDTH);
+        name_value_println!("", format!("{debug_message}"), WIDTH);
     }
     Ok(())
 }
@@ -359,15 +360,17 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
 ///
 /// Currently this will report success once the transaction is included in a block. In the future
 /// there could be a flag to wait for finality before reporting success.
-async fn submit_extrinsic<T, Call>(
+async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
     call: &Call,
-    signer: &(dyn tx::Signer<T> + Send + Sync),
+    signer: &Signer,
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
 where
     T: Config,
-    <T::ExtrinsicParams as tx::ExtrinsicParams<T::Index, T::Hash>>::OtherParams: Default,
     Call: tx::TxPayload,
+    Signer: tx::Signer<T>,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
+        Default,
 {
     client
         .tx()

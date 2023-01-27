@@ -213,7 +213,7 @@ impl Display for SourceWasm {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
         for byte in &self.0 {
-            write!(f, "{:02x}", byte).expect("failed writing to string");
+            write!(f, "{byte:02x}").expect("failed writing to string");
         }
         write!(f, "")
     }
@@ -270,8 +270,7 @@ impl FromStr for SourceLanguage {
             .next()
             .ok_or_else(|| {
                 format!(
-                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
-                    s
+                    "SourceLanguage: Expected format '<language> <version>', got '{s}'"
                 )
             })
             .and_then(FromStr::from_str)?;
@@ -280,13 +279,12 @@ impl FromStr for SourceLanguage {
             .next()
             .ok_or_else(|| {
                 format!(
-                    "SourceLanguage: Expected format '<language> <version>', got '{}'",
-                    s
+                    "SourceLanguage: Expected format '<language> <version>', got '{s}'"
                 )
             })
             .and_then(|v| {
                 <Version as FromStr>::from_str(v)
-                    .map_err(|e| format!("Error parsing version {}", e))
+                    .map_err(|e| format!("Error parsing version {e}"))
             })?;
 
         Ok(Self { language, version })
@@ -319,7 +317,7 @@ impl FromStr for Language {
             "ink!" => Ok(Self::Ink),
             "Solidity" => Ok(Self::Solidity),
             "AssemblyScript" => Ok(Self::AssemblyScript),
-            _ => Err(format!("Invalid language '{}'", s)),
+            _ => Err(format!("Invalid language '{s}'")),
         }
     }
 }
@@ -349,8 +347,7 @@ impl FromStr for SourceCompiler {
             .next()
             .ok_or_else(|| {
                 format!(
-                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
-                    s
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{s}'"
                 )
             })
             .and_then(FromStr::from_str)?;
@@ -359,13 +356,12 @@ impl FromStr for SourceCompiler {
             .next()
             .ok_or_else(|| {
                 format!(
-                    "SourceCompiler: Expected format '<compiler> <version>', got '{}'",
-                    s
+                    "SourceCompiler: Expected format '<compiler> <version>', got '{s}'"
                 )
             })
             .and_then(|v| {
                 <Version as FromStr>::from_str(v)
-                    .map_err(|e| format!("Error parsing version {}", e))
+                    .map_err(|e| format!("Error parsing version {e}"))
             })?;
 
         Ok(Self { compiler, version })
@@ -422,7 +418,7 @@ impl FromStr for Compiler {
         match s {
             "rustc" => Ok(Self::RustC),
             "solang" => Ok(Self::Solang),
-            _ => Err(format!("Invalid compiler '{}'", s)),
+            _ => Err(format!("Invalid compiler '{s}'")),
         }
     }
 }

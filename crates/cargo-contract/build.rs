@@ -42,7 +42,7 @@ fn generate_cargo_keys() {
             Cow::from("unknown")
         }
         Err(err) => {
-            println!("cargo:warning=Failed to execute git command: {}", err);
+            println!("cargo:warning=Failed to execute git command: {err}");
             Cow::from("unknown")
         }
     };

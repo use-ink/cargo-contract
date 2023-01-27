@@ -148,7 +148,7 @@ fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .map_res(|(sign, parts)| {
             let digits = parts.join("");
             if let Some(sign) = sign {
-                let s = format!("{}{}", sign, digits);
+                let s = format!("{sign}{digits}");
                 s.parse::<i128>().map(Value::Int)
             } else {
                 digits.parse::<u128>().map(Value::UInt)

@@ -128,8 +128,7 @@ impl TranscoderBuilder {
                 tracing::debug!("Registered custom encoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
-                        "Attempted to register encoder with existing type id {:?}",
-                        type_id
+                        "Attempted to register encoder with existing type id {type_id:?}"
                     );
                 }
             }
@@ -157,8 +156,7 @@ impl TranscoderBuilder {
                 tracing::debug!("Registered custom decoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
-                        "Attempted to register decoder with existing type id {:?}",
-                        type_id
+                        "Attempted to register decoder with existing type id {type_id:?}"
                     );
                 }
             }

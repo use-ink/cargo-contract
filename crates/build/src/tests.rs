@@ -176,8 +176,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     let size_diff = optimization.original_size - optimization.optimized_size;
     assert!(
         0.0 < size_diff && size_diff < 10.0,
-        "The optimized size savings are larger than allowed or negative: {}",
-        size_diff,
+        "The optimized size savings are larger than allowed or negative: {size_diff}",
     );
     Ok(())
 }
@@ -218,8 +217,7 @@ fn optimization_passes_from_profile_must_be_used(
     let size_diff = optimization.original_size - optimization.optimized_size;
     assert!(
         size_diff > (optimization.original_size / 2.0),
-        "The optimized size savings are too small: {}",
-        size_diff,
+        "The optimized size savings are too small: {size_diff}",
     );
 
     Ok(())
@@ -405,7 +403,7 @@ fn missing_cargo_dylint_installation_must_be_detected(
     let res = super::execute(args).map(|_| ()).unwrap_err();
 
     // then
-    assert!(format!("{:?}", res).contains("cargo-dylint was not found!"));
+    assert!(format!("{res:?}").contains("cargo-dylint was not found!"));
 
     Ok(())
 }
@@ -541,7 +539,7 @@ fn build_byte_str(bytes: &[u8]) -> String {
     let mut str = String::new();
     write!(str, "0x").expect("failed writing to string");
     for byte in bytes {
-        write!(str, "{:02x}", byte).expect("failed writing to string");
+        write!(str, "{byte:02x}").expect("failed writing to string");
     }
     str
 }
@@ -569,7 +567,7 @@ impl BuildTestContext {
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(working_project_name);
 
-        let template_dir = tmp_dir.join(format!("{}_template", working_project_name));
+        let template_dir = tmp_dir.join(format!("{working_project_name}_template"));
 
         fs::rename(&working_dir, &template_dir)?;
         copy_dir_all(&template_dir, &working_dir)?;
@@ -593,12 +591,12 @@ impl BuildTestContext {
         name: &str,
         test: impl FnOnce(&ManifestPath) -> Result<()>,
     ) -> Result<()> {
-        println!("Running {}", name);
+        println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
-                println!("{} FAILED: {:?}", name, err);
+                println!("{name} FAILED: {err:?}");
             }
         }
         // revert to the original template files, but keep the `target` dir from the previous run.

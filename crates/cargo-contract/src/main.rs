@@ -140,7 +140,7 @@ fn main() {
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             std::process::exit(1);
         }
     }
@@ -150,7 +150,7 @@ fn exec(cmd: Command) -> Result<()> {
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;
-            println!("Created contract {}", name);
+            println!("Created contract {name}");
             Ok(())
         }
         Command::Build(build) => {
@@ -220,6 +220,6 @@ fn format_err<E: Display>(err: E) -> Error {
     anyhow!(
         "{} {}",
         "ERROR:".bright_red().bold(),
-        format!("{}", err).bright_red()
+        format!("{err}").bright_red()
     )
 }
