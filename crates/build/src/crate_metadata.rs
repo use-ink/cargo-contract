@@ -72,7 +72,7 @@ impl CrateMetadata {
         if let Some(lib_name) = &root_package
             .targets
             .iter()
-            .find(|target| target.kind.iter().any(|t| t == "cdylib"))
+            .find(|target| target.kind.iter().any(|t| t == "lib"))
         {
             if lib_name.name != root_package.name {
                 // warn user if they still specify a lib name different from the
