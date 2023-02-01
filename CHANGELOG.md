@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0-rc.1] - 2023-02-01
 Second release candidate compatible with `ink! 4.0.0-rc`.
 
-### Changes
+### Changed
 - Miscellaneous extrinsics display improvements [#916](https://github.com/paritytech/cargo-contract/pull/916)
 - Fix decoding of `LangError` [#919](https://github.com/paritytech/cargo-contract/pull/919)
 - Upgrade `subxt` to `0.26` [#924](https://github.com/paritytech/cargo-contract/pull/924)
