@@ -528,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "2.0.0-rc"
+version = "2.0.0-rc.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "2.0.0-rc"
+version = "2.0.0-rc.1"
 dependencies = [
  "anyhow",
  "blake2",
@@ -728,7 +728,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-rc"
+version = "2.0.0-rc.1"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -741,7 +741,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0-rc"
+version = "2.0.0-rc.1"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1727,7 +1727,7 @@ dependencies = [
 
 [[package]]
 name = "ink"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bc74e9a793c07d301b0a0dd11ca6c6232e26771efa7561576dbf72db7a1d8e1"
 dependencies = [
@@ -1743,7 +1743,7 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9246c3c68829d1411a7b8f9dc134064be051774cd10cf4b9b6b6fb1fb3ed5ae2"
 dependencies = [
@@ -1752,7 +1752,7 @@ dependencies = [
 
 [[package]]
 name = "ink_codegen"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b103ebe273c690d38120794462f5bb7e59358f6e41826260e88a63699f3571a9"
 dependencies = [
@@ -1776,7 +1776,7 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffdca870f3b3b7a90775444721303fbcf5a0f140d32fb2e82ecbc7920ac91c33"
 dependencies = [
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c5f9e40b2ecaf3e2300b90df5585a800697f1b24df6e646714bc9e86356b767"
 dependencies = [
@@ -1818,7 +1818,7 @@ dependencies = [
 
 [[package]]
 name = "ink_ir"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83aa14d3698d8995e6739bc3272f4df3090693d8d2445b04a8ab530ef0890ab4"
 dependencies = [
@@ -1832,7 +1832,7 @@ dependencies = [
 
 [[package]]
 name = "ink_macro"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92f3ed7554cdd920f169c7deaf631647088c232a7bc6dc6fd88afdfe15ffa359"
 dependencies = [
@@ -1848,7 +1848,7 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2388a808f432dcd4ee8253afea6e03898ef9c14dabf60202fb44845f5fc9eca9"
 dependencies = [
@@ -1862,7 +1862,7 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a42cfdf1db7078d0e2e01e5fb129144001aaacc68f0791ad294ff21a72373019"
 dependencies = [
@@ -1871,7 +1871,7 @@ dependencies = [
 
 [[package]]
 name = "ink_primitives"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2012114a5879fb102aeed780d4b5438429ae04522776655c35659b28d6cfcd87"
 dependencies = [
@@ -1884,7 +1884,7 @@ dependencies = [
 
 [[package]]
 name = "ink_storage"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e84d64cd54388f8cbe80925380df84a1e93523adb870bea87f94a0abd26fffcb"
 dependencies = [
@@ -1902,7 +1902,7 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "4.0.0-beta.1"
+version = "4.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1334db9344a24fb43aeb17c0db78ac6444acf6e53a89add842fee48d872e5a9e"
 dependencies = [

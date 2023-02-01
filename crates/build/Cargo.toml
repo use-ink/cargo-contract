@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "2.0.0-rc"
+version = "2.0.0-rc.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -36,7 +36,7 @@ wasm-opt = "0.111.0"
 which = "4.4.0"
 zip = { version = "0.6.3", default-features = false }
 
-contract-metadata = { version = "2.0.0-rc", path = "../metadata" }
+contract-metadata = { version = "2.0.0-rc.1", path = "../metadata" }
 
 [build-dependencies]
 anyhow = "1.0.68"
