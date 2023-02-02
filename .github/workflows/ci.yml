@@ -72,22 +72,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get install binaryen
-
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'macOS' }}
-        run: brew install binaryen
-
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'Windows' }}
-        uses: engineerd/configurator@v0.0.9
-        with:
-          name: wasm-opt.exe
-          url: https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz
-          pathInArchive: binaryen-version_109/bin/wasm-opt.exe
-
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -100,17 +84,6 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cargo-dylint
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: cargo-dylint
-          version: 2
-
-      - name: Install dylint-link
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: dylint-link
-          version: 2
 
       - name: Run Tests
         uses: actions-rs/cargo@v1
@@ -129,22 +102,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get install binaryen
-
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'macOS' }}
-        run: brew install binaryen
-
-      - name: Install wasm-opt
-        if: ${{ runner.os == 'Windows' }}
-        uses: engineerd/configurator@v0.0.9
-        with:
-          name: wasm-opt.exe
-          url: https://github.com/WebAssembly/binaryen/releases/download/version_109/binaryen-version_109-x86_64-windows.tar.gz
-          pathInArchive: binaryen-version_109/bin/wasm-opt.exe
-
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -157,23 +114,9 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cargo-dylint
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: cargo-dylint
-          version: 2
-
-      - name: Install dylint-link
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: dylint-link
-          version: 2
-
       - name: Check Template
         run: >-
-          wasm-opt --version &&
           cargo -vV &&
-          cargo dylint --version &&
           cargo run --profile debug-ci -- contract --version &&
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
