@@ -41,8 +41,8 @@ jobs:
           default: true
           components: clippy
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
+    #   - name: Cache
+    #     uses: Swatinem/rust-cache@v2
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -81,8 +81,8 @@ jobs:
           target: wasm32-unknown-unknown
           components: rust-src
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
+    #   - name: Cache
+    #     uses: Swatinem/rust-cache@v2
 
 
       - name: Run Tests
@@ -111,8 +111,8 @@ jobs:
           target: wasm32-unknown-unknown
           components: rust-src
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
+    #   - name: Cache
+    #     uses: Swatinem/rust-cache@v2
 
       - name: Check Template
         run: >-
