@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "2.0.0-rc.1"
+version = "2.0.0-rc"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,9 +18,9 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "2.0.0-rc.1", path = "../build" }
-contract-metadata = { version = "2.0.0-rc.1", path = "../metadata" }
-contract-transcode = { version = "2.0.0-rc.1", path = "../transcode" }
+contract-build = { version = "2.0.0-rc", path = "../build" }
+contract-metadata = { version = "2.0.0-rc", path = "../metadata" }
+contract-transcode = { version = "2.0.0-rc", path = "../transcode" }
 
 anyhow = "1.0.68"
 clap = { version = "4.1.4", features = ["derive", "env"] }
@@ -36,10 +36,10 @@ rust_decimal = "1.28"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "14.0.0"
-sp-runtime = "16.0.0"
-sp-weights = "12.0.0"
-pallet-contracts-primitives = "16.0.0"
+sp-core = "11.0.0"
+sp-runtime = "12.0.0"
+sp-weights = "8.0.0"
+pallet-contracts-primitives = "12.0.0"
 subxt = "0.26.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
