@@ -9,6 +9,6 @@ extern "Rust" {
 fn main() -> Result<(), std::io::Error> {
     let metadata = unsafe { __ink_generate_metadata() };
     let contents = serde_json::to_string_pretty(&metadata)?;
-    print!("{}", contents);
+    print!("{contents}");
     Ok(())
 }

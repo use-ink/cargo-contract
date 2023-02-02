@@ -15,7 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use sp_runtime::DispatchError;
-use std::fmt::Display;
+use std::fmt::{
+    self,
+    Debug,
+    Display,
+};
 
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {
@@ -93,8 +97,14 @@ impl ErrorVariant {
     }
 }
 
+impl Debug for ErrorVariant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as Display>::fmt(self, f)
+    }
+}
+
 impl Display for ErrorVariant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorVariant::Module(err) => {
                 f.write_fmt(format_args!(
