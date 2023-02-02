@@ -53,7 +53,7 @@ impl TestCommand {
 
 /// Result of the test runs.
 pub struct TestResult {
-    /// The `cargo +nightly test` child process standard output stream buffer.
+    /// The `cargo test` child process standard output stream buffer.
     pub stdout: Vec<u8>,
     /// The verbosity flags.
     pub verbosity: Verbosity,
