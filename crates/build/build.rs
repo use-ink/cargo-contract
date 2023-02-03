@@ -51,7 +51,7 @@ fn main() {
     match res {
         Ok(()) => std::process::exit(0),
         Err(err) => {
-            eprintln!("Encountered error: {:?}", err);
+            eprintln!("Encountered error: {err:?}");
             std::process::exit(1)
         }
     }

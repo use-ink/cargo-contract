@@ -193,7 +193,7 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
             .and_then(|v| v.as_str())
             .map(Url::parse)
             .transpose()
-            .context(format!("{} should be a valid URL", field_name))
+            .context(format!("{field_name} should be a valid URL"))
             .map_err(Into::into)
     };
 
