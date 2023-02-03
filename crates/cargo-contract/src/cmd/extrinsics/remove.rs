@@ -15,16 +15,33 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api, submit_extrinsic, Client, CodeHash, ContractMessageTranscoder,
-    DefaultConfig, ExtrinsicOpts, PairSigner, TokenMetadata,
+    runtime_api::api,
+    submit_extrinsic,
+    Client,
+    CodeHash,
+    ContractMessageTranscoder,
+    DefaultConfig,
+    ExtrinsicOpts,
+    PairSigner,
+    TokenMetadata,
 };
 use crate::{
-    cmd::extrinsics::{events::DisplayEvents, parse_code_hash, ErrorVariant},
+    cmd::extrinsics::{
+        events::DisplayEvents,
+        parse_code_hash,
+        ErrorVariant,
+    },
     name_value_println,
 };
-use anyhow::{Ok, Result};
+use anyhow::{
+    Ok,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
@@ -52,35 +69,32 @@ impl RemoveCommand {
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
         let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
-            (Some(code_hash), Some(_)) => {
-                code_hash;
-                Ok(())
+            (Some(code_h), Some(_)) => {
+                Ok(code_h.0)
             }
-            (Some(code_hash), None) => {
-                code_hash;
-                Ok(())
+            (Some(code_h), None) => {
+                Ok(code_h.0)
             }
             (None, Some(_)) => {
-                artifacts.code_hash()?;
-                Ok(())
+                let interm_artifacts_code = artifacts.code_hash()?;
+                Ok(interm_artifacts_code)
             }
             (None, None) => {
                 Err(
-                anyhow::anyhow!(
-                "No code_hash was provided or contract code was not found from artifact file {}. Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path", 
-                artifacts_path.display()
-            ).into())
+                    anyhow::anyhow!(
+                    "No code_hash was provided or contract code was not found from artifact file {}. Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path", 
+                    artifacts_path.display()
+                ))
             }
         };
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
-
             if let Some(code_removed) = self
                 .remove_code(
                     &client,
-                    sp_core::H256(final_code_hash),
+                    sp_core::H256(final_code_hash?),
                     &signer,
                     &transcoder,
                 )
@@ -89,15 +103,17 @@ impl RemoveCommand {
                 let remove_result = code_removed.code_hash;
 
                 if self.output_json {
-                    println!("{}", remove_result);
+                    println!("{}", &remove_result);
                 } else {
-                    name_value_println!("Code hash", format!("{:?}", remove_result));
+                    name_value_println!("Code hash", format!("{remove_result:?}"));
                 }
-                Ok(())
+                Result::<(), ErrorVariant>::Ok(())
             } else {
+                let art_code_hash = artifacts.code_hash();
+                let error_code_hash = hex::encode(art_code_hash?);
                 Err(anyhow::anyhow!(
-                    "This contract could not have been removed for the supplied code hash: {final_code_hash:?}")
-                .into())
+                    "This contract could not have been removed for the supplied code hash: {}", error_code_hash)
+                    .into())
             }
         })
     }
@@ -124,7 +140,7 @@ impl RemoveCommand {
             display_events
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
-        println!("{}", output);
+        println!("{output}");
         let code_removed = result.find_first::<api::contracts::events::CodeRemoved>()?;
         Ok(code_removed)
     }

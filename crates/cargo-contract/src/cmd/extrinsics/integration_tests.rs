@@ -288,7 +288,7 @@ async fn build_upload_remove() {
         .expect("failed to execute process");
     println!("status: {}", output.status);
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "upload code failed: {}", stderr);
+    assert!(output.status.success(), "upload code failed: {stderr}");
 
     tracing::debug!("Removing the contract");
     let output = cargo_contract(project_path.as_path())
@@ -297,7 +297,7 @@ async fn build_upload_remove() {
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "remove failed: {}", stderr);
+    assert!(output.status.success(), "remove failed: {stderr}");
 
     let _ = node_process;
 }
