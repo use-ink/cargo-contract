@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Respect the lockfile [#948](https://github.com/paritytech/cargo-contract/pull/948)
+
 ## [2.0.0-rc.1] - 2023-02-01
 Second release candidate compatible with `ink! 4.0.0-rc`.
 
