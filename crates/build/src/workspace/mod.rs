@@ -200,7 +200,7 @@ impl Workspace {
             .tempdir()?;
         tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
         let new_paths = self.write(&tmp_dir)?;
-        let root_manifest_path = new_paths
+        let tmp_root_manifest_path = new_paths
             .iter()
             .find_map(|(pid, path)| {
                 if *pid == self.root_package {
@@ -210,6 +210,21 @@ impl Workspace {
                 }
             })
             .expect("root package should be a member of the temp workspace");
-        f(root_manifest_path)
+
+        // copy the `Cargo.lock` file
+        let src_lockfile = self.workspace_root.clone().join("Cargo.lock");
+        let dest_lockfile = tmp_root_manifest_path
+            .absolute_directory()?
+            .join("Cargo.lock");
+        if src_lockfile.exists() {
+            tracing::debug!(
+                "Copying '{}' to ' '{}'",
+                src_lockfile.display(),
+                dest_lockfile.display()
+            );
+            std::fs::copy(src_lockfile, dest_lockfile)?;
+        }
+
+        f(tmp_root_manifest_path)
     }
 }
