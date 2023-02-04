@@ -827,7 +827,7 @@ mod unit_tests {
         let raw_result = r#"{
   "dest_wasm": "/path/to/contract.wasm",
   "metadata_result": {
-    "dest_metadata": "/path/to/metadata.json",
+    "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
   },
   "target_directory": "/path/to/target",
@@ -844,7 +844,7 @@ mod unit_tests {
         let build_result = BuildResult {
             dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
             metadata_result: Some(MetadataResult {
-                dest_metadata: PathBuf::from("/path/to/metadata.json"),
+                dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),
             target_directory: PathBuf::from("/path/to/target"),
