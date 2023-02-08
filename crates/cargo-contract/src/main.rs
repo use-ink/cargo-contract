@@ -110,9 +110,6 @@ enum Command {
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
-    /// Test the smart contract off-chain
-    #[clap(name = "test")]
-    Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
     Upload(UploadCommand),
