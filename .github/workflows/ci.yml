@@ -121,5 +121,4 @@ jobs:
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run --profile debug-ci -- contract test --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release

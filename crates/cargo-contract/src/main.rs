@@ -170,13 +170,6 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Test(test) => {
-            let res = test.exec().map_err(format_err)?;
-            if res.verbosity.is_verbose() {
-                println!("{}", res.display()?)
-            }
-            Ok(())
-        }
         Command::Upload(upload) => {
             upload
                 .run()

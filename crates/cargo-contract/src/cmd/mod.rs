@@ -16,7 +16,6 @@
 
 pub mod build;
 pub mod decode;
-pub mod test;
 
 pub(crate) use self::{
     build::{
@@ -24,7 +23,6 @@ pub(crate) use self::{
         CheckCommand,
     },
     decode::DecodeCommand,
-    test::TestCommand,
 };
 mod extrinsics;
 
