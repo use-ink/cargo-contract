@@ -97,10 +97,6 @@ deploying the contract on-chain.
 Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
 
-##### `cargo contract test`
-
-Runs test suites defined for a smart contract off-chain.
-
 ##### `cargo contract upload`
 
 Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).

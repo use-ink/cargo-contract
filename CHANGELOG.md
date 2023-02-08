@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Respect the lockfile [#948](https://github.com/paritytech/cargo-contract/pull/948)
 
+### Removed
+- Remove the `test` command [#958](https://github.com/paritytech/cargo-contract/pull/958)
+
 ## [2.0.0-rc.1] - 2023-02-01
 Second release candidate compatible with `ink! 4.0.0-rc`.
 
