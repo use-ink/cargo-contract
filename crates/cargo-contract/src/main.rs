@@ -25,7 +25,6 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
-    TestCommand,
     UploadCommand,
 };
 use contract_build::{
