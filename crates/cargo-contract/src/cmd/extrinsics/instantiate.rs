@@ -266,29 +266,32 @@ impl Exec {
             .find_first::<api::contracts::events::CodeStored>()?
             .map(|code_stored| code_stored.code_hash);
 
-        // //TODO:Rremove the useless part 
+        // //TODO:Remove the useless part
         // let instantiated = result
         //     .find_first::<api::contracts::events::Instantiated>()?
         //     .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
-
-        
-        // println!("Test Code Hash Instantiated'{:?}'", instantiated.contract.to_string());
-        
         let last_instantiated = result
             .iter()
             .filter_map(|ev| {
-                ev.and_then(|ev| ev.as_event::<api::contracts::events::Instantiated>().map_err(Into::into))
-                .transpose()
+                ev.and_then(|ev| {
+                    ev.as_event::<api::contracts::events::Instantiated>()
+                        .map_err(Into::into)
+                })
             })
             .last()
             .transpose()?
             .ok_or_else(|| anyhow!("Failed to find Last Instantiated event"))?;
 
-        println!("Test Code Hash Last Instantiated'{:?}'", last_instantiated.contract.to_string());
+        // println!("Test Code Hash Last Instantiated'{:?}'", last_instantiated.contract.to_string());
 
         let token_metadata = TokenMetadata::query(&self.client).await?;
-        self.display_result(&result, code_hash, last_instantiated.contract, &token_metadata)
-            .await
+        self.display_result(
+            &result,
+            code_hash,
+            last_instantiated.contract,
+            &token_metadata,
+        )
+        .await
     }
 
     async fn instantiate(
