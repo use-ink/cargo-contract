@@ -162,7 +162,9 @@ impl Default for BuildSteps {
 
 impl fmt::Display for BuildSteps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let total_steps = self.total_steps.map_or("*".to_string(), |steps| steps.to_string());
+        let total_steps = self
+            .total_steps
+            .map_or("*".to_string(), |steps| steps.to_string());
         write!(f, "[{}/{}]", self.current_step, total_steps)
     }
 }
