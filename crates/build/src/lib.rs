@@ -635,7 +635,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 )
             })?;
 
-        if pre_fingerprint == Some(post_fingerprint) {
+        if pre_fingerprint == Some(post_fingerprint)
+            && crate_metadata.dest_wasm.exists()
+            && crate_metadata.metadata_path().exists()
+            && crate_metadata.contract_bundle_path().exists()
+        {
             tracing::info!(
                 "No changes in the original wasm at {}, fingerprint {:?}",
                 crate_metadata.original_wasm.display(),
