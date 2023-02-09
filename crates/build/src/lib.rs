@@ -136,7 +136,7 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        let (opt_size_diff, new_lines) =
+        let (opt_size_diff, newlines) =
             if let Some(ref opt_result) = self.optimization_result {
                 let size_diff = format!(
                     "\nOriginal wasm size: {}, Optimized: {}\n\n",
@@ -177,7 +177,7 @@ impl BuildResult {
             opt_size_diff,
             build_mode,
             self.target_directory.display().to_string().bold(),
-            new_lines,
+            newlines,
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
