@@ -149,7 +149,7 @@ impl BuildResult {
                 );
                 (size_diff, "\n\n")
             } else {
-                (String::new(), "")
+                ("\n".to_string(), "")
             };
 
         let build_mode = format!(
