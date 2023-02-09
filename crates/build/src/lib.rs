@@ -756,9 +756,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
+/// Unique fingerprint for a file to detect whether it has changed.
 #[derive(Debug, Eq, PartialEq)]
 struct Fingerprint {
+    path: PathBuf,
     hash: [u8; 32],
+    modified: std::time::SystemTime,
 }
 
 impl Fingerprint {
@@ -767,9 +770,10 @@ impl Fingerprint {
         P: AsRef<Path>,
     {
         if path.as_ref().exists() {
-            let bytes = fs::read(path)?;
+            let modified = fs::metadata(&path)?.modified()?;
+            let bytes = fs::read(&path)?;
             let hash = blake2_hash(&bytes);
-            Ok(Some(Self { hash }))
+            Ok(Some(Self { path: path.as_ref().to_path_buf(), hash, modified }))
         } else {
             Ok(None)
         }
