@@ -136,7 +136,7 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        let opt_size_diff = if let Some(ref opt_result) = self.optimization_result {
+        let (opt_size_diff, new_lines) = if let Some(ref opt_result) = self.optimization_result {
             let size_diff = format!(
                 "\nOriginal wasm size: {}, Optimized: {}\n\n",
                 format!("{:.1}K", opt_result.original_size).bold(),
@@ -146,9 +146,9 @@ impl BuildResult {
                 opt_result.optimized_size > 0.0,
                 "optimized file size must be greater 0"
             );
-            size_diff
+            (size_diff, "\n\n")
         } else {
-            String::new()
+            (String::new(), "")
         };
 
         let build_mode = format!(
@@ -172,10 +172,11 @@ impl BuildResult {
         };
 
         let mut out = format!(
-            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}{}",
             opt_size_diff,
             build_mode,
             self.target_directory.display().to_string().bold(),
+            new_lines,
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
