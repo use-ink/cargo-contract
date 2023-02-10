@@ -276,8 +276,8 @@ impl Exec {
                 ev.and_then(|ev| {
                     ev.as_event::<api::contracts::events::Instantiated>()
                         .map_err(Into::into)
-                        .transpose()
                 })
+                .transpose()
             })
             .last()
             .transpose()?
