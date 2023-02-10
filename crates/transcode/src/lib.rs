@@ -208,7 +208,7 @@ impl ContractMessageTranscoder {
         let args: Vec<_> = args.into_iter().collect();
         if spec_args.len() != args.len() {
             anyhow::bail!(
-                "Invalid number of call arguments: expected {}, {} provided",
+                "Invalid number of input arguments: expected {}, {} provided",
                 spec_args.len(),
                 args.len()
             )
@@ -521,14 +521,14 @@ mod tests {
         assert!(result.is_err(), "Should return an error");
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Invalid number of call arguments: expected 1, 0 provided"
+            "Invalid number of input arguments: expected 1, 0 provided"
         );
 
         let result: Result<Vec<u8>> = transcoder.encode("new", ["true", "false"]);
         assert!(result.is_err(), "Should return an error");
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Invalid number of call arguments: expected 1, 2 provided"
+            "Invalid number of input arguments: expected 1, 2 provided"
         );
     }
 
