@@ -25,8 +25,11 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
+<<<<<<< HEAD
     RemoveCommand,
     TestCommand,
+=======
+>>>>>>> master
     UploadCommand,
 };
 use contract_build::{
@@ -112,9 +115,6 @@ enum Command {
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
-    /// Test the smart contract off-chain
-    #[clap(name = "test")]
-    Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
     Upload(UploadCommand),
@@ -171,13 +171,6 @@ fn exec(cmd: Command) -> Result<()> {
             );
             if res.verbosity.is_verbose() {
                 println!("\nYour contract's code was built successfully.")
-            }
-            Ok(())
-        }
-        Command::Test(test) => {
-            let res = test.exec().map_err(format_err)?;
-            if res.verbosity.is_verbose() {
-                println!("{}", res.display()?)
             }
             Ok(())
         }

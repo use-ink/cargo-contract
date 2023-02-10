@@ -84,7 +84,6 @@ pub use balance::{
     TokenMetadata,
 };
 pub use call::CallCommand;
-use contract_build::metadata::METADATA_FILE;
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
@@ -227,9 +226,13 @@ impl ContractArtifacts {
                     (PathBuf::from(path), Some(metadata), code)
                 }
                 Some("wasm") => {
+                    let file_name = path.file_stem()
+                        .context("WASM bundle file has unreadable name")?
+                        .to_str()
+                        .context("Error parsing filename string")?;
                     let code = Some(WasmCode(std::fs::read(path)?));
                     let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
-                    let metadata_path = dir.join(METADATA_FILE);
+                    let metadata_path = dir.join(format!("{file_name}.json"));
                     if !metadata_path.exists() {
                         (metadata_path, None, code)
                     } else {

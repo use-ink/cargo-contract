@@ -1,5 +1,5 @@
 # Extrinsics
-`cargo-contract` provides CLI support for uploading, instantiating and calling your contracts directly from the command 
+`cargo-contract` provides CLI support for uploading, instantiating and calling your contracts directly from the command
 line.
 
 ## Common arguments
@@ -27,13 +27,13 @@ bearing chains.
 ```
 --manifest-path
 ```
-*Optional*. The path to the `Cargo.toml` of the contract crate. Use this to run commands on a contract from outside of 
+*Optional*. The path to the `Cargo.toml` of the contract crate. Use this to run commands on a contract from outside of
 its project directory.
 
 ```
 --url
 ```
-*Optional*. The websockets url of an RPC node on the target chain. Defaults to a locally running node at 
+*Optional*. The websockets url of an RPC node on the target chain. Defaults to a locally running node at
 "ws://localhost:9944".
 
 ```
@@ -60,10 +60,10 @@ Assumes that `cargo contract build` has already been run to produce the contract
 
 ### `instantiate`
 
-Create an instance of a contract on chain. If the code has already been uploaded via `upload`, specify the resulting 
+Create an instance of a contract on chain. If the code has already been uploaded via `upload`, specify the resulting
 `--code-hash` which will result in a call to [`instantiate`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L460).
-If no `--code-hash` is specified it will attempt to both upload the code and instantiate via the 
-[`instantiate_with_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L419) 
+If no `--code-hash` is specified it will attempt to both upload the code and instantiate via the
+[`instantiate_with_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L419)
 dispatchable.
 
 e.g.
@@ -75,7 +75,7 @@ cargo contract instantiate \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
 ```
 - `--constructor` the name of the contract constructor method to invoke.
-- `--args` accepts a space separated list of values, encoded in order as the arguments of the constructor to invoke. 
+- `--args` accepts a space separated list of values, encoded in order as the arguments of the constructor to invoke.
 - `--code-hash` the hash of the uploaded code, returned from a call to `contract upload` or a previous
 `contract instantiate`
 
@@ -95,7 +95,7 @@ cargo contract call \
 
 - `--contract` the account id of the contract to invoke, returned after a successful `contract instantiate`.
 - `--message` the name of the contract message to invoke.
-- `--args` accepts a space separated list of values, encoded in order as the arguments of the message to invoke. 
+- `--args` accepts a space separated list of values, encoded in order as the arguments of the message to invoke.
 
 ### `remove`
 
@@ -117,13 +117,13 @@ If not specified the code hash will taken from the contract artifacts.
 ## Specifying the contract artifact
 
 The above examples assume the working directory is the contract source code where the `Cargo.toml` file is located.
-This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional 
+This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional
 argument to each of the extrinsic commands which allows specifying the contract artifact file directly. E.g.
 
 
 `cargo upload ../path/to/mycontract.wasm`
 `cargo instantiate ../path/to/mycontract.contract`
-`cargo call ..path/to/metadata.json`
+`cargo call ..path/to/mycontract.json`
 
 
 
