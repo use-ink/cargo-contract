@@ -194,6 +194,7 @@ impl fmt::Display for BuildMode {
 }
 
 /// The type of output to display at the end of a build.
+#[derive(Clone, Debug)]
 pub enum OutputType {
     /// Output build results in a human readable format.
     HumanReadable,

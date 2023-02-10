@@ -73,7 +73,8 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
-    generates_metadata
+    generates_metadata,
+    unchanged_contract_skips_optimization_and_metadata_steps
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -493,6 +494,40 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     assert_eq!("http://homepage.com/", homepage.as_str().unwrap());
     assert_eq!("Apache-2.0", license.as_str().unwrap());
     assert_eq!(&expected_user_metadata, user.as_object().unwrap());
+
+    Ok(())
+}
+
+fn unchanged_contract_skips_optimization_and_metadata_steps(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    // given
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        ..Default::default()
+    };
+
+    // when
+    let res1 = super::execute(args.clone()).expect("build failed");
+    let res2 = super::execute(args).expect("build failed");
+
+    // then
+    assert!(
+        res1.optimization_result.is_some(),
+        "Initial build should perform wasm optimization"
+    );
+    assert!(
+        res1.metadata_result.is_some(),
+        "Initial build should perform generate metadata"
+    );
+    assert!(
+        res2.metadata_result.is_none(),
+        "Subsequent build should not perform wasm optimization"
+    );
+    assert!(
+        res2.metadata_result.is_none(),
+        "Subsequent build should not generate metadata"
+    );
 
     Ok(())
 }

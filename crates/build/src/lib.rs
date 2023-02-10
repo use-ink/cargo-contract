@@ -95,7 +95,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Arguments to use when executing `build` or `check` commands.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
