@@ -14,16 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    util::tests::TestContractManifest,
-    BuildArtifacts,
-    BuildMode,
-    ExecuteArgs,
-    ManifestPath,
-    OptimizationPasses,
-    OutputType,
-    Verbosity,
-};
+use crate::{util::tests::TestContractManifest, BuildArtifacts, BuildMode, ExecuteArgs, ManifestPath, OptimizationPasses, OutputType, Verbosity, CrateMetadata};
 use anyhow::Result;
 use contract_metadata::*;
 use serde_json::{
@@ -393,7 +384,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     )?;
     test_manifest.write()?;
 
-    let crate_metadata = crate::crate_metadata::CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     // usually this file will be produced by a previous build step
     let final_contract_wasm_path = &crate_metadata.dest_wasm;
@@ -554,6 +545,7 @@ impl BuildTestContext {
     ) -> Result<()> {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
+        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
@@ -563,6 +555,10 @@ impl BuildTestContext {
         // revert to the original template files, but keep the `target` dir from the previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
+        // remove the original wasm artefact to force it to be rebuilt
+        if crate_metadata.original_wasm.exists() {
+            fs::remove_file(&crate_metadata.original_wasm)?;
+        }
         Ok(())
     }
 
