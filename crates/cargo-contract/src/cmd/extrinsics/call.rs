@@ -323,6 +323,6 @@ impl CallDryRunResult {
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Data", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }
