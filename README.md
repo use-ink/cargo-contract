@@ -119,7 +119,7 @@ The argument has to be given as hex-encoding, starting with `0x`.
 
 ##### `cargo contract remove`
 
-Remove a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
 
 ## License
 

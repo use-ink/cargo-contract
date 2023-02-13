@@ -107,7 +107,7 @@ e.g. `cargo contract remove --suri //Alice`
 Assumes that `cargo contract build` and `cargo contract upload` have already been run to produce the contract artifacts.
 This command will only succeed if there are no contract instances of this code. Contracts which have already been instantiated from this code must either `terminate` themselves or have their code changed via a `set_code` call to `pallet_contracts`.
 
-cargo contract instantiate \
+cargo contract remove \
        --suri //Alice \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
 
