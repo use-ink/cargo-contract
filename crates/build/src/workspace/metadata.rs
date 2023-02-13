@@ -125,7 +125,7 @@ impl MetadataPackage {
                 };
 
                 let contents = serde_json::to_string_pretty(&metadata)?;
-                print!("{}", contents);
+                print!("{contents}");
                 Ok(())
             }
         )
