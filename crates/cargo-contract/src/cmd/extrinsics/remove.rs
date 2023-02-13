@@ -69,15 +69,11 @@ impl RemoveCommand {
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
         let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
-            (Some(code_h), Some(_)) => {
-                Ok(code_h.0)
-            }
-            (Some(code_h), None) => {
+            (Some(code_h), _) => {
                 Ok(code_h.0)
             }
             (None, Some(_)) => {
-                let interm_artifacts_code = artifacts.code_hash()?;
-                Ok(interm_artifacts_code)
+                artifacts.code_hash()
             }
             (None, None) => {
                 Err(
@@ -112,8 +108,10 @@ impl RemoveCommand {
                 let art_code_hash = artifacts.code_hash();
                 let error_code_hash = hex::encode(art_code_hash?);
                 Err(anyhow::anyhow!(
-                    "This contract could not have been removed for the supplied code hash: {}", error_code_hash)
-                    .into())
+                    "Error removing the code for the supplied code hash: {}",
+                    error_code_hash
+                )
+                .into())
             }
         })
     }
