@@ -115,11 +115,11 @@ pub enum BuildArtifacts {
 impl BuildArtifacts {
     /// Returns the number of steps required to complete a build artifact.
     /// Used as output on the cli.
-    pub fn steps(&self) -> BuildSteps {
+    pub fn steps(&self) -> usize {
         match self {
-            BuildArtifacts::All => BuildSteps::new(5),
-            BuildArtifacts::CodeOnly => BuildSteps::new(4),
-            BuildArtifacts::CheckOnly => BuildSteps::new(1),
+            BuildArtifacts::All => 5,
+            BuildArtifacts::CodeOnly => 4,
+            BuildArtifacts::CheckOnly => 1,
         }
     }
 }
@@ -134,25 +134,38 @@ impl Default for BuildArtifacts {
 #[derive(Debug, Clone, Copy)]
 pub struct BuildSteps {
     pub current_step: usize,
-    pub total_steps: usize,
+    pub total_steps: Option<usize>,
 }
 
 impl BuildSteps {
-    pub fn new(total_steps: usize) -> Self {
+    pub fn new() -> Self {
         Self {
             current_step: 1,
-            total_steps,
+            total_steps: None,
         }
     }
 
     pub fn increment_current(&mut self) {
         self.current_step += 1;
     }
+
+    pub fn set_total_steps(&mut self, steps: usize) {
+        self.total_steps = Some(steps)
+    }
+}
+
+impl Default for BuildSteps {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl fmt::Display for BuildSteps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}/{}]", self.current_step, self.total_steps)
+        let total_steps = self
+            .total_steps
+            .map_or("*".to_string(), |steps| steps.to_string());
+        write!(f, "[{}/{}]", self.current_step, total_steps)
     }
 }
 
@@ -181,6 +194,7 @@ impl fmt::Display for BuildMode {
 }
 
 /// The type of output to display at the end of a build.
+#[derive(Clone, Debug)]
 pub enum OutputType {
     /// Output build results in a human readable format.
     HumanReadable,
