@@ -18,6 +18,7 @@ use crate::{
     util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
+    CrateMetadata,
     ExecuteArgs,
     ManifestPath,
     OptimizationPasses,
@@ -72,7 +73,8 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
-    generates_metadata
+    generates_metadata,
+    unchanged_contract_skips_optimization_and_metadata_steps
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -393,7 +395,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     )?;
     test_manifest.write()?;
 
-    let crate_metadata = crate::crate_metadata::CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     // usually this file will be produced by a previous build step
     let final_contract_wasm_path = &crate_metadata.dest_wasm;
@@ -496,6 +498,40 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     Ok(())
 }
 
+fn unchanged_contract_skips_optimization_and_metadata_steps(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    // given
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        ..Default::default()
+    };
+
+    // when
+    let res1 = super::execute(args.clone()).expect("build failed");
+    let res2 = super::execute(args).expect("build failed");
+
+    // then
+    assert!(
+        res1.optimization_result.is_some(),
+        "Initial build should perform wasm optimization"
+    );
+    assert!(
+        res1.metadata_result.is_some(),
+        "Initial build should perform generate metadata"
+    );
+    assert!(
+        res2.metadata_result.is_none(),
+        "Subsequent build should not perform wasm optimization"
+    );
+    assert!(
+        res2.metadata_result.is_none(),
+        "Subsequent build should not generate metadata"
+    );
+
+    Ok(())
+}
+
 fn build_byte_str(bytes: &[u8]) -> String {
     let mut str = String::new();
     write!(str, "0x").expect("failed writing to string");
@@ -554,6 +590,7 @@ impl BuildTestContext {
     ) -> Result<()> {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
+        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
@@ -563,6 +600,10 @@ impl BuildTestContext {
         // revert to the original template files, but keep the `target` dir from the previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
+        // remove the original wasm artifact to force it to be rebuilt
+        if crate_metadata.original_wasm.exists() {
+            fs::remove_file(&crate_metadata.original_wasm)?;
+        }
         Ok(())
     }
 
