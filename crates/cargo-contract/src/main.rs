@@ -25,7 +25,6 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
-    TestCommand,
     UploadCommand,
 };
 use contract_build::{
@@ -34,7 +33,7 @@ use contract_build::{
     OutputType,
 };
 use std::{
-    fmt::Display,
+    fmt::Debug,
     path::PathBuf,
     str::FromStr,
 };
@@ -111,9 +110,6 @@ enum Command {
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
-    /// Test the smart contract off-chain
-    #[clap(name = "test")]
-    Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
     Upload(UploadCommand),
@@ -136,7 +132,7 @@ fn main() {
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("{err}");
+            eprintln!("{err:?}");
             std::process::exit(1);
         }
     }
@@ -170,13 +166,6 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Test(test) => {
-            let res = test.exec().map_err(format_err)?;
-            if res.verbosity.is_verbose() {
-                println!("{}", res.display()?)
-            }
-            Ok(())
-        }
         Command::Upload(upload) => {
             upload
                 .run()
@@ -207,10 +196,10 @@ fn map_extrinsic_err(err: ErrorVariant, is_json: bool) -> Error {
     }
 }
 
-fn format_err<E: Display>(err: E) -> Error {
+fn format_err<E: Debug>(err: E) -> Error {
     anyhow!(
         "{} {}",
         "ERROR:".bright_red().bold(),
-        format!("{err}").bright_red()
+        format!("{err:?}").bright_red()
     )
 }

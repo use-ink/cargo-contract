@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+- Rename `metadata.json` to `{contract_name}.json` - [#952](https://github.com/paritytech/cargo-contract/pull/952)
+
+### Fixed
+- Respect the lockfile [#948](https://github.com/paritytech/cargo-contract/pull/948)
+
+### Removed
+- Remove the `test` command [#958](https://github.com/paritytech/cargo-contract/pull/958)
+
+## [2.0.0-rc.1] - 2023-02-01
+Second release candidate compatible with `ink! 4.0.0-rc`.
+
+### Changed
+- Upgrade `subxt` to `0.26` [#924](https://github.com/paritytech/cargo-contract/pull/924)
+- Display detailed cause of an error [#931](https://github.com/paritytech/cargo-contract/pull/931)
+- Use package name instead of lib name, default to "rlib" [#929](https://github.com/paritytech/cargo-contract/pull/929)
+
+### Fixed
+- Miscellaneous extrinsics display improvements [#916](https://github.com/paritytech/cargo-contract/pull/916)
+- Fix decoding of `LangError` [#919](https://github.com/paritytech/cargo-contract/pull/919)
+
 ## [2.0.0-rc] - 2023-01-12
 
 First release candidate for compatibility with `ink! 4.0-rc`.

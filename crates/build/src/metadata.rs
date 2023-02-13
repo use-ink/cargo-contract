@@ -54,7 +54,6 @@ use std::{
 };
 use url::Url;
 
-pub const METADATA_FILE: &str = "metadata.json";
 const INK_EVENT_METADATA_SECTION_PREFIX: &str = "__ink_event_metadata_";
 
 /// Metadata generation result.
