@@ -136,6 +136,10 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
+        if self.optimization_result.is_none() && self.metadata_result.is_none() {
+            return format!("\nNo changes in contract detected: Wasm and metadata artifacts unchanged.")
+        }
+
         let (opt_size_diff, newlines) =
             if let Some(ref opt_result) = self.optimization_result {
                 let size_diff = format!(
@@ -643,7 +647,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             && crate_metadata.contract_bundle_path().exists()
         {
             tracing::info!(
-                "No changes in the original wasm at {}, fingerprint {:?}",
+                "No changes in the original wasm at {}, fingerprint {:?}. \
+                Skipping Wasm optimization and metadata generation.",
                 crate_metadata.original_wasm.display(),
                 pre_fingerprint
             );

@@ -600,7 +600,7 @@ impl BuildTestContext {
         // revert to the original template files, but keep the `target` dir from the previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
-        // remove the original wasm artefact to force it to be rebuilt
+        // remove the original wasm artifact to force it to be rebuilt
         if crate_metadata.original_wasm.exists() {
             fs::remove_file(&crate_metadata.original_wasm)?;
         }
