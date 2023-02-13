@@ -137,7 +137,8 @@ pub struct BuildResult {
 impl BuildResult {
     pub fn display(&self) -> String {
         if self.optimization_result.is_none() && self.metadata_result.is_none() {
-            return format!("\nNo changes in contract detected: Wasm and metadata artifacts unchanged.")
+            return "\nNo changes in contract detected: Wasm and metadata artifacts unchanged."
+                .to_string()
         }
 
         let (opt_size_diff, newlines) =
