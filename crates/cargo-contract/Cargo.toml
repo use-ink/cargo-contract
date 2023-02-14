@@ -36,11 +36,11 @@ rust_decimal = "1.28"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "11.0.0"
-sp-runtime = "12.0.0"
-sp-weights = "8.0.0"
-pallet-contracts-primitives = "12.0.0"
-subxt = "0.26.0"
+sp-core = "16.0.0"
+sp-runtime = "18.0.0"
+sp-weights = "14.0.0"
+pallet-contracts-primitives = "18.0.0"
+subxt = "0.27.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
