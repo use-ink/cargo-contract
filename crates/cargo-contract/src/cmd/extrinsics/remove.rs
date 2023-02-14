@@ -33,10 +33,7 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{
-    Ok,
-    Result,
-};
+use anyhow::Result;
 use std::fmt::Debug;
 use subxt::{
     Config,
@@ -121,7 +118,7 @@ impl RemoveCommand {
         code_hash: CodeHash,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<api::contracts::events::CodeRemoved>, anyhow::Error> {
+    ) -> Result<Option<api::contracts::events::CodeRemoved>, ErrorVariant> {
         let call = super::runtime_api::api::tx()
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
