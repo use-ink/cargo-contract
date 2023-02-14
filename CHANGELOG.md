@@ -26,7 +26,6 @@ Major release compatible with `ink! 4.0.0`. All the changes in aggregate since `
 - Denominated units for balances in events - [#750](https://github.com/paritytech/cargo-contract/pull/750)
 - Upgrade wasm-opt to 0.110.2 - [#802](https://github.com/paritytech/cargo-contract/pull/802)
 - Pass `--features` through to `cargo` - [#853](https://github.com/paritytech/cargo-contract/pull/853/files)
-- Remove rust toolchain channel check - [#848](https://github.com/paritytech/cargo-contract/pull/848/files)
 - Bump minimum requirement of `scale-info` in template to `2.3` - [#847](https://github.com/paritytech/cargo-contract/pull/847/files)
 - Remove `unstable` module check, add `--skip-wasm-validation` - [#846](https://github.com/paritytech/cargo-contract/pull/846/files)
 - Extract lib for invoking contract build - [#787](https://github.com/paritytech/cargo-contract/pull/787/files)
@@ -59,6 +58,7 @@ Major release compatible with `ink! 4.0.0`. All the changes in aggregate since `
 
 ### Removed
 - Remove the `test` command [#958](https://github.com/paritytech/cargo-contract/pull/958)
+- Remove rust toolchain channel check - [#848](https://github.com/paritytech/cargo-contract/pull/848/files)
 
 ## [2.0.0-rc.1] - 2023-02-01
 Second release candidate compatible with `ink! 4.0.0-rc`.
