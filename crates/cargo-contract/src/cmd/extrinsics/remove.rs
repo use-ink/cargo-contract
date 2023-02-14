@@ -82,7 +82,7 @@ impl RemoveCommand {
                     artifacts_path.display()
                 ))
             }
-        };
+        }?;
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
@@ -90,7 +90,7 @@ impl RemoveCommand {
             if let Some(code_removed) = self
                 .remove_code(
                     &client,
-                    sp_core::H256(final_code_hash?),
+                    sp_core::H256(final_code_hash),
                     &signer,
                     &transcoder,
                 )
@@ -105,8 +105,7 @@ impl RemoveCommand {
                 }
                 Result::<(), ErrorVariant>::Ok(())
             } else {
-                let art_code_hash = artifacts.code_hash();
-                let error_code_hash = hex::encode(art_code_hash?);
+                let error_code_hash = hex::encode(final_code_hash);
                 Err(anyhow::anyhow!(
                     "Error removing the code for the supplied code hash: {}",
                     error_code_hash
