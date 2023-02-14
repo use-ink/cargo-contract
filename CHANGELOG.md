@@ -4,12 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0]
+
+Major release compatible with `ink! 4.0.0`. For all changes since `1.5` see the notes for
+all the `2.0.0-*` pre-releases below.
+
 ### Changed
 - Rename `metadata.json` to `{contract_name}.json` - [#952](https://github.com/paritytech/cargo-contract/pull/952)
+- Do not postprocess or generate metadata if contract unchanged [#964](https://github.com/paritytech/cargo-contract/pull/964)
+- Update `subxt` and substrate dependencies [#968](https://github.com/paritytech/cargo-contract/pull/968)
 
 ### Fixed
 - Respect the lockfile [#948](https://github.com/paritytech/cargo-contract/pull/948)
+- Error if mismatching # of args for instantiate/call [#966](https://github.com/paritytech/cargo-contract/pull/966)
+- Pretty-print call dry-run return data [#967](https://github.com/paritytech/cargo-contract/pull/967)
 
 ### Removed
 - Remove the `test` command [#958](https://github.com/paritytech/cargo-contract/pull/958)
