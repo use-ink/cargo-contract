@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api,
+    runtime_api::api::{
+        self,
+        contracts::events::CodeStored,
+    },
     submit_extrinsic,
     Client,
     CodeHash,
@@ -118,8 +121,8 @@ impl RemoveCommand {
         code_hash: CodeHash,
         signer: &PairSigner,
         transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<api::contracts::events::CodeRemoved>, ErrorVariant> {
-        let call = super::runtime_api::api::tx()
+    ) -> Result<Option<CodeRemoved>, ErrorVariant> {
+        let call = api::tx()
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
 
@@ -135,7 +138,7 @@ impl RemoveCommand {
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
         println!("{output}");
-        let code_removed = result.find_first::<api::contracts::events::CodeRemoved>()?;
+        let code_removed = result.find_first::<CodeRemoved>()?;
         Ok(code_removed)
     }
 }
