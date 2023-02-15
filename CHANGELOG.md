@@ -12,6 +12,7 @@ Major release compatible with `ink! 4.0.0`. All the changes in aggregate since `
 - Add support for ink!'s `version` metadata field - [#641](https://github.com/paritytech/cargo-contract/pull/641)
 - Add Rust specific build info to metadata - [#680](https://github.com/paritytech/cargo-contract/pull/680)
 - Log code hash if contract is already uploaded - [#805](https://github.com/paritytech/cargo-contract/pull/805)
+- Add remove command - [#837](https://github.com/paritytech/cargo-contract/pull/837)
 
 ### Changed
 - Build contracts and dylint driver with stable - [#698](https://github.com/paritytech/cargo-contract/pull/698)
