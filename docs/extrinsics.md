@@ -107,12 +107,14 @@ e.g. `cargo contract remove --suri //Alice`
 Assumes that `cargo contract build` and `cargo contract upload` have already been run to produce the contract artifacts.
 This command will only succeed if there are no contract instances of this code. Contracts which have already been instantiated from this code must either `terminate` themselves or have their code changed via a `set_code` call to `pallet_contracts`.
 
+```
 cargo contract remove \
        --suri //Alice \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
+```
 
 - `--code-hash` the hash of the uploaded code, returned from a call to `contract upload` 
-If not specified the code hash will taken from the contract artifacts. 
+If not specified the code hash will be taken from the contract artifacts. 
 
 ## Specifying the contract artifact
 
@@ -120,10 +122,9 @@ The above examples assume the working directory is the contract source code wher
 This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional
 argument to each of the extrinsic commands which allows specifying the contract artifact file directly. E.g.
 
-
-`cargo upload ../path/to/mycontract.wasm`
-`cargo instantiate ../path/to/mycontract.contract`
-`cargo call ..path/to/mycontract.json`
+- `cargo upload ../path/to/mycontract.wasm`
+- `cargo instantiate ../path/to/mycontract.contract`
+- `cargo call ..path/to/mycontract.json`
 
 
 
