@@ -79,6 +79,9 @@ First release candidate for compatibility with `ink! 4.0-rc`.
 ### Changed
 -  Extrinsics: allow specifying contract artifact directly [#893](https://github.com/paritytech/cargo-contract/pull/893)
 
+### Added
+- Add `cargo contract remove` command [#837](https://github.com/paritytech/cargo-contract/pull/837)
+
 ## [2.0.0-beta.2] - 2023-01-09
 
 ### Changed

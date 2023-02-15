@@ -25,6 +25,7 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
+    RemoveCommand,
     UploadCommand,
 };
 use contract_build::{
@@ -122,6 +123,9 @@ enum Command {
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
+    /// Remove contract code
+    #[clap(name = "remove")]
+    Remove(RemoveCommand),
 }
 
 fn main() {
@@ -181,6 +185,11 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
         Command::Decode(decode) => decode.run().map_err(format_err),
+        Command::Remove(remove) => {
+            remove
+                .run()
+                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
+        }
     }
 }
 
