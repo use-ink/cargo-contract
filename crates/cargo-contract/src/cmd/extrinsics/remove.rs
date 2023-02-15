@@ -78,7 +78,9 @@ impl RemoveCommand {
             (None, None) => {
                 Err(
                     anyhow::anyhow!(
-                    "No code_hash was provided or contract code was not found from artifact file {}. Please provide a code hash with --code-hash argument or specify the path for artifacts files with --manifest-path", 
+                    "No code_hash was provided or contract code was not found from artifact \
+                     file {}. Please provide a code hash with --code-hash argument or specify the \
+                     path for artifacts files with --manifest-path",
                     artifacts_path.display()
                 ))
             }
