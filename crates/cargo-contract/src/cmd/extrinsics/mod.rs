@@ -19,6 +19,7 @@ mod call;
 mod error;
 mod events;
 mod instantiate;
+mod remove;
 mod runtime_api;
 mod upload;
 
@@ -47,6 +48,7 @@ use std::{
 };
 
 use crate::DEFAULT_KEY_COL_WIDTH;
+
 use contract_build::{
     name_value_println,
     CrateMetadata,
@@ -86,6 +88,7 @@ use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
+pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
@@ -431,6 +434,17 @@ fn print_gas_required_success(gas: Weight) {
     );
 }
 
+/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
+pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+    let bytes = contract_build::util::decode_hex(input)?;
+    if bytes.len() != 32 {
+        anyhow::bail!("Code hash should be 32 bytes in length")
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(arr.into())
+}
+
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
 /// for json output.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
@@ -457,5 +471,24 @@ impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDepo
                 Self::Charge(*balance)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_code_hash_works() {
+        // with 0x prefix
+        assert!(parse_code_hash(
+            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok());
+        // without 0x prefix
+        assert!(parse_code_hash(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok())
     }
 }
