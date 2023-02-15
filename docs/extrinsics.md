@@ -113,7 +113,7 @@ cargo contract remove \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
 ```
 
-- `--code-hash` the hash of the uploaded code, returned from a call to `contract upload` 
+- `--code-hash` the hash of the uploaded code, returned from a call to `contract upload`. 
 If not specified the code hash will be taken from the contract artifacts. 
 
 ## Specifying the contract artifact
