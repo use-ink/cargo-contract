@@ -17,7 +17,7 @@
 use super::{
     runtime_api::api::{
         self,
-        contracts::events::CodeStored,
+        contracts::events::CodeRemoved,
     },
     submit_extrinsic,
     Client,
