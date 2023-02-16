@@ -40,7 +40,7 @@ sp-core = "16.0.0"
 sp-runtime = "18.0.0"
 sp-weights = "14.0.0"
 pallet-contracts-primitives = "18.0.0"
-subxt = "0.27.0"
+subxt = "0.27.1"
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
