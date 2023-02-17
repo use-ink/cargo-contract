@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1]
+
+### Fixed
+- Fix wrong returned contract id for `instantiate` command with subcontracts ‒ [#777](https://github.com/paritytech/cargo-contract/pull/777)
+
+### Changed
+- Bump template to ink! 4.0 ‒ [#971](https://github.com/paritytech/cargo-contract/pull/971)
+
 ## [2.0.0]
 
 Major release compatible with `ink! 4.0.0`. All the changes in aggregate since `1.5`:
