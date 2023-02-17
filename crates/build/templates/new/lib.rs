@@ -82,7 +82,7 @@ mod {{name}} {
 
             // when
             let contract_acc_id = client
-                .instantiate("flipper", &ink_e2e::bob(), constructor, 0, None)
+                .instantiate("flipper", &ink_e2e::alice(), constructor, 0, None)
                 .await
                 .expect("instantiate failed")
                 .account_id;
@@ -90,7 +90,7 @@ mod {{name}} {
             // then
             let get = build_message::<FlipperRef>(contract_acc_id.clone())
                 .call(|flipper| flipper.get());
-            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            let get_res = client.call_dry_run(&ink_e2e::alice(), &get, 0, None).await;
             assert!(matches!(get_res.return_value(), false));
 
             Ok(())
@@ -101,7 +101,7 @@ mod {{name}} {
             // given
             let constructor = FlipperRef::new(false);
             let contract_acc_id = client
-                .instantiate("flipper", &ink_e2e::alice(), constructor, 0, None)
+                .instantiate("flipper", &ink_e2e::bob(), constructor, 0, None)
                 .await
                 .expect("instantiate failed")
                 .account_id;
