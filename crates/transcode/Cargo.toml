@@ -37,7 +37,7 @@ sp-runtime = "18.0.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = "4.0.0-rc"
+ink = "4.0.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
