@@ -121,6 +121,16 @@ The argument has to be given as hex-encoding, starting with `0x`.
 
 Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
 
+## Publishing
+
+In order to publish a new version of `cargo-contract`:
+
+- Bump all crate versions, we move them in lockstep.
+- Make sure your PR is approved by one or more core developers.
+- Publish `metadata` ➜ `transcode` ➜ `build` ➜ `cargo-contract`.
+- Merge you PR and push a tag `vX.X` with your version number.
+- Create a GitHub release with the changelog entries.
+
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE).
