@@ -468,9 +468,9 @@ dependencies = [
 
 [[package]]
 name = "bounded-collections"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de2aff4807e40f478132150d80b031f2461d88f061851afcab537d7600c24120"
+checksum = "a071c348a5ef6da1d3a87166b408170b46002382b1dda83992b5c2208cefb370"
 dependencies = [
  "log",
  "parity-scale-codec",
@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "blake2",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "assert_matches",
