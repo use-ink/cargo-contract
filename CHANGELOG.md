@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Return correct contract id for `instantiate` command with subcontracts ‒ [#777](https://github.com/paritytech/cargo-contract/pull/777)
-
-### Changed
 - Bump template to ink! 4.0 ‒ [#971](https://github.com/paritytech/cargo-contract/pull/971)
 
 ## [2.0.0]
