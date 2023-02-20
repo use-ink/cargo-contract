@@ -10,6 +10,6 @@ name = "metadata-gen"
 path = "main.rs"
 
 [dependencies]
-contract = { path = "../.." }
+contract = { path = "../..", features = ["std"] }
 serde = "1.0"
 serde_json = "1.0"
