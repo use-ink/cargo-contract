@@ -85,7 +85,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Download - run latest `substrate-contracts-node` binary and run tests
-        if: #{{ matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-22.04' }}
+        if: {{ matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-22.04' }}
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
           unzip substrate-contracts-node.zip && \
