@@ -94,7 +94,7 @@ jobs:
           cargo test --profile debug-ci --all-features -- --test-threads=1 &
 
       - name: Download - run latest `substrate-contracts-node` binary and run tests - macOs
-         if: matrix.os == 'macOS-latest'
+        if: matrix.os == 'macOS-latest'
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
           unzip substrate-contracts-node.zip && \
