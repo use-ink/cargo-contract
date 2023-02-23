@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12", "windows-2022"]
+        os: ["ubuntu-22.04", "macOS-latest", "windows-latest"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -86,7 +86,7 @@ jobs:
 
 
       - name: Download and run latest `substrate-contracts-node` binary
-        if: runner.os == 'Linux'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
           unzip substrate-contracts-node.zip && \
@@ -94,7 +94,7 @@ jobs:
           ./artifacts/substrate-contracts-node-linux/substrate-contracts-node -linfo,runtime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
       
       - name: Download and run latest `substrate-contracts-node` binary
-        if: runner.os == 'macOS'
+        if: matrix.os == 'macOS-latest'
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
           unzip substrate-contracts-node.zip && \
@@ -102,7 +102,7 @@ jobs:
           ./artifacts/substrate-contracts-node-mac/substrate-contracts-node -linfo,runtime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
       
       - name: Install and run latest `substrate-contracts-node` binary
-        if: runner.os == 'Windows'
+        if: matrix.os == 'windows-latest'
         run: |
           cargo install contracts-node --git https://github.com/paritytech/substrate-contracts-node.git --force --locked && \
           substrate-contracts-node -lruntime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
