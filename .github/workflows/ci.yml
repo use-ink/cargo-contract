@@ -84,16 +84,25 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Download - run latest `substrate-contracts-node` binary and run tests
-        if: ${{matrix.os}} == 'macOS-latest' || ${{matrix.os}} == 'ubuntu-22.04'
+      - name: Download - run latest `substrate-contracts-node` binary and run tests - Linux
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
           unzip substrate-contracts-node.zip && \
           chmod +x artifacts/substrate-contracts-node-linux/substrate-contracts-node &&
-          ./artifacts/substrate-contracts-node-linux/substrate-contracts-node -linfo,runtime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
+          ./artifacts/substrate-contracts-node-linux/substrate-contracts-node -lruntime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
           cargo test --profile debug-ci --all-features -- --test-threads=1 &
+
+      - name: Download - run latest `substrate-contracts-node` binary and run tests - macOs
+         if: matrix.os == 'macOS-latest'
+        run: |
+          curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
+          unzip substrate-contracts-node.zip && \
+          chmod +x artifacts/substrate-contracts-node-mac/substrate-contracts-node &&
+          ./artifacts/substrate-contracts-node-mac/substrate-contracts-node -linfo,runtime::contracts=debug  2>&1 | tee /tmp/contracts-node.log & 
+          cargo test --profile debug-ci --all-features -- --test-threads=1 &    
       
-      - name: Download - run latest `substrate-contracts-node` binary and run tests
+      - name: Download - run latest `substrate-contracts-node` binary and run tests - windows
         if: matrix.os == 'windows-2022'
         run: |
           cargo install contracts-node --git https://github.com/paritytech/substrate-contracts-node.git --force --locked && \
