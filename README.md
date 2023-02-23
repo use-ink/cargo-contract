@@ -58,12 +58,12 @@ docker pull paritytech/contracts-ci-linux:production
 
 # Create a new contract in your current directory.
 docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
-  cargo +nightly contract new --target-dir /sources my_contract
+  cargo contract new --target-dir /sources my_contract
 
 # Build the contract. This will create the contract file under
 # `my_contract/target/ink/my_contract.contract`.
 docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production \
-  cargo +nightly contract build --manifest-path=/sources/my_contract/Cargo.toml
+  cargo contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
 If you want to reproduce other steps of CI process you can use the following
@@ -86,27 +86,16 @@ The contract contains the source code for the [`Flipper`](https://github.com/par
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 
-##### `cargo +nightly contract build`
+##### `cargo contract build`
 
 Compiles the contract into optimized WebAssembly bytecode, generates metadata for it,
 and bundles both together in a `<name>.contract` file, which you can use for
 deploying the contract on-chain.
 
-`cargo contract build` must be run using the `nightly` toolchain. If you have
-[`rustup`](https://github.com/rust-lang/rustup) installed, the simplest way to
-do so is `cargo +nightly contract build`.
-
-To avoid having to always add `+nightly` you can also set `nightly` as the default
-toolchain of a directory by executing `rustup override set nightly` in it.
-
 ##### `cargo contract check`
 
 Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
-
-##### `cargo contract test`
-
-Runs test suites defined for a smart contract off-chain.
 
 ##### `cargo contract upload`
 
@@ -127,6 +116,20 @@ Decodes a contracts input or output data.
 This can be either an event, an invocation of a contract message, or an invocation of a contract constructor.
 
 The argument has to be given as hex-encoding, starting with `0x`.
+
+##### `cargo contract remove`
+
+Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+
+## Publishing
+
+In order to publish a new version of `cargo-contract`:
+
+- Bump all crate versions, we move them in lockstep.
+- Make sure your PR is approved by one or more core developers.
+- Publish `metadata` ➜ `transcode` ➜ `build` ➜ `cargo-contract`.
+- Merge you PR and push a tag `vX.X` with your version number.
+- Create a GitHub release with the changelog entries.
 
 ## License
 

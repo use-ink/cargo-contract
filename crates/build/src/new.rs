@@ -23,7 +23,6 @@ use std::{
         Cursor,
         Read,
         Seek,
-        SeekFrom,
         Write,
     },
     path::{
@@ -77,7 +76,7 @@ where
 fn unzip(template: &[u8], out_dir: PathBuf, name: Option<&str>) -> Result<()> {
     let mut cursor = Cursor::new(Vec::new());
     cursor.write_all(template)?;
-    cursor.seek(SeekFrom::Start(0))?;
+    cursor.rewind()?;
 
     let mut archive = zip::ZipArchive::new(cursor)?;
 

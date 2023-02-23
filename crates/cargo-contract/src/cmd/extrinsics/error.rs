@@ -14,8 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt::Display;
-use subxt::ext::sp_runtime::DispatchError;
+use sp_runtime::DispatchError;
+use std::fmt::{
+    self,
+    Debug,
+    Display,
+};
 
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {
@@ -42,7 +46,7 @@ impl From<subxt::Error> for ErrorVariant {
 
 impl From<anyhow::Error> for ErrorVariant {
     fn from(error: anyhow::Error) -> Self {
-        Self::Generic(GenericError::from_message(format!("{:?}", error)))
+        Self::Generic(GenericError::from_message(format!("{error:?}")))
     }
 }
 
@@ -86,16 +90,21 @@ impl ErrorVariant {
             }
             err => {
                 Ok(ErrorVariant::Generic(GenericError::from_message(format!(
-                    "DispatchError: {:?}",
-                    err
+                    "DispatchError: {err:?}"
                 ))))
             }
         }
     }
 }
 
+impl Debug for ErrorVariant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as Display>::fmt(self, f)
+    }
+}
+
 impl Display for ErrorVariant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorVariant::Module(err) => {
                 f.write_fmt(format_args!(

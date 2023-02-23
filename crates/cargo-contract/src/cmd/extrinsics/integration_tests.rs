@@ -193,7 +193,7 @@ async fn build_upload_instantiate_call() {
         .expect("failed to execute process");
     println!("status: {}", output.status);
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "upload code failed: {}", stderr);
+    assert!(output.status.success(), "upload code failed: {stderr}");
 
     tracing::debug!("Instantiating the contract");
     let output = cargo_contract(project_path.as_path())
@@ -205,7 +205,7 @@ async fn build_upload_instantiate_call() {
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    assert!(output.status.success(), "instantiate failed: {}", stderr);
+    assert!(output.status.success(), "instantiate failed: {stderr}");
 
     // find the contract address in the output
     let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
@@ -213,7 +213,7 @@ async fn build_upload_instantiate_call() {
         .captures(stdout)
         .expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
-    assert_eq!(48, contract_account.len(), "{:?}", stdout);
+    assert_eq!(48, contract_account.len(), "{stdout:?}");
 
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())
@@ -242,5 +242,61 @@ async fn build_upload_instantiate_call() {
     call_get_rpc(false);
 
     // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// Sanity test the whole lifecycle of:
+/// build -> upload -> remove
+#[ignore]
+#[async_std::test]
+async fn build_upload_remove() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    // Spawn the contracts node
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    // cargo contract new flipper
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("incrementer")
+        .assert()
+        .success();
+
+    // cd incrementer
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("incrementer");
+
+    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
+    let output = cargo_contract(project_path.as_path())
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .output()
+        .expect("failed to execute process");
+    println!("status: {}", output.status);
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    tracing::debug!("Removing the contract");
+    let output = cargo_contract(project_path.as_path())
+        .arg("remove")
+        .args(["--suri", "//Alice"])
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "remove failed: {stderr}");
+
     let _ = node_process;
 }

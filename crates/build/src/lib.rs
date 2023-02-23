@@ -79,6 +79,7 @@ use parity_wasm::elements::{
 };
 use semver::Version;
 use std::{
+    fs,
     path::{
         Path,
         PathBuf,
@@ -94,7 +95,7 @@ const MAX_MEMORY_PAGES: u32 = 16;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Arguments to use when executing `build` or `check` commands.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
@@ -135,16 +136,26 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        let optimization = self.display_optimization();
-        let size_diff = format!(
-            "\nOriginal wasm size: {}, Optimized: {}\n\n",
-            format!("{:.1}K", optimization.0).bold(),
-            format!("{:.1}K", optimization.1).bold(),
-        );
-        debug_assert!(
-            optimization.1 > 0.0,
-            "optimized file size must be greater 0"
-        );
+        if self.optimization_result.is_none() && self.metadata_result.is_none() {
+            return "\nNo changes in contract detected: Wasm and metadata artifacts unchanged."
+                .to_string()
+        }
+
+        let (opt_size_diff, newlines) =
+            if let Some(ref opt_result) = self.optimization_result {
+                let size_diff = format!(
+                    "\nOriginal wasm size: {}, Optimized: {}\n\n",
+                    format!("{:.1}K", opt_result.original_size).bold(),
+                    format!("{:.1}K", opt_result.optimized_size).bold(),
+                );
+                debug_assert!(
+                    opt_result.optimized_size > 0.0,
+                    "optimized file size must be greater 0"
+                );
+                (size_diff, "\n\n")
+            } else {
+                ("\n".to_string(), "")
+            };
 
         let build_mode = format!(
             "The contract was built in {} mode.\n\n",
@@ -154,7 +165,7 @@ impl BuildResult {
         if self.build_artifact == BuildArtifacts::CodeOnly {
             let out = format!(
                 "{}{}Your contract's code is ready. You can find it here:\n{}",
-                size_diff,
+                opt_size_diff,
                 build_mode,
                 self.dest_wasm
                     .as_ref()
@@ -167,10 +178,11 @@ impl BuildResult {
         };
 
         let mut out = format!(
-            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
-            size_diff,
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}{}",
+            opt_size_diff,
             build_mode,
             self.target_directory.display().to_string().bold(),
+            newlines,
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
@@ -194,17 +206,6 @@ impl BuildResult {
             out.push_str(&metadata);
         }
         out
-    }
-
-    /// Returns a tuple of `(original_size, optimized_size)`.
-    ///
-    /// Panics if no optimization result is available.
-    fn display_optimization(&self) -> (f64, f64) {
-        let optimization = self
-            .optimization_result
-            .as_ref()
-            .expect("optimization result must exist");
-        (optimization.original_size, optimization.optimized_size)
     }
 
     /// Display the build results in a pretty formatted JSON string.
@@ -288,7 +289,7 @@ fn exec_cargo_for_wasm_target(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
-                    .with_removed_crate_type("rlib")?
+                    .with_crate_types(["cdylib"])?
                     .with_profile_release_defaults(Profile::default_contract_release())?
                     .with_workspace()?;
                 Ok(())
@@ -529,10 +530,9 @@ fn assert_compatible_ink_dependencies(
         let _ = util::invoke_cargo("tree", args, manifest_path.directory(), verbosity, vec![])
             .with_context(|| {
                 format!(
-                    "Mismatching versions of `{}` were found!\n\
+                    "Mismatching versions of `{dependency}` were found!\n\
                      Please ensure that your contract and your ink! dependencies use a compatible \
-                     version of this package.",
-                    dependency
+                     version of this package."
                 )
             })?;
     }
@@ -594,31 +594,33 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    let maybe_lint = || -> Result<BuildSteps> {
+    let maybe_lint = |steps: &mut BuildSteps| -> Result<()> {
+        let total_steps = build_artifact.steps();
         if lint {
-            let mut steps = build_artifact.steps();
-            steps.total_steps += 1;
+            steps.set_total_steps(total_steps + 1);
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("{}", steps).bold(),
+                format!("{steps}").bold(),
                 "Checking ink! linting rules".bright_green().bold()
             );
             steps.increment_current();
             exec_cargo_dylint(&crate_metadata, verbosity)?;
-            Ok(steps)
+            Ok(())
         } else {
-            Ok(build_artifact.steps())
+            steps.set_total_steps(total_steps);
+            Ok(())
         }
     };
 
-    let build = || -> Result<(OptimizationResult, BuildInfo, BuildSteps)> {
-        let mut build_steps = maybe_lint()?;
+    let build = || -> Result<(Option<(OptimizationResult, BuildInfo)>, BuildSteps)> {
+        let mut build_steps = BuildSteps::new();
+        let pre_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?;
 
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Building cargo project".bright_green().bold()
         );
         build_steps.increment_current();
@@ -632,10 +634,34 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &unstable_flags,
         )?;
 
+        let post_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Expected '{}' to be generated by build",
+                    crate_metadata.original_wasm.display()
+                )
+            })?;
+
+        if pre_fingerprint == Some(post_fingerprint)
+            && crate_metadata.dest_wasm.exists()
+            && crate_metadata.metadata_path().exists()
+            && crate_metadata.contract_bundle_path().exists()
+        {
+            tracing::info!(
+                "No changes in the original wasm at {}, fingerprint {:?}. \
+                Skipping Wasm optimization and metadata generation.",
+                crate_metadata.original_wasm.display(),
+                pre_fingerprint
+            );
+            return Ok((None, build_steps))
+        }
+
+        maybe_lint(&mut build_steps)?;
+
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Post processing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
@@ -644,7 +670,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Optimizing wasm file".bright_green().bold()
         );
         build_steps.increment_current();
@@ -674,17 +700,18 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             },
         };
 
-        Ok((optimization_result, build_info, build_steps))
+        Ok((Some((optimization_result, build_info)), build_steps))
     };
 
     let (opt_result, metadata_result) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            let build_steps = maybe_lint()?;
+            let mut build_steps = BuildSteps::new();
+            maybe_lint(&mut build_steps)?;
 
             maybe_println!(
                 verbosity,
                 " {} {}",
-                format!("{}", build_steps).bold(),
+                format!("{build_steps}").bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
             exec_cargo_for_wasm_target(
@@ -699,23 +726,28 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let (optimization_result, _build_info, _) = build()?;
-            (Some(optimization_result), None)
+            let (build_result, _) = build()?;
+            let opt_result = build_result.map(|(opt_result, _)| opt_result);
+            (opt_result, None)
         }
         BuildArtifacts::All => {
-            let (optimization_result, build_info, build_steps) = build()?;
+            let (build_result, build_steps) = build()?;
 
-            let metadata_result = crate::metadata::execute(
-                &crate_metadata,
-                optimization_result.dest_wasm.as_path(),
-                network,
-                verbosity,
-                build_steps,
-                &unstable_flags,
-                build_info,
-            )?;
-
-            (Some(optimization_result), Some(metadata_result))
+            match build_result {
+                Some((opt_result, build_info)) => {
+                    let metadata_result = metadata::execute(
+                        &crate_metadata,
+                        opt_result.dest_wasm.as_path(),
+                        network,
+                        verbosity,
+                        build_steps,
+                        &unstable_flags,
+                        build_info,
+                    )?;
+                    (Some(opt_result), Some(metadata_result))
+                }
+                None => (None, None),
+            }
         }
     };
     let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
@@ -732,8 +764,41 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
+/// Unique fingerprint for a file to detect whether it has changed.
+#[derive(Debug, Eq, PartialEq)]
+struct Fingerprint {
+    path: PathBuf,
+    hash: [u8; 32],
+    modified: std::time::SystemTime,
+}
+
+impl Fingerprint {
+    pub fn try_from_path<P>(path: P) -> Result<Option<Fingerprint>>
+    where
+        P: AsRef<Path>,
+    {
+        if path.as_ref().exists() {
+            let modified = fs::metadata(&path)?.modified()?;
+            let bytes = fs::read(&path)?;
+            let hash = blake2_hash(&bytes);
+            Ok(Some(Self {
+                path: path.as_ref().to_path_buf(),
+                hash,
+                modified,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 /// Returns the blake2 hash of the code slice.
 pub fn code_hash(code: &[u8]) -> [u8; 32] {
+    blake2_hash(code)
+}
+
+/// Returns the blake2 hash of the given bytes.
+fn blake2_hash(code: &[u8]) -> [u8; 32] {
     use blake2::digest::{
         consts::U32,
         Digest as _,
@@ -828,7 +893,7 @@ mod unit_tests {
         let raw_result = r#"{
   "dest_wasm": "/path/to/contract.wasm",
   "metadata_result": {
-    "dest_metadata": "/path/to/metadata.json",
+    "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
   },
   "target_directory": "/path/to/target",
@@ -845,7 +910,7 @@ mod unit_tests {
         let build_result = BuildResult {
             dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
             metadata_result: Some(MetadataResult {
-                dest_metadata: PathBuf::from("/path/to/metadata.json"),
+                dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),
             target_directory: PathBuf::from("/path/to/target"),

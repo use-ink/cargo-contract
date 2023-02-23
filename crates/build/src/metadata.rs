@@ -54,8 +54,6 @@ use std::{
 };
 use url::Url;
 
-pub const METADATA_FILE: &str = "metadata.json";
-
 /// Metadata generation result.
 #[derive(serde::Serialize)]
 pub struct MetadataResult {
@@ -132,7 +130,7 @@ pub(crate) fn execute(
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Generating metadata".bright_green().bold()
         );
         let target_dir_arg = format!(
@@ -168,7 +166,7 @@ pub(crate) fn execute(
         maybe_println!(
             verbosity,
             " {} {}",
-            format!("{}", build_steps).bold(),
+            format!("{build_steps}").bold(),
             "Generating bundle".bright_green().bold()
         );
         let contents = serde_json::to_string(&metadata)?;

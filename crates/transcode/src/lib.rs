@@ -86,7 +86,7 @@
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
-//! let metadata_path = Path::new("/path/to/metadata.json");
+//! let metadata_path = Path::new("/path/to/contract.json");
 //! let transcoder = ContractMessageTranscoder::load(metadata_path).unwrap();
 //!
 //! let constructor = "new";
@@ -204,6 +204,15 @@ impl ContractMessageTranscoder {
                 ))
             }
         };
+
+        let args: Vec<_> = args.into_iter().collect();
+        if spec_args.len() != args.len() {
+            anyhow::bail!(
+                "Invalid number of input arguments: expected {}, {} provided",
+                spec_args.len(),
+                args.len()
+            )
+        }
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
@@ -504,6 +513,26 @@ mod tests {
     }
 
     #[test]
+    fn encode_mismatching_args_length() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let result: Result<Vec<u8>> = transcoder.encode("new", Vec::<&str>::new());
+        assert!(result.is_err(), "Should return an error");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Invalid number of input arguments: expected 1, 0 provided"
+        );
+
+        let result: Result<Vec<u8>> = transcoder.encode("new", ["true", "false"]);
+        assert!(result.is_err(), "Should return an error");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Invalid number of input arguments: expected 1, 2 provided"
+        );
+    }
+
+    #[test]
     fn encode_account_id_custom_ss58_encoding() -> Result<()> {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
@@ -620,7 +649,7 @@ mod tests {
         let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
         let decoded = transcoder
             .decode_return("get", &mut &encoded[..])
-            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
             "Ok".into(),
@@ -640,7 +669,7 @@ mod tests {
             Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
         let decoded = transcoder
             .decode_return("get", &mut &encoded[..])
-            .unwrap_or_else(|e| panic!("Error decoding return value {}", e));
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
             "Err".into(),

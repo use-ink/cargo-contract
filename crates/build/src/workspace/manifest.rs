@@ -153,13 +153,31 @@ impl Manifest {
             .toml
             .get_mut("lib")
             .ok_or_else(|| anyhow::anyhow!("lib section not found"))?;
+
         let crate_types = lib
-            .get_mut("crate-type")
-            .ok_or_else(|| anyhow::anyhow!("crate-type section not found"))?;
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))?
+            .entry("crate-type")
+            .or_insert(value::Value::Array(Default::default()));
 
         crate_types
             .as_array_mut()
             .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
+    }
+
+    /// Set the contents of the `[lib] crate-types = []` section.
+    ///
+    /// Overwrites any existing crate types.
+    pub fn with_crate_types<'a, I>(&mut self, new_crate_types: I) -> Result<&mut Self>
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        let existing_crate_types = self.get_crate_types_mut()?;
+        existing_crate_types.clear();
+        for crate_type in new_crate_types.into_iter() {
+            existing_crate_types.push(crate_type.into())
+        }
+        Ok(self)
     }
 
     /// Add a value to the `[lib] crate-types = []` section.
@@ -426,7 +444,7 @@ impl<'a> PathRewrite<'a> {
 
         match table.get_mut("path") {
             Some(existing_path) => {
-                self.to_absolute_path(format!("[{}]/path", table_section), existing_path)
+                self.to_absolute_path(format!("[{table_section}]/path"), existing_path)
             }
             None => {
                 let default_path = PathBuf::from(default);
@@ -490,7 +508,7 @@ impl<'a> PathRewrite<'a> {
                     if let Some(dependency) = value.as_table_mut() {
                         if let Some(dep_path) = dependency.get_mut("path") {
                             self.to_absolute_path(
-                                format!("dependency {}", package_name),
+                                format!("dependency {package_name}"),
                                 dep_path,
                             )?;
                         }

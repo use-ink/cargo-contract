@@ -25,7 +25,7 @@ use self::cmd::{
     DecodeCommand,
     ErrorVariant,
     InstantiateCommand,
-    TestCommand,
+    RemoveCommand,
     UploadCommand,
 };
 use contract_build::{
@@ -34,7 +34,7 @@ use contract_build::{
     OutputType,
 };
 use std::{
-    fmt::Display,
+    fmt::Debug,
     path::PathBuf,
     str::FromStr,
 };
@@ -111,9 +111,6 @@ enum Command {
     /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
-    /// Test the smart contract off-chain
-    #[clap(name = "test")]
-    Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
     Upload(UploadCommand),
@@ -126,6 +123,9 @@ enum Command {
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
+    /// Remove contract code
+    #[clap(name = "remove")]
+    Remove(RemoveCommand),
 }
 
 fn main() {
@@ -136,7 +136,7 @@ fn main() {
     match exec(args.cmd) {
         Ok(()) => {}
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err:?}");
             std::process::exit(1);
         }
     }
@@ -146,7 +146,7 @@ fn exec(cmd: Command) -> Result<()> {
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;
-            println!("Created contract {}", name);
+            println!("Created contract {name}");
             Ok(())
         }
         Command::Build(build) => {
@@ -170,13 +170,6 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Test(test) => {
-            let res = test.exec().map_err(format_err)?;
-            if res.verbosity.is_verbose() {
-                println!("{}", res.display()?)
-            }
-            Ok(())
-        }
         Command::Upload(upload) => {
             upload
                 .run()
@@ -192,6 +185,11 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
         Command::Decode(decode) => decode.run().map_err(format_err),
+        Command::Remove(remove) => {
+            remove
+                .run()
+                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
+        }
     }
 }
 
@@ -207,10 +205,10 @@ fn map_extrinsic_err(err: ErrorVariant, is_json: bool) -> Error {
     }
 }
 
-fn format_err<E: Display>(err: E) -> Error {
+fn format_err<E: Debug>(err: E) -> Error {
     anyhow!(
         "{} {}",
         "ERROR:".bright_red().bold(),
-        format!("{}", err).bright_red()
+        format!("{err:?}").bright_red()
     )
 }

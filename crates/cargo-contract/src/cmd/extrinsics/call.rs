@@ -229,7 +229,7 @@ impl CallCommand {
             display_events
                 .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
         };
-        println!("{}", output);
+        println!("{output}");
 
         Ok(())
     }
@@ -323,6 +323,6 @@ impl CallDryRunResult {
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Data", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }
