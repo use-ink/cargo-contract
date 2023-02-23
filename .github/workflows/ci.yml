@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macOS-latest", "windows-latest"]
+        os: ["ubuntu-22.04", "macOS-latest", "windows-2022"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -85,7 +85,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Download - run latest `substrate-contracts-node` binary and run tests
-        if: matrix.os == 'ubuntu-22.04'
+        if: #{{ matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-22.04' }}
         run: |
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
           unzip substrate-contracts-node.zip && \
@@ -94,16 +94,7 @@ jobs:
           cargo test --profile debug-ci --all-features -- --test-threads=1 &
       
       - name: Download - run latest `substrate-contracts-node` binary and run tests
-        if: matrix.os == 'macOS-latest'
-        run: |
-          curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
-          unzip substrate-contracts-node.zip && \
-          chmod +x artifacts/substrate-contracts-node-mac/substrate-contracts-node &&
-          ./artifacts/substrate-contracts-node-mac/substrate-contracts-node -linfo,runtime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
-          cargo test --profile debug-ci --all-features -- --test-threads=1 &
-      
-      - name: Download - run latest `substrate-contracts-node` binary and run tests
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
           cargo install contracts-node --git https://github.com/paritytech/substrate-contracts-node.git --force --locked && \
           substrate-contracts-node -lruntime::contracts=debug  2>&1 | tee /tmp/contracts-node.log &
