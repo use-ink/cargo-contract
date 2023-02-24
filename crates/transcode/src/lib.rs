@@ -279,8 +279,8 @@ impl ContractMessageTranscoder {
 
         if !data.is_empty() {
             return Err(anyhow::anyhow!(
-                "input length was longer than expected {:?}",
-                data
+                "input length was longer than expected by {} byte(s)",
+                data.len()
             ))
         }
 
@@ -314,8 +314,8 @@ impl ContractMessageTranscoder {
 
         if !data.is_empty() {
             return Err(anyhow::anyhow!(
-                "input length was longer than expected {:?}",
-                data
+                "input length was longer than expected by {} byte(s)",
+                data.len()
             ))
         }
 
@@ -348,8 +348,8 @@ impl ContractMessageTranscoder {
 
         if !data.is_empty() {
             return Err(anyhow::anyhow!(
-                "input length was longer than expected {:?}",
-                data
+                "input length was longer than expected by {} byte(s)",
+                data.len()
             ))
         }
 
@@ -710,7 +710,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
 
         // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 32], [1u32; 32]).encode();
+        let encoded = (0u8, [0u32; 8], [1u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
@@ -728,7 +728,7 @@ mod tests {
             83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
         ];
         // raw encoded event with event index prefix
-        let encoded = (0u8, hash, [0u32; 32]).encode();
+        let encoded = (0u8, hash, [0u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
