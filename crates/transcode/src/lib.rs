@@ -277,6 +277,13 @@ impl ContractMessageTranscoder {
             args.push((Value::String(name), value));
         }
 
+        if !data.is_empty() {
+            return Err(anyhow::anyhow!(
+                "input length was longer than expected {:?}",
+                data
+            ))
+        }
+
         let name = event_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
 
@@ -298,10 +305,18 @@ impl ContractMessageTranscoder {
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
 
         let mut args = Vec::new();
+        // let args_length = msg_spec.args().first().unwrap().ty().ty()
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
             let value = self.decode(arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
+        }
+
+        if !data.is_empty() {
+            return Err(anyhow::anyhow!(
+                "input length was longer than expected {:?}",
+                data
+            ))
         }
 
         let name = msg_spec.label().to_string();
@@ -329,6 +344,13 @@ impl ContractMessageTranscoder {
             let name = arg.label().to_string();
             let value = self.decode(arg.ty().ty().id(), data)?;
             args.push((Value::String(name), value));
+        }
+
+        if !data.is_empty() {
+            return Err(anyhow::anyhow!(
+                "input length was longer than expected {:?}",
+                data
+            ))
         }
 
         let name = msg_spec.label().to_string();
