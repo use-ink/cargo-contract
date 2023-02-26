@@ -305,7 +305,6 @@ impl ContractMessageTranscoder {
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
 
         let mut args = Vec::new();
-        // let args_length = msg_spec.args().first().unwrap().ty().ty()
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
             let value = self.decode(arg.ty().ty().id(), data)?;
@@ -760,5 +759,17 @@ mod tests {
         let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
 
         Ok(())
+    }
+
+    #[test]
+    #[should_panic(expected = "input length was longer than expected by 1 byte(s)")]
+    fn fail_decode_input_with_extra_bytes() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded_bytes = hex::decode("633aa55100").unwrap();
+        let _ = transcoder
+            .decode_contract_message(&mut &encoded_bytes[..])
+            .unwrap();
     }
 }
