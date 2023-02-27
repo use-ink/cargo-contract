@@ -3921,9 +3921,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-build-script-utils"
-version = "4.0.0"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2d759bb4b0598322e6223fbd546fe71eaa692c2864e19fe81d48d79730b3fab"
+checksum = "3cbc6b6e856dfd283e5116c3cc40c9f2efec2f0be49d9aaa27231a2b24bd454d"
 dependencies = [
  "platforms",
 ]

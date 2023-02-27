@@ -46,7 +46,7 @@ jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.69"
-substrate-build-script-utils = "4.0.0"
+substrate-build-script-utils = "5.0.0"
 current_platform = "0.2.0"
 which = "4.4.0"
 
