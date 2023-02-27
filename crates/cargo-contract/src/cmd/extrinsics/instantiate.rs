@@ -267,7 +267,7 @@ impl Exec {
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
+            .find_last::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         let token_metadata = TokenMetadata::query(&self.client).await?;
@@ -375,7 +375,7 @@ impl Exec {
                         "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
                     ))
                 }
-            }
+            };
         }
         if !self.output_json {
             super::print_dry_running_status(&self.args.constructor);
