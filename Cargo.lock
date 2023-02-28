@@ -1779,9 +1779,9 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5323d4f43900266f2d5462cbe2a96d4182d634da0cfc1078d26c74d4117e0ce9"
+checksum = "a54dbbaffb0f97bcae062e628dcdc9da4d3c9044f5a53fb2715a328b07221631"
 dependencies = [
  "cfg-if",
 ]
@@ -1812,9 +1812,9 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de001b0907475ab10211093569d8b92726ef7a37d04b6e90c8a2864fbe14d050"
+checksum = "daed9b710cba6f50f1fa0372a7e8a47a35624d84af4ef2c3a8d34d4e96202d1c"
 dependencies = [
  "blake2",
  "derive_more",
@@ -1827,9 +1827,9 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0354567725e4f635a5c5694e4e4cac105e3e78cefd948ca5ab6cc92ea3d8231"
+checksum = "a41c6a3f4e740e27449f805ed47f536a35fb254ebcd03d2480014589331cda3e"
 dependencies = [
  "arrayref",
  "blake2",
@@ -1938,9 +1938,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da15ceaef6bdbece3e8b6338df899ef94e3921d03387fa941af8df3b38803523"
+checksum = "8c90e11b60233ae5ab877854739da2c380a337cb31b3900cb50328821c0381b6"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
