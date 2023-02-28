@@ -132,7 +132,7 @@ impl InfoCommand {
         gas_limit: Weight,
     ) -> Result<(), ErrorVariant> {
 
-        let info_contract_call = api::tx().contracts().instantiate_with_code(
+        let info_contract_call = api::tx().contracts().contract_info(
             self.args.value,
             gas_limit,
             self.args.storage_deposit_limit_compact(),
@@ -165,7 +165,7 @@ impl InfoCommand {
             gas_limit: None,
             storage_deposit_limit
         };
-        state_call(&url, "ContractsApi_call", call_request).await
+        state_call(&url, "ContractsApi_info", info_request).await
     }
 
 
