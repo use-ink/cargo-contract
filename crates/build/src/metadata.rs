@@ -116,8 +116,7 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
-    let out_path_metadata = crate_metadata.metadata_path();
-    let out_path_bundle = crate_metadata.contract_bundle_path();
+
 
     // build the extended contract project metadata
     let ExtendedMetadataResult {

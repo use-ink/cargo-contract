@@ -613,7 +613,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let build = || -> Result<(Option<(OptimizationResult, BuildInfo)>, BuildSteps)> {
+    let build = || -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
         let mut build_steps = BuildSteps::new();
         let pre_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?;
 
@@ -634,6 +634,25 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &unstable_flags,
         )?;
 
+        let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
+            version
+        } else {
+            anyhow::bail!(
+                "Unable to parse version number for the currently running \
+                    `cargo-contract` binary."
+            );
+        };
+
+        let build_info = BuildInfo {
+            rust_toolchain: util::rust_toolchain()?,
+            cargo_contract_version,
+            build_mode,
+            wasm_opt_settings: WasmOptSettings {
+                optimization_passes,
+                keep_debug_symbols,
+            },
+        };
+
         let post_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?
             .ok_or_else(|| {
                 anyhow::anyhow!(
@@ -642,10 +661,13 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 )
             })?;
 
+        let dest_wasm_path = crate_metadata.dest_wasm.clone();
+
         if pre_fingerprint == Some(post_fingerprint)
             && crate_metadata.dest_wasm.exists()
-            && crate_metadata.metadata_path().exists()
-            && crate_metadata.contract_bundle_path().exists()
+            // todo: move these to metadata generation step in order that missing metadata doesn't always force wasm rebuild (also test)
+            // && crate_metadata.metadata_path().exists()
+            // && crate_metadata.contract_bundle_path().exists()
         {
             tracing::info!(
                 "No changes in the original wasm at {}, fingerprint {:?}. \
@@ -653,7 +675,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 crate_metadata.original_wasm.display(),
                 pre_fingerprint
             );
-            return Ok((None, build_steps))
+            return Ok((None, build_info, dest_wasm_path, build_steps))
         }
 
         maybe_lint(&mut build_steps)?;
@@ -681,29 +703,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             &crate_metadata.contract_artifact_name,
         )?;
 
-        let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
-            version
-        } else {
-            anyhow::bail!(
-                "Unable to parse version number for the currently running \
-                    `cargo-contract` binary."
-            );
-        };
-
-        let build_info = BuildInfo {
-            rust_toolchain: crate::util::rust_toolchain()?,
-            cargo_contract_version,
-            build_mode,
-            wasm_opt_settings: WasmOptSettings {
-                optimization_passes,
-                keep_debug_symbols,
-            },
-        };
-
-        Ok((Some((optimization_result, build_info)), build_steps))
+        Ok((Some(optimization_result), build_info, dest_wasm_path, build_steps))
     };
 
-    let (opt_result, metadata_result) = match build_artifact {
+    let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             let mut build_steps = BuildSteps::new();
             maybe_lint(&mut build_steps)?;
@@ -723,34 +726,32 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 &unstable_flags,
             )?;
-            (None, None)
+            (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let (build_result, _) = build()?;
-            let opt_result = build_result.map(|(opt_result, _)| opt_result);
-            (opt_result, None)
+            let (opt_result, dest_wasm, _) = build()?;
+            (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (build_result, build_steps) = build()?;
+            let (opt_result, build_info, dest_wasm, build_steps) = build()?;
 
-            match build_result {
-                Some((opt_result, build_info)) => {
+            match opt_result {
+                Some(opt_result) => {
                     let metadata_result = metadata::execute(
                         &crate_metadata,
-                        opt_result.dest_wasm.as_path(),
+                        dest_wasm.as_path(),
                         network,
                         verbosity,
                         build_steps,
                         &unstable_flags,
                         build_info,
                     )?;
-                    (Some(opt_result), Some(metadata_result))
+                    (Some(opt_result), Some(metadata_result), Some(dest_wasm))
                 }
-                None => (None, None),
+                None => (None, None, Some(dest_wasm)),
             }
         }
     };
-    let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
 
     Ok(BuildResult {
         dest_wasm,

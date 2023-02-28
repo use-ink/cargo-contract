@@ -18,6 +18,7 @@ use crate::{
     util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
+    BuildResult,
     CrateMetadata,
     ExecuteArgs,
     ManifestPath,
@@ -38,6 +39,7 @@ use std::{
         Path,
         PathBuf,
     },
+    time::SystemTime,
 };
 
 macro_rules! build_tests {
@@ -507,29 +509,53 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
         ..Default::default()
     };
 
+    fn get_last_modified(res: &BuildResult) -> (SystemTime, SystemTime, SystemTime) {
+        assert!(
+            res.optimization_result.is_some(),
+            "optimization_result should always be returned for a full build"
+        );
+        assert!(
+            res.metadata_result.is_some(),
+            "metadata_result should always be returned for a full build"
+        );
+        let opt_result_modified =
+            file_last_modified(&res.optimization_result.as_ref().unwrap().dest_wasm);
+        let metadata_result_modified =
+            file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
+        let contract_bundle_modified =
+            file_last_modified(&res.metadata_result.as_ref().unwrap().dest_bundle);
+        (
+            opt_result_modified,
+            metadata_result_modified,
+            contract_bundle_modified,
+        )
+    }
+
     // when
     let res1 = super::execute(args.clone()).expect("build failed");
+    let (opt_result_modified1, metadata_modified1, contract_bundle_modified1) =
+        get_last_modified(&res1);
     let res2 = super::execute(args).expect("build failed");
+    let (opt_result_modified2, metadata_modified2, contract_bundle_modified2) =
+        get_last_modified(&res2);
 
     // then
-    assert!(
-        res1.optimization_result.is_some(),
-        "Initial build should perform wasm optimization"
+    assert_eq!(
+        opt_result_modified1, opt_result_modified2,
+        "Subsequent build of unchanged contract should not perform optimization"
     );
-    assert!(
-        res1.metadata_result.is_some(),
-        "Initial build should perform generate metadata"
+    assert_eq!(
+        metadata_modified1, metadata_modified2,
+        "Subsequent build of unchanged contract should not perform metadata generation"
     );
-    assert!(
-        res2.metadata_result.is_none(),
-        "Subsequent build should not perform wasm optimization"
-    );
-    assert!(
-        res2.metadata_result.is_none(),
-        "Subsequent build should not generate metadata"
-    );
+    assert_eq!(contract_bundle_modified1, contract_bundle_modified2, "Subsequent build of unchanged contract should not perform contract bundle generation");
 
     Ok(())
+}
+
+/// Get the last modified date of the given file.
+fn file_last_modified(path: &Path) -> SystemTime {
+    fs::metadata(path).unwrap().modified().unwrap()
 }
 
 fn build_byte_str(bytes: &[u8]) -> String {
