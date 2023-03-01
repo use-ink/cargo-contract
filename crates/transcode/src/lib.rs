@@ -277,20 +277,7 @@ impl ContractMessageTranscoder {
             args.push((Value::String(name), value));
         }
 
-        if !data.is_empty() {
-            let arg_list_string: String = args
-                .iter()
-                .fold(format!("`{}`", event_spec.label()), |init, arg| {
-                    format!("{}, `{}`", init, arg.0)
-                });
-            let encoded_bytes = util::encode_bytes(data);
-            return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
-                data.len(),
-                arg_list_string,
-                encoded_bytes
-            ))
-        }
+        Self::validate_length(data, event_spec.label(), &args)?;
 
         let name = event_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -319,20 +306,7 @@ impl ContractMessageTranscoder {
             args.push((Value::String(name), value));
         }
 
-        if !data.is_empty() {
-            let arg_list_string: String = args
-                .iter()
-                .fold(format!("`{}`", msg_spec.label()), |init, arg| {
-                    format!("{}, `{}`", init, arg.0)
-                });
-            let encoded_bytes = util::encode_bytes(data);
-            return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
-                data.len(),
-                arg_list_string,
-                encoded_bytes
-            ))
-        }
+        Self::validate_length(data, msg_spec.label(), &args)?;
 
         let name = msg_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -361,20 +335,7 @@ impl ContractMessageTranscoder {
             args.push((Value::String(name), value));
         }
 
-        if !data.is_empty() {
-            let arg_list_string: String = args
-                .iter()
-                .fold(format!("`{}`", msg_spec.label()), |init, arg| {
-                    format!("{}, `{}`", init, arg.0)
-                });
-            let encoded_bytes = util::encode_bytes(data);
-            return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
-                data.len(),
-                arg_list_string,
-                encoded_bytes
-            ))
-        }
+        Self::validate_length(data, msg_spec.label(), &args)?;
 
         let name = msg_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -391,6 +352,24 @@ impl ContractMessageTranscoder {
         } else {
             Ok(Value::Unit)
         }
+    }
+
+    /// Checks if buffer empty, otherwise returns am error
+    fn validate_length(data: &[u8], label: &str, args: &[(Value, Value)]) -> Result<()> {
+        if !data.is_empty() {
+            let arg_list_string: String =
+                args.iter().fold(format!("`{label}`"), |init, arg| {
+                    format!("{}, `{}`", init, arg.0)
+                });
+            let encoded_bytes = util::encode_bytes(data);
+            return Err(anyhow::anyhow!(
+                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
+                data.len(),
+                arg_list_string,
+                encoded_bytes
+            ))
+        }
+        Ok(())
     }
 }
 
