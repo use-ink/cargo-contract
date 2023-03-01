@@ -107,6 +107,7 @@ pub struct WasmOptSettings {
 /// Generates a file with metadata describing the ABI of the smart contract.
 ///
 /// It does so by generating and invoking a temporary workspace member.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
