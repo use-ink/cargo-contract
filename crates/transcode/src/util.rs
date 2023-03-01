@@ -18,3 +18,7 @@
 pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     hex::decode(input.trim_start_matches("0x"))
 }
+
+pub fn encode_bytes(buffer: &[u8]) -> String {
+    hex::encode_upper(buffer)
+}

@@ -278,9 +278,17 @@ impl ContractMessageTranscoder {
         }
 
         if !data.is_empty() {
+            let arg_list_string: String = args
+                .iter()
+                .fold(format!("`{}`", event_spec.label()), |init, arg| {
+                    format!("{}, `{}`", init, arg.0)
+                });
+            let encoded_bytes = util::encode_bytes(data);
             return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s)",
-                data.len()
+                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
+                data.len(),
+                arg_list_string,
+                encoded_bytes
             ))
         }
 
@@ -312,9 +320,17 @@ impl ContractMessageTranscoder {
         }
 
         if !data.is_empty() {
+            let arg_list_string: String = args
+                .iter()
+                .fold(format!("`{}`", msg_spec.label()), |init, arg| {
+                    format!("{}, `{}`", init, arg.0)
+                });
+            let encoded_bytes = util::encode_bytes(data);
             return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s)",
-                data.len()
+                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
+                data.len(),
+                arg_list_string,
+                encoded_bytes
             ))
         }
 
@@ -346,9 +362,17 @@ impl ContractMessageTranscoder {
         }
 
         if !data.is_empty() {
+            let arg_list_string: String = args
+                .iter()
+                .fold(format!("`{}`", msg_spec.label()), |init, arg| {
+                    format!("{}, `{}`", init, arg.0)
+                });
+            let encoded_bytes = util::encode_bytes(data);
             return Err(anyhow::anyhow!(
-                "input length was longer than expected by {} byte(s)",
-                data.len()
+                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
+                data.len(),
+                arg_list_string,
+                encoded_bytes
             ))
         }
 
