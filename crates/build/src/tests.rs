@@ -76,7 +76,8 @@ build_tests!(
     building_contract_with_source_file_in_subfolder_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
-    unchanged_contract_skips_optimization_and_metadata_steps
+    unchanged_contract_skips_optimization_and_metadata_steps,
+    unchanged_contract_no_metadata_artifacts_generates_metadata
 );
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
@@ -518,8 +519,7 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
             res.metadata_result.is_some(),
             "metadata_result should always be returned for a full build"
         );
-        let dest_wasm_modified =
-            file_last_modified(&res.dest_wasm.as_ref().unwrap());
+        let dest_wasm_modified = file_last_modified(&res.dest_wasm.as_ref().unwrap());
         let metadata_result_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
         let contract_bundle_modified =
@@ -549,6 +549,49 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
         "Subsequent build of unchanged contract should not perform metadata generation"
     );
     assert_eq!(contract_bundle_modified1, contract_bundle_modified2, "Subsequent build of unchanged contract should not perform contract bundle generation");
+
+    Ok(())
+}
+
+fn unchanged_contract_no_metadata_artifacts_generates_metadata(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    let res1 = super::execute(ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::CodeOnly,
+        ..Default::default()
+    })
+    .expect("build failed");
+
+    // CodeOnly should only generate Wasm code artifact
+    assert!(res1.dest_wasm.as_ref().unwrap().exists());
+    assert!(res1.metadata_result.is_none());
+
+    let dest_wasm_modified_pre = file_last_modified(&res1.dest_wasm.unwrap());
+
+    let res2 = super::execute(ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::All,
+        ..Default::default()
+    })
+    .expect("build failed");
+
+    let dest_wasm_modified_post = file_last_modified(&res2.dest_wasm.as_ref().unwrap());
+
+    // Code remains unchanged, but metadata artifacts are now generated
+    assert_eq!(dest_wasm_modified_pre, dest_wasm_modified_post);
+    assert!(
+        res1.metadata_result
+            .as_ref()
+            .unwrap()
+            .dest_metadata
+            .exists(),
+        "Metadata file should have been generated"
+    );
+    assert!(
+        res1.metadata_result.as_ref().unwrap().dest_bundle.exists(),
+        "Contract bundle should have been generated"
+    );
 
     Ok(())
 }
