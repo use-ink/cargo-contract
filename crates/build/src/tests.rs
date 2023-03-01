@@ -581,7 +581,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     // Code remains unchanged, but metadata artifacts are now generated
     assert_eq!(dest_wasm_modified_pre, dest_wasm_modified_post);
     assert!(
-        res1.metadata_result
+        res2.metadata_result
             .as_ref()
             .unwrap()
             .dest_metadata
@@ -589,7 +589,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
         "Metadata file should have been generated"
     );
     assert!(
-        res1.metadata_result.as_ref().unwrap().dest_bundle.exists(),
+        res2.metadata_result.as_ref().unwrap().dest_bundle.exists(),
         "Contract bundle should have been generated"
     );
 
