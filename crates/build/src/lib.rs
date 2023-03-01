@@ -139,21 +139,20 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        let opt_size_diff =
-            if let Some(ref opt_result) = self.optimization_result {
-                let size_diff = format!(
-                    "\nOriginal wasm size: {}, Optimized: {}\n\n",
-                    format!("{:.1}K", opt_result.original_size).bold(),
-                    format!("{:.1}K", opt_result.optimized_size).bold(),
-                );
-                debug_assert!(
-                    opt_result.optimized_size > 0.0,
-                    "optimized file size must be greater 0"
-                );
-                size_diff
-            } else {
-                "\n".to_string()
-            };
+        let opt_size_diff = if let Some(ref opt_result) = self.optimization_result {
+            let size_diff = format!(
+                "\nOriginal wasm size: {}, Optimized: {}\n\n",
+                format!("{:.1}K", opt_result.original_size).bold(),
+                format!("{:.1}K", opt_result.optimized_size).bold(),
+            );
+            debug_assert!(
+                opt_result.optimized_size > 0.0,
+                "optimized file size must be greater 0"
+            );
+            size_diff
+        } else {
+            "\n".to_string()
+        };
 
         let build_mode = format!(
             "The contract was built in {} mode.\n\n",
