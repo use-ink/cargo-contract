@@ -511,21 +511,21 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
 
     fn get_last_modified(res: &BuildResult) -> (SystemTime, SystemTime, SystemTime) {
         assert!(
-            res.optimization_result.is_some(),
-            "optimization_result should always be returned for a full build"
+            res.dest_wasm.is_some(),
+            "dest_wasm should always be returned for a full build"
         );
         assert!(
             res.metadata_result.is_some(),
             "metadata_result should always be returned for a full build"
         );
-        let opt_result_modified =
-            file_last_modified(&res.optimization_result.as_ref().unwrap().dest_wasm);
+        let dest_wasm_modified =
+            file_last_modified(&res.dest_wasm.as_ref().unwrap());
         let metadata_result_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
         let contract_bundle_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_bundle);
         (
-            opt_result_modified,
+            dest_wasm_modified,
             metadata_result_modified,
             contract_bundle_modified,
         )
