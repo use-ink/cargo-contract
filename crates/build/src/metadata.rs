@@ -116,8 +116,6 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<MetadataResult> {
-
-
     // build the extended contract project metadata
     let ExtendedMetadataResult {
         source,
