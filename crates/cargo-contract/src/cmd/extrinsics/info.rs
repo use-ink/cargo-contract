@@ -16,11 +16,8 @@
 
 use super::{
     runtime_api::api::{
-        self,
-        runtime_types::pallet_contracts::wasm::Determinism,
+        self
     },
-    state_call,
-    submit_extrinsic,
     Balance,
     Client,
     CodeHash,
@@ -30,21 +27,18 @@ use super::{
     TokenMetadata
 };
 use crate::{
-    cmd::extrinsics::{
-        events::DisplayEvents,
-        ErrorVariant,
-        WasmCode,
-    },
+    cmd::extrinsics::ErrorVariant,
     name_value_println,
+    DEFAULT_KEY_COL_WIDTH
 };
 use anyhow::Result;
 use scale::Encode;
+use sp_weights::Weight;
 use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
 };
-
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -67,7 +61,8 @@ impl InfoCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        let artifacts = self.extrinsic_opts.contract_artifacts()?;
+    
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;        
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
         async_std::task::block_on(async {
@@ -75,99 +70,26 @@ impl InfoCommand {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
-                let result = self.info_dry_run(&client, &signer).await?;
-
-                match result.result {
-                    Ok(ref ret_val) => {
-                        let value = transcoder
-                            .decode_return(&self.message, &mut &ret_val.data[..])
-                            .context(format!(
-                                "Failed to decode return value {:?}",
-                                &ret_val
-                            ))?;
-                        let dry_run_result = InfoDryResult {
-                            trie_id: '',
-                            reverted: result.code_hash,
-                            storage_bytes: result.storage_bytes,
-                            storage_items: result.storage_items,
-                            storage_byte_deposit: result.storage_byte_deposit,
-                            storage_item_deposit: result.storage_item_deposit,
-                            storage_base_deposit: Balance::from(
-                                &result.storage_deposit,
-                            )
-                        };
-                        if self.output_json {
-                            println!("{}", dry_run_result.to_json()?);
-                        } else {
-                            dry_run_result.print();
-                            display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
-                                &result,
-                            )?;
-                        }
-                        Ok(())
-                    }
-                    Err(ref err) => {
-                        let metadata = client.metadata();
-                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                        if self.output_json {
-                            Err(object)
-                        } else {
-                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
-                                &result,
-                            )?;
-                            Ok(())
-                        }
-                    }
-                }
+                let info_result = self.info_rpc().await;
+                Ok(())
             } else {
                 println!("Error when trying to get contract info");
+                Ok(())
             }
         })
     }
 
-    async fn info(
-        &self,
-        code: Vec<u8>,
-        gas_limit: Weight,
-    ) -> Result<(), ErrorVariant> {
+    async fn info_rpc(
+        &self
+    ) -> () {
 
-        let info_contract_call = api::tx().contracts().contract_info(
-            self.args.value,
-            gas_limit,
-            self.args.storage_deposit_limit_compact(),
-            code.to_vec(),
-            self.args.data.clone(),
-            self.args.salt.clone(),
+        tracing::debug!("Gettinginformation for contract AccountId {:?}", self.contract);
+        let info_contract_call = api::storage().contracts().contract_info_of(
+            self.contract,
         );
-
-        let contract_info = info_contract_call.client()
+        //info_contract_call;
+        println!("{:?}", info_contract_call);
     }
-
-    // to change to get the same kind of format https://github.com/paritytech/subxt/blob/master/testing/integration-tests/src/frame/contracts.rs#L214-L219
-    async fn info_dry_run(
-        &self,
-        client: &Client,
-        signer: &PairSigner,
-    ) -> Result<ContractExecResult<Balance>> {
-        let url = self.extrinsic_opts.url_to_string();
-        let token_metadata = TokenMetadata::query(client).await?;
-        let storage_deposit_limit = self
-            .extrinsic_opts
-            .storage_deposit_limit
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
-            .transpose()?;
-        let info_request = InfoRequest {
-            origin: signer.account_id().clone(),
-            dest: self.contract.clone(),
-            value: self.value.denominate_balance(&token_metadata)?,
-            gas_limit: None,
-            storage_deposit_limit
-        };
-        state_call(&url, "ContractsApi_info", info_request).await
-    }
-
 
 }
 
@@ -186,16 +108,16 @@ pub struct InfoRequest {
 /// Result of the contract info
 #[derive(serde::Serialize)]
 pub struct InfoDryResult {
-    // /// Result of a dry run 
-    // pub trie_id: String,
-    // /// Was the operation reverted
-    // pub code_hash: CodeHash,
-    // pub storage_bytes: u32,
-    // pub storage_items: u32,
-    // pub storage_byte_deposit: Balance,
-    // /// This records to how much deposit the accumulated `storage_items` amount to
-    // pub storage_item_deposit: Balance,
-    // pub storage_base_deposit: Balance
+    /// Result of a dry run 
+    pub trie_id: String,
+    /// Was the operation reverted
+    pub code_hash: CodeHash,
+    pub storage_bytes: u32,
+    pub storage_items: u32,
+    pub storage_byte_deposit: Balance,
+    /// This records to how much deposit the accumulated `storage_items` amount to
+    pub storage_item_deposit: Balance,
+    pub storage_base_deposit: Balance
 }
 
 impl InfoDryResult {
@@ -205,12 +127,11 @@ impl InfoDryResult {
     }
 
     pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Result storage_bytes", self.storage_bytes);
         name_value_println!(
-            "Reverted",
-            format!("{:?}", self.reverted),
+            "Result storage_items",
+            format!("{:?}", self.storage_items),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }
