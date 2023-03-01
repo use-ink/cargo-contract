@@ -597,8 +597,20 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 }
 
 /// Get the last modified date of the given file.
+/// Panics if the file does not exist.
 fn file_last_modified(path: &Path) -> SystemTime {
-    fs::metadata(path).unwrap().modified().unwrap()
+    fs::metadata(path)
+        .unwrap_or_else(|err| {
+            panic!("Failed to read metadata for '{}': {}", path.display(), err)
+        })
+        .modified()
+        .unwrap_or_else(|err| {
+            panic!(
+                "Failed to read modified time for '{}': {}",
+                path.display(),
+                err
+            )
+        })
 }
 
 fn build_byte_str(bytes: &[u8]) -> String {
