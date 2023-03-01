@@ -54,9 +54,9 @@ use std::{
 };
 use url::Url;
 
-/// Metadata generation result.
+/// Artifacts resulting from metadata generation.
 #[derive(serde::Serialize)]
-pub struct MetadataResult {
+pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
     /// Path to the bundled file.
@@ -110,12 +110,13 @@ pub struct WasmOptSettings {
 pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
+    metadata_artifacts: &MetadataArtifacts,
     network: Network,
     verbosity: Verbosity,
     mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
-) -> Result<MetadataResult> {
+) -> Result<()> {
     // build the extended contract project metadata
     let ExtendedMetadataResult {
         source,
@@ -156,7 +157,7 @@ pub(crate) fn execute(
             let mut metadata = metadata.clone();
             metadata.remove_source_wasm_attribute();
             let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_metadata, contents)?;
+            fs::write(&metadata_artifacts.dest_metadata, contents)?;
             build_steps.increment_current();
         }
 
@@ -167,7 +168,7 @@ pub(crate) fn execute(
             "Generating bundle".bright_green().bold()
         );
         let contents = serde_json::to_string(&metadata)?;
-        fs::write(&out_path_bundle, contents)?;
+        fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
         Ok(())
     };
@@ -188,10 +189,7 @@ pub(crate) fn execute(
             .using_temp(generate_metadata)?;
     }
 
-    Ok(MetadataResult {
-        dest_metadata: out_path_metadata,
-        dest_bundle: out_path_bundle,
-    })
+    Ok(())
 }
 
 /// Generate the extended contract project metadata
