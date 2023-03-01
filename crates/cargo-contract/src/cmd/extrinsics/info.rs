@@ -72,7 +72,7 @@ impl InfoCommand {
             } else {
                 Err(anyhow::anyhow!(
                     "Error when trying to get info for contract AccountId {}",
-                    self.contract
+                    self.contract.clone()
                 )
                 .into())
             }
@@ -85,10 +85,10 @@ impl InfoCommand {
 
         tracing::debug!("Getting information for contract AccountId {:?}", self.contract);
         let info_contract_call = api::storage().contracts().contract_info_of(
-            self.contract,
+            self.contract.clone(),
         );
-        //info_contract_call;
-        println!("{:?}", info_contract_call);
+        let test_contract_info_clone =  info_contract_call.to_bytes();
+        println!("{:?}", test_contract_info_clone);
     }
 
 }
