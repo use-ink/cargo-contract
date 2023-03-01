@@ -786,7 +786,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "input length was longer than expected by 1 byte(s)")]
+    #[should_panic(
+        expected = "input length was longer than expected by 1 byte(s).\nManaged to decode `flip` but `00` bytes were left unread"
+    )]
     fn fail_decode_input_with_extra_bytes() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
@@ -794,6 +796,23 @@ mod tests {
         let encoded_bytes = hex::decode("633aa55100").unwrap();
         let _ = transcoder
             .decode_contract_message(&mut &encoded_bytes[..])
+            .unwrap();
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "input length was longer than expected by 2 byte(s).\nManaged to decode `Event1`, `name`, `from` but `0C10` bytes were left unread"
+    )]
+    fn fail_decode_contract_event_with_extra_bytes() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        // raw encoded event with event index prefix
+        let encoded = (0u8, [0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
+        // encode again as a Vec<u8> which has a len prefix.
+        let encoded_bytes = encoded.encode();
+        let _ = transcoder
+            .decode_contract_event(&mut &encoded_bytes[..])
             .unwrap();
     }
 }
