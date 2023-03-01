@@ -519,7 +519,7 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
             res.metadata_result.is_some(),
             "metadata_result should always be returned for a full build"
         );
-        let dest_wasm_modified = file_last_modified(&res.dest_wasm.as_ref().unwrap());
+        let dest_wasm_modified = file_last_modified(res.dest_wasm.as_ref().unwrap());
         let metadata_result_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
         let contract_bundle_modified =
@@ -576,7 +576,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     })
     .expect("build failed");
 
-    let dest_wasm_modified_post = file_last_modified(&res2.dest_wasm.as_ref().unwrap());
+    let dest_wasm_modified_post = file_last_modified(res2.dest_wasm.as_ref().unwrap());
 
     // Code remains unchanged, but metadata artifacts are now generated
     assert_eq!(dest_wasm_modified_pre, dest_wasm_modified_post);
