@@ -19,12 +19,9 @@ use super::{
         self
     },
     Balance,
-    Client,
     CodeHash,
     DefaultConfig,
-    ExtrinsicOpts,
-    PairSigner,
-    TokenMetadata
+    ExtrinsicOpts
 };
 use crate::{
     cmd::extrinsics::ErrorVariant,
@@ -67,14 +64,17 @@ impl InfoCommand {
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let client = OnlineClient::from_url(url.clone()).await?;
+            let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
 
             if self.extrinsic_opts.dry_run {
                 let info_result = self.info_rpc().await;
                 Ok(())
             } else {
-                println!("Error when trying to get contract info");
-                Ok(())
+                Err(anyhow::anyhow!(
+                    "Error when trying to get info for contract AccountId {}",
+                    self.contract
+                )
+                .into())
             }
         })
     }
@@ -83,7 +83,7 @@ impl InfoCommand {
         &self
     ) -> () {
 
-        tracing::debug!("Gettinginformation for contract AccountId {:?}", self.contract);
+        tracing::debug!("Getting information for contract AccountId {:?}", self.contract);
         let info_contract_call = api::storage().contracts().contract_info_of(
             self.contract,
         );
