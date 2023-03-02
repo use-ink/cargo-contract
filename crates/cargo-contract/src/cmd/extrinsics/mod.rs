@@ -123,10 +123,10 @@ pub struct ExtrinsicOpts {
     password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
+    /// Submit the extrinsic for on-chain execution.
     #[clap(short('x'), long)]
     execute: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage.
     /// consumed.
     #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
