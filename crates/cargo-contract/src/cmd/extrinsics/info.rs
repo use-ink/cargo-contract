@@ -66,7 +66,9 @@ impl InfoCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
 
-            let info_result = self.info_rpc().await;
+            let info_result = self.info_rpc().await?;
+            info_result.print();
+
             if self.extrinsic_opts.dry_run {
                 Ok(())
             } else {
@@ -81,14 +83,14 @@ impl InfoCommand {
 
     async fn info_rpc(
         &self
-    ) -> () {
+    ) -> Result<InfoDryResult> {
 
         tracing::debug!("Getting information for contract AccountId {:?}", self.contract);
         let info_contract_call = api::storage().contracts().contract_info_of(
             self.contract.clone(),
         );
-        let test_contract_info_clone =  info_contract_call.to_bytes();
-        println!("{:?}", test_contract_info_clone);
+        let info = <InfoDryResult as scale::Decode>::decode(&mut &info_contract_call.to_bytes()[..])?;
+        Ok(info)
     }
 
 }
@@ -106,7 +108,7 @@ pub struct InfoRequest {
 }
 
 /// Result of the contract info
-#[derive(serde::Serialize)]
+#[derive(scale::Decode, serde::Serialize)]
 pub struct InfoDryResult {
     /// Result of a dry run 
     pub trie_id: String,
