@@ -66,8 +66,8 @@ impl InfoCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
 
+            let info_result = self.info_rpc().await;
             if self.extrinsic_opts.dry_run {
-                let info_result = self.info_rpc().await;
                 Ok(())
             } else {
                 Err(anyhow::anyhow!(
