@@ -30,7 +30,7 @@ impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
     pub fn default_contract_release() -> Profile {
         Profile {
-            opt_level: OptLevel::Z,
+            opt_level: OptLevel::S,
             lto: Lto::Fat,
             codegen_units: Some(1),
             overflow_checks: true,
