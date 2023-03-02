@@ -17,7 +17,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    cmd::extrinsics::find_contract_artifacts,
+    cmd::extrinsics::ContractArtifacts,
     DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::Result;
@@ -46,8 +46,10 @@ pub struct EncodeCommand {
 
 impl EncodeCommand {
     pub fn run(&self) -> Result<()> {
-        let artifacts =
-            find_contract_artifacts(self.manifest_path.as_ref(), self.file.as_ref())?;
+        let artifacts = ContractArtifacts::from_manifest_or_file(
+            self.manifest_path.as_ref(),
+            self.file.as_ref(),
+        )?;
         let transcoder = artifacts.contract_transcoder()?;
 
         let call_data = transcoder.encode(&self.message, &self.args)?;

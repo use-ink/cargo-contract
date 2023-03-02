@@ -141,7 +141,10 @@ pub struct ExtrinsicOpts {
 impl ExtrinsicOpts {
     /// Load contract artifacts.
     pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
-        find_contract_artifacts(self.manifest_path.as_ref(), self.file.as_ref())
+        ContractArtifacts::from_manifest_or_file(
+            self.manifest_path.as_ref(),
+            self.file.as_ref(),
+        )
     }
 
     /// Returns the signer for contract extrinsics.
@@ -195,8 +198,35 @@ pub struct ContractArtifacts {
 }
 
 impl ContractArtifacts {
+    /// Load contract artifacts.
+    pub fn from_manifest_or_file(
+        manifest_path: Option<&PathBuf>,
+        file: Option<&PathBuf>,
+    ) -> Result<ContractArtifacts> {
+        let artifact_path = match (manifest_path, file) {
+            (manifest_path, None) => {
+                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+
+                if crate_metadata.contract_bundle_path().exists() {
+                    crate_metadata.contract_bundle_path()
+                } else if crate_metadata.metadata_path().exists() {
+                    crate_metadata.metadata_path()
+                } else {
+                    anyhow::bail!(
+                        "Failed to find any contract artifacts in target directory. \n\
+                        Run `cargo contract build --release` to generate the artifacts."
+                    )
+                }
+            }
+            (None, Some(artifact_file)) => artifact_file.clone(),
+            (Some(_), Some(_)) => {
+                anyhow::bail!("conflicting options: --manifest-path and --file")
+            }
+        };
+        Self::from_artifact_path(artifact_path.as_path())
+    }
     /// Given a contract artifact path, load the contract code and metadata where possible.
-    pub fn from_artifact_path(path: &Path) -> Result<Self> {
+    fn from_artifact_path(path: &Path) -> Result<Self> {
         tracing::debug!("Loading contracts artifacts from `{}`", path.display());
         let (metadata_path, metadata, code) =
             match path.extension().and_then(|ext| ext.to_str()) {
@@ -268,34 +298,6 @@ impl ContractArtifacts {
         ContractMessageTranscoder::try_from(metadata)
             .context("Failed to deserialize ink project metadata from contract metadata")
     }
-}
-
-/// Load contract artifacts.
-pub fn find_contract_artifacts(
-    manifest_path: Option<&PathBuf>,
-    file: Option<&PathBuf>,
-) -> Result<ContractArtifacts> {
-    let artifact_path = match (manifest_path, file) {
-        (manifest_path, None) => {
-            let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
-
-            if crate_metadata.contract_bundle_path().exists() {
-                crate_metadata.contract_bundle_path()
-            } else if crate_metadata.metadata_path().exists() {
-                crate_metadata.metadata_path()
-            } else {
-                anyhow::bail!(
-                    "Failed to find any contract artifacts in target directory. \n\
-                        Run `cargo contract build --release` to generate the artifacts."
-                )
-            }
-        }
-        (None, Some(artifact_file)) => artifact_file.clone(),
-        (Some(_), Some(_)) => {
-            anyhow::bail!("conflicting options: --manifest-path and --file")
-        }
-    };
-    ContractArtifacts::from_artifact_path(artifact_path.as_path())
 }
 
 /// The Wasm code of a contract.
