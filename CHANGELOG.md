@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Dry-run `instantiate`, `call` and `upload` commands by default - [#999](https://github.com/paritytech/cargo-contract/pull/999)
+
 ### Fixed
 - Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
 
