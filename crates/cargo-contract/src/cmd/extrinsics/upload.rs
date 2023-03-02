@@ -78,50 +78,50 @@ impl UploadCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            if self.extrinsic_opts.dry_run {
-                match self.upload_code_rpc(code, &client, &signer).await? {
-                    Ok(result) => {
-                        let upload_result = UploadDryRunResult {
-                            result: String::from("Success!"),
-                            code_hash: format!("{:?}", result.code_hash),
-                            deposit: result.deposit,
-                        };
-                        if self.output_json {
-                            println!("{}", upload_result.to_json()?);
-                        } else {
-                            upload_result.print();
-                        }
-                    }
-                    Err(err) => {
-                        let metadata = client.metadata();
-                        let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                        if self.output_json {
-                            return Err(err)
-                        } else {
-                            name_value_println!("Result", err);
-                        }
+            match self.upload_code_rpc(code.clone(), &client, &signer).await? {
+                Ok(result) => {
+                    let upload_result = UploadDryRunResult {
+                        result: String::from("Success!"),
+                        code_hash: format!("{:?}", result.code_hash),
+                        deposit: result.deposit,
+                    };
+                    if self.output_json {
+                        println!("{}", upload_result.to_json()?);
+                    } else {
+                        upload_result.print();
                     }
                 }
-                Ok(())
-            } else if let Some(code_stored) =
-                self.upload_code(&client, code, &signer).await?
-            {
-                let upload_result = UploadResult {
-                    code_hash: format!("{:?}", code_stored.code_hash),
-                };
-                if self.output_json {
-                    println!("{}", upload_result.to_json()?);
+                Err(err) => {
+                    let metadata = client.metadata();
+                    let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
+                    if self.output_json {
+                        return Err(err)
+                    } else {
+                        name_value_println!("Result", err);
+                    }
+                }
+            }
+            if self.extrinsic_opts.execute {
+                if let Some(code_stored) =
+                    self.upload_code(&client, code, &signer).await?
+                {
+                    let upload_result = UploadResult {
+                        code_hash: format!("{:?}", code_stored.code_hash),
+                    };
+                    if self.output_json {
+                        println!("{}", upload_result.to_json()?);
+                    } else {
+                        upload_result.print();
+                    }
                 } else {
-                    upload_result.print();
-                }
-                Ok(())
-            } else {
-                let code_hash = hex::encode(code_hash);
-                Err(anyhow::anyhow!(
+                    let code_hash = hex::encode(code_hash);
+                    return Err(anyhow::anyhow!(
                     "This contract has already been uploaded with code hash: 0x{code_hash}"
                 )
                 .into())
+                }
             }
+            Ok(())
         })
     }
 
