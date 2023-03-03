@@ -301,3 +301,96 @@ async fn build_upload_remove() {
 
     let _ = node_process;
 }
+
+
+/// Sanity test the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> info
+///
+/// # Note
+///
+/// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the default
+/// port `9944`.
+///
+/// ** This test is ignored for now since the substrate-contracts-node is not installed on CI **
+/// It will be addressed in a follow up PR, for now it can be run locally by commenting out the
+/// `ignore` attribute below
+#[async_std::test]
+async fn build_upload_instantiate_info() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    // Spawn the contracts node
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    tracing::debug!(
+        "Creating new contract in temporary directory {}",
+        tmp_dir.path().to_string_lossy()
+    );
+
+    // cargo contract new flipper
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    // cd flipper
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
+    let output = cargo_contract(project_path.as_path())
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .output()
+        .expect("failed to execute process");
+    println!("status: {}", output.status);
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    tracing::debug!("Instantiating the contract");
+    let output = cargo_contract(project_path.as_path())
+        .arg("instantiate")
+        .args(["--constructor", "new"])
+        .args(["--args", "true"])
+        .args(["--suri", "//Alice"])
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {stderr}");
+
+    // find the contract address in the output
+    let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
+    let caps = regex
+        .captures(stdout)
+        .expect("contract account regex capture");
+    let contract_account = caps.get(1).unwrap().as_str();
+    assert_eq!(48, contract_account.len(), "{stdout:?}");
+
+    tracing::debug!("Getting Info flip for the contract `{}`", contract_account);
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .args(["--suri", "//Alice"])
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "getting info failed: {stderr}");
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
