@@ -15,14 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self},
-    Balance, Client, CodeHash, DefaultConfig, ExtrinsicOpts,
+    runtime_api::api::{self}, Client, DefaultConfig, ExtrinsicOpts,
 };
 use crate::cmd::extrinsics::runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo;
 use crate::{cmd::extrinsics::ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH};
 use anyhow::{anyhow, Result};
-use scale::{Decode, Encode};
-use sp_weights::Weight;
 use std::fmt::Debug;
 use subxt::{Config, OnlineClient};
 
@@ -45,21 +42,21 @@ impl InfoCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        if let _account_id = Some(self.contract.clone()) {
+        if let _account_id = Some(&self.contract) {
+            tracing::debug!(
+                "Getting information for contract AccountId {:?}",
+                self.contract
+            );
+
             async_std::task::block_on(async {
                 let url = self.extrinsic_opts.url_to_string();
                 let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
-
-                tracing::debug!(
-                    "Getting information for contract AccountId {:?}",
-                    self.contract
-                );
 
                 let info_result = self.info_dry_run(&client).await?;
 
                 match info_result {
                     Some(info_result) => {
-                        println!("{:?}", info_result);
+                        InfoCommand::print_and_format_contract_info(info_result)
                     }
                     None => {
                         return Err(anyhow!(
@@ -89,58 +86,27 @@ impl InfoCommand {
 
         Ok(contract_info_of)
     }
-}
 
-/// A struct that encodes RPC parameters required for a call to a smart contract.
-///
-/// Copied from `pallet-contracts-rpc-runtime-api`.
-#[derive(Encode)]
-pub struct InfoRequest {
-    origin: <DefaultConfig as Config>::AccountId,
-    dest: <DefaultConfig as Config>::AccountId,
-    value: Balance,
-    gas_limit: Option<Weight>,
-    storage_deposit_limit: Option<Balance>,
-}
-
-/// Result of the contract info
-#[derive(Debug, Decode, Clone, PartialEq, Eq, serde::Serialize)]
-pub struct InfoDryResult {
-    /// Result of a dry run
-    // pub trie_id: BoundedVec<u8, ConstU32<128>>,
-    pub code_hash: CodeHash,
-    pub storage_bytes: u32,
-    pub storage_items: u32,
-    pub storage_byte_deposit: Balance,
-    pub storage_item_deposit: Balance,
-    // pub storage_base_deposit: StorageDeposit
-}
-
-impl InfoDryResult {
-    /// Returns a result in json format
-    // pub fn to_json(&self) -> Result<String> {
-    //     Ok(serde_json::to_string_pretty(self)?)
-    // }
-
-    pub fn print(&self) {
+    fn print_and_format_contract_info(info: ContractInfo)->(){
         name_value_println!(
-            "Result code_hash",
-            format!("{:?}", self.code_hash),
+            "TrieId for the substree",
+            format!("{:?}", info.trie_id),
             DEFAULT_KEY_COL_WIDTH
         );
-        // name_value_println!(
-        //     "Result storage_items",
-        //     format!("{:?}", self.storage_items),
-        //     DEFAULT_KEY_COL_WIDTH
-        // );
-        // name_value_println!(
-        //     "Result storage_item_deposit {:?}",
-        //     format!("{:?}", self.storage_item_deposit)
-        // );
-        // name_value_println!(
-        //     "Result storage_items",
-        //     format!("{:?}", self.storage_items),
-        //     DEFAULT_KEY_COL_WIDTH
-        // );
+        name_value_println!(
+            "Code hash for the given account",
+            format!("{:?}", info.code_hash),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Items of storage are accumulated in this contract",
+            format!("{:?}", info.storage_items),
+            DEFAULT_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "how much deposit the accumulated `storage_items` amount to",
+            format!("{:?}", info.storage_item_deposit),
+            DEFAULT_KEY_COL_WIDTH
+        );
     }
 }
