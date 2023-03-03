@@ -385,7 +385,6 @@ async fn build_upload_instantiate_info() {
     cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
-        .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();

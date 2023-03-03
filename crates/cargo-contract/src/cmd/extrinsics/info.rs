@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self}, Client, DefaultConfig, ExtrinsicOpts,
+    runtime_api::api::{self}, Client, DefaultConfig,
 };
 use crate::cmd::extrinsics::runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo;
 use crate::{cmd::extrinsics::ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH};
@@ -29,8 +29,13 @@ pub struct InfoCommand {
     /// The address of the the contract to call.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
-    #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    #[clap(
+        name = "url",
+        long,
+        value_parser,
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
@@ -43,14 +48,12 @@ impl InfoCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         if let _account_id = Some(&self.contract) {
-            tracing::debug!(
-                "Getting information for contract AccountId {:?}",
-                self.contract
-            );
+            
+            tracing::debug!("Getting information for contract AccountId {:?}",self.contract);
 
             async_std::task::block_on(async {
-                let url = self.extrinsic_opts.url_to_string();
-                let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
+                let url = self.url.clone();
+                let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
                 let info_result = self.info_dry_run(&client).await?;
 
