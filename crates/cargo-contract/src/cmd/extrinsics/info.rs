@@ -15,18 +15,16 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::{
-        self,
-        api::{self},
-    },
-    Balance, CodeHash, DefaultConfig, ExtrinsicOpts, StorageDeposit,
+    runtime_api::api::{self},
+    Balance, Client, CodeHash, DefaultConfig, ExtrinsicOpts,
 };
+use crate::cmd::extrinsics::runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo;
 use crate::{cmd::extrinsics::ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use scale::{Decode, Encode};
 use sp_weights::Weight;
 use std::fmt::Debug;
-use subxt::Config;
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -48,30 +46,48 @@ impl InfoCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         if let _account_id = Some(self.contract.clone()) {
-            tracing::debug!(
-                "Getting information for contract AccountId {:?}",
-                self.contract
-            );
-
             async_std::task::block_on(async {
-                let info_result = self.info_rpc().await?;
-                info_result.print();
+                let url = self.extrinsic_opts.url_to_string();
+                let client = OnlineClient::<DefaultConfig>::from_url(url.clone()).await?;
+
+                tracing::debug!(
+                    "Getting information for contract AccountId {:?}",
+                    self.contract
+                );
+
+                let info_result = self.info_dry_run(&client).await?;
+
+                match info_result {
+                    Some(info_result) => {
+                        println!("{:?}", info_result);
+                    }
+                    None => {
+                        return Err(anyhow!(
+                            "No contract information were found for the contract Id {}",
+                            self.contract
+                        )
+                        .into());
+                    }
+                }
                 Result::<(), ErrorVariant>::Ok(())
             })
         } else {
-            Err(anyhow::anyhow!("Please provide an accountId with --contract").into())
+            return Err(anyhow!("Please provide an accountId with --contract").into());
         }
     }
 
-    async fn info_rpc(&self) -> Result<InfoDryResult> {
-        let info_contract_call = api::storage()
-            .contracts()
-            .contract_info_of(self.contract.clone());
-        let info = <InfoDryResult as scale::Decode>::decode(
-            &mut &info_contract_call.to_bytes()[..],
-        )?;
-        println!("{:?}", info);
-        Ok(info)
+    async fn info_dry_run(&self, client: &Client) -> Result<Option<ContractInfo>> {
+        let info_contract_call =
+            api::storage().contracts().contract_info_of(&self.contract);
+
+        let contract_info_of = client
+            .storage()
+            .at(None)
+            .await?
+            .fetch(&info_contract_call)
+            .await?;
+
+        Ok(contract_info_of)
     }
 }
 
@@ -91,15 +107,13 @@ pub struct InfoRequest {
 #[derive(Debug, Decode, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct InfoDryResult {
     /// Result of a dry run
-    pub trie_id: u32,
-    pub storage_bytes: u32,
+    // pub trie_id: BoundedVec<u8, ConstU32<128>>,
     pub code_hash: CodeHash,
-    pub storage_base_deposit: Balance,
+    pub storage_bytes: u32,
     pub storage_items: u32,
-    // pub storage_byte_deposit: Balance,
-    // /// This records to how much deposit the accumulated `storage_items` amount to
-    // pub storage_item_deposit: Balance
-    // pub storage_base_deposit: StorageDeposit,
+    pub storage_byte_deposit: Balance,
+    pub storage_item_deposit: Balance,
+    // pub storage_base_deposit: StorageDeposit
 }
 
 impl InfoDryResult {
@@ -109,7 +123,11 @@ impl InfoDryResult {
     // }
 
     pub fn print(&self) {
-        name_value_println!("Result code_hash", format!("{:?}", self.code_hash));
+        name_value_println!(
+            "Result code_hash",
+            format!("{:?}", self.code_hash),
+            DEFAULT_KEY_COL_WIDTH
+        );
         // name_value_println!(
         //     "Result storage_items",
         //     format!("{:?}", self.storage_items),
