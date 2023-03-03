@@ -30,7 +30,7 @@ impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
     pub fn default_contract_release() -> Profile {
         Profile {
-            opt_level: OptLevel::Z,
+            opt_level: OptLevel::S,
             lto: Lto::Fat,
             codegen_units: Some(1),
             overflow_checks: true,
@@ -138,7 +138,7 @@ mod tests {
         // no `[profile.release]` section specified
         let manifest_toml = "";
         let mut expected = toml::value::Table::new();
-        expected.insert("opt-level".into(), value::Value::String("z".into()));
+        expected.insert("opt-level".into(), value::Value::String("s".into()));
         expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
         expected.insert("overflow-checks".into(), value::Value::Boolean(true));
