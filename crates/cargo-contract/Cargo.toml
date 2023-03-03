@@ -68,5 +68,5 @@ std = []
 test-ci-only = []
 
 # Enable this to execute tests which depend on a locally running contracts enabed chain
-# e.g.https://github.com/paritytech/canvas-node
+# e.g.https://github.com/paritytech/substrate-contracts-node
 integration-tests = []

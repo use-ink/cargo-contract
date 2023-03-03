@@ -28,6 +28,7 @@ use self::cmd::{
     RemoveCommand,
     UploadCommand,
 };
+use cmd::encode::EncodeCommand;
 use contract_build::{
     name_value_println,
     util::DEFAULT_KEY_COL_WIDTH,
@@ -123,6 +124,9 @@ enum Command {
     /// Executes a call
     #[clap(name = "exec")]
     Exec(CallCommand),
+    /// Encodes a contracts input calls and their arguments
+    #[clap(name = "encode")]
+    Encode(EncodeCommand),
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
@@ -191,6 +195,7 @@ fn exec(cmd: Command) -> Result<()> {
             call.run(true)
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
+        Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
             remove

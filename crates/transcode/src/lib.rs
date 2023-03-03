@@ -294,7 +294,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Message with selector {} not found in contract metadata",
-                    hex::encode(msg_selector)
+                    hex::encode_upper(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
@@ -323,7 +323,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Constructor with selector {} not found in contract metadata",
-                    hex::encode(msg_selector)
+                    hex::encode_upper(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract constructor '{}'", msg_spec.label());
