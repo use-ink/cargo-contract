@@ -94,7 +94,7 @@ impl CallCommand {
         self.output_json
     }
 
-    pub fn run(&self) -> Result<(), ErrorVariant> {
+    pub fn run(&self, is_exec_command: bool) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
 
@@ -147,7 +147,7 @@ impl CallCommand {
                     }
                 }
             }
-            if self.extrinsic_opts.execute {
+            if self.extrinsic_opts.execute || is_exec_command {
                 self.call(&client, call_data, &signer, &transcoder).await?;
             }
             Ok(())
