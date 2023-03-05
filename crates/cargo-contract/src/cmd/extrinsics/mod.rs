@@ -361,6 +361,22 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
     Ok(())
 }
 
+pub fn display_dry_run_result_warning(is_call: bool) {
+    println!("You call {} been executed.", "has not".bold());
+    if is_call {
+        println!(
+            "To submit the transaction and execute the call on chain, either add {} flag to the command or run {}",
+            "-x/--execute".bold(),
+            "cargo contract exec".bold()
+        );
+    } else {
+        println!(
+            "To submit the transaction and execute the call on chain, add {} flag to the command.",
+            "-x/--execute".bold()
+        );
+    }
+}
+
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors

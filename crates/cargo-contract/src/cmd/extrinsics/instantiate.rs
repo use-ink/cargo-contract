@@ -34,6 +34,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        display_dry_run_result_warning,
         events::DisplayEvents,
         ErrorVariant,
         TokenMetadata,
@@ -210,6 +211,7 @@ impl Exec {
                     display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                         &result,
                     )?;
+                    display_dry_run_result_warning(false);
                 }
             }
             Err(ref err) => {

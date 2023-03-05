@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    display_dry_run_result_warning,
     runtime_api::api::{
         self,
         runtime_types::pallet_contracts::wasm::Determinism,
@@ -89,6 +90,7 @@ impl UploadCommand {
                         println!("{}", upload_result.to_json()?);
                     } else {
                         upload_result.print();
+                        display_dry_run_result_warning(false);
                     }
                 }
                 Err(err) => {

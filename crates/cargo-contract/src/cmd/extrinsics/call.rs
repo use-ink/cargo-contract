@@ -35,6 +35,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        display_dry_run_result_warning,
         events::DisplayEvents,
         ErrorVariant,
     },
@@ -134,7 +135,8 @@ impl CallCommand {
                         display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                             &result,
                         )?;
-                    }
+                        display_dry_run_result_warning(true);
+                    };
                 }
                 Err(ref err) => {
                     let metadata = client.metadata();
