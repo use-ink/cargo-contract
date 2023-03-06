@@ -108,48 +108,52 @@ impl CallCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            let result = self
-                .call_dry_run(call_data.clone(), &client, &signer)
-                .await?;
-
-            match result.result {
-                Ok(ref ret_val) => {
-                    let value = transcoder
-                        .decode_return(&self.message, &mut &ret_val.data[..])
-                        .context(format!(
-                            "Failed to decode return value {:?}",
-                            &ret_val
-                        ))?;
-                    let dry_run_result = CallDryRunResult {
-                        result: String::from("Success!"),
-                        reverted: ret_val.did_revert(),
-                        data: value,
-                        gas_consumed: result.gas_consumed,
-                        gas_required: result.gas_required,
-                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
-                    };
-                    if self.output_json {
-                        println!("{}", dry_run_result.to_json()?);
-                    } else {
-                        dry_run_result.print();
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
-                            &result,
-                        )?;
-                        display_dry_run_result_warning();
-                    };
-                }
-                Err(ref err) => {
-                    let metadata = client.metadata();
-                    let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if self.output_json {
-                        return Err(object)
-                    } else {
-                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
+            if !self.extrinsic_opts.execute {
+                let result = self
+                    .call_dry_run(call_data.clone(), &client, &signer)
+                    .await?;
+                match result.result {
+                    Ok(ref ret_val) => {
+                        let value = transcoder
+                            .decode_return(&self.message, &mut &ret_val.data[..])
+                            .context(format!(
+                                "Failed to decode return value {:?}",
+                                &ret_val
+                            ))?;
+                        let dry_run_result = CallDryRunResult {
+                            result: String::from("Success!"),
+                            reverted: ret_val.did_revert(),
+                            data: value,
+                            gas_consumed: result.gas_consumed,
+                            gas_required: result.gas_required,
+                            storage_deposit: StorageDeposit::from(
+                                &result.storage_deposit,
+                            ),
+                        };
+                        if self.output_json {
+                            println!("{}", dry_run_result.to_json()?);
+                        } else {
+                            dry_run_result.print();
+                            display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
+                                &result,
+                            )?;
+                            display_dry_run_result_warning("message");
+                        };
+                    }
+                    Err(ref err) => {
+                        let metadata = client.metadata();
+                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
+                        if self.output_json {
+                            return Err(object)
+                        } else {
+                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                                &result,
+                            )?;
+                        }
                     }
                 }
-            }
-            if self.extrinsic_opts.execute {
+            } else {
                 self.call(&client, call_data, &signer, &transcoder).await?;
             }
             Ok(())

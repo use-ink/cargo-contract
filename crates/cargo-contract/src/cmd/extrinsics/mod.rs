@@ -361,8 +361,8 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
     Ok(())
 }
 
-pub fn display_dry_run_result_warning() {
-    println!("You call {} been executed.", "has not".bold());
+pub fn display_dry_run_result_warning(command: &str) {
+    println!("Your {} call {} been executed.", command, "has not".bold());
     println!(
             "To submit the transaction and execute the call on chain, add {} flag to the command.",
             "-x/--execute".bold()
