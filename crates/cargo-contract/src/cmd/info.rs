@@ -70,7 +70,7 @@ impl InfoCommand {
             let url = self.url.clone();
             let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-            let info_result = self.info_dry_run(&client).await?;
+            let info_result = self.fetch_contract_info(&client).await?;
 
             match info_result {
                 Some(info_result) => {
@@ -88,7 +88,7 @@ impl InfoCommand {
         })
     }
 
-    async fn info_dry_run(&self, client: &Client) -> Result<Option<ContractInfo>> {
+    async fn fetch_contract_info(&self, client: &Client) -> Result<Option<ContractInfo>> {
         let info_contract_call =
             api::storage().contracts().contract_info_of(&self.contract);
 
@@ -104,22 +104,22 @@ impl InfoCommand {
 
     fn print_and_format_contract_info(info: ContractInfo) {
         name_value_println!(
-            "TrieId for the substree",
+            "TrieId:",
             format!("{:?}", info.trie_id),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "Code hash for the given account",
+            "Code hash:",
             format!("{:?}", info.code_hash),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "Items of storage accumulated in this contract",
+            "Number of storage items:",
             format!("{:?}", info.storage_items),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "How much deposit the accumulated `storage_items` amount to",
+            "Storage deposit:",
             format!("{:?}", info.storage_item_deposit),
             DEFAULT_KEY_COL_WIDTH
         );
