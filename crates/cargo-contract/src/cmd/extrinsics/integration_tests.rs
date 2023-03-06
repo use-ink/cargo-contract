@@ -146,9 +146,6 @@ pub fn init_tracing_subscriber() {
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
 ///
-/// ** This test is ignored for now since the substrate-contracts-node is not installed on CI **
-/// It will be addressed in a follow up PR, for now it can be run locally by commenting out the
-/// `ignore` attribute below
 #[async_std::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
@@ -319,9 +316,6 @@ async fn build_upload_remove() {
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
 ///
-/// ** This test is ignored for now since the substrate-contracts-node is not installed on CI **
-/// It will be addressed in a follow up PR, for now it can be run locally by commenting out the
-/// `ignore` attribute below
 #[async_std::test]
 async fn build_upload_instantiate_info() {
     init_tracing_subscriber();
