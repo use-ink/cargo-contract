@@ -301,7 +301,7 @@ impl ContractArtifacts {
 }
 
 /// The Wasm code of a contract.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WasmCode(Vec<u8>);
 
 impl WasmCode {

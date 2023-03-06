@@ -80,7 +80,7 @@ impl UploadCommand {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             if !self.extrinsic_opts.execute {
-                match self.upload_code_rpc(code.clone(), &client, &signer).await? {
+                match self.upload_code_rpc(code, &client, &signer).await? {
                     Ok(result) => {
                         let upload_result = UploadDryRunResult {
                             result: String::from("Success!"),
