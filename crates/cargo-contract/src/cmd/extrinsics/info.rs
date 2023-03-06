@@ -18,8 +18,7 @@ use super::{
     runtime_api::api::{self},
     Client, DefaultConfig,
 };
-use crate::cmd::extrinsics::runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo;
-use crate::{cmd::extrinsics::ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH};
+use crate::{cmd::extrinsics::{ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH, runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo}};
 use anyhow::{anyhow, Result};
 use std::fmt::Debug;
 use subxt::{Config, OnlineClient};
@@ -63,7 +62,7 @@ impl InfoCommand {
                 }
                 None => {
                     return Err(anyhow!(
-                        "No contract information were found for the ContractId {}",
+                        "No contract information was found for the ContractId {}",
                         self.contract
                     )
                     .into());
