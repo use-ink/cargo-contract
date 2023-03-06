@@ -15,13 +15,25 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self},
-    Client, DefaultConfig,
+    runtime_api::api::{self,},
+    Client,
+    DefaultConfig,
 };
-use crate::{cmd::extrinsics::{ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH, runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo}};
-use anyhow::{anyhow, Result};
+use crate::cmd::extrinsics::{
+    name_value_println,
+    runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
+    ErrorVariant,
+    DEFAULT_KEY_COL_WIDTH,
+};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -47,8 +59,10 @@ impl InfoCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        
-        tracing::debug!("Getting information for contract AccountId {:?}", self.contract);
+        tracing::debug!(
+            "Getting information for contract AccountId {:?}",
+            self.contract
+        );
 
         async_std::task::block_on(async {
             let url = self.url.clone();
@@ -58,14 +72,14 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    InfoCommand::print_and_format_contract_info(info_result)
+                    InfoCommand::print_and_format_contract_info(info_result);
                 }
                 None => {
                     return Err(anyhow!(
                         "No contract information was found for the ContractId {}",
                         self.contract
                     )
-                    .into());
+                    .into())
                 }
             }
             Result::<(), ErrorVariant>::Ok(())
@@ -86,7 +100,7 @@ impl InfoCommand {
         Ok(contract_info_of)
     }
 
-    fn print_and_format_contract_info(info: ContractInfo) -> () {
+    fn print_and_format_contract_info(info: ContractInfo) {
         name_value_println!(
             "TrieId for the substree",
             format!("{:?}", info.trie_id),

@@ -94,7 +94,6 @@ pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
-
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;

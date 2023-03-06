@@ -310,7 +310,6 @@ async fn build_upload_remove() {
     let _ = node_process;
 }
 
-
 /// Sanity test the whole lifecycle of:
 ///   new -> build -> upload -> instantiate -> info
 ///
