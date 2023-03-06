@@ -155,17 +155,11 @@ async fn build_upload_instantiate_call() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    // Spawn the contracts node
     let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
         .await
         .expect("Error spawning contracts node");
 
-    tracing::debug!(
-        "Creating new contract in temporary directory {}",
-        tmp_dir.path().to_string_lossy()
-    );
 
-    // cargo contract new flipper
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -176,7 +170,6 @@ async fn build_upload_instantiate_call() {
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
-    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
     cargo_contract(project_path.as_path())
         .arg("build")
         .assert()
@@ -226,7 +219,6 @@ async fn build_upload_instantiate_call() {
     // call the `get` message via rpc to assert that it was set to the initial value
     call_get_rpc(true);
 
-    tracing::debug!("Calling flip on the contract `{}`", contract_account);
     cargo_contract(project_path.as_path())
         .arg("call")
         .args(["--message", "flip"])
@@ -253,12 +245,10 @@ async fn build_upload_remove() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    // Spawn the contracts node
     let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
         .await
         .expect("Error spawning contracts node");
 
-    // cargo contract new flipper
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("incrementer")
@@ -269,7 +259,6 @@ async fn build_upload_remove() {
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("incrementer");
 
-    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
     cargo_contract(project_path.as_path())
         .arg("build")
         .assert()
@@ -325,17 +314,10 @@ async fn build_upload_instantiate_info() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    // Spawn the contracts node
     let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
         .await
         .expect("Error spawning contracts node");
 
-    tracing::debug!(
-        "Creating new contract in temporary directory {}",
-        tmp_dir.path().to_string_lossy()
-    );
-
-    // cargo contract new flipper
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -346,7 +328,6 @@ async fn build_upload_instantiate_info() {
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
-    tracing::debug!("Building contract in {}", project_path.to_string_lossy());
     cargo_contract(project_path.as_path())
         .arg("build")
         .assert()
@@ -382,7 +363,6 @@ async fn build_upload_instantiate_info() {
     let contract_account = caps.get(1).unwrap().as_str();
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    tracing::debug!("Getting Info flip for the contract `{}`", contract_account);
     cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
