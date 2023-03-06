@@ -145,7 +145,6 @@ pub fn init_tracing_subscriber() {
 /// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
-///
 #[async_std::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
@@ -158,7 +157,6 @@ async fn build_upload_instantiate_call() {
     let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
         .await
         .expect("Error spawning contracts node");
-
 
     cargo_contract(tmp_dir.path())
         .arg("new")
@@ -304,7 +302,6 @@ async fn build_upload_remove() {
 /// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
-///
 #[async_std::test]
 async fn build_upload_instantiate_info() {
     init_tracing_subscriber();
