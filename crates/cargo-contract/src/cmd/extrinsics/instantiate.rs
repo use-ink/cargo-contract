@@ -34,6 +34,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        display_dry_run_result_warning,
         events::DisplayEvents,
         ErrorVariant,
         TokenMetadata,
@@ -154,7 +155,7 @@ impl InstantiateCommand {
                 output_json: self.output_json,
             };
 
-            exec.exec(self.extrinsic_opts.dry_run).await
+            exec.exec(self.extrinsic_opts.execute).await
         })
     }
 }
@@ -189,9 +190,9 @@ pub struct Exec {
 }
 
 impl Exec {
-    async fn exec(&self, dry_run: bool) -> Result<(), ErrorVariant> {
+    async fn exec(&self, execute: bool) -> Result<(), ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
-        if dry_run {
+        if !execute {
             let result = self.instantiate_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
@@ -206,24 +207,22 @@ impl Exec {
                     };
                     if self.output_json {
                         println!("{}", dry_run_result.to_json()?);
-                        Ok(())
                     } else {
                         dry_run_result.print();
                         display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                             &result,
                         )?;
-                        Ok(())
+                        display_dry_run_result_warning("instantiate");
                     }
                 }
                 Err(ref err) => {
                     let metadata = self.client.metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                     if self.output_json {
-                        Err(object)
+                        return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
-                        Ok(())
                     }
                 }
             }
@@ -237,8 +236,8 @@ impl Exec {
                     self.instantiate(code_hash, gas_limit).await?;
                 }
             }
-            Ok(())
         }
+        Ok(())
     }
 
     async fn instantiate_with_code(

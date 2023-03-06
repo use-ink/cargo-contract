@@ -35,6 +35,7 @@ use super::{
 use crate::{
     cmd::extrinsics::{
         display_contract_exec_result_debug,
+        display_dry_run_result_warning,
         events::DisplayEvents,
         ErrorVariant,
     },
@@ -107,9 +108,10 @@ impl CallCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            if self.extrinsic_opts.dry_run {
-                let result = self.call_dry_run(call_data, &client, &signer).await?;
-
+            if !self.extrinsic_opts.execute {
+                let result = self
+                    .call_dry_run(call_data.clone(), &client, &signer)
+                    .await?;
                 match result.result {
                     Ok(ref ret_val) => {
                         let value = transcoder
@@ -135,26 +137,26 @@ impl CallCommand {
                             display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                                 &result,
                             )?;
-                        }
-                        Ok(())
+                            display_dry_run_result_warning("message");
+                        };
                     }
                     Err(ref err) => {
                         let metadata = client.metadata();
                         let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                         if self.output_json {
-                            Err(object)
+                            return Err(object)
                         } else {
                             name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                             display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
                                 &result,
                             )?;
-                            Ok(())
                         }
                     }
                 }
             } else {
-                self.call(&client, call_data, &signer, &transcoder).await
+                self.call(&client, call_data, &signer, &transcoder).await?;
             }
+            Ok(())
         })
     }
 
