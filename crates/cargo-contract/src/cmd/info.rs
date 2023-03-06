@@ -19,10 +19,12 @@ use super::{
     Client,
     DefaultConfig,
 };
-use crate::cmd::extrinsics::{
+use crate::{
+    cmd::{
+        runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
+        ErrorVariant,
+    },
     name_value_println,
-    runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
-    ErrorVariant,
     DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{

@@ -1,5 +1,5 @@
 # Extrinsics
-`cargo-contract` provides CLI support for uploading, instantiating, calling, removing your contracts and displaying info directly from the command
+`cargo-contract` provides CLI support for uploading, instantiating, calling and removing your contracts directly from the command
 line.
 
 ## Common arguments
@@ -115,27 +115,6 @@ cargo contract remove \
 
 - `--code-hash` the hash of the uploaded code, returned from a call to `contract upload`. 
 If not specified the code hash will be taken from the contract artifacts. 
-
-### `info`
-
-Fetch and display informations for a given contractId (AccountId). 
-Display these information (https://github.com/paritytech/substrate/blob/master/frame/contracts/src/storage.rs#L45-L69) from 
-
-
-e.g. `cargo contract info --suri //Alice`
-
-Assumes that `cargo contract build`, `cargo contract upload` and `cargo contract instantiate` have already been run to produce the contract artifacts.
-
-```
-cargo contract info \
-       --contract 5DVGLfDGBvqMr9nCg48g99oD8Mz3sruWmb6ek5UbWvDnbTgZ
-```
-
-- `--contract` the account id of the contract to invoke, returned after a successful `contract instantiate`
-
-*Optional*
-- `--url` the url of the rpc endpoint you want to specify - by default ws://localhost:9944 .
-
 
 ## Specifying the contract artifact
 

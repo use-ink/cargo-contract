@@ -18,10 +18,8 @@ mod balance;
 mod call;
 mod error;
 mod events;
-mod info;
 mod instantiate;
 mod remove;
-mod runtime_api;
 mod upload;
 
 #[cfg(test)]
@@ -88,7 +86,6 @@ pub use call::CallCommand;
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
-pub use info::InfoCommand;
 pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;

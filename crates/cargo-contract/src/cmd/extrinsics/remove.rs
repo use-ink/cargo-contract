@@ -15,10 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{
-        self,
-        contracts::events::CodeRemoved,
-    },
     submit_extrinsic,
     Client,
     CodeHash,
@@ -29,10 +25,16 @@ use super::{
     TokenMetadata,
 };
 use crate::{
-    cmd::extrinsics::{
-        events::DisplayEvents,
-        parse_code_hash,
-        ErrorVariant,
+    cmd::{
+        extrinsics::{
+            events::DisplayEvents,
+            parse_code_hash,
+            ErrorVariant,
+        },
+        runtime_api::api::{
+            self,
+            contracts::events::CodeRemoved,
+        },
     },
     name_value_println,
 };

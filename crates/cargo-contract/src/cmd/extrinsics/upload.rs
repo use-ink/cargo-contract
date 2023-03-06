@@ -15,10 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{
-        self,
-        runtime_types::pallet_contracts::wasm::Determinism,
-    },
     state_call,
     submit_extrinsic,
     Balance,
@@ -30,10 +26,16 @@ use super::{
     TokenMetadata,
 };
 use crate::{
-    cmd::extrinsics::{
-        events::DisplayEvents,
-        ErrorVariant,
-        WasmCode,
+    cmd::{
+        extrinsics::{
+            events::DisplayEvents,
+            ErrorVariant,
+            WasmCode,
+        },
+        runtime_api::api::{
+            self,
+            runtime_types::pallet_contracts::wasm::Determinism,
+        },
     },
     name_value_println,
 };
@@ -157,7 +159,7 @@ impl UploadCommand {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
-        let call = super::runtime_api::api::tx().contracts().upload_code(
+        let call = crate::cmd::runtime_api::api::tx().contracts().upload_code(
             code.0,
             storage_deposit_limit,
             Determinism::Deterministic,

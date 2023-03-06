@@ -17,7 +17,6 @@
 use super::{
     display_contract_exec_result,
     prompt_confirm_tx,
-    runtime_api::api,
     state_call,
     submit_extrinsic,
     Balance,
@@ -33,10 +32,13 @@ use super::{
 };
 
 use crate::{
-    cmd::extrinsics::{
-        display_contract_exec_result_debug,
-        events::DisplayEvents,
-        ErrorVariant,
+    cmd::{
+        extrinsics::{
+            display_contract_exec_result_debug,
+            events::DisplayEvents,
+            ErrorVariant,
+        },
+        runtime_api::api,
     },
     DEFAULT_KEY_COL_WIDTH,
 };

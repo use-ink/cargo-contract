@@ -123,7 +123,7 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs
 
 ##### `cargo contract info`
 
-Fetch and display contract information of a contract on chain. See [extrinsics](docs/extrinsics.md).
+Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
 ## Publishing
 
