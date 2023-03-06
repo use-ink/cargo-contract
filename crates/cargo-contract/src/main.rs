@@ -121,9 +121,6 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
-    /// Executes a call
-    #[clap(name = "exec")]
-    Exec(CallCommand),
     /// Encodes a contracts input calls and their arguments
     #[clap(name = "encode")]
     Encode(EncodeCommand),
@@ -188,11 +185,7 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
         }
         Command::Call(call) => {
-            call.run(false)
-                .map_err(|err| map_extrinsic_err(err, call.is_json()))
-        }
-        Command::Exec(call) => {
-            call.run(true)
+            call.run()
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
         Command::Encode(encode) => encode.run().map_err(format_err),

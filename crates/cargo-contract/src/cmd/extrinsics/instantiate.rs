@@ -211,7 +211,7 @@ impl Exec {
                     display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                         &result,
                     )?;
-                    display_dry_run_result_warning(false);
+                    display_dry_run_result_warning();
                 }
             }
             Err(ref err) => {

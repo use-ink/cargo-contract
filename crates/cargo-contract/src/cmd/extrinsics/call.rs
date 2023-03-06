@@ -95,7 +95,7 @@ impl CallCommand {
         self.output_json
     }
 
-    pub fn run(&self, is_exec_command: bool) -> Result<(), ErrorVariant> {
+    pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
 
@@ -135,7 +135,7 @@ impl CallCommand {
                         display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                             &result,
                         )?;
-                        display_dry_run_result_warning(true);
+                        display_dry_run_result_warning();
                     };
                 }
                 Err(ref err) => {
@@ -149,7 +149,7 @@ impl CallCommand {
                     }
                 }
             }
-            if self.extrinsic_opts.execute || is_exec_command {
+            if self.extrinsic_opts.execute {
                 self.call(&client, call_data, &signer, &transcoder).await?;
             }
             Ok(())

@@ -90,7 +90,7 @@ impl UploadCommand {
                         println!("{}", upload_result.to_json()?);
                     } else {
                         upload_result.print();
-                        display_dry_run_result_warning(false);
+                        display_dry_run_result_warning();
                     }
                 }
                 Err(err) => {
