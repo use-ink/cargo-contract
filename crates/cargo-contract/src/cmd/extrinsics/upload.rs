@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    display_dry_run_result_warning,
     state_call,
     submit_extrinsic,
     Balance,
@@ -80,7 +81,7 @@ impl UploadCommand {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 
-            if self.extrinsic_opts.dry_run {
+            if !self.extrinsic_opts.execute {
                 match self.upload_code_rpc(code, &client, &signer).await? {
                     Ok(result) => {
                         let upload_result = UploadDryRunResult {
@@ -92,6 +93,7 @@ impl UploadCommand {
                             println!("{}", upload_result.to_json()?);
                         } else {
                             upload_result.print();
+                            display_dry_run_result_warning("upload");
                         }
                     }
                     Err(err) => {
@@ -104,7 +106,6 @@ impl UploadCommand {
                         }
                     }
                 }
-                Ok(())
             } else if let Some(code_stored) =
                 self.upload_code(&client, code, &signer).await?
             {
@@ -116,14 +117,14 @@ impl UploadCommand {
                 } else {
                     upload_result.print();
                 }
-                Ok(())
             } else {
                 let code_hash = hex::encode(code_hash);
-                Err(anyhow::anyhow!(
+                return Err(anyhow::anyhow!(
                     "This contract has already been uploaded with code hash: 0x{code_hash}"
                 )
                 .into())
             }
+            Ok(())
         })
     }
 

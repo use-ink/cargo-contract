@@ -122,10 +122,10 @@ pub struct ExtrinsicOpts {
     password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
-    #[clap(long)]
-    dry_run: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// Submit the extrinsic for on-chain execution.
+    #[clap(short('x'), long)]
+    execute: bool,
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage.
     /// consumed.
     #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
@@ -358,6 +358,14 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
         name_value_println!("", format!("{debug_message}"), WIDTH);
     }
     Ok(())
+}
+
+pub fn display_dry_run_result_warning(command: &str) {
+    println!("Your {} call {} been executed.", command, "has not".bold());
+    println!(
+            "To submit the transaction and execute the call on chain, add {} flag to the command.",
+            "-x/--execute".bold()
+        );
 }
 
 /// Wait for the transaction to be included successfully into a block.
