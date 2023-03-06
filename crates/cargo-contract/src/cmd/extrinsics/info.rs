@@ -15,7 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self}, Client, DefaultConfig,
+    runtime_api::api::{self},
+    Client, DefaultConfig,
 };
 use crate::cmd::extrinsics::runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo;
 use crate::{cmd::extrinsics::ErrorVariant, name_value_println, DEFAULT_KEY_COL_WIDTH};
@@ -47,33 +48,29 @@ impl InfoCommand {
     }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
-        if let _account_id = Some(&self.contract) {
-            
-            tracing::debug!("Getting information for contract AccountId {:?}",self.contract);
+        
+        tracing::debug!("Getting information for contract AccountId {:?}", self.contract);
 
-            async_std::task::block_on(async {
-                let url = self.url.clone();
-                let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
+        async_std::task::block_on(async {
+            let url = self.url.clone();
+            let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-                let info_result = self.info_dry_run(&client).await?;
+            let info_result = self.info_dry_run(&client).await?;
 
-                match info_result {
-                    Some(info_result) => {
-                        InfoCommand::print_and_format_contract_info(info_result)
-                    }
-                    None => {
-                        return Err(anyhow!(
-                            "No contract information were found for the contract Id {}",
-                            self.contract
-                        )
-                        .into());
-                    }
+            match info_result {
+                Some(info_result) => {
+                    InfoCommand::print_and_format_contract_info(info_result)
                 }
-                Result::<(), ErrorVariant>::Ok(())
-            })
-        } else {
-            return Err(anyhow!("Please provide an accountId with --contract").into());
-        }
+                None => {
+                    return Err(anyhow!(
+                        "No contract information were found for the ContractId {}",
+                        self.contract
+                    )
+                    .into());
+                }
+            }
+            Result::<(), ErrorVariant>::Ok(())
+        })
     }
 
     async fn info_dry_run(&self, client: &Client) -> Result<Option<ContractInfo>> {
@@ -90,7 +87,7 @@ impl InfoCommand {
         Ok(contract_info_of)
     }
 
-    fn print_and_format_contract_info(info: ContractInfo)->(){
+    fn print_and_format_contract_info(info: ContractInfo) -> () {
         name_value_println!(
             "TrieId for the substree",
             format!("{:?}", info.trie_id),
@@ -102,12 +99,12 @@ impl InfoCommand {
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "Items of storage are accumulated in this contract",
+            "Items of storage accumulated in this contract",
             format!("{:?}", info.storage_items),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "how much deposit the accumulated `storage_items` amount to",
+            "How much deposit the accumulated `storage_items` amount to",
             format!("{:?}", info.storage_item_deposit),
             DEFAULT_KEY_COL_WIDTH
         );
