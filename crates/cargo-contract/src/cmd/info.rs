@@ -25,7 +25,6 @@ use crate::{
         ErrorVariant,
     },
     name_value_println,
-    DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -40,7 +39,7 @@ use subxt::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
 pub struct InfoCommand {
-    /// Address of the contract to display info.
+    /// The address of the contract to display info of.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
     #[clap(
@@ -97,25 +96,12 @@ impl InfoCommand {
 
     fn print_and_format_contract_info(info: ContractInfo) {
         let convert_trie_id = hex::encode(info.trie_id.0);
-        name_value_println!(
-            "TrieId:",
-            format!("{}", convert_trie_id),
-            DEFAULT_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Code hash:",
-            format!("{}", info.code_hash),
-            DEFAULT_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage items:",
-            format!("{}", info.storage_items),
-            DEFAULT_KEY_COL_WIDTH
-        );
+        name_value_println!("TrieId:", format!("{}", convert_trie_id));
+        name_value_println!("Code hash:", format!("{:?}", info.code_hash));
+        name_value_println!("Storage items:", format!("{:?}", info.storage_items));
         name_value_println!(
             "Storage deposit:",
-            format!("{}", info.storage_item_deposit),
-            DEFAULT_KEY_COL_WIDTH
+            format!("{:?}", info.storage_item_deposit)
         );
     }
 }

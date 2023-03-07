@@ -131,7 +131,7 @@ enum Command {
     /// Remove contract code
     #[clap(name = "remove")]
     Remove(RemoveCommand),
-    /// Display contract information
+    /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
 }

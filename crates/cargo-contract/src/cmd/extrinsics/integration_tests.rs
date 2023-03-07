@@ -71,11 +71,6 @@ impl ContractsNodeProcess {
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
-            tracing::debug!(
-                "Connecting to contracts enabled node, attempt {}/{}",
-                attempts,
-                MAX_ATTEMPTS
-            );
             let result = OnlineClient::new().await;
             if let Ok(client) = result {
                 break Ok(client)
@@ -110,7 +105,6 @@ impl ContractsNodeProcess {
     }
 
     fn kill(&mut self) {
-        tracing::debug!("Killing contracts node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
             tracing::error!(
                 "Error killing contracts node process {}: {}",
@@ -142,7 +136,7 @@ pub fn init_tracing_subscriber() {
 ///
 /// # Note
 ///
-/// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
 #[async_std::test]
@@ -173,17 +167,14 @@ async fn build_upload_instantiate_call() {
         .assert()
         .success();
 
-    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    println!("status: {}", output.status);
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
-    tracing::debug!("Instantiating the contract");
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
@@ -262,13 +253,11 @@ async fn build_upload_remove() {
         .assert()
         .success();
 
-    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    println!("status: {}", output.status);
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
@@ -280,7 +269,6 @@ async fn build_upload_remove() {
     let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
-    tracing::debug!("Removing the contract");
     let output = cargo_contract(project_path.as_path())
         .arg("remove")
         .args(["--suri", "//Alice"])
@@ -299,7 +287,7 @@ async fn build_upload_remove() {
 ///
 /// # Note
 ///
-/// Requires [substrate-contracts-node](https://github.com/paritytech/substrate-contracts-node/) to
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the default
 /// port `9944`.
 #[async_std::test]
@@ -330,17 +318,14 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    tracing::debug!("Uploading the code to the substrate-contracts-node chain");
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
         .output()
         .expect("failed to execute process");
-    println!("status: {}", output.status);
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
-    tracing::debug!("Instantiating the contract");
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
