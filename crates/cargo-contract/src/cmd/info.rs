@@ -40,7 +40,7 @@ use subxt::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
 pub struct InfoCommand {
-    /// The address of the the contract to call.
+    /// The address of the the contract to display info.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
     #[clap(
@@ -103,9 +103,11 @@ impl InfoCommand {
     }
 
     fn print_and_format_contract_info(info: ContractInfo) {
+
+        let convert_trie_id = hex::encode(info.trie_id.0);
         name_value_println!(
             "TrieId:",
-            format!("{:?}", info.trie_id),
+            format!("{:?}", convert_trie_id),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
