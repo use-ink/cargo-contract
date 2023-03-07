@@ -40,7 +40,7 @@ use subxt::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
 pub struct InfoCommand {
-    /// The address of the the contract to display info.
+    /// Address of the contract to display info.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
     #[clap(
@@ -50,7 +50,7 @@ pub struct InfoCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// Export the call output in JSON format.
+    /// Export the info output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
@@ -62,7 +62,7 @@ impl InfoCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         tracing::debug!(
-            "Getting information for contract AccountId {:?}",
+            "Getting contract information for AccountId {:?}",
             self.contract
         );
 
@@ -78,7 +78,7 @@ impl InfoCommand {
                 }
                 None => {
                     return Err(anyhow!(
-                        "No contract information was found for the ContractId {}",
+                        "No contract information was found for account id {}",
                         self.contract
                     )
                     .into())
@@ -103,7 +103,6 @@ impl InfoCommand {
     }
 
     fn print_and_format_contract_info(info: ContractInfo) {
-
         let convert_trie_id = hex::encode(info.trie_id.0);
         name_value_println!(
             "TrieId:",
