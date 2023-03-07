@@ -49,11 +49,10 @@ pub struct InfoCommand {
         value_parser,
         default_value = "ws://localhost:9944"
     )]
-    url: url::Url
+    url: url::Url,
 }
 
 impl InfoCommand {
-
     pub fn run(&self) -> Result<(), ErrorVariant> {
         tracing::debug!(
             "Getting contract information for AccountId {:?}",
