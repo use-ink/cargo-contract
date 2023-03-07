@@ -99,22 +99,22 @@ impl InfoCommand {
         let convert_trie_id = hex::encode(info.trie_id.0);
         name_value_println!(
             "TrieId:",
-            format!("{:?}", convert_trie_id),
+            format!("{}", convert_trie_id),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
             "Code hash:",
-            format!("{:?}", info.code_hash),
+            format!("{}", info.code_hash),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
             "Storage items:",
-            format!("{:?}", info.storage_items),
+            format!("{}", info.storage_items),
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
             "Storage deposit:",
-            format!("{:?}", info.storage_item_deposit),
+            format!("{}", info.storage_item_deposit),
             DEFAULT_KEY_COL_WIDTH
         );
     }
