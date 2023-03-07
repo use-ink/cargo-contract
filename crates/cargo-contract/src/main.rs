@@ -201,7 +201,7 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::Info(info) => {
             info.run()
-                .map_err(|err| map_extrinsic_err(err, info.is_json()))
+                .map_err(format_err)
         }
     }
 }

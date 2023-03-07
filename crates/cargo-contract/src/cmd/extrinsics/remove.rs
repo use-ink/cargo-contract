@@ -53,7 +53,7 @@ pub struct RemoveCommand {
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// Export the call output in JSON format.
+    /// Export the call output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }

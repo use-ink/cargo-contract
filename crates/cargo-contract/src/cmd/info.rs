@@ -49,16 +49,10 @@ pub struct InfoCommand {
         value_parser,
         default_value = "ws://localhost:9944"
     )]
-    url: url::Url,
-    /// Export the info output as JSON.
-    #[clap(long, conflicts_with = "verbose")]
-    output_json: bool,
+    url: url::Url
 }
 
 impl InfoCommand {
-    pub fn is_json(&self) -> bool {
-        self.output_json
-    }
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         tracing::debug!(
@@ -115,7 +109,7 @@ impl InfoCommand {
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!(
-            "Number of storage items:",
+            "Storage items:",
             format!("{:?}", info.storage_items),
             DEFAULT_KEY_COL_WIDTH
         );
