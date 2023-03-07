@@ -4,6 +4,8 @@ line.
 
 ### `info`
 
+Fetch and display information for a given contract.
+
 e.g. `cargo contract info --contract 5DVGLfDGBvqMr9nCg48g99oD8Mz3sruWmb6ek5UbWvDnbTgZ`
 
 Assumes that `cargo contract build`, `cargo contract upload` and `cargo contract instantiate` have already been run to display information for the contract.
