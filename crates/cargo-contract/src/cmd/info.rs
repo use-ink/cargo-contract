@@ -49,6 +49,9 @@ pub struct InfoCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// Export the call output as JSON.
+    #[clap(name = "output-json", long)]
+    output_json: bool,
 }
 
 impl InfoCommand {
@@ -66,7 +69,17 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    InfoCommand::print_and_format_contract_info(info_result);
+                    // InfoCommand::print_and_format_contract_info(info_result);
+                    let output_type = match self.output_json {
+                        true => OutputType::Json,
+                        false => OutputType::HumanReadable,
+                    };
+                    if matches!(output_type, OutputType::Json) {
+                        InfoCommand::basic_display_format_contract_info(info_result);
+                    } else {
+                        InfoCommand::serialize_json(info_result);
+                    }
+                    Result::<(), ErrorVariant>::Ok(())
                 }
                 None => {
                     return Err(anyhow!(
@@ -76,7 +89,6 @@ impl InfoCommand {
                     .into())
                 }
             }
-            Result::<(), ErrorVariant>::Ok(())
         })
     }
 
@@ -93,8 +105,7 @@ impl InfoCommand {
 
         Ok(contract_info_of)
     }
-
-    fn print_and_format_contract_info(info: ContractInfo) {
+    pub fn basic_display_format_contract_info(info: ContractInfo) {
         let convert_trie_id = hex::encode(info.trie_id.0);
         name_value_println!("TrieId:", format!("{}", convert_trie_id));
         name_value_println!("Code hash:", format!("{:?}", info.code_hash));
@@ -104,4 +115,25 @@ impl InfoCommand {
             format!("{:?}", info.storage_item_deposit)
         );
     }
+    pub fn serialize_json(info: ContractInfo) -> Result<String> {
+        let convert_trie_id = hex::encode(info.trie_id.0);
+        let mut info_to_json = InfoToJson {
+            trie_id: convert_trie_id.clone(),
+            code_hash: info.code_hash,
+            storage_items: info.storage_items,
+        };
+        Ok(serde_json::to_string_pretty(&info_to_json)?)
+    }
+}
+
+pub struct InfoToJson {
+    trie_id: String,
+    code_hash: sp_core::H256,
+    storage_items: u32,
+}
+pub enum OutputType {
+    /// Output build results in a human readable format.
+    HumanReadable,
+    /// Output the build results JSON formatted.
+    Json,
 }
