@@ -138,7 +138,7 @@ pub(crate) fn execute(
             "--package".to_owned(),
             "metadata-gen".to_owned(),
             manifest_path.cargo_arg()?,
-            "--target-dir",
+            "--target-dir".to_owned(),
             crate_metadata.target_directory.to_string_lossy(),
             "--release".to_owned(),
             network.to_owned(),
