@@ -243,7 +243,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 #[derive(Default, Clone, Debug, Args)]
 pub struct Features {
     /// Space or comma separated list of features to activate
-    #[clap(long)]
+    #[clap(long, value_delimiter=',')]
     features: Vec<String>,
 }
 
@@ -257,7 +257,13 @@ impl Features {
     pub fn append_to_args(&self, args: &mut Vec<String>) {
         if !self.features.is_empty() {
             args.push("--features".to_string());
-            args.push(self.features.join(","));
+            let features =
+                if self.features.len() == 1 {
+                    self.features[0].clone()
+                } else {
+                    self.features.join(",")
+                };
+            args.push(features);
         }
     }
 }
