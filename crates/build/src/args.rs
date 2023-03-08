@@ -86,11 +86,12 @@ impl Default for Network {
     }
 }
 
-impl fmt::Display for Network {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Network {
+    /// If `Network::Offline` append the `--offline` flag for cargo invocations.
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         match self {
-            Self::Online => write!(f, ""),
-            Self::Offline => write!(f, "--offline"),
+            Self::Online => (),
+            Self::Offline => args.push("--offline".to_owned()),
         }
     }
 }
@@ -243,7 +244,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 #[derive(Default, Clone, Debug, Args)]
 pub struct Features {
     /// Space or comma separated list of features to activate
-    #[clap(long)]
+    #[clap(long, value_delimiter = ',')]
     features: Vec<String>,
 }
 
@@ -254,12 +255,15 @@ impl Features {
     }
 
     /// Appends the raw features args to pass through to the `cargo` invocation.
-    pub fn append_to_args<'a>(&'a self, args: &mut Vec<&'a str>) {
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         if !self.features.is_empty() {
-            args.push("--features");
-            for feature in &self.features {
-                args.push(feature)
-            }
+            args.push("--features".to_string());
+            let features = if self.features.len() == 1 {
+                self.features[0].clone()
+            } else {
+                self.features.join(",")
+            };
+            args.push(features);
         }
     }
 }
