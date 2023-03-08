@@ -86,11 +86,12 @@ impl Default for Network {
     }
 }
 
-impl fmt::Display for Network {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Network {
+    /// If `Network::Offline` append the `--offline` flag for cargo invocations.
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         match self {
-            Self::Online => write!(f, ""),
-            Self::Offline => write!(f, "--offline"),
+            Self::Online => (),
+            Self::Offline => args.push("--offline".to_owned()),
         }
     }
 }

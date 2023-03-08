@@ -145,8 +145,8 @@ pub(crate) fn execute(
             "--target-dir".to_owned(),
             target_dir,
             "--release".to_owned(),
-            network.to_string(),
         ];
+        network.append_to_args(&mut args);
         features.append_to_args(&mut args);
 
         let stdout = util::invoke_cargo(

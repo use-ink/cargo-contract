@@ -248,10 +248,9 @@ fn exec_cargo_for_wasm_target(
             "--release".to_owned(),
             target_dir,
         ];
+        network.append_to_args(&mut args);
+
         let mut features = features.clone();
-        if network == Network::Offline {
-            args.push("--offline".to_owned());
-        }
         if build_mode == BuildMode::Debug {
             features.push("ink/ink-debug");
         } else {
