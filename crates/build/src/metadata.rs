@@ -134,14 +134,18 @@ pub(crate) fn execute(
             format!("{build_steps}").bold(),
             "Generating metadata".bright_green().bold()
         );
+        let target_dir = crate_metadata
+            .target_directory
+            .to_string_lossy()
+            .to_string();
         let mut args = vec![
             "--package".to_owned(),
             "metadata-gen".to_owned(),
             manifest_path.cargo_arg()?,
             "--target-dir".to_owned(),
-            crate_metadata.target_directory.to_string_lossy(),
+            target_dir,
             "--release".to_owned(),
-            network.to_owned(),
+            network.to_string(),
         ];
         features.append_to_args(&mut args);
 
