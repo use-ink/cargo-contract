@@ -254,12 +254,10 @@ impl Features {
     }
 
     /// Appends the raw features args to pass through to the `cargo` invocation.
-    pub fn append_to_args<'a>(&'a self, args: &mut Vec<&'a str>) {
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         if !self.features.is_empty() {
-            args.push("--features");
-            for feature in &self.features {
-                args.push(feature)
-            }
+            args.push("--features".to_string());
+            args.push(self.features.join(","));
         }
     }
 }

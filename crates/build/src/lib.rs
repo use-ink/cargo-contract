@@ -242,20 +242,20 @@ fn exec_cargo_for_wasm_target(
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
 
         let mut args = vec![
-            "--target=wasm32-unknown-unknown",
-            "-Zbuild-std",
-            "--no-default-features",
-            "--release",
-            &target_dir,
+            "--target=wasm32-unknown-unknown".to_owned(),
+            "-Zbuild-std".to_owned(),
+            "--no-default-features".to_owned(),
+            "--release".to_owned(),
+            target_dir,
         ];
         let mut features = features.clone();
         if network == Network::Offline {
-            args.push("--offline");
+            args.push("--offline".to_owned());
         }
         if build_mode == BuildMode::Debug {
             features.push("ink/ink-debug");
         } else {
-            args.push("-Zbuild-std-features=panic_immediate_abort");
+            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
         let mut env = vec![(
