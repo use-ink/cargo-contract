@@ -91,7 +91,8 @@ pub struct CallCommand<C: Config = DefaultConfig> {
 
 impl<C> CallCommand<C>
 where
-    C: Config
+    C: Config,
+    <C as Config>::AccountId: From<sp_runtime::AccountId32>
 {
     pub fn is_json(&self) -> bool {
         self.output_json
@@ -176,7 +177,7 @@ where
             .as_ref()
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
-        let call_request = CallRequest {
+        let call_request = CallRequest::<C> {
             origin: signer.account_id().clone(),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&token_metadata)?,
@@ -291,9 +292,9 @@ where
 ///
 /// Copied from `pallet-contracts-rpc-runtime-api`.
 #[derive(Encode)]
-pub struct CallRequest {
-    origin: <DefaultConfig as Config>::AccountId,
-    dest: <DefaultConfig as Config>::AccountId,
+pub struct CallRequest<C: Config> {
+    origin: C::AccountId,
+    dest: C::AccountId,
     value: Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
