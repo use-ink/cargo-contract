@@ -78,10 +78,12 @@ pub(super) fn generate_package<P: AsRef<Path>>(
         .ok_or_else(|| anyhow::anyhow!("features should be a table"))?;
 
     for (feature, _) in contract_features {
-        features.insert(
-            feature.to_string(),
-            Value::Array(vec![format!("contract/{feature}").into()]),
-        );
+        if feature != "default" && feature != "std" {
+            features.insert(
+                feature.to_string(),
+                Value::Array(vec![format!("contract/{feature}").into()]),
+            );
+        }
     }
 
     let cargo_toml = toml::to_string(&cargo_toml)?;
