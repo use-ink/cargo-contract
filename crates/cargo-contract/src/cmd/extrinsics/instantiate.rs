@@ -22,7 +22,6 @@ use super::{
     submit_extrinsic,
     Balance,
     BalanceVariant,
-    Client,
     CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
@@ -178,18 +177,21 @@ impl InstantiateArgs {
     }
 }
 
-pub struct Exec {
+pub struct Exec<C: Config> {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     verbosity: Verbosity,
     url: String,
-    client: Client,
-    signer: PairSigner,
+    client: OnlineClient<C>,
+    signer: PairSigner<C>,
     transcoder: ContractMessageTranscoder,
     output_json: bool,
 }
 
-impl Exec {
+impl<C> Exec<C>
+where
+    C: Config
+{
     async fn exec(&self, execute: bool) -> Result<(), ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         if !execute {
@@ -276,7 +278,7 @@ impl Exec {
 
     async fn instantiate(
         &self,
-        code_hash: CodeHash,
+        code_hash: CodeHash<C>,
         gas_limit: Weight,
     ) -> Result<(), ErrorVariant> {
         if !self.opts.skip_confirm {
@@ -313,7 +315,7 @@ impl Exec {
     async fn display_result(
         &self,
         result: &ExtrinsicEvents<DefaultConfig>,
-        code_hash: Option<CodeHash>,
+        code_hash: Option<CodeHash<C>>,
         contract_address: subxt::utils::AccountId32,
         token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {

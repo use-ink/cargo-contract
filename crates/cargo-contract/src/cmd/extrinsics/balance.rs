@@ -26,16 +26,14 @@ use rust_decimal::{
 };
 use serde_json::json;
 
-use super::{
-    Balance,
-    Client,
-};
+use super::Balance;
 
 use anyhow::{
     anyhow,
     Context,
     Result,
 };
+use subxt::OnlineClient;
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,7 +72,7 @@ pub enum UnitPrefix {
 
 impl TokenMetadata {
     /// Query [TokenMetadata] through the node's RPC
-    pub async fn query(client: &Client) -> Result<Self> {
+    pub async fn query<C: subxt::Config>(client: &OnlineClient<C>) -> Result<Self> {
         let sys_props = client.rpc().system_properties().await?;
 
         let default_decimals = json!(12);

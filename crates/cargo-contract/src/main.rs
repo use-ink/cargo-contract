@@ -61,6 +61,7 @@ use assert_cmd as _;
 use predicates as _;
 #[cfg(test)]
 use regex as _;
+use subxt::Config;
 #[cfg(test)]
 use tempfile as _;
 
@@ -70,18 +71,18 @@ use which as _;
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
 #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
-pub(crate) enum Opts {
+pub(crate) enum Opts<C: Config> {
     /// Utilities to develop Wasm smart contracts.
     #[clap(name = "contract")]
     #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
     #[clap(action = ArgAction::DeriveDisplayOrder)]
-    Contract(ContractArgs),
+    Contract(ContractArgs<C>),
 }
 
 #[derive(Debug, Args)]
-pub(crate) struct ContractArgs {
+pub(crate) struct ContractArgs<C: Config> {
     #[clap(subcommand)]
-    cmd: Command,
+    cmd: Command<C>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -96,7 +97,7 @@ impl FromStr for HexData {
 }
 
 #[derive(Debug, Subcommand)]
-enum Command {
+enum Command<C: Config> {
     /// Setup and create a new smart contract project
     #[clap(name = "new")]
     New {
@@ -129,7 +130,7 @@ enum Command {
     Decode(DecodeCommand),
     /// Remove contract code
     #[clap(name = "remove")]
-    Remove(RemoveCommand),
+    Remove(RemoveCommand<C>),
 }
 
 fn main() {
@@ -146,7 +147,7 @@ fn main() {
     }
 }
 
-fn exec(cmd: Command) -> Result<()> {
+fn exec<C: Config>(cmd: Command<C>) -> Result<()> {
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;

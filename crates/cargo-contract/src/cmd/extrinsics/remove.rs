@@ -20,10 +20,8 @@ use super::{
         contracts::events::CodeRemoved,
     },
     submit_extrinsic,
-    Client,
     CodeHash,
     ContractMessageTranscoder,
-    DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
     TokenMetadata,
@@ -45,10 +43,10 @@ use subxt::{
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
-pub struct RemoveCommand {
+pub struct RemoveCommand<C: Config> {
     /// The hash of the smart contract code already uploaded to the chain.
     #[clap(long, value_parser = parse_code_hash)]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
+    code_hash: Option<C::Hash>,
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
@@ -56,7 +54,10 @@ pub struct RemoveCommand {
     output_json: bool,
 }
 
-impl RemoveCommand {
+impl<C> RemoveCommand<C>
+where
+    C: Config,
+{
     pub fn is_json(&self) -> bool {
         self.output_json
     }
@@ -118,9 +119,9 @@ impl RemoveCommand {
 
     async fn remove_code(
         &self,
-        client: &Client,
-        code_hash: CodeHash,
-        signer: &PairSigner,
+        client: &OnlineClient<C>,
+        code_hash: CodeHash<C>,
+        signer: &PairSigner<C>,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<CodeRemoved>, ErrorVariant> {
         let call = api::tx()

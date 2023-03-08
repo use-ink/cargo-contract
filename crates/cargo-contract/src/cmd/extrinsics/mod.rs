@@ -93,9 +93,8 @@ pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
 type Balance = u128;
-type CodeHash = <DefaultConfig as Config>::Hash;
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
-type Client = OnlineClient<DefaultConfig>;
+type CodeHash<C> = <C as Config>::Hash;
+type PairSigner<C> = tx::PairSigner<C, sr25519::Pair>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -312,7 +311,7 @@ impl WasmCode {
 }
 
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
+pub fn pair_signer<C: Config>(pair: sr25519::Pair) -> PairSigner<C> {
     PairSigner::new(pair)
 }
 

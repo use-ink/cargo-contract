@@ -22,7 +22,6 @@ use super::{
     submit_extrinsic,
     Balance,
     BalanceVariant,
-    Client,
     ContractMessageTranscoder,
     DefaultConfig,
     ExtrinsicOpts,
@@ -62,10 +61,10 @@ use subxt::{
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
-pub struct CallCommand {
+pub struct CallCommand<C: Config = DefaultConfig> {
     /// The address of the the contract to call.
     #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    contract: C::AccountId,
     /// The name of the contract message to call.
     #[clap(long, short)]
     message: String,
@@ -90,7 +89,10 @@ pub struct CallCommand {
     output_json: bool,
 }
 
-impl CallCommand {
+impl<C> CallCommand<C>
+where
+    C: Config
+{
     pub fn is_json(&self) -> bool {
         self.output_json
     }
@@ -163,8 +165,8 @@ impl CallCommand {
     async fn call_dry_run(
         &self,
         input_data: Vec<u8>,
-        client: &Client,
-        signer: &PairSigner,
+        client: &OnlineClient<C>,
+        signer: &PairSigner<C>,
     ) -> Result<ContractExecResult<Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
@@ -187,9 +189,9 @@ impl CallCommand {
 
     async fn call(
         &self,
-        client: &Client,
+        client: &OnlineClient<C>,
         data: Vec<u8>,
-        signer: &PairSigner,
+        signer: &PairSigner<C>,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<(), ErrorVariant> {
         tracing::debug!("calling contract {:?}", self.contract);
@@ -239,9 +241,9 @@ impl CallCommand {
     /// Dry run the call before tx submission. Returns the gas required estimate.
     async fn pre_submit_dry_run_gas_estimate(
         &self,
-        client: &Client,
+        client: &OnlineClient<C>,
         data: Vec<u8>,
-        signer: &PairSigner,
+        signer: &PairSigner<C>,
     ) -> Result<Weight> {
         if self.extrinsic_opts.skip_dry_run {
             return match (self.gas_limit, self.proof_size) {

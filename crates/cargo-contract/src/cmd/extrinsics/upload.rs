@@ -23,7 +23,6 @@ use super::{
     state_call,
     submit_extrinsic,
     Balance,
-    Client,
     CodeHash,
     DefaultConfig,
     ExtrinsicOpts,
@@ -41,7 +40,10 @@ use crate::{
 use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    marker::PhantomData,
+};
 use subxt::{
     Config,
     OnlineClient,
@@ -49,15 +51,16 @@ use subxt::{
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
-pub struct UploadCommand {
+pub struct UploadCommand<C: Config = DefaultConfig> {
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    marker: PhantomData<C>,
 }
 
-impl UploadCommand {
+impl<C: Config> UploadCommand<C> {
     pub fn is_json(&self) -> bool {
         self.output_json
     }
@@ -77,7 +80,7 @@ impl UploadCommand {
 
         async_std::task::block_on(async {
             let url = self.extrinsic_opts.url_to_string();
-            let client = OnlineClient::from_url(url.clone()).await?;
+            let client = OnlineClient::<C>::from_url(url.clone()).await?;
 
             if !self.extrinsic_opts.execute {
                 match self.upload_code_rpc(code, &client, &signer).await? {
@@ -129,9 +132,9 @@ impl UploadCommand {
     async fn upload_code_rpc(
         &self,
         code: WasmCode,
-        client: &Client,
-        signer: &PairSigner,
-    ) -> Result<CodeUploadResult<CodeHash, Balance>> {
+        client: &OnlineClient<C>,
+        signer: &PairSigner<C>,
+    ) -> Result<CodeUploadResult<CodeHash<C>, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
@@ -151,9 +154,9 @@ impl UploadCommand {
 
     async fn upload_code(
         &self,
-        client: &Client,
+        client: &OnlineClient<C>,
         code: WasmCode,
-        signer: &PairSigner,
+        signer: &PairSigner<C>,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
@@ -183,8 +186,8 @@ impl UploadCommand {
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-pub struct CodeUploadRequest {
-    origin: <DefaultConfig as Config>::AccountId,
+pub struct CodeUploadRequest<C: Config> {
+    origin: C::AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
     determinism: Determinism,
