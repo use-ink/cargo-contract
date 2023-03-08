@@ -25,6 +25,7 @@ use crate::{
     },
     BuildMode,
     BuildSteps,
+    Features,
     Network,
     OptimizationPasses,
     UnstableFlags,
@@ -112,6 +113,7 @@ pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
     metadata_artifacts: &MetadataArtifacts,
+    features: &Features,
     network: Network,
     verbosity: Verbosity,
     mut build_steps: BuildSteps,
@@ -132,20 +134,25 @@ pub(crate) fn execute(
             format!("{build_steps}").bold(),
             "Generating metadata".bright_green().bold()
         );
+        let cargo_arg = manifest_path.cargo_arg()?;
         let target_dir_arg = format!(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
+        let network = network.to_string();
+        let mut args = vec![
+            "--package",
+            "metadata-gen",
+            &cargo_arg,
+            &target_dir_arg,
+            "--release",
+            &network,
+        ];
+        features.append_to_args(&mut args);
+
         let stdout = util::invoke_cargo(
             "run",
-            [
-                "--package",
-                "metadata-gen",
-                &manifest_path.cargo_arg()?,
-                &target_dir_arg,
-                "--release",
-                &network.to_string(),
-            ],
+            args,
             crate_metadata.manifest_path.directory(),
             verbosity,
             vec![],

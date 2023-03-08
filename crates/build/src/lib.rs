@@ -750,6 +750,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     &crate_metadata,
                     dest_wasm.as_path(),
                     &metadata_result,
+                    &features,
                     network,
                     verbosity,
                     build_steps,
