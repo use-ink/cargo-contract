@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `cargo contract encode` command - [#998](https://github.com/paritytech/cargo-contract/pull/998)
 - Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
+- Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
 
 ### Fixed
 - Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
