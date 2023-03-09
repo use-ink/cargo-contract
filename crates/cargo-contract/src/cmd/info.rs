@@ -15,9 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self,},
-    Client,
-    DefaultConfig,
+    runtime_api::api::{self, runtime_types::sp_core::bounded::bounded_vec},
+    Client, DefaultConfig,
 };
 use crate::{
     cmd::{
@@ -26,15 +25,9 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 use std::fmt::Debug;
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -52,6 +45,9 @@ pub struct InfoCommand {
     /// Export the call output as JSON.
     #[clap(name = "output-json", long)]
     output_json: bool,
+    /// Export the call output as JSON.
+    #[clap(name = "binary", long)]
+    binary: bool,
 }
 
 impl InfoCommand {
@@ -69,6 +65,20 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
+                    if self.binary {
+                        let test_pristine_code = InfoCommand::fetch_pristine_code(
+                            info_result.code_hash,
+                            &client,
+                        )
+                        .await?;
+                        match test_pristine_code {
+                            Some(test_pristine_code) => {
+                                let final_pristine = hex::encode(test_pristine_code.0);
+                                println!("{}", final_pristine);
+                            }
+                            None => {}
+                        }
+                    }
                     let output_type = match self.output_json {
                         true => OutputType::Json,
                         false => OutputType::HumanReadable,
@@ -87,13 +97,11 @@ impl InfoCommand {
                     }
                     Result::<(), ErrorVariant>::Ok(())
                 }
-                None => {
-                    Err(anyhow!(
-                        "No contract information was found for account id {}",
-                        self.contract
-                    )
-                    .into())
-                }
+                None => Err(anyhow!(
+                    "No contract information was found for account id {}",
+                    self.contract
+                )
+                .into()),
             }
         })
     }
@@ -110,6 +118,22 @@ impl InfoCommand {
             .await?;
 
         Ok(contract_info_of)
+    }
+
+    async fn fetch_pristine_code(
+        hash: sp_core::H256,
+        client: &Client,
+    ) -> Result<Option<bounded_vec::BoundedVec<u8>>> {
+        let pristine_code_call = api::storage().contracts().pristine_code(hash);
+
+        let prinstine_bytes = client
+            .storage()
+            .at(None)
+            .await?
+            .fetch(&pristine_code_call)
+            .await?;
+
+        Ok(prinstine_bytes)
     }
 }
 
