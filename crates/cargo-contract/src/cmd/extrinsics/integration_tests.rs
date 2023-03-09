@@ -158,7 +158,6 @@ async fn build_upload_instantiate_call() {
         .assert()
         .success();
 
-    // cd flipper
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
@@ -205,7 +204,6 @@ async fn build_upload_instantiate_call() {
             .stdout(predicate::str::contains(expected.to_string()));
     };
 
-    // call the `get` message via rpc to assert that it was set to the initial value
     call_get_rpc(true);
 
     cargo_contract(project_path.as_path())
@@ -216,7 +214,6 @@ async fn build_upload_instantiate_call() {
         .assert()
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
-    // call the `get` message via rpc to assert that the value has been flipped
     call_get_rpc(false);
 
     // prevent the node_process from being dropped and killed
@@ -244,7 +241,6 @@ async fn build_upload_remove() {
         .assert()
         .success();
 
-    // cd incrementer
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("incrementer");
 
@@ -309,7 +305,6 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    // cd flipper
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
