@@ -97,7 +97,9 @@ impl WasmOptHandler {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize,
+)]
 pub enum OptimizationPasses {
     Zero,
     One,
@@ -105,6 +107,7 @@ pub enum OptimizationPasses {
     Three,
     Four,
     S,
+    #[default]
     Z,
 }
 
@@ -120,12 +123,6 @@ impl fmt::Display for OptimizationPasses {
             OptimizationPasses::Z => "z",
         };
         write!(f, "{out}")
-    }
-}
-
-impl Default for OptimizationPasses {
-    fn default() -> OptimizationPasses {
-        OptimizationPasses::Z
     }
 }
 

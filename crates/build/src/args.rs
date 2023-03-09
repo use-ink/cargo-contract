@@ -45,20 +45,15 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
+    #[default]
     Default,
     /// No output printed to stdout
     Quiet,
     /// Use verbose output
     Verbose,
-}
-
-impl Default for Verbosity {
-    fn default() -> Self {
-        Verbosity::Default
-    }
 }
 
 impl Verbosity {
@@ -72,18 +67,13 @@ impl Verbosity {
 }
 
 /// Use network connection to build contracts and generate metadata or use cached dependencies only.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize)]
 pub enum Network {
     /// Use network
+    #[default]
     Online,
     /// Use cached dependencies.
     Offline,
-}
-
-impl Default for Network {
-    fn default() -> Network {
-        Network::Online
-    }
 }
 
 impl Network {
@@ -97,11 +87,14 @@ impl Network {
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
+#[derive(
+    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[clap(name = "all")]
+    #[default]
     All,
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
     /// skipped
@@ -122,12 +115,6 @@ impl BuildArtifacts {
             BuildArtifacts::CodeOnly => 4,
             BuildArtifacts::CheckOnly => 1,
         }
-    }
-}
-
-impl Default for BuildArtifacts {
-    fn default() -> Self {
-        BuildArtifacts::All
     }
 }
 
@@ -171,18 +158,15 @@ impl fmt::Display for BuildSteps {
 }
 
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize, serde::Deserialize,
+)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
+    #[default]
     Debug,
     /// The contract is build without any debugging functionality.
     Release,
-}
-
-impl Default for BuildMode {
-    fn default() -> BuildMode {
-        BuildMode::Debug
-    }
 }
 
 impl fmt::Display for BuildMode {
@@ -195,18 +179,13 @@ impl fmt::Display for BuildMode {
 }
 
 /// The type of output to display at the end of a build.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum OutputType {
     /// Output build results in a human readable format.
+    #[default]
     HumanReadable,
     /// Output the build results JSON formatted.
     Json,
-}
-
-impl Default for OutputType {
-    fn default() -> Self {
-        OutputType::HumanReadable
-    }
 }
 
 #[derive(Default, Clone, Debug, Args)]
