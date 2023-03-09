@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::scon::Value;
-use crate::scon::Hex;
+use crate::{
+    AccountId32,
+    Hex,
+    Value,
+};
 use anyhow::{
     Context,
     Result,
@@ -30,10 +33,6 @@ use scale_info::{
     IntoPortable,
     Path,
     TypeInfo,
-};
-use sp_core::crypto::{
-    AccountId32,
-    Ss58Codec,
 };
 use std::{
     boxed::Box,
@@ -202,7 +201,7 @@ pub struct Hash;
 
 impl CustomTypeDecoder for Hash {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
-        let hash = sp_core::H256::decode(input)?;
+        let hash = primitive_types::H256::decode(input)?;
         Ok(Value::Hex(Hex::from_str(&format!("{hash:?}"))?))
     }
 }

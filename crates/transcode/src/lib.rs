@@ -96,6 +96,7 @@
 //! println!("Encoded constructor data {:?}", data);
 //! ```
 
+mod account_id;
 mod decode;
 mod encode;
 pub mod env_types;
@@ -104,6 +105,7 @@ mod transcoder;
 mod util;
 
 pub use self::{
+    account_id::AccountId32,
     scon::{
         Hex,
         Map,
@@ -569,10 +571,9 @@ mod tests {
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
-        let expected = sp_core::crypto::AccountId32::from_str(
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        )
-        .unwrap();
+        let expected =
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap();
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }
@@ -591,14 +592,10 @@ mod tests {
         let encoded_args = &encoded[4..];
 
         let expected = vec![
-            sp_core::crypto::AccountId32::from_str(
-                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            )
-            .unwrap(),
-            sp_core::crypto::AccountId32::from_str(
-                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-            )
-            .unwrap(),
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap(),
+            AccountId32::from_str("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty")
+                .unwrap(),
         ];
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
