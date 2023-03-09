@@ -15,9 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self,},
-    Client,
-    DefaultConfig,
+    runtime_api::api::{self},
+    Client, DefaultConfig,
 };
 use crate::{
     cmd::{
@@ -26,15 +25,9 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 use std::fmt::Debug;
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -69,7 +62,7 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    // InfoCommand::print_and_format_contract_info(info_result);
+                    // InfoCommand::basic_display_format_contract_info(info_result);
                     let output_type = match self.output_json {
                         true => OutputType::Json,
                         false => OutputType::HumanReadable,
@@ -115,18 +108,22 @@ impl InfoCommand {
             format!("{:?}", info.storage_item_deposit)
         );
     }
-    pub fn serialize_json(info: ContractInfo) -> Result<String> {
+    pub fn serialize_json(info: ContractInfo) {
         let convert_trie_id = hex::encode(info.trie_id.0);
-        let mut info_to_json = InfoToJson {
-            trie_id: convert_trie_id.clone(),
+        let info_to_json = InfoToJson {
+            trie_id: convert_trie_id,
             code_hash: info.code_hash,
             storage_items: info.storage_items,
         };
-        Ok(serde_json::to_string_pretty(&info_to_json)?)
+        name_value_println!(
+            "Test output json",
+            format!("{:?}", serde_json::to_string_pretty(&info_to_json))
+        );
     }
 }
 
-pub struct InfoToJson {
+#[derive(serde::Serialize)]
+struct InfoToJson {
     trie_id: String,
     code_hash: sp_core::H256,
     storage_items: u32,
