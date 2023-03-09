@@ -15,8 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self, runtime_types::sp_core::bounded::bounded_vec},
-    Client, DefaultConfig,
+    runtime_api::api::{
+        self,
+        runtime_types::sp_core::bounded::bounded_vec,
+    },
+    Client,
+    DefaultConfig,
 };
 use crate::{
     cmd::{
@@ -25,9 +29,15 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -76,7 +86,13 @@ impl InfoCommand {
                                 let final_pristine = hex::encode(test_pristine_code.0);
                                 println!("{}", final_pristine);
                             }
-                            None => {}
+                            None => {
+                                return Err(anyhow!(
+                                "No pristine_code information was found for account id {}",
+                                info_result.code_hash
+                            )
+                            .into());
+                            }
                         }
                     }
                     let output_type = match self.output_json {
@@ -97,11 +113,13 @@ impl InfoCommand {
                     }
                     Result::<(), ErrorVariant>::Ok(())
                 }
-                None => Err(anyhow!(
-                    "No contract information was found for account id {}",
-                    self.contract
-                )
-                .into()),
+                None => {
+                    Err(anyhow!(
+                        "No contract information was found for account id {}",
+                        self.contract
+                    )
+                    .into())
+                }
             }
         })
     }
