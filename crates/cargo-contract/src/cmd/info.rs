@@ -62,15 +62,21 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    // InfoCommand::basic_display_format_contract_info(info_result);
                     let output_type = match self.output_json {
                         true => OutputType::Json,
                         false => OutputType::HumanReadable,
                     };
+                    let convert_trie_id = hex::encode(info_result.trie_id.0);
+                    let info_to_json = InfoToJson {
+                        trie_id: convert_trie_id,
+                        code_hash: info_result.code_hash,
+                        storage_items: info_result.storage_items,
+                        storage_item_deposit: info_result.storage_item_deposit,
+                    };
                     if matches!(output_type, OutputType::Json) {
-                        InfoCommand::basic_display_format_contract_info(info_result);
+                        println!("{}", info_to_json.to_json()?);
                     } else {
-                        InfoCommand::serialize_json(info_result);
+                        info_to_json.basic_display_format_contract_info();
                     }
                     Result::<(), ErrorVariant>::Ok(())
                 }
@@ -98,28 +104,6 @@ impl InfoCommand {
 
         Ok(contract_info_of)
     }
-    pub fn basic_display_format_contract_info(info: ContractInfo) {
-        let convert_trie_id = hex::encode(info.trie_id.0);
-        name_value_println!("TrieId:", format!("{}", convert_trie_id));
-        name_value_println!("Code hash:", format!("{:?}", info.code_hash));
-        name_value_println!("Storage items:", format!("{:?}", info.storage_items));
-        name_value_println!(
-            "Storage deposit:",
-            format!("{:?}", info.storage_item_deposit)
-        );
-    }
-    pub fn serialize_json(info: ContractInfo) {
-        let convert_trie_id = hex::encode(info.trie_id.0);
-        let info_to_json = InfoToJson {
-            trie_id: convert_trie_id,
-            code_hash: info.code_hash,
-            storage_items: info.storage_items,
-        };
-        name_value_println!(
-            "Test output json",
-            format!("{:?}", serde_json::to_string_pretty(&info_to_json))
-        );
-    }
 }
 
 #[derive(serde::Serialize)]
@@ -127,6 +111,23 @@ struct InfoToJson {
     trie_id: String,
     code_hash: sp_core::H256,
     storage_items: u32,
+    storage_item_deposit: u128,
+}
+
+impl InfoToJson {
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn basic_display_format_contract_info(&self) {
+        name_value_println!("TrieId:", format!("{}", self.trie_id));
+        name_value_println!("Code hash:", format!("{:?}", self.code_hash));
+        name_value_println!("Storage items:", format!("{:?}", self.storage_items));
+        name_value_println!(
+            "Storage deposit:",
+            format!("{:?}", self.storage_item_deposit)
+        );
+    }
 }
 pub enum OutputType {
     /// Output build results in a human readable format.
