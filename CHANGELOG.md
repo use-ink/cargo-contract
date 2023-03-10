@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
+- Pass contract features to metadata gen package - [#1005](https://github.com/paritytech/cargo-contract/pull/1005)
 
 ### [2.0.2]
 
