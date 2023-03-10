@@ -45,20 +45,15 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
+    #[default]
     Default,
     /// No output printed to stdout
     Quiet,
     /// Use verbose output
     Verbose,
-}
-
-impl Default for Verbosity {
-    fn default() -> Self {
-        Verbosity::Default
-    }
 }
 
 impl Verbosity {
@@ -72,35 +67,34 @@ impl Verbosity {
 }
 
 /// Use network connection to build contracts and generate metadata or use cached dependencies only.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize)]
 pub enum Network {
     /// Use network
+    #[default]
     Online,
     /// Use cached dependencies.
     Offline,
 }
 
-impl Default for Network {
-    fn default() -> Network {
-        Network::Online
-    }
-}
-
-impl fmt::Display for Network {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Network {
+    /// If `Network::Offline` append the `--offline` flag for cargo invocations.
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         match self {
-            Self::Online => write!(f, ""),
-            Self::Offline => write!(f, "--offline"),
+            Self::Online => (),
+            Self::Offline => args.push("--offline".to_owned()),
         }
     }
 }
 
 /// Describes which artifacts to generate
-#[derive(Copy, Clone, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize)]
+#[derive(
+    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+)]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
     /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
     #[clap(name = "all")]
+    #[default]
     All,
     /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
     /// skipped
@@ -121,12 +115,6 @@ impl BuildArtifacts {
             BuildArtifacts::CodeOnly => 4,
             BuildArtifacts::CheckOnly => 1,
         }
-    }
-}
-
-impl Default for BuildArtifacts {
-    fn default() -> Self {
-        BuildArtifacts::All
     }
 }
 
@@ -170,18 +158,15 @@ impl fmt::Display for BuildSteps {
 }
 
 /// The mode to build the contract in.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize, serde::Deserialize,
+)]
 pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
+    #[default]
     Debug,
     /// The contract is build without any debugging functionality.
     Release,
-}
-
-impl Default for BuildMode {
-    fn default() -> BuildMode {
-        BuildMode::Debug
-    }
 }
 
 impl fmt::Display for BuildMode {
@@ -194,18 +179,13 @@ impl fmt::Display for BuildMode {
 }
 
 /// The type of output to display at the end of a build.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum OutputType {
     /// Output build results in a human readable format.
+    #[default]
     HumanReadable,
     /// Output the build results JSON formatted.
     Json,
-}
-
-impl Default for OutputType {
-    fn default() -> Self {
-        OutputType::HumanReadable
-    }
 }
 
 #[derive(Default, Clone, Debug, Args)]
@@ -243,7 +223,7 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
 #[derive(Default, Clone, Debug, Args)]
 pub struct Features {
     /// Space or comma separated list of features to activate
-    #[clap(long)]
+    #[clap(long, value_delimiter = ',')]
     features: Vec<String>,
 }
 
@@ -254,12 +234,15 @@ impl Features {
     }
 
     /// Appends the raw features args to pass through to the `cargo` invocation.
-    pub fn append_to_args<'a>(&'a self, args: &mut Vec<&'a str>) {
+    pub fn append_to_args(&self, args: &mut Vec<String>) {
         if !self.features.is_empty() {
-            args.push("--features");
-            for feature in &self.features {
-                args.push(feature)
-            }
+            args.push("--features".to_string());
+            let features = if self.features.len() == 1 {
+                self.features[0].clone()
+            } else {
+                self.features.join(",")
+            };
+            args.push(features);
         }
     }
 }
