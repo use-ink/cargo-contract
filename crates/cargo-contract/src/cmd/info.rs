@@ -67,16 +67,16 @@ impl InfoCommand {
             match info_result {
                 Some(info_result) => {
                     InfoCommand::print_and_format_contract_info(info_result);
+                    Ok(())
                 }
                 None => {
-                    return Err(anyhow!(
+                    Err(anyhow!(
                         "No contract information was found for account id {}",
                         self.contract
                     )
                     .into())
                 }
             }
-            Result::<(), ErrorVariant>::Ok(())
         })
     }
 
