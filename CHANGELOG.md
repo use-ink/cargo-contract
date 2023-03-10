@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
 - Pass contract features to metadata gen package - [#1005](https://github.com/paritytech/cargo-contract/pull/1005)
+- Custom AccountId32 impl, remove substrate deps - [#1010](https://github.com/paritytech/cargo-contract/pull/1010)
+  - Fixes issue with with incompatible `wasmtime` versions when dependant project has old substrate dependencies.
 
 ### [2.0.2]
 
