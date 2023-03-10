@@ -26,6 +26,14 @@ use serde::{
 /// A 32-byte cryptographic identifier. This is a simplified version of Substrate's
 /// `sp_core::crypto::AccountId32`.
 ///
+/// It replaces the usage of this type from the `sp-core` crate directly. Direct
+/// dependencies on substrate crates can cause linking issues if the dependant
+/// package itself has substrate dependencies which depend on an incompatible version
+/// of `wasmtime`.
+///
+/// This is the only type that was used from `sp-core`, and it is unlikely to change,
+/// so it made sense to make a copy and reduce the dependency burden.
+///
 /// # Note
 ///
 /// This has been copied from `subxt::utils::AccountId32`, with some modifications:
