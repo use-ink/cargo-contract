@@ -30,6 +30,28 @@ jobs:
           command: fmt
           args: --check
 
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Check each crate
+        run: |
+          for crate in crates/*/; do
+            cargo check --manifest-path ${crate}/Cargo.toml --all-targets;
+            cargo check --manifest-path ${crate}/Cargo.toml --all-features --all-targets;
+          done
+
   clippy:
     runs-on: ubuntu-latest
     steps:
