@@ -48,6 +48,7 @@ jobs:
       - name: Check each crate
         run: |
           for crate in ./crates/*/; do
+            echo "Checking $crate";
             cargo check --manifest-path ${crate}/Cargo.toml --all-targets;
             cargo check --manifest-path ${crate}/Cargo.toml --all-features --all-targets;
           done
