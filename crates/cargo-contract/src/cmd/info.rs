@@ -15,12 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{
-        self,
-        runtime_types::sp_core::bounded::bounded_vec,
-    },
-    Client,
-    DefaultConfig,
+    runtime_api::api::{self, runtime_types::sp_core::bounded::bounded_vec},
+    Client, DefaultConfig,
 };
 use crate::{
     cmd::{
@@ -29,15 +25,9 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 use std::fmt::Debug;
-use subxt::{
-    Config,
-    OnlineClient,
-};
+use subxt::{Config, OnlineClient};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -75,51 +65,64 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    if self.binary {
-                        let test_pristine_code = InfoCommand::fetch_pristine_code(
-                            info_result.code_hash,
-                            &client,
-                        )
-                        .await?;
-                        match test_pristine_code {
-                            Some(test_pristine_code) => {
-                                let final_pristine = hex::encode(test_pristine_code.0);
-                                println!("{}", final_pristine);
-                            }
-                            None => {
-                                return Err(anyhow!(
-                                "No pristine_code information was found for account id {}",
-                                info_result.code_hash
-                            )
-                            .into());
-                            }
-                        }
-                    }
                     let output_type = match self.output_json {
                         true => OutputType::Json,
                         false => OutputType::HumanReadable,
                     };
                     let convert_trie_id = hex::encode(info_result.trie_id.0);
-                    let info_to_json = InfoToJson {
-                        trie_id: convert_trie_id,
-                        code_hash: info_result.code_hash,
-                        storage_items: info_result.storage_items,
-                        storage_item_deposit: info_result.storage_item_deposit,
-                    };
-                    if matches!(output_type, OutputType::Json) {
-                        println!("{}", info_to_json.to_json()?);
-                    } else {
-                        info_to_json.basic_display_format_contract_info();
+
+                    let pristine_res =
+                        InfoCommand::fetch_pristine_code(info_result.code_hash, &client)
+                            .await?;
+                    let info_to_json: InfoToJson;
+                    match pristine_res {
+                        Some(pris_w) => {
+                            if self.binary {
+                                info_to_json = InfoToJson {
+                                    trie_id: convert_trie_id,
+                                    code_hash: info_result.code_hash,
+                                    storage_items: info_result.storage_items,
+                                    storage_item_deposit: info_result
+                                        .storage_item_deposit,
+                                    pristine_wasm: Some(pris_w.0),
+                                };
+                                if matches!(output_type, OutputType::Json) {
+                                    println!("{}", info_to_json.to_json()?);
+                                } else {
+                                    info_to_json.basic_display_format_contract_info();
+                                }
+                            } else {
+                                info_to_json = InfoToJson {
+                                    trie_id: convert_trie_id,
+                                    code_hash: info_result.code_hash,
+                                    storage_items: info_result.storage_items,
+                                    storage_item_deposit: info_result
+                                        .storage_item_deposit,
+                                    pristine_wasm: None,
+                                };
+                                if matches!(output_type, OutputType::Json) {
+                                    println!("{}", info_to_json.to_json()?)
+                                } else {
+                                    info_to_json.basic_display_format_contract_info();
+                                }
+                            }
+                        }
+                        None => {
+                            return Err(anyhow!(
+                                "No pristine_code information was found for account id {}",
+                                info_result.code_hash
+                            )
+                            .into());
+                        }
                     }
+
                     Result::<(), ErrorVariant>::Ok(())
                 }
-                None => {
-                    Err(anyhow!(
-                        "No contract information was found for account id {}",
-                        self.contract
-                    )
-                    .into())
-                }
+                None => Err(anyhow!(
+                    "No contract information was found for account id {}",
+                    self.contract
+                )
+                .into()),
             }
         })
     }
@@ -161,6 +164,7 @@ struct InfoToJson {
     code_hash: sp_core::H256,
     storage_items: u32,
     storage_item_deposit: u128,
+    pristine_wasm: Option<Vec<u8>>,
 }
 
 impl InfoToJson {
@@ -176,8 +180,19 @@ impl InfoToJson {
             "Storage deposit:",
             format!("{:?}", self.storage_item_deposit)
         );
+        match &self.pristine_wasm {
+            Some(pr_wasm) => {
+                let test_pristine_wasm_code: String = hex::encode(pr_wasm);
+                name_value_println!(
+                    "Pristine Wasm Code",
+                    format!("0x{}", test_pristine_wasm_code)
+                );
+            }
+            None => {}
+        }
     }
 }
+
 pub enum OutputType {
     /// Output build results in a human readable format.
     HumanReadable,
