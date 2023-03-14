@@ -15,8 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self},
-    Client, DefaultConfig,
+    runtime_api::api::{self,},
+    Client,
+    DefaultConfig,
 };
 use crate::{
     cmd::{
@@ -25,9 +26,15 @@ use crate::{
     },
     name_value_println,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -81,11 +88,13 @@ impl InfoCommand {
                     }
                     Ok(())
                 }
-                None => Err(anyhow!(
-                    "No contract information was found for account id {}",
-                    self.contract
-                )
-                .into()),
+                None => {
+                    Err(anyhow!(
+                        "No contract information was found for account id {}",
+                        self.contract
+                    )
+                    .into())
+                }
             }
         })
     }
