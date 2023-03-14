@@ -42,6 +42,7 @@ pub struct InfoCommand {
     /// The address of the contract to display info of.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
+    /// Websockets url of a substrate node.
     #[clap(
         name = "url",
         long,
