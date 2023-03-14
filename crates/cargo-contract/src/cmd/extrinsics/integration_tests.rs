@@ -81,6 +81,11 @@ impl ContractsNodeProcess {
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
+            tracing::debug!(
+                "Connecting to contracts enabled node, attempt {}/{}",
+                attempts,
+                MAX_ATTEMPTS
+            );
             let result = OnlineClient::new().await;
             if let Ok(client) = result {
                 break Ok(client)
@@ -115,6 +120,7 @@ impl ContractsNodeProcess {
     }
 
     fn kill(&mut self) {
+        tracing::debug!("Killing contracts node process {}", self.proc.id());
         if let Err(err) = self.proc.kill() {
             tracing::error!(
                 "Error killing contracts node process {}: {}",
