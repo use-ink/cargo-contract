@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
+
 ### [2.1.0]
 
 ### Changed

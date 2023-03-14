@@ -20,7 +20,6 @@ mod error;
 mod events;
 mod instantiate;
 mod remove;
-mod runtime_api;
 mod upload;
 
 #[cfg(test)]

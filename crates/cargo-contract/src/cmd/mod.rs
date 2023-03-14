@@ -17,6 +17,8 @@
 pub mod build;
 pub mod decode;
 pub mod encode;
+pub mod info;
+pub mod runtime_api;
 
 pub(crate) use self::{
     build::{
@@ -24,6 +26,7 @@ pub(crate) use self::{
         CheckCommand,
     },
     decode::DecodeCommand,
+    info::InfoCommand,
 };
 mod extrinsics;
 
@@ -34,3 +37,8 @@ pub(crate) use self::extrinsics::{
     RemoveCommand,
     UploadCommand,
 };
+
+use subxt::OnlineClient;
+
+pub use subxt::PolkadotConfig as DefaultConfig;
+type Client = OnlineClient<DefaultConfig>;

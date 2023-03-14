@@ -17,7 +17,6 @@
 use super::{
     display_contract_exec_result,
     prompt_confirm_tx,
-    runtime_api::api,
     state_call,
     submit_extrinsic,
     Balance,
@@ -33,11 +32,14 @@ use super::{
 };
 
 use crate::{
-    cmd::extrinsics::{
-        display_contract_exec_result_debug,
-        display_dry_run_result_warning,
-        events::DisplayEvents,
-        ErrorVariant,
+    cmd::{
+        extrinsics::{
+            display_contract_exec_result_debug,
+            display_dry_run_result_warning,
+            events::DisplayEvents,
+            ErrorVariant,
+        },
+        runtime_api::api,
     },
     DEFAULT_KEY_COL_WIDTH,
 };
@@ -251,7 +253,7 @@ impl CallCommand {
                     "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
                 ))
                 }
-            }
+            };
         }
         if !self.output_json {
             super::print_dry_running_status(&self.message);

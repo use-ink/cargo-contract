@@ -24,6 +24,7 @@ use self::cmd::{
     CheckCommand,
     DecodeCommand,
     ErrorVariant,
+    InfoCommand,
     InstantiateCommand,
     RemoveCommand,
     UploadCommand,
@@ -130,6 +131,9 @@ enum Command {
     /// Remove contract code
     #[clap(name = "remove")]
     Remove(RemoveCommand),
+    /// Display information about a contract
+    #[clap(name = "info")]
+    Info(InfoCommand),
 }
 
 fn main() {
@@ -195,6 +199,7 @@ fn exec(cmd: Command) -> Result<()> {
                 .run()
                 .map_err(|err| map_extrinsic_err(err, remove.is_json()))
         }
+        Command::Info(info) => info.run().map_err(format_err),
     }
 }
 

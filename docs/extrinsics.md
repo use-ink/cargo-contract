@@ -1,5 +1,5 @@
 # Extrinsics
-`cargo-contract` provides CLI support for uploading, instantiating and calling your contracts directly from the command
+`cargo-contract` provides CLI support for uploading, instantiating, calling and removing your contracts directly from the command
 line.
 
 ## Common arguments
