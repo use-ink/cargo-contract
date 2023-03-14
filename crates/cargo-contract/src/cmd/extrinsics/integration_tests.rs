@@ -38,6 +38,16 @@ fn cargo_contract(path: &Path) -> assert_cmd::Command {
     cmd
 }
 
+// Find the contract address in the output
+fn extract_contract_address(stdout: &str) -> &str {
+    let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
+    let caps = regex
+        .captures(stdout)
+        .expect("contract account regex capture");
+    let contract_account = caps.get(1).unwrap().as_str();
+    contract_account
+}
+
 /// Spawn and manage an instance of a compatible contracts enabled chain node.
 #[allow(dead_code)]
 struct ContractsNodeProcess {
@@ -158,7 +168,6 @@ async fn build_upload_instantiate_call() {
         .assert()
         .success();
 
-    // cd flipper
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
@@ -170,6 +179,7 @@ async fn build_upload_instantiate_call() {
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
@@ -180,18 +190,14 @@ async fn build_upload_instantiate_call() {
         .args(["--constructor", "new"])
         .args(["--args", "true"])
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .output()
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
-    // find the contract address in the output
-    let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
-    let caps = regex
-        .captures(stdout)
-        .expect("contract account regex capture");
-    let contract_account = caps.get(1).unwrap().as_str();
+    let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
     let call_get_rpc = |expected: bool| {
@@ -200,12 +206,11 @@ async fn build_upload_instantiate_call() {
             .args(["--message", "get"])
             .args(["--contract", contract_account])
             .args(["--suri", "//Alice"])
-            .arg("--dry-run")
+            .arg("-x")
             .assert()
             .stdout(predicate::str::contains(expected.to_string()));
     };
 
-    // call the `get` message via rpc to assert that it was set to the initial value
     call_get_rpc(true);
 
     cargo_contract(project_path.as_path())
@@ -216,7 +221,6 @@ async fn build_upload_instantiate_call() {
         .assert()
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
-    // call the `get` message via rpc to assert that the value has been flipped
     call_get_rpc(false);
 
     // prevent the node_process from being dropped and killed
@@ -244,7 +248,6 @@ async fn build_upload_remove() {
         .assert()
         .success();
 
-    // cd incrementer
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("incrementer");
 
@@ -256,6 +259,7 @@ async fn build_upload_remove() {
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
@@ -309,7 +313,6 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    // cd flipper
     let mut project_path = tmp_dir.path().to_path_buf();
     project_path.push("flipper");
 
@@ -321,6 +324,7 @@ async fn build_upload_instantiate_info() {
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
@@ -331,18 +335,14 @@ async fn build_upload_instantiate_info() {
         .args(["--constructor", "new"])
         .args(["--args", "true"])
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .output()
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
-    // find the contract address in the output
-    let regex = regex::Regex::new("Contract ([0-9A-Za-z]+)").unwrap();
-    let caps = regex
-        .captures(stdout)
-        .expect("contract account regex capture");
-    let contract_account = caps.get(1).unwrap().as_str();
+    let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
     cargo_contract(project_path.as_path())

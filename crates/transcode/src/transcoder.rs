@@ -26,6 +26,7 @@ use super::{
         TypesByPath,
     },
     scon::Value,
+    AccountId32,
 };
 
 use anyhow::Result;
@@ -97,10 +98,8 @@ impl TranscoderBuilder {
     }
 
     pub fn with_default_custom_type_transcoders(self) -> Self {
-        self.register_custom_type_transcoder::<sp_runtime::AccountId32, _>(
-            env_types::AccountId,
-        )
-        .register_custom_type_decoder::<sp_core::H256, _>(env_types::Hash)
+        self.register_custom_type_transcoder::<AccountId32, _>(env_types::AccountId)
+            .register_custom_type_decoder::<primitive_types::H256, _>(env_types::Hash)
     }
 
     pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
@@ -685,12 +684,12 @@ mod tests {
 
     #[test]
     fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-        type AccountId = sp_runtime::AccountId32;
+        type AccountId = AccountId32;
 
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            no_alias: sp_runtime::AccountId32,
+            no_alias: AccountId32,
             aliased: AccountId,
         }
 
@@ -729,7 +728,7 @@ mod tests {
             Ok(Value::Seq(Seq::new(values.collect())))
         };
 
-        transcode_roundtrip::<Vec<sp_runtime::AccountId32>>(
+        transcode_roundtrip::<Vec<AccountId32>>(
             r#"[
                 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
                 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
@@ -760,7 +759,7 @@ mod tests {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            hash: sp_core::H256,
+            hash: primitive_types::H256,
         }
 
         transcode_roundtrip::<S>(
