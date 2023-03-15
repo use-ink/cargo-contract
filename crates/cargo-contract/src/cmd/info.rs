@@ -70,10 +70,6 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    let output_type = match self.output_json {
-                        true => OutputType::Json,
-                        false => OutputType::HumanReadable,
-                    };
                     let convert_trie_id = hex::encode(info_result.trie_id.0);
                     let info_to_json = InfoToJson {
                         trie_id: convert_trie_id,
@@ -81,7 +77,7 @@ impl InfoCommand {
                         storage_items: info_result.storage_items,
                         storage_item_deposit: info_result.storage_item_deposit,
                     };
-                    if matches!(output_type, OutputType::Json) {
+                    if self.output_json {
                         println!("{}", info_to_json.to_json()?);
                     } else {
                         info_to_json.basic_display_format_contract_info();
@@ -123,7 +119,8 @@ struct InfoToJson {
 }
 
 impl InfoToJson {
-    /// Convert contract info to a pretty-printed string of JSON
+
+    /// Convert and return contract info in a string of JSON
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
@@ -138,10 +135,4 @@ impl InfoToJson {
             format!("{:?}", self.storage_item_deposit)
         );
     }
-}
-pub enum OutputType {
-    /// Output build results in a human readable format.
-    HumanReadable,
-    /// Output the build results JSON formatted.
-    Json,
 }
