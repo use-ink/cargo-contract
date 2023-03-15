@@ -69,17 +69,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+        # Check permissions of GITHUB_TOKEN, workaround for permission issues
+        # with @dependabot PRs. See https://github.com/actions-rs/clippy-check/issues/2#issuecomment-807878478
+      - name: Check workflow permissions
+        id: check_permissions
+        uses: scherermichael-oss/action-has-permission@1.0.6
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Clippy with features
         uses: actions-rs/clippy-check@v1
+        if: ${{ steps.check_permissions.outputs.has-permission }}
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --profile debug-ci --all-features --all-targets -- -D warnings
 
       - name: Clippy without features
+        if: ${{ steps.check_permissions.outputs.has-permission }}
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --profile debug-ci --all-targets -- -D warnings
+
+        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
+      - name: Clippy with features (no annotations)
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --profile debug-ci --all-features --all-targets -- -D warnings
+
+        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
+      - name: Clippy without features (no annotations)
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --profile debug-ci --all-targets -- -D warnings
 
   test:
     strategy:
