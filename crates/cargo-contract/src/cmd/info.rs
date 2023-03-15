@@ -123,8 +123,7 @@ struct InfoToJson {
 }
 
 impl InfoToJson {
-    
-    /// Convert contract info to a pretty-printed string of JSON 
+    /// Convert contract info to a pretty-printed string of JSON
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }

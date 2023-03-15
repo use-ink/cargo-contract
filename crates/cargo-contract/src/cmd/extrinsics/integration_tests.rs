@@ -224,6 +224,7 @@ async fn build_upload_instantiate_call() {
         .args(["--message", "flip"])
         .args(["--contract", contract_account])
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .assert()
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
@@ -358,6 +359,18 @@ async fn build_upload_instantiate_info() {
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--output-json")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting info as JSON format failed: {stderr}"
+    );
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
