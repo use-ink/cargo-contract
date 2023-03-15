@@ -119,7 +119,6 @@ struct InfoToJson {
 }
 
 impl InfoToJson {
-
     /// Convert and return contract info in a string of JSON
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
