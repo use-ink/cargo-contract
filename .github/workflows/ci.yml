@@ -112,7 +112,7 @@ jobs:
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
           unzip substrate-contracts-node.zip && \
           chmod +x artifacts/substrate-contracts-node-linux/substrate-contracts-node &&
-          cargo test --profile debug-ci --all-features -- --test-threads=1 &
+          cargo test --profile debug-ci --all-features -- --test-threads=1
 
       - name: Install latest `substrate-contracts-node` binary and run tests
         if: runner.os == 'macOS'
@@ -120,7 +120,7 @@ jobs:
           curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
           unzip substrate-contracts-node.zip && \
           chmod +x artifacts/substrate-contracts-node-mac/substrate-contracts-node &&
-          cargo test --profile debug-ci --all-features -- --test-threads=1 &    
+          cargo test --profile debug-ci --all-features -- --test-threads=1
 
 
   template:
