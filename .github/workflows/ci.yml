@@ -30,6 +30,22 @@ jobs:
           command: fmt
           args: --check
 
+  # Runs `cargo check` on each individual crate in the `crates` directory.
+  #
+  # This is required because the other commands build on the workspace level,
+  # or bring in `dev-dependencies` via the `test` target and it is possible
+  # for a crate to compile successfully in those cases, but fail when compiled
+  # on its own.
+  #
+  # Specifically, this happens where a dependency is missing features, but
+  # when building as part of the workspace or together with a `dev-dependency`
+  # those features are brought in via feature unification with another
+  # crate.
+  #
+  # When publishing, `cargo publish` will run a `check` on the individual
+  # crate being released. So this check is intended to catch any errors that
+  # may occur there, but otherwise would not be caught by the `test` and
+  # `clippy` commands which operate on the workspace and enable all targets.
   check:
     runs-on: ubuntu-latest
     steps:
