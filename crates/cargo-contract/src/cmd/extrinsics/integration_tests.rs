@@ -212,7 +212,6 @@ async fn build_upload_instantiate_call() {
             .args(["--message", "get"])
             .args(["--contract", contract_account])
             .args(["--suri", "//Alice"])
-            .arg("-x")
             .assert()
             .stdout(predicate::str::contains(expected.to_string()));
     };
@@ -224,6 +223,7 @@ async fn build_upload_instantiate_call() {
         .args(["--message", "flip"])
         .args(["--contract", contract_account])
         .args(["--suri", "//Alice"])
+        .arg("-x")
         .assert()
         .stdout(predicate::str::contains("ExtrinsicSuccess"));
 
