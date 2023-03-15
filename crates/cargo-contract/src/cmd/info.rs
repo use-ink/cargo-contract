@@ -22,6 +22,8 @@ use super::{
 use crate::{
     cmd::{
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
+        Balance,
+        CodeHash,
         ErrorVariant,
     },
     name_value_println,
@@ -113,9 +115,9 @@ impl InfoCommand {
 #[derive(serde::Serialize)]
 struct InfoToJson {
     trie_id: String,
-    code_hash: sp_core::H256,
+    code_hash: CodeHash,
     storage_items: u32,
-    storage_item_deposit: u128,
+    storage_item_deposit: Balance,
 }
 
 impl InfoToJson {

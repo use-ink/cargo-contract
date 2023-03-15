@@ -18,9 +18,7 @@ use super::{
     display_dry_run_result_warning,
     state_call,
     submit_extrinsic,
-    Balance,
     Client,
-    CodeHash,
     DefaultConfig,
     ExtrinsicOpts,
     PairSigner,
@@ -37,6 +35,8 @@ use crate::{
             self,
             runtime_types::pallet_contracts::wasm::Determinism,
         },
+        Balance,
+        CodeHash,
     },
     name_value_println,
 };
