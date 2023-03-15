@@ -123,10 +123,13 @@ struct InfoToJson {
 }
 
 impl InfoToJson {
+    
+    /// Convert contract info to a pretty-printed string of JSON 
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
 
+    /// Display contract information in a formatted way
     pub fn basic_display_format_contract_info(&self) {
         name_value_println!("TrieId:", format!("{}", self.trie_id));
         name_value_println!("Code hash:", format!("{:?}", self.code_hash));
