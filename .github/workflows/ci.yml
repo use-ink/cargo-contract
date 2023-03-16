@@ -128,7 +128,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
-      CONTRACTS_NODE_URL: https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -146,6 +145,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install latest `substrate-contracts-node` binary
+        env:
+          CONTRACTS_NODE_URL: https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
               CONTRACTS_NODE_OS=linux
