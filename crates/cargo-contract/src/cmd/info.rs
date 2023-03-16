@@ -15,19 +15,28 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self, runtime_types::sp_core::bounded::bounded_vec},
-    Client, DefaultConfig,
+    runtime_api::api::{self,},
+    Client,
+    DefaultConfig,
 };
 use crate::{
     cmd::{
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
+        Balance,
+        CodeHash,
         ErrorVariant,
     },
     name_value_println,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -35,6 +44,7 @@ pub struct InfoCommand {
     /// The address of the contract to display info of.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
+    /// Websockets url of a substrate node.
     #[clap(
         name = "url",
         long,
@@ -65,10 +75,6 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    let output_type = match self.output_json {
-                        true => OutputType::Json,
-                        false => OutputType::HumanReadable,
-                    };
                     let convert_trie_id = hex::encode(info_result.trie_id.0);
 
                     let pristine_res =
@@ -100,11 +106,12 @@ impl InfoCommand {
                                         .storage_item_deposit,
                                     pristine_wasm: None,
                                 };
-                                if matches!(output_type, OutputType::Json) {
-                                    println!("{}", info_to_json.to_json()?)
+                                if self.output_json {
+                                    println!("{}", info_to_json.to_json()?);
                                 } else {
                                     info_to_json.basic_display_format_contract_info();
                                 }
+                                Ok(())
                             }
                         }
                         None => {
@@ -118,11 +125,13 @@ impl InfoCommand {
 
                     Result::<(), ErrorVariant>::Ok(())
                 }
-                None => Err(anyhow!(
-                    "No contract information was found for account id {}",
-                    self.contract
-                )
-                .into()),
+                None => {
+                    Err(anyhow!(
+                        "No contract information was found for account id {}",
+                        self.contract
+                    )
+                    .into())
+                }
             }
         })
     }
@@ -161,17 +170,18 @@ impl InfoCommand {
 #[derive(serde::Serialize)]
 struct InfoToJson {
     trie_id: String,
-    code_hash: sp_core::H256,
+    code_hash: CodeHash,
     storage_items: u32,
-    storage_item_deposit: u128,
-    pristine_wasm: Option<Vec<u8>>,
+    storage_item_deposit: Balance,
 }
 
 impl InfoToJson {
+    /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
 
+    /// Display contract information in a formatted way
     pub fn basic_display_format_contract_info(&self) {
         name_value_println!("TrieId:", format!("{}", self.trie_id));
         name_value_println!("Code hash:", format!("{:?}", self.code_hash));

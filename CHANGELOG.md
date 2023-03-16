@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
+- Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
+
+### [2.1.0]
+
 ### Changed
 - Dry-run `instantiate`, `call` and `upload` commands by default - [#999](https://github.com/paritytech/cargo-contract/pull/999)
 
@@ -17,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
 - Pass contract features to metadata gen package - [#1005](https://github.com/paritytech/cargo-contract/pull/1005)
+- Custom AccountId32 impl, remove substrate deps - [#1010](https://github.com/paritytech/cargo-contract/pull/1010)
+  - Fixes issue with with incompatible `wasmtime` versions when dependant project has old substrate dependencies.
 
 ### [2.0.2]
 

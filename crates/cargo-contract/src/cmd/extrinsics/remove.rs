@@ -17,7 +17,6 @@
 use super::{
     submit_extrinsic,
     Client,
-    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
     ExtrinsicOpts,
@@ -35,6 +34,7 @@ use crate::{
             self,
             contracts::events::CodeRemoved,
         },
+        CodeHash,
     },
     name_value_println,
 };

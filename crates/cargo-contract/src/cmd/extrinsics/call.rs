@@ -19,7 +19,6 @@ use super::{
     prompt_confirm_tx,
     state_call,
     submit_extrinsic,
-    Balance,
     BalanceVariant,
     Client,
     ContractMessageTranscoder,
@@ -40,6 +39,7 @@ use crate::{
             ErrorVariant,
         },
         runtime_api::api,
+        Balance,
     },
     DEFAULT_KEY_COL_WIDTH,
 };
