@@ -38,7 +38,12 @@ pub(crate) use self::extrinsics::{
     UploadCommand,
 };
 
-use subxt::OnlineClient;
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 pub use subxt::PolkadotConfig as DefaultConfig;
 type Client = OnlineClient<DefaultConfig>;
+type Balance = u128;
+type CodeHash = <DefaultConfig as Config>::Hash;

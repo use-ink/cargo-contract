@@ -22,6 +22,8 @@ use super::{
 use crate::{
     cmd::{
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
+        Balance,
+        CodeHash,
         ErrorVariant,
     },
     name_value_println,
@@ -50,6 +52,9 @@ pub struct InfoCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// Export the instantiate output in JSON format.
+    #[clap(name = "output-json", long)]
+    output_json: bool,
 }
 
 impl InfoCommand {
@@ -67,7 +72,18 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_result) => {
-                    InfoCommand::print_and_format_contract_info(info_result);
+                    let convert_trie_id = hex::encode(info_result.trie_id.0);
+                    let info_to_json = InfoToJson {
+                        trie_id: convert_trie_id,
+                        code_hash: info_result.code_hash,
+                        storage_items: info_result.storage_items,
+                        storage_item_deposit: info_result.storage_item_deposit,
+                    };
+                    if self.output_json {
+                        println!("{}", info_to_json.to_json()?);
+                    } else {
+                        info_to_json.basic_display_format_contract_info();
+                    }
                     Ok(())
                 }
                 None => {
@@ -94,15 +110,30 @@ impl InfoCommand {
 
         Ok(contract_info_of)
     }
+}
 
-    fn print_and_format_contract_info(info: ContractInfo) {
-        let convert_trie_id = hex::encode(info.trie_id.0);
-        name_value_println!("TrieId:", format!("{}", convert_trie_id));
-        name_value_println!("Code hash:", format!("{:?}", info.code_hash));
-        name_value_println!("Storage items:", format!("{:?}", info.storage_items));
+#[derive(serde::Serialize)]
+struct InfoToJson {
+    trie_id: String,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
+}
+
+impl InfoToJson {
+    /// Convert and return contract info in JSON format.
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    /// Display contract information in a formatted way
+    pub fn basic_display_format_contract_info(&self) {
+        name_value_println!("TrieId:", format!("{}", self.trie_id));
+        name_value_println!("Code hash:", format!("{:?}", self.code_hash));
+        name_value_println!("Storage items:", format!("{:?}", self.storage_items));
         name_value_println!(
             "Storage deposit:",
-            format!("{:?}", info.storage_item_deposit)
+            format!("{:?}", self.storage_item_deposit)
         );
     }
 }

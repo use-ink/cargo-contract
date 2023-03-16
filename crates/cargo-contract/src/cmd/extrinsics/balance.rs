@@ -26,10 +26,8 @@ use rust_decimal::{
 };
 use serde_json::json;
 
-use super::{
-    Balance,
-    Client,
-};
+use super::Client;
+use crate::cmd::Balance;
 
 use anyhow::{
     anyhow,
