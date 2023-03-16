@@ -124,10 +124,11 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12", "windows-2022"]
+        os: ["ubuntu-22.04", "macos-12"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
+      CONTRACTS_NODE_URL: https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -144,22 +145,24 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install latest `substrate-contracts-node` binary and run tests
+      - name: Install latest `substrate-contracts-node` binary
         if: runner.os == 'Linux'
         run: |
-          curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-linux' && \
+          curl -L -o substrate-contracts-node.zip "$CONTRACTS_NODE_URL?job=build-linux" && \
           unzip substrate-contracts-node.zip && \
           chmod +x artifacts/substrate-contracts-node-linux/substrate-contracts-node &&
-          cargo test --profile debug-ci --all-features -- --test-threads=1
+          echo "Linux: $PATH"
 
-      - name: Install latest `substrate-contracts-node` binary and run tests
+      - name: Install latest `substrate-contracts-node` binary
         if: runner.os == 'macOS'
         run: |
-          curl -L -o substrate-contracts-node.zip 'https://gitlab.parity.io/parity/mirrors/substrate-contracts-node/-/jobs/artifacts/main/download?job=build-mac' && \
+          curl -L -o substrate-contracts-node.zip "$CONTRACTS_NODE_URL?job=build-mac" && \
           unzip substrate-contracts-node.zip && \
           chmod +x artifacts/substrate-contracts-node-mac/substrate-contracts-node &&
-          cargo test --profile debug-ci --all-features -- --test-threads=1
+          echo "MacOS: $PATH"
 
+      - name: Run tests
+        run: cargo test --profile debug-ci --all-features -- --test-threads=1
 
   template:
     strategy:
