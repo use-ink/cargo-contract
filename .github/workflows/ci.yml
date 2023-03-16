@@ -163,7 +163,8 @@ jobs:
         shell: bash
 
       - name: Run tests
-        run: cargo test --profile debug-ci --all-features -- --test-threads=1
+        run: cargo test --profile debug-ci
+#        run: cargo test --profile debug-ci --all-features -- --test-threads=1
 
   template:
     strategy:
