@@ -40,7 +40,7 @@ thiserror = "1.0.39"
 [dev-dependencies]
 assert_matches = "1.5.0"
 ink = "4.0.1"
-sp-core = { version = "18.0.0", default-features = false }
+sp-core = "18.0.0"
 sp-keyring = "21.0.0"
 
 [features]

@@ -30,6 +30,22 @@ jobs:
           command: fmt
           args: --check
 
+  # Runs `cargo check` on each individual crate in the `crates` directory.
+  #
+  # This is required because the other commands build on the workspace level,
+  # or bring in `dev-dependencies` via the `test` target and it is possible
+  # for a crate to compile successfully in those cases, but fail when compiled
+  # on its own.
+  #
+  # Specifically, this happens where a dependency is missing features, but
+  # when building as part of the workspace or together with a `dev-dependency`
+  # those features are brought in via feature unification with another
+  # crate.
+  #
+  # When publishing, `cargo publish` will run a `check` on the individual
+  # crate being released. So this check is intended to catch any errors that
+  # may occur there, but otherwise would not be caught by the `test` and
+  # `clippy` commands which operate on the workspace and enable all targets.
   check:
     runs-on: ubuntu-latest
     steps:
@@ -69,17 +85,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+        # Check permissions of GITHUB_TOKEN, workaround for permission issues
+        # with @dependabot PRs. See https://github.com/actions-rs/clippy-check/issues/2#issuecomment-807878478
+      - name: Check workflow permissions
+        id: check_permissions
+        uses: scherermichael-oss/action-has-permission@1.0.6
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Clippy with features
         uses: actions-rs/clippy-check@v1
+        if: ${{ steps.check_permissions.outputs.has-permission }}
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --profile debug-ci --all-features --all-targets -- -D warnings
 
       - name: Clippy without features
+        if: ${{ steps.check_permissions.outputs.has-permission }}
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --profile debug-ci --all-targets -- -D warnings
+
+        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
+      - name: Clippy with features (no annotations)
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --profile debug-ci --all-features --all-targets -- -D warnings
+
+        # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
+      - name: Clippy without features (no annotations)
+        if: ${{ !steps.check_permissions.outputs.has-permission }}
+        run: cargo clippy --profile debug-ci --all-targets -- -D warnings
 
   test:
     strategy:
