@@ -18,3 +18,4 @@ cargo contract info \
 *Optional*
 - `--url` the url of the rpc endpoint you want to specify - by default `ws://localhost:9944`.
 - `--output-json` to export the output as JSON.
+- `--binary` to include the pristine Wasm code in the output.

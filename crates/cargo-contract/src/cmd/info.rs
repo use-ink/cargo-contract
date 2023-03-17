@@ -58,7 +58,7 @@ pub struct InfoCommand {
     /// Export the call output as JSON.
     #[clap(name = "output-json", long)]
     output_json: bool,
-    /// Export the call output as JSON.
+    /// Include the pristine Wasm code in the output.
     #[clap(name = "binary", long)]
     binary: bool,
 }

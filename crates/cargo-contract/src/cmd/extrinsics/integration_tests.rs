@@ -371,6 +371,17 @@ async fn build_upload_instantiate_info() {
         "getting info as JSON format failed: {stderr}"
     );
 
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--binary")
+        .output()
+        .expect("failed to execute process");
+    assert!(
+        output.status.success(),
+        "displaying contract info including wasm prisme code"
+    );
+
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }

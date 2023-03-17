@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
 - Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
+- Add `--binary` flag for `info` command - [#1013](https://github.com/paritytech/cargo-contract/pull/1013/)
 
 ### [2.1.0]
 
