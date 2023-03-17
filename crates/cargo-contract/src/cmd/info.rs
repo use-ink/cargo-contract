@@ -15,19 +15,31 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{self, runtime_types::sp_core::bounded::bounded_vec},
-    Client, DefaultConfig,
+    runtime_api::api::{
+        self,
+        runtime_types::sp_core::bounded::bounded_vec,
+    },
+    Client,
+    DefaultConfig,
 };
 use crate::{
     cmd::{
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
-        Balance, CodeHash, ErrorVariant,
+        Balance,
+        CodeHash,
+        ErrorVariant,
     },
     name_value_println,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use std::fmt::Debug;
-use subxt::{Config, OnlineClient};
+use subxt::{
+    Config,
+    OnlineClient,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -106,18 +118,22 @@ impl InfoCommand {
                             }
                             Ok(())
                         }
-                        None => Err(anyhow!(
+                        None => {
+                            Err(anyhow!(
                             "No pristine_code information was found for account id {}",
                             info_result.code_hash
                         )
-                        .into()),
+                            .into())
+                        }
                     }
                 }
-                None => Err(anyhow!(
-                    "No contract information was found for account id {}",
-                    self.contract
-                )
-                .into()),
+                None => {
+                    Err(anyhow!(
+                        "No contract information was found for account id {}",
+                        self.contract
+                    )
+                    .into())
+                }
             }
         })
     }
