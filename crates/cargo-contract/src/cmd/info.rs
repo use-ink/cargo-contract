@@ -74,48 +74,43 @@ impl InfoCommand {
                     let mut info_to_json: InfoToJson;
                     match pristine_res {
                         Some(pris_w) => {
-                            if self.binary {
-                                let wasm_code = hex::encode(pris_w.0);
-                                info_to_json = InfoToJson {
-                                    trie_id: convert_trie_id,
-                                    code_hash: info_result.code_hash,
-                                    storage_items: info_result.storage_items,
-                                    storage_item_deposit: info_result
-                                        .storage_item_deposit,
-                                    pristine_wasm: Some(wasm_code.clone()),
-                                };
-                                if self.output_json {
-                                    let base_code = "0x".to_owned();
-                                    let final_format_code = base_code + &wasm_code;
-                                    info_to_json.pristine_wasm = Some(final_format_code);
+                            let wasm_code = hex::encode(pris_w.0);
+                            info_to_json = InfoToJson {
+                                trie_id: convert_trie_id.clone(),
+                                code_hash: info_result.code_hash,
+                                storage_items: info_result.storage_items,
+                                storage_item_deposit: info_result.storage_item_deposit,
+                                pristine_wasm: Some(wasm_code.clone()),
+                            };
+                            if self.output_json {
+                                let base_code = "0x".to_owned();
+                                let final_format_code = base_code + &wasm_code;
+                                info_to_json.pristine_wasm = Some(final_format_code);
+                                if self.binary {
                                     println!("{}", info_to_json.to_json()?);
                                 } else {
-                                    info_to_json.basic_display_format_contract_info();
+                                    let limited_info_to_json = RestrictedInfoToJson {
+                                        trie_id: convert_trie_id.clone(),
+                                        code_hash: info_result.code_hash,
+                                        storage_items: info_result.storage_items,
+                                        storage_item_deposit: info_result
+                                            .storage_item_deposit,
+                                    };
+                                    println!("{}", limited_info_to_json.to_json()?);
                                 }
                             } else {
-                                let limited_info_to_json = RestrictedInfoToJson {
-                                    trie_id: convert_trie_id,
-                                    code_hash: info_result.code_hash,
-                                    storage_items: info_result.storage_items,
-                                    storage_item_deposit: info_result
-                                        .storage_item_deposit,
-                                };
-                                if self.output_json {
-                                    println!("{}", limited_info_to_json.to_json()?);
-                                } else {
-                                    limited_info_to_json
-                                        .basic_display_format_contract_info();
-                                }
+                                InfoCommand::basic_display_format_contract_info(
+                                    info_to_json,
+                                    self.binary,
+                                );
                             }
                             Ok(())
                         }
-                        None => {
-                            return Err(anyhow!(
-                                "No pristine_code information was found for account id {}",
-                                info_result.code_hash
-                            )
-                            .into());
-                        }
+                        None => Err(anyhow!(
+                            "No pristine_code information was found for account id {}",
+                            info_result.code_hash
+                        )
+                        .into()),
                     }
                 }
                 None => Err(anyhow!(
@@ -156,6 +151,22 @@ impl InfoCommand {
 
         Ok(prinstine_bytes)
     }
+
+    fn basic_display_format_contract_info(info: InfoToJson, binary: bool) {
+        name_value_println!("TrieId:", format!("{}", info.trie_id));
+        name_value_println!("Code hash:", format!("{:?}", info.code_hash));
+        name_value_println!("Storage items:", format!("{:?}", info.storage_items));
+        name_value_println!(
+            "Storage deposit:",
+            format!("{:?}", info.storage_item_deposit)
+        );
+        if binary {
+            if let Some(pr_wasm) = info.pristine_wasm {
+                let decoded_wasm = hex::decode(pr_wasm).unwrap();
+                name_value_println!("Pristine Wasm Code", format!("{:?}", decoded_wasm))
+            }
+        }
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -172,24 +183,6 @@ impl InfoToJson {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
-
-    /// Display contract information in a formatted way
-    pub fn basic_display_format_contract_info(&self) {
-        name_value_println!("TrieId:", format!("{}", self.trie_id));
-        name_value_println!("Code hash:", format!("{:?}", self.code_hash));
-        name_value_println!("Storage items:", format!("{:?}", self.storage_items));
-        name_value_println!(
-            "Storage deposit:",
-            format!("{:?}", self.storage_item_deposit)
-        );
-        match &self.pristine_wasm {
-            Some(pr_wasm) => {
-                let decoded_wasm = hex::decode(pr_wasm).unwrap();
-                name_value_println!("Pristine Wasm Code", format!("{:?}", decoded_wasm))
-            }
-            None => {}
-        }
-    }
 }
 
 #[derive(serde::Serialize)]
@@ -204,16 +197,5 @@ impl RestrictedInfoToJson {
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    /// Display contract information in a formatted way
-    pub fn basic_display_format_contract_info(&self) {
-        name_value_println!("TrieId:", format!("{}", self.trie_id));
-        name_value_println!("Code hash:", format!("{:?}", self.code_hash));
-        name_value_println!("Storage items:", format!("{:?}", self.storage_items));
-        name_value_println!(
-            "Storage deposit:",
-            format!("{:?}", self.storage_item_deposit)
-        );
     }
 }
