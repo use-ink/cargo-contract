@@ -14,7 +14,7 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates",]
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 blake2 = "0.10.6"
 cargo_metadata = "0.15.3"
 colored = "2.0.0"
@@ -39,7 +39,7 @@ zip = { version = "0.6.4", default-features = false }
 contract-metadata = { version = "2.1.0", path = "../metadata" }
 
 [build-dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 walkdir = "2.3.3"
 zip = { version = "0.6.4", default-features = false }
 
