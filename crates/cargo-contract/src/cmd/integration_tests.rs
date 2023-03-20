@@ -48,6 +48,14 @@ fn extract_contract_address(stdout: &str) -> &str {
     contract_account
 }
 
+// Find the code hash in the output
+fn extract_code_hash(stdout: &str) -> &str {
+    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
+    let caps = regex.captures(stdout).expect("Failed to find codehash");
+    let code_hash = caps.get(1).unwrap().as_str();
+    code_hash
+}
+
 /// Spawn and manage an instance of a compatible contracts enabled chain node.
 #[allow(dead_code)]
 struct ContractsNodeProcess {
@@ -273,10 +281,7 @@ async fn build_upload_remove() {
 
     let stdout = str::from_utf8(&output.stdout).unwrap();
 
-    // find the code hash in the output
-    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
-    let caps = regex.captures(stdout).expect("Failed to find codehash");
-    let code_hash = caps.get(1).unwrap().as_str();
+    let code_hash = extract_code_hash(stdout);
     assert_eq!(64, code_hash.len());
 
     let output = cargo_contract(project_path.as_path())
@@ -377,10 +382,34 @@ async fn build_upload_instantiate_info() {
         .arg("--binary")
         .output()
         .expect("failed to execute process");
+
     assert!(
         output.status.success(),
         "displaying contract info including wasm prisme code"
     );
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--binary")
+        .assert()
+        .stdout(predicate::str::contains("TrieId"))
+        .stdout(predicate::str::contains("Code hash"))
+        .stdout(predicate::str::contains("Storage items"))
+        .stdout(predicate::str::contains("Storage deposit"))
+        .stdout(predicate::str::contains("Pristine Wasm Code"));
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--output-json")
+        .arg("--binary")
+        .assert()
+        .stdout(predicate::str::contains("trie_id"))
+        .stdout(predicate::str::contains("code_hash"))
+        .stdout(predicate::str::contains("storage_items"))
+        .stdout(predicate::str::contains("storage_item_deposit"))
+        .stdout(predicate::str::contains("pristine_wasm"));
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;

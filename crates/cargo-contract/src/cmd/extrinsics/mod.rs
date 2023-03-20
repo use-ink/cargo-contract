@@ -22,10 +22,6 @@ mod instantiate;
 mod remove;
 mod upload;
 
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-mod integration_tests;
-
 use anyhow::{
     anyhow,
     Context,

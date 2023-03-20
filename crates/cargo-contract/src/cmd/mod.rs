@@ -30,6 +30,10 @@ pub(crate) use self::{
 };
 mod extrinsics;
 
+#[cfg(test)]
+#[cfg(feature = "integration-tests")]
+mod integration_tests;
+
 pub(crate) use self::extrinsics::{
     CallCommand,
     ErrorVariant,
