@@ -55,7 +55,7 @@ pub struct InfoCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// Export the instantiate output in JSON format.   
+    /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
     /// Include the pristine Wasm code in the output.
