@@ -17,7 +17,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "src/lib.rs"
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.4", default-features = false }
 contract-metadata = { version = "2.1.0", path = "../metadata" }
