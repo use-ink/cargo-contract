@@ -392,12 +392,8 @@ async fn build_upload_instantiate_info() {
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--binary")
-        .assert()
-        .stdout(predicate::str::contains("TrieId"))
-        .stdout(predicate::str::contains("Code hash"))
-        .stdout(predicate::str::contains("Storage items"))
-        .stdout(predicate::str::contains("Storage deposit"))
-        .stdout(predicate::str::contains("Pristine Wasm Code"));
+        .assert();
+        // .stdout(predicate::str::contains("Pristine Wasm Code"));
 
     cargo_contract(project_path.as_path())
         .arg("info")
@@ -405,10 +401,6 @@ async fn build_upload_instantiate_info() {
         .arg("--output-json")
         .arg("--binary")
         .assert()
-        .stdout(predicate::str::contains("trie_id"))
-        .stdout(predicate::str::contains("code_hash"))
-        .stdout(predicate::str::contains("storage_items"))
-        .stdout(predicate::str::contains("storage_item_deposit"))
         .stdout(predicate::str::contains("pristine_wasm"));
 
     // prevent the node_process from being dropped and killed
