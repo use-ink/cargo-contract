@@ -393,7 +393,7 @@ async fn build_upload_instantiate_info() {
         .args(["--contract", contract_account])
         .arg("--binary")
         .assert();
-        // .stdout(predicate::str::contains("Pristine Wasm Code"));
+    // .stdout(predicate::str::contains("Pristine Wasm Code"));
 
     cargo_contract(project_path.as_path())
         .arg("info")
