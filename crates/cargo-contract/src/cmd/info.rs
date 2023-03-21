@@ -58,7 +58,7 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
-    /// Include the pristine Wasm code in the output.
+    /// Display the pristine Wasm code.
     #[clap(name = "binary", long)]
     binary: bool,
 }
@@ -83,37 +83,31 @@ impl InfoCommand {
                     let pristine_res =
                         InfoCommand::fetch_pristine_code(info_result.code_hash, &client)
                             .await?;
-                    let mut info_to_json: InfoToJson;
                     match pristine_res {
                         Some(pris_w) => {
-                            let wasm_code = hex::encode(pris_w.0);
-                            info_to_json = InfoToJson {
+                            let info_to_json = InfoToJson {
                                 trie_id: convert_trie_id.clone(),
                                 code_hash: info_result.code_hash,
                                 storage_items: info_result.storage_items,
                                 storage_item_deposit: info_result.storage_item_deposit,
-                                pristine_wasm: Some(wasm_code.clone()),
                             };
+                            let wasm_code = hex::encode(pris_w.0.clone());
                             if self.output_json {
                                 let base_code = "0x".to_owned();
                                 let final_format_code = base_code + &wasm_code;
-                                info_to_json.pristine_wasm = Some(final_format_code);
+                                let pristine_code = WasmJson {
+                                    pristine_wasm: Some(final_format_code),
+                                };
                                 if self.binary {
-                                    println!("{}", info_to_json.to_json()?);
+                                    println!("{}", pristine_code.to_json()?);
                                 } else {
-                                    let limited_info_to_json = RestrictedInfoToJson {
-                                        trie_id: convert_trie_id.clone(),
-                                        code_hash: info_result.code_hash,
-                                        storage_items: info_result.storage_items,
-                                        storage_item_deposit: info_result
-                                            .storage_item_deposit,
-                                    };
-                                    println!("{}", limited_info_to_json.to_json()?);
+                                    println!("{}", info_to_json.to_json()?);
                                 }
+                            } else if self.binary {
+                                println!("{:?}", pris_w.0)
                             } else {
                                 InfoCommand::basic_display_format_contract_info(
                                     info_to_json,
-                                    self.binary,
                                 );
                             }
                             Ok(())
@@ -168,7 +162,7 @@ impl InfoCommand {
         Ok(prinstine_bytes)
     }
 
-    fn basic_display_format_contract_info(info: InfoToJson, binary: bool) {
+    fn basic_display_format_contract_info(info: InfoToJson) {
         name_value_println!("TrieId:", format!("{}", info.trie_id));
         name_value_println!("Code hash:", format!("{:?}", info.code_hash));
         name_value_println!("Storage items:", format!("{:?}", info.storage_items));
@@ -176,12 +170,6 @@ impl InfoCommand {
             "Storage deposit:",
             format!("{:?}", info.storage_item_deposit)
         );
-        if binary {
-            if let Some(pr_wasm) = info.pristine_wasm {
-                let decoded_wasm = hex::decode(pr_wasm).unwrap();
-                name_value_println!("Pristine Wasm Code", format!("{:?}", decoded_wasm))
-            }
-        }
     }
 }
 
@@ -191,7 +179,6 @@ struct InfoToJson {
     code_hash: CodeHash,
     storage_items: u32,
     storage_item_deposit: Balance,
-    pristine_wasm: Option<String>,
 }
 
 impl InfoToJson {
@@ -202,14 +189,11 @@ impl InfoToJson {
 }
 
 #[derive(serde::Serialize)]
-struct RestrictedInfoToJson {
-    trie_id: String,
-    code_hash: CodeHash,
-    storage_items: u32,
-    storage_item_deposit: Balance,
+struct WasmJson {
+    pristine_wasm: Option<String>,
 }
 
-impl RestrictedInfoToJson {
+impl WasmJson {
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
