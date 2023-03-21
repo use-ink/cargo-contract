@@ -35,7 +35,10 @@ use anyhow::{
     anyhow,
     Result,
 };
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    io::Write,
+};
 use subxt::{
     Config,
     OnlineClient,
@@ -85,29 +88,34 @@ impl InfoCommand {
                             .await?;
                     match pristine_res {
                         Some(pris_w) => {
-                            let info_to_json = InfoToJson {
+                            let wasm_code = hex::encode(pris_w.0.clone());
+                            let basic_info = BasicInfoToJson {
                                 trie_id: convert_trie_id.clone(),
                                 code_hash: info_result.code_hash,
                                 storage_items: info_result.storage_items,
                                 storage_item_deposit: info_result.storage_item_deposit,
                             };
-                            let wasm_code = hex::encode(pris_w.0.clone());
                             if self.output_json {
                                 let base_code = "0x".to_owned();
                                 let final_format_code = base_code + &wasm_code;
-                                let pristine_code = WasmJson {
+                                let info_to_json = GlobalInfoToJson {
+                                    trie_id: convert_trie_id.clone(),
+                                    code_hash: info_result.code_hash,
+                                    storage_items: info_result.storage_items,
+                                    storage_item_deposit: info_result
+                                        .storage_item_deposit,
                                     pristine_wasm: Some(final_format_code),
                                 };
                                 if self.binary {
-                                    println!("{}", pristine_code.to_json()?);
-                                } else {
                                     println!("{}", info_to_json.to_json()?);
+                                } else {
+                                    println!("{}", basic_info.to_json()?);
                                 }
                             } else if self.binary {
-                                println!("{:?}", pris_w.0)
+                                std::io::stdout().write_all(&pris_w.0).expect("");
                             } else {
                                 InfoCommand::basic_display_format_contract_info(
-                                    info_to_json,
+                                    basic_info,
                                 );
                             }
                             Ok(())
@@ -162,7 +170,7 @@ impl InfoCommand {
         Ok(prinstine_bytes)
     }
 
-    fn basic_display_format_contract_info(info: InfoToJson) {
+    fn basic_display_format_contract_info(info: BasicInfoToJson) {
         name_value_println!("TrieId:", format!("{}", info.trie_id));
         name_value_println!("Code hash:", format!("{:?}", info.code_hash));
         name_value_println!("Storage items:", format!("{:?}", info.storage_items));
@@ -174,14 +182,15 @@ impl InfoCommand {
 }
 
 #[derive(serde::Serialize)]
-struct InfoToJson {
+struct GlobalInfoToJson {
     trie_id: String,
     code_hash: CodeHash,
     storage_items: u32,
     storage_item_deposit: Balance,
+    pristine_wasm: Option<String>,
 }
 
-impl InfoToJson {
+impl GlobalInfoToJson {
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
@@ -189,11 +198,14 @@ impl InfoToJson {
 }
 
 #[derive(serde::Serialize)]
-struct WasmJson {
-    pristine_wasm: Option<String>,
+struct BasicInfoToJson {
+    trie_id: String,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
 }
 
-impl WasmJson {
+impl BasicInfoToJson {
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
