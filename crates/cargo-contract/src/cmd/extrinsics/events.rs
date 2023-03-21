@@ -41,7 +41,6 @@ use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
-    metadata::EventFieldMetadata,
 };
 
 /// Field that represent data of an event from invoking a contract extrinsic.
@@ -115,7 +114,7 @@ impl DisplayEvents {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field_metadata.name() == Some("data")
+                ) && field_metadata.name() == Some(&String::from("data"))
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let field = contract_event_data_field(
@@ -136,7 +135,7 @@ impl DisplayEvents {
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
-                        field_metadata.type_id(),
+                        field_metadata.ty().id(),
                         event_data,
                     )?;
                     let field = Field::new(
@@ -210,7 +209,7 @@ impl DisplayEvents {
 /// [`ContractMessageTranscoder`] if available.
 fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
-    field_metadata: &EventFieldMetadata,
+    field_metadata: &scale_info::Field<scale_info::form::PortableForm>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
