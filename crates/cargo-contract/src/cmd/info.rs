@@ -61,7 +61,7 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
-    /// Display the pristine Wasm code.
+    /// Display the contract's Wasm bytecode.
     #[clap(name = "binary", long)]
     binary: bool,
 }
