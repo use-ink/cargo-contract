@@ -112,7 +112,7 @@ impl InfoCommand {
                                     println!("{}", basic_info.to_json()?);
                                 }
                             } else if self.binary {
-                                std::io::stdout().write_all(&pris_w.0).expect("");
+                                std::io::stdout().write_all(&pris_w.0).expect("writing to stdout failed");
                             } else {
                                 InfoCommand::basic_display_format_contract_info(
                                     basic_info,
