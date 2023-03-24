@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
 
 ### Changed
-- Minimum requirements of `ink!` dependencies all updated to `4.1.0`
+- Minimum requirements of `ink!` dependencies all updated to `4.1.0` - [#1045](https://github.com/paritytech/cargo-contract/pull/1045)
 
 ### [2.1.0]
 
