@@ -52,7 +52,8 @@ impl MetadataPackage {
     pub fn generate<P: AsRef<Path>>(
         &self,
         target_dir: P,
-        mut ink_crate_dependency: value::Table,
+        mut ink_crate_dependency: Table,
+        contract_features: &Table,
     ) -> Result<()> {
         let dir = target_dir.as_ref();
         tracing::debug!(
@@ -84,30 +85,30 @@ impl MetadataPackage {
         ink_crate_dependency.remove("features");
         ink_crate_dependency.remove("optional");
 
-    // add ink dependencies copied from contract manifest
-    deps.insert("ink".into(), ink_crate_dependency.into());
+        // add ink dependencies copied from contract manifest
+        deps.insert("ink".into(), ink_crate_dependency.into());
 
-    // add features from contract
-    let features = cargo_toml
-        .entry("features")
-        .or_insert(Value::Table(Default::default()))
-        .as_table_mut()
-        .ok_or_else(|| anyhow::anyhow!("features should be a table"))?;
+        // add features from contract
+        let features = cargo_toml
+            .entry("features")
+            .or_insert(Value::Table(Default::default()))
+            .as_table_mut()
+            .ok_or_else(|| anyhow::anyhow!("features should be a table"))?;
 
-    for (feature, _) in contract_features {
-        if feature != "default" && feature != "std" {
-            features.insert(
-                feature.to_string(),
-                Value::Array(vec![format!("contract/{feature}").into()]),
-            );
+        for (feature, _) in contract_features {
+            if feature != "default" && feature != "std" {
+                features.insert(
+                    feature.to_string(),
+                    Value::Array(vec![format!("contract/{feature}").into()]),
+                );
+            }
         }
-    }
 
-    let cargo_toml = toml::to_string(&cargo_toml)?;
-    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-    fs::write(dir.join("main.rs"), main_rs)?;
-    Ok(())
-}
+        let cargo_toml = toml::to_string(&cargo_toml)?;
+        fs::write(dir.join("Cargo.toml"), cargo_toml)?;
+        fs::write(dir.join("main.rs"), main_rs.to_string())?;
+        Ok(())
+    }
 
     /// Generate the `main.rs` file to be executed to generate the metadata.
     fn generate_main(&self) -> proc_macro2::TokenStream {
@@ -149,5 +150,6 @@ impl MetadataPackage {
             }
         )
     }
+}
 
 

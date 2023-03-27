@@ -403,7 +403,6 @@ impl Manifest {
 
             metadata_package.generate(
                 dir,
-                contract_package_name,
                 ink_crate.clone(),
                 features,
             )?;
