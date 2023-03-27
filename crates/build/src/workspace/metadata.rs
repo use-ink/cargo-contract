@@ -151,5 +151,3 @@ impl MetadataPackage {
         )
     }
 }
-
-

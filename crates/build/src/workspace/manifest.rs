@@ -401,11 +401,7 @@ impl Manifest {
                 .as_table()
                 .ok_or_else(|| anyhow::anyhow!("[features] section should be a table"))?;
 
-            metadata_package.generate(
-                dir,
-                ink_crate.clone(),
-                features,
-            )?;
+            metadata_package.generate(dir, ink_crate.clone(), features)?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;
