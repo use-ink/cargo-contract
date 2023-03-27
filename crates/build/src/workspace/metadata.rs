@@ -19,7 +19,10 @@ use std::{
     fs,
     path::Path,
 };
-use toml::value;
+use toml::{
+    Table,
+    Value,
+};
 
 /// Info for generating a metadata package.
 pub struct MetadataPackage {
@@ -61,7 +64,7 @@ impl MetadataPackage {
         let cargo_toml = include_str!("../../templates/generate-metadata/_Cargo.toml");
         let main_rs = self.generate_main();
 
-        let mut cargo_toml: value::Table = toml::from_str(cargo_toml)?;
+        let mut cargo_toml: Table = toml::from_str(cargo_toml)?;
         let deps = cargo_toml
             .get_mut("dependencies")
             .expect("[dependencies] section specified in the template")
@@ -81,14 +84,30 @@ impl MetadataPackage {
         ink_crate_dependency.remove("features");
         ink_crate_dependency.remove("optional");
 
-        // add ink dependencies copied from contract manifest
-        deps.insert("ink".into(), ink_crate_dependency.into());
-        let cargo_toml = toml::to_string(&cargo_toml)?;
+    // add ink dependencies copied from contract manifest
+    deps.insert("ink".into(), ink_crate_dependency.into());
 
-        fs::write(dir.join("Cargo.toml"), cargo_toml)?;
-        fs::write(dir.join("main.rs"), main_rs.to_string())?;
-        Ok(())
+    // add features from contract
+    let features = cargo_toml
+        .entry("features")
+        .or_insert(Value::Table(Default::default()))
+        .as_table_mut()
+        .ok_or_else(|| anyhow::anyhow!("features should be a table"))?;
+
+    for (feature, _) in contract_features {
+        if feature != "default" && feature != "std" {
+            features.insert(
+                feature.to_string(),
+                Value::Array(vec![format!("contract/{feature}").into()]),
+            );
+        }
     }
+
+    let cargo_toml = toml::to_string(&cargo_toml)?;
+    fs::write(dir.join("Cargo.toml"), cargo_toml)?;
+    fs::write(dir.join("main.rs"), main_rs)?;
+    Ok(())
+}
 
     /// Generate the `main.rs` file to be executed to generate the metadata.
     fn generate_main(&self) -> proc_macro2::TokenStream {
@@ -130,4 +149,5 @@ impl MetadataPackage {
             }
         )
     }
-}
+
+

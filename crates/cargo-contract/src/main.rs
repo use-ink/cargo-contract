@@ -24,10 +24,12 @@ use self::cmd::{
     CheckCommand,
     DecodeCommand,
     ErrorVariant,
+    InfoCommand,
     InstantiateCommand,
     RemoveCommand,
     UploadCommand,
 };
+use cmd::encode::EncodeCommand;
 use contract_build::{
     name_value_println,
     util::DEFAULT_KEY_COL_WIDTH,
@@ -120,12 +122,18 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
+    /// Encodes a contracts input calls and their arguments
+    #[clap(name = "encode")]
+    Encode(EncodeCommand),
     /// Decodes a contracts input or output data (supplied in hex-encoding)
     #[clap(name = "decode")]
     Decode(DecodeCommand),
     /// Remove contract code
     #[clap(name = "remove")]
     Remove(RemoveCommand),
+    /// Display information about a contract
+    #[clap(name = "info")]
+    Info(InfoCommand),
 }
 
 fn main() {
@@ -184,12 +192,14 @@ fn exec(cmd: Command) -> Result<()> {
             call.run()
                 .map_err(|err| map_extrinsic_err(err, call.is_json()))
         }
+        Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
             remove
                 .run()
                 .map_err(|err| map_extrinsic_err(err, remove.is_json()))
         }
+        Command::Info(info) => info.run().map_err(format_err),
     }
 }
 

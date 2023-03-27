@@ -394,7 +394,19 @@ impl Manifest {
                 .as_table()
                 .ok_or_else(|| anyhow::anyhow!("ink dependency should be a table"))?;
 
-            metadata_package.generate(dir, ink_crate.clone())?;
+            let features = self
+                .toml
+                .get("features")
+                .ok_or_else(|| anyhow::anyhow!("[features] section not found"))?
+                .as_table()
+                .ok_or_else(|| anyhow::anyhow!("[features] section should be a table"))?;
+
+            metadata_package.generate(
+                dir,
+                contract_package_name,
+                ink_crate.clone(),
+                features,
+            )?;
         }
 
         let updated_toml = toml::to_string(&self.toml)?;

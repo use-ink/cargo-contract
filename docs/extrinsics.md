@@ -1,5 +1,5 @@
 # Extrinsics
-`cargo-contract` provides CLI support for uploading, instantiating and calling your contracts directly from the command
+`cargo-contract` provides CLI support for uploading, instantiating, calling and removing your contracts directly from the command
 line.
 
 ## Common arguments
@@ -37,10 +37,10 @@ its project directory.
 "ws://localhost:9944".
 
 ```
----dry-run
+-x/--execute
 ```
-*Optional*. All extrinsic commands can be run without altering the chain state. Useful for testing if a command will be
-successful, estimating gas costs or querying the result of `ink!` readonly messages.
+*Optional*. All extrinsic commands run without altering the chain state by default. This flag specifies
+that the extrinsic needs to be executed on chain.
 
 ```
 --storage-deposit-limit
@@ -113,8 +113,8 @@ cargo contract remove \
        --code-hash 0xbc1b42256696c8a4187ec3ed79fc602789fc11287c4c30926f5e31ed8169574e
 ```
 
-- `--code-hash` the hash of the uploaded code, returned from a call to `contract upload`. 
-If not specified the code hash will be taken from the contract artifacts. 
+- `--code-hash` the hash of the uploaded code, returned from a call to `contract upload`.
+If not specified the code hash will be taken from the contract artifacts.
 
 ## Specifying the contract artifact
 

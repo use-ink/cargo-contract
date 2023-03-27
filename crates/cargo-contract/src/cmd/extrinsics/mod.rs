@@ -20,7 +20,6 @@ mod error;
 mod events;
 mod instantiate;
 mod remove;
-mod runtime_api;
 mod upload;
 
 #[cfg(test)]
@@ -47,7 +46,13 @@ use std::{
     path::PathBuf,
 };
 
-use crate::DEFAULT_KEY_COL_WIDTH;
+use crate::{
+    cmd::{
+        Balance,
+        Client,
+    },
+    DEFAULT_KEY_COL_WIDTH,
+};
 
 use contract_build::{
     name_value_println,
@@ -92,10 +97,7 @@ pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
-type Balance = u128;
-type CodeHash = <DefaultConfig as Config>::Hash;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
-type Client = OnlineClient<DefaultConfig>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -123,10 +125,10 @@ pub struct ExtrinsicOpts {
     password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    /// Dry-run the extrinsic via rpc, instead of as an extrinsic. Chain state will not be mutated.
-    #[clap(long)]
-    dry_run: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage
+    /// Submit the extrinsic for on-chain execution.
+    #[clap(short('x'), long)]
+    execute: bool,
+    /// The maximum amount of balance that can be charged from the caller to pay for the storage.
     /// consumed.
     #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
@@ -141,27 +143,10 @@ pub struct ExtrinsicOpts {
 impl ExtrinsicOpts {
     /// Load contract artifacts.
     pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
-        let artifact_path = match (self.manifest_path.as_ref(), self.file.as_ref()) {
-            (manifest_path, None) => {
-                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
-
-                if crate_metadata.contract_bundle_path().exists() {
-                    crate_metadata.contract_bundle_path()
-                } else if crate_metadata.metadata_path().exists() {
-                    crate_metadata.metadata_path()
-                } else {
-                    anyhow::bail!(
-                        "Failed to find any contract artifacts in target directory. \n\
-                        Run `cargo contract build --release` to generate the artifacts."
-                    )
-                }
-            }
-            (None, Some(artifact_file)) => artifact_file.clone(),
-            (Some(_), Some(_)) => {
-                anyhow::bail!("conflicting options: --manifest-path and --file")
-            }
-        };
-        ContractArtifacts::from_artifact_path(artifact_path.as_path())
+        ContractArtifacts::from_manifest_or_file(
+            self.manifest_path.as_ref(),
+            self.file.as_ref(),
+        )
     }
 
     /// Returns the signer for contract extrinsics.
@@ -215,8 +200,35 @@ pub struct ContractArtifacts {
 }
 
 impl ContractArtifacts {
+    /// Load contract artifacts.
+    pub fn from_manifest_or_file(
+        manifest_path: Option<&PathBuf>,
+        file: Option<&PathBuf>,
+    ) -> Result<ContractArtifacts> {
+        let artifact_path = match (manifest_path, file) {
+            (manifest_path, None) => {
+                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+
+                if crate_metadata.contract_bundle_path().exists() {
+                    crate_metadata.contract_bundle_path()
+                } else if crate_metadata.metadata_path().exists() {
+                    crate_metadata.metadata_path()
+                } else {
+                    anyhow::bail!(
+                        "Failed to find any contract artifacts in target directory. \n\
+                        Run `cargo contract build --release` to generate the artifacts."
+                    )
+                }
+            }
+            (None, Some(artifact_file)) => artifact_file.clone(),
+            (Some(_), Some(_)) => {
+                anyhow::bail!("conflicting options: --manifest-path and --file")
+            }
+        };
+        Self::from_artifact_path(artifact_path.as_path())
+    }
     /// Given a contract artifact path, load the contract code and metadata where possible.
-    pub fn from_artifact_path(path: &Path) -> Result<Self> {
+    fn from_artifact_path(path: &Path) -> Result<Self> {
         tracing::debug!("Loading contracts artifacts from `{}`", path.display());
         let (metadata_path, metadata, code) =
             match path.extension().and_then(|ext| ext.to_str()) {
@@ -349,6 +361,14 @@ pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
         name_value_println!("", format!("{debug_message}"), WIDTH);
     }
     Ok(())
+}
+
+pub fn display_dry_run_result_warning(command: &str) {
+    println!("Your {} call {} been executed.", command, "has not".bold());
+    println!(
+            "To submit the transaction and execute the call on chain, add {} flag to the command.",
+            "-x/--execute".bold()
+        );
 }
 
 /// Wait for the transaction to be included successfully into a block.

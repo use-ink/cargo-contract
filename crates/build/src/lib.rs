@@ -30,6 +30,9 @@ mod validate_wasm;
 mod wasm_opt;
 mod workspace;
 
+#[deprecated(since = "2.0.2", note = "Use MetadataArtifacts instead")]
+pub use self::metadata::MetadataArtifacts as MetadataResult;
+
 pub use self::{
     args::{
         BuildArtifacts,
@@ -46,7 +49,7 @@ pub use self::{
     crate_metadata::CrateMetadata,
     metadata::{
         BuildInfo,
-        MetadataResult,
+        MetadataArtifacts,
         WasmOptSettings,
     },
     new::new_contract_project,
@@ -118,7 +121,7 @@ pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
     /// Result of the metadata generation.
-    pub metadata_result: Option<MetadataResult>,
+    pub metadata_result: Option<MetadataArtifacts>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
     /// If existent the result of the optimization.
@@ -136,26 +139,20 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        if self.optimization_result.is_none() && self.metadata_result.is_none() {
-            return "\nNo changes in contract detected: Wasm and metadata artifacts unchanged."
-                .to_string()
-        }
-
-        let (opt_size_diff, newlines) =
-            if let Some(ref opt_result) = self.optimization_result {
-                let size_diff = format!(
-                    "\nOriginal wasm size: {}, Optimized: {}\n\n",
-                    format!("{:.1}K", opt_result.original_size).bold(),
-                    format!("{:.1}K", opt_result.optimized_size).bold(),
-                );
-                debug_assert!(
-                    opt_result.optimized_size > 0.0,
-                    "optimized file size must be greater 0"
-                );
-                (size_diff, "\n\n")
-            } else {
-                ("\n".to_string(), "")
-            };
+        let opt_size_diff = if let Some(ref opt_result) = self.optimization_result {
+            let size_diff = format!(
+                "\nOriginal wasm size: {}, Optimized: {}\n\n",
+                format!("{:.1}K", opt_result.original_size).bold(),
+                format!("{:.1}K", opt_result.optimized_size).bold(),
+            );
+            debug_assert!(
+                opt_result.optimized_size > 0.0,
+                "optimized file size must be greater 0"
+            );
+            size_diff
+        } else {
+            "\n".to_string()
+        };
 
         let build_mode = format!(
             "The contract was built in {} mode.\n\n",
@@ -178,11 +175,10 @@ impl BuildResult {
         };
 
         let mut out = format!(
-            "{}{}Your contract artifacts are ready. You can find them in:\n{}{}",
+            "{}{}Your contract artifacts are ready. You can find them in:\n{}\n\n",
             opt_size_diff,
             build_mode,
             self.target_directory.display().to_string().bold(),
-            newlines,
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
@@ -246,20 +242,19 @@ fn exec_cargo_for_wasm_target(
         let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
 
         let mut args = vec![
-            "--target=wasm32-unknown-unknown",
-            "-Zbuild-std",
-            "--no-default-features",
-            "--release",
-            &target_dir,
+            "--target=wasm32-unknown-unknown".to_owned(),
+            "-Zbuild-std".to_owned(),
+            "--no-default-features".to_owned(),
+            "--release".to_owned(),
+            target_dir,
         ];
+        network.append_to_args(&mut args);
+
         let mut features = features.clone();
-        if network == Network::Offline {
-            args.push("--offline");
-        }
         if build_mode == BuildMode::Debug {
             features.push("ink/ink-debug");
         } else {
-            args.push("-Zbuild-std-features=panic_immediate_abort");
+            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
         let mut env = vec![(
@@ -613,28 +608,51 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let build = || -> Result<(Option<(OptimizationResult, BuildInfo)>, BuildSteps)> {
-        let mut build_steps = BuildSteps::new();
-        let pre_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?;
+    let build =
+        || -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
+            let mut build_steps = BuildSteps::new();
+            let pre_fingerprint =
+                Fingerprint::try_from_path(&crate_metadata.original_wasm)?;
 
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Building cargo project".bright_green().bold()
-        );
-        build_steps.increment_current();
-        exec_cargo_for_wasm_target(
-            &crate_metadata,
-            "build",
-            &features,
-            build_mode,
-            network,
-            verbosity,
-            &unstable_flags,
-        )?;
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("{build_steps}").bold(),
+                "Building cargo project".bright_green().bold()
+            );
+            build_steps.increment_current();
+            exec_cargo_for_wasm_target(
+                &crate_metadata,
+                "build",
+                &features,
+                build_mode,
+                network,
+                verbosity,
+                &unstable_flags,
+            )?;
 
-        let post_fingerprint = Fingerprint::try_from_path(&crate_metadata.original_wasm)?
+            let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
+                version
+            } else {
+                anyhow::bail!(
+                    "Unable to parse version number for the currently running \
+                    `cargo-contract` binary."
+                );
+            };
+
+            let build_info = BuildInfo {
+                rust_toolchain: util::rust_toolchain()?,
+                cargo_contract_version,
+                build_mode,
+                wasm_opt_settings: WasmOptSettings {
+                    optimization_passes,
+                    keep_debug_symbols,
+                },
+            };
+
+            let post_fingerprint = Fingerprint::try_from_path(
+                &crate_metadata.original_wasm,
+            )?
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Expected '{}' to be generated by build",
@@ -642,68 +660,54 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 )
             })?;
 
-        if pre_fingerprint == Some(post_fingerprint)
-            && crate_metadata.dest_wasm.exists()
-            && crate_metadata.metadata_path().exists()
-            && crate_metadata.contract_bundle_path().exists()
-        {
-            tracing::info!(
-                "No changes in the original wasm at {}, fingerprint {:?}. \
+            let dest_wasm_path = crate_metadata.dest_wasm.clone();
+
+            if pre_fingerprint == Some(post_fingerprint)
+                && crate_metadata.dest_wasm.exists()
+            {
+                tracing::info!(
+                    "No changes in the original wasm at {}, fingerprint {:?}. \
                 Skipping Wasm optimization and metadata generation.",
-                crate_metadata.original_wasm.display(),
-                pre_fingerprint
+                    crate_metadata.original_wasm.display(),
+                    pre_fingerprint
+                );
+                return Ok((None, build_info, dest_wasm_path, build_steps))
+            }
+
+            maybe_lint(&mut build_steps)?;
+
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("{build_steps}").bold(),
+                "Post processing wasm file".bright_green().bold()
             );
-            return Ok((None, build_steps))
-        }
+            build_steps.increment_current();
+            post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
 
-        maybe_lint(&mut build_steps)?;
-
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Post processing wasm file".bright_green().bold()
-        );
-        build_steps.increment_current();
-        post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
-
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Optimizing wasm file".bright_green().bold()
-        );
-        build_steps.increment_current();
-
-        let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
-        let optimization_result = handler.optimize(
-            &crate_metadata.dest_wasm,
-            &crate_metadata.contract_artifact_name,
-        )?;
-
-        let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
-            version
-        } else {
-            anyhow::bail!(
-                "Unable to parse version number for the currently running \
-                    `cargo-contract` binary."
+            maybe_println!(
+                verbosity,
+                " {} {}",
+                format!("{build_steps}").bold(),
+                "Optimizing wasm file".bright_green().bold()
             );
+            build_steps.increment_current();
+
+            let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
+            let optimization_result = handler.optimize(
+                &crate_metadata.dest_wasm,
+                &crate_metadata.contract_artifact_name,
+            )?;
+
+            Ok((
+                Some(optimization_result),
+                build_info,
+                dest_wasm_path,
+                build_steps,
+            ))
         };
 
-        let build_info = BuildInfo {
-            rust_toolchain: crate::util::rust_toolchain()?,
-            cargo_contract_version,
-            build_mode,
-            wasm_opt_settings: WasmOptSettings {
-                optimization_passes,
-                keep_debug_symbols,
-            },
-        };
-
-        Ok((Some((optimization_result, build_info)), build_steps))
-    };
-
-    let (opt_result, metadata_result) = match build_artifact {
+    let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             let mut build_steps = BuildSteps::new();
             maybe_lint(&mut build_steps)?;
@@ -723,34 +727,39 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 &unstable_flags,
             )?;
-            (None, None)
+            (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
-            let (build_result, _) = build()?;
-            let opt_result = build_result.map(|(opt_result, _)| opt_result);
-            (opt_result, None)
+            let (opt_result, _, dest_wasm, _) = build()?;
+            (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (build_result, build_steps) = build()?;
+            let (opt_result, build_info, dest_wasm, build_steps) = build()?;
 
-            match build_result {
-                Some((opt_result, build_info)) => {
-                    let metadata_result = metadata::execute(
-                        &crate_metadata,
-                        opt_result.dest_wasm.as_path(),
-                        network,
-                        verbosity,
-                        build_steps,
-                        &unstable_flags,
-                        build_info,
-                    )?;
-                    (Some(opt_result), Some(metadata_result))
-                }
-                None => (None, None),
+            let metadata_result = MetadataArtifacts {
+                dest_metadata: crate_metadata.metadata_path(),
+                dest_bundle: crate_metadata.contract_bundle_path(),
+            };
+            // skip metadata generation if contract unchanged and all metadata artifacts exist.
+            if opt_result.is_some()
+                || !metadata_result.dest_metadata.exists()
+                || !metadata_result.dest_bundle.exists()
+            {
+                metadata::execute(
+                    &crate_metadata,
+                    dest_wasm.as_path(),
+                    &metadata_result,
+                    &features,
+                    network,
+                    verbosity,
+                    build_steps,
+                    &unstable_flags,
+                    build_info,
+                )?;
             }
+            (opt_result, Some(metadata_result), Some(dest_wasm))
         }
     };
-    let dest_wasm = opt_result.as_ref().map(|r| r.dest_wasm.clone());
 
     Ok(BuildResult {
         dest_wasm,
@@ -909,7 +918,7 @@ mod unit_tests {
 
         let build_result = BuildResult {
             dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
-            metadata_result: Some(MetadataResult {
+            metadata_result: Some(MetadataArtifacts {
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),

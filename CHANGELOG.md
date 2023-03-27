@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
+- Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
+
+### Changed
+- Minimum requirements of `ink!` dependencies all updated to `4.1.0` - [#1045](https://github.com/paritytech/cargo-contract/pull/1045)
+
+### [2.1.0]
+
+### Changed
+- Dry-run `instantiate`, `call` and `upload` commands by default - [#999](https://github.com/paritytech/cargo-contract/pull/999)
+
+### Added
+- Add `cargo contract encode` command - [#998](https://github.com/paritytech/cargo-contract/pull/998)
+
+### Fixed
+- Limit input length for `decode` command - [#982](https://github.com/paritytech/cargo-contract/pull/982)
+- Pass contract features to metadata gen package - [#1005](https://github.com/paritytech/cargo-contract/pull/1005)
+- Custom AccountId32 impl, remove substrate deps - [#1010](https://github.com/paritytech/cargo-contract/pull/1010)
+  - Fixes issue with with incompatible `wasmtime` versions when dependant project has old substrate dependencies.
+
+### [2.0.2]
+
+### Fixed
+- Explicitly enable `std` feature for metadata generation [#977](https://github.com/paritytech/cargo-contract/pull/977)
+- Return artifact paths when contracts unchanged [#992](https://github.com/paritytech/cargo-contract/pull/992)
+- Minimum requirements of `ink!` dependencies all updated to `4.0.1`
+
 ## [2.0.1]
 
 ### Fixed

@@ -25,6 +25,7 @@ use crate::{
     },
     BuildMode,
     BuildSteps,
+    Features,
     Network,
     OptimizationPasses,
     UnstableFlags,
@@ -56,9 +57,9 @@ use url::Url;
 
 const INK_EVENT_METADATA_SECTION_PREFIX: &str = "__ink_event_metadata_";
 
-/// Metadata generation result.
+/// Artifacts resulting from metadata generation.
 #[derive(serde::Serialize)]
-pub struct MetadataResult {
+pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
     /// Path to the bundled file.
@@ -109,18 +110,18 @@ pub struct WasmOptSettings {
 /// Generates a file with metadata describing the ABI of the smart contract.
 ///
 /// It does so by generating and invoking a temporary workspace member.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
+    metadata_artifacts: &MetadataArtifacts,
+    features: &Features,
     network: Network,
     verbosity: Verbosity,
     mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
-) -> Result<MetadataResult> {
-    let out_path_metadata = crate_metadata.metadata_path();
-    let out_path_bundle = crate_metadata.contract_bundle_path();
-
+) -> Result<()> {
     // build the extended contract project metadata
     let ExtendedMetadataResult {
         source,
@@ -135,20 +136,24 @@ pub(crate) fn execute(
             format!("{build_steps}").bold(),
             "Generating metadata".bright_green().bold()
         );
-        let target_dir_arg = format!(
-            "--target-dir={}",
-            crate_metadata.target_directory.to_string_lossy()
-        );
+        let target_dir = crate_metadata
+            .target_directory
+            .to_string_lossy()
+            .to_string();
+        let mut args = vec![
+            "--package".to_owned(),
+            "metadata-gen".to_owned(),
+            manifest_path.cargo_arg()?,
+            "--target-dir".to_owned(),
+            target_dir,
+            "--release".to_owned(),
+        ];
+        network.append_to_args(&mut args);
+        features.append_to_args(&mut args);
+
         let stdout = util::invoke_cargo(
             "run",
-            [
-                "--package",
-                "metadata-gen",
-                &manifest_path.cargo_arg()?,
-                &target_dir_arg,
-                "--release",
-                &network.to_string(),
-            ],
+            args,
             crate_metadata.manifest_path.directory(),
             verbosity,
             vec![],
@@ -161,7 +166,7 @@ pub(crate) fn execute(
             let mut metadata = metadata.clone();
             metadata.remove_source_wasm_attribute();
             let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&out_path_metadata, contents)?;
+            fs::write(&metadata_artifacts.dest_metadata, contents)?;
             build_steps.increment_current();
         }
 
@@ -172,7 +177,7 @@ pub(crate) fn execute(
             "Generating bundle".bright_green().bold()
         );
         let contents = serde_json::to_string(&metadata)?;
-        fs::write(&out_path_bundle, contents)?;
+        fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
         Ok(())
     };
@@ -210,10 +215,7 @@ pub(crate) fn execute(
             .using_temp(generate_metadata)?;
     }
 
-    Ok(MetadataResult {
-        dest_metadata: out_path_metadata,
-        dest_bundle: out_path_bundle,
-    })
+    Ok(())
 }
 
 /// Generate the extended contract project metadata

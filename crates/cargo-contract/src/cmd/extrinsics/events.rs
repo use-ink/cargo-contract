@@ -15,12 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::contracts::events::ContractEmitted,
     BalanceVariant,
     DefaultConfig,
     TokenMetadata,
 };
-use crate::DEFAULT_KEY_COL_WIDTH;
+use crate::{
+    cmd::runtime_api::api::contracts::events::ContractEmitted,
+    DEFAULT_KEY_COL_WIDTH,
+};
 use colored::Colorize as _;
 use contract_build::Verbosity;
 use contract_transcode::{
