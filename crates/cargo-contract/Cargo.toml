@@ -42,7 +42,7 @@ sp-weights = "17.0.0"
 pallet-contracts-primitives = "21.0.0"
 scale-info = "2.3.1"
 #subxt = "0.27.1" # todo: upgrade when new release available
-subxt = { git = "https://github.com/paritytech/subxt/", branch = "jsdw-scale-encode-decode" }
+subxt = { git = "https://github.com/paritytech/subxt/", branch = "jsdw-static-type" }
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
