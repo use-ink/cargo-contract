@@ -207,7 +207,10 @@ impl ContractArtifacts {
     ) -> Result<ContractArtifacts> {
         let artifact_path = match (manifest_path, file) {
             (manifest_path, None) => {
-                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+                let crate_metadata = CrateMetadata::from_manifest_path(
+                    manifest_path,
+                    contract_build::Target::Wasm,
+                )?;
 
                 if crate_metadata.contract_bundle_path().exists() {
                     crate_metadata.contract_bundle_path()

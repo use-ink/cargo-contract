@@ -24,6 +24,7 @@ use crate::{
     ManifestPath,
     OptimizationPasses,
     OutputType,
+    Target,
     Verbosity,
 };
 use anyhow::Result;
@@ -165,6 +166,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         lint: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
+        target: Default::default(),
     };
 
     // when
@@ -206,6 +208,7 @@ fn optimization_passes_from_profile_must_be_used(
         lint: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
+        target: Default::default(),
     };
 
     // when
@@ -398,10 +401,10 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     )?;
     test_manifest.write()?;
 
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path, Target::Wasm)?;
 
     // usually this file will be produced by a previous build step
-    let final_contract_wasm_path = &crate_metadata.dest_wasm;
+    let final_contract_wasm_path = &crate_metadata.dest_code;
     fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
@@ -460,7 +463,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let user = metadata_json.get("user").expect("user section not found");
 
     // calculate wasm hash
-    let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
+    let fs_wasm = fs::read(&crate_metadata.dest_code)?;
     let expected_hash = crate::code_hash(&fs_wasm[..]);
     let expected_wasm = build_byte_str(&fs_wasm);
 
@@ -671,7 +674,7 @@ impl BuildTestContext {
     ) -> Result<()> {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
-        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+        let crate_metadata = CrateMetadata::collect(&manifest_path, Target::Wasm)?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
@@ -682,8 +685,8 @@ impl BuildTestContext {
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
         // remove the original wasm artifact to force it to be rebuilt
-        if crate_metadata.original_wasm.exists() {
-            fs::remove_file(&crate_metadata.original_wasm)?;
+        if crate_metadata.original_code.exists() {
+            fs::remove_file(&crate_metadata.original_code)?;
         }
         Ok(())
     }

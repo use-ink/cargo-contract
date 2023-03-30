@@ -25,6 +25,7 @@ use contract_build::{
     Network,
     OptimizationPasses,
     OutputType,
+    Target,
     UnstableFlags,
     UnstableOptions,
     Verbosity,
@@ -110,6 +111,9 @@ pub struct BuildCommand {
     /// Don't perform wasm validation checks e.g. for permitted imports.
     #[clap(long)]
     skip_wasm_validation: bool,
+    /// Which bytecode to build the contract into.
+    #[clap(long, default_value = "wasm")]
+    target: Target,
 }
 
 impl BuildCommand {
@@ -152,6 +156,7 @@ impl BuildCommand {
             lint: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
+            target: self.target,
         };
 
         contract_build::execute(args)
@@ -170,6 +175,8 @@ pub struct CheckCommand {
     features: Features,
     #[clap(flatten)]
     unstable_options: UnstableOptions,
+    #[clap(long, default_value = "wasm")]
+    target: Target,
 }
 
 impl CheckCommand {
@@ -192,6 +199,7 @@ impl CheckCommand {
             lint: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
+            target: self.target,
         };
 
         contract_build::execute(args)
