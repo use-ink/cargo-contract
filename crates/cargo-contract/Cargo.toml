@@ -36,13 +36,12 @@ rust_decimal = "1.29"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "18.0.0"
-sp-runtime = "21.0.0"
-sp-weights = "17.0.0"
-pallet-contracts-primitives = "21.0.0"
+sp-core = "20.0.0"
+sp-runtime = "23.0.0"
+sp-weights = "19.0.0"
+pallet-contracts-primitives = "23.0.0"
 scale-info = "2.3.1"
-#subxt = "0.27.1" # todo: upgrade when new release available
-subxt = { git = "https://github.com/paritytech/subxt/", branch = "jsdw-static-type" }
+subxt = "0.28.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
