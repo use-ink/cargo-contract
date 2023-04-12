@@ -116,17 +116,14 @@ impl PathKey {
         T: TypeInfo,
     {
         let type_info = T::type_info();
-        let path = type_info
-            .path()
-            .clone()
-            .into_portable(&mut Default::default());
+        let path = type_info.path.into_portable(&mut Default::default());
         PathKey::from(&path)
     }
 }
 
 impl From<&Path<PortableForm>> for PathKey {
     fn from(path: &Path<PortableForm>) -> Self {
-        PathKey(path.segments().to_vec())
+        PathKey(path.segments.to_vec())
     }
 }
 
