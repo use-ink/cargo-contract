@@ -103,7 +103,7 @@ impl InfoCommand {
 
         let contract_info_of = client
             .storage()
-            .at(None)
+            .at_latest()
             .await?
             .fetch(&info_contract_call)
             .await?;
