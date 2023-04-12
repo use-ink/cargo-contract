@@ -53,7 +53,7 @@ which = "4.4.0"
 [dev-dependencies]
 assert_cmd = "2.0.10"
 regex = "1.7.3"
-predicates = "3.0.1"
+predicates = "3.0.2"
 tempfile = "3.5.0"
 
 [features]
