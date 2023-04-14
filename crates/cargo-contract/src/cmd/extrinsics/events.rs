@@ -33,6 +33,7 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
+use scale_info::form::PortableForm;
 use std::{
     fmt::Write,
     str::FromStr,
@@ -210,7 +211,7 @@ impl DisplayEvents {
 /// [`ContractMessageTranscoder`] if available.
 fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
-    field_metadata: &scale_info::Field<scale_info::form::PortableForm>,
+    field_metadata: &scale_info::Field<PortableForm>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
