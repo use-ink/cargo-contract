@@ -23,24 +23,25 @@ contract-metadata = { version = "2.1.0", path = "../metadata" }
 contract-transcode = { version = "2.1.0", path = "../transcode" }
 
 anyhow = "1.0.70"
-clap = { version = "4.1.11", features = ["derive", "env"] }
+clap = { version = "4.1.14", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.4.0"
 colored = "2.0.0"
-serde = { version = "1.0.158", default-features = false, features = ["derive"] }
-serde_json = "1.0.94"
+serde = { version = "1.0.160", default-features = false, features = ["derive"] }
+serde_json = "1.0.96"
 url = { version = "2.3.1", features = ["serde"] }
 rust_decimal = "1.29"
 
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "16.0.0"
-sp-runtime = "18.0.0"
-sp-weights = "14.0.0"
-pallet-contracts-primitives = "18.0.0"
-subxt = "0.27.1"
+sp-core = "20.0.0"
+sp-runtime = "23.0.0"
+sp-weights = "19.0.0"
+pallet-contracts-primitives = "23.0.0"
+scale-info = "2.3.1"
+subxt = "0.28.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
 
@@ -52,9 +53,9 @@ which = "4.4.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.10"
-regex = "1.7.2"
-predicates = "3.0.1"
-tempfile = "3.4.0"
+regex = "1.7.3"
+predicates = "3.0.2"
+tempfile = "3.5.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

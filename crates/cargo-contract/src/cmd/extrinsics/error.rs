@@ -33,11 +33,21 @@ impl From<subxt::Error> for ErrorVariant {
     fn from(error: subxt::Error) -> Self {
         match error {
             subxt::Error::Runtime(subxt::error::DispatchError::Module(module_err)) => {
-                ErrorVariant::Module(ModuleError {
-                    pallet: module_err.pallet.clone(),
-                    error: module_err.error.clone(),
-                    docs: module_err.description,
-                })
+                module_err
+                    .details()
+                    .map(|details| {
+                        ErrorVariant::Module(ModuleError {
+                            pallet: details.pallet().to_string(),
+                            error: details.error().to_string(),
+                            docs: details.docs().to_vec(),
+                        })
+                    })
+                    .unwrap_or_else(|err| {
+                        ErrorVariant::Generic(GenericError::from_message(format!(
+                            "Error extracting subxt error details: {}",
+                            err
+                        )))
+                    })
             }
             err => ErrorVariant::Generic(GenericError::from_message(err.to_string())),
         }

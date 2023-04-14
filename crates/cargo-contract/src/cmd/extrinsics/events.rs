@@ -33,6 +33,7 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
+use scale_info::form::PortableForm;
 use std::{
     fmt::Write,
     str::FromStr,
@@ -41,7 +42,6 @@ use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
-    metadata::EventFieldMetadata,
 };
 
 /// Field that represent data of an event from invoking a contract extrinsic.
@@ -115,7 +115,7 @@ impl DisplayEvents {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field_metadata.name() == Some("data")
+                ) && field_metadata.name == Some("data".to_string())
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let field = contract_event_data_field(
@@ -126,7 +126,8 @@ impl DisplayEvents {
                     event_entry.fields.push(field);
                 } else {
                     let field_name = field_metadata
-                        .name()
+                        .name
+                        .as_ref()
                         .map(|s| s.to_string())
                         .unwrap_or_else(|| {
                             let name = unnamed_field_name.to_string();
@@ -136,13 +137,13 @@ impl DisplayEvents {
 
                     let decoded_field = events_transcoder.decode(
                         &runtime_metadata.types,
-                        field_metadata.type_id(),
+                        field_metadata.ty.id,
                         event_data,
                     )?;
                     let field = Field::new(
                         field_name,
                         decoded_field,
-                        field_metadata.type_name().map(|s| s.to_string()),
+                        field_metadata.type_name.as_ref().map(|s| s.to_string()),
                     );
                     event_entry.fields.push(field);
                 }
@@ -210,7 +211,7 @@ impl DisplayEvents {
 /// [`ContractMessageTranscoder`] if available.
 fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
-    field_metadata: &EventFieldMetadata,
+    field_metadata: &scale_info::Field<PortableForm>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
@@ -230,6 +231,6 @@ fn contract_event_data_field(
     Ok(Field::new(
         String::from("data"),
         event_value,
-        field_metadata.type_name().map(|s| s.to_string()),
+        field_metadata.type_name.as_ref().map(|s| s.to_string()),
     ))
 }

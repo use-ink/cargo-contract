@@ -86,7 +86,7 @@ impl<'a> Decoder<'a> {
         len: usize,
         input: &mut &[u8],
     ) -> Result<Value> {
-        let type_id = ty.id();
+        let type_id = ty.id;
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
             anyhow::anyhow!("Failed to find type with id '{}'", type_id)
         })?;
@@ -105,15 +105,15 @@ impl<'a> Decoder<'a> {
         ty: &Type<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        match ty.type_def() {
+        match &ty.type_def {
             TypeDef::Composite(composite) => {
-                let ident = ty.path().segments().last().map(|s| s.as_str());
-                self.decode_composite(ident, composite.fields(), input)
+                let ident = ty.path.segments.last().map(|s| s.as_str());
+                self.decode_composite(ident, &composite.fields, input)
             }
             TypeDef::Tuple(tuple) => {
                 let mut elems = Vec::new();
-                for field_type in tuple.fields() {
-                    let value = self.decode(field_type.id(), input)?;
+                for field_type in &tuple.fields {
+                    let value = self.decode(field_type.id, input)?;
                     elems.push(value);
                 }
                 Ok(Value::Tuple(Tuple::new(
@@ -123,11 +123,11 @@ impl<'a> Decoder<'a> {
             }
             TypeDef::Variant(variant) => self.decode_variant_type(variant, input),
             TypeDef::Array(array) => {
-                self.decode_seq(array.type_param(), array.len() as usize, input)
+                self.decode_seq(&array.type_param, array.len as usize, input)
             }
             TypeDef::Sequence(sequence) => {
                 let len = <Compact<u32>>::decode(input)?;
-                self.decode_seq(sequence.type_param(), len.0 as usize, input)
+                self.decode_seq(&sequence.type_param, len.0 as usize, input)
             }
             TypeDef::Primitive(primitive) => self.decode_primitive(primitive, input),
             TypeDef::Compact(compact) => self.decode_compact(compact, input),
@@ -135,7 +135,7 @@ impl<'a> Decoder<'a> {
                 Err(anyhow::anyhow!("bitvec decoding not yet supported"))
             }
         }
-        .context(format!("Error decoding type {}: {}", id, ty.path()))
+        .context(format!("Error decoding type {}: {}", id, ty.path))
     }
 
     pub fn decode_composite(
@@ -150,7 +150,7 @@ impl<'a> Decoder<'a> {
             CompositeTypeFields::Named(fields) => {
                 let mut map = Vec::new();
                 for field in fields {
-                    let value = self.decode(field.field().ty().id(), input)?;
+                    let value = self.decode(field.field().ty.id, input)?;
                     map.push((Value::String(field.name().to_string()), value));
                 }
                 Ok(Value::Map(Map::new(ident, map.into_iter().collect())))
@@ -158,7 +158,7 @@ impl<'a> Decoder<'a> {
             CompositeTypeFields::Unnamed(fields) => {
                 let mut tuple = Vec::new();
                 for field in &fields {
-                    let value = self.decode(field.ty().id(), input)?;
+                    let value = self.decode(field.ty.id, input)?;
                     tuple.push(value);
                 }
                 Ok(Value::Tuple(Tuple::new(
@@ -179,7 +179,7 @@ impl<'a> Decoder<'a> {
     ) -> Result<Value> {
         let discriminant = input.read_byte()?;
         let variant = variant_type
-            .variants()
+            .variants
             .iter()
             .find(|v| v.index == discriminant)
             .ok_or_else(|| {
@@ -188,9 +188,9 @@ impl<'a> Decoder<'a> {
 
         let mut named = Vec::new();
         let mut unnamed = Vec::new();
-        for field in variant.fields() {
-            let value = self.decode(field.ty().id(), input)?;
-            if let Some(name) = field.name() {
+        for field in &variant.fields {
+            let value = self.decode(field.ty.id, input)?;
+            if let Some(name) = &field.name {
                 named.push((Value::String(name.to_owned()), value));
             } else {
                 unnamed.push(value);
@@ -202,11 +202,11 @@ impl<'a> Decoder<'a> {
             ))
         } else if !named.is_empty() {
             Ok(Value::Map(Map::new(
-                Some(variant.name()),
+                Some(&variant.name),
                 named.into_iter().collect(),
             )))
         } else {
-            Ok(Value::Tuple(Tuple::new(Some(variant.name()), unnamed)))
+            Ok(Value::Tuple(Tuple::new(Some(&variant.name), unnamed)))
         }
     }
 
@@ -271,16 +271,16 @@ impl<'a> Decoder<'a> {
             }
         };
 
-        let type_id = compact.type_param().id();
+        let type_id = compact.type_param.id;
         let ty = self.registry.resolve(type_id).ok_or_else(|| {
             anyhow::anyhow!("Failed to resolve type with id `{:?}`", type_id)
         })?;
-        match ty.type_def() {
+        match &ty.type_def {
             TypeDef::Primitive(primitive) => decode_compact_primitive(primitive),
             TypeDef::Composite(composite) => {
-                match composite.fields() {
+                match &composite.fields[..] {
                     [field] => {
-                        let type_id = field.ty().id();
+                        let type_id = field.ty.id;
                         let field_ty =
                             self.registry.resolve(type_id).ok_or_else(|| {
                                 anyhow::anyhow!(
@@ -288,11 +288,11 @@ impl<'a> Decoder<'a> {
                                     type_id
                                 )
                             })?;
-                        if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                        if let TypeDef::Primitive(primitive) = &field_ty.type_def {
                             let struct_ident =
-                                ty.path().segments().last().map(|s| s.as_str());
+                                ty.path.segments.last().map(|s| s.as_str());
                             let field_value = decode_compact_primitive(primitive)?;
-                            let compact_composite = match field.name() {
+                            let compact_composite = match &field.name {
                                 Some(name) => {
                                     Value::Map(Map::new(
                                         struct_ident,

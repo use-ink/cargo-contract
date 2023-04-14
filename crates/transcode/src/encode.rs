@@ -77,22 +77,22 @@ impl<'a> Encoder<'a> {
             "Encoding value `{:?}` with type id `{:?}` and definition `{:?}`",
             value,
             type_id,
-            ty.type_def(),
+            ty.type_def,
         );
         if !self.env_types.try_encode(type_id, value, output)? {
-            match ty.type_def() {
+            match &ty.type_def {
                 TypeDef::Composite(composite) => {
-                    self.encode_composite(composite.fields(), value, output)
+                    self.encode_composite(&composite.fields, value, output)
                 }
                 TypeDef::Variant(variant) => {
                     self.encode_variant_type(variant, value, output)
                 }
                 TypeDef::Array(array) => {
-                    self.encode_seq(array.type_param(), value, false, output)
+                    self.encode_seq(&array.type_param, value, false, output)
                 }
                 TypeDef::Tuple(tuple) => self.encode_tuple(tuple, value, output),
                 TypeDef::Sequence(sequence) => {
-                    self.encode_seq(sequence.type_param(), value, true, output)
+                    self.encode_seq(&sequence.type_param, value, true, output)
                 }
                 TypeDef::Primitive(primitive) => {
                     self.encode_primitive(primitive, value, output)
@@ -119,7 +119,7 @@ impl<'a> Encoder<'a> {
                 match struct_type {
                     CompositeTypeFields::Unnamed(fields) => {
                         for (field, value) in fields.iter().zip(map.values()) {
-                            self.encode(field.ty().id(), value, output)?;
+                            self.encode(field.ty.id, value, output)?;
                         }
                         Ok(())
                     }
@@ -130,7 +130,7 @@ impl<'a> Encoder<'a> {
                             let value = map.get_by_str(field_name).ok_or_else(|| {
                                 anyhow::anyhow!("Missing a field named `{}`", field_name)
                             })?;
-                            self.encode(named_field.field().ty().id(), value, output)
+                            self.encode(named_field.field().ty.id, value, output)
                                 .map_err(|e| {
                                     anyhow::anyhow!(
                                         "Error encoding field `{}`: {}",
@@ -147,7 +147,7 @@ impl<'a> Encoder<'a> {
                 match struct_type {
                     CompositeTypeFields::Unnamed(fields) => {
                         for (field, value) in fields.iter().zip(tuple.values()) {
-                            self.encode(field.ty().id(), value, output)?;
+                            self.encode(field.ty.id, value, output)?;
                         }
                         Ok(())
                     }
@@ -159,7 +159,7 @@ impl<'a> Encoder<'a> {
             }
             v => {
                 if let Ok(single_field) = fields.iter().exactly_one() {
-                    self.encode(single_field.ty().id(), value, output)
+                    self.encode(single_field.ty.id, value, output)
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Map or a Tuple or a single Value for a composite data type, found {:?}",
@@ -178,14 +178,14 @@ impl<'a> Encoder<'a> {
     ) -> Result<()> {
         match value {
             Value::Tuple(tuple_val) => {
-                for (field_type, value) in tuple.fields().iter().zip(tuple_val.values()) {
-                    self.encode(field_type.id(), value, output)?;
+                for (field_type, value) in tuple.fields.iter().zip(tuple_val.values()) {
+                    self.encode(field_type.id, value, output)?;
                 }
                 Ok(())
             }
             v => {
-                if let Ok(single_field) = tuple.fields().iter().exactly_one() {
-                    self.encode(single_field.id(), value, output)
+                if let Ok(single_field) = tuple.fields.iter().exactly_one() {
+                    self.encode(single_field.id, value, output)
                 } else {
                     Err(anyhow::anyhow!(
                         "Expected a Tuple or a single Value for a tuple data type, found {:?}",
@@ -217,9 +217,9 @@ impl<'a> Encoder<'a> {
         }?;
 
         let (index, variant) = variant_def
-            .variants()
+            .variants
             .iter()
-            .find_position(|v| v.name() == &variant_ident)
+            .find_position(|v| v.name == variant_ident)
             .ok_or_else(|| anyhow::anyhow!("No variant '{}' found", variant_ident))?;
 
         let index: u8 = index
@@ -227,7 +227,7 @@ impl<'a> Encoder<'a> {
             .map_err(|_| anyhow::anyhow!("Variant index > 255"))?;
         output.push_byte(index);
 
-        self.encode_composite(variant.fields(), value, output)
+        self.encode_composite(&variant.fields, value, output)
     }
 
     fn encode_seq<O: Output + Debug>(
@@ -243,7 +243,7 @@ impl<'a> Encoder<'a> {
                     Compact(values.len() as u32).encode_to(output);
                 }
                 for value in values.elems() {
-                    self.encode(ty.id(), value, output)?;
+                    self.encode(ty.id, value, output)?;
                 }
             }
             Value::Hex(hex) => {
@@ -351,19 +351,19 @@ impl<'a> Encoder<'a> {
 
         let ty = self
             .registry
-            .resolve(compact.type_param().id())
+            .resolve(compact.type_param.id)
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Failed to resolve type with id '{:?}'",
-                    compact.type_param().id()
+                    compact.type_param.id
                 )
             })?;
-        match ty.type_def() {
+        match &ty.type_def {
             TypeDef::Primitive(primitive) => encode_compact_primitive(primitive, value),
             TypeDef::Composite(composite) => {
-                match composite.fields() {
+                match &composite.fields[..] {
                     [field] => {
-                        let type_id = field.ty().id();
+                        let type_id = field.ty.id;
                         let field_ty =
                             self.registry.resolve(type_id).ok_or_else(|| {
                                 anyhow::anyhow!(
@@ -371,7 +371,7 @@ impl<'a> Encoder<'a> {
                                     type_id
                                 )
                             })?;
-                        if let TypeDef::Primitive(primitive) = field_ty.type_def() {
+                        if let TypeDef::Primitive(primitive) = &field_ty.type_def {
                             let field_values: Vec<_> = match value {
                             Value::Map(map) => Ok(map.values().collect()),
                             Value::Tuple(tuple) => Ok(tuple.values().collect()),
