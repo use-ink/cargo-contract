@@ -74,6 +74,7 @@ build_tests!(
     keep_debug_symbols_in_release_mode,
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
+    building_contract_with_build_rs_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
@@ -276,6 +277,34 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     let mut manifest = TestContractManifest::new(manifest_path.clone())?;
     manifest.set_lib_path("srcfoo/lib.rs")?;
     manifest.write()?;
+
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::CheckOnly,
+        lint: false,
+        ..Default::default()
+    };
+
+    // when
+    let res = super::execute(args);
+
+    // then
+    assert!(res.is_ok(), "building contract failed!");
+    Ok(())
+}
+
+fn building_contract_with_build_rs_must_work(
+    manifest_path: &ManifestPath,
+) -> Result<()> {
+    // given
+    let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+    test_manifest.add_package_value("build","build.rs".to_string().into())?;
+    test_manifest.write()?;
+
+    let path = manifest_path.directory().expect("dir must exist");
+    let build_rs_path = path.join(Path::new("build.rs"));
+
+    fs::write(build_rs_path, "fn main() {}")?;
 
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
