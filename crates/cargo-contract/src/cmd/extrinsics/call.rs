@@ -217,7 +217,7 @@ impl CallCommand {
         let call = api::tx().contracts().call(
             self.contract.clone().into(),
             self.value.denominate_balance(&token_metadata)?,
-            gas_limit,
+            gas_limit.into(),
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?,
             data,
         );

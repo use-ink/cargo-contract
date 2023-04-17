@@ -221,7 +221,7 @@ impl ContractMessageTranscoder {
             let value = scon::parse_value(arg.as_ref())?;
             self.transcoder.encode(
                 self.metadata.registry(),
-                spec.ty().ty().id(),
+                spec.ty().ty().id,
                 &value,
                 &mut encoded,
             )?;
@@ -275,7 +275,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -304,7 +304,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -333,7 +333,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -350,7 +350,7 @@ impl ContractMessageTranscoder {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id(), data)
+            self.decode(return_ty.ty().id, data)
         } else {
             Ok(Value::Unit)
         }
@@ -414,13 +414,14 @@ impl CompositeTypeFields {
     pub fn from_fields(fields: &[Field<PortableForm>]) -> Result<Self> {
         if fields.iter().next().is_none() {
             Ok(Self::NoFields)
-        } else if fields.iter().all(|f| f.name().is_some()) {
+        } else if fields.iter().all(|f| f.name.is_some()) {
             let fields = fields
                 .iter()
                 .map(|field| {
                     CompositeTypeNamedField {
                         name: field
-                            .name()
+                            .name
+                            .as_ref()
                             .expect("All fields have a name; qed")
                             .to_owned(),
                         field: field.clone(),
@@ -428,7 +429,7 @@ impl CompositeTypeFields {
                 })
                 .collect();
             Ok(Self::Named(fields))
-        } else if fields.iter().all(|f| f.name().is_none()) {
+        } else if fields.iter().all(|f| f.name.is_none()) {
             Ok(Self::Unnamed(fields.to_vec()))
         } else {
             Err(anyhow::anyhow!(
