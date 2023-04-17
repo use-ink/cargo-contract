@@ -293,12 +293,10 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     Ok(())
 }
 
-fn building_contract_with_build_rs_must_work(
-    manifest_path: &ManifestPath,
-) -> Result<()> {
+fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Result<()> {
     // given
     let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
-    test_manifest.add_package_value("build","build.rs".to_string().into())?;
+    test_manifest.add_package_value("build", "build.rs".to_string().into())?;
     test_manifest.write()?;
 
     let path = manifest_path.directory().expect("dir must exist");

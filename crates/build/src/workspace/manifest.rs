@@ -421,6 +421,16 @@ struct PathRewrite<'a> {
 impl<'a> PathRewrite<'a> {
     /// Replace relative paths with absolute paths with the working directory.
     fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
+        // Rewrite `[package.build]` path to an absolute path.
+        if let Some(package) = toml.get_mut("package") {
+            let package = package
+                .as_table_mut()
+                .ok_or_else(|| anyhow::anyhow!("`[package]` should be a table"))?;
+            if let Some(build) = package.get_mut("build") {
+                self.to_absolute_path(format!("[package.build]"), build)?
+            }
+        }
+
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = toml.get_mut("lib") {
             self.rewrite_path(lib, "lib", "src/lib.rs")?;
