@@ -328,7 +328,9 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {
-            manifest.with_dylint()?;
+            manifest
+                .delete_workspace_table()
+                .with_dylint()?;
             Ok(())
         })?
         .using_temp(|manifest_path| {

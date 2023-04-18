@@ -186,13 +186,12 @@ pub(crate) fn execute(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
+                    .delete_workspace_table()
                     .with_added_crate_type("rlib")?
                     .with_profile_release_lto(false)?;
                 Ok(())
             })?
-            .with_metadata_gen_package(
-                crate_metadata.manifest_path.absolute_directory()?,
-            )?
+            .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
 

@@ -142,11 +142,6 @@ impl Manifest {
         })
     }
 
-    /// Get the path of the manifest file
-    pub(super) fn path(&self) -> &ManifestPath {
-        &self.path
-    }
-
     /// Get mutable reference to `[lib] crate-types = []` section
     fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
         let lib = self
@@ -343,13 +338,18 @@ impl Manifest {
     /// - `[dependencies]`
     ///
     /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
-    pub fn rewrite_relative_paths(&mut self, exclude_deps: &[String]) -> Result<()> {
+    pub fn rewrite_relative_paths(&mut self) -> Result<()> {
         let manifest_dir = self.path.absolute_directory()?;
         let path_rewrite = PathRewrite {
-            exclude_deps,
             manifest_dir,
         };
         path_rewrite.rewrite_relative_paths(&mut self.toml)
+    }
+
+    /// Remove the `[workspace]` section from the manifest.
+    pub fn delete_workspace_table(&mut self) -> &mut Self {
+        self.toml.remove("workspace");
+        self
     }
 
     /// Writes the amended manifest to the given path.
@@ -413,12 +413,11 @@ impl Manifest {
 }
 
 /// Replace relative paths with absolute paths with the working directory.
-struct PathRewrite<'a> {
-    exclude_deps: &'a [String],
+struct PathRewrite {
     manifest_dir: PathBuf,
 }
 
-impl<'a> PathRewrite<'a> {
+impl PathRewrite {
     /// Replace relative paths with absolute paths with the working directory.
     fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
         // Rewrite `[lib] path = /path/to/lib.rs`
@@ -516,14 +515,12 @@ impl<'a> PathRewrite<'a> {
                     package_name.to_string()
                 };
 
-                if !self.exclude_deps.contains(&package_name) {
-                    if let Some(dependency) = value.as_table_mut() {
-                        if let Some(dep_path) = dependency.get_mut("path") {
-                            self.to_absolute_path(
-                                format!("dependency {package_name}"),
-                                dep_path,
-                            )?;
-                        }
+                if let Some(dependency) = value.as_table_mut() {
+                    if let Some(dep_path) = dependency.get_mut("path") {
+                        self.to_absolute_path(
+                            format!("dependency {package_name}"),
+                            dep_path,
+                        )?;
                     }
                 }
             }
