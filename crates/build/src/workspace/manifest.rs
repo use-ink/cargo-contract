@@ -427,7 +427,7 @@ impl<'a> PathRewrite<'a> {
                 .as_table_mut()
                 .ok_or_else(|| anyhow::anyhow!("`[package]` should be a table"))?;
             if let Some(build) = package.get_mut("build") {
-                self.to_absolute_path(format!("[package.build]"), build)?
+                self.to_absolute_path("[package.build]".to_string(), build)?
             }
         }
 
