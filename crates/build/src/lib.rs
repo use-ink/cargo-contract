@@ -660,6 +660,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 )
             })?;
 
+            tracing::debug!(
+                "Fingerprint before build: {:?}, after build: {:?}",
+                pre_fingerprint,
+                post_fingerprint
+            );
+
             let dest_wasm_path = crate_metadata.dest_wasm.clone();
 
             if pre_fingerprint == Some(post_fingerprint)
