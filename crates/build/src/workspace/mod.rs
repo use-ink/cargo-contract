@@ -34,11 +34,9 @@ use cargo_metadata::{
     PackageId,
 };
 
-use std::{
-    path::{
-        Path,
-        PathBuf,
-    },
+use std::path::{
+    Path,
+    PathBuf,
 };
 
 /// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
@@ -60,7 +58,9 @@ impl Workspace {
             .packages
             .iter()
             .find(|p| p.id == *root_package)
-            .ok_or_else(|| anyhow::anyhow!("The root package should be a workspace member"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("The root package should be a workspace member")
+            })?;
 
         let manifest_path = ManifestPath::new(&root_package.manifest_path)?;
         let root_manifest = Manifest::new(manifest_path)?;
@@ -101,13 +101,14 @@ impl Workspace {
     /// intra-workspace relative dependency paths which will be preserved.
     ///
     /// Returns the paths of the new manifests.
-    pub fn write<P: AsRef<Path>>(
-        &mut self,
-        target: P,
-    ) -> Result<ManifestPath> {
+    pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<ManifestPath> {
         // replace the original workspace root with the temporary directory
         let mut new_path: PathBuf = target.as_ref().into();
-        new_path.push(self.root_package.manifest_path.strip_prefix(&self.workspace_root)?);
+        new_path.push(
+            self.root_package
+                .manifest_path
+                .strip_prefix(&self.workspace_root)?,
+        );
         let new_manifest = ManifestPath::new(new_path)?;
 
         // tracing::info!("Rewriting manifest {} to {}", self.root_manifest.manifest_path, new_manifest.display());
@@ -132,9 +133,7 @@ impl Workspace {
 
         // copy the `Cargo.lock` file
         let src_lockfile = self.workspace_root.clone().join("Cargo.lock");
-        let dest_lockfile = tmp_dir
-            .path()
-            .join("Cargo.lock");
+        let dest_lockfile = tmp_dir.path().join("Cargo.lock");
         if src_lockfile.exists() {
             tracing::debug!(
                 "Copying '{}' to ' '{}'",
