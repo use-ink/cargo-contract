@@ -43,7 +43,7 @@ pallet-contracts-primitives = "23.0.0"
 scale-info = "2.3.1"
 subxt = "0.28.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
+jsonrpsee = { version = "0.17.0", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.70"
