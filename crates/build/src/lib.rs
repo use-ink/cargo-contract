@@ -284,9 +284,10 @@ fn exec_cargo_for_wasm_target(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
+                    .delete_workspace_table()
                     .with_crate_types(["cdylib"])?
                     .with_profile_release_defaults(Profile::default_contract_release())?
-                    .with_workspace()?;
+                    .with_workspace()?; // todo: combine with delete_workspace_table?
                 Ok(())
             })?
             .using_temp(cargo_build)?;
