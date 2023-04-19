@@ -39,9 +39,8 @@ use std::path::{
     PathBuf,
 };
 
-/// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
-/// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
-/// paths to the original locations.
+/// Make a copy of a contract project manifest, allow modifications to be made to it, rewrite the
+/// paths to point to the original project files, then write to a temporary directory.
 ///
 /// This allows custom amendments to be made to the manifest files without editing the originals
 /// directly.
@@ -52,7 +51,8 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    /// Create a new Workspace from the supplied cargo metadata.
+    /// Create a new Workspace from the supplied cargo metadata and the id of the root contract
+    /// package.
     pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
         let root_package = metadata
             .packages
@@ -94,13 +94,10 @@ impl Workspace {
         Ok(self)
     }
 
-    /// Writes the amended manifests to the `target` directory, retaining the workspace directory
-    /// structure, but only with the `Cargo.toml` files.
+    /// Writes the amended manifest to the `target` directory. Relative paths will be rewritten to
+    /// absolute paths from the original project root.
     ///
-    /// Relative paths will be rewritten to absolute paths from the original workspace root, except
-    /// intra-workspace relative dependency paths which will be preserved.
-    ///
-    /// Returns the paths of the new manifests.
+    /// Returns the path of the new manifest.
     pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<ManifestPath> {
         // replace the original workspace root with the temporary directory
         let mut new_path: PathBuf = target.as_ref().into();
@@ -111,16 +108,14 @@ impl Workspace {
         );
         let new_manifest = ManifestPath::new(new_path)?;
 
-        // tracing::info!("Rewriting manifest {} to {}", self.root_manifest.manifest_path, new_manifest.display());
-
         self.root_manifest.rewrite_relative_paths()?;
         self.root_manifest.write(&new_manifest)?;
 
         Ok(new_manifest)
     }
 
-    /// Copy the workspace with amended manifest files to a temporary directory, executing the
-    /// supplied function with the root manifest path before the directory is cleaned up.
+    /// Write the amended manifest file to a temporary directory, then execute the supplied function
+    /// with the temporary manifest path before the directory is cleaned up.
     pub fn using_temp<F>(&mut self, f: F) -> Result<()>
     where
         F: FnOnce(&ManifestPath) -> Result<()>,

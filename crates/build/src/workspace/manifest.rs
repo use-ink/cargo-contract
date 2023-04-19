@@ -336,8 +336,6 @@ impl Manifest {
     ///
     /// - `[lib]/path`
     /// - `[dependencies]`
-    ///
-    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
     pub fn rewrite_relative_paths(&mut self) -> Result<()> {
         let manifest_dir = self.path.absolute_directory()?;
         let path_rewrite = PathRewrite { manifest_dir };
