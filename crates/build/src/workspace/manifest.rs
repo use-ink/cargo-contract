@@ -231,7 +231,8 @@ impl Manifest {
     /// Additionally, where no workspace is already specified, this can in some cases reduce the
     /// size of the contract.
     pub fn with_empty_workspace(&mut self) -> &mut Self {
-        self.toml.insert("workspace".into(), value::Value::Table(Default::default()));
+        self.toml
+            .insert("workspace".into(), value::Value::Table(Default::default()));
         self
     }
 
