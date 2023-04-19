@@ -284,10 +284,9 @@ fn exec_cargo_for_wasm_target(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
-                    .delete_workspace_table()
                     .with_crate_types(["cdylib"])?
                     .with_profile_release_defaults(Profile::default_contract_release())?
-                    .with_workspace()?; // todo: combine with delete_workspace_table?
+                    .with_empty_workspace();
                 Ok(())
             })?
             .using_temp(cargo_build)?;
@@ -329,7 +328,9 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {
-            manifest.delete_workspace_table().with_dylint()?;
+            manifest
+                .with_dylint()?
+                .with_empty_workspace();
             Ok(())
         })?
         .using_temp(|manifest_path| {

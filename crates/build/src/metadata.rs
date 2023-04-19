@@ -186,9 +186,9 @@ pub(crate) fn execute(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
-                    .delete_workspace_table()
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?;
+                    .with_profile_release_lto(false)?
+                    .with_empty_workspace();
                 Ok(())
             })?
             .with_metadata_gen_package()?

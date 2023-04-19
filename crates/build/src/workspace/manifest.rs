@@ -225,15 +225,14 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Set empty `[workspace]` section if it does not exist.
+    /// Set `[workspace]` section to an empty table. When building a contract project any workspace
+    /// members are not copied to the temporary workspace, so need to be removed.
     ///
-    /// Ignores the `workspace` from the parent `Cargo.toml`.
-    /// This can reduce the size of the contract in some cases.
-    pub fn with_workspace(&mut self) -> Result<&mut Self> {
-        if let toml::map::Entry::Vacant(value) = self.toml.entry("workspace") {
-            value.insert(value::Value::Table(Default::default()));
-        }
-        Ok(self)
+    /// Additionally, where no workspace is already specified, this can in some cases reduce the
+    /// size of the contract.
+    pub fn with_empty_workspace(&mut self) -> &mut Self {
+        self.toml.insert("workspace".into(), value::Value::Table(Default::default()));
+        self
     }
 
     /// Get mutable reference to `[profile.release]` section
@@ -342,12 +341,6 @@ impl Manifest {
         let manifest_dir = self.path.absolute_directory()?;
         let path_rewrite = PathRewrite { manifest_dir };
         path_rewrite.rewrite_relative_paths(&mut self.toml)
-    }
-
-    /// Remove the `[workspace]` section from the manifest.
-    pub fn delete_workspace_table(&mut self) -> &mut Self {
-        self.toml.remove("workspace");
-        self
     }
 
     /// Writes the amended manifest to the given path.
