@@ -24,7 +24,7 @@ contract-metadata = { version = "2.1.0", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "1.9.3"
-ink_env = "4.1.0"
+ink_env = "4.2.0"
 ink_metadata = "4.1.0"
 itertools = "0.10.5"
 tracing = "0.1.37"
