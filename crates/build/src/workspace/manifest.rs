@@ -142,11 +142,6 @@ impl Manifest {
         })
     }
 
-    /// Get the path of the manifest file
-    pub(super) fn path(&self) -> &ManifestPath {
-        &self.path
-    }
-
     /// Get mutable reference to `[lib] crate-types = []` section
     fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
         let lib = self
@@ -230,15 +225,15 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Set empty `[workspace]` section if it does not exist.
+    /// Set `[workspace]` section to an empty table. When building a contract project any workspace
+    /// members are not copied to the temporary workspace, so need to be removed.
     ///
-    /// Ignores the `workspace` from the parent `Cargo.toml`.
-    /// This can reduce the size of the contract in some cases.
-    pub fn with_workspace(&mut self) -> Result<&mut Self> {
-        if let toml::map::Entry::Vacant(value) = self.toml.entry("workspace") {
-            value.insert(value::Value::Table(Default::default()));
-        }
-        Ok(self)
+    /// Additionally, where no workspace is already specified, this can in some cases reduce the
+    /// size of the contract.
+    pub fn with_empty_workspace(&mut self) -> &mut Self {
+        self.toml
+            .insert("workspace".into(), value::Value::Table(Default::default()));
+        self
     }
 
     /// Get mutable reference to `[profile.release]` section
@@ -341,14 +336,9 @@ impl Manifest {
     ///
     /// - `[lib]/path`
     /// - `[dependencies]`
-    ///
-    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
-    pub fn rewrite_relative_paths(&mut self, exclude_deps: &[String]) -> Result<()> {
+    pub fn rewrite_relative_paths(&mut self) -> Result<()> {
         let manifest_dir = self.path.absolute_directory()?;
-        let path_rewrite = PathRewrite {
-            exclude_deps,
-            manifest_dir,
-        };
+        let path_rewrite = PathRewrite { manifest_dir };
         path_rewrite.rewrite_relative_paths(&mut self.toml)
     }
 
@@ -413,12 +403,11 @@ impl Manifest {
 }
 
 /// Replace relative paths with absolute paths with the working directory.
-struct PathRewrite<'a> {
-    exclude_deps: &'a [String],
+struct PathRewrite {
     manifest_dir: PathBuf,
 }
 
-impl<'a> PathRewrite<'a> {
+impl PathRewrite {
     /// Replace relative paths with absolute paths with the working directory.
     fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
         // Rewrite `[lib] path = /path/to/lib.rs`
@@ -516,14 +505,12 @@ impl<'a> PathRewrite<'a> {
                     package_name.to_string()
                 };
 
-                if !self.exclude_deps.contains(&package_name) {
-                    if let Some(dependency) = value.as_table_mut() {
-                        if let Some(dep_path) = dependency.get_mut("path") {
-                            self.to_absolute_path(
-                                format!("dependency {package_name}"),
-                                dep_path,
-                            )?;
-                        }
+                if let Some(dependency) = value.as_table_mut() {
+                    if let Some(dep_path) = dependency.get_mut("path") {
+                        self.to_absolute_path(
+                            format!("dependency {package_name}"),
+                            dep_path,
+                        )?;
                     }
                 }
             }

@@ -286,7 +286,7 @@ fn exec_cargo_for_wasm_target(
                 manifest
                     .with_crate_types(["cdylib"])?
                     .with_profile_release_defaults(Profile::default_contract_release())?
-                    .with_workspace()?;
+                    .with_empty_workspace();
                 Ok(())
             })?
             .using_temp(cargo_build)?;
@@ -328,7 +328,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {
-            manifest.with_dylint()?;
+            manifest.with_dylint()?.with_empty_workspace();
             Ok(())
         })?
         .using_temp(|manifest_path| {
@@ -659,6 +659,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     crate_metadata.original_wasm.display()
                 )
             })?;
+
+            tracing::debug!(
+                "Fingerprint before build: {:?}, after build: {:?}",
+                pre_fingerprint,
+                post_fingerprint
+            );
 
             let dest_wasm_path = crate_metadata.dest_wasm.clone();
 
