@@ -6,14 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0]
+
 ### Added
 - Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
 - Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
 
 ### Changed
-- Minimum requirements of `ink!` dependencies all updated to `4.1.0` - [#1045](https://github.com/paritytech/cargo-contract/pull/1045)
+- Minimum requirements of `ink!` dependencies all updated to `4.2.0` - [#1084](https://github.com/paritytech/cargo-contract/pull/1084)
+- Upgrade `subxt` to `0.28` [#1039](https://github.com/paritytech/cargo-contract/pull/1039)
+- Upgrade `scale-info` to `2.5` [#1057](https://github.com/paritytech/cargo-contract/pull/1057)
 
-### [2.1.0]
+### Fixed
+- Rewrites build file path in manifest [#1077](https://github.com/paritytech/cargo-contract/pull/1077)
+- Only copy and rewrite target contract manifest [#1079](https://github.com/paritytech/cargo-contract/pull/1079)
+
+
+## [2.1.0]
 
 ### Changed
 - Dry-run `instantiate`, `call` and `upload` commands by default - [#999](https://github.com/paritytech/cargo-contract/pull/999)
@@ -32,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Explicitly enable `std` feature for metadata generation [#977](https://github.com/paritytech/cargo-contract/pull/977)
 - Return artifact paths when contracts unchanged [#992](https://github.com/paritytech/cargo-contract/pull/992)
+- 
 - Minimum requirements of `ink!` dependencies all updated to `4.0.1`
 
 ## [2.0.1]

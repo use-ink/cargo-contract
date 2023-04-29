@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "2.1.0"
+version = "2.2.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,14 +18,14 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "2.1.0", path = "../build" }
-contract-metadata = { version = "2.1.0", path = "../metadata" }
-contract-transcode = { version = "2.1.0", path = "../transcode" }
+contract-build = { version = "2.2.0", path = "../build" }
+contract-metadata = { version = "2.2.0", path = "../metadata" }
+contract-transcode = { version = "2.2.0", path = "../transcode" }
 
 anyhow = "1.0.70"
-clap = { version = "4.2.2", features = ["derive", "env"] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+clap = { version = "4.2.5", features = ["derive", "env"] }
+tracing = "0.1.38"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 which = "4.4.0"
 colored = "2.0.0"
@@ -40,10 +40,10 @@ sp-core = "20.0.0"
 sp-runtime = "23.0.0"
 sp-weights = "19.0.0"
 pallet-contracts-primitives = "23.0.0"
-scale-info = "2.3.1"
+scale-info = "2.6.0"
 subxt = "0.28.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.16.2", features = ["ws-client"] }
+jsonrpsee = { version = "0.18.1", features = ["ws-client"] }
 
 [build-dependencies]
 anyhow = "1.0.70"
@@ -53,8 +53,8 @@ which = "4.4.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.11"
-regex = "1.7.3"
-predicates = "3.0.2"
+regex = "1.8.1"
+predicates = "3.0.3"
 tempfile = "3.5.0"
 
 [features]

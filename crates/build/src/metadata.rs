@@ -187,12 +187,11 @@ pub(crate) fn execute(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?;
+                    .with_profile_release_lto(false)?
+                    .with_empty_workspace();
                 Ok(())
             })?
-            .with_metadata_gen_package(
-                crate_metadata.manifest_path.absolute_directory()?,
-            )?
+            .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
 
