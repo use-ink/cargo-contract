@@ -16,6 +16,7 @@ use contract_build::{
     OptimizationPasses,
     OutputType,
     UnstableFlags,
+    Target,
 };
 
 let manifest_path = ManifestPath::new("my-contract/Cargo.toml").unwrap();
@@ -33,6 +34,7 @@ let args = contract_build::ExecuteArgs {
     lint: false,
     output_type: OutputType::Json,
     skip_wasm_validation: false,
+    target: Target::Wasm,
 };
 
 contract_build::execute(args);
