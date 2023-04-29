@@ -269,9 +269,10 @@ fn exec_cargo_for_onchain_target(
         }
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
+            fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
                 .target_directory
-                .with_file_name("riscv_memory_layout.ld");
+                .join(".riscv_memory_layout.ld");
             fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
             env.push((
                 "RUSTFLAGS",
@@ -835,7 +836,7 @@ struct Fingerprint {
 impl Fingerprint {
     pub fn new(crate_metadata: &CrateMetadata) -> Result<(Option<Fingerprint>, PathBuf)> {
         let code_path = &crate_metadata.original_code;
-        let target_path = crate_metadata.target_directory.with_file_name(".target");
+        let target_path = crate_metadata.target_directory.join(".target");
         if code_path.exists() {
             let modified = fs::metadata(&code_path)?.modified()?;
             let bytes = fs::read(&code_path)?;
