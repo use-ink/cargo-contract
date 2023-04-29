@@ -230,6 +230,7 @@ impl BuildResult {
 /// The `[workspace]` will be added if it is missing to ignore `workspace` from parent `Cargo.toml`.
 ///
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
+#[allow(clippy::too_many_arguments)]
 fn exec_cargo_for_onchain_target(
     crate_metadata: &CrateMetadata,
     command: &str,
@@ -838,8 +839,8 @@ impl Fingerprint {
         let code_path = &crate_metadata.original_code;
         let target_path = crate_metadata.target_directory.join(".target");
         if code_path.exists() {
-            let modified = fs::metadata(&code_path)?.modified()?;
-            let bytes = fs::read(&code_path)?;
+            let modified = fs::metadata(code_path)?.modified()?;
+            let bytes = fs::read(code_path)?;
             let hash = blake2_hash(&bytes);
             Ok((
                 Some(Self {
