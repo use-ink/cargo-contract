@@ -46,7 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Explicitly enable `std` feature for metadata generation [#977](https://github.com/paritytech/cargo-contract/pull/977)
 - Return artifact paths when contracts unchanged [#992](https://github.com/paritytech/cargo-contract/pull/992)
--
 - Minimum requirements of `ink!` dependencies all updated to `4.0.1`
 
 ## [2.0.1]
