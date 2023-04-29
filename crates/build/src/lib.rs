@@ -84,7 +84,6 @@ use parity_wasm::elements::{
 use semver::Version;
 use std::{
     fs,
-    io::Write,
     path::{
         Path,
         PathBuf,
@@ -242,8 +241,10 @@ fn exec_cargo_for_onchain_target(
     target: Target,
 ) -> Result<()> {
     let cargo_build = |manifest_path: &ManifestPath| {
-        let target_dir = &crate_metadata.target_directory;
-        let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
+        let target_dir = format!(
+            "--target-dir={}",
+            crate_metadata.target_directory.to_string_lossy()
+        );
 
         let mut args = vec![
             format!("--target={}", target.llvm_target()),
@@ -266,11 +267,12 @@ fn exec_cargo_for_onchain_target(
             // Allow nightly features on a stable toolchain
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
-        // needs to stay in scope because temp file is deleted when it is dropped
-        let _link_script = if matches!(target, Target::RiscV) {
-            let mut file = tempfile::NamedTempFile::new()?;
-            file.write_all(include_bytes!("../riscv_memory_layout.ld"))?;
-            let path = file.into_temp_path();
+        // the linker needs our linker script as file
+        if matches!(target, Target::RiscV) {
+            let path = crate_metadata
+                .target_directory
+                .with_file_name("riscv_memory_layout.ld");
+            fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
             env.push((
                 "RUSTFLAGS",
                 Some(format!(
