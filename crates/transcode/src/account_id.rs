@@ -92,12 +92,13 @@ impl<'a> TryFrom<&'a [u8]> for AccountId32 {
 }
 
 impl AccountId32 {
-    // Return the ss58-check string for this key. Adapted from `sp_core::crypto`. We need this to
-    // serialize our account appropriately but otherwise don't care.
+    // Return the ss58-check string for this key. Adapted from `sp_core::crypto`. We need
+    // this to serialize our account appropriately but otherwise don't care.
     pub fn to_ss58check(&self) -> String {
-        // For serializing to a string to obtain the account nonce, we use the default substrate
-        // prefix (since we have no way to otherwise pick one). It doesn't really matter, since when
-        // it's deserialized back in system_accountNextIndex, we ignore this (so long as it's valid).
+        // For serializing to a string to obtain the account nonce, we use the default
+        // substrate prefix (since we have no way to otherwise pick one). It
+        // doesn't really matter, since when it's deserialized back in
+        // system_accountNextIndex, we ignore this (so long as it's valid).
         const SUBSTRATE_SS58_PREFIX: u8 = 42;
         // prefix <= 63 just take up one byte at the start:
         let mut v = vec![SUBSTRATE_SS58_PREFIX];
@@ -111,9 +112,9 @@ impl AccountId32 {
         v.to_base58()
     }
 
-    // This isn't strictly needed, but to give our AccountId32 a little more usefulness, we also
-    // implement the logic needed to decode an AccountId32 from an SS58 encoded string. This is exposed
-    // via a `FromStr` impl.
+    // This isn't strictly needed, but to give our AccountId32 a little more usefulness,
+    // we also implement the logic needed to decode an AccountId32 from an SS58
+    // encoded string. This is exposed via a `FromStr` impl.
     fn from_ss58check(s: &str) -> Result<Self, FromSs58Error> {
         const CHECKSUM_LEN: usize = 2;
         let body_len = 32;
@@ -160,7 +161,8 @@ pub enum FromSs58Error {
     InvalidPrefix,
 }
 
-// We do this just to get a checksum to help verify the validity of the address in to_ss58check
+// We do this just to get a checksum to help verify the validity of the address in
+// to_ss58check
 fn ss58hash(data: &[u8]) -> Vec<u8> {
     use blake2::{
         Blake2b512,
@@ -222,8 +224,8 @@ mod test {
 
         for keyring in keyrings {
             let substrate_account = keyring.to_account_id();
-            // Avoid "From" impl hidden behind "substrate-compat" feature so that this test
-            // can work either way:
+            // Avoid "From" impl hidden behind "substrate-compat" feature so that this
+            // test can work either way:
             let local_account = AccountId32(substrate_account.clone().into());
 
             // Both should encode to ss58 the same way:

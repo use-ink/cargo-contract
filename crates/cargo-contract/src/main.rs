@@ -53,9 +53,10 @@ use clap::{
 };
 use colored::Colorize;
 
-// These crates are only used when we run integration tests `--features integration-tests`. However
-// since we can't have optional `dev-dependencies` we pretend to use them during normal test runs
-// in order to satisfy the `unused_crate_dependencies` lint.
+// These crates are only used when we run integration tests `--features
+// integration-tests`. However since we can't have optional `dev-dependencies` we pretend
+// to use them during normal test runs in order to satisfy the `unused_crate_dependencies`
+// lint.
 #[cfg(test)]
 use assert_cmd as _;
 #[cfg(test)]
@@ -107,10 +108,12 @@ enum Command {
         #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
+    /// Compiles the contract, generates metadata, bundles both together in a
+    /// `<name>.contract` file
     #[clap(name = "build")]
     Build(BuildCommand),
-    /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
+    /// Check that the code builds as Wasm; does not output any `<name>.contract`
+    /// artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
     /// Upload contract code

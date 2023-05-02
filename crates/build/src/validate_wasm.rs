@@ -73,7 +73,8 @@ pub enum EnforcedErrors {
 ///
 /// The checks currently fall into two categories:
 /// - Known bugs for which we want to recommend a solution.
-/// - Markers inserted by the ink! codegen for errors which can't be checked at compile time.
+/// - Markers inserted by the ink! codegen for errors which can't be checked at compile
+///   time.
 pub fn validate_import_section(module: &Module) -> Result<()> {
     let imports = match module.import_section() {
         Some(section) => section.entries().iter(),

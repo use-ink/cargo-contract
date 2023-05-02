@@ -214,8 +214,8 @@ impl Manifest {
     ///
     /// # Note
     ///
-    /// Existing user defined settings for this section are preserved. Only if a setting is not
-    /// defined is the preferred default set.
+    /// Existing user defined settings for this section are preserved. Only if a setting
+    /// is not defined is the preferred default set.
     pub fn with_profile_release_defaults(
         &mut self,
         defaults: Profile,
@@ -225,11 +225,12 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Set `[workspace]` section to an empty table. When building a contract project any workspace
-    /// members are not copied to the temporary workspace, so need to be removed.
+    /// Set `[workspace]` section to an empty table. When building a contract project any
+    /// workspace members are not copied to the temporary workspace, so need to be
+    /// removed.
     ///
-    /// Additionally, where no workspace is already specified, this can in some cases reduce the
-    /// size of the contract.
+    /// Additionally, where no workspace is already specified, this can in some cases
+    /// reduce the size of the contract.
     pub fn with_empty_workspace(&mut self) -> &mut Self {
         self.toml
             .insert("workspace".into(), value::Value::Table(Default::default()));

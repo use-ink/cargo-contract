@@ -35,8 +35,8 @@ pub struct WasmOptHandler {
 impl WasmOptHandler {
     /// Generate a new instance of the handler.
     ///
-    /// Fails if the `wasm-opt` binary is not installed on the system, or if an outdated `wasm-opt`
-    /// binary is used (currently a version >= 99 is required).
+    /// Fails if the `wasm-opt` binary is not installed on the system, or if an outdated
+    /// `wasm-opt` binary is used (currently a version >= 99 is required).
     pub fn new(
         optimization_level: OptimizationPasses,
         keep_debug_symbols: bool,
@@ -55,8 +55,8 @@ impl WasmOptHandler {
         dest_wasm: &PathBuf,
         contract_artifact_name: &String,
     ) -> Result<OptimizationResult> {
-        // We'll create a temporary file for our optimized Wasm binary. Note that we'll later
-        // overwrite this with the original path of the Wasm binary.
+        // We'll create a temporary file for our optimized Wasm binary. Note that we'll
+        // later overwrite this with the original path of the Wasm binary.
         let mut dest_optimized = dest_wasm.clone();
         dest_optimized.set_file_name(format!("{contract_artifact_name}-opt.wasm"));
 
