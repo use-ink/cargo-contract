@@ -269,23 +269,21 @@ fn exec_cargo_for_onchain_target(
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
         // the linker needs our linker script as file
+        let rustflags = target.rustflags();
         if matches!(target, Target::RiscV) {
             fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
                 .target_directory
                 .join(".riscv_memory_layout.ld");
             fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
+            let path = path.display();
             env.push((
                 "RUSTFLAGS",
-                Some(format!(
-                    "{} -Clink-arg=-T{}",
-                    target.rustflags(),
-                    path.display()
-                )),
+                Some(format!("{rustflags} -Clink-arg=-T{path}",)),
             ));
             Some(path)
         } else {
-            env.push(("RUSTFLAGS", Some(target.rustflags().to_string())));
+            env.push(("RUSTFLAGS", Some(rustflags.to_string())));
             None
         };
 
