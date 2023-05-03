@@ -168,6 +168,7 @@ impl fmt::Display for BuildSteps {
     clap::ValueEnum,
     serde::Serialize,
     serde::Deserialize,
+    strum::EnumIter,
 )]
 pub enum Target {
     /// WebAssembly
@@ -196,11 +197,19 @@ impl Target {
         }
     }
 
-    /// The file extension that is used by rustc when outputing the binary.
+    /// The file extension that is used by rustc when outputting the binary.
     pub fn source_extension(&self) -> &'static str {
         match self {
             Self::Wasm => "wasm",
             Self::RiscV => "",
+        }
+    }
+
+    // The file extension that is used to store the post processed binary.
+    pub fn dest_extension(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm",
+            Self::RiscV => "riscv",
         }
     }
 }

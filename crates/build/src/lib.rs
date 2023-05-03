@@ -91,6 +91,7 @@ use std::{
     process::Command,
     str,
 };
+use strum::IntoEnumIterator;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -656,15 +657,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             // we persist the latest target we used so we trigger a rebuild when we switch
             fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
 
-            // we changed the .wasm file ending to the target agnostic .code
-            // in order to not break existing code we create a symlink
-            let symlink = crate_metadata.dest_code.with_extension("wasm");
-            fs::remove_file(&symlink).ok();
-            #[cfg(unix)]
-            if matches!(target, Target::Wasm) {
-                std::os::unix::fs::symlink(&crate_metadata.dest_code, &symlink)?;
-            };
-
             let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
                 version
             } else {
@@ -722,6 +714,14 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             );
             build_steps.increment_current();
 
+            // remove build artifacts so we don't have anything stale lingering around
+            for t in Target::iter() {
+                fs::remove_file(
+                    crate_metadata.dest_code.with_extension(t.dest_extension()),
+                )
+                .ok();
+            }
+
             let original_size =
                 fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
@@ -756,6 +756,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             ))
         };
 
+    let clean_metadata = || {
+        fs::remove_file(&crate_metadata.metadata_path()).ok();
+        fs::remove_file(&crate_metadata.contract_bundle_path()).ok();
+    };
+
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             let mut build_steps = BuildSteps::new();
@@ -780,21 +785,31 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
+            // when building only the code metadata will become stale
+            clean_metadata();
             let (opt_result, _, dest_wasm, _) = build()?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm, build_steps) = build()?;
+            let (opt_result, build_info, dest_wasm, build_steps) =
+                build().map_err(|e| {
+                    // build error -> bundle is stale
+                    clean_metadata();
+                    e
+                })?;
 
             let metadata_result = MetadataArtifacts {
                 dest_metadata: crate_metadata.metadata_path(),
                 dest_bundle: crate_metadata.contract_bundle_path(),
             };
+
             // skip metadata generation if contract unchanged and all metadata artifacts exist.
             if opt_result.is_some()
                 || !metadata_result.dest_metadata.exists()
                 || !metadata_result.dest_bundle.exists()
             {
+                // if metadata build fails after a code build it might become stale
+                clean_metadata();
                 metadata::execute(
                     &crate_metadata,
                     dest_wasm.as_path(),

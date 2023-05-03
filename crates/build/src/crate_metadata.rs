@@ -111,7 +111,7 @@ impl CrateMetadata {
         // {target_dir}/{package_name}.code
         let mut dest_code = target_directory.clone();
         dest_code.push(package_name.clone());
-        dest_code.set_extension("code");
+        dest_code.set_extension(target.dest_extension());
 
         let ink_version = metadata
             .packages
