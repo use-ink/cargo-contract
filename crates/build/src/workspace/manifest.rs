@@ -142,16 +142,32 @@ impl Manifest {
         })
     }
 
-    /// Get mutable reference to `[lib] crate-types = []` section
-    fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
-        let lib = self
-            .toml
-            .get_mut("lib")
-            .ok_or_else(|| anyhow::anyhow!("lib section not found"))?;
+    /// Get the name of the package.
+    fn name(&self) -> Result<&str> {
+        self.toml
+            .get("package")
+            .ok_or_else(|| anyhow::anyhow!("package section not found"))?
+            .as_table()
+            .ok_or_else(|| anyhow::anyhow!("package section should be a table"))?
+            .get("name")
+            .ok_or_else(|| anyhow::anyhow!("package must have a name"))?
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("package name must be a string"))
+    }
 
-        let crate_types = lib
+    /// Get a mutable reference to the `[lib]` section.
+    fn lib_target_mut(&mut self) -> Result<&mut value::Table> {
+        self.toml
+            .get_mut("lib")
+            .ok_or_else(|| anyhow::anyhow!("lib section not found"))?
             .as_table_mut()
-            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))?
+            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))
+    }
+
+    /// Get mutable reference to `[lib] crate-types = []` section.
+    fn crate_types_mut(&mut self) -> Result<&mut value::Array> {
+        let crate_types = self
+            .lib_target_mut()?
             .entry("crate-type")
             .or_insert(value::Value::Array(Default::default()));
 
@@ -160,18 +176,16 @@ impl Manifest {
             .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
     }
 
-    /// Set the contents of the `[lib] crate-types = []` section.
-    ///
-    /// Overwrites any existing crate types.
-    pub fn with_crate_types<'a, I>(&mut self, new_crate_types: I) -> Result<&mut Self>
-    where
-        I: IntoIterator<Item = &'a str>,
-    {
-        let existing_crate_types = self.get_crate_types_mut()?;
-        existing_crate_types.clear();
-        for crate_type in new_crate_types.into_iter() {
-            existing_crate_types.push(crate_type.into())
+    /// Replaces the `[lib]` target by a single `[bin]` target using the same file and
+    /// name.
+    pub fn with_replaced_lib_to_bin(&mut self) -> Result<&mut Self> {
+        let mut lib = self.lib_target_mut()?.clone();
+        self.toml.remove("lib");
+        if !lib.contains_key("name") {
+            lib.insert("name".into(), self.name()?.into());
         }
+        lib.remove("crate-types");
+        self.toml.insert("bin".into(), vec![lib].into());
         Ok(self)
     }
 
@@ -179,7 +193,7 @@ impl Manifest {
     ///
     /// If the value already exists, does nothing.
     pub fn with_added_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
-        let crate_types = self.get_crate_types_mut()?;
+        let crate_types = self.crate_types_mut()?;
         if !crate_type_exists(crate_type, crate_types) {
             crate_types.push(crate_type.into());
         }
@@ -187,7 +201,7 @@ impl Manifest {
     }
 
     /// Extract `optimization-passes` from `[package.metadata.contract]`
-    pub fn get_profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+    pub fn profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
         self.toml
             .get("package")?
             .as_table()?
@@ -203,7 +217,7 @@ impl Manifest {
     /// Set `[profile.release]` lto flag
     pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
         let lto = self
-            .get_profile_release_table_mut()?
+            .profile_release_table_mut()?
             .entry("lto")
             .or_insert(enabled.into());
         *lto = enabled.into();
@@ -220,7 +234,7 @@ impl Manifest {
         &mut self,
         defaults: Profile,
     ) -> Result<&mut Self> {
-        let profile_release = self.get_profile_release_table_mut()?;
+        let profile_release = self.profile_release_table_mut()?;
         defaults.merge(profile_release);
         Ok(self)
     }
@@ -238,7 +252,7 @@ impl Manifest {
     }
 
     /// Get mutable reference to `[profile.release]` section
-    fn get_profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
+    fn profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
         let profile = self
             .toml
             .entry("profile")
@@ -257,7 +271,7 @@ impl Manifest {
     ///
     /// If the value does not exist, does nothing.
     pub fn with_removed_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
-        let crate_types = self.get_crate_types_mut()?;
+        let crate_types = self.crate_types_mut()?;
         if crate_type_exists(crate_type, crate_types) {
             crate_types.retain(|v| v.as_str().map_or(true, |s| s != crate_type));
         }

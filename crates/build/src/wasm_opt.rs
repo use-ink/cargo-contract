@@ -19,7 +19,6 @@ use wasm_opt::OptimizationOptions;
 
 use std::{
     fmt,
-    fs::metadata,
     path::PathBuf,
     str,
 };
@@ -54,7 +53,7 @@ impl WasmOptHandler {
         &self,
         dest_wasm: &PathBuf,
         contract_artifact_name: &String,
-    ) -> Result<OptimizationResult> {
+    ) -> Result<()> {
         // We'll create a temporary file for our optimized Wasm binary. Note that we'll
         // later overwrite this with the original path of the Wasm binary.
         let mut dest_optimized = dest_wasm.clone();
@@ -84,16 +83,9 @@ impl WasmOptHandler {
             ))
         }
 
-        let original_size = metadata(dest_wasm)?.len() as f64 / 1000.0;
-        let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
-
         // Overwrite existing destination wasm file with the optimised version
         std::fs::rename(&dest_optimized, dest_wasm)?;
-        Ok(OptimizationResult {
-            dest_wasm: dest_wasm.clone(),
-            original_size,
-            optimized_size,
-        })
+        Ok(())
     }
 }
 

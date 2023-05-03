@@ -51,7 +51,7 @@ pub fn invoke_cargo<I, S, P>(
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
-    env: Vec<(&str, Option<&str>)>,
+    env: Vec<(&str, Option<String>)>,
 ) -> Result<Vec<u8>>
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,

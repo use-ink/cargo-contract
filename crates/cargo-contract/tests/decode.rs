@@ -27,7 +27,7 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
 fn decode_works() {
     // given
     let contract = r#"
-		#![cfg_attr(not(feature = "std"), no_std)]
+        #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 		#[ink::contract]
 		mod switcher {

@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Experimental support for RISC-V contracts - [#1076](https://github.com/paritytech/cargo-contract/pull/1076)
+
+### Changed
+- Contracts are build as `bin` crate now (we used `cdylib` before) - [#1076](https://github.com/paritytech/cargo-contract/pull/1076)
+  - BREAKING CHANGE: Make sure that your contract is `no_main` by having this on top of your contract:
+    - `#![cfg_attr(not(feature = "std"), no_std, no_main)]`
+
 ## [2.2.1]
 
 ### Fixed
@@ -25,7 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Rewrites build file path in manifest [#1077](https://github.com/paritytech/cargo-contract/pull/1077)
 - Only copy and rewrite target contract manifest [#1079](https://github.com/paritytech/cargo-contract/pull/1079)
-
 
 ## [2.1.0]
 

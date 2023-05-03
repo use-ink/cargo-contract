@@ -41,6 +41,7 @@ pub use self::{
         Features,
         Network,
         OutputType,
+        Target,
         UnstableFlags,
         UnstableOptions,
         Verbosity,
@@ -90,6 +91,7 @@ use std::{
     process::Command,
     str,
 };
+use strum::IntoEnumIterator;
 
 /// This is the maximum number of pages available for a contract to allocate.
 const MAX_MEMORY_PAGES: u32 = 16;
@@ -113,6 +115,7 @@ pub struct ExecuteArgs {
     pub lint: bool,
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
+    pub target: Target,
 }
 
 /// Result of the build process.
@@ -231,7 +234,8 @@ impl BuildResult {
 ///
 /// To disable this and use the original `Cargo.toml` as is then pass the `-Z
 /// original_manifest` flag.
-fn exec_cargo_for_wasm_target(
+#[allow(clippy::too_many_arguments)]
+fn exec_cargo_for_onchain_target(
     crate_metadata: &CrateMetadata,
     command: &str,
     features: &Features,
@@ -239,14 +243,17 @@ fn exec_cargo_for_wasm_target(
     network: Network,
     verbosity: Verbosity,
     unstable_flags: &UnstableFlags,
+    target: Target,
 ) -> Result<()> {
     let cargo_build = |manifest_path: &ManifestPath| {
-        let target_dir = &crate_metadata.target_directory;
-        let target_dir = format!("--target-dir={}", target_dir.to_string_lossy());
+        let target_dir = format!(
+            "--target-dir={}",
+            crate_metadata.target_directory.to_string_lossy()
+        );
 
         let mut args = vec![
-            "--target=wasm32-unknown-unknown".to_owned(),
-            "-Zbuild-std".to_owned(),
+            format!("--target={}", target.llvm_target()),
+            "-Zbuild-std=core,alloc".to_owned(),
             "--no-default-features".to_owned(),
             "--release".to_owned(),
             target_dir,
@@ -260,14 +267,29 @@ fn exec_cargo_for_wasm_target(
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
-        let mut env = vec![(
-            "RUSTFLAGS",
-            Some("-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp"),
-        )];
+        let mut env = Vec::new();
         if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
             // Allow nightly features on a stable toolchain
-            env.push(("RUSTC_BOOTSTRAP", Some("1")))
+            env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
+        // the linker needs our linker script as file
+        let rustflags = target.rustflags();
+        if matches!(target, Target::RiscV) {
+            fs::create_dir_all(&crate_metadata.target_directory)?;
+            let path = crate_metadata
+                .target_directory
+                .join(".riscv_memory_layout.ld");
+            fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
+            let path = path.display();
+            env.push((
+                "RUSTFLAGS",
+                Some(format!("{rustflags} -Clink-arg=-T{path}",)),
+            ));
+            Some(path)
+        } else {
+            env.push(("RUSTFLAGS", Some(rustflags.to_string())));
+            None
+        };
 
         util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
 
@@ -287,7 +309,7 @@ fn exec_cargo_for_wasm_target(
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
-                    .with_crate_types(["cdylib"])?
+                    .with_replaced_lib_to_bin()?
                     .with_profile_release_defaults(Profile::default_contract_release())?
                     .with_empty_workspace();
                 Ok(())
@@ -321,7 +343,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         // This is because we build from a temporary directory (to patch the manifest)
         // but still want the output to live at a fixed path. `cargo dylint` does
         // not accept this information on the command line.
-        ("CARGO_TARGET_DIR", Some(target_dir.as_ref())),
+        ("CARGO_TARGET_DIR", Some(target_dir.to_string())),
         // There are generally problems with having a custom `rustc` wrapper, while
         // executing `dylint` (which has a custom linker). Especially for `sccache`
         // there is this bug: https://github.com/mozilla/sccache/issues/1000.
@@ -482,7 +504,7 @@ fn post_process_wasm(
     verbosity: &Verbosity,
 ) -> Result<()> {
     // Deserialize Wasm module from a file.
-    let mut module = load_module(&crate_metadata.original_wasm)
+    let mut module = load_module(&crate_metadata.original_code)
         .context("Loading of original wasm failed")?;
 
     strip_exports(&mut module);
@@ -506,7 +528,7 @@ fn post_process_wasm(
         "resulting wasm size of post processing must be > 0"
     );
 
-    parity_wasm::serialize_to_file(&crate_metadata.dest_wasm, module)?;
+    parity_wasm::serialize_to_file(&crate_metadata.dest_code, module)?;
     Ok(())
 }
 
@@ -570,6 +592,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         lint,
         output_type,
         skip_wasm_validation,
+        target,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -578,7 +601,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         Some(opt_passes) => opt_passes,
         None => {
             let mut manifest = Manifest::new(manifest_path.clone())?;
-            match manifest.get_profile_optimization_passes() {
+            match manifest.profile_optimization_passes() {
                 // if no setting is found, neither on the cli nor in the profile,
                 // then we use the default
                 None => OptimizationPasses::default(),
@@ -587,7 +610,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
 
     assert_compatible_ink_dependencies(&manifest_path, verbosity)?;
     if build_mode == BuildMode::Debug {
@@ -616,8 +639,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let build =
         || -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
             let mut build_steps = BuildSteps::new();
-            let pre_fingerprint =
-                Fingerprint::try_from_path(&crate_metadata.original_wasm)?;
+            let pre_fingerprint = Fingerprint::new(&crate_metadata)?;
 
             maybe_println!(
                 verbosity,
@@ -626,7 +648,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 "Building cargo project".bright_green().bold()
             );
             build_steps.increment_current();
-            exec_cargo_for_wasm_target(
+            exec_cargo_for_onchain_target(
                 &crate_metadata,
                 "build",
                 &features,
@@ -634,7 +656,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 network,
                 verbosity,
                 &unstable_flags,
+                target,
             )?;
+
+            // we persist the latest target we used so we trigger a rebuild when we switch
+            fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
 
             let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
                 version
@@ -655,15 +681,13 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 },
             };
 
-            let post_fingerprint = Fingerprint::try_from_path(
-                &crate_metadata.original_wasm,
-            )?
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Expected '{}' to be generated by build",
-                    crate_metadata.original_wasm.display()
-                )
-            })?;
+            let post_fingerprint =
+                Fingerprint::new(&crate_metadata)?.ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Expected '{}' to be generated by build",
+                        crate_metadata.original_code.display()
+                    )
+                })?;
 
             tracing::debug!(
                 "Fingerprint before build: {:?}, after build: {:?}",
@@ -671,18 +695,18 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 post_fingerprint
             );
 
-            let dest_wasm_path = crate_metadata.dest_wasm.clone();
+            let dest_code_path = crate_metadata.dest_code.clone();
 
             if pre_fingerprint == Some(post_fingerprint)
-                && crate_metadata.dest_wasm.exists()
+                && crate_metadata.dest_code.exists()
             {
                 tracing::info!(
                     "No changes in the original wasm at {}, fingerprint {:?}. \
                 Skipping Wasm optimization and metadata generation.",
-                    crate_metadata.original_wasm.display(),
+                    crate_metadata.original_code.display(),
                     pre_fingerprint
                 );
-                return Ok((None, build_info, dest_wasm_path, build_steps))
+                return Ok((None, build_info, dest_code_path, build_steps))
             }
 
             maybe_lint(&mut build_steps)?;
@@ -691,32 +715,56 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
-                "Post processing wasm file".bright_green().bold()
-            );
-            build_steps.increment_current();
-            post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
-
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("{build_steps}").bold(),
-                "Optimizing wasm file".bright_green().bold()
+                "Post processing code".bright_green().bold()
             );
             build_steps.increment_current();
 
-            let handler = WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
-            let optimization_result = handler.optimize(
-                &crate_metadata.dest_wasm,
-                &crate_metadata.contract_artifact_name,
-            )?;
+            // remove build artifacts so we don't have anything stale lingering around
+            for t in Target::iter() {
+                fs::remove_file(
+                    crate_metadata.dest_code.with_extension(t.dest_extension()),
+                )
+                .ok();
+            }
+
+            let original_size =
+                fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
+
+            match target {
+                Target::Wasm => {
+                    post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
+                    let handler =
+                        WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
+                    handler.optimize(
+                        &crate_metadata.dest_code,
+                        &crate_metadata.contract_artifact_name,
+                    )?;
+                }
+                Target::RiscV => {
+                    fs::copy(&crate_metadata.original_code, &crate_metadata.dest_code)?;
+                }
+            }
+
+            let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
+
+            let optimization_result = OptimizationResult {
+                dest_wasm: crate_metadata.dest_code.clone(),
+                original_size,
+                optimized_size,
+            };
 
             Ok((
                 Some(optimization_result),
                 build_info,
-                dest_wasm_path,
+                crate_metadata.dest_code.clone(),
                 build_steps,
             ))
         };
+
+    let clean_metadata = || {
+        fs::remove_file(crate_metadata.metadata_path()).ok();
+        fs::remove_file(crate_metadata.contract_bundle_path()).ok();
+    };
 
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
@@ -729,7 +777,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 format!("{build_steps}").bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
-            exec_cargo_for_wasm_target(
+            exec_cargo_for_onchain_target(
                 &crate_metadata,
                 "check",
                 &features,
@@ -737,26 +785,37 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 network,
                 verbosity,
                 &unstable_flags,
+                target,
             )?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
+            // when building only the code metadata will become stale
+            clean_metadata();
             let (opt_result, _, dest_wasm, _) = build()?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm, build_steps) = build()?;
+            let (opt_result, build_info, dest_wasm, build_steps) =
+                build().map_err(|e| {
+                    // build error -> bundle is stale
+                    clean_metadata();
+                    e
+                })?;
 
             let metadata_result = MetadataArtifacts {
                 dest_metadata: crate_metadata.metadata_path(),
                 dest_bundle: crate_metadata.contract_bundle_path(),
             };
+
             // skip metadata generation if contract unchanged and all metadata artifacts
             // exist.
             if opt_result.is_some()
                 || !metadata_result.dest_metadata.exists()
                 || !metadata_result.dest_bundle.exists()
             {
+                // if metadata build fails after a code build it might become stale
+                clean_metadata();
                 metadata::execute(
                     &crate_metadata,
                     dest_wasm.as_path(),
@@ -791,21 +850,27 @@ struct Fingerprint {
     path: PathBuf,
     hash: [u8; 32],
     modified: std::time::SystemTime,
+    target: String,
 }
 
 impl Fingerprint {
-    pub fn try_from_path<P>(path: P) -> Result<Option<Fingerprint>>
-    where
-        P: AsRef<Path>,
-    {
-        if path.as_ref().exists() {
-            let modified = fs::metadata(&path)?.modified()?;
-            let bytes = fs::read(&path)?;
+    fn new(crate_metadata: &CrateMetadata) -> Result<Option<Fingerprint>> {
+        let code_path = &crate_metadata.original_code;
+        let target_path = &crate_metadata.target_file_path;
+        if code_path.exists() {
+            let modified = fs::metadata(code_path)?.modified()?;
+            let bytes = fs::read(code_path)?;
             let hash = blake2_hash(&bytes);
             Ok(Some(Self {
-                path: path.as_ref().to_path_buf(),
+                path: code_path.clone(),
                 hash,
                 modified,
+                target: fs::read_to_string(target_path).with_context(|| {
+                    format!(
+                        "Cannot read {}.\n A clean build will fix this.",
+                        target_path.display()
+                    )
+                })?,
             }))
         } else {
             Ok(None)

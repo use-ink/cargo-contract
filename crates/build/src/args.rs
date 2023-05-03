@@ -112,8 +112,8 @@ impl BuildArtifacts {
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            BuildArtifacts::All => 5,
-            BuildArtifacts::CodeOnly => 4,
+            BuildArtifacts::All => 4,
+            BuildArtifacts::CodeOnly => 3,
             BuildArtifacts::CheckOnly => 1,
         }
     }
@@ -155,6 +155,63 @@ impl fmt::Display for BuildSteps {
             .total_steps
             .map_or("*".to_string(), |steps| steps.to_string());
         write!(f, "[{}/{}]", self.current_step, total_steps)
+    }
+}
+
+/// The list of targets that ink! supports.
+#[derive(
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
+    strum::EnumIter,
+)]
+pub enum Target {
+    /// WebAssembly
+    #[clap(name = "wasm")]
+    #[default]
+    Wasm,
+    /// RISC-V: Experimental
+    #[clap(name = "riscv")]
+    RiscV,
+}
+
+impl Target {
+    /// The target string to be passed to rustc in order to build for this target.
+    pub fn llvm_target(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm32-unknown-unknown",
+            Self::RiscV => "riscv32i-unknown-none-elf",
+        }
+    }
+
+    /// Target specific flags to be set to `RUSTFLAGS` while building.
+    pub fn rustflags(&self) -> &'static str {
+        match self {
+            Self::Wasm => "-C link-arg=-zstack-size=65536 -C link-arg=--import-memory -Clinker-plugin-lto -C target-cpu=mvp",
+            Self::RiscV => "-Clinker-plugin-lto",
+        }
+    }
+
+    /// The file extension that is used by rustc when outputting the binary.
+    pub fn source_extension(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm",
+            Self::RiscV => "",
+        }
+    }
+
+    // The file extension that is used to store the post processed binary.
+    pub fn dest_extension(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm",
+            Self::RiscV => "riscv",
+        }
     }
 }
 
