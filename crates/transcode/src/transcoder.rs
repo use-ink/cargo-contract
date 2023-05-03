@@ -132,7 +132,8 @@ impl TranscoderBuilder {
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
@@ -160,7 +161,8 @@ impl TranscoderBuilder {
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }

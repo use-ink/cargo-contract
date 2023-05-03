@@ -179,8 +179,8 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
         .and_then(|resolve| resolve.root.as_ref())
         .context("Cannot infer the root project id")?
         .clone();
-    // Find the root package by id in the list of packages. It is logical error if the root
-    // package is not found in the list.
+    // Find the root package by id in the list of packages. It is logical error if the
+    // root package is not found in the list.
     let root_package = metadata
         .packages
         .iter()

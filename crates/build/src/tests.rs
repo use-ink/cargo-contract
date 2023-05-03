@@ -61,8 +61,8 @@ macro_rules! build_tests {
 // All functions provided here are run sequentially as part of the same `#[test]`
 // sharing build artifacts (but nothing else) using the [`BuildTestContext`].
 //
-// The motivation for this is to considerably speed up these tests by only requiring dependencies
-// to be build once across all tests.
+// The motivation for this is to considerably speed up these tests by only requiring
+// dependencies to be build once across all tests.
 build_tests!(
     build_code_only,
     check_must_not_output_contract_artifacts_in_project_dir,
@@ -656,17 +656,17 @@ fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
         .any(|e| e.name() == "name")
 }
 
-/// Enables running a group of tests sequentially, each starting with the original template
-/// contract, but maintaining the target directory so compilation artifacts are maintained across
-/// each test.
+/// Enables running a group of tests sequentially, each starting with the original
+/// template contract, but maintaining the target directory so compilation artifacts are
+/// maintained across each test.
 pub struct BuildTestContext {
     template_dir: PathBuf,
     working_dir: PathBuf,
 }
 
 impl BuildTestContext {
-    /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
-    /// template project for testing the build process.
+    /// Create a new `BuildTestContext`, running the `new` command to create a blank
+    /// contract template project for testing the build process.
     pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
         crate::new_contract_project(working_project_name, Some(tmp_dir))
             .expect("new project creation failed");
@@ -683,14 +683,15 @@ impl BuildTestContext {
         })
     }
 
-    /// Run the supplied test. Test failure will print the error to `stdout`, and this will still
-    /// return `Ok(())` in order that subsequent tests will still be run.
+    /// Run the supplied test. Test failure will print the error to `stdout`, and this
+    /// will still return `Ok(())` in order that subsequent tests will still be run.
     ///
-    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so after
-    /// completion those files are reverted to their original state for the next test.
+    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so
+    /// after completion those files are reverted to their original state for the next
+    /// test.
     ///
-    /// Importantly, the `target` directory is maintained so as to avoid recompiling all of the
-    /// dependencies for each test.
+    /// Importantly, the `target` directory is maintained so as to avoid recompiling all
+    /// of the dependencies for each test.
     pub fn run_test(
         &self,
         name: &str,
@@ -705,7 +706,8 @@ impl BuildTestContext {
                 println!("{name} FAILED: {err:?}");
             }
         }
-        // revert to the original template files, but keep the `target` dir from the previous run.
+        // revert to the original template files, but keep the `target` dir from the
+        // previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
         // remove the original wasm artifact to force it to be rebuilt

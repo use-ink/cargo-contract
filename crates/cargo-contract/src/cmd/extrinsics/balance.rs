@@ -162,16 +162,19 @@ impl BalanceVariant {
     /// Throws Error if `value` is of nigher precision that allowed.
     ///
     /// ```rust
-    ///  use anyhow::{Result, Ok};
-    ///  let decimals = 6;
-    ///  let tm = TokenMetadata {
-    ///        token_decimals: decimals,
-    ///        symbol: String::from("DOT"),
+    /// use anyhow::{
+    ///     Ok,
+    ///     Result,
+    /// };
+    /// let decimals = 6;
+    /// let tm = TokenMetadata {
+    ///     token_decimals: decimals,
+    ///     symbol: String::from("DOT"),
     /// };
     /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
     ///     value: Decimal::new(4, 1),
     ///     unit: UnitPrefix::Micro,
-    ///     symbol: String::new("DOT")
+    ///     symbol: String::new("DOT"),
     /// });
     /// let result = sample_den_balance.denominate_balance(tm);
     /// assert!(result.is_err());
@@ -244,16 +247,19 @@ impl BalanceVariant {
     ///
     /// # Examples
     /// ```rust
-    ///  use anyhow::{Result, Ok};
-    ///  let decimals = 10;
-    ///  let tm = TokenMetadata {
-    ///        token_decimals: decimals,
-    ///        symbol: String::from("DOT"),
+    /// use anyhow::{
+    ///     Ok,
+    ///     Result,
+    /// };
+    /// let decimals = 10;
+    /// let tm = TokenMetadata {
+    ///     token_decimals: decimals,
+    ///     symbol: String::from("DOT"),
     /// };
     /// let sample_den_balance = BalanceVariant::Denominated(DenominatedBalance {
     ///     value: Decimal::new(5005, 1),
     ///     unit: UnitPrefix::Mega,
-    ///     symbol: String::from("DOT")
+    ///     symbol: String::from("DOT"),
     /// });
     /// let balance: Balance = 5_005_000_000_000_000_000;
     /// let den_balance = BalanceVariant::from(balance, Some(tm));

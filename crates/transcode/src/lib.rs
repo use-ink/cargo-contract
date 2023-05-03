@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-//! For interacting with contracts from the command line, arguments need to be "transcoded" from
-//! the string representation to the SCALE encoded representation.
+//! For interacting with contracts from the command line, arguments need to be
+//! "transcoded" from the string representation to the SCALE encoded representation.
 //!
 //! e.g. `"false" -> 0x00`
 //!
-//! And for displaying SCALE encoded data from events and RPC responses, it must be "transcoded"
-//! in the other direction from the SCALE encoded representation to a human readable string.
+//! And for displaying SCALE encoded data from events and RPC responses, it must be
+//! "transcoded" in the other direction from the SCALE encoded representation to a human
+//! readable string.
 //!
 //! e.g. `0x00 -> "false"`
 //!
@@ -33,10 +34,10 @@
 //!
 //! `"false" -> Value::Bool(false)`
 //!
-//! This value is then matched with the metadata for the expected type in that context. e.g. the
-//! [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
-//! accepts a `bool` argument to its `new` constructor, which will be reflected in the contract
-//! metadata as [`scale_info::TypeDefPrimitive::Bool`].
+//! This value is then matched with the metadata for the expected type in that context.
+//! e.g. the [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
+//! accepts a `bool` argument to its `new` constructor, which will be reflected in the
+//! contract metadata as [`scale_info::TypeDefPrimitive::Bool`].
 //!
 //! ```no_compile
 //! #[ink(constructor)]
@@ -46,14 +47,14 @@
 //! ```
 //!
 //! The parsed `Value::Bool(false)` argument value is then matched with the
-//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely encoded
-//! as a `bool`, resulting in `0x00`, which can then be appended as data to the message to invoke
-//! the constructor.
+//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely
+//! encoded as a `bool`, resulting in `0x00`, which can then be appended as data to the
+//! message to invoke the constructor.
 //!
 //! # Decoding
 //!
-//! First the type of the SCALE encoded data is determined from the metadata. e.g. the return type
-//! of a message when it is invoked as a "dry run" over RPC:
+//! First the type of the SCALE encoded data is determined from the metadata. e.g. the
+//! return type of a message when it is invoked as a "dry run" over RPC:
 //!
 //! ```no_compile
 //! #[ink(message)]
@@ -62,24 +63,25 @@
 //! }
 //! ```
 //!
-//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so that when
-//! the raw data is received it can be decoded into the correct [`Value`], which is then converted
-//! to a string for displaying to the user:
+//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so
+//! that when the raw data is received it can be decoded into the correct [`Value`], which
+//! is then converted to a string for displaying to the user:
 //!
 //! `0x00 -> Value::Bool(false) -> "false"`
 //!
 //! # SCALE Object Notation (SCON)
 //!
-//! Complex types can be represented as strings using `SCON` for human-computer interaction. It is
-//! intended to be similar to Rust syntax for instantiating types. e.g.
+//! Complex types can be represented as strings using `SCON` for human-computer
+//! interaction. It is intended to be similar to Rust syntax for instantiating types. e.g.
 //!
 //! `Foo { a: false, b: [0, 1, 2], c: "bar", d: (0, 1) }`
 //!
 //! This string could be parsed into a [`Value::Map`] and together with
-//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded bytes.
+//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded
+//! bytes.
 //!
-//! As with the example for the primitive `bool` above, this works in the other direction for
-//! decoding SCALE encoded bytes and converting them into a human readable string.
+//! As with the example for the primitive `bool` above, this works in the other direction
+//! for decoding SCALE encoded bytes and converting them into a human readable string.
 //!
 //! # Example
 //! ```no_run
@@ -163,7 +165,8 @@ impl ContractMessageTranscoder {
         }
     }
 
-    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the given path.
+    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the
+    /// given path.
     pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
@@ -255,8 +258,9 @@ impl ContractMessageTranscoder {
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
-        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
-        // ignore because the structure of the event data is known for decoding.
+        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
+        // which we ignore because the structure of the event data is known for
+        // decoding.
         let _len = <Compact<u32>>::decode(data)?;
         let variant_index = data.read_byte()?;
         let event_spec = self
