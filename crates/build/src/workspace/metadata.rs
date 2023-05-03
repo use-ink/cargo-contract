@@ -24,13 +24,13 @@ use toml::{
     Value,
 };
 
-/// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo run` to
-/// generate contract metadata.
+/// Generates a cargo workspace package `metadata-gen` which will be invoked via `cargo
+/// run` to generate contract metadata.
 ///
 /// # Note
 ///
-/// `ink!` dependencies are copied from the containing contract workspace to ensure the same
-/// versions are utilized.
+/// `ink!` dependencies are copied from the containing contract workspace to ensure the
+/// same versions are utilized.
 pub(super) fn generate_package<P: AsRef<Path>>(
     target_dir: P,
     contract_package_name: &str,

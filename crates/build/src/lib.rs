@@ -213,24 +213,27 @@ impl BuildResult {
     }
 }
 
-/// Executes the supplied cargo command on the project in the specified directory, defaults to the
-/// current directory.
+/// Executes the supplied cargo command on the project in the specified directory,
+/// defaults to the current directory.
 ///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
-/// which reduces the size of the Wasm binary by not including panic strings and formatting code.
+/// which reduces the size of the Wasm binary by not including panic strings and
+/// formatting code.
 ///
 /// # `Cargo.toml` optimizations
 ///
-/// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to minimize
-/// the final Wasm binary size.
+/// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to
+/// minimize the final Wasm binary size.
 ///
-/// Preferred default `[profile.release]` settings will be added if they are missing, existing
-/// user-defined settings will be preserved.
+/// Preferred default `[profile.release]` settings will be added if they are missing,
+/// existing user-defined settings will be preserved.
 ///
-/// The `[workspace]` will be added if it is missing to ignore `workspace` from parent `Cargo.toml`.
+/// The `[workspace]` will be added if it is missing to ignore `workspace` from parent
+/// `Cargo.toml`.
 ///
-/// To disable this and use the original `Cargo.toml` as is then pass the `-Z original_manifest` flag.
+/// To disable this and use the original `Cargo.toml` as is then pass the `-Z
+/// original_manifest` flag.
 #[allow(clippy::too_many_arguments)]
 fn exec_cargo_for_onchain_target(
     crate_metadata: &CrateMetadata,
@@ -337,9 +340,9 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
         //
-        // This is because we build from a temporary directory (to patch the manifest) but still
-        // want the output to live at a fixed path. `cargo dylint` does not accept this information
-        // on the command line.
+        // This is because we build from a temporary directory (to patch the manifest)
+        // but still want the output to live at a fixed path. `cargo dylint` does
+        // not accept this information on the command line.
         ("CARGO_TARGET_DIR", Some(target_dir.to_string())),
         // There are generally problems with having a custom `rustc` wrapper, while
         // executing `dylint` (which has a custom linker). Especially for `sccache`
@@ -421,8 +424,8 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
 
 /// Ensures the Wasm memory import of a given module has the maximum number of pages.
 ///
-/// Iterates over the import section, finds the memory import entry if any and adjusts the maximum
-/// limit.
+/// Iterates over the import section, finds the memory import entry if any and adjusts the
+/// maximum limit.
 fn ensure_maximum_memory_pages(
     module: &mut Module,
     maximum_allowed_pages: u32,
@@ -474,7 +477,8 @@ fn strip_custom_sections(module: &mut Module) {
 
 /// A contract should export nothing but the "call" and "deploy" functions.
 ///
-/// Any elements not referenced by these exports become orphaned and are removed by `wasm-opt`.
+/// Any elements not referenced by these exports become orphaned and are removed by
+/// `wasm-opt`.
 fn strip_exports(module: &mut Module) {
     if let Some(section) = module.export_section_mut() {
         section.entries_mut().retain(|entry| {
@@ -534,8 +538,8 @@ fn post_process_wasm(
 ///
 /// Hence this function only returns an `Err` if it is a proper mismatch according
 /// to semantic versioning. This means that either:
-///     - the major version mismatches, differences in the minor/patch version
-///       are not considered incompatible.
+///     - the major version mismatches, differences in the minor/patch version are not
+///       considered incompatible.
 ///     - or if the version starts with zero (i.e. `0.y.z`) a mismatch in the minor
 ///       version is already considered incompatible.
 fn assert_compatible_ink_dependencies(
@@ -570,7 +574,8 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for
+/// deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
@@ -803,7 +808,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 dest_bundle: crate_metadata.contract_bundle_path(),
             };
 
-            // skip metadata generation if contract unchanged and all metadata artifacts exist.
+            // skip metadata generation if contract unchanged and all metadata artifacts
+            // exist.
             if opt_result.is_some()
                 || !metadata_result.dest_metadata.exists()
                 || !metadata_result.dest_bundle.exists()
@@ -889,8 +895,8 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
     result.into()
 }
 
-/// Testing individual functions where the build itself is not actually invoked. See [`tests`] for
-/// all tests which invoke the `build` command.
+/// Testing individual functions where the build itself is not actually invoked. See
+/// [`tests`] for all tests which invoke the `build` command.
 #[cfg(test)]
 mod unit_tests {
     use super::*;

@@ -77,11 +77,13 @@ pub struct CallCommand {
     #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
     /// Maximum amount of gas (execution time) to be used for this command.
-    /// If not specified will perform a dry-run to estimate the gas consumed for the call.
+    /// If not specified will perform a dry-run to estimate the gas consumed for the
+    /// call.
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
     /// Maximum proof size for this call.
-    /// If not specified will perform a dry-run to estimate the proof size required for the call.
+    /// If not specified will perform a dry-run to estimate the proof size required for
+    /// the call.
     #[clap(long)]
     proof_size: Option<u64>,
     /// The value to be transferred as part of the call.

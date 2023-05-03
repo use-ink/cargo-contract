@@ -57,8 +57,8 @@ impl EnvTypesTranscoder {
         Self { encoders, decoders }
     }
 
-    /// If the given type id is for a type with custom encoding, encodes the given value with the
-    /// custom encoder and returns `true`. Otherwise returns `false`.
+    /// If the given type id is for a type with custom encoding, encodes the given value
+    /// with the custom encoder and returns `true`. Otherwise returns `false`.
     ///
     /// # Errors
     ///
@@ -129,12 +129,14 @@ impl From<&Path<PortableForm>> for PathKey {
 
 pub type TypesByPath = HashMap<PathKey, u32>;
 
-/// Implement this trait to define custom encoding for a type in a `scale-info` type registry.
+/// Implement this trait to define custom encoding for a type in a `scale-info` type
+/// registry.
 pub trait CustomTypeEncoder: Send + Sync {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
 }
 
-/// Implement this trait to define custom decoding for a type in a `scale-info` type registry.
+/// Implement this trait to define custom decoding for a type in a `scale-info` type
+/// registry.
 pub trait CustomTypeDecoder: Send + Sync {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
@@ -192,8 +194,8 @@ impl CustomTypeDecoder for AccountId {
     }
 }
 
-/// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex encoded
-/// string.
+/// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex
+/// encoded string.
 pub struct Hash;
 
 impl CustomTypeDecoder for Hash {

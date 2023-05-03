@@ -36,7 +36,8 @@ use std::{
     path::PathBuf,
 };
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for
+/// deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 #[derive(Debug, clap::Args)]
@@ -66,8 +67,8 @@ pub struct BuildCommand {
     /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
     ///   `<name>.contract` file is skipped.
     ///
-    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
-    ///    only checks for compilation errors.
+    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the
+    ///   Wasm target, only checks for compilation errors.
     #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
@@ -80,14 +81,17 @@ pub struct BuildCommand {
     ///
     /// - `0`: execute no optimization passes
     ///
-    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration
+    ///   builds)
     ///
     /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
     ///
-    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time
+    ///   optimizing)
     ///
-    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
-    /// but is useful on more nested / complex / less-optimized input)
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot
+    ///   more time and memory but is useful on more nested / complex / less-optimized
+    ///   input)
     ///
     /// - `s`, execute default optimization passes, focusing on code size
     ///
@@ -96,8 +100,8 @@ pub struct BuildCommand {
     /// - The default value is `z`
     ///
     /// - It is possible to define the number of optimization passes in the
-    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
-    ///   The CLI argument always takes precedence over the profile value.
+    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes
+    ///   = "3"`. The CLI argument always takes precedence over the profile value.
     #[clap(long)]
     optimization_passes: Option<OptimizationPasses>,
     /// Do not remove symbols (Wasm name section) when optimizing.

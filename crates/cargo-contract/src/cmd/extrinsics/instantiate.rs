@@ -78,15 +78,16 @@ pub struct InstantiateCommand {
     #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
     /// Maximum amount of gas to be used for this command.
-    /// If not specified will perform a dry-run to estimate the gas consumed for the instantiation.
+    /// If not specified will perform a dry-run to estimate the gas consumed for the
+    /// instantiation.
     #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
     /// Maximum proof size for this instantiation.
     /// If not specified will perform a dry-run to estimate the proof size required.
     #[clap(long)]
     proof_size: Option<u64>,
-    /// A salt used in the address derivation of the new contract. Use to create multiple instances
-    /// of the same contract code from the same account.
+    /// A salt used in the address derivation of the new contract. Use to create multiple
+    /// instances of the same contract code from the same account.
     #[clap(long, value_parser = parse_hex_bytes)]
     salt: Option<Bytes>,
     /// Export the instantiate output in JSON format.
@@ -107,8 +108,8 @@ impl InstantiateCommand {
     /// Instantiate a contract stored at the supplied code hash.
     /// Returns the account id of the instantiated contract if successful.
     ///
-    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then waits for
-    /// the `ContractsEvent::Instantiated` event.
+    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then
+    /// waits for the `ContractsEvent::Instantiated` event.
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
@@ -262,7 +263,8 @@ impl Exec {
 
         let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
 
-        // The CodeStored event is only raised if the contract has not already been uploaded.
+        // The CodeStored event is only raised if the contract has not already been
+        // uploaded.
         let code_hash = result
             .find_first::<api::contracts::events::CodeStored>()?
             .map(|code_stored| code_stored.code_hash);

@@ -42,10 +42,8 @@ pub(crate) fn rust_toolchain() -> Result<String> {
 /// as the working directory.
 ///
 /// In case `env` is given environment variables can be either set or unset:
-///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to
-///     the `env` vector.
-///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env`
-///     vector.
+///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to the `env` vector.
+///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env` vector.
 ///
 /// If successful, returns the stdout bytes.
 pub fn invoke_cargo<I, S, P>(

@@ -128,8 +128,8 @@ pub struct ExtrinsicOpts {
     /// Submit the extrinsic for on-chain execution.
     #[clap(short('x'), long)]
     execute: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage.
-    /// consumed.
+    /// The maximum amount of balance that can be charged from the caller to pay for the
+    /// storage. consumed.
     #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
@@ -230,7 +230,8 @@ impl ContractArtifacts {
         };
         Self::from_artifact_path(artifact_path.as_path())
     }
-    /// Given a contract artifact path, load the contract code and metadata where possible.
+    /// Given a contract artifact path, load the contract code and metadata where
+    /// possible.
     fn from_artifact_path(path: &Path) -> Result<Self> {
         tracing::debug!("Loading contracts artifacts from `{}`", path.display());
         let (metadata_path, metadata, code) =
@@ -378,14 +379,14 @@ pub fn display_dry_run_result_warning(command: &str) {
 ///
 /// # Errors
 ///
-/// If a runtime Module error occurs, this will only display the pallet and error indices. Dynamic
-/// lookups of the actual error will be available once the following issue is resolved:
-/// <https://github.com/paritytech/subxt/issues/443>.
+/// If a runtime Module error occurs, this will only display the pallet and error indices.
+/// Dynamic lookups of the actual error will be available once the following issue is
+/// resolved: <https://github.com/paritytech/subxt/issues/443>.
 ///
 /// # Finality
 ///
-/// Currently this will report success once the transaction is included in a block. In the future
-/// there could be a flag to wait for finality before reporting success.
+/// Currently this will report success once the transaction is included in a block. In the
+/// future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
     call: &Call,
@@ -468,8 +469,8 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
-/// for json output.
+/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
+/// required for json output.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
 pub enum StorageDeposit {
     /// The transaction reduced storage consumption.
@@ -479,8 +480,8 @@ pub enum StorageDeposit {
     Refund(Balance),
     /// The transaction increased overall storage usage.
     ///
-    /// This means that the specified amount of balance was transferred from the call origin
-    /// to the contracts involved.
+    /// This means that the specified amount of balance was transferred from the call
+    /// origin to the contracts involved.
     Charge(Balance),
 }
 

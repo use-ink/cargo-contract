@@ -176,7 +176,8 @@ impl Manifest {
             .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
     }
 
-    /// Replaces the `[lib]` target by a single `[bin]` target using the same file and name.
+    /// Replaces the `[lib]` target by a single `[bin]` target using the same file and
+    /// name.
     pub fn with_replaced_lib_to_bin(&mut self) -> Result<&mut Self> {
         let mut lib = self.lib_target_mut()?.clone();
         self.toml.remove("lib");
@@ -227,8 +228,8 @@ impl Manifest {
     ///
     /// # Note
     ///
-    /// Existing user defined settings for this section are preserved. Only if a setting is not
-    /// defined is the preferred default set.
+    /// Existing user defined settings for this section are preserved. Only if a setting
+    /// is not defined is the preferred default set.
     pub fn with_profile_release_defaults(
         &mut self,
         defaults: Profile,
@@ -238,11 +239,12 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Set `[workspace]` section to an empty table. When building a contract project any workspace
-    /// members are not copied to the temporary workspace, so need to be removed.
+    /// Set `[workspace]` section to an empty table. When building a contract project any
+    /// workspace members are not copied to the temporary workspace, so need to be
+    /// removed.
     ///
-    /// Additionally, where no workspace is already specified, this can in some cases reduce the
-    /// size of the contract.
+    /// Additionally, where no workspace is already specified, this can in some cases
+    /// reduce the size of the contract.
     pub fn with_empty_workspace(&mut self) -> &mut Self {
         self.toml
             .insert("workspace".into(), value::Value::Table(Default::default()));

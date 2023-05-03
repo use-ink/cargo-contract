@@ -66,7 +66,8 @@ impl Verbosity {
     }
 }
 
-/// Use network connection to build contracts and generate metadata or use cached dependencies only.
+/// Use network connection to build contracts and generate metadata or use cached
+/// dependencies only.
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize)]
 pub enum Network {
     /// Use network
@@ -96,12 +97,12 @@ pub enum BuildArtifacts {
     #[clap(name = "all")]
     #[default]
     All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
-    /// skipped
+    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract`
+    /// file is skipped
     #[clap(name = "code-only")]
     CodeOnly,
-    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
-    /// compilation errors.
+    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only
+    /// checks for compilation errors.
     #[clap(name = "check-only")]
     CheckOnly,
 }

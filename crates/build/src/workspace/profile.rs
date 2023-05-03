@@ -41,8 +41,10 @@ impl Profile {
     /// Set any unset profile settings from the config.
     ///
     /// Therefore:
-    ///   - If the user has explicitly defined a profile setting, it will not be overwritten.
-    ///   - If a profile setting is not defined, the value from this profile instance will be added
+    ///   - If the user has explicitly defined a profile setting, it will not be
+    ///     overwritten.
+    ///   - If a profile setting is not defined, the value from this profile instance will
+    ///     be added
     pub(super) fn merge(&self, profile: &mut value::Table) {
         let mut set_value_if_vacant = |key: &'static str, value: value::Value| {
             if !profile.contains_key(key) {
