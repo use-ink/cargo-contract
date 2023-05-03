@@ -53,6 +53,7 @@ pub struct CrateMetadata {
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
     pub target_directory: PathBuf,
+    pub target_file_path: PathBuf,
 }
 
 impl CrateMetadata {
@@ -144,6 +145,7 @@ impl CrateMetadata {
             documentation,
             homepage,
             user,
+            target_file_path: target_directory.join(".target").into(),
             target_directory: target_directory.into(),
         };
         Ok(crate_metadata)
