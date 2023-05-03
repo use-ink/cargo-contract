@@ -762,8 +762,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         };
 
     let clean_metadata = || {
-        fs::remove_file(&crate_metadata.metadata_path()).ok();
-        fs::remove_file(&crate_metadata.contract_bundle_path()).ok();
+        fs::remove_file(crate_metadata.metadata_path()).ok();
+        fs::remove_file(crate_metadata.contract_bundle_path()).ok();
     };
 
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
@@ -865,7 +865,7 @@ impl Fingerprint {
                 path: code_path.clone(),
                 hash,
                 modified,
-                target: fs::read_to_string(&target_path).with_context(|| {
+                target: fs::read_to_string(target_path).with_context(|| {
                     format!(
                         "Cannot read {}.\n A clean build will fix this.",
                         target_path.display()
