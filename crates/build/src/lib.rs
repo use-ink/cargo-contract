@@ -282,12 +282,12 @@ fn exec_cargo_for_onchain_target(
             fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
             let path = path.display();
             env.push((
-                "RUSTFLAGS",
+                "CARGO_ENCODED_RUSTFLAGS",
                 Some(format!("{rustflags} -Clink-arg=-T{path}",)),
             ));
             Some(path)
         } else {
-            env.push(("RUSTFLAGS", Some(rustflags.to_string())));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags.to_string())));
             None
         };
 
