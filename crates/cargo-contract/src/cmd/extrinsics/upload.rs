@@ -146,7 +146,7 @@ impl UploadCommand {
             origin: signer.account_id().clone(),
             code: code.0,
             storage_deposit_limit,
-            determinism: Determinism::Deterministic,
+            determinism: Determinism::Enforced,
         };
         state_call(&url, "ContractsApi_upload_code", call_request).await
     }
@@ -163,7 +163,7 @@ impl UploadCommand {
         let call = crate::cmd::runtime_api::api::tx().contracts().upload_code(
             code.0,
             storage_deposit_limit,
-            Determinism::Deterministic,
+            Determinism::Enforced,
         );
 
         let result = submit_extrinsic(client, &call, signer).await?;
