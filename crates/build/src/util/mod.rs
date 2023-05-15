@@ -56,6 +56,7 @@ where
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd_args = Vec::new();
 
+    cmd_args.push(command);
     cmd_args.push("--color=always");
 
     match verbosity {
