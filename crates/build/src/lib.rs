@@ -565,6 +565,7 @@ fn assert_compatible_ink_dependencies(
         let args = ["-i", dependency, "--duplicates"];
         let cargo = util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
         cargo
+            .stdout_null()
             .run()
             .with_context(|| {
                 format!(
