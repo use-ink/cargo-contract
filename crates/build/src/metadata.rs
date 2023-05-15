@@ -149,16 +149,17 @@ pub(crate) fn execute(
         network.append_to_args(&mut args);
         features.append_to_args(&mut args);
 
-        let stdout = util::invoke_cargo(
+        let cmd = util::cargo_cmd(
             "run",
             args,
             crate_metadata.manifest_path.directory(),
             verbosity,
             vec![],
-        )?;
+        );
+        let output = cmd.stdout_capture().run()?;
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_slice(&stdout)?;
+            serde_json::from_slice(&output.stdout)?;
         let metadata = ContractMetadata::new(source, contract, user, ink_meta);
         {
             let mut metadata = metadata.clone();

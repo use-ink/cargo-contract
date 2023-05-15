@@ -291,7 +291,15 @@ fn exec_cargo_for_onchain_target(
             None
         };
 
-        util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
+        let cargo = util::cargo_cmd(
+            command,
+            &args,
+            manifest_path.directory(),
+            verbosity,
+            env,
+        );
+
+        cargo.run()?; // todo capture stderr
 
         Ok(())
     };
@@ -357,8 +365,15 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
             Ok(())
         })?
         .using_temp(|manifest_path| {
-            util::invoke_cargo("dylint", &args, manifest_path.directory(), verbosity, env)
-                .map(|_| ())
+            let cargo = util::cargo_cmd(
+                "dylint",
+                &args,
+                manifest_path.directory(),
+                verbosity,
+                env,
+            );
+            cargo.run()?;
+            Ok(())
         })?;
 
     Ok(())
@@ -548,7 +563,9 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", args, manifest_path.directory(), verbosity, vec![])
+        let cargo = util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
+        cargo
+            .run()
             .with_context(|| {
                 format!(
                     "Mismatching versions of `{dependency}` were found!\n\
