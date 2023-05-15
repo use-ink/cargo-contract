@@ -84,6 +84,10 @@ use parity_wasm::elements::{
 use semver::Version;
 use std::{
     fs,
+    io::{
+        BufRead,
+        BufReader,
+    },
     path::{
         Path,
         PathBuf,
@@ -291,15 +295,35 @@ fn exec_cargo_for_onchain_target(
             None
         };
 
-        let cargo = util::cargo_cmd(
-            command,
-            &args,
-            manifest_path.directory(),
-            verbosity,
-            env,
-        );
+        let cargo =
+            util::cargo_cmd(command, &args, manifest_path.directory(), verbosity, env);
 
-        cargo.run()?; // todo capture stderr
+        let reader = cargo.stderr_to_stdout().reader()?;
+
+        let buf_reader = BufReader::new(reader);
+        for line in buf_reader.lines() {
+            match line {
+                Ok(line) => {
+                    if line.contains("error[E0601]") {
+                        println!(
+                            "\n{}",
+                            "Ensure the contract is annotated with `no_main` e.g.:"
+                                .bright_yellow()
+                                .bold()
+                        );
+                        println!(
+                            "{}\n",
+                            "#![cfg_attr(not(feature = \"std\"), no_std, no_main)]"
+                                .bold()
+                        );
+                    }
+                    println!("{}", line);
+                }
+                Err(err) => {
+                    anyhow::bail!(err);
+                }
+            }
+        }
 
         Ok(())
     };
@@ -563,7 +587,8 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let cargo = util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
+        let cargo =
+            util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
         cargo
             .stdout_null()
             .run()
