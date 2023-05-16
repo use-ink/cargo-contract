@@ -346,7 +346,7 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
         if missing_main_err == err_buf.make_contiguous() {
             eprintln!(
                 "\n\n{}",
-                "Ensure the contract is annotated with `no_main` e.g.:"
+                "Ensure the contract is annotated with `no_main`, e.g.:"
                     .bright_yellow()
                     .bold()
             );
