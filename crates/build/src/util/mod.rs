@@ -91,6 +91,13 @@ where
     cmd
 }
 
+/// Configures the cargo command to output colour and the progress bar.
+pub fn cargo_tty_output(cmd: Expression) -> Expression {
+    cmd.env("CARGO_TERM_COLOR", "always")
+        .env("CARGO_TERM_PROGRESS_WIDTH", "100")
+        .env("CARGO_TERM_PROGRESS_WHEN", "always")
+}
+
 /// Returns the base name of the path.
 pub(crate) fn base_name(path: &Path) -> &str {
     path.file_name()

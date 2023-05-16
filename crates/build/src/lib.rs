@@ -84,10 +84,7 @@ use parity_wasm::elements::{
 use semver::Version;
 use std::{
     fs,
-    io::{
-        BufRead,
-        BufReader,
-    },
+    io,
     path::{
         Path,
         PathBuf,
@@ -297,32 +294,42 @@ fn exec_cargo_for_onchain_target(
 
         let cargo =
             util::cargo_cmd(command, &args, manifest_path.directory(), verbosity, env);
+        let cargo = util::cargo_tty_output(cargo);
 
-        let reader = cargo.stderr_to_stdout().reader()?;
+        let missing_main_err = "error[E0601]".as_bytes();
+        let mut err_buf =
+            std::collections::VecDeque::with_capacity(missing_main_err.len());
 
-        let buf_reader = BufReader::new(reader);
-        for line in buf_reader.lines() {
-            match line {
-                Ok(line) => {
-                    if line.contains("error[E0601]") {
-                        println!(
-                            "\n{}",
-                            "Ensure the contract is annotated with `no_main` e.g.:"
-                                .bright_yellow()
-                                .bold()
-                        );
-                        println!(
-                            "{}\n",
-                            "#![cfg_attr(not(feature = \"std\"), no_std, no_main)]"
-                                .bold()
-                        );
-                    }
-                    println!("{}", line);
-                }
-                Err(err) => {
-                    anyhow::bail!(err);
+        let mut reader = cargo.stderr_to_stdout().reader()?;
+        let mut buffer = [0u8; 1];
+
+        loop {
+            let bytes_read = io::Read::read(&mut reader, &mut buffer)?;
+            io::Write::write(&mut io::stderr(), &buffer[0..bytes_read])?;
+
+            for byte in buffer[0..bytes_read].iter() {
+                err_buf.push_back(*byte);
+                if err_buf.len() > missing_main_err.len() {
+                    err_buf.pop_front();
                 }
             }
+            if missing_main_err == err_buf.make_contiguous() {
+                eprintln!(
+                    "\n\n{}",
+                    "Ensure the contract is annotated with `no_main` e.g.:"
+                        .bright_yellow()
+                        .bold()
+                );
+                eprintln!(
+                    "{}\n",
+                    "#![cfg_attr(not(feature = \"std\"), no_std, no_main)]".bold()
+                );
+            }
+
+            if bytes_read == 0 {
+                break
+            }
+            buffer = [0u8; 1];
         }
 
         Ok(())
