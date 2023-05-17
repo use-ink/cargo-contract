@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update contracts node metadata (#1105)
   - Compatible with `substrate-contracts-node 0.25.0-a2b09462c7c`
 
+### Fixed
+- Fix original Wasm artifact path [#1116](https://github.com/paritytech/cargo-contract/pull/1116)
+
 ## [2.2.1]
 
 ### Fixed
