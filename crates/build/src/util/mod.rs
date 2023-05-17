@@ -96,6 +96,7 @@ pub fn cargo_tty_output(cmd: Expression) -> Expression {
     // let term_size = term_size::dimensions_stderr()
     //     .map(|(width, _)| width.to_string())
     //     .unwrap_or_else(|| "100".to_string());
+    use term_size::dimensions_stderr;
     let term_size = "100";
     cmd.env("CARGO_TERM_COLOR", "always")
         .env("CARGO_TERM_PROGRESS_WIDTH", term_size)
