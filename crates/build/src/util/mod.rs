@@ -24,6 +24,7 @@ use std::{
     ffi::OsString,
     path::Path,
 };
+use term_size as _;
 
 // Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
 pub(crate) fn rust_toolchain() -> Result<String> {
@@ -94,7 +95,6 @@ where
 /// Configures the cargo command to output colour and the progress bar.
 pub fn cargo_tty_output(cmd: Expression) -> Expression {
     #[cfg(windows)]
-    use term_size as _;
     let term_size = "100";
 
     #[cfg(not(windows))]
