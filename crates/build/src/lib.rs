@@ -83,7 +83,9 @@ use parity_wasm::elements::{
 };
 use semver::Version;
 use std::{
+    collections::VecDeque,
     fs,
+    io,
     path::{
         Path,
         PathBuf,
@@ -291,9 +293,10 @@ fn exec_cargo_for_onchain_target(
             None
         };
 
-        util::invoke_cargo(command, &args, manifest_path.directory(), verbosity, env)?;
+        let cargo =
+            util::cargo_cmd(command, &args, manifest_path.directory(), verbosity, env);
 
-        Ok(())
+        invoke_cargo_and_scan_for_error(cargo)
     };
 
     if unstable_flags.original_manifest {
@@ -317,6 +320,51 @@ fn exec_cargo_for_onchain_target(
             .using_temp(cargo_build)?;
     }
 
+    Ok(())
+}
+
+/// Executes the supplied cargo command, reading the output and scanning for known errors.
+/// Writes the captured stderr back to stderr and maintains the cargo tty progress bar.
+fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
+    macro_rules! eprintln_red {
+        ($value:expr) => {{
+            use colored::Colorize as _;
+            ::std::eprintln!("{}", $value.bright_red().bold());
+        }};
+    }
+
+    let cargo = util::cargo_tty_output(cargo);
+
+    let missing_main_err = "error[E0601]".as_bytes();
+    let mut err_buf = VecDeque::with_capacity(missing_main_err.len());
+
+    let mut reader = cargo.stderr_to_stdout().reader()?;
+    let mut buffer = [0u8; 1];
+
+    loop {
+        let bytes_read = io::Read::read(&mut reader, &mut buffer)?;
+        for byte in buffer[0..bytes_read].iter() {
+            err_buf.push_back(*byte);
+            if err_buf.len() > missing_main_err.len() {
+                let byte = err_buf.pop_front().expect("buffer is not empty");
+                io::Write::write(&mut io::stderr(), &[byte])?;
+            }
+        }
+        if missing_main_err == err_buf.make_contiguous() {
+            eprintln_red!("\nExited with error: [E0601]");
+            eprintln_red!(
+                "Your contract must be annotated with the `no_main` attribute.\n"
+            );
+            eprintln_red!("Examples how to do this:");
+            eprintln_red!("   - `#![cfg_attr(not(feature = \"std\"), no_std, no_main)]`");
+            eprintln_red!("   - `#[no_main]`\n");
+            return Err(anyhow::anyhow!("missing `no_main` attribute"))
+        }
+        if bytes_read == 0 {
+            break
+        }
+        buffer = [0u8; 1];
+    }
     Ok(())
 }
 
@@ -357,8 +405,15 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
             Ok(())
         })?
         .using_temp(|manifest_path| {
-            util::invoke_cargo("dylint", &args, manifest_path.directory(), verbosity, env)
-                .map(|_| ())
+            let cargo = util::cargo_cmd(
+                "dylint",
+                &args,
+                manifest_path.directory(),
+                verbosity,
+                env,
+            );
+            cargo.run()?;
+            Ok(())
         })?;
 
     Ok(())
@@ -548,7 +603,11 @@ fn assert_compatible_ink_dependencies(
 ) -> Result<()> {
     for dependency in ["parity-scale-codec", "scale-info"].iter() {
         let args = ["-i", dependency, "--duplicates"];
-        let _ = util::invoke_cargo("tree", args, manifest_path.directory(), verbosity, vec![])
+        let cargo =
+            util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
+        cargo
+            .stdout_null()
+            .run()
             .with_context(|| {
                 format!(
                     "Mismatching versions of `{dependency}` were found!\n\
