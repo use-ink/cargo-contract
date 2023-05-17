@@ -93,8 +93,12 @@ where
 
 /// Configures the cargo command to output colour and the progress bar.
 pub fn cargo_tty_output(cmd: Expression) -> Expression {
-    cmd.env("CARGO_TERM_COLOR", "always")
-        .env("CARGO_TERM_PROGRESS_WIDTH", "100")
+    let term_size = term_size::dimensions_stderr()
+        .map(|(width, _)| width.to_string())
+        .unwrap_or_else(|| "100".to_string());
+    cmd
+        .env("CARGO_TERM_COLOR", "always")
+        .env("CARGO_TERM_PROGRESS_WIDTH", term_size)
         .env("CARGO_TERM_PROGRESS_WHEN", "always")
 }
 
