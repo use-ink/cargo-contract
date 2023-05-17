@@ -351,7 +351,7 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
             }
         }
         if missing_main_err == err_buf.make_contiguous() {
-            eprintln!("\nExited with error: [E0601]");
+            eprintln_red!("\nExited with error: [E0601]");
             eprintln_red!(
                 "Your contract must be annotated with the `no_main` attribute.\n"
             );
