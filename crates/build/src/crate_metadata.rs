@@ -71,8 +71,8 @@ impl CrateMetadata {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
-        // Normalize the package name.
-        let package_name = root_package.name.replace('-', "_");
+        // Normalize the final contract artifact name.
+        let contract_artifact_name = root_package.name.replace('-', "_");
 
         if let Some(lib_name) = &root_package
             .targets
@@ -98,19 +98,19 @@ impl CrateMetadata {
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
-            target_directory = target_directory.join(package_name.clone());
+            target_directory = target_directory.join(contract_artifact_name.clone());
         }
 
-        // {target_dir}/{target}/release/{package_name}.{extension}
+        // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
         original_code.push(target.llvm_target());
         original_code.push("release");
-        original_code.push(package_name.clone());
+        original_code.push(root_package.name.clone());
         original_code.set_extension(target.source_extension());
 
-        // {target_dir}/{package_name}.code
+        // {target_dir}/{contract_artifact_name}.code
         let mut dest_code = target_directory.clone();
-        dest_code.push(package_name.clone());
+        dest_code.push(contract_artifact_name.clone());
         dest_code.set_extension(target.dest_extension());
 
         let ink_version = metadata
@@ -138,7 +138,7 @@ impl CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
             root_package,
-            contract_artifact_name: package_name,
+            contract_artifact_name,
             original_code: original_code.into(),
             dest_code: dest_code.into(),
             ink_version,
