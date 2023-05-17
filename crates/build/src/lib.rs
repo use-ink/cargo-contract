@@ -326,6 +326,13 @@ fn exec_cargo_for_onchain_target(
 /// Executes the supplied cargo command, reading the output and scanning for known errors.
 /// Writes the captured stderr back to stderr and maintains the cargo tty progress bar.
 fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
+    macro_rules! eprintln_red {
+        ($value:expr) => {{
+            use colored::Colorize as _;
+            ::std::eprintln!("{}", $value.bright_red().bold());
+        }};
+    }
+
     let cargo = util::cargo_tty_output(cargo);
 
     let missing_main_err = "error[E0601]".as_bytes();
@@ -344,16 +351,13 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
             }
         }
         if missing_main_err == err_buf.make_contiguous() {
-            eprintln!(
-                "\n\n{}",
-                "Ensure the contract is annotated with `no_main`, e.g.:"
-                    .bright_yellow()
-                    .bold()
+            eprintln_red!(
+                ": Your contract must be annotated with the `no_main` attribute."
             );
-            eprintln!(
-                "{}\n",
-                "#![cfg_attr(not(feature = \"std\"), no_std, no_main)]".bold()
-            );
+            eprintln_red!("Examples how to do this:");
+            eprintln_red!("   - `#![cfg_attr(not(feature = \"std\"), no_std, no_main)]`");
+            eprintln_red!("   - `#[no_main]`\n");
+            return Err(anyhow::anyhow!("missing `no_main` attribute"))
         }
         if bytes_read == 0 {
             break
