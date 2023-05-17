@@ -343,16 +343,17 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
 
     loop {
         let bytes_read = io::Read::read(&mut reader, &mut buffer)?;
-        io::Write::write(&mut io::stderr(), &buffer[0..bytes_read])?;
         for byte in buffer[0..bytes_read].iter() {
             err_buf.push_back(*byte);
             if err_buf.len() > missing_main_err.len() {
-                err_buf.pop_front();
+                let byte = err_buf.pop_front().expect("buffer is not empty");
+                io::Write::write(&mut io::stderr(), &[byte])?;
             }
         }
         if missing_main_err == err_buf.make_contiguous() {
+            eprintln!("\nExited with error: [E0601]");
             eprintln_red!(
-                ": Your contract must be annotated with the `no_main` attribute."
+                "Your contract must be annotated with the `no_main` attribute.\n"
             );
             eprintln_red!("Examples how to do this:");
             eprintln_red!("   - `#![cfg_attr(not(feature = \"std\"), no_std, no_main)]`");
