@@ -362,7 +362,7 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
         }
         if bytes_read == 0 {
             // flush the remaining buffered bytes
-            io::Write::write(&mut io::stderr(), &err_buf.make_contiguous())?;
+            io::Write::write(&mut io::stderr(), err_buf.make_contiguous())?;
             break
         }
         buffer = [0u8; 1];
