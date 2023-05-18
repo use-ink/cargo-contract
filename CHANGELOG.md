@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1]
+
+### Fixed
+- `[contract-build]` flush the remaining buffered bytes [1118](https://github.com/paritytech/cargo-contract/pull/1118)
+
 ## [3.0.0]
 
 ### Added
