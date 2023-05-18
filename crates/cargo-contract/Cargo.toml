@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "3.0.0"
+version = "3.0.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,9 +18,9 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "3.0.0", path = "../build" }
-contract-metadata = { version = "3.0.0", path = "../metadata" }
-contract-transcode = { version = "3.0.0", path = "../transcode" }
+contract-build = { version = "3.0.1", path = "../build" }
+contract-metadata = { version = "3.0.1", path = "../metadata" }
+contract-transcode = { version = "3.0.1", path = "../transcode" }
 
 anyhow = "1.0.71"
 clap = { version = "4.2.7", features = ["derive", "env"] }
