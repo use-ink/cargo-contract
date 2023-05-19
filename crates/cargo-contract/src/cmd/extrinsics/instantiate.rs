@@ -467,6 +467,11 @@ impl InstantiateDryRunResult {
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Gas limit",
+            self.gas_consumed.to_string(),
+            DEFAULT_KEY_COL_WIDTH
+        );
     }
 }
 
