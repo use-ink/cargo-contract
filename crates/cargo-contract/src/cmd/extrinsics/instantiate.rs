@@ -476,6 +476,11 @@ impl InstantiateDryRunResult {
             DEFAULT_KEY_COL_WIDTH
         );
         name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Gas consumed",
+            self.gas_consumed.to_string(),
+            DEFAULT_KEY_COL_WIDTH
+        );
     }
 }
 
