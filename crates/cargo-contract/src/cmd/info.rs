@@ -21,11 +21,11 @@ use super::{
 };
 use crate::{
     cmd::{
+        extrinsics::MAX_KEY_COL_WIDTH,
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
         Balance,
         CodeHash,
         ErrorVariant,
-        extrinsics::{MAX_KEY_COL_WIDTH}
     },
     name_value_println,
 };
@@ -130,8 +130,16 @@ impl InfoToJson {
     /// Display contract information in a formatted way
     pub fn basic_display_format_contract_info(&self) {
         name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
-        name_value_println!("Code Hash", format!("{:?}", self.code_hash), MAX_KEY_COL_WIDTH);
-        name_value_println!("Storage Items", format!("{:?}", self.storage_items), MAX_KEY_COL_WIDTH);
+        name_value_println!(
+            "Code Hash",
+            format!("{:?}", self.code_hash),
+            MAX_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Storage Items",
+            format!("{:?}", self.storage_items),
+            MAX_KEY_COL_WIDTH
+        );
         name_value_println!(
             "Storage Deposit",
             format!("{:?}", self.storage_item_deposit),
