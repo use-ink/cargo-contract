@@ -212,10 +212,9 @@ impl Exec {
                             &ret_val
                         ))?;
                     let dry_run_result = InstantiateDryRunResult {
-                        result: String::from("Success!"),
+                        result: value,
                         contract: ret_val.account_id.to_string(),
                         reverted: ret_val.result.did_revert(),
-                        data: value,
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
                         storage_deposit: StorageDeposit::from(&result.storage_deposit),
@@ -451,13 +450,12 @@ impl InstantiateResult {
 /// Result of the contract call
 #[derive(serde::Serialize)]
 pub struct InstantiateDryRunResult {
-    /// Result of a dry run
-    pub result: String,
+    /// The decoded result returned from the constructor
+    pub result: Value,
     /// contract address
     pub contract: String,
     /// Was the operation reverted
     pub reverted: bool,
-    pub data: Value,
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
@@ -471,14 +469,13 @@ impl InstantiateDryRunResult {
     }
 
     pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Result", format!("{}", self.result), DEFAULT_KEY_COL_WIDTH);
         name_value_println!(
             "Reverted",
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Returned", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
     }
 }
 
