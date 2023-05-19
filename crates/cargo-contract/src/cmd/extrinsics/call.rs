@@ -119,7 +119,7 @@ impl CallCommand {
                 match result.result {
                     Ok(ref ret_val) => {
                         let value = transcoder
-                            .decode_return(&self.message, &mut &ret_val.data[..])
+                            .decode_message_return(&self.message, &mut &ret_val.data[..])
                             .context(format!(
                                 "Failed to decode return value {:?}",
                                 &ret_val
@@ -329,6 +329,6 @@ impl CallDryRunResult {
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Returned", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }

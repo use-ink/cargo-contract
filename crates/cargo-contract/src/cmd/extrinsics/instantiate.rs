@@ -45,6 +45,7 @@ use crate::{
 };
 use anyhow::{
     anyhow,
+    Context,
     Result,
 };
 use contract_build::{
@@ -52,6 +53,7 @@ use contract_build::{
     util::decode_hex,
     Verbosity,
 };
+use contract_transcode::Value;
 
 use pallet_contracts_primitives::ContractInstantiateResult;
 
@@ -199,11 +201,21 @@ impl Exec {
             let result = self.instantiate_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
+                    let value = self
+                        .transcoder
+                        .decode_constructor_return(
+                            &self.args.constructor,
+                            &mut &ret_val.result.data[..],
+                        )
+                        .context(format!(
+                            "Failed to decode return value {:?}",
+                            &ret_val
+                        ))?;
                     let dry_run_result = InstantiateDryRunResult {
                         result: String::from("Success!"),
                         contract: ret_val.account_id.to_string(),
                         reverted: ret_val.result.did_revert(),
-                        data: ret_val.result.data.clone().into(),
+                        data: value,
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
                         storage_deposit: StorageDeposit::from(&result.storage_deposit),
@@ -445,7 +457,7 @@ pub struct InstantiateDryRunResult {
     pub contract: String,
     /// Was the operation reverted
     pub reverted: bool,
-    pub data: Bytes,
+    pub data: Value,
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
@@ -466,7 +478,7 @@ impl InstantiateDryRunResult {
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Returned", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }
 
