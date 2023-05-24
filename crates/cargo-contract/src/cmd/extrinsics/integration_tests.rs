@@ -201,6 +201,8 @@ async fn build_upload_instantiate_call() {
         .expect("failed to execute process");
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
+    println!("{:?}", stdout);
+    println!("{:?}", stderr);
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
     let contract_account = extract_contract_address(stdout);
