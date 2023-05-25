@@ -118,6 +118,9 @@ pub struct BuildCommand {
     /// Which bytecode to build the contract into.
     #[clap(long, default_value = "wasm")]
     target: Target,
+    /// The maximum number of pages available for a wasm contract to allocate.
+    #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
+    max_memory_pages: u32,
 }
 
 impl BuildCommand {
@@ -161,6 +164,7 @@ impl BuildCommand {
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
+            max_memory_pages: self.max_memory_pages,
         };
 
         contract_build::execute(args)
@@ -204,6 +208,7 @@ impl CheckCommand {
             output_type: OutputType::default(),
             skip_wasm_validation: false,
             target: self.target,
+            max_memory_pages: 0,
         };
 
         contract_build::execute(args)
