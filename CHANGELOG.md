@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.2]
+
+### Added
+- Add `suri-path` and `password-path` options for `cargo contract` commands including `upload`, `instantiate`, `call`, and `remove` - [#998](TBC)
+
 ## [3.0.1]
 
 ### Fixed

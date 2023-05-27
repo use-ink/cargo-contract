@@ -100,7 +100,9 @@ pub use upload::UploadCommand;
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug, clap::Args)]
+#[derive(Clone, Debug, clap::Parser)]
+#[clap(group = clap::ArgGroup::new("surigroup").multiple(false))]
+#[clap(group = clap::ArgGroup::new("passgroup").multiple(false))]
 pub struct ExtrinsicOpts {
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
@@ -117,12 +119,18 @@ pub struct ExtrinsicOpts {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// Secret key URI for the account deploying the contract.
-    #[clap(name = "suri", long, short)]
-    suri: String,
-    /// Password for the secret key.
-    #[clap(name = "password", long, short)]
+    /// Secret key URI for the account interacting with the contract.
+    #[clap(group = "surigroup", required = false, name = "suri", long, short('s'), conflicts_with = "suri-path")]
+    suri: Option<String>,
+    /// Path to a file containing the secret key URI for the account interacting with the contract.
+    #[clap(group = "surigroup", required = false, name = "suri-path", long, short('S'), conflicts_with = "suri")]
+    suri_path: Option<PathBuf>,
+    /// Password for the secret key URI.
+    #[clap(group = "passgroup", required = false, name = "password", long, short('p'), conflicts_with = "password-path")]
     password: Option<String>,
+    /// Path to a file containing the password for the secret key URI.
+    #[clap(group = "passgroup", required = false, name = "password-path", long, short('P'), conflicts_with = "password")]
+    password_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     /// Submit the extrinsic for on-chain execution.
@@ -149,10 +157,44 @@ impl ExtrinsicOpts {
         )
     }
 
+    /// Load suri and password data.
+    pub fn suri_data(&self) -> Result<SuriData> {
+        SuriData::from_suri_and_password_files(
+            self.suri_path.as_ref(),
+            self.password_path.as_ref(),
+        )
+    }
+
     /// Returns the signer for contract extrinsics.
     pub fn signer(&self) -> Result<sr25519::Pair> {
-        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
+        let suri = "".to_string();
+        match self.suri {
+            Some(s) => suri = s,
+            None => println!("suri not provided"),
+        }
+        let password = "".to_string();
+        match self.password {
+            Some(p) => password = p,
+            None => println!("password not provided"),
+        }
+        // Allow empty string password
+        if !suri.trim().is_empty() {
+            Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+                .map_err(|_| anyhow::anyhow!("Secret string error"))
+        } else {
+            let data: SuriData = match self.suri_data() {
+                Ok(d) => {
+                    // get suri from suri_path
+                    self.suri = d.suri_path.as_ref();
+                    // get password from password_path
+                    self.password = d.password_path.as_ref();
+                    Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+                        .map_err(|_| anyhow::anyhow!("Secret string error"))
+                },
+                Err(e) => println!("password not provided {}", e),
+            };
+        }
+
     }
 
     /// Returns the verbosity
@@ -183,6 +225,118 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?
             .map(Into::into))
+    }
+}
+
+/// The Suri of a contract.
+#[derive(Debug)]
+pub struct Suri(Vec<u8>);
+
+impl Suri {
+    /// The suri of the contract
+    pub fn suri(&self) -> [u8; 32] {
+        match self.0 {
+            Some(s) => return s,
+            None => return None
+        }
+    }
+}
+
+/// The Password of a contract.
+#[derive(Debug)]
+pub struct Password(Option<Vec<u8>>);
+
+impl Password {
+    /// The password of the contract
+    pub fn password(&self) -> [u8; 32] {
+        match self.0 {
+            Some(p) => return p,
+            None => return None
+        }
+    }
+}
+
+/// Suri and password data for use with extrinsic commands.
+#[derive(Debug)]
+pub struct SuriData {
+    /// The expected path of the file containing the suri data path.
+    suri_path: PathBuf,
+    /// The expected path of the file containing the password data path.
+    password_path: PathBuf,
+    /// The suri if data file exists.
+    suri: Option<String>,
+    /// The password if data file exists.
+    password: Option<String>,
+}
+
+impl SuriData {
+    /// Given an suri path and an associated password path,
+    /// load the metadata where possible.
+    pub fn from_suri_and_password_files(
+        suri_path: Option<&PathBuf>,
+        password_path: Option<&PathBuf>,
+    ) -> Result<SuriData> {
+        tracing::debug!("Loading suri path from `{}`", suri_path.display());
+        tracing::debug!("Loading password path from `{}`", password_path.display());
+
+        let suri =
+            match suri_path.extension().and_then(|ext| ext.to_str()) {
+                Some("txt") => {
+                    let file_name = suri_path.file_stem()
+                        .context("suri file has unreadable name")?
+                        .to_str()
+                        .context("Error parsing filename string")?;
+                    let suri = Some(Suri(std::fs::read(suri_path)?));
+                    let dir = suri_path.parent().map_or_else(PathBuf::new, PathBuf::from);
+                    let metadata_path = dir.join(format!("{file_name}.txt"));
+                    if metadata_path.exists() {
+                        suri
+                    } else {
+                        println!("suri file does not exist");
+                    }
+                    return suri;
+                }
+                Some(ext) => anyhow::bail!(
+                    "Invalid extension {ext}, expected `.txt`"
+                ),
+                None => {
+                    anyhow::bail!(
+                        "suri path has no extension, expected `.txt`"
+                    )
+                }
+            };
+        let password =
+            match password_path.extension().and_then(|ext| ext.to_str()) {
+                Some("txt") => {
+                    let file_name = password_path.file_stem()
+                        .context("password file has unreadable name")?
+                        .to_str()
+                        .context("Error parsing filename string")?;
+                    let password = Some(Password(std::fs::read(password_path)?));
+                    let dir = password_path.parent().map_or_else(PathBuf::new, PathBuf::from);
+                    let metadata_path = dir.join(format!("{file_name}.txt"));
+                    if metadata_path.exists() {
+                        password
+                    } else {
+                        println!("password file does not exist");
+                    }
+                    return password;
+                }
+                Some(ext) => anyhow::bail!(
+                    "Invalid extension {ext}, expected `.txt`"
+                ),
+                None => {
+                    anyhow::bail!(
+                        "password path has no extension, expected `.txt`"
+                    )
+                }
+            };
+        Ok(Self {
+            suri_path,
+            password_path,
+            suri: Some(suri),
+            password: Some(password),
+        })
     }
 }
 

@@ -628,7 +628,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "3.0.1"
+version = "3.0.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -806,7 +806,7 @@ checksum = "13418e745008f7349ec7e449155f419a61b92b58a99cc3616942b926825ec76b"
 
 [[package]]
 name = "contract-build"
-version = "3.0.1"
+version = "3.0.2"
 dependencies = [
  "anyhow",
  "blake2",
@@ -840,7 +840,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "3.0.1"
+version = "3.0.2"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "3.0.1"
+version = "3.0.2"
 dependencies = [
  "anyhow",
  "assert_matches",

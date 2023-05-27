@@ -336,6 +336,8 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
+    // TODO - add tests for `suri-path` and `password-path`
+
     let output = cargo_contract(project_path.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])

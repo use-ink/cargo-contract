@@ -20,9 +20,19 @@ development and testnets. It is a priority to implement a safer method of signin
 bearing chains.
 
 ```
+--suri-path
+```
+*Optional*. The path to a file containing the secret key URI for the account interacting with the contract.
+
+```
 --password
 ```
 *Optional*. The password for the `--suri`, see https://docs.substrate.io/v3/tools/subkey/#password-protected-keys.
+
+```
+--password-path
+```
+*Optional*. The path to a file containing the password for the secret key URI.
 
 ```
 --manifest-path
@@ -55,6 +65,15 @@ Upload the Wasm code of the contract to the target chain. Invokes the [`upload_c
 dispatchable.
 
 e.g. `cargo contract upload --suri //Alice`
+
+e.g.
+```
+cargo contract upload \
+       --suri-path ../path/to/my-secret-key-uri-file.txt \
+       --password-path ../path/to/my-secret-key-uri-password-file.txt
+```
+- `--suri-path` the path to a file containing the secret key URI for the account interacting with the contract.
+- `--password-path` the path to a file containing the password for the secret key URI.
 
 Assumes that `cargo contract build` has already been run to produce the contract artifacts.
 
