@@ -186,7 +186,7 @@ impl ExtrinsicOpts {
                 return Pair::from_string(&suri, password.as_ref().map(String::as_ref))
                     .map_err(|_| anyhow::anyhow!("Secret string error"))
             },
-            std::result::Result::Err(_e) => anyhow::bail!("suri data not provided {}", _e),
+            std::result::Result::Err(_e) => anyhow::bail!("suri data not provided. {}", _e),
         };
     }
 
@@ -286,7 +286,7 @@ impl SuriData {
                             std::result::Result::Ok(s) => s,
                             std::result::Result::Err(_e) => {
                                 anyhow::bail!(
-                                    "unable to convert Vec<u8> to String for suri_path {}", _e
+                                    "unable to convert Vec<u8> to String for suri_path. {}", _e
                                 )
                             }
                         };
@@ -297,7 +297,7 @@ impl SuriData {
                             suri = match s.suri() {
                                 std::result::Result::Ok(s) => s.to_string(),
                                 std::result::Result::Err(_e) => {
-                                    anyhow::bail!("unable to get value for Suri {}", _e)
+                                    anyhow::bail!("unable to get value for Suri. {}", _e)
                                 }
                             };
                         } else {
@@ -306,7 +306,7 @@ impl SuriData {
                         suri = match s.suri() {
                             std::result::Result::Ok(s) => s.to_string(),
                             std::result::Result::Err(_e) => {
-                                anyhow::bail!("unable to get value for Suri {}", _e)
+                                anyhow::bail!("unable to get value for Suri. {}", _e)
                             }
                         };
                     }
@@ -340,7 +340,7 @@ impl SuriData {
                             std::result::Result::Ok(p) => p,
                             std::result::Result::Err(_e) => {
                                 anyhow::bail!(
-                                    "unable to convert Vec<u8> to String for password_path {}", _e
+                                    "unable to convert Vec<u8> to String for password_path. {}", _e
                                 )
                             }
                         };
@@ -351,7 +351,7 @@ impl SuriData {
                             password = match p.password() {
                                 std::result::Result::Ok(p) => p.to_string(),
                                 std::result::Result::Err(_e) => {
-                                    anyhow::bail!("unable to get value for Password {}", _e)
+                                    anyhow::bail!("unable to get value for Password. {}", _e)
                                 }
                             };
                         } else {
@@ -360,7 +360,7 @@ impl SuriData {
                         password = match p.password() {
                             std::result::Result::Ok(p) => p.to_string(),
                             std::result::Result::Err(_e) => {
-                                anyhow::bail!("unable to get value for Password {}", _e)
+                                anyhow::bail!("unable to get value for Password. {}", _e)
                             }
                         };
                     }
