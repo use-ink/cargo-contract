@@ -167,46 +167,47 @@ impl ExtrinsicOpts {
 
     /// Returns the signer for contract extrinsics.
     pub fn signer(&self) -> Result<sr25519::Pair> {
-        let s_binding = "".to_string();
-        let mut suri = match &self.suri {
-            // TODO - figure out how to avoid using `.clone`
-            Some(s) => s.clone(),
-            None => s_binding,
-        };
-        let p_binding = "".to_string();
-        let mut password = match &self.password {
-            // TODO - figure out how to avoid using `.clone`
-            Some(p) => Some(p.clone()),
-            None => Some(p_binding),
-        };
-        // Allow empty string password
-        if !suri.trim().is_empty() {
-            Pair::from_string(&suri, password.as_ref().map(String::as_ref))
-                .map_err(|_| anyhow::anyhow!("Secret string error"))
-        } else {
-            match &self.suri_data() {
-                // TODO - replace with `Ok` from `anyhow` throughout if possible
-                // instead of using `std::result::Result`
-                std::result::Result::Ok(d) => {
-                    // get suri from suri_path
-                    suri = match &d.suri_path {
-                        // TODO - figure out how to avoid using `.clone`
-                        Some(s) => s.as_path().display().to_string(),
-                        None => anyhow::bail!("suri path not provided"),
-                    };
-                    // get password from password_path
-                    password = match &d.password_path {
-                        // TODO - figure out how to avoid using `.clone`
-                        Some(p) => Some(p.as_path().display().to_string()),
-                        None => anyhow::bail!("password path not provided"),
-                    };
-                    return Pair::from_string(&suri, password.as_ref().map(String::as_ref))
-                        .map_err(|_| anyhow::anyhow!("Secret string error"))
-                },
-                std::result::Result::Err(_e) => anyhow::bail!("suri data not provided {}", _e),
-            };
-        }
+        match &self.suri_data() {
+            // TODO - replace with `Ok` from `anyhow` throughout if possible
+            // instead of using `std::result::Result`
+            std::result::Result::Ok(d) => {
+                println!("d is {:#?}", d);
+                // // get suri_path
+                // let sp = match &d.suri_path {
+                //     // TODO - figure out how to avoid using `.clone`
+                //     Some(sp) => sp.as_path().display().to_string(),
+                //     None => anyhow::bail!("suri path not provided"),
+                // };
+                // println!("sp is {:#?}", sp);
 
+                // // get password_path
+                // let pp = match &d.password_path {
+                //     // TODO - figure out how to avoid using `.clone`
+                //     Some(pp) => Some(pp.as_path().display().to_string()),
+                //     None => anyhow::bail!("password path not provided"),
+                // };
+                // println!("pp is {:#?}", pp);
+
+                // get suri
+                let suri = match &d.suri {
+                    // remove newline characters
+                    Some(s) => s.trim().to_string(),
+                    None => anyhow::bail!("suri not provided"),
+                };
+                println!("suri is {:#?}", suri);
+
+                // get password
+                let password = match &d.password {
+                    // remove newline characters
+                    Some(p) => Some(p.trim().to_string()),
+                    None => anyhow::bail!("password not provided"),
+                };
+                println!("password is {:#?}", password);
+                return Pair::from_string(&suri, password.as_ref().map(String::as_ref))
+                    .map_err(|_| anyhow::anyhow!("Secret string error"))
+            },
+            std::result::Result::Err(_e) => anyhow::bail!("suri data not provided {}", _e),
+        };
     }
 
     /// Returns the verbosity
