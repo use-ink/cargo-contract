@@ -171,38 +171,18 @@ impl ExtrinsicOpts {
             // TODO - replace with `Ok` from `anyhow` throughout if possible
             // instead of using `std::result::Result`
             std::result::Result::Ok(d) => {
-                println!("d is {:#?}", d);
-                // // get suri_path
-                // let sp = match &d.suri_path {
-                //     // TODO - figure out how to avoid using `.clone`
-                //     Some(sp) => sp.as_path().display().to_string(),
-                //     None => anyhow::bail!("suri path not provided"),
-                // };
-                // println!("sp is {:#?}", sp);
-
-                // // get password_path
-                // let pp = match &d.password_path {
-                //     // TODO - figure out how to avoid using `.clone`
-                //     Some(pp) => Some(pp.as_path().display().to_string()),
-                //     None => anyhow::bail!("password path not provided"),
-                // };
-                // println!("pp is {:#?}", pp);
-
                 // get suri
                 let suri = match &d.suri {
                     // remove newline characters
                     Some(s) => s.trim().to_string(),
                     None => anyhow::bail!("suri not provided"),
                 };
-                println!("suri is {:#?}", suri);
-
                 // get password
                 let password = match &d.password {
                     // remove newline characters
                     Some(p) => Some(p.trim().to_string()),
                     None => anyhow::bail!("password not provided"),
                 };
-                println!("password is {:#?}", password);
                 return Pair::from_string(&suri, password.as_ref().map(String::as_ref))
                     .map_err(|_| anyhow::anyhow!("Secret string error"))
             },
@@ -321,7 +301,7 @@ impl SuriData {
                                 }
                             };
                         } else {
-                            println!("suri file does not exist");
+                            anyhow::bail!("suri file does not exist")
                         }
                         suri = match s.suri() {
                             std::result::Result::Ok(s) => s.to_string(),
@@ -365,7 +345,6 @@ impl SuriData {
                             }
                         };
                         let p = Password(Some(_p));
-
                         let dir = pp.parent().map_or_else(PathBuf::new, PathBuf::from);
                         let metadata_path = dir.join(format!("{file_name}.txt"));
                         if metadata_path.exists() {
@@ -376,7 +355,7 @@ impl SuriData {
                                 }
                             };
                         } else {
-                            println!("password file does not exist");
+                            anyhow::bail!("password file does not exist")
                         }
                         password = match p.password() {
                             std::result::Result::Ok(p) => p.to_string(),
