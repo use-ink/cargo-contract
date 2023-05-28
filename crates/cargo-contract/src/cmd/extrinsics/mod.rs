@@ -167,31 +167,43 @@ impl ExtrinsicOpts {
 
     /// Returns the signer for contract extrinsics.
     pub fn signer(&self) -> Result<sr25519::Pair> {
-        let suri = "".to_string();
-        match self.suri {
-            Some(s) => suri = s,
-            None => println!("suri not provided"),
-        }
-        let password = "".to_string();
-        match self.password {
-            Some(p) => password = p,
-            None => println!("password not provided"),
-        }
+        let s_binding = "".to_string();
+        let mut suri = match &self.suri {
+            // TODO - figure out how to avoid using `.clone`
+            Some(s) => s.clone(),
+            None => s_binding,
+        };
+        let p_binding = "".to_string();
+        let mut password = match &self.password {
+            // TODO - figure out how to avoid using `.clone`
+            Some(p) => Some(p.clone()),
+            None => Some(p_binding),
+        };
         // Allow empty string password
         if !suri.trim().is_empty() {
-            Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+            Pair::from_string(&suri, password.as_ref().map(String::as_ref))
                 .map_err(|_| anyhow::anyhow!("Secret string error"))
         } else {
-            let data: SuriData = match self.suri_data() {
-                Ok(d) => {
+            match &self.suri_data() {
+                // TODO - replace with `Ok` from `anyhow` throughout if possible
+                // instead of using `std::result::Result`
+                std::result::Result::Ok(d) => {
                     // get suri from suri_path
-                    self.suri = d.suri_path.as_ref();
+                    suri = match &d.suri_path {
+                        // TODO - figure out how to avoid using `.clone`
+                        Some(s) => s.as_path().display().to_string(),
+                        None => anyhow::bail!("suri path not provided"),
+                    };
                     // get password from password_path
-                    self.password = d.password_path.as_ref();
-                    Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+                    password = match &d.password_path {
+                        // TODO - figure out how to avoid using `.clone`
+                        Some(p) => Some(p.as_path().display().to_string()),
+                        None => anyhow::bail!("password path not provided"),
+                    };
+                    return Pair::from_string(&suri, password.as_ref().map(String::as_ref))
                         .map_err(|_| anyhow::anyhow!("Secret string error"))
                 },
-                Err(e) => println!("password not provided {}", e),
+                std::result::Result::Err(_e) => anyhow::bail!("suri data not provided {}", _e),
             };
         }
 
@@ -230,28 +242,28 @@ impl ExtrinsicOpts {
 
 /// The Suri of a contract.
 #[derive(Debug)]
-pub struct Suri(Vec<u8>);
+pub struct Suri(Option<String>);
 
 impl Suri {
     /// The suri of the contract
-    pub fn suri(&self) -> [u8; 32] {
-        match self.0 {
-            Some(s) => return s,
-            None => return None
+    pub fn suri(&self) -> Result<&String> {
+        match &self.0 {
+            Some(s) => return Ok(s),
+            None => anyhow::bail!("suri not available"),
         }
     }
 }
 
 /// The Password of a contract.
 #[derive(Debug)]
-pub struct Password(Option<Vec<u8>>);
+pub struct Password(Option<String>);
 
 impl Password {
     /// The password of the contract
-    pub fn password(&self) -> [u8; 32] {
-        match self.0 {
-            Some(p) => return p,
-            None => return None
+    pub fn password(&self) -> Result<&String> {
+        match &self.0 {
+            Some(p) => return Ok(p),
+            None => anyhow::bail!("password not available"),
         }
     }
 }
@@ -260,9 +272,9 @@ impl Password {
 #[derive(Debug)]
 pub struct SuriData {
     /// The expected path of the file containing the suri data path.
-    suri_path: PathBuf,
+    suri_path: Option<PathBuf>,
     /// The expected path of the file containing the password data path.
-    password_path: PathBuf,
+    password_path: Option<PathBuf>,
     /// The suri if data file exists.
     suri: Option<String>,
     /// The password if data file exists.
@@ -276,64 +288,123 @@ impl SuriData {
         suri_path: Option<&PathBuf>,
         password_path: Option<&PathBuf>,
     ) -> Result<SuriData> {
-        tracing::debug!("Loading suri path from `{}`", suri_path.display());
-        tracing::debug!("Loading password path from `{}`", password_path.display());
+        let mut suri = "".to_string();
+        let mut password = "".to_string();
 
-        let suri =
-            match suri_path.extension().and_then(|ext| ext.to_str()) {
-                Some("txt") => {
-                    let file_name = suri_path.file_stem()
-                        .context("suri file has unreadable name")?
-                        .to_str()
-                        .context("Error parsing filename string")?;
-                    let suri = Some(Suri(std::fs::read(suri_path)?));
-                    let dir = suri_path.parent().map_or_else(PathBuf::new, PathBuf::from);
-                    let metadata_path = dir.join(format!("{file_name}.txt"));
-                    if metadata_path.exists() {
-                        suri
-                    } else {
-                        println!("suri file does not exist");
+        match suri_path {
+            Some(sp) => {
+                match sp.extension().and_then(|ext| ext.to_str()) {
+                    Some("txt") => {
+                        tracing::debug!("Loading suri path from `{}`", sp.display());
+                        let file_name = sp.file_stem()
+                            .context("suri file has unreadable name")?
+                            .to_str()
+                            .context("Error parsing filename string")?;
+                        // TODO - consider storing `Vec<u8>` in Suri struct instead of `String`
+                        let _s: String = match String::from_utf8(std::fs::read(sp)?) {
+                            std::result::Result::Ok(s) => s,
+                            std::result::Result::Err(_e) => {
+                                anyhow::bail!(
+                                    "unable to convert Vec<u8> to String for suri_path {}", _e
+                                )
+                            }
+                        };
+                        let s = Suri(Some(_s));
+                        let dir = sp.parent().map_or_else(PathBuf::new, PathBuf::from);
+                        let metadata_path = dir.join(format!("{file_name}.txt"));
+                        if metadata_path.exists() {
+                            suri = match s.suri() {
+                                std::result::Result::Ok(s) => s.to_string(),
+                                std::result::Result::Err(_e) => {
+                                    anyhow::bail!("unable to get value for Suri {}", _e)
+                                }
+                            };
+                        } else {
+                            println!("suri file does not exist");
+                        }
+                        suri = match s.suri() {
+                            std::result::Result::Ok(s) => s.to_string(),
+                            std::result::Result::Err(_e) => {
+                                anyhow::bail!("unable to get value for Suri {}", _e)
+                            }
+                        };
                     }
-                    return suri;
-                }
-                Some(ext) => anyhow::bail!(
-                    "Invalid extension {ext}, expected `.txt`"
-                ),
-                None => {
-                    anyhow::bail!(
-                        "suri path has no extension, expected `.txt`"
-                    )
-                }
-            };
-        let password =
-            match password_path.extension().and_then(|ext| ext.to_str()) {
-                Some("txt") => {
-                    let file_name = password_path.file_stem()
-                        .context("password file has unreadable name")?
-                        .to_str()
-                        .context("Error parsing filename string")?;
-                    let password = Some(Password(std::fs::read(password_path)?));
-                    let dir = password_path.parent().map_or_else(PathBuf::new, PathBuf::from);
-                    let metadata_path = dir.join(format!("{file_name}.txt"));
-                    if metadata_path.exists() {
-                        password
-                    } else {
-                        println!("password file does not exist");
+                    Some(ext) => anyhow::bail!(
+                        "Invalid extension {ext}, expected `.txt`"
+                    ),
+                    None => {
+                        anyhow::bail!(
+                            "suri path has no extension, expected `.txt`"
+                        )
                     }
-                    return password;
-                }
-                Some(ext) => anyhow::bail!(
-                    "Invalid extension {ext}, expected `.txt`"
-                ),
-                None => {
-                    anyhow::bail!(
-                        "password path has no extension, expected `.txt`"
-                    )
-                }
-            };
+                };
+            },
+            None => {
+                anyhow::bail!(
+                    "suri path has no extension, expected `.txt`"
+                )
+            }
+        }
+
+        match password_path {
+            Some(pp) => {
+                match pp.extension().and_then(|ext| ext.to_str()) {
+                    Some("txt") => {
+                        tracing::debug!("Loading password path from `{}`", pp.display());
+                        let file_name = pp.file_stem()
+                            .context("password file has unreadable name")?
+                            .to_str()
+                            .context("Error parsing filename string")?;
+                        let _p: String = match String::from_utf8(std::fs::read(pp)?) {
+                            std::result::Result::Ok(p) => p,
+                            std::result::Result::Err(_e) => {
+                                anyhow::bail!(
+                                    "unable to convert Vec<u8> to String for password_path {}", _e
+                                )
+                            }
+                        };
+                        let p = Password(Some(_p));
+
+                        let dir = pp.parent().map_or_else(PathBuf::new, PathBuf::from);
+                        let metadata_path = dir.join(format!("{file_name}.txt"));
+                        if metadata_path.exists() {
+                            password = match p.password() {
+                                std::result::Result::Ok(p) => p.to_string(),
+                                std::result::Result::Err(_e) => {
+                                    anyhow::bail!("unable to get value for Password {}", _e)
+                                }
+                            };
+                        } else {
+                            println!("password file does not exist");
+                        }
+                        password = match p.password() {
+                            std::result::Result::Ok(p) => p.to_string(),
+                            std::result::Result::Err(_e) => {
+                                anyhow::bail!("unable to get value for Password {}", _e)
+                            }
+                        };
+                    }
+                    Some(ext) => anyhow::bail!(
+                        "Invalid extension {ext}, expected `.txt`"
+                    ),
+                    None => {
+                        anyhow::bail!(
+                            "password path has no extension, expected `.txt`"
+                        )
+                    }
+                };
+            },
+            None => {
+                anyhow::bail!(
+                    "password path has no extension, expected `.txt`"
+                )
+            }
+        }
+
         Ok(Self {
-            suri_path,
-            password_path,
+            // TODO - figure out how to avoid using `cloned()`
+            suri_path: suri_path.cloned(),
+            password_path: password_path.cloned(),
             suri: Some(suri),
             password: Some(password),
         })
