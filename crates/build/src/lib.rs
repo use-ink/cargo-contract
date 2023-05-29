@@ -143,7 +143,7 @@ impl Default for ExecuteArgs {
 }
 
 /// Result of the build process.
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,

@@ -45,7 +45,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     #[default]

@@ -56,7 +56,7 @@ use std::{
 use url::Url;
 
 /// Artifacts resulting from metadata generation.
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,

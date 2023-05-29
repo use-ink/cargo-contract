@@ -22,6 +22,7 @@ use contract_build::{
     ExecuteArgs,
     Features,
     ManifestPath,
+    MetadataArtifacts,
     Network,
     OptimizationPasses,
     OutputType,
@@ -31,8 +32,16 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
+use byte_unit::Byte;
+use serde_json::{
+    Map,
+    Value,
+};
 use std::{
+    collections::HashMap,
     convert::TryFrom,
+    fs::File,
+    io::{BufReader, Read},
     path::PathBuf,
 };
 
@@ -167,7 +176,100 @@ impl BuildCommand {
             max_memory_pages: self.max_memory_pages,
         };
 
-        contract_build::execute(args)
+        let build_result: BuildResult = match contract_build::execute(args) {
+            Ok(b) => b,
+            _ => anyhow::bail!("Unable to execute build of the smart contract"),
+        };
+        println!("build_result {:#?}", build_result);
+        let mut target_directory = build_result.target_directory
+            .as_path().display().to_string();
+        let target_directory_short = match &target_directory.rfind("target") {
+            Some(index) => target_directory.split_off(*index),
+            None => "".to_string(), // unknown target directory
+        };
+        println!("target_directory_short: {}", &target_directory_short);
+
+        let metadata_artifacts: &MetadataArtifacts =
+            match &build_result.metadata_result {
+                Some(ma) => ma,
+                None => anyhow::bail!("Missing metadata_result in build result"),
+            };
+        let metadata_json_path = metadata_artifacts.dest_metadata
+            .as_path().display().to_string();
+        println!("metadata_json_path {:?}", metadata_json_path);
+        let file_metadata = File::open(metadata_json_path)?;
+        let mut buf_reader = BufReader::new(&file_metadata);
+        let mut contents = String::new();
+        buf_reader.read_to_string(&mut contents)?;
+        let file_metadata_len = &file_metadata.metadata().unwrap().len();
+        let byte = Byte::from_bytes(<u64 as Into<u128>>::into(*file_metadata_len));
+        let adjusted_byte = byte.get_appropriate_unit(false);
+        let file_len_units = &adjusted_byte.to_string();
+        println!("file len in units {}", &adjusted_byte.to_string());
+
+        let metadata_json: Map<String, Value> =
+            serde_json::from_slice::<Map<String, Value>>(&contents.as_bytes())?;
+        let contract_name = metadata_json["storage"]["root"]["layout"]["struct"]["name"].as_str().unwrap();
+        println!("contract_name {:?}", &contract_name);
+        // println!("metadata_json {:?}", metadata_json);
+        let contract_map = HashMap::from([
+            ("Contract", contract_name),
+            ("Size", file_len_units),
+            ("Metadata Path", &target_directory_short),
+        ]);
+        let build_data = vec![
+            &contract_map
+        ];
+        println!("contract_map {:#?}", contract_map.clone());
+        println!("build_data {:#?}", &build_data);
+
+        let build_info_path = "build_info.json";
+        let exists_build_info_path = std::path::Path::new(build_info_path).exists();
+        if !exists_build_info_path {
+            println!("existing path");
+            // build_info.json doesn't exist, so create it with the data
+            serde_json::to_writer(&File::create("build_info.json")?, &build_data)?;
+        } else {
+            println!("not existing path");
+            // build_info.json exists, so update it with the data
+            let file_build_info = File::open(build_info_path)?;
+            buf_reader = BufReader::new(&file_build_info);
+            contents = String::new();
+            buf_reader.read_to_string(&mut contents)?;
+            let build_info_json: Vec<Map<String, Value>> =
+                serde_json::from_slice::<Vec<Map<String, Value>>>(&contents.as_bytes())?;
+            println!("build_info_json {:#?}", build_info_json);
+
+            let mut new_build_data: Vec<HashMap<&str, &str>> = vec![];
+            let mut _serialized_data: &str;
+            let mut _info_hashmap: &HashMap<&str, &str>;
+
+            for info in build_info_json.iter() {
+                // serialized_data = serde_json::to_string(&info).unwrap().as_str();
+                let serialized_data_owned: &str = &serde_json::to_string(&info).unwrap();
+                _serialized_data = &serialized_data_owned;
+                let info_hashmap_owned = serde_json::from_str(&serialized_data_owned).unwrap();
+                _info_hashmap = &info_hashmap_owned;
+
+                // println!("{:#?}", info);
+                for (label, val) in info.clone() {
+                    println!("{label:?} has {val}");
+                    // replace existing build info with new contract info
+                    // if the contract name already exists as a value in build_info.json
+                    if val == contract_name {
+                        &new_build_data.push(contract_map.clone());
+                    // otherwise keep the existing contract info object
+                    } else {
+                        &new_build_data.push(info_hashmap_owned);
+                    }
+                }
+            }
+            // write updated to file
+            serde_json::to_writer(&File::create("build_info.json")?,
+                &new_build_data.clone())?;
+        }
+
+        Ok(build_result)
     }
 }
 
