@@ -16,6 +16,7 @@
 
 use anyhow::Result;
 use clap::Args;
+use online::check;
 use std::{
     convert::TryFrom,
     fmt,
@@ -78,9 +79,17 @@ pub enum Network {
 }
 
 impl Network {
+    /// Returns the current network status
+    pub fn network_status(&self) -> Self {
+        match check(None) {
+            Ok(_) => Self::Online,
+            _ => Self::Offline
+        }
+    }
+
     /// If `Network::Offline` append the `--offline` flag for cargo invocations.
     pub fn append_to_args(&self, args: &mut Vec<String>) {
-        match self {
+        match self.network_status() {
             Self::Online => (),
             Self::Offline => args.push("--offline".to_owned()),
         }
