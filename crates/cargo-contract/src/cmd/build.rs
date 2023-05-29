@@ -236,11 +236,11 @@ impl BuildCommand {
             buf_reader = BufReader::new(&file_build_info);
             contents = String::new();
             buf_reader.read_to_string(&mut contents)?;
-            let build_info_json: Vec<Map<String, Value>> =
-                serde_json::from_slice::<Vec<Map<String, Value>>>(&contents.as_bytes())?;
+            let build_info_json: Vec<HashMap<&str, &str>> =
+                serde_json::from_slice::<Vec<HashMap<&str, &str>>>(&contents.as_bytes())?;
             println!("build_info_json {:#?}", build_info_json);
 
-            let mut new_build_data: Vec<HashMap<&str, &str>> = vec![];
+            let mut _new_build_data: Vec<HashMap<&str, &str>> = vec![];
             let mut _serialized_data: &str;
             let mut _info_hashmap: &HashMap<&str, &str>;
 
@@ -257,16 +257,16 @@ impl BuildCommand {
                     // replace existing build info with new contract info
                     // if the contract name already exists as a value in build_info.json
                     if val == contract_name {
-                        &new_build_data.push(contract_map.clone());
+                        &_new_build_data.push(contract_map.clone());
                     // otherwise keep the existing contract info object
                     } else {
-                        &new_build_data.push(info_hashmap_owned);
+                        &_new_build_data.push(info_hashmap_owned.clone());
                     }
                 }
             }
             // write updated to file
             serde_json::to_writer(&File::create("build_info.json")?,
-                &new_build_data.clone())?;
+                &_new_build_data.clone())?;
         }
 
         Ok(build_result)
