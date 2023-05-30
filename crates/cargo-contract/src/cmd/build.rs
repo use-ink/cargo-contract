@@ -226,47 +226,50 @@ impl BuildCommand {
         let build_info_path = "build_info.json";
         let exists_build_info_path = std::path::Path::new(build_info_path).exists();
         if !exists_build_info_path {
-            println!("existing path");
+            println!("not existing path");
             // build_info.json doesn't exist, so create it with the data
             serde_json::to_writer(&File::create("build_info.json")?, &build_data)?;
         } else {
-            println!("not existing path");
+            println!("existing path");
             // build_info.json exists, so update it with the data
             let file_build_info = File::open(build_info_path)?;
             buf_reader = BufReader::new(&file_build_info);
             contents = String::new();
             buf_reader.read_to_string(&mut contents)?;
-            let build_info_json: Vec<HashMap<&str, &str>> =
+            let mut build_info_json: Vec<HashMap<&str, &str>> =
                 serde_json::from_slice::<Vec<HashMap<&str, &str>>>(&contents.as_bytes())?;
             println!("build_info_json {:#?}", build_info_json);
 
-            let mut _new_build_data: Vec<HashMap<&str, &str>> = vec![];
-            let mut _serialized_data: &str;
-            let mut _info_hashmap: &HashMap<&str, &str>;
-
-            for info in build_info_json.iter() {
-                // serialized_data = serde_json::to_string(&info).unwrap().as_str();
-                let serialized_data_owned: &str = &serde_json::to_string(&info).unwrap();
-                _serialized_data = &serialized_data_owned;
-                let info_hashmap_owned = serde_json::from_str(&serialized_data_owned).unwrap();
-                _info_hashmap = &info_hashmap_owned;
-
-                // println!("{:#?}", info);
-                for (label, val) in info.clone() {
-                    println!("{label:?} has {val}");
-                    // replace existing build info with new contract info
-                    // if the contract name already exists as a value in build_info.json
-                    if val == contract_name {
-                        &_new_build_data.push(contract_map.clone());
-                    // otherwise keep the existing contract info object
-                    } else {
-                        &_new_build_data.push(info_hashmap_owned.clone());
-                    }
+            let mut found = false;
+            for info in build_info_json.iter_mut() {
+                // replace existing build info with new contract info
+                // if the contract name already exists as a value in build_info.json
+                let c = match info.get(&"Contract") {
+                    Some(c) => c,
+                    None => "",
+                };
+                if c == contract_name {
+                    // &_new_build_data.push(contract_map.clone());
+                    found = true;
+                    info.insert("Size", match contract_map.get(&"Size") {
+                        Some(s) => s,
+                        None => "",
+                    });
+                    info.insert("Metadata Path", match contract_map.get(&"Metadata Path") {
+                        Some(m) => m,
+                        None => "",
+                    });
                 }
             }
+            // if did not find an existing value in build_info_json to update
+            // then push the new value to the end
+            if found == false {
+                build_info_json.push(contract_map);
+            }
+            println!("build_info_json to write{:#?}", build_info_json);
             // write updated to file
             serde_json::to_writer(&File::create("build_info.json")?,
-                &_new_build_data.clone())?;
+                &build_info_json.clone())?;
         }
 
         Ok(build_result)
