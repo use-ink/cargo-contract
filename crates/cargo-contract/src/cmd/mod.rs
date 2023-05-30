@@ -21,6 +21,7 @@ pub mod encode;
 pub mod info;
 pub mod printer;
 pub mod runtime_api;
+pub mod save;
 
 pub(crate) use self::{
     build::{

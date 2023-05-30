@@ -36,7 +36,7 @@ use std::{
     path::PathBuf,
 };
 use crate::{
-    cmd::build_summary::save,
+    cmd::save::save,
 };
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for
