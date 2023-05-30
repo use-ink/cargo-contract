@@ -14,6 +14,12 @@ use std::{
     io::{BufReader, Read},
     path::Path,
 };
+use crate::{
+    cmd::printer::{
+        ColorizeSpec, HtmlTableFormat, HtmlTablePrinter, JsonTable, PlainTextTableFormat,
+        PlainTextTablePrinter, Printer, TableFormat, TableHeader,
+    },
+};
 
 const BUILD_INFO_PATH: &str = "build_info.json";
 
@@ -69,7 +75,7 @@ pub fn save(build_result: &BuildResult) -> Result<(), Error> {
         // build_info.json doesn't exist, so create it with the data
         serde_json::to_writer(&File::create(BUILD_INFO_PATH)?, &build_data)?;
     } else {
-        print_build_info(true, Some(contract_name), Some(contract_map))?;
+        print_build_info(true, false, Some(contract_name), Some(contract_map))?;
     }
     Ok(())
 }
@@ -78,7 +84,7 @@ pub fn save(build_result: &BuildResult) -> Result<(), Error> {
 // that have been included in a file build_info.json in the project root.
 // If it is called whilst contract is being built then `write_new_build`
 // will be `true` and that contract will be added to or updated in build_info.json
-pub fn print_build_info(write_new_build: bool,
+pub fn print_build_info(write_new_build: bool, output_json: bool,
     contract_name: Option<&str>, contract_map: Option<HashMap<&str, &str>>) -> Result<(), Error> {
     let exists_build_info_path = Path::new(BUILD_INFO_PATH).exists();
     if !exists_build_info_path {
@@ -125,12 +131,45 @@ pub fn print_build_info(write_new_build: bool,
         serde_json::to_writer(&File::create("build_info.json")?,
         &build_info_json.clone())?;
     }
-    if self.output_json {
-        println!("{:#?}", build_info_json);
+    if output_json {
+        println!("{:#?}", &build_info_json);
     } else {
-        // TODO - replace with tabular format when they don't use
-        // `--output-build-info-json`
-        println!("{:#?}", build_info_json);
+        // if they don't specify `--output-build-info-json` when running
+        // `cargo contract summary --output-build-info-json` then we will output tabular format
+        let build_info_json_value: Value = serde_json::to_value(&build_info_json).unwrap();
+        println!("build_info_json_value {:#?}", &build_info_json_value);
+
+        let spec = vec!["Contract:Flipper:ddd".to_string()];
+        let colorize: Vec<_> = spec
+            .iter()
+            .map(ColorizeSpec::parse)
+            .collect::<Result<_, _>>()?;
+        println!("colorize {:#?}", colorize);
+
+        // note: we actually don't need to provide headers because `infer_headers` infers the headers
+        // so it would still work if `given_headers` was `None`
+        let mut named_fields: Vec<String> = build_info_json[0].clone().into_keys().into_iter().map(|s| String::from(s)).collect::<Vec<String>>();
+        named_fields.sort_unstable();
+        println!("named_fields {:#?}", named_fields);
+        assert_eq!(named_fields, ["Contract", "Metadata Path", "Size"]);
+        let given_headers = TableHeader::NamedFields { fields: named_fields };
+
+        let table = JsonTable::new(Some(given_headers), &build_info_json_value);
+        println!("table {:#?}", table);
+
+        // Options:
+        // - PlainTextTableFormat::Default
+        // - PlainTextTableFormat::Markdown
+        // - HtmlTableFormat::Raw
+        // - HtmlTableFormat::Styled
+        let format = TableFormat::PlainText(PlainTextTableFormat::Default);
+        // let format = TableFormat::Html(HtmlTableFormat::Styled);
+        match format {
+            TableFormat::PlainText(format) => {
+                PlainTextTablePrinter::new(colorize, format).print(&table)?
+            }
+            TableFormat::Html(format) => HtmlTablePrinter::new(format).print(&table)?,
+        }
     }
 
     Ok(())
@@ -146,7 +185,7 @@ pub struct SummaryCommand {
 
 impl SummaryCommand {
     pub fn run(&self) -> Result<(), Error> {
-        print_build_info(false, None, None)?;
+        print_build_info(false, self.build_info_json, None, None)?;
 
         Ok(())
     }

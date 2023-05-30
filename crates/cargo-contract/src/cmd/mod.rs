@@ -15,11 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod build;
+pub mod build_summary;
 pub mod decode;
 pub mod encode;
 pub mod info;
+pub mod printer;
 pub mod runtime_api;
-pub mod build_summary;
 
 pub(crate) use self::{
     build::{

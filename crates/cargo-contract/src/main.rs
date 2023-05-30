@@ -18,6 +18,7 @@
 
 mod cmd;
 
+#[macro_use] extern crate prettytable;
 use self::cmd::{
     BuildCommand,
     CallCommand,
