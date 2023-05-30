@@ -1,4 +1,4 @@
-// Reference: https://github.com/wlezzar/jtab
+// Credit: https://github.com/wlezzar/jtab
 use std::collections::HashMap;
 
 use anyhow::bail;
@@ -130,15 +130,8 @@ pub enum PlainTextTableFormat {
 }
 
 #[derive(Debug)]
-pub enum HtmlTableFormat {
-    Raw,
-    Styled,
-}
-
-#[derive(Debug)]
 pub enum TableFormat {
     PlainText(PlainTextTableFormat),
-    Html(HtmlTableFormat),
 }
 
 fn pprint_table_cell(value: &Value) -> anyhow::Result<String> {
@@ -229,67 +222,6 @@ impl Printer for PlainTextTablePrinter {
         }
 
         table.printstd();
-        Ok(())
-    }
-}
-
-pub struct HtmlTablePrinter {
-    format: HtmlTableFormat,
-}
-
-impl HtmlTablePrinter {
-    pub fn new(format: HtmlTableFormat) -> Self {
-        Self { format }
-    }
-}
-
-const BOOTSTRAP_CDN: &str = r#"
-    <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-      integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
-      crossorigin="anonymous">
-"#;
-
-impl Printer for HtmlTablePrinter {
-    fn print(&self, data: &JsonTable) -> anyhow::Result<()> {
-        let mut result = String::new();
-
-        match self.format {
-            HtmlTableFormat::Raw => result.push_str("<table>"),
-            HtmlTableFormat::Styled => {
-                result.push_str(BOOTSTRAP_CDN);
-                result.push_str(r#"<table class="table table-bordered table-hover">"#)
-            }
-        }
-
-        // header
-        result.push_str("<tr>");
-        match &data.headers {
-            TableHeader::NamedFields { fields } => {
-                for field in fields {
-                    result.push_str(format!("<th>{}</th>", field).as_str())
-                }
-            }
-            TableHeader::SingleUnnamedColumn => result.push_str("<th>Value</th>"),
-        }
-        result.push_str("</tr>");
-
-        // rows
-        for row in &data.values {
-            result.push_str("<tr>");
-            for element in row {
-                let formatted = pprint_table_cell(element)?;
-                let formatted = formatted.as_str();
-                result.push_str(format!("<td><pre>{}</pre></td>", formatted).as_str())
-            }
-            result.push_str("</tr>");
-        }
-
-        result.push_str("</table>");
-
-        println!("{}", result);
-
         Ok(())
     }
 }
