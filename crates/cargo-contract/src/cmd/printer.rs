@@ -243,10 +243,8 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
     contract_name: Option<&str>, contract_map: Option<HashMap<&str, &str>>) -> Result<(), Error> {
     let exists_build_info_path = Path::new(BUILD_INFO_PATH).exists();
     if !exists_build_info_path {
-        // println!("not existing path");
         anyhow::bail!("Unable to print from or write to file that does not exist");
     }
-    // println!("existing path");
     // build_info.json exists, so update it with the data
     let file_build_info = File::open(BUILD_INFO_PATH)?;
     let mut buf_reader = BufReader::new(&file_build_info);
@@ -254,7 +252,6 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
     buf_reader.read_to_string(&mut contents)?;
     let mut build_info_json: Vec<HashMap<&str, &str>> =
         serde_json::from_slice::<Vec<HashMap<&str, &str>>>(&contents.as_bytes())?;
-    // println!("build_info_json {:#?}", build_info_json);
 
     if write_new_build == true {
         let mut found = false;
@@ -277,8 +274,7 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
                 });
             }
         }
-        // if did not find an existing value in build_info_json to update
-        // then push the new value to the end
+        // if did not find an existing value in build_info_json to update then push new value to end
         if found == false {
             build_info_json.push(contract_map.clone().unwrap());
         }
@@ -292,25 +288,20 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
         // if they don't specify `--output-build-info-json` when running
         // `cargo contract summary --output-build-info-json` then we will output tabular format
         let build_info_json_value: Value = serde_json::to_value(&build_info_json).unwrap();
-        // println!("build_info_json_value {:#?}", &build_info_json_value);
-
         let spec = vec!["Contract:Flipper:ddd".to_string()];
         let colorize: Vec<_> = spec
             .iter()
             .map(ColorizeSpec::parse)
             .collect::<Result<_, _>>()?;
-        // println!("colorize {:#?}", colorize);
 
         // note: we actually don't need to provide headers because `infer_headers` infers the headers
         // so it would still work if `given_headers` was `None`
-        let mut named_fields: Vec<String> = build_info_json[0].clone().into_keys().into_iter().map(|s| String::from(s)).collect::<Vec<String>>();
+        let mut named_fields: Vec<String> = build_info_json[0].clone()
+            .into_keys().into_iter().map(|s| String::from(s)).collect::<Vec<String>>();
         named_fields.sort_unstable();
-        // println!("named_fields {:#?}", named_fields);
-        // assert_eq!(named_fields, ["Contract", "Metadata Path", "Size"]);
         let given_headers = TableHeader::NamedFields { fields: named_fields };
 
         let table = JsonTable::new(Some(given_headers), &build_info_json_value);
-        // println!("table {:#?}", table);
 
         // set to `PlainTextTableFormat::Default` or `PlainTextTableFormat::Markdown`
         let format = PlainTextTableFormat::Default;
