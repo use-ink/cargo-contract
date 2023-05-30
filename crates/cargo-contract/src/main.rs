@@ -30,6 +30,7 @@ use self::cmd::{
     UploadCommand,
 };
 use cmd::encode::EncodeCommand;
+use cmd::build_summary::SummaryCommand;
 use contract_build::{
     name_value_println,
     util::DEFAULT_KEY_COL_WIDTH,
@@ -137,6 +138,9 @@ enum Command {
     /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
+    /// Display information about contracts built as listed in build_info.json
+    #[clap(name = "summary")]
+    Summary(SummaryCommand),
 }
 
 fn main() {
@@ -203,6 +207,7 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, remove.is_json()))
         }
         Command::Info(info) => info.run().map_err(format_err),
+        Command::Summary(summary) => summary.run().map_err(format_err),
     }
 }
 
