@@ -59,7 +59,7 @@ pub fn save(build_result: &BuildResult) -> Result<(), Error> {
         // build_info.json doesn't exist, so create it with the data
         serde_json::to_writer(&File::create(BUILD_INFO_PATH)?, &build_data)?;
     } else {
-        print_build_info(true, false, Some(contract_name), Some(contract_map))?;
+        print_build_info(true, false, false, Some(contract_name), Some(contract_map))?;
     }
     Ok(())
 }

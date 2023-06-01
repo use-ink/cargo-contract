@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 #![deny(unused_crate_dependencies)]
+#![allow(unused_imports)]
 
 mod cmd;
 

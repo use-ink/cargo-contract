@@ -136,11 +136,6 @@ pub enum PlainTextTableFormat {
     Markdown,
 }
 
-#[derive(Debug)]
-pub enum TableFormat {
-    PlainText(PlainTextTableFormat),
-}
-
 fn pprint_table_cell(value: &Value) -> anyhow::Result<String> {
     match value {
         Value::String(s) => Ok(s.to_string()),
@@ -248,6 +243,7 @@ impl Printer for PlainTextTablePrinter {
 pub fn print_build_info(
     write_new_build: bool,
     output_json: bool,
+    summary_format_markdown: bool,
     contract_name: Option<&str>,
     contract_map: Option<HashMap<&str, &str>>,
 ) -> Result<(), Error> {
@@ -327,9 +323,10 @@ pub fn print_build_info(
         };
 
         let table = JsonTable::new(Some(given_headers), &build_info_json_value);
-
-        // set to `PlainTextTableFormat::Default` or `PlainTextTableFormat::Markdown`
-        let format = PlainTextTableFormat::Default;
+        let mut format = PlainTextTableFormat::Default;
+        if summary_format_markdown {
+            format = PlainTextTableFormat::Markdown;
+        }
         PlainTextTablePrinter::new(colorize, format).print(&table)?
     }
 
