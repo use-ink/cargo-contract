@@ -14,7 +14,8 @@ fn get_extension_from_filename(filename: &str) -> Option<&str> {
         .and_then(OsStr::to_str)
 }
 
-pub fn build_solidity_contract(solidity_filename: String, compiler_target: &String) -> Result<PathBuf, Error> {
+pub fn build_solidity_contract(solidity_filename: String, compiler_target: &String,
+    compile_to: &String, target_evm_version: &String) -> Result<PathBuf, Error> {
     let solidity_file_relative_path = format!("./{solidity_filename}");
     let solidity_file_dir = PathBuf::from(solidity_file_relative_path);
     println!("solidity_file_dir {:?}", solidity_file_dir);
@@ -28,11 +29,11 @@ pub fn build_solidity_contract(solidity_filename: String, compiler_target: &Stri
     let canonical_project_root_dir = canonicalize(&project_root_dir)?;
     println!("canonical_project_root_dir {:?}", &canonical_project_root_dir);
 
-    let solang_shell_script_relative_path = format!("./solang.sh");
-    let solang_shell_script_file_dir = PathBuf::from(solang_shell_script_relative_path);
-    println!("solang_shell_script_file_dir {:?}", solang_shell_script_file_dir);
-    let canonical_solang_shell_script_file_dir = canonicalize(&solang_shell_script_file_dir)?;
-    println!("canonical_solang_shell_script_file_dir: {:?}", canonical_solang_shell_script_file_dir);
+    let compilers_shell_script_relative_path = format!("./compilers.sh");
+    let compilers_shell_script_file_dir = PathBuf::from(compilers_shell_script_relative_path);
+    println!("compilers_shell_script_file_dir {:?}", compilers_shell_script_file_dir);
+    let canonical_compilers_shell_script_file_dir = canonicalize(&compilers_shell_script_file_dir)?;
+    println!("canonical_compilers_shell_script_file_dir: {:?}", canonical_compilers_shell_script_file_dir);
 
     if get_extension_from_filename(&solidity_filename) == Some("sol") && exists_solidity_file {
         println!("Found file {:?} with Solidity file extension in the project root", solidity_filename);
@@ -43,8 +44,8 @@ pub fn build_solidity_contract(solidity_filename: String, compiler_target: &Stri
                 // project root directory
                 .current_dir(canonical_project_root_dir.clone())
                 // .args(["/C", "echo hello"])
-                .arg(format!("{:?} {:?} {:?} {:?}",
-                    canonical_solang_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, compiler_target.to_string()))
+                .arg(format!("{:?} {:?} {:?} {:?} {:?} {:?}",
+                    canonical_compilers_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, compiler_target.to_string(), compile_to.to_string(), target_evm_version.to_string()))
                 .output()
                 .expect("failed to execute process")
         } else {
@@ -53,8 +54,8 @@ pub fn build_solidity_contract(solidity_filename: String, compiler_target: &Stri
                 .current_dir(canonical_project_root_dir.clone())
                 .arg("-c")
                 // .arg("echo hello")
-                .arg(format!("{:?} {:?} {:?} {:?}",
-                    canonical_solang_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, compiler_target.to_string()))
+                .arg(format!("{:?} {:?} {:?} {:?} {:?} {:?}",
+                    canonical_compilers_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, compiler_target.to_string(), compile_to.to_string(), target_evm_version.to_string()))
                 .output()
                 .expect("failed to execute process")
         };

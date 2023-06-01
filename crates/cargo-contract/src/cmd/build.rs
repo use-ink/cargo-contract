@@ -130,12 +130,18 @@ pub struct BuildCommand {
     /// Compiler target to use to build Solidity contract using Solang. e.g. "substrate", "solana".
     #[clap(long, default_value = "substrate")]
     compiler_target: String,
+    /// Which bytecode to build Solidity contract to using the Solidity Compiler `solc`. e.g. "wasm", "evm".
+    #[clap(long, default_value = "wasm")]
+    compile_to: String,
+    /// Which EVM version to use to build Solidity contract to using the Solidity Compiler `solc`. e.g. "shanghai".
+    #[clap(long, default_value = "shanghai")]
+    target_evm_version: String,
 }
 
 impl BuildCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         if let Some(solidity_filename) = &self.solidity_filename {
-            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string(), &self.compiler_target)?;
+            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string(), &self.compiler_target, &self.compile_to, &self.target_evm_version)?;
 
             // return dummy data to indicate success
             return Ok(
