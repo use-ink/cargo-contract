@@ -31,9 +31,9 @@ then
     else
         echo "Detected solcjs binary...\n"
         echo "Building ${SOLIDITY_FILENAME} using Solidity Compiler for target ${COMPILE_TO}.\n"
-        echo "Generating ABI .abi file.\n"
+        echo "Generating ABI .abi file and binary .bin file.\n"
 
-        solcjs --abi $SOLIDITY_FILE_PATH
+        solcjs --abi --bin $SOLIDITY_FILE_PATH
     fi
 # COMPILE_TO must be "wasm"
 else
