@@ -44,7 +44,7 @@ pub fn save(build_result: &BuildResult) -> Result<(), Error> {
     let adjusted_byte = byte.get_appropriate_unit(false);
     let file_len_units = &adjusted_byte.to_string();
     let metadata_json: Map<String, Value> =
-        serde_json::from_slice::<Map<String, Value>>(&contents.as_bytes())?;
+        serde_json::from_slice::<Map<String, Value>>(contents.as_bytes())?;
     let contract_name = metadata_json["storage"]["root"]["layout"]["struct"]["name"]
         .as_str()
         .unwrap();

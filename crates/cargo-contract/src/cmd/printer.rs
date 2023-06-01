@@ -59,7 +59,7 @@ impl JsonTable {
     }
 }
 
-fn infer_headers(arr: &Vec<Value>) -> TableHeader {
+fn infer_headers(arr: &[Value]) -> TableHeader {
     match arr.first() {
         Some(Value::Object(obj)) => TableHeader::NamedFields {
             fields: obj.keys().map(|h| h.to_owned()).collect(),
@@ -76,7 +76,7 @@ pub struct ColorizeSpec {
 }
 
 impl ColorizeSpec {
-    pub fn parse(s: &String) -> anyhow::Result<ColorizeSpec> {
+    pub fn parse(s: &str) -> anyhow::Result<ColorizeSpec> {
         let re = Regex::new(r"^([^:]+):(.+):([a-zA-Z]+)$")?;
         match re.captures(s) {
             Some(captures) => {
@@ -257,9 +257,9 @@ pub fn print_build_info(
     let mut contents = String::new();
     buf_reader.read_to_string(&mut contents)?;
     let mut build_info_json: Vec<HashMap<&str, &str>> =
-        serde_json::from_slice::<Vec<HashMap<&str, &str>>>(&contents.as_bytes())?;
+        serde_json::from_slice::<Vec<HashMap<&str, &str>>>(contents.as_bytes())?;
 
-    if write_new_build == true {
+    if write_new_build {
         let mut found = false;
         for info in build_info_json.iter_mut() {
             // replace existing build info with new contract info
@@ -287,7 +287,7 @@ pub fn print_build_info(
             }
         }
         // if did not find an existing value in build_info_json to update then push new value to end
-        if found == false {
+        if !found {
             build_info_json.push(contract_map.clone().unwrap());
         }
         // write updated to file
@@ -314,8 +314,7 @@ pub fn print_build_info(
         let mut named_fields: Vec<String> = build_info_json[0]
             .clone()
             .into_keys()
-            .into_iter()
-            .map(|s| String::from(s))
+            .map(String::from)
             .collect::<Vec<String>>();
         named_fields.sort_unstable();
         let given_headers = TableHeader::NamedFields {
