@@ -650,7 +650,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core 21.0.0",
- "sp-runtime 24.0.0",
+ "sp-runtime 23.0.0",
  "sp-weights 19.0.0",
  "substrate-build-script-utils",
  "subxt",
