@@ -7,14 +7,12 @@ use std::{
 };
 
 use anyhow::{bail, Error, Result};
-use prettytable::{Cell, format, Row, Table};
 use prettytable::format::{FormatBuilder, LinePosition, LineSeparator};
+use prettytable::{format, Cell, Row, Table};
 use regex::Regex;
-use serde_json::{
-    Value,
-};
-use yaml_rust::{Yaml, YamlEmitter};
+use serde_json::Value;
 use yaml_rust::yaml::Hash;
+use yaml_rust::{Yaml, YamlEmitter};
 
 const BUILD_INFO_PATH: &str = "build_info.json";
 
@@ -165,7 +163,10 @@ pub struct PlainTextTablePrinter {
 }
 
 impl PlainTextTablePrinter {
-    pub fn new(colorize: Vec<ColorizeSpec>, format: PlainTextTableFormat) -> PlainTextTablePrinter {
+    pub fn new(
+        colorize: Vec<ColorizeSpec>,
+        format: PlainTextTableFormat,
+    ) -> PlainTextTablePrinter {
         PlainTextTablePrinter { colorize, format }
     }
 }
@@ -219,11 +220,16 @@ impl Printer for PlainTextTablePrinter {
         }
 
         match &self.format {
-            PlainTextTableFormat::Default => table.set_format(*format::consts::FORMAT_BOX_CHARS),
+            PlainTextTableFormat::Default => {
+                table.set_format(*format::consts::FORMAT_BOX_CHARS)
+            }
             PlainTextTableFormat::Markdown => table.set_format(
                 FormatBuilder::new()
                     .padding(1, 1)
-                    .separator(LinePosition::Title, LineSeparator::new('-', '|', '|', '|'))
+                    .separator(
+                        LinePosition::Title,
+                        LineSeparator::new('-', '|', '|', '|'),
+                    )
                     .column_separator('|')
                     .borders('|')
                     .build(),
@@ -239,8 +245,12 @@ impl Printer for PlainTextTablePrinter {
 // that have been included in a file build_info.json in the project root.
 // If it is called whilst contract is being built then `write_new_build`
 // will be `true` and that contract will be added to or updated in build_info.json
-pub fn print_build_info(write_new_build: bool, output_json: bool,
-    contract_name: Option<&str>, contract_map: Option<HashMap<&str, &str>>) -> Result<(), Error> {
+pub fn print_build_info(
+    write_new_build: bool,
+    output_json: bool,
+    contract_name: Option<&str>,
+    contract_map: Option<HashMap<&str, &str>>,
+) -> Result<(), Error> {
     let exists_build_info_path = Path::new(BUILD_INFO_PATH).exists();
     if !exists_build_info_path {
         anyhow::bail!("Unable to print from or write to file that does not exist");
@@ -264,14 +274,20 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
             };
             if c == contract_name.unwrap() {
                 found = true;
-                info.insert("Size", match contract_map.clone().unwrap().get(&"Size") {
-                    Some(s) => s,
-                    None => "",
-                });
-                info.insert("Metadata Path", match contract_map.clone().unwrap().get(&"Metadata Path") {
-                    Some(m) => m,
-                    None => "",
-                });
+                info.insert(
+                    "Size",
+                    match contract_map.clone().unwrap().get(&"Size") {
+                        Some(s) => s,
+                        None => "",
+                    },
+                );
+                info.insert(
+                    "Metadata Path",
+                    match contract_map.clone().unwrap().get(&"Metadata Path") {
+                        Some(m) => m,
+                        None => "",
+                    },
+                );
             }
         }
         // if did not find an existing value in build_info_json to update then push new value to end
@@ -279,15 +295,18 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
             build_info_json.push(contract_map.clone().unwrap());
         }
         // write updated to file
-        serde_json::to_writer(&File::create("build_info.json")?,
-        &build_info_json.clone())?;
+        serde_json::to_writer(
+            &File::create("build_info.json")?,
+            &build_info_json.clone(),
+        )?;
     }
     if output_json {
         println!("{:#?}", &build_info_json);
     } else {
         // if they don't specify `--output-build-info-json` when running
         // `cargo contract summary --output-build-info-json` then we will output tabular format
-        let build_info_json_value: Value = serde_json::to_value(&build_info_json).unwrap();
+        let build_info_json_value: Value =
+            serde_json::to_value(&build_info_json).unwrap();
         let spec = vec!["Contract:Flipper:ddd".to_string()];
         let colorize: Vec<_> = spec
             .iter()
@@ -296,10 +315,16 @@ pub fn print_build_info(write_new_build: bool, output_json: bool,
 
         // note: we actually don't need to provide headers because `infer_headers` infers the headers
         // so it would still work if `given_headers` was `None`
-        let mut named_fields: Vec<String> = build_info_json[0].clone()
-            .into_keys().into_iter().map(|s| String::from(s)).collect::<Vec<String>>();
+        let mut named_fields: Vec<String> = build_info_json[0]
+            .clone()
+            .into_keys()
+            .into_iter()
+            .map(|s| String::from(s))
+            .collect::<Vec<String>>();
         named_fields.sort_unstable();
-        let given_headers = TableHeader::NamedFields { fields: named_fields };
+        let given_headers = TableHeader::NamedFields {
+            fields: named_fields,
+        };
 
         let table = JsonTable::new(Some(given_headers), &build_info_json_value);
 

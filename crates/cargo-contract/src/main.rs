@@ -18,41 +18,19 @@
 
 mod cmd;
 
-#[macro_use] extern crate prettytable;
+#[macro_use]
+extern crate prettytable;
 use self::cmd::{
-    BuildCommand,
-    CallCommand,
-    CheckCommand,
-    DecodeCommand,
-    ErrorVariant,
-    InfoCommand,
-    InstantiateCommand,
-    RemoveCommand,
-    UploadCommand,
+    BuildCommand, CallCommand, CheckCommand, DecodeCommand, ErrorVariant, InfoCommand,
+    InstantiateCommand, RemoveCommand, UploadCommand,
 };
-use cmd::encode::EncodeCommand;
 use cmd::build_summary::SummaryCommand;
-use contract_build::{
-    name_value_println,
-    util::DEFAULT_KEY_COL_WIDTH,
-    OutputType,
-};
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-    str::FromStr,
-};
+use cmd::encode::EncodeCommand;
+use contract_build::{name_value_println, util::DEFAULT_KEY_COL_WIDTH, OutputType};
+use std::{fmt::Debug, path::PathBuf, str::FromStr};
 
-use anyhow::{
-    anyhow,
-    Error,
-    Result,
-};
-use clap::{
-    Args,
-    Parser,
-    Subcommand,
-};
+use anyhow::{anyhow, Error, Result};
+use clap::{Args, Parser, Subcommand};
 use colored::Colorize;
 
 // These crates are only used when we run integration tests `--features
@@ -186,27 +164,20 @@ fn exec(cmd: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Upload(upload) => {
-            upload
-                .run()
-                .map_err(|err| map_extrinsic_err(err, upload.is_json()))
-        }
-        Command::Instantiate(instantiate) => {
-            instantiate
-                .run()
-                .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
-        }
-        Command::Call(call) => {
-            call.run()
-                .map_err(|err| map_extrinsic_err(err, call.is_json()))
-        }
+        Command::Upload(upload) => upload
+            .run()
+            .map_err(|err| map_extrinsic_err(err, upload.is_json())),
+        Command::Instantiate(instantiate) => instantiate
+            .run()
+            .map_err(|err| map_extrinsic_err(err, instantiate.is_json())),
+        Command::Call(call) => call
+            .run()
+            .map_err(|err| map_extrinsic_err(err, call.is_json())),
         Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
-        Command::Remove(remove) => {
-            remove
-                .run()
-                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
-        }
+        Command::Remove(remove) => remove
+            .run()
+            .map_err(|err| map_extrinsic_err(err, remove.is_json())),
         Command::Info(info) => info.run().map_err(format_err),
         Command::Summary(summary) => summary.run().map_err(format_err),
     }

@@ -14,30 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::cmd::save::save;
 use anyhow::Result;
 use contract_build::{
-    BuildArtifacts,
-    BuildMode,
-    BuildResult,
-    ExecuteArgs,
-    Features,
-    ManifestPath,
-    Network,
-    OptimizationPasses,
-    OutputType,
-    Target,
-    UnstableFlags,
-    UnstableOptions,
-    Verbosity,
+    BuildArtifacts, BuildMode, BuildResult, ExecuteArgs, Features, ManifestPath, Network,
+    OptimizationPasses, OutputType, Target, UnstableFlags, UnstableOptions, Verbosity,
     VerbosityFlags,
 };
-use std::{
-    convert::TryFrom,
-    path::PathBuf,
-};
-use crate::{
-    cmd::save::save,
-};
+use std::{convert::TryFrom, path::PathBuf};
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for
 /// deploying.

@@ -1,5 +1,5 @@
-use anyhow::{Error, Result};
 use crate::cmd::printer::print_build_info;
+use anyhow::{Error, Result};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "summary", about = "Get info about built contracts")]
