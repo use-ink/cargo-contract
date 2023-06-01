@@ -35,6 +35,9 @@ use std::{
     convert::TryFrom,
     path::PathBuf,
 };
+use crate::{
+    cmd::solidity::build_solidity_contract,
+};
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for
 /// deploying.
@@ -121,11 +124,36 @@ pub struct BuildCommand {
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u32,
+    /// Build Solidity contract called flipper.sol in the project root using Solang.
+    #[clap(long)]
+    solidity_filename: Option<String>,
+    /// Compiler target to use to build Solidity contract using Solang. e.g. "substrate", "solana".
+    #[clap(long, default_value = "substrate")]
+    compiler_target: String,
 }
 
 impl BuildCommand {
     pub fn exec(&self) -> Result<BuildResult> {
+        if let Some(solidity_filename) = &self.solidity_filename {
+            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string(), &self.compiler_target)?;
+
+            // return dummy data to indicate success
+            return Ok(
+                BuildResult {
+                    target_directory: canonical_project_root_dir.clone(),
+                    build_mode: BuildMode::Debug,
+                    build_artifact: BuildArtifacts::All,
+                    verbosity: Verbosity::Default,
+                    output_type: OutputType::Json,
+                    dest_wasm: Some(canonical_project_root_dir.clone()),
+                    metadata_result: None,
+                    optimization_result: None,
+                }
+            )
+        }
+
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;

@@ -1,3 +1,8 @@
 target
 **/*.rs.bk
 .vscode
+
+# Solidity smart contracts and Solang build outputs
+*.contract
+*.sol
+*.wasm

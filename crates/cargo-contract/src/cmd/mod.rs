@@ -18,6 +18,7 @@ pub mod build;
 pub mod decode;
 pub mod encode;
 pub mod info;
+pub mod solidity;
 pub mod runtime_api;
 
 pub(crate) use self::{
