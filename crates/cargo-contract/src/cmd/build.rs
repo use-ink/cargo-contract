@@ -127,15 +127,12 @@ pub struct BuildCommand {
     /// Build Solidity contract called flipper.sol in the project root using Solang.
     #[clap(long)]
     solidity_filename: Option<String>,
-    /// Compiler target to use to build Solidity contract using Solang. e.g. "substrate", "solana".
-    #[clap(long, default_value = "substrate")]
-    compiler_target: String,
 }
 
 impl BuildCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         if let Some(solidity_filename) = &self.solidity_filename {
-            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string(), &self.compiler_target)?;
+            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string())?;
 
             // return dummy data to indicate success
             return Ok(
