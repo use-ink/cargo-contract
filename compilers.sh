@@ -16,7 +16,7 @@ then
     if ! command -v solc &> /dev/null
     then
         echo "solc command could not be found.\n\n"
-        echo "Please follow the installation instructions at https://docs.soliditylang.org/ to install the Solidity Compiler then try again..."
+        echo "Please follow the installation instructions at https://docs.soliditylang.org/ to install the Solidity Compiler in your PATH then try again..."
     else
         echo "Detected solc binary...\n"
         echo "Building ${SOLIDITY_FILENAME} using Solidity Compiler for target ${COMPILE_TO}.\n"
@@ -27,7 +27,7 @@ then
     if ! command -v solcjs &> /dev/null
     then
         echo "solcjs command could not be found.\n\n"
-        echo "Please follow the installation instructions at https://docs.soliditylang.org/ to install the Solidity Compiler then try again..."
+        echo "Please follow the installation instructions at https://docs.soliditylang.org/ to install the Solidity Compiler in your PATH then try again..."
     else
         echo "Detected solcjs binary...\n"
         echo "Building ${SOLIDITY_FILENAME} using Solidity Compiler for target ${COMPILE_TO}.\n"
