@@ -14,7 +14,7 @@ fn get_extension_from_filename(filename: &str) -> Option<&str> {
         .and_then(OsStr::to_str)
 }
 
-pub fn build_solidity_contract(solidity_filename: String) -> Result<PathBuf, Error> {
+pub fn build_solidity_contract(solidity_filename: String, build_release: &bool) -> Result<PathBuf, Error> {
     let solidity_file_relative_path = format!("./{solidity_filename}");
     let solidity_file_dir = PathBuf::from(solidity_file_relative_path);
     let canonical_solidity_file_dir = canonicalize(&solidity_file_dir)?;
@@ -36,11 +36,8 @@ pub fn build_solidity_contract(solidity_filename: String) -> Result<PathBuf, Err
             Command::new("cmd")
                 // project root directory
                 .current_dir(canonical_project_root_dir.clone())
-                .arg(format!("{:?} {:?} {:?}",
-                    canonical_compilers_shell_script_file_dir.display(),
-                    &solidity_filename,
-                    &canonical_solidity_file_dir
-                ))
+                .arg(format!("{:?} {:?} {:?} {:?}",
+                    canonical_compilers_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, &build_release))
                 .output()
                 .expect("failed to execute process")
         } else {
@@ -48,8 +45,8 @@ pub fn build_solidity_contract(solidity_filename: String) -> Result<PathBuf, Err
                 // project root directory
                 .current_dir(canonical_project_root_dir.clone())
                 .arg("-c")
-                .arg(format!("{:?} {:?} {:?}",
-                    canonical_compilers_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir))
+                .arg(format!("{:?} {:?} {:?} {:?}",
+                    canonical_compilers_shell_script_file_dir.display(), &solidity_filename, &canonical_solidity_file_dir, &build_release))
                 .output()
                 .expect("failed to execute process")
         };

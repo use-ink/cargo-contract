@@ -132,7 +132,7 @@ pub struct BuildCommand {
 impl BuildCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         if let Some(solidity_filename) = &self.solidity_filename {
-            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string())?;
+            let canonical_project_root_dir = build_solidity_contract(solidity_filename.to_string(), &self.build_release)?;
 
             // return dummy data to indicate success
             return Ok(
