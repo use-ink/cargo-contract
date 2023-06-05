@@ -48,9 +48,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use tokio::runtime::{
-    Runtime,
-};
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]

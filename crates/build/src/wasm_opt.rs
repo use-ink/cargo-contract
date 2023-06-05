@@ -162,7 +162,7 @@ impl From<OptimizationPasses> for OptimizationOptions {
 }
 
 /// Result of the optimization process.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct OptimizationResult {
     /// The path of the optimized Wasm file.
     pub dest_wasm: PathBuf,

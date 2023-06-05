@@ -17,6 +17,21 @@
 #![doc = include_str!("../README.md")]
 #![deny(unused_crate_dependencies)]
 
+use bollard::{
+    container::{
+        Config,
+        CreateContainerOptions,
+        WaitContainerOptions,
+    },
+    image::ListImagesOptions,
+    service::{
+        HostConfig,
+        Mount,
+        MountTypeEnum,
+    },
+    Docker,
+};
+use tokio_stream::StreamExt;
 use which as _;
 
 mod args;
@@ -119,7 +134,6 @@ pub struct ExecuteArgs {
     pub skip_wasm_validation: bool,
     pub target: Target,
     pub max_memory_pages: u32,
-    pub verifiable: bool,
 }
 
 impl Default for ExecuteArgs {
@@ -139,13 +153,12 @@ impl Default for ExecuteArgs {
             skip_wasm_validation: Default::default(),
             target: Default::default(),
             max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
-            verifiable: Default::default(),
         }
     }
 }
 
 /// Result of the build process.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,
@@ -161,8 +174,10 @@ pub struct BuildResult {
     pub build_artifact: BuildArtifacts,
     /// The verbosity flags.
     pub verbosity: Verbosity,
+    /// Image used for the verifiable build
+    pub image: Option<String>,
     /// The type of formatting to use for the build output.
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     pub output_type: OutputType,
 }
 
@@ -680,7 +695,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         skip_wasm_validation,
         target,
         max_memory_pages,
-        verifiable,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -934,11 +948,181 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         build_mode,
         build_artifact,
         verbosity,
+        image: None,
         output_type,
     })
 }
 
-fn docker_build() {}
+pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
+    let ExecuteArgs {
+        manifest_path,
+        verbosity,
+        features,
+        build_mode,
+        network,
+        unstable_flags,
+        optimization_passes,
+        keep_debug_symbols,
+        output_type,
+        target,
+        ..
+    } = args;
+    tokio::runtime::Runtime::new()?.block_on(async {
+        let steps = BuildSteps::new();
+        let client = Docker::connect_with_socket_defaults()?;
+
+        let optimization_passes = match optimization_passes {
+            Some(opt_passes) => opt_passes,
+            None => {
+                let mut manifest = Manifest::new(manifest_path.clone())?;
+                match manifest.profile_optimization_passes() {
+                    // if no setting is found, neither on the cli nor in the profile,
+                    // then we use the default
+                    None => OptimizationPasses::default(),
+                    Some(opt_passes) => opt_passes,
+                }
+            }
+        };
+
+        let images = client
+            .list_images(Some(ListImagesOptions::<String> {
+                all: true,
+                ..Default::default()
+            }))
+            .await
+            .unwrap();
+
+        let build_image = images.iter().find(|i| {
+            i.labels.get("io.parity.image.title") == Some(&"parity/ver-build".to_string())
+        });
+        if build_image.is_none() {
+            return Err(anyhow::anyhow!("No image found"))
+        }
+        let build_image = build_image.unwrap();
+
+        let options = Some(CreateContainerOptions {
+            name: "ink-container",
+            platform: Some("linux/amd64"),
+        });
+
+        let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
+        let host_folder = crate_metadata
+            .manifest_path
+            .absolute_directory()?
+            .parent()
+            .expect("Manifests is located in unreachable directory")
+            .to_str()
+            .expect("Cannot convert Path to string.")
+            .to_owned();
+
+        let mount = Mount {
+            target: Some(String::from("/contract")),
+            source: Some(host_folder.clone()),
+            typ: Some(MountTypeEnum::BIND),
+            ..Default::default()
+        };
+        let host_cfg = Some(HostConfig {
+            mounts: Some(vec![mount]),
+            ..Default::default()
+        });
+
+        let cmds = vec![
+            "cargo",
+            "contract",
+            "build",
+            "--release",
+            "--generate",
+            "code-only",
+            "--output-json",
+            ">",
+            "result.json",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+
+        let config = Config {
+            image: Some(build_image.id.clone()),
+            entrypoint: Some(cmds),
+            host_config: host_cfg,
+            attach_stderr: Some(true),
+            ..Default::default()
+        };
+
+        let container_id = client.create_container(options, config).await?.id;
+        client
+            .start_container::<String>(&container_id, None)
+            .await?;
+
+        let options = Some(WaitContainerOptions {
+            condition: "not-running",
+        });
+
+        let mut wait_stream = client.wait_container(&container_id, options);
+        while wait_stream.next().await.is_some() {}
+
+        let result_contents =
+            std::fs::read_to_string(format!("{}/result.json", &host_folder))?;
+        let build_result: BuildResult =
+            serde_json::from_str(&result_contents).map_err(|_| {
+                anyhow::anyhow!(
+                    "Error parsing output from docker build. The build probably failed!"
+                )
+            })?;
+
+        let metadata_result = MetadataArtifacts {
+            dest_metadata: crate_metadata.metadata_path(),
+            dest_bundle: crate_metadata.contract_bundle_path(),
+        };
+
+        // skip metadata generation if contract unchanged and all metadata artifacts
+        // exist.
+        if build_result.optimization_result.is_some()
+            || !metadata_result.dest_metadata.exists()
+            || !metadata_result.dest_bundle.exists()
+        {
+            let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
+                version
+            } else {
+                anyhow::bail!(
+                    "Unable to parse version number for the currently running \
+                    `cargo-contract` binary."
+                );
+            };
+
+            let build_info = BuildInfo {
+                rust_toolchain: util::rust_toolchain()?,
+                cargo_contract_version,
+                build_mode,
+                wasm_opt_settings: WasmOptSettings {
+                    optimization_passes,
+                    keep_debug_symbols,
+                },
+            };
+            // if metadata build fails after a code build it might become stale
+            metadata::execute(
+                &crate_metadata,
+                build_result.dest_wasm.as_ref().unwrap().as_path(),
+                &metadata_result,
+                &features,
+                network,
+                verbosity,
+                steps,
+                &unstable_flags,
+                build_info,
+                Some(build_image.id.clone()),
+            )?;
+        }
+
+        client.remove_container(&container_id, None).await?;
+
+        Ok(BuildResult {
+            metadata_result: Some(metadata_result),
+            output_type,
+            ..build_result
+        })
+    })
+}
 
 /// Unique fingerprint for a file to detect whether it has changed.
 #[derive(Debug, Eq, PartialEq)]
@@ -1103,6 +1287,7 @@ mod unit_tests {
             }),
             build_mode: Default::default(),
             build_artifact: Default::default(),
+            image: None,
             verbosity: Verbosity::Quiet,
             output_type: OutputType::Json,
         };

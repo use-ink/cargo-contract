@@ -56,7 +56,7 @@ use std::{
 use url::Url;
 
 /// Artifacts resulting from metadata generation.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
@@ -109,7 +109,7 @@ pub struct WasmOptSettings {
 ///
 /// It does so by generating and invoking a temporary workspace member.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute(
+pub fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
     metadata_artifacts: &MetadataArtifacts,

@@ -169,10 +169,13 @@ impl BuildCommand {
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
-            verifiable: self.verifiable,
         };
 
-        contract_build::execute(args)
+        if self.verifiable {
+            contract_build::docker_build(args)
+        } else {
+            contract_build::execute(args)
+        }
     }
 }
 
@@ -214,7 +217,6 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
-            verifiable: false,
         };
 
         contract_build::execute(args)

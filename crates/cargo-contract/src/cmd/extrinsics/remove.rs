@@ -44,9 +44,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use tokio::runtime::{
-    Runtime,
-};
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]

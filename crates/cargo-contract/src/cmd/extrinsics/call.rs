@@ -55,9 +55,7 @@ use contract_transcode::Value;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
-use tokio::runtime::{
-    Runtime,
-};
+use tokio::runtime::Runtime;
 
 use std::fmt::Debug;
 use subxt::{

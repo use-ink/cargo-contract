@@ -38,6 +38,9 @@ wasm-opt = "0.112.0"
 which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.24", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1"
+bollard = "0.14"
 
 contract-metadata = { version = "3.0.1", path = "../metadata" }
 

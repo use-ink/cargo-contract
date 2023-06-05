@@ -45,7 +45,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     #[default]
@@ -89,7 +89,15 @@ impl Network {
 
 /// Describes which artifacts to generate
 #[derive(
-    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+    Copy,
+    Clone,
+    Default,
+    Eq,
+    PartialEq,
+    Debug,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
