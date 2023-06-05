@@ -9,6 +9,10 @@ on:
     paths-ignore:
       - 'README.md'
       - 'CHANGELOG.md'
+env:
+  # Pinned to 1.69 for building contracts because of https://github.com/paritytech/cargo-contract/issues/1139
+  INK_RUST_TOOLCHAIN: 1.69
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -136,7 +140,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: $INK_RUST_TOOLCHAIN
           default: true
           target: wasm32-unknown-unknown
           components: rust-src
@@ -180,7 +184,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: $INK_RUST_TOOLCHAIN
           default: true
           target: wasm32-unknown-unknown
           components: rust-src
