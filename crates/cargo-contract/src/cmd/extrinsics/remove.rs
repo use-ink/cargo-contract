@@ -44,6 +44,9 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::{
+    Runtime,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
@@ -87,7 +90,7 @@ impl RemoveCommand {
             }
         }?;
 
-        async_std::task::block_on(async {
+        Runtime::new().unwrap().block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
             if let Some(code_removed) = self

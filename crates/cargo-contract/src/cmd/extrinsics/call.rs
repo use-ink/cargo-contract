@@ -55,6 +55,9 @@ use contract_transcode::Value;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
+use tokio::runtime::{
+    Runtime,
+};
 
 use std::fmt::Debug;
 use subxt::{
@@ -108,7 +111,7 @@ impl CallCommand {
 
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        async_std::task::block_on(async {
+        Runtime::new().unwrap().block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 

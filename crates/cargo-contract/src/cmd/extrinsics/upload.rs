@@ -48,6 +48,9 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::{
+    Runtime,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -77,7 +80,7 @@ impl UploadCommand {
         })?;
         let code_hash = code.code_hash();
 
-        async_std::task::block_on(async {
+        Runtime::new().unwrap().block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
 

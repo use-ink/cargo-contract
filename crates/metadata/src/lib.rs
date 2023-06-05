@@ -99,6 +99,8 @@ pub struct ContractMetadata {
     pub source: Source,
     /// Metadata about the contract.
     pub contract: Contract,
+    /// If the contract is verifiable, then the Docker image id is specified.
+    pub image: Option<String>,
     /// Additional user-defined metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<User>,
@@ -112,12 +114,14 @@ impl ContractMetadata {
     pub fn new(
         source: Source,
         contract: Contract,
+        image: Option<String>,
         user: Option<User>,
         abi: Map<String, Value>,
     ) -> Self {
         Self {
             source,
             contract,
+            image,
             user,
             abi,
         }
@@ -737,7 +741,13 @@ mod tests {
         .unwrap()
         .clone();
 
-        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let metadata = ContractMetadata::new(
+            source,
+            contract,
+            Some(String::from("parity/ver-build:latest")),
+            Some(user),
+            abi_json,
+        );
         let json = serde_json::to_value(&metadata).unwrap();
 
         let expected = json! {
@@ -753,6 +763,7 @@ mod tests {
                         "example_name": "increment"
                     }
                 },
+                "image": "parity/ver-build:latest",
                 "contract": {
                     "name": "incrementer",
                     "version": "2.1.0",
@@ -808,7 +819,7 @@ mod tests {
         .unwrap()
         .clone();
 
-        let metadata = ContractMetadata::new(source, contract, None, abi_json);
+        let metadata = ContractMetadata::new(source, contract, None, None, abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
 
         let expected = json! {
@@ -820,6 +831,7 @@ mod tests {
                       "Parity Technologies <admin@parity.io>"
                     ],
                 },
+                "image": serde_json::Value::Null,
                 "source": {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
@@ -895,7 +907,8 @@ mod tests {
         .unwrap()
         .clone();
 
-        let metadata = ContractMetadata::new(source, contract, Some(user), abi_json);
+        let metadata =
+            ContractMetadata::new(source, contract, None, Some(user), abi_json);
         let json = serde_json::to_value(&metadata).unwrap();
 
         let decoded = serde_json::from_value::<ContractMetadata>(json);

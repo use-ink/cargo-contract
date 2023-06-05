@@ -119,6 +119,7 @@ pub(crate) fn execute(
     mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
+    image: Option<String>,
 ) -> Result<()> {
     // build the extended contract project metadata
     let ExtendedMetadataResult {
@@ -160,7 +161,7 @@ pub(crate) fn execute(
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
             serde_json::from_slice(&output.stdout)?;
-        let metadata = ContractMetadata::new(source, contract, user, ink_meta);
+        let metadata = ContractMetadata::new(source, contract, image, user, ink_meta);
         {
             let mut metadata = metadata.clone();
             metadata.remove_source_wasm_attribute();

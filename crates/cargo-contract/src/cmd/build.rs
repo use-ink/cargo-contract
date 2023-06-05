@@ -121,6 +121,10 @@ pub struct BuildCommand {
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u32,
+    /// Executes the build inside a docker container to produce a verifiable bundle.
+    /// Requires docker daemon running.
+    #[clap(long, short = 'V', default_value_t = false)]
+    verifiable: bool,
 }
 
 impl BuildCommand {
@@ -165,6 +169,7 @@ impl BuildCommand {
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
+            verifiable: self.verifiable,
         };
 
         contract_build::execute(args)
@@ -209,6 +214,7 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
+            verifiable: false,
         };
 
         contract_build::execute(args)

@@ -119,6 +119,7 @@ pub struct ExecuteArgs {
     pub skip_wasm_validation: bool,
     pub target: Target,
     pub max_memory_pages: u32,
+    pub verifiable: bool,
 }
 
 impl Default for ExecuteArgs {
@@ -138,6 +139,7 @@ impl Default for ExecuteArgs {
             skip_wasm_validation: Default::default(),
             target: Default::default(),
             max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
+            verifiable: Default::default(),
         }
     }
 }
@@ -678,6 +680,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         skip_wasm_validation,
         target,
         max_memory_pages,
+        verifiable,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -721,7 +724,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let build =
+    let local_build =
         || -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
             let mut build_steps = BuildSteps::new();
             let pre_fingerprint = Fingerprint::new(&crate_metadata)?;
@@ -882,12 +885,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_wasm, _) = build()?;
+            let (opt_result, _, dest_wasm, _) = local_build()?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm, build_steps) =
-                build().map_err(|e| {
+            let (opt_result, build_info, dest_wasm, build_steps) = local_build()
+                .map_err(|e| {
                     // build error -> bundle is stale
                     clean_metadata();
                     e
@@ -916,6 +919,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     build_steps,
                     &unstable_flags,
                     build_info,
+                    None,
                 )?;
             }
             (opt_result, Some(metadata_result), Some(dest_wasm))
@@ -933,6 +937,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         output_type,
     })
 }
+
+fn docker_build() {}
 
 /// Unique fingerprint for a file to detect whether it has changed.
 #[derive(Debug, Eq, PartialEq)]
