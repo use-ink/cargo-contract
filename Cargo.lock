@@ -650,8 +650,8 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core 21.0.0",
- "sp-runtime 23.0.0",
- "sp-weights 19.0.0",
+ "sp-runtime 24.0.0",
+ "sp-weights 20.0.0",
  "substrate-build-script-utils",
  "subxt",
  "tempfile",
@@ -2783,16 +2783,16 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "pallet-contracts-primitives"
-version = "23.0.0"
+version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5a4b2ba3fa3f9e9480e6fceeb1a2efc95832f1240355ddaac0e90f861f9595f"
+checksum = "6fdf0acfe33532b58fe2d8859585c0e8b323ec0687eba26292c826333b366e82"
 dependencies = [
  "bitflags",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 23.0.0",
- "sp-std 7.0.0",
- "sp-weights 19.0.0",
+ "sp-runtime 24.0.0",
+ "sp-std 8.0.0",
+ "sp-weights 20.0.0",
 ]
 
 [[package]]
