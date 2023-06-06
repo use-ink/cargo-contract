@@ -90,18 +90,16 @@ impl DisplayEvents {
     ) -> Result<DisplayEvents> {
         let mut events: Vec<Event> = vec![];
 
-        let runtime_metadata = subxt_metadata.runtime_metadata();
-        let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
+        let events_transcoder = TranscoderBuilder::new(subxt_metadata.types())
             .with_default_custom_type_transcoders()
             .done();
 
         for event in result.iter() {
             let event = event?;
-            tracing::debug!("displaying event {:?}", event);
+            tracing::debug!("displaying event {}:{}", event.pallet_name(), event.variant_name());
 
-            let event_metadata =
-                subxt_metadata.event(event.pallet_index(), event.variant_index())?;
-            let event_fields = event_metadata.fields();
+            let event_metadata = event.event_metadata();
+            let event_fields = &event_metadata.variant.fields;
 
             let mut event_entry = Event {
                 pallet: event.pallet_name().to_string(),
@@ -136,7 +134,7 @@ impl DisplayEvents {
                         });
 
                     let decoded_field = events_transcoder.decode(
-                        &runtime_metadata.types,
+                        subxt_metadata.types(),
                         field_metadata.ty.id,
                         event_data,
                     )?;

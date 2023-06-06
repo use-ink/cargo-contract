@@ -39,7 +39,7 @@ impl From<subxt::Error> for ErrorVariant {
                         ErrorVariant::Module(ModuleError {
                             pallet: details.pallet.name().to_string(),
                             error: details.variant.name.to_string(),
-                            docs: details.variant.docs,
+                            docs: details.variant.docs.clone(),
                         })
                     })
                     .unwrap_or_else(|err| {
