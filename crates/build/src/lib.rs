@@ -1032,7 +1032,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             .as_path()
             .to_owned();
 
-        let file_path = host_folder.join(Path::new("build_result.json"));
+        let file_path = host_folder.join(Path::new("target/build_result.json"));
 
         let mount = Mount {
             target: Some(String::from("/contract")),
@@ -1056,11 +1056,12 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             .map(|s| s.to_string())
             .collect();
 
-        let cmds =
-            vec!["cargo contract build --release --output-json > build_result.json"]
-                .iter()
-                .map(|s| s.to_string())
-                .collect();
+        let cmds = vec![
+            "cargo contract build --release --output-json > target/build_result.json",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
         let config = Config {
             image: Some(build_image.id.clone()),
@@ -1086,10 +1087,11 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             Ok(_) => {
                 // TODO: message
             }
-            Err(_) => {
+            Err(e) => {
                 // TODO: message
                 let _ = client.remove_container(&container_id, None).await;
                 let _ = fs::remove_file(&file_path);
+                anyhow::bail!(e)
             }
         }
 
@@ -1099,7 +1101,8 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 
         let mut wait_stream = client.wait_container(&container_id, options);
         while wait_stream.next().await.is_some() {}
-        client.remove_container(&container_id, None).await?;
+
+        let _ = client.remove_container(&container_id, None).await;
 
         let result_contents = match std::fs::read_to_string(&file_path) {
             Ok(content) => {
@@ -1164,7 +1167,11 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )?;
         }
 
-        Ok(build_result)
+        Ok(BuildResult {
+            output_type,
+            verbosity,
+            ..build_result
+        })
     })
 }
 
