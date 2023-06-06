@@ -92,9 +92,10 @@ impl ErrorVariant {
         match error {
             DispatchError::Module(err) => {
                 let pallet = metadata.pallet_by_index_err(err.index)?;
-                let variant = pallet
-                    .error_variant_by_index(err.error[0])
-                    .ok_or_else(|| anyhow::anyhow!("Error variant {} not found", err.error[0]))?;
+                let variant =
+                    pallet.error_variant_by_index(err.error[0]).ok_or_else(|| {
+                        anyhow::anyhow!("Error variant {} not found", err.error[0])
+                    })?;
                 Ok(ErrorVariant::Module(ModuleError {
                     pallet: pallet.name().to_string(),
                     error: variant.name.to_owned(),

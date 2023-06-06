@@ -96,7 +96,11 @@ impl DisplayEvents {
 
         for event in result.iter() {
             let event = event?;
-            tracing::debug!("displaying event {}:{}", event.pallet_name(), event.variant_name());
+            tracing::debug!(
+                "displaying event {}:{}",
+                event.pallet_name(),
+                event.variant_name()
+            );
 
             let event_metadata = event.event_metadata();
             let event_fields = &event_metadata.variant.fields;
