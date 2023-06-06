@@ -140,7 +140,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: $INK_RUST_TOOLCHAIN
+          toolchain: "$INK_RUST_TOOLCHAIN"
           default: true
           target: wasm32-unknown-unknown
           components: rust-src
@@ -184,7 +184,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: $INK_RUST_TOOLCHAIN
+          toolchain: "$INK_RUST_TOOLCHAIN"
           default: true
           target: wasm32-unknown-unknown
           components: rust-src
