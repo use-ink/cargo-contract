@@ -469,42 +469,50 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     #[cfg(test)]
     let cargo = "cargo";
+    // Detect if `cargo-dylint` binary exists in PATH.
     // On linux run the following to install cargo-dylint and add it to your PATH:
     // ```
     // cargo install cargo-dylint
     // echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> "${HOME}/.bashrc"
     // source "${HOME}/.bashrc"
     // ```
-    let cargo_dylint_found = execute_cmd(Command::new(cargo).arg("cargo-dylint").arg("--version"));
-    println!("cargo_dylint_found: {:?}", cargo_dylint_found);
-    if !cargo_dylint_found {
-        anyhow::bail!("cargo-dylint was not found!\n\
-            Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install cargo-dylint`."
-            .to_string()
-            .bright_yellow());
+    match Command::new("cargo-dylint").spawn() {
+        Ok(_) => {
+            println!("Detected cargo-dylint binary...\n");
+        },
+        Err(e) => {
+            if let std::io::ErrorKind::NotFound = e.kind() {
+                let msg = "`cargo-dylint` command was not found.\n\
+                    Make sure it is installed and the binary is in your PATH environment.\n\n\
+                    You can install it by executing `cargo install cargo-dylint`.";
+                println!("{}", msg.to_string().bright_yellow());
+            } else {
+                println!("Error encountered trying to detect `cargo-dylint` {:#?}", e);
+            }
+        },
     }
 
-    // On windows we cannot just run the linker with --version as there is no command
-    // which just outputs some information. It always needs to do some linking in
-    // order to return successful exit code.
-    #[cfg(windows)]
-    let dylint_link_found = which::which("dylint-link").is_ok();
+    // Detect if `dylint-link` binary exists in PATH.
     // On linux run the following to install dylint-link and add it to your PATH:
     // ```
     // cargo install dylint-link
     // echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> "${HOME}/.bashrc"
     // source "${HOME}/.bashrc"
     // ```
-    #[cfg(not(windows))]
-    let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
-    println!("dylint_link_found: {:?}", dylint_link_found);
-    if !dylint_link_found {
-        anyhow::bail!("dylint-link was not found!\n\
-            Make sure it is installed and the binary is in your PATH environment.\n\n\
-            You can install it by executing `cargo install dylint-link`."
-            .to_string()
-            .bright_yellow());
+    match Command::new("dylint-link").spawn() {
+        Ok(_) => {
+            println!("Detected dylint-link binary...\n");
+        },
+        Err(e) => {
+            if let std::io::ErrorKind::NotFound = e.kind() {
+                let msg = "`dylint-link` command was not found.\n\
+                    Make sure it is installed and the binary is in your PATH environment.\n\n\
+                    You can install it by executing `cargo install dylint-link`.";
+                println!("{}", msg.to_string().bright_yellow());
+            } else {
+                println!("Error encountered trying to detect `dylint-link` {:#?}", e);
+            }
+        },
     }
 
     Ok(())
