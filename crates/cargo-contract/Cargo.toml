@@ -37,9 +37,9 @@ rust_decimal = "1.29"
 # dependencies for extrinsics (deploying and calling a contract)
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
 sp-core = "21.0.0"
-sp-runtime = "23.0.0"
-sp-weights = "19.0.0"
-pallet-contracts-primitives = "23.0.0"
+sp-runtime = "24.0.0"
+sp-weights = "20.0.0"
+pallet-contracts-primitives = "24.0.0"
 scale-info = "2.7.0"
 subxt = "0.29.0"
 hex = "0.4.3"

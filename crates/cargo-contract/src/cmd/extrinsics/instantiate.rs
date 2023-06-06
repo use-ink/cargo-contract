@@ -353,7 +353,7 @@ impl Exec {
 
     async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
+    ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>>
     {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
