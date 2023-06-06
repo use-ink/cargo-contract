@@ -31,6 +31,7 @@ use bollard::{
     },
     Docker,
 };
+use contract_metadata::ContractMetadata;
 use tokio_stream::StreamExt;
 use which as _;
 
@@ -106,7 +107,10 @@ use std::{
         PathBuf,
     },
     process::Command,
-    str,
+    str::{
+        self,
+        FromStr,
+    },
 };
 use strum::IntoEnumIterator;
 
@@ -792,7 +796,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     build_steps,
                     unstable_flags,
                     build_info,
-                    None,
                 )?;
             }
             (opt_result, Some(metadata_result), Some(dest_wasm))
@@ -946,7 +949,6 @@ fn local_build(
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
 
     let optimization_result = OptimizationResult {
-        dest_wasm: crate_metadata.dest_code.clone(),
         original_size,
         optimized_size,
     };
@@ -999,21 +1001,8 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         ..
     } = args;
     tokio::runtime::Runtime::new()?.block_on(async {
-        let steps = BuildSteps::new();
+        let mut build_steps = BuildSteps::new();
         let client = Docker::connect_with_socket_defaults()?;
-
-        let optimization_passes = match optimization_passes {
-            Some(opt_passes) => opt_passes,
-            None => {
-                let mut manifest = Manifest::new(manifest_path.clone())?;
-                match manifest.profile_optimization_passes() {
-                    // if no setting is found, neither on the cli nor in the profile,
-                    // then we use the default
-                    None => OptimizationPasses::default(),
-                    Some(opt_passes) => opt_passes,
-                }
-            }
-        };
 
         let images = client
             .list_images(Some(ListImagesOptions::<String> {
@@ -1040,13 +1029,19 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         let host_folder = crate_metadata
             .manifest_path
             .absolute_directory()?
-            .to_str()
-            .expect("Cannot convert Path to string.")
+            .as_path()
             .to_owned();
+
+        let file_path = host_folder.join(Path::new("build_result.json"));
 
         let mount = Mount {
             target: Some(String::from("/contract")),
-            source: Some(host_folder.clone()),
+            source: Some(
+                host_folder
+                    .to_str()
+                    .context("Cannot convert path to string.")?
+                    .to_string(),
+            ),
             typ: Some(MountTypeEnum::BIND),
             ..Default::default()
         };
@@ -1057,16 +1052,15 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         });
 
         let entrypoint = vec!["/bin/bash", "-c"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
 
-        let cmds = vec![
-            "cargo contract build --release --generate code-only --output-json > result.json",
-        ]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+        let cmds =
+            vec!["cargo contract build --release --output-json > build_result.json"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
 
         let config = Config {
             image: Some(build_image.id.clone()),
@@ -1077,10 +1071,27 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             ..Default::default()
         };
 
-        let container_id = client.create_container(options, config).await?.id;
-        client
-            .start_container::<String>(&container_id, None)
-            .await?;
+        let container_id = match client
+            .create_container(options.clone(), config.clone())
+            .await
+        {
+            Ok(response) => response.id,
+            Err(_) => {
+                // container might exist, so we delete the previous one
+                let _ = client.remove_container("ink-container", None).await;
+                client.create_container(options, config).await?.id
+            }
+        };
+        match client.start_container::<String>(&container_id, None).await {
+            Ok(_) => {
+                // TODO: message
+            }
+            Err(_) => {
+                // TODO: message
+                let _ = client.remove_container(&container_id, None).await;
+                let _ = fs::remove_file(&file_path);
+            }
+        }
 
         let options = Some(WaitContainerOptions {
             condition: "not-running",
@@ -1088,70 +1099,72 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 
         let mut wait_stream = client.wait_container(&container_id, options);
         while wait_stream.next().await.is_some() {}
+        client.remove_container(&container_id, None).await?;
 
+        let result_contents = match std::fs::read_to_string(&file_path) {
+            Ok(content) => {
+                std::fs::remove_file(&file_path)?;
+                content
+            }
+            Err(e) => {
+                std::fs::remove_file(&file_path)?;
+                anyhow::bail!(e);
+            }
+        };
 
-        let file_path = format!("{}/result.json", &host_folder);
-        let result_contents =
-            std::fs::read_to_string(&file_path)?;
-        let build_result: BuildResult =
-            serde_json::from_str(&result_contents).map_err(|_| {
+        let mut build_result: BuildResult = serde_json::from_str(&result_contents)
+            .map_err(|_| {
                 anyhow::anyhow!(
                     "Error parsing output from docker build. The build probably failed!"
                 )
             })?;
 
-        let metadata_result = MetadataArtifacts {
-            dest_metadata: crate_metadata.metadata_path(),
-            dest_bundle: crate_metadata.contract_bundle_path(),
-        };
+        let new_path = host_folder.join(
+            build_result
+                .target_directory
+                .as_path()
+                .strip_prefix("/contract")?,
+        );
+        build_result.target_directory = new_path;
 
-        // skip metadata generation if contract unchanged and all metadata artifacts
-        // exist.
-        if build_result.optimization_result.is_some()
-            || !metadata_result.dest_metadata.exists()
-            || !metadata_result.dest_bundle.exists()
-        {
-            let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
-                version
-            } else {
-                anyhow::bail!(
-                    "Unable to parse version number for the currently running \
-                    `cargo-contract` binary."
-                );
-            };
+        let new_path = build_result.dest_wasm.as_ref().map(|p| {
+            host_folder.join(
+                p.as_path()
+                    .strip_prefix("/contract")
+                    .expect("cannot strip prefix"),
+            )
+        });
+        build_result.dest_wasm = new_path;
 
-            let build_info = BuildInfo {
-                rust_toolchain: util::rust_toolchain()?,
-                cargo_contract_version,
-                build_mode,
-                wasm_opt_settings: WasmOptSettings {
-                    optimization_passes,
-                    keep_debug_symbols,
-                },
-            };
-            // if metadata build fails after a code build it might become stale
-            metadata::execute(
-                &crate_metadata,
-                build_result.dest_wasm.as_ref().unwrap().as_path(),
-                &metadata_result,
-                &features,
-                network,
-                verbosity,
-                steps,
-                &unstable_flags,
-                build_info,
-                Some(build_image.id.clone()),
+        build_result.metadata_result.as_mut().map(|mut m| {
+            m.dest_bundle = host_folder.join(
+                m.dest_bundle
+                    .as_path()
+                    .strip_prefix("/contract")
+                    .expect("cannot strip prefix"),
+            );
+            m.dest_metadata = host_folder.join(
+                m.dest_metadata
+                    .as_path()
+                    .strip_prefix("/contract")
+                    .expect("cannot strip prefix"),
+            );
+            m
+        });
+
+        if let Some(metadata_artifacts) = &build_result.metadata_result {
+            let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
+            metadata.image = Some(build_image.id.to_string());
+
+            metadata::write_metadata(
+                metadata_artifacts,
+                metadata,
+                &mut build_steps,
+                &verbosity,
             )?;
         }
 
-        std::fs::remove_file(&file_path)?;
-        client.remove_container(&container_id, None).await?;
-
-        Ok(BuildResult {
-            metadata_result: Some(metadata_result),
-            output_type,
-            ..build_result
-        })
+        Ok(build_result)
     })
 }
 
@@ -1312,7 +1325,6 @@ mod unit_tests {
             }),
             target_directory: PathBuf::from("/path/to/target"),
             optimization_result: Some(OptimizationResult {
-                dest_wasm: PathBuf::from("/path/to/contract.wasm"),
                 original_size: 64.0,
                 optimized_size: 32.0,
             }),

@@ -119,7 +119,6 @@ pub fn execute(
     mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
-    image: Option<String>,
 ) -> Result<()> {
     // build the extended contract project metadata
     let ExtendedMetadataResult {
@@ -161,23 +160,9 @@ pub fn execute(
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
             serde_json::from_slice(&output.stdout)?;
-        let metadata = ContractMetadata::new(source, contract, image, user, ink_meta);
-        {
-            let mut metadata = metadata.clone();
-            metadata.remove_source_wasm_attribute();
-            let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&metadata_artifacts.dest_metadata, contents)?;
-            build_steps.increment_current();
-        }
+        let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating bundle".bright_green().bold()
-        );
-        let contents = serde_json::to_string(&metadata)?;
-        fs::write(&metadata_artifacts.dest_bundle, contents)?;
+        write_metadata(metadata_artifacts, metadata, &mut build_steps, &verbosity)?;
 
         Ok(())
     };
@@ -196,6 +181,32 @@ pub fn execute(
             .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
+
+    Ok(())
+}
+
+pub fn write_metadata(
+    metadata_artifacts: &MetadataArtifacts,
+    metadata: ContractMetadata,
+    build_steps: &mut BuildSteps,
+    verbosity: &Verbosity,
+) -> Result<()> {
+    {
+        let mut metadata = metadata.clone();
+        metadata.remove_source_wasm_attribute();
+        let contents = serde_json::to_string_pretty(&metadata)?;
+        fs::write(&metadata_artifacts.dest_metadata, contents)?;
+        build_steps.increment_current();
+    }
+
+    maybe_println!(
+        verbosity,
+        " {} {}",
+        format!("{build_steps}").bold(),
+        "Generating bundle".bright_green().bold()
+    );
+    let contents = serde_json::to_string(&metadata)?;
+    fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
     Ok(())
 }
