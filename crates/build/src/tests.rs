@@ -21,7 +21,6 @@ use crate::{
     util::tests::{
         TestContractManifest,
         with_new_subcontract_project,
-        with_many_new_subcontract_projects,
     },
     BuildArtifacts,
     BuildMode,
@@ -415,47 +414,35 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 
 #[test]
 fn building_subcontract_must_work() {
-    with_new_subcontract_project(|(manifest_path, subcontract)| {
-        let cmd = BuildCommand {
-            package: Some(subcontract),
-            build_all: false,
-            check_all: false,
-            manifest_path: Some(manifest_path),
-            build_artifact: BuildArtifacts::All,
-            build_release: false,
-            build_offline: false,
-            verbosity: VerbosityFlags::default(),
-            unstable_options: UnstableOptions::default(),
-            optimization_passes: None,
-            keep_debug_symbols: false,
-            skip_linting: false,
-            output_json: false,
-        };
-        cmd.exec().expect("build failed");
-        Ok(())
-    })
+    with_new_subcontract_projects(
+        |manifest_path| {
+            let cmd = BuildCommand {
+                build_all: true,
+                package: None,
+                manifest_path: Some(manifest_path),
+                ..Default::default()
+            };
+            cmd.exec().expect("build failed");
+            Ok(())
+        },
+        1,
+    )
 }
 
-fn building_all_subcontracts_must_work() {
-    with_many_new_subcontract_projects(|manifest_path| {
-        let cmd = BuildCommand {
-            package: None,
-            build_all: true,
-            check_all: false,
-            manifest_path: Some(manifest_path),
-            build_artifact: BuildArtifacts::All,
-            build_release: false,
-            build_offline: false,
-            verbosity: VerbosityFlags::default(),
-            unstable_options: UnstableOptions::default(),
-            optimization_passes: None,
-            keep_debug_symbols: false,
-            skip_linting: false,
-            output_json: false,
-        };
-        cmd.exec().expect("build failed");
-        Ok(())
-    })
+fn building_many_subcontracts_must_work() {
+    with_new_subcontract_projects(
+        |manifest_path| {
+            let cmd = BuildCommand {
+                build_all: true,
+                package: None,
+                manifest_path: Some(manifest_path),
+                ..Default::default()
+            };
+            cmd.exec().expect("build failed");
+            Ok(())
+        },
+        3,
+    )
 }
 
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {

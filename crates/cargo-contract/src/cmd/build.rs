@@ -46,7 +46,7 @@ use std::{
 /// deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
-#[derive(Debug, clap::Args)]
+#[derive(Debug, Default, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
     /// Name of a sub-contract package within a contract workspace that has a top-level

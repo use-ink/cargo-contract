@@ -105,55 +105,30 @@ where
     })
 }
 
-/// Creates a new subcontract into a temporary directory.
-pub fn with_new_subcontract_project<F>(f: F)
-where
-    F: FnOnce((PathBuf, String)) -> anyhow::Result<()>,
-{
-    with_tmp_dir(|tmp_dir| {
-        let unique_name =
-            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
-        crate::cmd::new::execute(&unique_name, Some(tmp_dir))
-            .expect("new project creation failed");
-
-        let manifest_path = tmp_dir.join("Cargo.toml");
-
-        let mut output = File::create(manifest_path.clone())?;
-        writeln!(output, "[workspace]\n\n")?;
-        writeln!(output, "members = [ \"{}\" ]", unique_name)?;
-
-        f((manifest_path, unique_name))
-    })
-}
-
 /// Creates many new subcontracts into a temporary directory.
-pub fn with_many_new_subcontract_projects<F>(f: F)
+pub fn with_new_subcontract_projects<F>(f: F, n: u32)
 where
     F: FnOnce(PathBuf) -> anyhow::Result<()>,
 {
     with_tmp_dir(|tmp_dir| {
-        let unique_name_0 =
-            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
-        crate::cmd::new::execute(&unique_name_0, Some(tmp_dir))
-            .expect("new project creation failed");
-        let unique_name_1 =
-            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
-        crate::cmd::new::execute(&unique_name_1, Some(tmp_dir))
-            .expect("new project creation failed");
-        let unique_name_2 =
-            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
-        crate::cmd::new::execute(&unique_name_2, Some(tmp_dir))
-            .expect("new project creation failed");
+        let mut unique_names = Vec::new();
+        for _ in 0..n {
+            let unique_name =
+                format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+            crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+                .expect("new project creation failed");
+            unique_names.push(unique_name);
+        }
 
         let manifest_path = tmp_dir.join("Cargo.toml");
 
         let mut output = File::create(manifest_path.clone())?;
-        writeln!(output, "[workspace]\n\n")?;
-        writeln!(output, "members = [\n")?;
-        writeln!(output, "  \"{}\",\n", unique_name_0)?;
-        writeln!(output, "\"{}\",\n", unique_name_1)?;
-        writeln!(output, "\"{}\",\n", unique_name_2)?;
-        writeln!(output, "]")?;
+        write!(output, "[workspace]\n\n")?;
+        writeln!(output, "members = [")?;
+        for unique_name in unique_names {
+            writeln!(output, "  \"{}\",", unique_name)?;
+        }
+        write!(output, "]")?;
 
         f(manifest_path)
     })
