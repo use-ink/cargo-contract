@@ -818,7 +818,6 @@ dependencies = [
  "heck",
  "hex",
  "impl-serde",
- "log",
  "parity-scale-codec",
  "parity-wasm",
  "pretty_assertions",

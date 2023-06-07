@@ -211,7 +211,7 @@ where
     });
 
     if let Some(path) = working_dir {
-        log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd.current_dir(path);
     }
 
@@ -229,7 +229,7 @@ where
         Verbosity::Default => &mut cmd,
     };
 
-    log::info!("Invoking cargo: {:?}", cmd);
+    tracing::debug!("Invoking cargo: {:?}", cmd);
 
     let child = cmd
         // capture the stdout to return from this function as bytes
