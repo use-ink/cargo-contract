@@ -119,8 +119,8 @@ where
         let manifest_path = tmp_dir.join("Cargo.toml");
 
         let mut output = File::create(manifest_path.clone())?;
-        write!(output, "[workspace]\n\n")?;
-        write!(output, "members = [ \"{}\" ]", unique_name)?;
+        writeln!(output, "[workspace]\n\n")?;
+        writeln!(output, "members = [ \"{}\" ]", unique_name)?;
 
         f((manifest_path, unique_name))
     })
@@ -148,12 +148,12 @@ where
         let manifest_path = tmp_dir.join("Cargo.toml");
 
         let mut output = File::create(manifest_path.clone())?;
-        write!(output, "[workspace]\n\n")?;
-        write!(output, "members = [\n")?;
-        write!(output, "  \"{}\",\n", unique_name_0)?;
-        write!(output, "\"{}\",\n", unique_name_1)?;
-        write!(output, "\"{}\",\n", unique_name_2)?;
-        write!(output, "]")?;
+        writeln!(output, "[workspace]\n\n")?;
+        writeln!(output, "members = [\n")?;
+        writeln!(output, "  \"{}\",\n", unique_name_0)?;
+        writeln!(output, "\"{}\",\n", unique_name_1)?;
+        writeln!(output, "\"{}\",\n", unique_name_2)?;
+        writeln!(output, "]")?;
 
         f(manifest_path)
     })
