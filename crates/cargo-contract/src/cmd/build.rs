@@ -141,19 +141,8 @@ pub struct BuildCommand {
 
 impl BuildCommand {
     pub fn exec(&self) -> Result<Vec<BuildResult>> {
-        let manifest_path = match self.package.as_ref() {
-            Some(package) => {
-                let root_manifest_path =
-                    ManifestPath::try_from(self.manifest_path.as_ref())?;
-                root_manifest_path
-                    .subcontract_manifest_path(package)
-                    .context(format!(
-                        "error: package ID specification `{}` did not match any packages",
-                        package
-                    ))?
-            }
-            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
-        };
+        let manifest_path =
+            ManifestPath::new_maybe_from_package(&self.manifest_path, &self.package)?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
@@ -247,19 +236,8 @@ pub struct CheckCommand {
 
 impl CheckCommand {
     pub fn exec(&self) -> Result<Vec<BuildResult>> {
-        let manifest_path = match self.package.as_ref() {
-            Some(package) => {
-                let root_manifest_path =
-                    ManifestPath::try_from(self.manifest_path.as_ref())?;
-                root_manifest_path
-                    .subcontract_manifest_path(package)
-                    .context(format!(
-                        "error: package ID specification `{}` did not match any packages",
-                        package
-                    ))?
-            }
-            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
-        };
+        let manifest_path =
+            ManifestPath::new_maybe_from_package(&self.manifest_path, &self.package)?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
