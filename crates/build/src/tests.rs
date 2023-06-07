@@ -437,7 +437,7 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
     let path = manifest_path.directory().expect("dir must exist");
 
     let project_name = "new_project";
-    crate::cmd::new::execute(&project_name, Some(path))
+    crate::cmd::new::execute(project_name, Some(path))
         .expect("new project creation failed");
 
     // delete original lib.rs
