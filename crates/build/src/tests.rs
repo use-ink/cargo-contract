@@ -20,7 +20,7 @@ use crate::{
     },
     util::tests::{
         TestContractManifest,
-        with_new_subcontract_project,
+        // with_new_subcontract_project,
     },
     BuildArtifacts,
     BuildMode,
@@ -82,7 +82,9 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     building_contract_with_build_rs_must_work,
-    building_subcontract_must_work,
+    // building_subcontract_must_work,
+    building_subcontracts_must_work,
+    // building_many_subcontracts_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
@@ -412,38 +414,71 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     Ok(())
 }
 
-#[test]
-fn building_subcontract_must_work() {
-    with_new_subcontract_projects(
-        |manifest_path| {
-            let cmd = BuildCommand {
-                build_all: true,
-                package: None,
-                manifest_path: Some(manifest_path),
-                ..Default::default()
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        },
-        1,
-    )
+// #[test]
+// fn building_subcontract_must_work() {
+//     with_new_subcontract_projects(
+//         |manifest_path| {
+//             let cmd = BuildCommand {
+//                 build_all: true,
+//                 package: None,
+//                 manifest_path: Some(manifest_path),
+//                 ..Default::default()
+//             };
+//             cmd.exec().expect("build failed");
+//             Ok(())
+//         },
+//         1,
+//     )
+// }
+
+fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let path = manifest_path.directory().expect("dir must exist");
+
+    let n_contracts = 3;
+    let mut project_names = Vec::new();
+    for i in 0..n_contracts {
+        let project_name = format!("new_project_{}", i);
+        crate::cmd::new::execute(&project_name, Some(path))
+            .expect("new project creation failed");
+        project_names.push(project_name);
+    }
+
+    // override manifest_path
+    let manifest_path = path.join("Cargo.toml");
+    let mut output = fs::File::create(manifest_path.clone())?;
+    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "members = [")?;
+    for project_name in project_names {
+        writeln!(output, "  \"{}\",", project_name)?;
+    }
+    write!(output, "]")?;
+
+    let cmd = BuildCommand {
+        build_all: true,
+        manifest_path: Some(manifest_path),
+        ..Default::default()
+    };
+
+    cmd.exec().expect("build failed");
+    Ok(())
 }
 
-fn building_many_subcontracts_must_work() {
-    with_new_subcontract_projects(
-        |manifest_path| {
-            let cmd = BuildCommand {
-                build_all: true,
-                package: None,
-                manifest_path: Some(manifest_path),
-                ..Default::default()
-            };
-            cmd.exec().expect("build failed");
-            Ok(())
-        },
-        3,
-    )
-}
+// #[test]
+// fn building_many_subcontracts_must_work() {
+//     with_new_subcontract_projects(
+//         |manifest_path| {
+//             let cmd = BuildCommand {
+//                 build_all: true,
+//                 package: None,
+//                 manifest_path: Some(manifest_path),
+//                 ..Default::default()
+//             };
+//             cmd.exec().expect("build failed");
+//             Ok(())
+//         },
+//         3,
+//     )
+// }
 
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
