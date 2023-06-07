@@ -214,17 +214,10 @@ impl BuildCommand {
             Ok(())
         };
 
-        match self.build_all {
-            true => {
-                build_all()?;
-            }
-            false => {
-                if is_virtual_manifest(&manifest_path)? {
-                    build_all()?;
-                } else {
-                    build_results.push(execute(args)?);
-                }
-            }
+        if self.build_all || is_virtual_manifest(&manifest_path)? {
+            build_all()?;
+        } else {
+            build_results.push(execute(args)?);
         }
         Ok(build_results)
     }
@@ -307,17 +300,10 @@ impl CheckCommand {
             Ok(())
         };
 
-        match self.check_all {
-            true => {
-                check_all()?;
-            }
-            false => {
-                if is_virtual_manifest(&manifest_path)? {
-                    check_all()?;
-                } else {
-                    check_results.push(execute(args)?);
-                }
-            }
+        if self.check_all || is_virtual_manifest(&manifest_path)? {
+            check_all()?;
+        } else {
+            check_results.push(execute(args)?);
         }
         Ok(check_results)
     }
