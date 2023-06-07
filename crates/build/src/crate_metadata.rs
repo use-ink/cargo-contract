@@ -179,7 +179,10 @@ pub fn get_cargo_workspace_members(
     let metadata = cmd
         .manifest_path(manifest_path.as_ref())
         .exec()
-        .context("Error invoking `cargo metadata`")?;
+        .context(format!(
+            "Error invoking `cargo metadata` for {:?} while checking whether workspace is virtual",
+            manifest_path
+        ))?;
 
     Ok(metadata.workspace_members)
 }
