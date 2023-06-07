@@ -742,9 +742,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             if let Some((x, y)) = counter {
                 maybe_println!(
                     verbosity,
-                    "\n {} {} {}",
+                    "\n {} {} {} {}",
                     format!("{build_steps}").bold(),
                     "Building contract of cargo project".bright_green().bold(),
+                    crate_metadata.contract_artifact_name,
                     format!("[{}/{}]", x, y).bold(),
                 );
             }
@@ -879,8 +880,9 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             if let Some((x, y)) = counter {
                 maybe_println!(
                     verbosity,
-                    "\n {} {}",
+                    "\n {} {} {}",
                     "Checking contract".bright_purple().bold(),
+                    crate_metadata.contract_artifact_name,
                     format!("[{}/{}]", x, y).bold(),
                 );
             }
@@ -903,10 +905,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             if res.is_ok() {
                 maybe_println!(
                     verbosity,
-                    " {}",
-                    "Your contract's code was checked successfully.\n"
-                        .bright_purple()
-                        .bold()
+                    " {} {} {}",
+                    "Contract".bright_purple().bold(),
+                    crate_metadata.contract_artifact_name,
+                    "was checked successfully.\n".bright_purple().bold()
                 );
             }
 
