@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use contract_build::{
     BuildArtifacts,
     BuildMode,
@@ -144,11 +147,10 @@ impl BuildCommand {
                     ManifestPath::try_from(self.manifest_path.as_ref())?;
                 root_manifest_path
                     .subcontract_manifest_path(package)
-                    .unwrap_or_else(|| {
-                        panic!(
+                    .context(format!(
                         "error: package ID specification `{}` did not match any packages",
-                        package)
-                    })
+                        package
+                    ))?
             }
             None => ManifestPath::try_from(self.manifest_path.as_ref())?,
         };
@@ -266,11 +268,10 @@ impl CheckCommand {
                     ManifestPath::try_from(self.manifest_path.as_ref())?;
                 root_manifest_path
                     .subcontract_manifest_path(package)
-                    .unwrap_or_else(|| {
-                        panic!(
+                    .context(format!(
                         "error: package ID specification `{}` did not match any packages",
-                        package)
-                    })
+                        package
+                    ))?
             }
             None => ManifestPath::try_from(self.manifest_path.as_ref())?,
         };
