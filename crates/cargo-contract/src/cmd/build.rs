@@ -179,28 +179,29 @@ impl BuildCommand {
 
         let mut build_results = Vec::new();
 
+        let mut args = ExecuteArgs {
+            package: self.package.clone(),
+            build_all: self.build_all,
+            check_all: false,
+            manifest_path: manifest_path.clone(),
+            verbosity,
+            build_mode,
+            features: self.features.clone(),
+            network,
+            build_artifact: self.build_artifact,
+            unstable_flags: unstable_flags.clone(),
+            optimization_passes: self.optimization_passes,
+            keep_debug_symbols: self.keep_debug_symbols,
+            lint: self.lint,
+            output_type: output_type.clone(),
+            skip_wasm_validation: self.skip_wasm_validation,
+            target: self.target,
+            max_memory_pages: self.max_memory_pages,
+        };
+
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                let mut args = ExecuteArgs {
-                    package: self.package.clone(),
-                    build_all: self.build_all,
-                    check_all: false,
-                    manifest_path,
-                    verbosity,
-                    build_mode,
-                    features: self.features.clone(),
-                    network,
-                    build_artifact: self.build_artifact,
-                    unstable_flags: unstable_flags.clone(),
-                    optimization_passes: self.optimization_passes,
-                    keep_debug_symbols: self.keep_debug_symbols,
-                    lint: self.lint,
-                    output_type: output_type.clone(),
-                    skip_wasm_validation: self.skip_wasm_validation,
-                    target: self.target,
-                    max_memory_pages: self.max_memory_pages,
-                };
                 for package_id in workspace_members {
                     args.manifest_path =
                         extract_subcontract_manifest_path(package_id)
@@ -210,25 +211,6 @@ impl BuildCommand {
                 }
             }
             false => {
-                let args = ExecuteArgs {
-                    package: self.package.clone(),
-                    build_all: self.build_all,
-                    check_all: false,
-                    manifest_path,
-                    verbosity,
-                    build_mode,
-                    features: self.features.clone(),
-                    network,
-                    build_artifact: self.build_artifact,
-                    unstable_flags,
-                    optimization_passes: self.optimization_passes,
-                    keep_debug_symbols: self.keep_debug_symbols,
-                    lint: self.lint,
-                    output_type,
-                    skip_wasm_validation: self.skip_wasm_validation,
-                    target: self.target,
-                    max_memory_pages: self.max_memory_pages,
-                };
                 build_results.push(execute(args)?);
             }
         }
@@ -279,28 +261,29 @@ impl CheckCommand {
 
         let mut check_results = Vec::new();
 
+        let mut args = ExecuteArgs {
+            package: self.package.clone(),
+            build_all: false,
+            check_all: self.check_all,
+            manifest_path: manifest_path.clone(),
+            verbosity,
+            build_mode: BuildMode::Debug,
+            features: self.features.clone(),
+            network: Network::default(),
+            build_artifact: BuildArtifacts::CheckOnly,
+            unstable_flags: unstable_flags.clone(),
+            optimization_passes: Some(OptimizationPasses::Zero),
+            keep_debug_symbols: false,
+            lint: false,
+            output_type: OutputType::default(),
+            skip_wasm_validation: false,
+            target: self.target,
+            max_memory_pages: 0,
+        };
+
         match self.check_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                let mut args = ExecuteArgs {
-                    package: self.package.clone(),
-                    build_all: false,
-                    check_all: self.check_all,
-                    manifest_path,
-                    verbosity,
-                    build_mode: BuildMode::Debug,
-                    features: self.features.clone(),
-                    network: Network::default(),
-                    build_artifact: BuildArtifacts::CheckOnly,
-                    unstable_flags: unstable_flags.clone(),
-                    optimization_passes: Some(OptimizationPasses::Zero),
-                    keep_debug_symbols: false,
-                    lint: false,
-                    output_type: OutputType::default(),
-                    skip_wasm_validation: false,
-                    target: self.target,
-                    max_memory_pages: 0,
-                };
                 for package_id in workspace_members {
                     args.manifest_path =
                         extract_subcontract_manifest_path(package_id)
@@ -310,25 +293,6 @@ impl CheckCommand {
                 }
             }
             false => {
-                let args = ExecuteArgs {
-                    package: self.package.clone(),
-                    build_all: false,
-                    check_all: self.check_all,
-                    manifest_path,
-                    verbosity,
-                    build_mode: BuildMode::Debug,
-                    features: self.features.clone(),
-                    network: Network::default(),
-                    build_artifact: BuildArtifacts::CheckOnly,
-                    unstable_flags,
-                    optimization_passes: Some(OptimizationPasses::Zero),
-                    keep_debug_symbols: false,
-                    lint: false,
-                    output_type: OutputType::default(),
-                    skip_wasm_validation: false,
-                    target: self.target,
-                    max_memory_pages: 0,
-                };
                 check_results.push(execute(args)?);
             }
         }
