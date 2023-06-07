@@ -197,16 +197,17 @@ impl BuildCommand {
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
+            counter: None,
         };
 
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for package_id in workspace_members {
+                for (i, package_id) in workspace_members.iter().enumerate() {
                     args.manifest_path =
-                        extract_subcontract_manifest_path(package_id)
+                        extract_subcontract_manifest_path(package_id.clone())
                             .expect("Error extracting package manifest path");
-
+                    args.counter = Some((i + 1, workspace_members.len()));
                     build_results.push(execute(args.clone())?);
                 }
             }
@@ -279,16 +280,17 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
+            counter: None,
         };
 
         match self.check_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for package_id in workspace_members {
+                for (i, package_id) in workspace_members.iter().enumerate() {
                     args.manifest_path =
-                        extract_subcontract_manifest_path(package_id)
+                        extract_subcontract_manifest_path(package_id.clone())
                             .expect("Error extracting package manifest path");
-
+                    args.counter = Some((i + 1, workspace_members.len()));
                     check_results.push(execute(args.clone())?);
                 }
             }

@@ -122,6 +122,7 @@ pub struct ExecuteArgs {
     pub skip_wasm_validation: bool,
     pub target: Target,
     pub max_memory_pages: u32,
+    pub counter: Option<(usize, usize)>,
 }
 
 impl Default for ExecuteArgs {
@@ -144,6 +145,7 @@ impl Default for ExecuteArgs {
             skip_wasm_validation: Default::default(),
             target: Default::default(),
             max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
+            counter: Default::default(),
         }
     }
 }
@@ -687,6 +689,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         skip_wasm_validation,
         target,
         max_memory_pages,
+        counter,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -735,12 +738,16 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             let mut build_steps = BuildSteps::new();
             let pre_fingerprint = Fingerprint::new(&crate_metadata)?;
 
-            maybe_println!(
-                verbosity,
-                " {} {}",
-                format!("{build_steps}").bold(),
-                "Building cargo project".bright_green().bold()
-            );
+            // TODO - do we need `counter` in addition to more recent `build_steps`?
+            if let Some((x, y)) = counter {
+                maybe_println!(
+                    verbosity,
+                    "\n {} {} {}",
+                    format!("{build_steps}").bold(),
+                    "Building contract of cargo project".bright_green().bold(),
+                    format!("[{}/{}]", x, y).bold(),
+                );
+            }
             build_steps.increment_current();
             exec_cargo_for_onchain_target(
                 &crate_metadata,
