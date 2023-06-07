@@ -6,7 +6,7 @@ FROM ${REGISTRY_PATH}/base-ci-linux:latest
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
-    io.parity.image.title="${REGISTRY_PATH}/ink-build-image" \
+    io.parity.image.title="${REGISTRY_PATH}/contracts-verified" \
     io.parity.image.documentation="https://github.com/paritytech/scripts/blob/${VCS_REF}/\
     dockerfiles/ink-ci-linux/README.md" \
     io.parity.image.description="Inherits from docker.io/paritytech/base-ci-linux. \
@@ -21,6 +21,8 @@ WORKDIR /builds
 
 RUN set -eux; \
     apt-get -y update && \
+    apt-get install -y --no-install-recommends zlib1g-dev npm wabt && \
+    npm install --ignore-scripts -g yarn && \
 
     # `binaryen` is needed by `cargo-contract` for optimizing Wasm files.
     # We fetch the latest release which contains a Linux binary.
@@ -72,3 +74,5 @@ RUN set -eux; \
 # A contract workdir which should be bind mounted to the container. See README for detailed documentation.
 WORKDIR /contract
 
+# A default entry point for manual execution
+ENTRYPOINT [ "cargo", "contract", "build", "--release" ]

@@ -1,4 +1,4 @@
 docker run -d \
-    --name flipper \
+    --name ink-container \
     --mount type=bind,source="$(pwd)",target="/contract" \
     parity/ver-build
