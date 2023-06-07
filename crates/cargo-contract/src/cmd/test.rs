@@ -42,7 +42,7 @@ use std::{
 #[derive(Debug, clap::Args)] // Parse,
 #[clap(name = "test")]
 pub struct TestCommand {
-    /// Subcontract
+    /// Contract package to test.
     #[clap(long, short)]
     package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to test.
@@ -51,7 +51,7 @@ pub struct TestCommand {
     // #[clap(long, parse(from_os_string))]
     #[clap(long)]
     manifest_path: Option<PathBuf>,
-    /// Test all subcontracts in the workspace
+    /// Test all contract packages in the workspace.
     #[clap(long = "--all")]
     test_all: bool,
     #[clap(flatten)]

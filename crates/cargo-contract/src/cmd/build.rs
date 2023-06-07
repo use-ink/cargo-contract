@@ -52,11 +52,10 @@ use std::{
 #[derive(Debug, Default, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
-    /// Name of a sub-contract package within a contract workspace that has a top-level
-    /// Cargo.toml file, which includes its member list of sub-contract packages
+    /// Contract package to build.
     #[clap(long, short)]
     package: Option<String>,
-    /// Path to the `Cargo.toml` of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// By default the contract is compiled with debug functionality
@@ -67,7 +66,7 @@ pub struct BuildCommand {
     /// Then no debug functionality is compiled into the contract.
     #[clap(long = "release")]
     build_release: bool,
-    /// Build all subcontracts in the workspace
+    /// Build all contract packages in the workspace.
     #[clap(long = "--all")]
     build_all: bool,
     /// Build offline
@@ -178,36 +177,36 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        let mut ret = Vec::new();
+        let mut build_results = Vec::new();
 
         match self.build_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                let mut args = ExecuteArgs {
+                    package: self.package.clone(),
+                    build_all: self.build_all,
+                    check_all: false,
+                    manifest_path,
+                    verbosity,
+                    build_mode,
+                    features: self.features.clone(),
+                    network,
+                    build_artifact: self.build_artifact,
+                    unstable_flags: unstable_flags.clone(),
+                    optimization_passes: self.optimization_passes,
+                    keep_debug_symbols: self.keep_debug_symbols,
+                    lint: self.lint,
+                    output_type: output_type.clone(),
+                    skip_wasm_validation: self.skip_wasm_validation,
+                    target: self.target,
+                    max_memory_pages: self.max_memory_pages,
+                };
                 for package_id in workspace_members {
-                    let manifest_path =
+                    args.manifest_path =
                         extract_subcontract_manifest_path(package_id)
                             .expect("Error extracting package manifest path");
 
-                    let args = ExecuteArgs {
-                        package: self.package.clone(),
-                        build_all: self.build_all,
-                        check_all: false,
-                        manifest_path,
-                        verbosity,
-                        build_mode,
-                        features: self.features.clone(),
-                        network,
-                        build_artifact: self.build_artifact,
-                        unstable_flags: unstable_flags.clone(),
-                        optimization_passes: self.optimization_passes,
-                        keep_debug_symbols: self.keep_debug_symbols,
-                        lint: self.lint,
-                        output_type: output_type.clone(),
-                        skip_wasm_validation: self.skip_wasm_validation,
-                        target: self.target,
-                        max_memory_pages: self.max_memory_pages,
-                    };
-                    ret.push(execute(args)?);
+                    build_results.push(execute(args.clone())?);
                 }
             }
             false => {
@@ -230,24 +229,23 @@ impl BuildCommand {
                     target: self.target,
                     max_memory_pages: self.max_memory_pages,
                 };
-                ret.push(execute(args)?);
+                build_results.push(execute(args)?);
             }
         }
-        Ok(ret)
+        Ok(build_results)
     }
 }
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "check")]
 pub struct CheckCommand {
-    /// Name of a sub-contract package within a contract workspace that has a top-level
-    /// Cargo.toml file, which includes its member list of sub-contract packages
+    /// Contract package to check.
     #[clap(long, short)]
     package: Option<String>,
-    /// Path to the `Cargo.toml` of the contract to build
+    /// Path to the `Cargo.toml` of the contract to build.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Check all subcontracts in the workspace
+    /// Check all contract packages in the workspace.
     #[clap(long = "--all")]
     check_all: bool,
     #[clap(flatten)]
@@ -279,36 +277,36 @@ impl CheckCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let mut ret = Vec::new();
+        let mut check_results = Vec::new();
 
         match self.check_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                let mut args = ExecuteArgs {
+                    package: self.package.clone(),
+                    build_all: false,
+                    check_all: self.check_all,
+                    manifest_path,
+                    verbosity,
+                    build_mode: BuildMode::Debug,
+                    features: self.features.clone(),
+                    network: Network::default(),
+                    build_artifact: BuildArtifacts::CheckOnly,
+                    unstable_flags: unstable_flags.clone(),
+                    optimization_passes: Some(OptimizationPasses::Zero),
+                    keep_debug_symbols: false,
+                    lint: false,
+                    output_type: OutputType::default(),
+                    skip_wasm_validation: false,
+                    target: self.target,
+                    max_memory_pages: 0,
+                };
                 for package_id in workspace_members {
-                    let manifest_path =
+                    args.manifest_path =
                         extract_subcontract_manifest_path(package_id)
                             .expect("Error extracting package manifest path");
 
-                    let args = ExecuteArgs {
-                        package: self.package.clone(),
-                        build_all: false,
-                        check_all: self.check_all,
-                        manifest_path,
-                        verbosity,
-                        build_mode: BuildMode::Debug,
-                        features: self.features.clone(),
-                        network: Network::default(),
-                        build_artifact: BuildArtifacts::CheckOnly,
-                        unstable_flags: unstable_flags.clone(),
-                        optimization_passes: Some(OptimizationPasses::Zero),
-                        keep_debug_symbols: false,
-                        lint: false,
-                        output_type: OutputType::default(),
-                        skip_wasm_validation: false,
-                        target: self.target,
-                        max_memory_pages: 0,
-                    };
-                    ret.push(execute(args)?);
+                    check_results.push(execute(args.clone())?);
                 }
             }
             false => {
@@ -331,9 +329,9 @@ impl CheckCommand {
                     target: self.target,
                     max_memory_pages: 0,
                 };
-                ret.push(execute(args)?);
+                check_results.push(execute(args)?);
             }
         }
-        Ok(ret)
+        Ok(check_results)
     }
 }
