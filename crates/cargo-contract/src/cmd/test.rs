@@ -55,7 +55,7 @@ pub struct TestCommand {
     #[clap(long)]
     manifest_path: Option<PathBuf>,
     /// Test all contract packages in the workspace.
-    #[clap(long = "--workspace")]
+    #[clap(long = "workspace")]
     test_workspace: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
