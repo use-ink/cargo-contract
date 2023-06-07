@@ -454,7 +454,7 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
 
     let cmd = BuildCommand {
         package: Some(project_name.to_string()),
-        manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
+        manifest_path: Some(manifest_path),
         ..Default::default()
     };
 
@@ -491,7 +491,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 
     let cmd = BuildCommand {
         build_workspace: true,
-        manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
+        manifest_path: Some(manifest_path),
         ..Default::default()
     };
 
