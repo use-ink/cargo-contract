@@ -20,7 +20,8 @@ use anyhow::{
     Result,
 };
 use std::{
-    fs,
+    fs::File,
+    io::Write,
     ops::Deref,
     path::{
         Path,
@@ -58,6 +59,27 @@ where
         let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
 
         f(manifest_path)
+    })
+}
+
+/// Creates a new subcontract into a temporary directory.
+pub fn with_new_subcontract_project<F>(f: F)
+where
+    F: FnOnce((PathBuf, String)) -> anyhow::Result<()>,
+{
+    with_tmp_dir(|tmp_dir| {
+        let unique_name =
+            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+        crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+            .expect("new project creation failed");
+
+        let manifest_path = tmp_dir.join("Cargo.toml");
+
+        let mut output = File::create(manifest_path.clone())?;
+        write!(output, "[workspace]\n\n")?;
+        write!(output, "members = [ \"{}\" ]", unique_name)?;
+
+        f((manifest_path, unique_name))
     })
 }
 

@@ -76,6 +76,7 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     building_contract_with_build_rs_must_work,
+    building_subcontract_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
@@ -322,6 +323,27 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     // then
     assert!(res.is_ok(), "building contract failed!");
     Ok(())
+}
+
+#[test]
+fn building_subcontract_must_work() {
+    with_new_subcontract_project(|(manifest_path, subcontract)| {
+        let cmd = BuildCommand {
+            package: Some(subcontract),
+            manifest_path: Some(manifest_path),
+            build_artifact: BuildArtifacts::All,
+            build_release: false,
+            build_offline: false,
+            verbosity: VerbosityFlags::default(),
+            unstable_options: UnstableOptions::default(),
+            optimization_passes: None,
+            keep_debug_symbols: false,
+            skip_linting: false,
+            output_json: false,
+        };
+        cmd.exec().expect("build failed");
+        Ok(())
+    })
 }
 
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
