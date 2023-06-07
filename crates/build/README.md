@@ -23,8 +23,8 @@ let manifest_path = ManifestPath::new("my-contract/Cargo.toml").unwrap();
 
 let args = contract_build::ExecuteArgs {
     package: None,
-    build_all: false,
-    check_all: false,
+    build_workspace: false,
+    check_workspace: false,
     manifest_path,
     verbosity: Verbosity::Default,
     build_mode: BuildMode::Release,

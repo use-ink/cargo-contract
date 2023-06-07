@@ -105,8 +105,8 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone)]
 pub struct ExecuteArgs {
     pub package: Option<String>,
-    pub build_all: bool,
-    pub check_all: bool,
+    pub build_workspace: bool,
+    pub check_workspace: bool,
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
     pub verbosity: Verbosity,
@@ -129,8 +129,8 @@ impl Default for ExecuteArgs {
     fn default() -> Self {
         Self {
             package: Default::default(),
-            build_all: Default::default(),
-            check_all: Default::default(),
+            build_workspace: Default::default(),
+            check_workspace: Default::default(),
             manifest_path: Default::default(),
             verbosity: Default::default(),
             build_mode: Default::default(),
@@ -673,8 +673,8 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         package,
-        build_all,
-        check_all,
+        build_workspace,
+        check_workspace,
         manifest_path,
         verbosity,
         features,

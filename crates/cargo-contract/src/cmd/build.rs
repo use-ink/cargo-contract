@@ -68,8 +68,8 @@ pub struct BuildCommand {
     #[clap(long = "release")]
     build_release: bool,
     /// Build all contract packages in the workspace.
-    #[clap(long = "--all")]
-    build_all: bool,
+    #[clap(long = "--workspace")]
+    build_workspace: bool,
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
@@ -171,8 +171,8 @@ impl BuildCommand {
 
         let mut args = ExecuteArgs {
             package: self.package.clone(),
-            build_all: self.build_all,
-            check_all: false,
+            build_workspace: self.build_workspace,
+            check_workspace: false,
             manifest_path: manifest_path.clone(),
             verbosity,
             build_mode,
@@ -190,7 +190,7 @@ impl BuildCommand {
             counter: None,
         };
 
-        let mut build_all = || -> Result<()> {
+        let mut build_workspace = || -> Result<()> {
             let workspace_members = get_cargo_workspace_members(&manifest_path)?;
             for (i, package_id) in workspace_members.iter().enumerate() {
                 // override args for each workspace member
@@ -203,8 +203,8 @@ impl BuildCommand {
             Ok(())
         };
 
-        if self.build_all || is_virtual_manifest(&manifest_path)? {
-            build_all()?;
+        if self.build_workspace || is_virtual_manifest(&manifest_path)? {
+            build_workspace()?;
         } else {
             build_results.push(execute(args)?);
         }
@@ -222,8 +222,8 @@ pub struct CheckCommand {
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
     /// Check all contract packages in the workspace.
-    #[clap(long = "--all")]
-    check_all: bool,
+    #[clap(long = "--workspace")]
+    check_workspace: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -246,8 +246,8 @@ impl CheckCommand {
 
         let mut args = ExecuteArgs {
             package: self.package.clone(),
-            build_all: false,
-            check_all: self.check_all,
+            build_workspace: false,
+            check_workspace: self.check_workspace,
             manifest_path: manifest_path.clone(),
             verbosity,
             build_mode: BuildMode::Debug,
@@ -265,7 +265,7 @@ impl CheckCommand {
             counter: None,
         };
 
-        let mut check_all = || -> Result<()> {
+        let mut check_workspace = || -> Result<()> {
             let workspace_members = get_cargo_workspace_members(&manifest_path)?;
             for (i, package_id) in workspace_members.iter().enumerate() {
                 // override args for each workspace member
@@ -278,8 +278,8 @@ impl CheckCommand {
             Ok(())
         };
 
-        if self.check_all || is_virtual_manifest(&manifest_path)? {
-            check_all()?;
+        if self.check_workspace || is_virtual_manifest(&manifest_path)? {
+            check_workspace()?;
         } else {
             check_results.push(execute(args)?);
         }

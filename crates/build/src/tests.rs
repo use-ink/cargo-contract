@@ -96,8 +96,8 @@ build_tests!(
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -140,8 +140,8 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     let project_dir = manifest_path.directory().expect("directory must exist");
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -173,8 +173,8 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
 
     // let args = ExecuteArgs {
     //     // package: None,
-    //     // build_all: false,
-    //     // check_all: false,
+    //     // build_workspace: false,
+    //     // check_workspace: false,
     //     manifest_path: manifest_path.clone(),
     //     verbosity: Verbosity::Default,
     //     features: Default::default(),
@@ -193,8 +193,8 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
 
     let cmd = BuildCommand {
         package: None,
-        build_all: false,
-        // check_all: false,
+        build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
         features: Default::default(),
@@ -249,8 +249,8 @@ fn optimization_passes_from_profile_must_be_used(
 
     // let args = ExecuteArgs {
     //     // package: None,
-    //     // build_all: false,
-    //     // check_all: false,
+    //     // build_workspace: false,
+    //     // check_workspace: false,
     //     manifest_path: manifest_path.clone(),
     //     verbosity: Verbosity::Default,
     //     features: Default::default(),
@@ -270,8 +270,8 @@ fn optimization_passes_from_profile_must_be_used(
 
     let cmd = BuildCommand {
         package: None,
-        build_all: false,
-        // check_all: false,
+        build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
         features: Default::default(),
@@ -316,8 +316,8 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         lint: false,
@@ -338,8 +338,8 @@ fn building_template_in_release_mode_must_work(
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         lint: false,
@@ -371,8 +371,8 @@ fn building_contract_with_source_file_in_subfolder_must_work(
 
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -400,8 +400,8 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -421,7 +421,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 //     with_new_subcontract_projects(
 //         |manifest_path| {
 //             let cmd = BuildCommand {
-//                 build_all: true,
+//                 build_workspace: true,
 //                 package: None,
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
@@ -490,7 +490,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     writeln!(output, "]")?;
 
     let cmd = BuildCommand {
-        build_all: true,
+        build_workspace: true,
         manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
         ..Default::default()
     };
@@ -504,7 +504,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 //     with_new_subcontract_projects(
 //         |manifest_path| {
 //             let cmd = BuildCommand {
-//                 build_all: true,
+//                 build_workspace: true,
 //                 package: None,
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
@@ -519,8 +519,8 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -540,8 +540,8 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
 fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -562,8 +562,8 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
         lint: false,
@@ -596,8 +596,8 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         lint: true,
         ..Default::default()
@@ -643,8 +643,8 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     let mut args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         lint: false,
         ..Default::default()
     };
@@ -746,8 +746,8 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         ..Default::default()
     };
@@ -800,8 +800,8 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 ) -> Result<()> {
     let res1 = super::execute(ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CodeOnly,
         ..Default::default()
@@ -816,8 +816,8 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 
     let res2 = super::execute(ExecuteArgs {
         // package: None,
-        // build_all: false,
-        // check_all: false,
+        // build_workspace: false,
+        // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::All,
         ..Default::default()
