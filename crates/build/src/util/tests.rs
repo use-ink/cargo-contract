@@ -20,7 +20,7 @@ use anyhow::{
     Result,
 };
 use std::{
-    fs::File,
+    fs::{File},
     io::Write,
     ops::Deref,
     path::{
@@ -193,7 +193,7 @@ pub struct TestContractManifest {
 impl TestContractManifest {
     pub fn new(manifest_path: ManifestPath) -> Result<Self> {
         Ok(Self {
-            toml: toml::from_str(&fs::read_to_string(&manifest_path)?)?,
+            toml: toml::from_str(&std::fs::read_to_string(&manifest_path)?)?,
             manifest_path,
         })
     }
@@ -320,6 +320,6 @@ impl TestContractManifest {
 
     pub fn write(&self) -> Result<()> {
         let toml = toml::to_string(&self.toml)?;
-        fs::write(&self.manifest_path, toml).map_err(Into::into)
+        std::fs::write(&self.manifest_path, toml).map_err(Into::into)
     }
 }

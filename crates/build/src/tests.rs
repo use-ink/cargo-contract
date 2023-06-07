@@ -20,7 +20,7 @@ use crate::{
     },
     util::tests::{
         TestContractManifest,
-        // with_new_subcontract_project,
+        // with_new_subcontract_projects,
     },
     BuildArtifacts,
     BuildMode,
@@ -42,6 +42,7 @@ use serde_json::{
 use std::{
     fmt::Write,
     fs,
+    io::Write as writeln,
     path::{
         Path,
         PathBuf,
@@ -446,12 +447,12 @@ fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
     // override manifest_path
     let manifest_path = path.join("Cargo.toml");
     let mut output = fs::File::create(manifest_path.clone())?;
-    write!(output, "[workspace]\n\n")?;
+    writeln!(output, "[workspace]\n\n")?;
     writeln!(output, "members = [")?;
     for project_name in project_names {
         writeln!(output, "  \"{}\",", project_name)?;
     }
-    write!(output, "]")?;
+    writeln!(output, "]")?;
 
     let cmd = BuildCommand {
         build_all: true,
@@ -827,9 +828,9 @@ fn file_last_modified(path: &Path) -> SystemTime {
 
 fn build_byte_str(bytes: &[u8]) -> String {
     let mut str = String::new();
-    write!(str, "0x").expect("failed writing to string");
+    writeln!(str, "0x").expect("failed writing to string");
     for byte in bytes {
-        write!(str, "{byte:02x}").expect("failed writing to string");
+        writeln!(str, "{byte:02x}").expect("failed writing to string");
     }
     str
 }

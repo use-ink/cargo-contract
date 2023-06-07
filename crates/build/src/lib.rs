@@ -1026,7 +1026,7 @@ mod unit_tests {
     use crate::{
         util::tests::{
             with_new_contract_project,
-            with_new_subcontract_project,
+            with_new_subcontract_projects,
             TestContractManifest,
         },
         Verbosity,
