@@ -189,7 +189,13 @@ where
 
     env.iter().for_each(|(env_key, maybe_env_val)| {
         match maybe_env_val {
-            Some(env_val) => cmd.env(env_key, env_val),
+            Some(env_val) => {
+                if cfg!(windows) {
+                    cmd.env(env_key, env_val.replace("\\\\?\\", ""))
+                } else {
+                    cmd.env(env_key, env_val)
+                }
+            }
             None => cmd.env_remove(env_key),
         };
     });
