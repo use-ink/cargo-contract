@@ -25,13 +25,16 @@ use super::{
 };
 use crate::{
     util::{
-        extract_subcontract_manifest_path,
         extract_subcontract_name,
     },
     OptimizationPasses,
 };
 
-use cargo_metadata::MetadataCommand;
+use cargo_metadata::{
+    MetadataCommand,
+    PackageId,
+};
+use regex::Regex;
 use std::{
     convert::TryFrom,
     fs,
@@ -86,6 +89,28 @@ impl ManifestPath {
         Ok(manifest_path)
     }
 
+    /// Create a new ['ManifestPath'] from a subcontract PackageId
+    pub fn new_from_subcontract_package_id(package_id: PackageId) -> Result<Self> {
+        // PackageId looks like this:
+        // `subcontract 3.0.0 (path+file:///path/to/subcontract)`
+        // so we have to extract the manifest_path via regex:Result<Self> {
+        let re = Regex::new(r"\((.*)\)")?;
+        let caps = re.captures(package_id.repr.as_str()).ok_or_else(|| {
+            regex::Error::Syntax("Cannot extract manifest path".to_string())
+        })?;
+        let path_str = caps
+            .get(1)
+            .ok_or_else(|| anyhow::anyhow!("Manifest not extracted"))?
+            .as_str()
+            .replace("path+file://", "");
+
+        let mut path = PathBuf::new();
+        path.push(path_str);
+        path.push("Cargo.toml");
+
+        ManifestPath::try_from(Some(path))
+    }
+
     /// Create an arg `--manifest-path=` for `cargo` command
     pub fn cargo_arg(&self) -> Result<String> {
         let path = self.path.canonicalize().map_err(|err| {
@@ -129,7 +154,7 @@ impl ManifestPath {
             }) {
                 None => return None,
                 Some(package_id) => {
-                    extract_subcontract_manifest_path(package_id)
+                    ManifestPath::new_from_subcontract_package_id(package_id)
                         .expect("Error extracting package manifest path")
                 }
             };

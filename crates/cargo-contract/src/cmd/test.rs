@@ -22,7 +22,6 @@ use contract_build::{
     maybe_println,
     util::{
         assert_channel,
-        extract_subcontract_manifest_path,
         invoke_cargo,
     },
     workspace::ManifestPath,
@@ -64,19 +63,8 @@ pub struct TestCommand {
 
 impl TestCommand {
     pub fn exec(&self) -> Result<Vec<TestResult>> {
-        let manifest_path = match self.package.as_ref() {
-            Some(package) => {
-                let root_manifest_path =
-                    ManifestPath::try_from(self.manifest_path.as_ref())?;
-                root_manifest_path
-                    .subcontract_manifest_path(package)
-                    .context(format!(
-                        "error: package ID specification `{}` did not match any packages",
-                        package
-                    ))?
-            }
-            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
-        };
+        let manifest_path =
+            ManifestPath::new_maybe_from_package(&self.manifest_path, &self.package)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let mut ret = Vec::new();
@@ -85,7 +73,7 @@ impl TestCommand {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
                 for (i, package_id) in workspace_members.iter().enumerate() {
                     let manifest_path =
-                        extract_subcontract_manifest_path(package_id.clone())
+                        ManifestPath::new_from_subcontract_package_id(package_id.clone())
                             .expect("Error extracting package manifest path");
 
                     ret.push(execute(
