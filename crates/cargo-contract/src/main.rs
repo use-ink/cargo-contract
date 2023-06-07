@@ -29,6 +29,7 @@ use self::cmd::{
     RemoveCommand,
     UploadCommand,
 };
+use cmd::test::TestCommand;
 use cmd::encode::EncodeCommand;
 use contract_build::{
     name_value_println,
@@ -116,6 +117,9 @@ enum Command {
     /// artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
+    /// Test the smart contract off-chain
+    #[clap(name = "test")]
+    Test(TestCommand),
     /// Upload contract code
     #[clap(name = "upload")]
     Upload(UploadCommand),
@@ -161,24 +165,44 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Build(build) => {
-            let result = build.exec().map_err(format_err)?;
+            // let result = build.exec().map_err(format_err)?;
+            let results = build.exec()?;
 
-            if matches!(result.output_type, OutputType::Json) {
-                println!("{}", result.serialize_json()?)
-            } else if result.verbosity.is_verbose() {
-                println!("{}", result.display())
+            for res in results {
+                if matches!(res.output_type, OutputType::Json) {
+                    println!("{}", res.serialize_json()?)
+                } else if res.verbosity.is_verbose() {
+                    println!("{}", res.display())
+                }
             }
+
             Ok(())
         }
         Command::Check(check) => {
-            let res = check.exec().map_err(format_err)?;
-            assert!(
-                res.dest_wasm.is_none(),
-                "no dest_wasm must be on the generation result"
-            );
-            if res.verbosity.is_verbose() {
-                println!("\nYour contract's code was built successfully.")
+            // let res = check.exec().map_err(format_err)?;
+            let results = check.exec()?;
+
+            for res in results {
+                assert!(
+                    res.dest_wasm.is_none(),
+                    "no dest_wasm must be on the generation result"
+                );
+                if res.verbosity.is_verbose() {
+                    println!("\nYour contract's code was built successfully.")
+                }
             }
+
+            Ok(())
+        }
+        Command::Test(test) => {
+            let results = test.exec()?;
+
+            for res in results {
+                if res.verbosity.is_verbose() {
+                    println!("{}", res.display()?)
+                }
+            }
+
             Ok(())
         }
         Command::Upload(upload) => {

@@ -20,7 +20,7 @@
 use which as _;
 
 mod args;
-mod crate_metadata;
+pub mod crate_metadata;
 pub mod metadata;
 mod new;
 #[cfg(test)]
@@ -28,7 +28,7 @@ mod tests;
 pub mod util;
 mod validate_wasm;
 mod wasm_opt;
-mod workspace;
+pub mod workspace;
 
 #[deprecated(since = "2.0.2", note = "Use MetadataArtifacts instead")]
 pub use self::metadata::MetadataArtifacts as MetadataResult;
@@ -104,6 +104,9 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Clone)]
 pub struct ExecuteArgs {
+    pub package: Option<String>,
+    pub build_all: bool,
+    pub check_all: bool,
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
     pub verbosity: Verbosity,
@@ -124,6 +127,9 @@ pub struct ExecuteArgs {
 impl Default for ExecuteArgs {
     fn default() -> Self {
         Self {
+            package: Default::default(),
+            build_all: Default::default(),
+            check_all: Default::default(),
             manifest_path: Default::default(),
             verbosity: Default::default(),
             build_mode: Default::default(),
@@ -664,6 +670,9 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
 /// It does so by invoking `cargo build` and then post processing the final binary.
 pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
+        package,
+        build_all,
+        check_all,
         manifest_path,
         verbosity,
         features,

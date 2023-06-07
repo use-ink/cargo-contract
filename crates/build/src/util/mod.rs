@@ -21,16 +21,22 @@ use crate::{
     workspace::ManifestPath,
     Verbosity,
 };
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use cargo_metadata::PackageId;
 use duct::Expression;
 use regex::Regex;
+use rustc_version::Channel;
 use std::{
+    ffi::OsStr,
     ffi::OsString,
     path::{
         Path,
         PathBuf,
     },
+    process::Command,
 };
 use term_size as _;
 
@@ -131,7 +137,7 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 /// PackageId looks like this:
 /// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
 /// so we have to extract the package name via regex:
-pub fn extract_package_name(package_id: PackageId) -> String {
+pub fn extract_subcontract_name(package_id: PackageId) -> String {
     let re = Regex::new(r"([^\s]+)").unwrap();
     let caps = re.captures(package_id.repr.as_str()).unwrap();
     let package = caps.get(1).unwrap().as_str();
@@ -141,7 +147,7 @@ pub fn extract_package_name(package_id: PackageId) -> String {
 /// PackageId looks like this:
 /// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
 /// so we have to extract the manifest_path via regex:
-pub fn extract_package_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
+pub fn extract_subcontract_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
     let re = Regex::new(r"\((.*)\)")?;
     let caps = re.captures(package_id.repr.as_str()).unwrap();
     let path_str = caps.get(1).unwrap().as_str().replace("path+file://", "");
@@ -151,6 +157,96 @@ pub fn extract_package_manifest_path(package_id: PackageId) -> Result<ManifestPa
     path.push("Cargo.toml");
 
     ManifestPath::try_from(Some(path))
+}
+
+/// Check whether the current rust channel is valid: `nightly` is recommended.
+pub fn assert_channel() -> Result<()> {
+    let meta = rustc_version::version_meta()?;
+    match meta.channel {
+        Channel::Dev | Channel::Nightly => Ok(()),
+        Channel::Stable | Channel::Beta => {
+            // TODO - is this required anymore, will it really always work with stable?
+            anyhow::bail!(
+                "cargo-contract cannot build using the {:?} channel. \
+                Switch to nightly. \
+                See https://github.com/paritytech/cargo-contract#build-requires-the-nightly-toolchain",
+                format!("{:?}", meta.channel).to_lowercase(),
+            );
+        }
+    }
+}
+
+/// Invokes `cargo` with the subcommand `command` and the supplied `args`.
+///
+/// In case `working_dir` is set, the command will be invoked with that folder
+/// as the working directory.
+///
+/// In case `env` is given environment variables can be either set or unset:
+///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to
+///     the `env` vector.
+///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env`
+///     vector.
+///
+/// If successful, returns the stdout bytes.
+pub fn invoke_cargo<I, S, P>(
+    command: &str,
+    args: I,
+    working_dir: Option<P>,
+    verbosity: Verbosity,
+    env: Vec<(&str, Option<&str>)>,
+) -> Result<Vec<u8>>
+where
+    I: IntoIterator<Item = S> + std::fmt::Debug,
+    S: AsRef<OsStr>,
+    P: AsRef<Path>,
+{
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut cmd = Command::new(cargo);
+
+    env.iter().for_each(|(env_key, maybe_env_val)| {
+        match maybe_env_val {
+            Some(env_val) => cmd.env(env_key, env_val),
+            None => cmd.env_remove(env_key),
+        };
+    });
+
+    if let Some(path) = working_dir {
+        log::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
+        cmd.current_dir(path);
+    }
+
+    cmd.arg(command);
+    cmd.args(args);
+    match verbosity {
+        Verbosity::Quiet => cmd.arg("--quiet"),
+        Verbosity::Verbose => {
+            if command != "dylint" {
+                cmd.arg("--verbose")
+            } else {
+                &mut cmd
+            }
+        }
+        Verbosity::Default => &mut cmd,
+    };
+
+    log::info!("Invoking cargo: {:?}", cmd);
+
+    let child = cmd
+        // capture the stdout to return from this function as bytes
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .context(format!("Error executing `{:?}`", cmd))?;
+    let output = child.wait_with_output()?;
+
+    if output.status.success() {
+        Ok(output.stdout)
+    } else {
+        anyhow::bail!(
+            "`{:?}` failed with exit code: {:?}",
+            cmd,
+            output.status.code()
+        );
+    }
 }
 
 /// Prints to stdout if `verbosity.is_verbose()` is `true`.

@@ -19,6 +19,11 @@ use contract_build::{
     BuildArtifacts,
     BuildMode,
     BuildResult,
+    crate_metadata::{
+        get_cargo_workspace_members,
+        CrateMetadata,
+    },
+    execute,
     ExecuteArgs,
     Features,
     ManifestPath,
@@ -30,6 +35,7 @@ use contract_build::{
     UnstableOptions,
     Verbosity,
     VerbosityFlags,
+    util::extract_subcontract_manifest_path,
 };
 use std::{
     convert::TryFrom,
@@ -58,6 +64,9 @@ pub struct BuildCommand {
     /// Then no debug functionality is compiled into the contract.
     #[clap(long = "release")]
     build_release: bool,
+    /// Build all subcontracts in the workspace
+    #[clap(long = "--all")]
+    build_all: bool,
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
@@ -128,7 +137,7 @@ pub struct BuildCommand {
 }
 
 impl BuildCommand {
-    pub fn exec(&self) -> Result<BuildResult> {
+    pub fn exec(&self) -> Result<Vec<BuildResult>> {
         let manifest_path = match self.package.as_ref() {
             Some(package) => {
                 let root_manifest_path =
@@ -166,24 +175,62 @@ impl BuildCommand {
             verbosity = Verbosity::Quiet;
         }
 
-        let args = ExecuteArgs {
-            manifest_path,
-            verbosity,
-            build_mode,
-            features: self.features.clone(),
-            network,
-            build_artifact: self.build_artifact,
-            unstable_flags,
-            optimization_passes: self.optimization_passes,
-            keep_debug_symbols: self.keep_debug_symbols,
-            lint: self.lint,
-            output_type,
-            skip_wasm_validation: self.skip_wasm_validation,
-            target: self.target,
-            max_memory_pages: self.max_memory_pages,
-        };
+        let mut ret = Vec::new();
 
-        contract_build::execute(args)
+        match self.build_all {
+            true => {
+                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                for package_id in workspace_members {
+                    let manifest_path =
+                        extract_subcontract_manifest_path(package_id)
+                            .expect("Error extracting package manifest path");
+
+                    let args = ExecuteArgs {
+                        package: self.package.clone(),
+                        build_all: self.build_all,
+                        check_all: false,
+                        manifest_path,
+                        verbosity,
+                        build_mode,
+                        features: self.features.clone(),
+                        network,
+                        build_artifact: self.build_artifact,
+                        unstable_flags: unstable_flags.clone(),
+                        optimization_passes: self.optimization_passes,
+                        keep_debug_symbols: self.keep_debug_symbols,
+                        lint: self.lint,
+                        output_type: output_type.clone(),
+                        skip_wasm_validation: self.skip_wasm_validation,
+                        target: self.target,
+                        max_memory_pages: self.max_memory_pages,
+                    };
+                    ret.push(execute(args)?);
+                }
+            }
+            false => {
+                let args = ExecuteArgs {
+                    package: self.package.clone(),
+                    build_all: self.build_all,
+                    check_all: false,
+                    manifest_path,
+                    verbosity,
+                    build_mode,
+                    features: self.features.clone(),
+                    network,
+                    build_artifact: self.build_artifact,
+                    unstable_flags,
+                    optimization_passes: self.optimization_passes,
+                    keep_debug_symbols: self.keep_debug_symbols,
+                    lint: self.lint,
+                    output_type,
+                    skip_wasm_validation: self.skip_wasm_validation,
+                    target: self.target,
+                    max_memory_pages: self.max_memory_pages,
+                };
+                ret.push(execute(args)?);
+            }
+        }
+        Ok(ret)
     }
 }
 
@@ -197,6 +244,9 @@ pub struct CheckCommand {
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
+    /// Check all subcontracts in the workspace
+    #[clap(long = "--all")]
+    check_all: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     #[clap(flatten)]
@@ -208,7 +258,7 @@ pub struct CheckCommand {
 }
 
 impl CheckCommand {
-    pub fn exec(&self) -> Result<BuildResult> {
+    pub fn exec(&self) -> Result<Vec<BuildResult>> {
         let manifest_path = match self.package.as_ref() {
             Some(package) => {
                 let root_manifest_path =
@@ -226,23 +276,61 @@ impl CheckCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let args = ExecuteArgs {
-            manifest_path,
-            verbosity,
-            build_mode: BuildMode::Debug,
-            features: self.features.clone(),
-            network: Network::default(),
-            build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags,
-            optimization_passes: Some(OptimizationPasses::Zero),
-            keep_debug_symbols: false,
-            lint: false,
-            output_type: OutputType::default(),
-            skip_wasm_validation: false,
-            target: self.target,
-            max_memory_pages: 0,
-        };
+        let mut ret = Vec::new();
 
-        contract_build::execute(args)
+        match self.check_all {
+            true => {
+                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+                for package_id in workspace_members {
+                    let manifest_path =
+                        extract_subcontract_manifest_path(package_id)
+                            .expect("Error extracting package manifest path");
+
+                    let args = ExecuteArgs {
+                        package: self.package.clone(),
+                        build_all: false,
+                        check_all: self.check_all,
+                        manifest_path,
+                        verbosity,
+                        build_mode: BuildMode::Debug,
+                        features: self.features.clone(),
+                        network: Network::default(),
+                        build_artifact: BuildArtifacts::CheckOnly,
+                        unstable_flags: unstable_flags.clone(),
+                        optimization_passes: Some(OptimizationPasses::Zero),
+                        keep_debug_symbols: false,
+                        lint: false,
+                        output_type: OutputType::default(),
+                        skip_wasm_validation: false,
+                        target: self.target,
+                        max_memory_pages: 0,
+                    };
+                    ret.push(execute(args)?);
+                }
+            }
+            false => {
+                let args = ExecuteArgs {
+                    package: self.package.clone(),
+                    build_all: false,
+                    check_all: self.check_all,
+                    manifest_path,
+                    verbosity,
+                    build_mode: BuildMode::Debug,
+                    features: self.features.clone(),
+                    network: Network::default(),
+                    build_artifact: BuildArtifacts::CheckOnly,
+                    unstable_flags,
+                    optimization_passes: Some(OptimizationPasses::Zero),
+                    keep_debug_symbols: false,
+                    lint: false,
+                    output_type: OutputType::default(),
+                    skip_wasm_validation: false,
+                    target: self.target,
+                    max_memory_pages: 0,
+                };
+                ret.push(execute(args)?);
+            }
+        }
+        Ok(ret)
     }
 }

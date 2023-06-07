@@ -27,6 +27,10 @@ use std::{
         Path,
         PathBuf,
     },
+    sync::atomic::{
+        AtomicU32,
+        Ordering,
+    },
 };
 use toml::value;
 
@@ -62,6 +66,45 @@ where
     })
 }
 
+/// Global counter to generate unique contract names in `with_new_contract_project`.
+///
+/// We typically use `with_tmp_dir` to generate temporary folders to build contracts
+/// in. But for caching purposes our CI uses `CARGO_TARGET_DIR` to overwrite the
+/// target directory of any contract build -- it is set to a fixed cache directory
+/// instead.
+/// This poses a problem since we still want to ensure that each test builds to its
+/// own, unique target directory -- without interfering with the target directory of
+/// other tests. In the past this has been a problem when a test tried to create a
+/// contract with the same contract name as another test -- both were then build
+/// into the same target directory, sometimes causing test failures for strange reasons.
+///
+/// The fix we decided on is to append a unique number to each contract name which
+/// is created. This `COUNTER` provides a global counter which is accessed by each test
+/// (in each thread) to get the current `COUNTER` number and increase it afterwards.
+///
+/// We decided to go for this counter instead of hashing (with e.g. the temp dir) to
+/// prevent an infinite number of contract artifacts being created in the cache directory.
+static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// Creates a new contract into a temporary directory. The contract's
+/// `ManifestPath` is passed into `f`.
+pub fn with_new_contract_project_unique<F>(f: F)
+where
+    F: FnOnce(ManifestPath) -> anyhow::Result<()>,
+{
+    with_tmp_dir(|tmp_dir| {
+        let unique_name =
+            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+
+        crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+            .expect("new project creation failed");
+        let working_dir = tmp_dir.join(unique_name);
+        let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
+
+        f(manifest_path)
+    })
+}
+
 /// Creates a new subcontract into a temporary directory.
 pub fn with_new_subcontract_project<F>(f: F)
 where
@@ -80,6 +123,39 @@ where
         write!(output, "members = [ \"{}\" ]", unique_name)?;
 
         f((manifest_path, unique_name))
+    })
+}
+
+/// Creates many new subcontracts into a temporary directory.
+pub fn with_many_new_subcontract_projects<F>(f: F)
+where
+    F: FnOnce(PathBuf) -> anyhow::Result<()>,
+{
+    with_tmp_dir(|tmp_dir| {
+        let unique_name_0 =
+            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+        crate::cmd::new::execute(&unique_name_0, Some(tmp_dir))
+            .expect("new project creation failed");
+        let unique_name_1 =
+            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+        crate::cmd::new::execute(&unique_name_1, Some(tmp_dir))
+            .expect("new project creation failed");
+        let unique_name_2 =
+            format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
+        crate::cmd::new::execute(&unique_name_2, Some(tmp_dir))
+            .expect("new project creation failed");
+
+        let manifest_path = tmp_dir.join("Cargo.toml");
+
+        let mut output = File::create(manifest_path.clone())?;
+        write!(output, "[workspace]\n\n")?;
+        write!(output, "members = [\n")?;
+        write!(output, "  \"{}\",\n", unique_name_0)?;
+        write!(output, "\"{}\",\n", unique_name_1)?;
+        write!(output, "\"{}\",\n", unique_name_2)?;
+        write!(output, "]")?;
+
+        f(manifest_path)
     })
 }
 

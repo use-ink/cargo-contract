@@ -19,6 +19,7 @@ pub mod decode;
 pub mod encode;
 pub mod info;
 pub mod runtime_api;
+pub mod test;
 
 pub(crate) use self::{
     build::{

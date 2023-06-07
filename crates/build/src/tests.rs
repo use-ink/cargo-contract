@@ -15,7 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    util::tests::TestContractManifest,
+    cmd::{
+        BuildCommand,
+    },
+    util::tests::{
+        TestContractManifest,
+        with_new_subcontract_project,
+        with_many_new_subcontract_projects,
+    },
     BuildArtifacts,
     BuildMode,
     BuildResult,
@@ -85,6 +92,9 @@ build_tests!(
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -126,6 +136,9 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     // given
     let project_dir = manifest_path.directory().expect("directory must exist");
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -155,7 +168,30 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    let args = ExecuteArgs {
+    // let args = ExecuteArgs {
+    //     // package: None,
+    //     // build_all: false,
+    //     // check_all: false,
+    //     manifest_path: manifest_path.clone(),
+    //     verbosity: Verbosity::Default,
+    //     features: Default::default(),
+    //     build_mode: Default::default(),
+    //     network: Default::default(),
+    //     build_artifact: BuildArtifacts::All,
+    //     unstable_flags: Default::default(),
+    //     optimization_passes: Some(OptimizationPasses::Zero),
+    //     keep_debug_symbols: false,
+    //     lint: false,
+    //     output_type: OutputType::Json,
+    //     skip_wasm_validation: false,
+    //     target: Default::default(),
+    //     ..Default::default()
+    // };
+
+    let cmd = BuildCommand {
+        package: None,
+        build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
         features: Default::default(),
@@ -173,21 +209,32 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     };
 
     // when
-    let res = crate::execute(args).expect("build failed");
-    let optimization = res
-        .optimization_result
-        .expect("no optimization result available");
+    // let res = crate::execute(args).expect("build failed");
+    // let optimization = res
+    //     .optimization_result
+    //     .expect("no optimization result available");
+    let results = cmd.exec().expect("build failed");
+    for res in results {
+        let optimization = res
+            .optimization_result
+            .expect("no optimization result available");
 
-    // then
-    // The size does not exactly match the original size even without optimization
-    // passed because there is still some post processing happening.
-    let size_diff = optimization.original_size - optimization.optimized_size;
-    assert!(
-        0.0 < size_diff && size_diff < 10.0,
-        "The optimized size savings are larger than allowed or negative: {size_diff}",
-    );
+        // then
+        // The size does not exactly match the original size even without optimization
+        // passed because there is still some post processing happening.
+        let size_diff = optimization.original_size - optimization.optimized_size;
+        assert!(
+            0.0 < size_diff && size_diff < 10.0,
+            "The optimized size savings are larger than allowed or negative: {size_diff}",
+        );
+    }
+
     Ok(())
 }
+
+// TODO - find old test `contract_lib_name_different_from_package_name_must_build`.
+// and update similar to how we updated optimization_passes_from_cli_must_take_precedence_over_profile
+// See https://github.com/paritytech/cargo-contract/pull/1147/commits/9e8a44d74d9c675b8937c9d6b4e0813f6956d132
 
 fn optimization_passes_from_profile_must_be_used(
     manifest_path: &ManifestPath,
@@ -197,7 +244,31 @@ fn optimization_passes_from_profile_must_be_used(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    let args = ExecuteArgs {
+    // let args = ExecuteArgs {
+    //     // package: None,
+    //     // build_all: false,
+    //     // check_all: false,
+    //     manifest_path: manifest_path.clone(),
+    //     verbosity: Verbosity::Default,
+    //     features: Default::default(),
+    //     build_mode: Default::default(),
+    //     network: Default::default(),
+    //     build_artifact: BuildArtifacts::All,
+    //     unstable_flags: Default::default(),
+    //     // no optimization passes specified.
+    //     optimization_passes: None,
+    //     keep_debug_symbols: false,
+    //     lint: false,
+    //     output_type: OutputType::Json,
+    //     skip_wasm_validation: false,
+    //     target: Default::default(),
+    //     ..Default::default()
+    // };
+
+    let cmd = BuildCommand {
+        package: None,
+        build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
         features: Default::default(),
@@ -205,8 +276,7 @@ fn optimization_passes_from_profile_must_be_used(
         network: Default::default(),
         build_artifact: BuildArtifacts::All,
         unstable_flags: Default::default(),
-        // no optimization passes specified.
-        optimization_passes: None,
+        optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
         lint: false,
         output_type: OutputType::Json,
@@ -216,19 +286,25 @@ fn optimization_passes_from_profile_must_be_used(
     };
 
     // when
-    let res = crate::execute(args).expect("build failed");
-    let optimization = res
-        .optimization_result
-        .expect("no optimization result available");
+    // let res = crate::execute(args).expect("build failed");
+    // let optimization = res
+    //     .optimization_result
+    //     .expect("no optimization result available");
+    let results = cmd.exec().expect("build failed");
+    for res in results {
+        let optimization = res
+            .optimization_result
+            .expect("no optimization result available");
 
-    // then
-    // The size does not exactly match the original size even without optimization
-    // passed because there is still some post processing happening.
-    let size_diff = optimization.original_size - optimization.optimized_size;
-    assert!(
-        size_diff > (optimization.original_size / 2.0),
-        "The optimized size savings are too small: {size_diff}",
-    );
+        // then
+        // The size does not exactly match the original size even without optimization
+        // passed because there is still some post processing happening.
+        let size_diff = optimization.original_size - optimization.optimized_size;
+        assert!(
+            size_diff > (optimization.original_size / 2.0),
+            "The optimized size savings are too small: {size_diff}",
+        );
+    }
 
     Ok(())
 }
@@ -236,6 +312,9 @@ fn optimization_passes_from_profile_must_be_used(
 fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Result<()> {
     // given
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         lint: false,
@@ -255,6 +334,9 @@ fn building_template_in_release_mode_must_work(
 ) -> Result<()> {
     // given
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         lint: false,
@@ -285,6 +367,9 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     manifest.write()?;
 
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -311,6 +396,9 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     fs::write(build_rs_path, "fn main() {}")?;
 
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
         lint: false,
@@ -330,6 +418,30 @@ fn building_subcontract_must_work() {
     with_new_subcontract_project(|(manifest_path, subcontract)| {
         let cmd = BuildCommand {
             package: Some(subcontract),
+            build_all: false,
+            check_all: false,
+            manifest_path: Some(manifest_path),
+            build_artifact: BuildArtifacts::All,
+            build_release: false,
+            build_offline: false,
+            verbosity: VerbosityFlags::default(),
+            unstable_options: UnstableOptions::default(),
+            optimization_passes: None,
+            keep_debug_symbols: false,
+            skip_linting: false,
+            output_json: false,
+        };
+        cmd.exec().expect("build failed");
+        Ok(())
+    })
+}
+
+fn building_all_subcontracts_must_work() {
+    with_many_new_subcontract_projects(|manifest_path| {
+        let cmd = BuildCommand {
+            package: None,
+            build_all: true,
+            check_all: false,
             manifest_path: Some(manifest_path),
             build_artifact: BuildArtifacts::All,
             build_release: false,
@@ -348,6 +460,9 @@ fn building_subcontract_must_work() {
 
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -366,6 +481,9 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
 
 fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
@@ -385,6 +503,9 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
 fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     // given
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
         lint: false,
@@ -416,6 +537,9 @@ fn missing_cargo_dylint_installation_must_be_detected(
 
     // when
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         lint: true,
         ..Default::default()
@@ -460,6 +584,9 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         lint: false,
         ..Default::default()
     };
@@ -560,6 +687,9 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
 ) -> Result<()> {
     // given
     let args = ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         ..Default::default()
     };
@@ -611,6 +741,9 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     let res1 = super::execute(ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CodeOnly,
         ..Default::default()
@@ -624,6 +757,9 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     let dest_wasm_modified_pre = file_last_modified(&res1.dest_wasm.unwrap());
 
     let res2 = super::execute(ExecuteArgs {
+        // package: None,
+        // build_all: false,
+        // check_all: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::All,
         ..Default::default()
