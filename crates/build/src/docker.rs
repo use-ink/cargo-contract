@@ -22,6 +22,7 @@ use contract_metadata::ContractMetadata;
 use tokio_stream::StreamExt;
 
 use crate::{
+    maybe_println,
     BuildArtifacts,
     BuildMode,
     BuildResult,
@@ -32,6 +33,8 @@ use crate::{
     OptimizationPasses,
     DEFAULT_MAX_MEMORY_PAGES,
 };
+
+use colored::Colorize;
 
 pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
@@ -51,6 +54,19 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     } = args;
     tokio::runtime::Runtime::new()?.block_on(async {
         let mut build_steps = BuildSteps::new();
+
+        build_steps.set_total_steps(4);
+        if build_artifact == BuildArtifacts::CodeOnly {
+            build_steps.set_total_steps(3);
+        }
+
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Executing verifiable build".bright_green().bold()
+        );
+
         let client = Docker::connect_with_socket_defaults()?;
 
         let images = client
@@ -183,6 +199,18 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             }
         }
 
+        build_steps.increment_current();
+
+        maybe_println!(
+            verbosity,
+            " {} {}\n{}",
+            format!("{build_steps}").bold(),
+            "Started the build inside the container"
+                .bright_green()
+                .bold(),
+            "This might take a while. Check the docker engine for the logs."
+        );
+
         let options = Some(WaitContainerOptions {
             condition: "not-running",
         });
@@ -191,6 +219,16 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         while wait_stream.next().await.is_some() {}
 
         let _ = client.remove_container(&container_id, None).await;
+
+        build_steps.increment_current();
+        maybe_println!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Docker container has finished the build."
+                .bright_green()
+                .bold(),
+        );
 
         let result_contents = match std::fs::read_to_string(&file_path) {
             Ok(content) => {
