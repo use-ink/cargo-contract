@@ -876,14 +876,21 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::CheckOnly => {
             let mut build_steps = BuildSteps::new();
             maybe_lint(&mut build_steps)?;
-
+            if let Some((x, y)) = counter {
+                maybe_println!(
+                    verbosity,
+                    "\n {} {}",
+                    "Checking contract".bright_purple().bold(),
+                    format!("[{}/{}]", x, y).bold(),
+                );
+            }
             maybe_println!(
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
                 "Executing `cargo check`".bright_green().bold()
             );
-            exec_cargo_for_onchain_target(
+            let res = exec_cargo_for_onchain_target(
                 &crate_metadata,
                 "check",
                 &features,
@@ -892,7 +899,17 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
                 &unstable_flags,
                 target,
-            )?;
+            );
+            if res.is_ok() {
+                maybe_println!(
+                    verbosity,
+                    " {}",
+                    "Your contract's code was checked successfully.\n"
+                        .bright_purple()
+                        .bold()
+                );
+            }
+
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {

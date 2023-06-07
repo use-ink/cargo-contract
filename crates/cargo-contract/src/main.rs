@@ -169,6 +169,10 @@ fn exec(cmd: Command) -> Result<()> {
             let results = build.exec()?;
 
             for res in results {
+                // TODO - need to remove this line after debugging
+                if res.verbosity.is_verbose() {
+                    println!("\nYour contract's code was built successfully.")
+                }
                 if matches!(res.output_type, OutputType::Json) {
                     println!("{}", res.serialize_json()?)
                 } else if res.verbosity.is_verbose() {
@@ -187,8 +191,9 @@ fn exec(cmd: Command) -> Result<()> {
                     res.dest_wasm.is_none(),
                     "no dest_wasm must be on the generation result"
                 );
+                // TODO - need to remove this line after debugging
                 if res.verbosity.is_verbose() {
-                    println!("\nYour contract's code was built successfully.")
+                    println!("\nYour contract's code was checked successfully.")
                 }
             }
 
