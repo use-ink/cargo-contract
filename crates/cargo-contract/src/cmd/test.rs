@@ -15,7 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use contract_build::{
-    crate_metadata::get_cargo_workspace_members,
+    crate_metadata::{
+        get_cargo_workspace_members,
+        CrateMetadata,
+    },
     maybe_println,
     util::{
         assert_channel,
@@ -23,6 +26,7 @@ use contract_build::{
         invoke_cargo,
     },
     workspace::ManifestPath,
+    Target,
     Verbosity,
     VerbosityFlags,
 };
@@ -79,15 +83,19 @@ impl TestCommand {
         match self.test_all {
             true => {
                 let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for package_id in workspace_members {
+                for (i, package_id) in workspace_members.iter().enumerate() {
                     let manifest_path =
-                        extract_subcontract_manifest_path(package_id)
+                        extract_subcontract_manifest_path(package_id.clone())
                             .expect("Error extracting package manifest path");
 
-                    ret.push(execute(&manifest_path, verbosity)?)
+                    ret.push(execute(
+                        &manifest_path,
+                        verbosity,
+                        Some((i + 1, workspace_members.len())),
+                    )?)
                 }
             }
-            false => ret.push(execute(&manifest_path, verbosity)?),
+            false => ret.push(execute(&manifest_path, verbosity, None)?),
         }
         Ok(ret)
     }
@@ -109,8 +117,19 @@ impl TestResult {
 pub(crate) fn execute(
     manifest_path: &ManifestPath,
     verbosity: Verbosity,
+    counter: Option<(usize, usize)>,
 ) -> Result<TestResult> {
     assert_channel()?;
+    let crate_metadata = CrateMetadata::collect(&manifest_path, Target::Wasm)?;
+    if let Some((x, y)) = counter {
+        maybe_println!(
+            verbosity,
+            "\n {} {} {}",
+            "Testing contract:".bright_purple().bold(),
+            crate_metadata.contract_artifact_name,
+            format!("[{}/{}]", x, y).bold(),
+        );
+    }
     maybe_println!(
         verbosity,
         " {} {}",
@@ -135,7 +154,7 @@ mod tests_ci_only {
             let ok_output_pattern =
                 Regex::new(r"test result: ok. \d+ passed; 0 failed; \d+ ignored")
                     .expect("regex pattern compilation failed");
-            let res = super::execute(&manifest_path, Verbosity::Default)
+            let res = super::execute(&manifest_path, Verbosity::Default, None)
                 .expect("test execution failed");
             assert!(ok_output_pattern.is_match(&String::from_utf8_lossy(&res.stdout)));
             Ok(())
