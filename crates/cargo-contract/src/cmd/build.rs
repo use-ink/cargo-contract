@@ -24,6 +24,7 @@ use contract_build::{
     BuildResult,
     crate_metadata::{
         get_cargo_workspace_members,
+        is_virtual_manifest,
         CrateMetadata,
     },
     execute,
@@ -38,7 +39,7 @@ use contract_build::{
     UnstableOptions,
     Verbosity,
     VerbosityFlags,
-    util::extract_subcontract_manifest_path,
+    util::{extract_subcontract_manifest_path},
 };
 use std::{
     convert::TryFrom,
@@ -200,19 +201,29 @@ impl BuildCommand {
             counter: None,
         };
 
+        let mut build_all = || -> Result<()> {
+            let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+            for (i, package_id) in workspace_members.iter().enumerate() {
+                // override args for each workspace member
+                args.manifest_path =
+                    extract_subcontract_manifest_path(package_id.clone())
+                        .expect("Error extracting package manifest path");
+                args.counter = Some((i + 1, workspace_members.len()));
+                build_results.push(execute(args.clone())?);
+            }
+            Ok(())
+        };
+
         match self.build_all {
             true => {
-                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for (i, package_id) in workspace_members.iter().enumerate() {
-                    args.manifest_path =
-                        extract_subcontract_manifest_path(package_id.clone())
-                            .expect("Error extracting package manifest path");
-                    args.counter = Some((i + 1, workspace_members.len()));
-                    build_results.push(execute(args.clone())?);
-                }
+                build_all()?;
             }
             false => {
-                build_results.push(execute(args)?);
+                if is_virtual_manifest(&manifest_path)? {
+                    build_all()?;
+                } else {
+                    build_results.push(execute(args)?);
+                }
             }
         }
         Ok(build_results)
@@ -283,19 +294,29 @@ impl CheckCommand {
             counter: None,
         };
 
+        let mut check_all = || -> Result<()> {
+            let workspace_members = get_cargo_workspace_members(&manifest_path)?;
+            for (i, package_id) in workspace_members.iter().enumerate() {
+                // override args for each workspace member
+                args.manifest_path =
+                    extract_subcontract_manifest_path(package_id.clone())
+                        .expect("Error extracting package manifest path");
+                args.counter = Some((i + 1, workspace_members.len()));
+                check_results.push(execute(args.clone())?);
+            }
+            Ok(())
+        };
+
         match self.check_all {
             true => {
-                let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-                for (i, package_id) in workspace_members.iter().enumerate() {
-                    args.manifest_path =
-                        extract_subcontract_manifest_path(package_id.clone())
-                            .expect("Error extracting package manifest path");
-                    args.counter = Some((i + 1, workspace_members.len()));
-                    check_results.push(execute(args.clone())?);
-                }
+                check_all()?;
             }
             false => {
-                check_results.push(execute(args)?);
+                if is_virtual_manifest(&manifest_path)? {
+                    check_all()?;
+                } else {
+                    check_results.push(execute(args)?);
+                }
             }
         }
         Ok(check_results)

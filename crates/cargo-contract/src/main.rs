@@ -168,7 +168,7 @@ fn exec(cmd: Command) -> Result<()> {
             // let result = build.exec().map_err(format_err)?;
             let results = build.exec()?;
 
-            for res in results {
+            for (i, res) in results.iter().enumerate() {
                 // TODO - need to remove this line after debugging
                 if res.verbosity.is_verbose() {
                     println!("\nYour contract's code was built successfully.")
@@ -176,7 +176,14 @@ fn exec(cmd: Command) -> Result<()> {
                 if matches!(res.output_type, OutputType::Json) {
                     println!("{}", res.serialize_json()?)
                 } else if res.verbosity.is_verbose() {
-                    println!("{}", res.display())
+                    if results.len() > 1 {
+                        println!(
+                            "\n{} [{}/{}]",
+                            "Results for contract".bright_cyan().bold(),
+                            i + 1,
+                            results.len()
+                        );
+                    }
                 }
             }
 
