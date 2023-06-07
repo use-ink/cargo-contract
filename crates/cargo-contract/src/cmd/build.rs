@@ -43,6 +43,10 @@ use std::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
+    /// Name of a sub-contract package within a contract workspace that has a top-level
+    /// Cargo.toml file, which includes its member list of sub-contract packages
+    #[clap(long, short)]
+    package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
@@ -125,7 +129,19 @@ pub struct BuildCommand {
 
 impl BuildCommand {
     pub fn exec(&self) -> Result<BuildResult> {
-        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let manifest_path = match self.package.as_ref() {
+            Some(package) => {
+                let root_manifest_path =
+                    ManifestPath::try_from(self.manifest_path.as_ref())?;
+                root_manifest_path
+                    .subcontract_manifest_path(package)
+                    .expect(&format!(
+                        "error: package ID specification `{}` did not match any packages",
+                        package
+                    ))
+            }
+            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
+        };
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
@@ -174,6 +190,10 @@ impl BuildCommand {
 #[derive(Debug, clap::Args)]
 #[clap(name = "check")]
 pub struct CheckCommand {
+    /// Name of a sub-contract package within a contract workspace that has a top-level
+    /// Cargo.toml file, which includes its member list of sub-contract packages
+    #[clap(long, short)]
+    package: Option<String>,
     /// Path to the `Cargo.toml` of the contract to build
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
@@ -189,7 +209,19 @@ pub struct CheckCommand {
 
 impl CheckCommand {
     pub fn exec(&self) -> Result<BuildResult> {
-        let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
+        let manifest_path = match self.package.as_ref() {
+            Some(package) => {
+                let root_manifest_path =
+                    ManifestPath::try_from(self.manifest_path.as_ref())?;
+                root_manifest_path
+                    .subcontract_manifest_path(package)
+                    .expect(&format!(
+                        "error: package ID specification `{}` did not match any packages",
+                        package
+                    ))
+            }
+            None => ManifestPath::try_from(self.manifest_path.as_ref())?,
+        };
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;

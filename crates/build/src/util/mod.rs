@@ -17,12 +17,20 @@
 #[cfg(test)]
 pub mod tests;
 
-use crate::Verbosity;
+use crate::{
+    workspace::ManifestPath,
+    Verbosity,
+};
 use anyhow::Result;
+use cargo_metadata::PackageId;
 use duct::Expression;
+use regex::Regex;
 use std::{
     ffi::OsString,
-    path::Path,
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 use term_size as _;
 
@@ -118,6 +126,31 @@ pub(crate) fn base_name(path: &Path) -> &str {
 /// Decode hex string with or without 0x prefix
 pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     hex::decode(input.trim_start_matches("0x"))
+}
+
+/// PackageId looks like this:
+/// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
+/// so we have to extract the package name via regex:
+pub fn extract_package_name(package_id: PackageId) -> String {
+    let re = Regex::new(r"([^\s]+)").unwrap();
+    let caps = re.captures(package_id.repr.as_str()).unwrap();
+    let package = caps.get(1).unwrap().as_str();
+    String::from(package)
+}
+
+/// PackageId looks like this:
+/// `subcontract 3.0.0 (path+file:///path/to/subcontract)`
+/// so we have to extract the manifest_path via regex:
+pub fn extract_package_manifest_path(package_id: PackageId) -> Result<ManifestPath> {
+    let re = Regex::new(r"\((.*)\)")?;
+    let caps = re.captures(package_id.repr.as_str()).unwrap();
+    let path_str = caps.get(1).unwrap().as_str().replace("path+file://", "");
+
+    let mut path = PathBuf::new();
+    path.push(path_str);
+    path.push("Cargo.toml");
+
+    ManifestPath::try_from(Some(path))
 }
 
 /// Prints to stdout if `verbosity.is_verbose()` is `true`.

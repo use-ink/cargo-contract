@@ -821,6 +821,7 @@ dependencies = [
  "parity-scale-codec",
  "parity-wasm",
  "pretty_assertions",
+ "regex",
  "rustc_version",
  "semver",
  "serde",
