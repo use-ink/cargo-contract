@@ -456,7 +456,7 @@ fn building_subcontracts_must_work(manifest_path: &ManifestPath) -> Result<()> {
 
     let cmd = BuildCommand {
         build_all: true,
-        manifest_path: Some(manifest_path),
+        manifest_path: fs::canonicalize(manifest_path).ok(), /* canonicalize for windows CI */
         ..Default::default()
     };
 
