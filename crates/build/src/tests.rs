@@ -444,7 +444,8 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
     fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
 
     // override manifest_path
-    let manifest_path = path.join("Cargo.toml");
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
     let mut output = fs::File::create(manifest_path.clone())?;
     write!(output, "[workspace]\n\n")?;
     writeln!(output, "members = [")?;
@@ -478,7 +479,8 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     fs::remove_file(path.join("lib.rs")).expect("removal of lib.rs failed");
 
     // override manifest_path
-    let manifest_path = path.join("Cargo.toml");
+    let mut manifest_path = path.to_path_buf();
+    manifest_path.push("Cargo.toml");
     let mut output = fs::File::create(manifest_path.clone())?;
     writeln!(output, "[workspace]\n\n")?;
     writeln!(output, "members = [")?;
