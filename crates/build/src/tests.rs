@@ -168,29 +168,9 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    // let args = ExecuteArgs {
-    //     // package: None,
-    //     // build_workspace: false,
-    //     // check_workspace: false,
-    //     manifest_path: manifest_path.clone(),
-    //     verbosity: Verbosity::Default,
-    //     features: Default::default(),
-    //     build_mode: Default::default(),
-    //     network: Default::default(),
-    //     build_artifact: BuildArtifacts::All,
-    //     unstable_flags: Default::default(),
-    //     optimization_passes: Some(OptimizationPasses::Zero),
-    //     keep_debug_symbols: false,
-    //     lint: false,
-    //     output_type: OutputType::Json,
-    //     skip_wasm_validation: false,
-    //     target: Default::default(),
-    //     ..Default::default()
-    // };
-
     let args = ExecuteArgs {
         package: None,
-        build_workspace: false,
+        build_workspace: true,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
@@ -209,11 +189,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     };
 
     // when
-    // let res = crate::execute(args).expect("build failed");
-    // let optimization = res
-    //     .optimization_result
-    //     .expect("no optimization result available");
-    let results = super::execute(args).expect("build failed");
+    let results = super::exec(args).expect("build failed");
     for res in results {
         let optimization = res
             .optimization_result
@@ -244,30 +220,9 @@ fn optimization_passes_from_profile_must_be_used(
     test_manifest.set_profile_optimization_passes(OptimizationPasses::Three)?;
     test_manifest.write()?;
 
-    // let args = ExecuteArgs {
-    //     // package: None,
-    //     // build_workspace: false,
-    //     // check_workspace: false,
-    //     manifest_path: manifest_path.clone(),
-    //     verbosity: Verbosity::Default,
-    //     features: Default::default(),
-    //     build_mode: Default::default(),
-    //     network: Default::default(),
-    //     build_artifact: BuildArtifacts::All,
-    //     unstable_flags: Default::default(),
-    //     // no optimization passes specified.
-    //     optimization_passes: None,
-    //     keep_debug_symbols: false,
-    //     lint: false,
-    //     output_type: OutputType::Json,
-    //     skip_wasm_validation: false,
-    //     target: Default::default(),
-    //     ..Default::default()
-    // };
-
     let args = ExecuteArgs {
         package: None,
-        build_workspace: false,
+        build_workspace: true,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         verbosity: Verbosity::Default,
@@ -286,11 +241,7 @@ fn optimization_passes_from_profile_must_be_used(
     };
 
     // when
-    // let res = crate::execute(args).expect("build failed");
-    // let optimization = res
-    //     .optimization_result
-    //     .expect("no optimization result available");
-    let results = super::execute(args).expect("build failed");
+    let results = super::exec(args).expect("build failed");
     for res in results {
         let optimization = res
             .optimization_result
@@ -313,7 +264,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
@@ -335,7 +286,7 @@ fn building_template_in_release_mode_must_work(
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
@@ -368,7 +319,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
 
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
@@ -397,7 +348,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
@@ -423,7 +374,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
 //             };
-//             super::execute(args).expect("build failed");
+//             super::exec(args).expect("build failed");
 //             Ok(())
 //         },
 //         1,
@@ -431,6 +382,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 // }
 
 fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let mp = manifest_path.clone();
     let path = manifest_path.directory().expect("dir must exist");
 
     let project_name = "new_project";
@@ -451,7 +403,7 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
 
     let args = ExecuteArgs {
         package: Some(project_name.to_string()),
-        manifest_path: Some(manifest_path),
+        manifest_path: mp,
         ..Default::default()
     };
 
@@ -460,6 +412,7 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
 }
 
 fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    let mp = manifest_path.clone();
     let path = manifest_path.directory().expect("dir must exist");
 
     // create subcontracts
@@ -488,11 +441,11 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 
     let args = ExecuteArgs {
         build_workspace: true,
-        manifest_path: Some(manifest_path),
+        manifest_path: mp,
         ..Default::default()
     };
 
-    super::execute(args).expect("build failed");
+    super::exec(args).expect("build failed");
     Ok(())
 }
 
@@ -506,7 +459,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
 //             };
-//             super::execute(args).expect("build failed");
+//             super::exec(args).expect("build failed");
 //             Ok(())
 //         },
 //         3,
@@ -516,7 +469,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
@@ -537,7 +490,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
 fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
@@ -559,7 +512,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
@@ -593,7 +546,7 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         lint: true,
@@ -640,7 +593,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     let mut args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         lint: false,
         ..Default::default()
@@ -743,7 +696,7 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
     // given
     let args = ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         ..Default::default()
@@ -797,7 +750,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 ) -> Result<()> {
     let res1 = super::execute(ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CodeOnly,
@@ -813,7 +766,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 
     let res2 = super::execute(ExecuteArgs {
         // package: None,
-        // build_workspace: false,
+        build_workspace: false,
         // check_workspace: false,
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::All,

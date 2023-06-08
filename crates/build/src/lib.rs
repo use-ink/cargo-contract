@@ -47,7 +47,11 @@ pub use self::{
         Verbosity,
         VerbosityFlags,
     },
-    crate_metadata::CrateMetadata,
+    crate_metadata::{
+        get_cargo_workspace_members,
+        is_virtual_manifest,
+        CrateMetadata,
+    },
     metadata::{
         BuildInfo,
         MetadataArtifacts,
@@ -665,6 +669,33 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> 
     }
     Ok(())
 }
+
+pub fn exec(args: ExecuteArgs) -> Result<Vec<BuildResult>> {
+    let mut build_results = Vec::new();
+
+    let mut build_workspace = || -> Result<()> {
+        let workspace_members = get_cargo_workspace_members(&args.manifest_path)?;
+        let mut args_temp = args.clone();
+        for (i, package_id) in workspace_members.iter().enumerate() {
+            // override args for each workspace member
+            args_temp.manifest_path =
+                ManifestPath::new_from_subcontract_package_id(package_id.clone())
+                    .expect("Error extracting package manifest path");
+            args_temp.counter = Some((i + 1, workspace_members.len()));
+            build_results.push(execute(args_temp.clone())?);
+        }
+        Ok(())
+    };
+
+    if args.build_workspace.clone() || is_virtual_manifest(&args.manifest_path.clone())? {
+        build_workspace()?;
+    } else {
+        build_results.push(execute(args)?);
+    }
+    Ok(build_results)
+}
+
+// TODO - copy across exec(.. for CheckCommand too here
 
 /// Executes build of the smart contract which produces a Wasm binary that is ready for
 /// deploying.

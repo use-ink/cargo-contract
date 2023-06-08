@@ -27,6 +27,7 @@ use contract_build::{
         is_virtual_manifest,
         CrateMetadata,
     },
+    exec,
     execute,
     ExecuteArgs,
     Features,
@@ -169,7 +170,7 @@ impl BuildCommand {
 
         let mut build_results = Vec::new();
 
-        let mut args = ExecuteArgs {
+        let args = ExecuteArgs {
             package: self.package.clone(),
             build_workspace: self.build_workspace,
             check_workspace: false,
@@ -190,24 +191,8 @@ impl BuildCommand {
             counter: None,
         };
 
-        let mut build_workspace = || -> Result<()> {
-            let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-            for (i, package_id) in workspace_members.iter().enumerate() {
-                // override args for each workspace member
-                args.manifest_path =
-                    ManifestPath::new_from_subcontract_package_id(package_id.clone())
-                        .expect("Error extracting package manifest path");
-                args.counter = Some((i + 1, workspace_members.len()));
-                build_results.push(execute(args.clone())?);
-            }
-            Ok(())
-        };
+        build_results = contract_build::exec(args)?;
 
-        if self.build_workspace || is_virtual_manifest(&manifest_path)? {
-            build_workspace()?;
-        } else {
-            build_results.push(execute(args)?);
-        }
         Ok(build_results)
     }
 }
