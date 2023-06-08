@@ -487,7 +487,15 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     #[cfg(test)]
     let cargo = "cargo";
 
-    if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
+    // On linux run the following to install cargo-dylint and add it to your PATH:
+    // ```
+    // cargo install cargo-dylint
+    // echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> "${HOME}/.bashrc"
+    // source "${HOME}/.bashrc"
+    // ```
+    let cargo_dylint_found = execute_cmd(Command::new(cargo).arg("cargo-dylint").arg("--version"));
+    println!("cargo_dylint_found: {:?}", cargo_dylint_found);
+    if !cargo_dylint_found {
         anyhow::bail!("cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
@@ -500,8 +508,15 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     // order to return successful exit code.
     #[cfg(windows)]
     let dylint_link_found = which::which("dylint-link").is_ok();
+    // On linux run the following to install dylint-link and add it to your PATH:
+    // ```
+    // cargo install dylint-link
+    // echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> "${HOME}/.bashrc"
+    // source "${HOME}/.bashrc"
+    // ```
     #[cfg(not(windows))]
     let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
+    println!("dylint_link_found: {:?}", dylint_link_found);
     if !dylint_link_found {
         anyhow::bail!("dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
