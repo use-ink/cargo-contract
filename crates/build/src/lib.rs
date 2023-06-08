@@ -480,6 +480,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         })
     };
 
+    // TODO - we do not appear to be using `cargo` below anymore so can it be removed
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.
     #[cfg(not(test))]
@@ -516,6 +517,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     // cargo install dylint-link
     // echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> "${HOME}/.bashrc"
     // source "${HOME}/.bashrc"
+    // export RUSTUP_TOOLCHAIN=stable
     // ```
     match Command::new("dylint-link").spawn() {
         Ok(_) => {
