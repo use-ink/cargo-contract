@@ -229,7 +229,7 @@ impl CheckCommand {
 
         let mut check_results = Vec::new();
 
-        let mut args = ExecuteArgs {
+        let args = ExecuteArgs {
             package: self.package.clone(),
             build_workspace: false,
             check_workspace: self.check_workspace,
@@ -250,24 +250,8 @@ impl CheckCommand {
             counter: None,
         };
 
-        let mut check_workspace = || -> Result<()> {
-            let workspace_members = get_cargo_workspace_members(&manifest_path)?;
-            for (i, package_id) in workspace_members.iter().enumerate() {
-                // override args for each workspace member
-                args.manifest_path =
-                    ManifestPath::new_from_subcontract_package_id(package_id.clone())
-                        .expect("Error extracting package manifest path");
-                args.counter = Some((i + 1, workspace_members.len()));
-                check_results.push(execute(args.clone())?);
-            }
-            Ok(())
-        };
+        check_results = contract_build::exec(args)?;
 
-        if self.check_workspace || is_virtual_manifest(&manifest_path)? {
-            check_workspace()?;
-        } else {
-            check_results.push(execute(args)?);
-        }
         Ok(check_results)
     }
 }

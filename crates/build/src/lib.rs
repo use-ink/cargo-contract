@@ -695,8 +695,6 @@ pub fn exec(args: ExecuteArgs) -> Result<Vec<BuildResult>> {
     Ok(build_results)
 }
 
-// TODO - copy across exec(.. for CheckCommand too here
-
 /// Executes build of the smart contract which produces a Wasm binary that is ready for
 /// deploying.
 ///
