@@ -1,33 +1,8 @@
-# Verifiable build using Docker
+# Verifiable builds using Docker
 
 Docker image based on our base CI image `<base-ci-linux:latest>`.
 
-Used for reproducible builds in `cargo contract --verifiable`
-
-## Dependencies and Tools
-
-- `llvm-dev`
-- `zlib1g-dev`
-- `npm`
-- `yarn`
-- `wabt`
-- `binaryen`
-
-**Inherited from `<base-ci-linux:latest>`**
-
-- `libssl-dev`
-- `clang-10`
-- `lld`
-- `libclang-dev`
-- `make`
-- `cmake`
-- `git`
-- `pkg-config`
-- `curl`
-- `time`
-- `rhash`
-- `ca-certificates`
-- `jq`
+Used for reproducible builds in `cargo contract build --verifiable`
 
 **Rust versions:**
 
@@ -38,12 +13,9 @@ Currently, the 1.69 toolchain is temporarily required to build ink! contracts be
 We use stable releases from crates.io
 
 - `cargo-contract`
-- `cargo-dylint` and `dylint-link`
-- `pwasm-utils-cli`
-- `solang`
 - `wasm32-unknown-unknown`: The toolchain to compile Rust codebases for Wasm.
 
-[Click here](https://hub.docker.com/repository/docker/paritytech/contracts-ci-linux) for the registry.
+[Click here](https://hub.docker.com/repository/docker/paritytech/contracts-verifiable) for the registry.
 
 ## Usage
 
@@ -56,3 +28,17 @@ docker run -d \
     --mount type=bind,source="$(pwd)",target="/contract" \
     paritytech/contracts-verified
 ```
+
+If you have multi-contract project:
+```
+my-app/
+├─ ink-project-a/
+│  ├─ Cargo.toml
+│  ├─ lib.rs
+├─ ink-project-b/
+│  ├─ Cargo.toml
+│  ├─ lib.rs
+├─ rust-toolchain
+```
+Make sure you mount `my-app` directory and then call
+`cargo contract build --verifiable --release --manifest-path ink-project-a/Cargo.toml`

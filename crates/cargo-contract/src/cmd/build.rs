@@ -21,6 +21,7 @@ use contract_build::{
     BuildResult,
     ExecuteArgs,
     Features,
+    ImageVariant,
     ManifestPath,
     Network,
     OptimizationPasses,
@@ -125,6 +126,9 @@ pub struct BuildCommand {
     /// Requires docker daemon running.
     #[clap(long, short = 'V', default_value_t = false)]
     verifiable: bool,
+    /// Specify a custom image for the verifiable build
+    #[clap(long, default_value = None)]
+    image: Option<String>,
 }
 
 impl BuildCommand {
@@ -149,6 +153,15 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
+        let image = if self.verifiable {
+            match &self.image {
+                Some(i) => Some(ImageVariant::Custom(i.clone())),
+                None => Some(ImageVariant::Default),
+            }
+        } else {
+            None
+        };
+
         // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
         if matches!(output_type, OutputType::Json) {
             verbosity = Verbosity::Quiet;
@@ -169,13 +182,9 @@ impl BuildCommand {
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
+            image,
         };
-
-        if self.verifiable {
-            contract_build::docker_build(args)
-        } else {
-            contract_build::execute(args)
-        }
+        contract_build::execute(args)
     }
 }
 
@@ -217,6 +226,7 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
+            image: None,
         };
 
         contract_build::execute(args)

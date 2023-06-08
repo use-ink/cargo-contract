@@ -69,7 +69,10 @@ pub use self::{
 };
 
 use crate::wasm_opt::WasmOptHandler;
-pub use docker::docker_build;
+pub use docker::{
+    docker_build,
+    ImageVariant,
+};
 
 use anyhow::{
     Context,
@@ -121,6 +124,7 @@ pub struct ExecuteArgs {
     pub skip_wasm_validation: bool,
     pub target: Target,
     pub max_memory_pages: u32,
+    pub image: Option<ImageVariant>,
 }
 
 impl Default for ExecuteArgs {
@@ -140,6 +144,7 @@ impl Default for ExecuteArgs {
             skip_wasm_validation: Default::default(),
             target: Default::default(),
             max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
+            image: Default::default(),
         }
     }
 }
@@ -679,8 +684,14 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         lint,
         output_type,
         target,
+        image,
         ..
     } = &args;
+
+    // if image exists, then --verifiable was called and we need to build inside docker.
+    if image.is_some() {
+        return docker_build(args)
+    }
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
     // potentially defined in the `Cargo.toml` profile.
@@ -1109,13 +1120,13 @@ mod unit_tests {
   },
   "target_directory": "/path/to/target",
   "optimization_result": {
-    "dest_wasm": "/path/to/contract.wasm",
     "original_size": 64.0,
     "optimized_size": 32.0
   },
   "build_mode": "Debug",
   "build_artifact": "All",
-  "verbosity": "Quiet"
+  "verbosity": "Quiet",
+  "image": null
 }"#;
 
         let build_result = BuildResult {

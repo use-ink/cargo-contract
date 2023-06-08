@@ -91,7 +91,10 @@ pub use balance::{
 pub use call::CallCommand;
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
-pub use error::ErrorVariant;
+pub use error::{
+    ErrorVariant,
+    GenericError,
+};
 pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;

@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    error::GenericError,
     submit_extrinsic,
     Client,
     ContractMessageTranscoder,
@@ -88,35 +89,39 @@ impl RemoveCommand {
             }
         }?;
 
-        Runtime::new().unwrap().block_on(async {
-            let url = self.extrinsic_opts.url_to_string();
-            let client = OnlineClient::from_url(url.clone()).await?;
-            if let Some(code_removed) = self
-                .remove_code(
-                    &client,
-                    sp_core::H256(final_code_hash),
-                    &signer,
-                    &transcoder,
-                )
-                .await?
-            {
-                let remove_result = code_removed.code_hash;
+        Runtime::new()
+            .map_err(|e| {
+                ErrorVariant::Generic(GenericError::from_message(e.to_string()))
+            })?
+            .block_on(async {
+                let url = self.extrinsic_opts.url_to_string();
+                let client = OnlineClient::from_url(url.clone()).await?;
+                if let Some(code_removed) = self
+                    .remove_code(
+                        &client,
+                        sp_core::H256(final_code_hash),
+                        &signer,
+                        &transcoder,
+                    )
+                    .await?
+                {
+                    let remove_result = code_removed.code_hash;
 
-                if self.output_json {
-                    println!("{}", &remove_result);
+                    if self.output_json {
+                        println!("{}", &remove_result);
+                    } else {
+                        name_value_println!("Code hash", format!("{remove_result:?}"));
+                    }
+                    Result::<(), ErrorVariant>::Ok(())
                 } else {
-                    name_value_println!("Code hash", format!("{remove_result:?}"));
+                    let error_code_hash = hex::encode(final_code_hash);
+                    Err(anyhow::anyhow!(
+                        "Error removing the code for the supplied code hash: {}",
+                        error_code_hash
+                    )
+                    .into())
                 }
-                Result::<(), ErrorVariant>::Ok(())
-            } else {
-                let error_code_hash = hex::encode(final_code_hash);
-                Err(anyhow::anyhow!(
-                    "Error removing the code for the supplied code hash: {}",
-                    error_code_hash
-                )
-                .into())
-            }
-        })
+            })
     }
 
     async fn remove_code(
