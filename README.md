@@ -45,6 +45,9 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
   * (MacOS) `brew install openssl`
   * `cargo install cargo-dylint dylint-link`.
 
+* Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
+to be able to produce verifiable builds.
+
 You can always update the `cargo-contract` binary to the latest version by running the Step 2.
 
 ### Installation using Docker Image
@@ -68,6 +71,16 @@ docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production 
 
 If you want to reproduce other steps of CI process you can use the following
 [guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
+
+### Verifiable builds
+
+Some block explorers require the Wasm binary to be compiled in the deterministic environment.
+To achieve it, you should build your contract using Docker image we provide:
+```bash
+cargo contract build --verifiable
+```
+
+You can find more detailed documentation how to use the image [here](/build-image/README.md)
 
 ## Usage
 
