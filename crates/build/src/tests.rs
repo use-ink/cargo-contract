@@ -15,9 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    cmd::{
-        BuildCommand,
-    },
     util::tests::{
         TestContractManifest,
         // with_new_subcontract_projects,
@@ -191,7 +188,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     //     ..Default::default()
     // };
 
-    let cmd = BuildCommand {
+    let args = ExecuteArgs {
         package: None,
         build_workspace: false,
         // check_workspace: false,
@@ -216,7 +213,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
     // let optimization = res
     //     .optimization_result
     //     .expect("no optimization result available");
-    let results = cmd.exec().expect("build failed");
+    let results = super::execute(args).expect("build failed");
     for res in results {
         let optimization = res
             .optimization_result
@@ -268,7 +265,7 @@ fn optimization_passes_from_profile_must_be_used(
     //     ..Default::default()
     // };
 
-    let cmd = BuildCommand {
+    let args = ExecuteArgs {
         package: None,
         build_workspace: false,
         // check_workspace: false,
@@ -293,7 +290,7 @@ fn optimization_passes_from_profile_must_be_used(
     // let optimization = res
     //     .optimization_result
     //     .expect("no optimization result available");
-    let results = cmd.exec().expect("build failed");
+    let results = super::execute(args).expect("build failed");
     for res in results {
         let optimization = res
             .optimization_result
@@ -420,13 +417,13 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
 // fn building_subcontract_must_work() {
 //     with_new_subcontract_projects(
 //         |manifest_path| {
-//             let cmd = BuildCommand {
+//             let args = ExecuteArgs {
 //                 build_workspace: true,
 //                 package: None,
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
 //             };
-//             cmd.exec().expect("build failed");
+//             super::execute(args).expect("build failed");
 //             Ok(())
 //         },
 //         1,
@@ -437,7 +434,7 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
     let path = manifest_path.directory().expect("dir must exist");
 
     let project_name = "new_project";
-    crate::cmd::new::execute(project_name, Some(path))
+    crate::new::new_contract_project(project_name, Some(path))
         .expect("new project creation failed");
 
     // delete original lib.rs
@@ -452,13 +449,13 @@ fn building_package_must_work(manifest_path: &ManifestPath) -> Result<()> {
     writeln!(output, "  \"{}\",", project_name)?;
     write!(output, "]")?;
 
-    let cmd = BuildCommand {
+    let args = ExecuteArgs {
         package: Some(project_name.to_string()),
         manifest_path: Some(manifest_path),
         ..Default::default()
     };
 
-    cmd.exec().expect("build failed");
+    super::execute(args).expect("build failed");
     Ok(())
 }
 
@@ -470,7 +467,7 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     let mut project_names = Vec::new();
     for i in 0..n_contracts {
         let project_name = format!("new_project_{}", i);
-        crate::cmd::new::execute(&project_name, Some(path))
+        crate::new::new_contract_project(&project_name, Some(path))
             .expect("new project creation failed");
         project_names.push(project_name);
     }
@@ -489,13 +486,13 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
     }
     writeln!(output, "]")?;
 
-    let cmd = BuildCommand {
+    let args = ExecuteArgs {
         build_workspace: true,
         manifest_path: Some(manifest_path),
         ..Default::default()
     };
 
-    cmd.exec().expect("build failed");
+    super::execute(args).expect("build failed");
     Ok(())
 }
 
@@ -503,13 +500,13 @@ fn building_all_must_work(manifest_path: &ManifestPath) -> Result<()> {
 // fn building_many_subcontracts_must_work() {
 //     with_new_subcontract_projects(
 //         |manifest_path| {
-//             let cmd = BuildCommand {
+//             let args = ExecuteArgs {
 //                 build_workspace: true,
 //                 package: None,
 //                 manifest_path: Some(manifest_path),
 //                 ..Default::default()
 //             };
-//             cmd.exec().expect("build failed");
+//             super::execute(args).expect("build failed");
 //             Ok(())
 //         },
 //         3,

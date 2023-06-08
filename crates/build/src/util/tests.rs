@@ -96,7 +96,7 @@ where
         let unique_name =
             format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
 
-        crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+        crate::new::new_contract_project(&unique_name, Some(tmp_dir))
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(unique_name);
         let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;
@@ -115,7 +115,7 @@ where
         for _ in 0..n {
             let unique_name =
                 format!("new_project_{}", COUNTER.fetch_add(1, Ordering::SeqCst));
-            crate::cmd::new::execute(&unique_name, Some(tmp_dir))
+            crate::new::new_contract_project(&unique_name, Some(tmp_dir))
                 .expect("new project creation failed");
             unique_names.push(unique_name);
         }
