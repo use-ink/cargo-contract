@@ -248,7 +248,12 @@ pub enum OutputType {
 
 #[derive(Default, Clone, Debug, Args)]
 pub struct UnstableOptions {
-    /// Use the original manifest (Cargo.toml), do not modify for build optimizations
+    /// Whether to use the original manifest (Cargo.toml) or build with optimizations
+    ///
+    /// - `original-manifest`: Use the original manifest (Cargo.toml)
+    ///
+    /// The default is to use build optimizations if this option is not specified.
+    ///
     #[clap(long = "unstable-options", short = 'Z', number_of_values = 1)]
     options: Vec<String>,
 }

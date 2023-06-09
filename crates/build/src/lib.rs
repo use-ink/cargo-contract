@@ -706,6 +706,7 @@ pub fn exec(args: ExecuteArgs) -> Result<Vec<BuildResult>> {
             args_temp.manifest_path =
                 ManifestPath::new_from_subcontract_package_id(package_id.clone())
                     .expect("Error extracting package manifest path");
+            println!("args_temp.manifest_path: {:?}", args_temp.manifest_path);
             args_temp.counter = Some((i + 1, workspace_members.len()));
             build_results.push(execute(args_temp.clone())?);
         }
@@ -852,10 +853,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             );
 
             let dest_code_path = crate_metadata.dest_code.clone();
-
             if pre_fingerprint == Some(post_fingerprint)
                 && crate_metadata.dest_code.exists()
             {
+                println!("here1");
                 tracing::info!(
                     "No changes in the original wasm at {}, fingerprint {:?}. \
                 Skipping Wasm optimization and metadata generation.",
@@ -864,6 +865,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 );
                 return Ok((None, build_info, dest_code_path, build_steps))
             }
+            println!("here2");
 
             maybe_lint(&mut build_steps)?;
 
@@ -922,6 +924,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             ))
         };
 
+    println!("here3");
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();
         fs::remove_file(crate_metadata.contract_bundle_path()).ok();

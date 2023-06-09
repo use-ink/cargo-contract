@@ -120,12 +120,16 @@ pub(crate) fn execute(
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<()> {
+    println!("here11");
+    // println!("crate_metadata {:?}", crate_metadata);
+    // println!("metadata_artifacts {:?}", metadata_artifacts);
+    // println!("build_info {:?}", build_info);
     // build the extended contract project metadata
     let ExtendedMetadataResult {
         source,
         contract,
         user,
-    } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
+    } = extended_metadata(crate_metadata, final_contract_wasm, build_info.clone())?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         maybe_println!(
@@ -144,11 +148,12 @@ pub(crate) fn execute(
             manifest_path.cargo_arg()?,
             "--target-dir".to_owned(),
             target_dir,
-            "--release".to_owned(),
+            // "--release".to_owned(),
+            build_info.clone().build_mode.to_string(),
         ];
         network.append_to_args(&mut args);
         features.append_to_args(&mut args);
-
+        println!("here12");
         let cmd = util::cargo_cmd(
             "run",
             args,
@@ -156,7 +161,13 @@ pub(crate) fn execute(
             verbosity,
             vec![],
         );
+// error: a bin target must be available for `cargo run`
+// command ["cargo", "run", "--color=always", "--package", "accumulator",
+// "--manifest-path=/Users/ls/preview/delegator/accumulator/Cargo.toml",
+// "--target-dir", "/Users/ls/preview/delegator/target/ink/accumulator",
+// "--release"] exited with code 101
         let output = cmd.stdout_capture().run()?;
+        println!("here13");
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
             serde_json::from_slice(&output.stdout)?;
@@ -168,6 +179,7 @@ pub(crate) fn execute(
             fs::write(&metadata_artifacts.dest_metadata, contents)?;
             build_steps.increment_current();
         }
+        println!("here14");
 
         maybe_println!(
             verbosity,
