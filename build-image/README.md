@@ -40,5 +40,6 @@ my-app/
 │  ├─ lib.rs
 ├─ rust-toolchain
 ```
-Make sure to run the command inside `my-app` directory and specify relative manifest paths:
+Make sure to run the command inside `my-app` directory and specify a relative manifest path
+to the root contract:
 `cargo contract build --verifiable --release --manifest-path ink-project-a/Cargo.toml`
