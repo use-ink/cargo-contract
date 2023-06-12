@@ -37,18 +37,17 @@ FROM slimmed-rust as cc-builder
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
-RUN apt-get -y update && apt-get -y install gcc g++
-# Install cargo contract
-RUN cargo install cargo-contract --locked --version 3.0.1
-
-# Cleanup after `cargo install`
-RUN rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache
-
-# apt clean up
-RUN apt-get remove -y gnupg && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    # Install required packages for `cargo-contract`
+RUN apt-get -y update && apt-get -y install gcc g++ \
+    # Install cargo contract
+    && cargo install cargo-contract --locked --version 3.0.1 \
+    # Cleanup after `cargo install`
+    && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
+    # apt clean up
+    && apt-get remove -y gnupg \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 
 FROM slimmed-rust as ink-dev
