@@ -3,8 +3,6 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.image.title="contracts-verifiable" \
-    io.parity.image.documentation="https://github.com/paritytech/scripts/blob/master/\
-    dockerfiles/ink-ci-linux/README.md" \
     io.parity.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
     llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
@@ -41,7 +39,7 @@ ENV RUSTFLAGS="-C target-feature=-crt-static"
 
 RUN apt-get -y update && apt-get -y install gcc g++
 # Install cargo contract
-RUN cargo install cargo-contract
+RUN cargo install cargo-contract --version 3.0.1
 
 # Cleanup after `cargo install`
 RUN rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache

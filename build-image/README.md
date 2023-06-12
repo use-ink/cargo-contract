@@ -29,7 +29,7 @@ docker run -d \
     paritytech/contracts-verified
 ```
 
-If you have multi-contract project:
+For multi-contract projects, like in the example below:
 ```
 my-app/
 ├─ ink-project-a/
@@ -40,5 +40,5 @@ my-app/
 │  ├─ lib.rs
 ├─ rust-toolchain
 ```
-Make sure you mount `my-app` directory and then call
+Make sure to run the command inside `my-app` directory and specify relative manifest paths:
 `cargo contract build --verifiable --release --manifest-path ink-project-a/Cargo.toml`
