@@ -63,7 +63,8 @@ use crate::{
 
 use colored::Colorize;
 
-const IMAGE: &str = "paritytech/contracts-verifiable:latest";
+const IMAGE: &str = "paritytech/contracts-verifiable";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Clone, Debug, Default)]
 pub enum ImageVariant {
@@ -319,7 +320,6 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
-    build_steps.increment_current();
     maybe_println!(
         verbosity,
         " {} {}\n {}",
@@ -422,10 +422,13 @@ async fn get_image(
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
 ) -> Result<ImageSummary> {
-    // if no custom image is specified, then we use the latest tag
+    // if no custom image is specified, then we use the tag of the current version of
+    // `cargo-contract`
     let image = match custom_image {
         ImageVariant::Custom(i) => i.clone(),
-        ImageVariant::Default => IMAGE.to_owned(),
+        ImageVariant::Default => {
+            format!("{}:{}", IMAGE, VERSION)
+        }
     };
 
     let build_image = match find_local_image(client.clone(), image.clone()).await? {
@@ -477,6 +480,7 @@ async fn pull_image(
             .bright_green()
             .bold()
     );
+    build_steps.increment_current();
 
     if verbosity.is_verbose() {
         let spinner_style = ProgressStyle::with_template(
