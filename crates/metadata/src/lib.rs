@@ -749,7 +749,7 @@ mod tests {
         let metadata = ContractMetadata::new(
             source,
             contract,
-            Some(String::from("paritytech/contracts-verified:3.0.1")),
+            Some(String::from("paritytech/contracts-verifiable:3.0.1")),
             Some(user),
             abi_json,
         );
@@ -768,7 +768,7 @@ mod tests {
                         "example_name": "increment"
                     }
                 },
-                "image": "parity/ver-build:latest",
+                "image": "paritytech/contracts-verifiable:3.0.1",
                 "contract": {
                     "name": "incrementer",
                     "version": "2.1.0",
