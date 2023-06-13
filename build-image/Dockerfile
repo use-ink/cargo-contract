@@ -1,3 +1,10 @@
+# The rust version to use
+# The 1.69 toolchain is temporarily required to build ink! contracts because of
+# https://github.com/paritytech/cargo-contract/issues/1139
+ARG RUST_VERSION=1.69
+# The cargo contract version to use
+ARG CARGO_CONTRACT_VERSION=3.0.1
+
 FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 
 # metadata
@@ -11,10 +18,7 @@ LABEL io.parity.image.vendor="Parity Technologies" \
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
-    PATH=/usr/local/cargo/bin:$PATH \
-    # The 1.69 toolchain is temporarily required to build ink! contracts because of
-    # https://github.com/paritytech/cargo-contract/issues/1139
-    RUST_VERSION=1.69
+    PATH=/usr/local/cargo/bin:$PATH
 
 # Minimal Rust dependencies.
 RUN set -eux \
@@ -40,7 +44,7 @@ ENV RUSTFLAGS="-C target-feature=-crt-static"
     # Install required packages for `cargo-contract`
 RUN apt-get -y update && apt-get -y install gcc g++ \
     # Install cargo contract
-    && cargo install cargo-contract --locked --version 3.0.1 \
+    && cargo install cargo-contract --locked --version $CARGO_CONTRACT_VERSION \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
