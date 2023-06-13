@@ -136,7 +136,7 @@ pub struct ExtrinsicOpts {
     #[clap(long)]
     skip_dry_run: bool,
     /// Before submitting a transaction, do not ask the user for confirmation.
-    #[clap(long)]
+    #[clap(short('y'), long)]
     skip_confirm: bool,
 }
 
@@ -419,7 +419,7 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
 /// Prompt the user to confirm transaction submission.
 fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     println!(
-        "{} (skip with --skip-confirm)",
+        "{} (skip with --skip-confirm or -y)",
         "Confirm transaction details:".bright_white().bold()
     );
     show_details();
