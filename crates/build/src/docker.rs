@@ -12,6 +12,7 @@ use std::{
         Path,
         PathBuf,
     },
+    time::Duration,
 };
 
 use anyhow::{
@@ -26,7 +27,10 @@ use bollard::{
         StopContainerOptions,
         WaitContainerOptions,
     },
-    image::ListImagesOptions,
+    image::{
+        CreateImageOptions,
+        ListImagesOptions,
+    },
     service::{
         HostConfig,
         ImageSummary,
@@ -36,6 +40,10 @@ use bollard::{
     Docker,
 };
 use contract_metadata::ContractMetadata;
+use indicatif::{
+    ProgressBar,
+    ProgressStyle,
+};
 use tokio_stream::StreamExt;
 
 use crate::{
@@ -54,6 +62,8 @@ use crate::{
 };
 
 use colored::Colorize;
+
+const IMAGE: &str = "paritytech/contracts-verifiable:latest";
 
 #[derive(Clone, Debug, Default)]
 pub enum ImageVariant {
@@ -76,70 +86,67 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         target,
         max_memory_pages,
         build_artifact,
+        image,
         ..
     } = args;
-    tokio::runtime::Runtime::new()?.block_on(async {
-        let mut build_steps = BuildSteps::new();
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async {
+            let mut build_steps = BuildSteps::new();
 
-        build_steps.set_total_steps(3);
-        if build_artifact == BuildArtifacts::CodeOnly {
-            build_steps.set_total_steps(2);
-        }
+            build_steps.set_total_steps(3);
+            if build_artifact == BuildArtifacts::CodeOnly {
+                build_steps.set_total_steps(2);
+            }
 
-        let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
-        let host_folder = crate_metadata
-            .manifest_path
-            .absolute_directory()?
-            .as_path()
-            .to_owned();
-        let file_path = host_folder.join(Path::new("target/build_result.json"));
-        let args = compose_build_args(
-            &mut features,
-            keep_debug_symbols,
-            optimization_passes.as_ref(),
-            &network,
-            &unstable_flags,
-            &build_artifact,
-            max_memory_pages,
-        )?;
+            let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
+            let host_folder = crate_metadata
+                .manifest_path
+                .absolute_directory()?
+                .as_path()
+                .to_owned();
+            let file_path = host_folder.join(Path::new("target/build_result.json"));
+            let args = compose_build_args(
+                &mut features,
+                keep_debug_symbols,
+                optimization_passes.as_ref(),
+                &network,
+                &unstable_flags,
+                &build_artifact,
+                max_memory_pages,
+            )?;
 
-        // TODO: replace with image pulling, once the image is pushed to registry
-        let client = Docker::connect_with_socket_defaults()?;
-        let images = client
-            .list_images(Some(ListImagesOptions::<String> {
-                all: true,
-                ..Default::default()
-            }))
+            let image_variant = match image {
+                Some(i) => i,
+                None => ImageVariant::Default,
+            };
+
+            let client = Docker::connect_with_socket_defaults()?;
+            let build_image =
+                get_image(client.clone(), image_variant, &verbosity, &mut build_steps)
+                    .await?;
+
+            run_build(
+                args,
+                &build_image,
+                &crate_metadata.contract_artifact_name,
+                &host_folder,
+                &verbosity,
+                &mut build_steps,
+            )
             .await?;
-        let build_image = images.iter().find(|i| {
-            i.labels.get("io.parity.image.title")
-                == Some(&"contracts-verifiable".to_string())
-        });
-        if build_image.is_none() {
-            return Err(anyhow::anyhow!("No image found"))
-        }
-        let build_image = build_image.unwrap();
 
-        run_build(
-            args,
-            build_image,
-            &crate_metadata.contract_artifact_name,
-            &host_folder,
-            &verbosity,
-            &mut build_steps,
-        )
-        .await?;
+            let build_result = read_build_result(&host_folder, &file_path)?;
 
-        let build_result = read_build_result(&host_folder, &file_path)?;
+            update_metadata(&build_result, &verbosity, &mut build_steps, &build_image)?;
 
-        update_metadata(&build_result, &verbosity, &mut build_steps, build_image)?;
-
-        Ok(BuildResult {
-            output_type,
-            verbosity,
-            ..build_result
+            Ok(BuildResult {
+                output_type,
+                verbosity,
+                ..build_result
+            })
         })
-    })
 }
 
 /// Reads the `BuildResult` produced by the docker execution
@@ -199,7 +206,18 @@ fn update_metadata(
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
         let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
-        metadata.image = Some(build_image.id.to_string());
+
+        // find alternative unique identifier of the image, otherwise grab the digest
+        let image_tag = match build_image
+            .repo_tags
+            .iter()
+            .find(|t| !t.ends_with("latest"))
+        {
+            Some(tag) => tag.to_owned(),
+            None => build_image.id.clone(),
+        };
+
+        metadata.image = Some(image_tag);
 
         crate::metadata::write_metadata(
             metadata_artifacts,
@@ -301,14 +319,15 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
+    build_steps.increment_current();
     maybe_println!(
         verbosity,
-        " {} {}\n{}",
+        " {} {}\n {}",
         format!("{build_steps}").bold(),
         "Started the build inside the container"
             .bright_green()
             .bold(),
-        "This might take a while. Check container logs for more details."
+        "You can close this terminal session. The execution will be finished in the background"
     );
 
     let options = Some(WaitContainerOptions {
@@ -316,7 +335,22 @@ async fn run_build(
     });
 
     let mut wait_stream = client.wait_container(&container_id, options);
-    while wait_stream.next().await.is_some() {}
+    if verbosity.is_verbose() {
+        let spinner_style =
+            ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
+                .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+
+        let pb = ProgressBar::new(1000);
+        pb.enable_steady_tick(Duration::from_millis(100));
+        pb.set_style(spinner_style);
+        pb.set_message("Build is being executed...");
+        while wait_stream.next().await.is_some() {
+            pb.inc(1);
+        }
+        pb.finish_with_message("Done!")
+    } else {
+        while wait_stream.next().await.is_some() {}
+    }
 
     client
         .stop_container(&container_id, Some(StopContainerOptions { t: 20 }))
@@ -379,4 +413,100 @@ fn compose_build_args(
 
     let joined_args = args.join(" ");
     Ok(joined_args)
+}
+
+/// Retrieve local of the image, otherwise pulls one from the registry
+async fn get_image(
+    client: Docker,
+    custom_image: ImageVariant,
+    verbosity: &Verbosity,
+    build_steps: &mut BuildSteps,
+) -> Result<ImageSummary> {
+    // if no custom image is specified, then we use the latest tag
+    let image = match custom_image {
+        ImageVariant::Custom(i) => i.clone(),
+        ImageVariant::Default => IMAGE.to_owned(),
+    };
+
+    let build_image = match find_local_image(client.clone(), image.clone()).await? {
+        Some(image_s) => image_s,
+        None => {
+            build_steps.total_steps = build_steps.total_steps.map(|s| s + 1);
+            pull_image(client.clone(), image.clone(), verbosity, build_steps).await?;
+            find_local_image(client.clone(), image.clone())
+                .await?
+                .context("Could not pull the image from the registry")?
+        }
+    };
+
+    Ok(build_image)
+}
+
+async fn find_local_image(client: Docker, image: String) -> Result<Option<ImageSummary>> {
+    let images = client
+        .list_images(Some(ListImagesOptions::<String> {
+            all: true,
+            ..Default::default()
+        }))
+        .await?;
+    let build_image = images.iter().find(|i| i.repo_tags.contains(&image));
+
+    Ok(build_image.cloned())
+}
+
+async fn pull_image(
+    client: Docker,
+    image: String,
+    verbosity: &Verbosity,
+    build_steps: &mut BuildSteps,
+) -> Result<()> {
+    let mut pull_image_stream = client.create_image(
+        Some(CreateImageOptions {
+            from_image: image,
+            ..Default::default()
+        }),
+        None,
+        None,
+    );
+
+    maybe_println!(
+        verbosity,
+        " {} {}",
+        format!("{build_steps}").bold(),
+        "Image does not exist. Pulling one from the registry"
+            .bright_green()
+            .bold()
+    );
+
+    if verbosity.is_verbose() {
+        let spinner_style = ProgressStyle::with_template(
+            " {spinner:.cyan} [{wide_bar:.cyan/blue}]\n {wide_msg}",
+        )?
+        .progress_chars("#>-")
+        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+        let pb = ProgressBar::new(1000);
+        pb.set_style(spinner_style);
+        pb.enable_steady_tick(Duration::from_millis(100));
+
+        while let Some(summary_result) = pull_image_stream.next().await {
+            let summary = summary_result?;
+
+            if let Some(progress_detail) = summary.progress_detail {
+                let total = progress_detail.total.map_or(1000, |v| v) as u64;
+                let current_step = progress_detail.current.map_or(1000, |v| v) as u64;
+                pb.set_length(total);
+                pb.set_position(current_step);
+
+                if let Some(msg) = summary.status {
+                    pb.set_message(msg);
+                }
+            }
+        }
+
+        pb.finish();
+    } else {
+        while pull_image_stream.next().await.is_some() {}
+    }
+
+    Ok(())
 }
