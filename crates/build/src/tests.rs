@@ -168,6 +168,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         output_type: OutputType::Json,
         skip_wasm_validation: false,
         target: Default::default(),
+        ..Default::default()
     };
 
     // when
@@ -210,6 +211,7 @@ fn optimization_passes_from_profile_must_be_used(
         output_type: OutputType::Json,
         skip_wasm_validation: false,
         target: Default::default(),
+        ..Default::default()
     };
 
     // when

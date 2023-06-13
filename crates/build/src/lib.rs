@@ -95,14 +95,14 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-/// This is the maximum number of pages available for a contract to allocate.
-const MAX_MEMORY_PAGES: u32 = 16;
+/// This is the default maximum number of pages available for a contract to allocate.
+pub const DEFAULT_MAX_MEMORY_PAGES: u32 = 16;
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Arguments to use when executing `build` or `check` commands.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
@@ -118,6 +118,28 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
+    pub max_memory_pages: u32,
+}
+
+impl Default for ExecuteArgs {
+    fn default() -> Self {
+        Self {
+            manifest_path: Default::default(),
+            verbosity: Default::default(),
+            build_mode: Default::default(),
+            features: Default::default(),
+            network: Default::default(),
+            build_artifact: Default::default(),
+            unstable_flags: Default::default(),
+            optimization_passes: Default::default(),
+            keep_debug_symbols: Default::default(),
+            lint: Default::default(),
+            output_type: Default::default(),
+            skip_wasm_validation: Default::default(),
+            target: Default::default(),
+            max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
+        }
+    }
 }
 
 /// Result of the build process.
@@ -284,12 +306,12 @@ fn exec_cargo_for_onchain_target(
             fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
             let path = path.display();
             env.push((
-                "RUSTFLAGS",
+                "CARGO_ENCODED_RUSTFLAGS",
                 Some(format!("{rustflags} -Clink-arg=-T{path}",)),
             ));
             Some(path)
         } else {
-            env.push(("RUSTFLAGS", Some(rustflags.to_string())));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags.to_string())));
             None
         };
 
@@ -512,7 +534,7 @@ fn ensure_maximum_memory_pages(
         }
     } else {
         let initial = mem_ty.limits().initial();
-        *mem_ty = MemoryType::new(initial, Some(MAX_MEMORY_PAGES));
+        *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
     }
 
     Ok(())
@@ -559,13 +581,14 @@ fn post_process_wasm(
     crate_metadata: &CrateMetadata,
     skip_wasm_validation: bool,
     verbosity: &Verbosity,
+    max_memory_pages: u32,
 ) -> Result<()> {
     // Deserialize Wasm module from a file.
     let mut module = load_module(&crate_metadata.original_code)
         .context("Loading of original wasm failed")?;
 
     strip_exports(&mut module);
-    ensure_maximum_memory_pages(&mut module, MAX_MEMORY_PAGES)?;
+    ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
     strip_custom_sections(&mut module);
 
     if !skip_wasm_validation {
@@ -654,6 +677,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         output_type,
         skip_wasm_validation,
         target,
+        max_memory_pages,
     } = args;
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -793,7 +817,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
             match target {
                 Target::Wasm => {
-                    post_process_wasm(&crate_metadata, skip_wasm_validation, &verbosity)?;
+                    post_process_wasm(
+                        &crate_metadata,
+                        skip_wasm_validation,
+                        &verbosity,
+                        max_memory_pages,
+                    )?;
                     let handler =
                         WasmOptHandler::new(optimization_passes, keep_debug_symbols)?;
                     handler.optimize(

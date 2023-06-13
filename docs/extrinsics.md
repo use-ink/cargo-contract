@@ -9,7 +9,7 @@ line.
 ```
 The Secret URI used for signing the extrinsic. For development chains, the well known endowed accounts can be used e.g.
 `//Alice`. For other accounts, the actual secret key must be provided e.g. an `0x` prefixed 64 bit hex string, or the
-seed phrase. See usage of [`subkey`](https://docs.substrate.io/v3/tools/subkey/) for examples, and docs for the expected
+seed phrase. See usage of [`subkey`](https://docs.substrate.io/reference/command-line-tools/subkey/) for examples, and docs for the expected
 values in the [parsing code](https://docs.rs/sp-core/latest/sp_core/crypto/trait.Pair.html#method.from_string_with_seed).
 
 :warning: **WARNING** :warning:
@@ -22,7 +22,7 @@ bearing chains.
 ```
 --password
 ```
-*Optional*. The password for the `--suri`, see https://docs.substrate.io/v3/tools/subkey/#password-protected-keys.
+*Optional*. The password for the `--suri`, see https://docs.substrate.io/reference/command-line-tools/subkey/#password-protected-keys.
 
 ```
 --manifest-path
