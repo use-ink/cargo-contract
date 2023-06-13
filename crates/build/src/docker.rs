@@ -232,7 +232,7 @@ async fn run_build(
 
     // in order to optimise the container usage
     // we are hashing the inputted command
-    // in order to reuse containers for different permutations of arguments
+    // in order to reuse the container for the same permutation of arguments
     let mut s = DefaultHasher::new();
     entrypoint.hash(&mut s);
     let digest = s.finish();
@@ -252,7 +252,7 @@ async fn run_build(
         }))
         .await?;
 
-    let container = containers.first();
+    let container_option = containers.first();
 
     let mount = Mount {
         target: Some(String::from("/contract")),
@@ -287,18 +287,14 @@ async fn run_build(
         platform: Some("linux/amd64"),
     });
 
-    let container_id = if container.is_none() {
-        client
-            .create_container(options.clone(), config.clone())
-            .await?
-            .id
-    } else {
-        container
-            .unwrap()
-            .id
-            .clone()
-            .context("Container does not have an ID")?
-            .to_owned()
+    let container_id = match container_option {
+        Some(container) => {
+            container
+                .id
+                .clone()
+                .context("Container does not have an ID")?
+        }
+        None => client.create_container(options, config).await?.id,
     };
 
     client

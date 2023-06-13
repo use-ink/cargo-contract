@@ -749,7 +749,7 @@ mod tests {
         let metadata = ContractMetadata::new(
             source,
             contract,
-            Some(String::from("parity/ver-build:latest")),
+            Some(String::from("paritytech/contracts-verified:3.0.1")),
             Some(user),
             abi_json,
         );
