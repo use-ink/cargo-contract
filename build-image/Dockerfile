@@ -14,7 +14,9 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
     llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
     io.parity.image.documentation="https://github.com/paritytech/cargo-contract/blob/master/\
-    build-image/README.md"
+    build-image/README.md" \
+    io.parity.version.rust=${RUST_VERSION} \
+    io.parity.version.cargo-contract=${CARGO_CONTRACT_VERSION}
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
