@@ -125,13 +125,15 @@ impl CallCommand {
                     match result.result {
                         Ok(ref ret_val) => {
                             let value = transcoder
-                                .decode_return(&self.message, &mut &ret_val.data[..])
+                                .decode_message_return(
+                                    &self.message,
+                                    &mut &ret_val.data[..],
+                                )
                                 .context(format!(
                                     "Failed to decode return value {:?}",
                                     &ret_val
                                 ))?;
                             let dry_run_result = CallDryRunResult {
-                                result: String::from("Success!"),
                                 reverted: ret_val.did_revert(),
                                 data: value,
                                 gas_consumed: result.gas_consumed,
@@ -313,8 +315,6 @@ pub struct CallRequest {
 /// Result of the contract call
 #[derive(serde::Serialize)]
 pub struct CallDryRunResult {
-    /// Result of a dry run
-    pub result: String,
     /// Was the operation reverted
     pub reverted: bool,
     pub data: Value,
@@ -331,12 +331,11 @@ impl CallDryRunResult {
     }
 
     pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Result", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
         name_value_println!(
             "Reverted",
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
     }
 }

@@ -349,7 +349,22 @@ impl ContractMessageTranscoder {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_constructor_return(
+        &self,
+        name: &str,
+        data: &mut &[u8],
+    ) -> Result<Value> {
+        let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
+        })?;
+        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
+            self.decode(return_ty.ty().id, data)
+        } else {
+            Ok(Value::Unit)
+        }
+    }
+
+    pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
@@ -674,7 +689,7 @@ mod tests {
 
         let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
@@ -694,7 +709,7 @@ mod tests {
         let encoded =
             Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
