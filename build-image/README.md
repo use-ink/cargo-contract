@@ -1,6 +1,6 @@
 # Verifiable builds using Docker
 
-Docker image based on our base CI image `<base-ci-linux:latest>`.
+Docker image based on the minimalistic Debian image `bitnami/minideb:bullseye-amd64`.
 
 Used for reproducible builds in `cargo contract build --verifiable`
 
