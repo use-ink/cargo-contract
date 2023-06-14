@@ -800,6 +800,7 @@ dependencies = [
  "serde_json",
  "sp-core 18.0.0",
  "sp-keyring",
+ "strsim",
  "thiserror",
  "tracing",
 ]
