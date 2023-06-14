@@ -225,7 +225,7 @@ impl ContractMessageTranscoder {
                 let possible_values: Vec<_> = constructors.chain(messages).collect();
                 let help_txt = did_you_mean(name, possible_values.clone())
                     .first()
-                    .map(|suggestion| format!("Did you mean '{}'", suggestion))
+                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
                     .unwrap_or_else(|| {
                         format!("Should be one of: {}", possible_values.iter().join(", "))
                     });
@@ -573,7 +573,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
         assert_eq!(
             transcoder.encode("fip", ["true"]).unwrap_err().to_string(),
-            "No constructor or message with the name 'fip' found.\nDid you mean 'flip'"
+            "No constructor or message with the name 'fip' found.\nDid you mean 'flip'?"
         );
     }
 
