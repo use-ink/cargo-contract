@@ -16,7 +16,6 @@
 
 use super::{
     display_dry_run_result_warning,
-    error::GenericError,
     state_call,
     submit_extrinsic,
     Client,
@@ -79,10 +78,7 @@ impl UploadCommand {
         })?;
         let code_hash = code.code_hash();
 
-        Runtime::new()
-            .map_err(|e|
-                ErrorVariant::Generic(GenericError::from_message(e.to_string()))
-            )?
+        Runtime::new()?
             .block_on(async {
                 let url = self.extrinsic_opts.url_to_string();
                 let client = OnlineClient::from_url(url.clone()).await?;

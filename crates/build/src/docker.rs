@@ -199,6 +199,7 @@ fn read_build_result(host_folder: &Path, file_path: &PathBuf) -> Result<BuildRes
     Ok(build_result)
 }
 
+/// Overwrites `build_result` and `image` fields in the metadata
 fn update_metadata(
     build_result: &BuildResult,
     verbosity: &Verbosity,
@@ -230,6 +231,7 @@ fn update_metadata(
     Ok(())
 }
 
+/// Creates the container and executed the build inside it
 async fn run_build(
     build_args: String,
     build_image: &ImageSummary,
@@ -368,6 +370,7 @@ async fn run_build(
     Ok(())
 }
 
+/// Takes CLI args from the host and appends them to the build command inside the docker
 fn compose_build_args(
     features: &mut Features,
     keep_debug_symbols: bool,
@@ -445,6 +448,7 @@ async fn get_image(
     Ok(build_image)
 }
 
+/// Searches for the local copy of the docker image
 async fn find_local_image(client: Docker, image: String) -> Result<Option<ImageSummary>> {
     let images = client
         .list_images(Some(ListImagesOptions::<String> {
@@ -457,6 +461,7 @@ async fn find_local_image(client: Docker, image: String) -> Result<Option<ImageS
     Ok(build_image.cloned())
 }
 
+/// Pulls the docker image from the registry
 async fn pull_image(
     client: Docker,
     image: String,

@@ -66,6 +66,12 @@ impl From<&str> for ErrorVariant {
     }
 }
 
+impl From<std::io::Error> for ErrorVariant {
+    fn from(value: std::io::Error) -> Self {
+        Self::Generic(GenericError::from_message(value.to_string()))
+    }
+}
+
 #[derive(serde::Serialize)]
 pub struct ModuleError {
     pub pallet: String,

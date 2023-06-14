@@ -16,7 +16,6 @@
 
 use super::{
     display_contract_exec_result,
-    error::GenericError,
     prompt_confirm_tx,
     state_call,
     submit_extrinsic,
@@ -129,45 +128,41 @@ impl InstantiateCommand {
         };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        Runtime::new()
-            .map_err(|e| {
-                ErrorVariant::Generic(GenericError::from_message(e.to_string()))
-            })?
-            .block_on(async {
-                let client = OnlineClient::from_url(url.clone()).await?;
+        Runtime::new()?.block_on(async {
+            let client = OnlineClient::from_url(url.clone()).await?;
 
-                let token_metadata = TokenMetadata::query(&client).await?;
+            let token_metadata = TokenMetadata::query(&client).await?;
 
-                let args = InstantiateArgs {
-                    constructor: self.constructor.clone(),
-                    raw_args: self.args.clone(),
-                    value: self.value.denominate_balance(&token_metadata)?,
-                    gas_limit: self.gas_limit,
-                    proof_size: self.proof_size,
-                    storage_deposit_limit: self
-                        .extrinsic_opts
-                        .storage_deposit_limit
-                        .as_ref()
-                        .map(|bv| bv.denominate_balance(&token_metadata))
-                        .transpose()?,
-                    code,
-                    data,
-                    salt,
-                };
+            let args = InstantiateArgs {
+                constructor: self.constructor.clone(),
+                raw_args: self.args.clone(),
+                value: self.value.denominate_balance(&token_metadata)?,
+                gas_limit: self.gas_limit,
+                proof_size: self.proof_size,
+                storage_deposit_limit: self
+                    .extrinsic_opts
+                    .storage_deposit_limit
+                    .as_ref()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+                code,
+                data,
+                salt,
+            };
 
-                let exec = Exec {
-                    args,
-                    opts: self.extrinsic_opts.clone(),
-                    url,
-                    client,
-                    verbosity,
-                    signer,
-                    transcoder,
-                    output_json: self.output_json,
-                };
+            let exec = Exec {
+                args,
+                opts: self.extrinsic_opts.clone(),
+                url,
+                client,
+                verbosity,
+                signer,
+                transcoder,
+                output_json: self.output_json,
+            };
 
-                exec.exec(self.extrinsic_opts.execute).await
-            })
+            exec.exec(self.extrinsic_opts.execute).await
+        })
     }
 }
 

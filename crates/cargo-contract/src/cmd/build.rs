@@ -124,7 +124,7 @@ pub struct BuildCommand {
     max_memory_pages: u32,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
-    #[clap(long, short = 'V', default_value_t = false)]
+    #[clap(long, default_value_t = false)]
     verifiable: bool,
     /// Specify a custom image for the verifiable build
     #[clap(long, default_value = None)]

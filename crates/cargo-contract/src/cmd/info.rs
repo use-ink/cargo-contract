@@ -21,10 +21,7 @@ use super::{
 };
 use crate::{
     cmd::{
-        extrinsics::{
-            GenericError,
-            MAX_KEY_COL_WIDTH,
-        },
+        extrinsics::MAX_KEY_COL_WIDTH,
         runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
         Balance,
         CodeHash,
@@ -69,41 +66,37 @@ impl InfoCommand {
             self.contract
         );
 
-        Runtime::new()
-            .map_err(|e| {
-                ErrorVariant::Generic(GenericError::from_message(e.to_string()))
-            })?
-            .block_on(async {
-                let url = self.url.clone();
-                let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
+        Runtime::new()?.block_on(async {
+            let url = self.url.clone();
+            let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-                let info_result = self.fetch_contract_info(&client).await?;
+            let info_result = self.fetch_contract_info(&client).await?;
 
-                match info_result {
-                    Some(info_result) => {
-                        let convert_trie_id = hex::encode(info_result.trie_id.0);
-                        let info_to_json = InfoToJson {
-                            trie_id: convert_trie_id,
-                            code_hash: info_result.code_hash,
-                            storage_items: info_result.storage_items,
-                            storage_item_deposit: info_result.storage_item_deposit,
-                        };
-                        if self.output_json {
-                            println!("{}", info_to_json.to_json()?);
-                        } else {
-                            info_to_json.basic_display_format_contract_info();
-                        }
-                        Ok(())
+            match info_result {
+                Some(info_result) => {
+                    let convert_trie_id = hex::encode(info_result.trie_id.0);
+                    let info_to_json = InfoToJson {
+                        trie_id: convert_trie_id,
+                        code_hash: info_result.code_hash,
+                        storage_items: info_result.storage_items,
+                        storage_item_deposit: info_result.storage_item_deposit,
+                    };
+                    if self.output_json {
+                        println!("{}", info_to_json.to_json()?);
+                    } else {
+                        info_to_json.basic_display_format_contract_info();
                     }
-                    None => {
-                        Err(anyhow!(
-                            "No contract information was found for account id {}",
-                            self.contract
-                        )
-                        .into())
-                    }
+                    Ok(())
                 }
-            })
+                None => {
+                    Err(anyhow!(
+                        "No contract information was found for account id {}",
+                        self.contract
+                    )
+                    .into())
+                }
+            }
+        })
     }
 
     async fn fetch_contract_info(&self, client: &Client) -> Result<Option<ContractInfo>> {
