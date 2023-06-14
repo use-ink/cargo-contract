@@ -157,7 +157,7 @@ pub struct ContractMessageTranscoder {
 /// Returns a Vec of all possible values that exceed a similarity threshold
 /// sorted by ascending similarity, most similar comes last
 /// Extracted from https://github.com/clap-rs/clap/blob/v4.3.4/clap_builder/src/parser/features/suggestions.rs#L11-L26
-pub(crate) fn did_you_mean<T, I>(v: &str, possible_values: I) -> Vec<String>
+fn did_you_mean<T, I>(v: &str, possible_values: I) -> Vec<String>
 where
     T: AsRef<str>,
     I: IntoIterator<Item = T>,
