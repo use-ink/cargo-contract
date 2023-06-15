@@ -6,6 +6,12 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 ARG RUST_VERSION=1.69
 # The cargo contract version to use
 ARG CARGO_CONTRACT_VERSION=3.0.1
+# gcc package version
+ARG GCC_VERSION=4:10.2.1-1
+# wget package version
+ARG WGET_VERSION=1.21-1+deb11u1
+# g++ package version
+ARG G_VERSION=4:10.2.1-1
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -16,7 +22,10 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.image.documentation="https://github.com/paritytech/cargo-contract/blob/master/\
     build-image/README.md" \
     io.parity.version.rust=${RUST_VERSION} \
-    io.parity.version.cargo-contract=${CARGO_CONTRACT_VERSION}
+    io.parity.version.cargo-contract=${CARGO_CONTRACT_VERSION} \
+    io.parity.version.gcc=${GCC_VERSION} \
+    io.parity.version.wget=${WGET_VERSION} \
+    io.parity.version.g_plus_plus=${G_VERSION}
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -24,7 +33,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 
 # Minimal Rust dependencies.
 RUN set -eux \
-    && apt-get update && apt-get -y install wget \
+    && apt-get update && apt-get -y install wget=${WGET_VERSION} \
     && url="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init" \
     && wget "$url" \
     && chmod +x rustup-init \
@@ -35,17 +44,19 @@ RUN set -eux \
     && cargo --version \
     && rustc --version \
     && apt-get remove -y --auto-remove wget \
-    && apt-get -y install gcc \
+    && apt-get -y install gcc=${GCC_VERSION} \
     && rm -rf /var/lib/apt/lists/*
 
 FROM slimmed-rust as cc-builder
 ARG CARGO_CONTRACT_VERSION
+ARG GCC_VERSION
+ARG G_VERSION
 
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
     # Install required packages for `cargo-contract`
-RUN apt-get -y update && apt-get -y install gcc g++ \
+RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} \
     # Install cargo contract
     && cargo install cargo-contract --locked --version $CARGO_CONTRACT_VERSION \
     # Cleanup after `cargo install`
