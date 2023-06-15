@@ -876,6 +876,7 @@ dependencies = [
  "serde_json",
  "sp-core",
  "sp-keyring",
+ "strsim",
  "thiserror",
  "tracing",
 ]
