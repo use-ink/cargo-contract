@@ -37,7 +37,7 @@ url = { version = "2.4.0", features = ["serde"] }
 wasm-opt = "0.112.0"
 which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
-strum = { version = "0.24", features = ["derive"] }
+strum = { version = "0.25", features = ["derive"] }
 
 contract-metadata = { version = "3.0.1", path = "../metadata" }
 
