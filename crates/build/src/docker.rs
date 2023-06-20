@@ -14,6 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+//! This module provides a simple interface to execute the verifiable build
+//! inside the docker container.
+//!
+//! For the correct behaviour, the docker engine must be running,
+//! and the socket to be accessible.
+//!
+//! It is also important that the docker registry contains the tag
+//! that matches the current version of this crate.
+//!
+//! The process of the build is following:
+//! 1. Pull the image from the registry or use the local copy if available
+//! 2. Parse other arguments that were passed to the host execution context
+//! 3. Calculate the digest of the command and use it
+//! to uniquely identify the container
+//! 4. If the container exists, we just start the build, if not, we create it it
+//! 5. After the build, the docker container produces metadata with
+//! paths relative to its internal storage structure, we parse the file
+//! and overwrite those paths relative to the host machine.
+//! 6. Done!
+
 use std::{
     collections::{
         hash_map::DefaultHasher,
