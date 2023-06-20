@@ -63,11 +63,13 @@ use bollard::{
         StopContainerOptions,
         WaitContainerOptions,
     },
+    errors::Error,
     image::{
         CreateImageOptions,
         ListImagesOptions,
     },
     service::{
+        ContainerWaitResponse,
         HostConfig,
         ImageSummary,
         Mount,
@@ -139,6 +141,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             run_build(
                 args,
                 &build_image,
+                &file_path,
                 &crate_metadata.contract_artifact_name,
                 &host_folder,
                 &verbosity,
@@ -243,6 +246,7 @@ fn update_metadata(
 async fn run_build(
     build_args: String,
     build_image: &ImageSummary,
+    file_path: &PathBuf,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
@@ -345,6 +349,22 @@ async fn run_build(
     });
 
     let mut wait_stream = client.wait_container(&container_id, options);
+    let handle_error = |r: Result<ContainerWaitResponse, Error>| -> Result<()> {
+        let response = match r {
+            Ok(v) => v,
+            Err(e) => {
+                std::fs::remove_file(file_path)?;
+                anyhow::bail!(
+                    "{}. Execution failed! Check logs for more details",
+                    e.to_string()
+                )
+            }
+        };
+        if response.status_code != 0 {
+            anyhow::bail!("Execution failed! Status code: {}. Check the container's logs for more details", response.status_code);
+        }
+        Ok(())
+    };
     if verbosity.is_verbose() {
         let spinner_style =
             ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
@@ -354,12 +374,15 @@ async fn run_build(
         pb.enable_steady_tick(Duration::from_millis(100));
         pb.set_style(spinner_style);
         pb.set_message("Build is being executed...");
-        while wait_stream.next().await.is_some() {
+        while let Some(r) = wait_stream.next().await {
+            handle_error(r)?;
             pb.inc(1);
         }
         pb.finish_with_message("Done!")
     } else {
-        while wait_stream.next().await.is_some() {}
+        while let Some(r) = wait_stream.next().await {
+            handle_error(r)?;
+        }
     }
 
     client
