@@ -124,7 +124,7 @@ pub struct ExecuteArgs {
     pub skip_wasm_validation: bool,
     pub target: Target,
     pub max_memory_pages: u32,
-    pub image: Option<ImageVariant>,
+    pub image: ImageVariant,
 }
 
 impl Default for ExecuteArgs {
@@ -684,12 +684,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         lint,
         output_type,
         target,
-        image,
         ..
     } = &args;
 
     // if image exists, then --verifiable was called and we need to build inside docker.
-    if image.is_some() {
+    if build_mode == &BuildMode::Verifiable {
         return docker_build(args)
     }
 

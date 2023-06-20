@@ -162,9 +162,8 @@ impl BuildCommand {
         }
 
         let image = match &self.image {
-            Some(i) => Some(ImageVariant::Custom(i.clone())),
-            None if build_mode == BuildMode::Verifiable => Some(ImageVariant::Default),
-            None => None,
+            Some(i) => ImageVariant::Custom(i.clone()),
+            None => ImageVariant::Default,
         };
 
         // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
@@ -231,7 +230,7 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
-            image: None,
+            image: ImageVariant::Default,
         };
 
         contract_build::execute(args)

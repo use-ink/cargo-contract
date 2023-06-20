@@ -128,23 +128,13 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             }
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
-            let host_folder = crate_metadata
-                .manifest_path
-                .absolute_directory()?
-                .as_path()
-                .to_owned();
-            let file_path = host_folder.join(Path::new("target/build_result.json"));
+            let host_folder = crate_metadata.manifest_path.absolute_directory()?;
+            let file_path = host_folder.join("target/build_result.json");
             let args = compose_build_args()?;
-
-            let image_variant = match image {
-                Some(i) => i,
-                None => ImageVariant::Default,
-            };
 
             let client = Docker::connect_with_socket_defaults()?;
             let build_image =
-                get_image(client.clone(), image_variant, &verbosity, &mut build_steps)
-                    .await?;
+                get_image(client.clone(), image, &verbosity, &mut build_steps).await?;
 
             run_build(
                 args,
