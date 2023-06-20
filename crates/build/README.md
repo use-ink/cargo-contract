@@ -17,6 +17,7 @@ use contract_build::{
     OutputType,
     UnstableFlags,
     Target,
+    ImageVariant,
 };
 
 let manifest_path = ManifestPath::new("my-contract/Cargo.toml").unwrap();
@@ -36,7 +37,7 @@ let args = contract_build::ExecuteArgs {
     skip_wasm_validation: false,
     target: Target::Wasm,
     max_memory_pages: 16,
-    image: None,
+    image: ImageVariant::Default,
 };
 
 contract_build::execute(args);

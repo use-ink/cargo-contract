@@ -12,6 +12,10 @@ ARG GCC_VERSION=4:10.2.1-1
 ARG WGET_VERSION=1.21-1+deb11u1
 # g++ package version
 ARG G_VERSION=4:10.2.1-1
+# Flag to indicate whether to install cargo-contract from git
+ARG USE_GIT=false
+# Url to the cargo-contract repository to install from
+ARG CARGO_CONTRACT_GIT
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -51,6 +55,9 @@ FROM slimmed-rust as cc-builder
 ARG CARGO_CONTRACT_VERSION
 ARG GCC_VERSION
 ARG G_VERSION
+ARG USE_GIT
+ARG CARGO_CONTRACT_GIT
+
 
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
@@ -58,7 +65,11 @@ ENV RUSTFLAGS="-C target-feature=-crt-static"
     # Install required packages for `cargo-contract`
 RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} \
     # Install cargo contract
-    && cargo install cargo-contract --locked --version $CARGO_CONTRACT_VERSION \
+    && if [ ${USE_GIT} = true ]; then \
+    cargo install --git ${CARGO_CONTRACT_GIT} ;\
+    else \
+    cargo install cargo-contract --locked --version ${CARGO_CONTRACT_VERSION} ;\
+    fi \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
