@@ -138,9 +138,13 @@ impl BuildCommand {
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let build_mode = match self.build_release {
-            true => BuildMode::Release,
-            false => BuildMode::Debug,
+        let build_mode = if self.verifiable {
+            BuildMode::Verifiable
+        } else {
+            match self.build_release {
+                true => BuildMode::Release,
+                false => BuildMode::Debug,
+            }
         };
 
         let network = match self.build_offline {
@@ -153,13 +157,14 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        let image = if self.verifiable {
-            match &self.image {
-                Some(i) => Some(ImageVariant::Custom(i.clone())),
-                None => Some(ImageVariant::Default),
-            }
-        } else {
-            None
+        if self.image.is_some() && build_mode == BuildMode::Verifiable {
+            anyhow::bail!("--image flag can only be used with verifiable builds!");
+        }
+
+        let image = match &self.image {
+            Some(i) => Some(ImageVariant::Custom(i.clone())),
+            None if build_mode == BuildMode::Verifiable => Some(ImageVariant::Default),
+            None => None,
         };
 
         // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.

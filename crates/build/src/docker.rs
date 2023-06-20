@@ -1,3 +1,19 @@
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// This file is part of cargo-contract.
+//
+// cargo-contract is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// cargo-contract is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
+
 use std::{
     collections::{
         hash_map::DefaultHasher,
@@ -53,17 +69,13 @@ use crate::{
     BuildSteps,
     CrateMetadata,
     ExecuteArgs,
-    Features,
-    Network,
-    OptimizationPasses,
-    UnstableFlags,
     Verbosity,
-    DEFAULT_MAX_MEMORY_PAGES,
 };
 
 use colored::Colorize;
 
 const IMAGE: &str = "paritytech/contracts-verifiable";
+// We assume the docker image contains the same tag as the current version of the crate
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Clone, Debug, Default)]
@@ -73,19 +85,13 @@ pub enum ImageVariant {
     Custom(String),
 }
 
-/// Launched the docker container to execute verifiable build
+/// Launches the docker container to execute verifiable build
 pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
         verbosity,
-        mut features,
-        network,
-        unstable_flags,
-        optimization_passes,
-        keep_debug_symbols,
         output_type,
         target,
-        max_memory_pages,
         build_artifact,
         image,
         ..
@@ -108,15 +114,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 .as_path()
                 .to_owned();
             let file_path = host_folder.join(Path::new("target/build_result.json"));
-            let args = compose_build_args(
-                &mut features,
-                keep_debug_symbols,
-                optimization_passes.as_ref(),
-                &network,
-                &unstable_flags,
-                &build_artifact,
-                max_memory_pages,
-            )?;
+            let args = compose_build_args()?;
 
             let image_variant = match image {
                 Some(i) => i,
@@ -371,48 +369,21 @@ async fn run_build(
 }
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
-fn compose_build_args(
-    features: &mut Features,
-    keep_debug_symbols: bool,
-    optimization_passes: Option<&OptimizationPasses>,
-    network: &Network,
-    unstable_flags: &UnstableFlags,
-    build_artifact: &BuildArtifacts,
-    max_memory_pages: u32,
-) -> Result<String> {
+fn compose_build_args() -> Result<String> {
     let mut args: Vec<String> = vec!["--release".to_string()];
-    features.append_to_args(&mut args);
-    if keep_debug_symbols {
-        args.push("--keep-debug-symbols".to_owned());
-    }
 
-    if let Some(passes) = optimization_passes {
-        if passes != &OptimizationPasses::default() {
-            args.push(format!("--optimization-passes {}", passes));
-        }
-    }
+    let mut os_args: Vec<String> = std::env::args()
+        .filter(|a| {
+            a != "--verifiable"
+                && a != "--image"
+                && !a.contains("cargo-contract")
+                && a != "cargo"
+                && a != "contract"
+                && a != "build"
+        })
+        .collect();
 
-    if network == &Network::Offline {
-        args.push("--offline".to_owned());
-    }
-
-    if unstable_flags.original_manifest {
-        args.push("-Z original-manifest".to_owned());
-    }
-
-    let s = match build_artifact {
-        BuildArtifacts::CodeOnly => "--generate code-only".to_owned(),
-        BuildArtifacts::All => String::new(),
-        BuildArtifacts::CheckOnly => {
-            anyhow::bail!("--generate check-only is invalid flag for this command!");
-        }
-    };
-
-    args.push(s);
-
-    if max_memory_pages != DEFAULT_MAX_MEMORY_PAGES {
-        args.push(format!("--max-memory-pages {}", max_memory_pages));
-    }
+    args.append(&mut os_args);
 
     let joined_args = args.join(" ");
     Ok(joined_args)

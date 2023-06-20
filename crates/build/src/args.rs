@@ -231,8 +231,10 @@ pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     #[default]
     Debug,
-    /// The contract is build without any debugging functionality.
+    /// The contract is built without any debugging functionality.
     Release,
+    /// the contract is built in release mode and in a deterministic environment.
+    Verifiable,
 }
 
 impl fmt::Display for BuildMode {
@@ -240,6 +242,7 @@ impl fmt::Display for BuildMode {
         match self {
             Self::Debug => write!(f, "debug"),
             Self::Release => write!(f, "release"),
+            Self::Verifiable => write!(f, "verifiable"),
         }
     }
 }
