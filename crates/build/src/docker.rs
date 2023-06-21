@@ -131,7 +131,8 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
             let host_folder = crate_metadata.manifest_path.absolute_directory()?;
-            let file_path = host_folder.join("target/build_result.json");
+            let target_dir = crate_metadata.target_directory;
+            let build_result_path = target_dir.join("build_result.json");
             let args = compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults()?;
@@ -141,7 +142,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             run_build(
                 args,
                 &build_image,
-                &file_path,
+                &build_result_path,
                 &crate_metadata.contract_artifact_name,
                 &host_folder,
                 &verbosity,
@@ -149,7 +150,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            let build_result = read_build_result(&host_folder, &file_path)?;
+            let build_result = read_build_result(&host_folder, &build_result_path)?;
 
             update_metadata(&build_result, &verbosity, &mut build_steps, &build_image)?;
 
@@ -162,13 +163,17 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 }
 
 /// Reads the `BuildResult` produced by the docker execution
-fn read_build_result(host_folder: &Path, file_path: &PathBuf) -> Result<BuildResult> {
-    let file = std::fs::File::open(file_path)?;
+fn read_build_result(
+    host_folder: &Path,
+    build_result_path: &PathBuf,
+) -> Result<BuildResult> {
+    let file = std::fs::File::open(build_result_path)?;
     let mut build_result: BuildResult =
         match serde_json::from_reader(BufReader::new(file)) {
             Ok(result) => result,
             Err(_) => {
-                std::fs::remove_file(file_path)?;
+                // sometimes we cannot remove the file due to privileged access
+                let _ = std::fs::remove_file(build_result_path);
                 anyhow::bail!(
                     "Error parsing output from docker build. The build probably failed!"
                 )
@@ -246,7 +251,7 @@ fn update_metadata(
 async fn run_build(
     build_args: String,
     build_image: &ImageSummary,
-    file_path: &PathBuf,
+    build_result_path: &PathBuf,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
@@ -353,7 +358,8 @@ async fn run_build(
         let response = match r {
             Ok(v) => v,
             Err(e) => {
-                std::fs::remove_file(file_path)?;
+                // sometimes we cannot remove the file due to privileged access
+                let _ = std::fs::remove_file(build_result_path);
                 anyhow::bail!(
                     "{}. Execution failed! Check logs for more details",
                     e.to_string()
