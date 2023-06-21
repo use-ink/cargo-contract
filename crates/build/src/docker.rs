@@ -131,11 +131,16 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
             let host_folder = crate_metadata.manifest_path.absolute_directory()?;
-            let target_dir = crate_metadata.target_directory;
+            let target_dir = crate_metadata.cargo_meta.target_directory.as_std_path();
             let build_result_path = target_dir.join("build_result.json");
             let args = compose_build_args()?;
 
-            let client = Docker::connect_with_socket_defaults()?;
+            let client = Docker::connect_with_socket_defaults().map_err(|e| {
+                anyhow::anyhow!("{}\nDo you have the docker engine installed in path?", e)
+            })?;
+            let _ = client.ping().await.map_err(|e| {
+                anyhow::anyhow!("{}\nIs your docker engine up and running?", e)
+            })?;
             let build_image =
                 get_image(client.clone(), image, &verbosity, &mut build_steps).await?;
 
@@ -224,7 +229,6 @@ fn update_metadata(
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
         let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
-
         // find alternative unique identifier of the image, otherwise grab the digest
         let image_tag = match build_image
             .repo_tags
