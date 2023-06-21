@@ -43,3 +43,10 @@ my-app/
 Make sure to run the command inside `my-app` directory and specify a relative manifest path
 to the root contract:
 `cargo contract build --verifiable --release --manifest-path ink-project-a/Cargo.toml`
+
+
+**Apple Silicon performance**
+
+It is a known issue that running AMD64 image on the ARM host architecture significantly impacts the performance
+and build times. To solve this issues, enable _Use Rosetta for x86/amd64 emulation on Apple Silicon_ in
+_Settings_ -> _Features in development_ tab in Docker Desktop App.
