@@ -129,6 +129,7 @@ use ink_metadata::{
     InkProject,
     MessageSpec,
 };
+use itertools::Itertools;
 use scale::{
     Compact,
     Decode,
@@ -142,6 +143,7 @@ use scale_info::{
     Field,
 };
 use std::{
+    cmp::Ordering,
     fmt::Debug,
     path::Path,
 };
@@ -151,6 +153,24 @@ use std::{
 pub struct ContractMessageTranscoder {
     metadata: InkProject,
     transcoder: Transcoder,
+}
+
+/// Find strings from an iterable of `possible_values` similar to a given value `v`
+/// Returns a Vec of all possible values that exceed a similarity threshold
+/// sorted by ascending similarity, most similar comes last
+/// Extracted from https://github.com/clap-rs/clap/blob/v4.3.4/clap_builder/src/parser/features/suggestions.rs#L11-L26
+fn did_you_mean<T, I>(v: &str, possible_values: I) -> Vec<String>
+where
+    T: AsRef<str>,
+    I: IntoIterator<Item = T>,
+{
+    let mut candidates: Vec<(f64, String)> = possible_values
+        .into_iter()
+        .map(|pv| (strsim::jaro(v, pv.as_ref()), pv.as_ref().to_owned()))
+        .filter(|(confidence, _)| *confidence > 0.7)
+        .collect();
+    candidates.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal));
+    candidates.into_iter().map(|(_, pv)| pv).collect()
 }
 
 impl ContractMessageTranscoder {
@@ -203,9 +223,18 @@ impl ContractMessageTranscoder {
             ))
             }
             (None, None) => {
+                let constructors = self.constructors().map(|c| c.label());
+                let messages = self.messages().map(|c| c.label());
+                let possible_values: Vec<_> = constructors.chain(messages).collect();
+                let help_txt = did_you_mean(name, possible_values.clone())
+                    .first()
+                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
+                    .unwrap_or_else(|| {
+                        format!("Should be one of: {}", possible_values.iter().join(", "))
+                    });
+
                 return Err(anyhow::anyhow!(
-                    "No constructor or message with the name '{}' found",
-                    name
+                    "No constructor or message with the name '{name}' found.\n{help_txt}",
                 ))
             }
         };
@@ -349,7 +378,22 @@ impl ContractMessageTranscoder {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_constructor_return(
+        &self,
+        name: &str,
+        data: &mut &[u8],
+    ) -> Result<Value> {
+        let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
+        })?;
+        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
+            self.decode(return_ty.ty().id, data)
+        } else {
+            Ok(Value::Unit)
+        }
+    }
+
+    pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
@@ -544,6 +588,16 @@ mod tests {
     }
 
     #[test]
+    fn encode_misspelled_arg() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+        assert_eq!(
+            transcoder.encode("fip", ["true"]).unwrap_err().to_string(),
+            "No constructor or message with the name 'fip' found.\nDid you mean 'flip'?"
+        );
+    }
+
+    #[test]
     fn encode_mismatching_args_length() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
@@ -674,7 +728,7 @@ mod tests {
 
         let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
@@ -694,7 +748,7 @@ mod tests {
         let encoded =
             Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(

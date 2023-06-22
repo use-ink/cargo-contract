@@ -45,6 +45,7 @@ use crate::{
 };
 use anyhow::{
     anyhow,
+    Context,
     Result,
 };
 use contract_build::{
@@ -52,6 +53,7 @@ use contract_build::{
     util::decode_hex,
     Verbosity,
 };
+use contract_transcode::Value;
 
 use pallet_contracts_primitives::ContractInstantiateResult;
 
@@ -199,11 +201,20 @@ impl Exec {
             let result = self.instantiate_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
+                    let value = self
+                        .transcoder
+                        .decode_constructor_return(
+                            &self.args.constructor,
+                            &mut &ret_val.result.data[..],
+                        )
+                        .context(format!(
+                            "Failed to decode return value {:?}",
+                            &ret_val
+                        ))?;
                     let dry_run_result = InstantiateDryRunResult {
-                        result: String::from("Success!"),
+                        result: value,
                         contract: ret_val.account_id.to_string(),
                         reverted: ret_val.result.did_revert(),
-                        data: ret_val.result.data.clone().into(),
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
                         storage_deposit: StorageDeposit::from(&result.storage_deposit),
@@ -440,13 +451,12 @@ impl InstantiateResult {
 /// Result of the contract call
 #[derive(serde::Serialize)]
 pub struct InstantiateDryRunResult {
-    /// Result of a dry run
-    pub result: String,
+    /// The decoded result returned from the constructor
+    pub result: Value,
     /// contract address
     pub contract: String,
     /// Was the operation reverted
     pub reverted: bool,
-    pub data: Bytes,
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
@@ -460,14 +470,13 @@ impl InstantiateDryRunResult {
     }
 
     pub fn print(&self) {
-        name_value_println!("Result", self.result, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Result", format!("{}", self.result), DEFAULT_KEY_COL_WIDTH);
         name_value_println!(
             "Reverted",
             format!("{:?}", self.reverted),
             DEFAULT_KEY_COL_WIDTH
         );
-        name_value_println!("Data", format!("{:?}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
         name_value_println!(
             "Gas consumed",
             self.gas_consumed.to_string(),
