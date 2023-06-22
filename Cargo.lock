@@ -866,7 +866,7 @@ dependencies = [
  "ink",
  "ink_env",
  "ink_metadata",
- "itertools",
+ "itertools 0.11.0",
  "nom",
  "nom-supreme",
  "parity-scale-codec",
@@ -1916,7 +1916,7 @@ dependencies = [
  "impl-serde",
  "ink_ir",
  "ink_primitives",
- "itertools",
+ "itertools 0.10.5",
  "log",
  "parity-scale-codec",
  "proc-macro2",
@@ -1977,7 +1977,7 @@ checksum = "1c0e2d96fc6e5b5cb1696b8057e72958315076dbe3f427e8f7722a346344f27a"
 dependencies = [
  "blake2",
  "either",
- "itertools",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.11",
@@ -2114,6 +2114,15 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
@@ -2897,7 +2906,7 @@ dependencies = [
  "anstyle",
  "difflib",
  "float-cmp",
- "itertools",
+ "itertools 0.10.5",
  "normalize-line-endings",
  "predicates-core",
  "regex",
