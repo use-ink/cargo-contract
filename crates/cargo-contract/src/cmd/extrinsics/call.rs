@@ -168,7 +168,7 @@ impl CallCommand {
         input_data: Vec<u8>,
         client: &Client,
         signer: &PairSigner,
-    ) -> Result<ContractExecResult<Balance>> {
+    ) -> Result<ContractExecResult<Balance, ()>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
