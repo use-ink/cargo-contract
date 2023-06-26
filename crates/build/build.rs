@@ -48,6 +48,14 @@ fn main() {
         .into();
     let res = zip_template(&manifest_dir, &out_dir);
 
+    // detect running host OS
+    if cfg!(windows) {
+        println!("cargo:rustc-cfg=windows_host");
+    }
+    if cfg!(unix) {
+        println!("cargo:rustc-cfg=unix_host");
+    }
+
     match res {
         Ok(()) => std::process::exit(0),
         Err(err) => {

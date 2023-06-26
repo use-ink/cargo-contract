@@ -422,16 +422,19 @@ fn compose_build_args() -> Result<String> {
     let mut args: Vec<String> = vec!["--release".to_string()];
 
     let rex = Regex::new(r"--image [.*]*")?;
+    let args_string: String = std::env::args().collect();
+    let args_string = rex.replace_all(&args_string, "").to_string();
 
-    let mut os_args: Vec<String> = std::env::args()
+    let mut os_args: Vec<String> = args_string
+        .split_ascii_whitespace()
         .filter(|a| {
-            a != "--verifiable"
-                && !rex.is_match(&a)
+            a != &"--verifiable"
                 && !a.contains("cargo-contract")
-                && a != "cargo"
-                && a != "contract"
-                && a != "build"
+                && a != &"cargo"
+                && a != &"contract"
+                && a != &"build"
         })
+        .map(|s| s.to_string())
         .collect();
 
     args.append(&mut os_args);

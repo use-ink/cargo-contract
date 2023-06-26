@@ -825,14 +825,14 @@ fn change_permissions(p: &PathBuf) -> Result<()> {
         let entry_path = entry.path();
         let meta = entry.metadata()?;
         let mut perms = meta.permissions();
-        if std::env::consts::OS == "macos" || std::env::consts::OS == "linux" {
+        if cfg!(unix_host) {
+            println!("unix system is running");
             use std::os::unix::fs::PermissionsExt;
             // give r-w-x to the owner
             // give r-w to the group
             // give r to all other users
             perms.set_mode(0o764);
-        }
-        if std::env::consts::OS == "windows" {
+        } else if cfg!(windows_host) {
             perms.set_readonly(false);
         }
         fs::set_permissions(&entry_path, perms)?;
