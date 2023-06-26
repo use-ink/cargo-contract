@@ -58,7 +58,9 @@ where
     let mut cmd_args = Vec::new();
 
     cmd_args.push(command);
-    cmd_args.push("--color=always");
+    if command != "dylint" {
+        cmd_args.push("--color=always");
+    }
 
     match verbosity {
         Verbosity::Quiet => cmd_args.push("--quiet"),

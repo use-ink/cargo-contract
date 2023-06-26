@@ -23,7 +23,7 @@ contract-metadata = { version = "3.0.1", path = "../metadata" }
 contract-transcode = { version = "3.0.1", path = "../transcode" }
 
 anyhow = "1.0.71"
-clap = { version = "4.3.4", features = ["derive", "env"] }
+clap = { version = "4.3.8", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
@@ -37,12 +37,12 @@ rust_decimal = "1.30"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = "20.0.0"
-sp-runtime = "23.0.0"
-sp-weights = "19.0.0"
-pallet-contracts-primitives = "23.0.0"
-scale-info = "2.7.0"
-subxt = "0.28.0"
+sp-core = "21.0.0"
+sp-runtime = "24.0.0"
+sp-weights = "20.0.0"
+pallet-contracts-primitives = "24.0.0"
+scale-info = "2.8.0"
+subxt = "0.29.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
 
