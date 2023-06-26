@@ -130,9 +130,11 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             }
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
-            let host_folder = crate_metadata.manifest_path.absolute_directory()?;
-            let target_dir = crate_metadata.cargo_meta.target_directory.as_std_path();
-            let build_result_path = target_dir.join("build_result.json");
+            let mut manifest_dir_option = crate_metadata.manifest_path.directory();
+            let empty_path = PathBuf::new();
+            let contract_dir = manifest_dir_option.get_or_insert(&empty_path);
+            let host_dir = std::env::current_dir()?;
+            let build_result_path = contract_dir.join("target/build_result.json");
             let args = compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults().map_err(|e| {
@@ -149,13 +151,13 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 &build_image,
                 &build_result_path,
                 &crate_metadata.contract_artifact_name,
-                &host_folder,
+                &host_dir,
                 &verbosity,
                 &mut build_steps,
             )
             .await?;
 
-            let build_result = read_build_result(&host_folder, &build_result_path)?;
+            let build_result = read_build_result(&host_dir, &build_result_path)?;
 
             update_metadata(&build_result, &verbosity, &mut build_steps, &build_image)?;
 
@@ -264,11 +266,14 @@ async fn run_build(
     let client = Docker::connect_with_socket_defaults()?;
 
     let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
-
+    let b_path_str = build_result_path
+        .as_os_str()
+        .to_str()
+        .context("Cannot convert Os String to String")?;
     let mut cmds = vec![format!(
-            "mkdir -p target && cargo contract build {} --output-json > target/build_result.json",
-            build_args
-        )];
+        "mkdir -p target && cargo contract build {} --output-json > {}",
+        build_args, b_path_str
+    )];
 
     entrypoint.append(&mut cmds);
 

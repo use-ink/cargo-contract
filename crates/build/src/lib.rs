@@ -795,6 +795,13 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
+    let cargo_target_path = crate_metadata
+        .cargo_meta
+        .target_directory
+        .as_std_path()
+        .to_path_buf();
+    change_permissions(&cargo_target_path)?;
+
     Ok(BuildResult {
         dest_wasm,
         metadata_result,
@@ -808,6 +815,37 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     })
 }
 
+/// Modifies permissions of all entries in the dir to be read_only = false
+#[allow(clippy::permissions_set_readonly_false)]
+fn change_permissions(p: &PathBuf) -> Result<()> {
+    let files_and_paths = fs::read_dir(p)?;
+
+    for e in files_and_paths {
+        let entry = e?;
+        let entry_path = entry.path();
+        let meta = entry.metadata()?;
+        let mut perms = meta.permissions();
+        if cfg!(unix) {
+            use std::os::unix::fs::PermissionsExt;
+            // give r-w-x to the owner
+            // give r-w to the group
+            // give r to all other users
+            perms.set_mode(0o764);
+        } else {
+            perms.set_readonly(false);
+        }
+        fs::set_permissions(&entry_path, perms)?;
+
+        // if it's a directory recursively change permissions in there too
+        if meta.is_dir() {
+            change_permissions(&entry_path)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Build the contract on host locally
 fn local_build(
     crate_metadata: &CrateMetadata,
     optimization_passes: &OptimizationPasses,
@@ -849,7 +887,7 @@ fn local_build(
         target,
     )?;
 
-    // we persist the latest target we used so we trigger a rebuild when we switch
+    // We persist the latest target we used so we trigger a rebuild when we switch
     fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
