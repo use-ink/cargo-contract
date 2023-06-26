@@ -831,7 +831,8 @@ fn change_permissions(p: &PathBuf) -> Result<()> {
             // give r-w to the group
             // give r to all other users
             perms.set_mode(0o764);
-        } else {
+        }
+        if cfg!(not(unix)) {
             perms.set_readonly(false);
         }
         fs::set_permissions(&entry_path, perms)?;

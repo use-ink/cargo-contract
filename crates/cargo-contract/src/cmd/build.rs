@@ -157,7 +157,7 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        if self.image.is_some() && build_mode == BuildMode::Verifiable {
+        if self.image.is_some() && build_mode != BuildMode::Verifiable {
             anyhow::bail!("--image flag can only be used with verifiable builds!");
         }
 

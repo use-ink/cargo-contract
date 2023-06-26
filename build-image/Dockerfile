@@ -14,6 +14,12 @@ ARG WGET_VERSION=1.21-1+deb11u1
 ARG G_VERSION=4:10.2.1-1
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
+# Branch to use in git repository
+ARG CARGO_CONTRACT_BRANCH
+# Commit to use in git repository
+ARG CARGO_CONTRACT_REV
+# Tag to use in git repository
+ARG CARGO_CONTRACT_TAG
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -53,21 +59,48 @@ FROM slimmed-rust as cc-builder
 ARG CARGO_CONTRACT_VERSION
 ARG GCC_VERSION
 ARG G_VERSION
+ARG CARGO_CONTRACT_BRANCH
+ARG CARGO_CONTRACT_TAG
+ARG CARGO_CONTRACT_REV
 ARG CARGO_CONTRACT_GIT
 
 
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
-    # Install required packages for `cargo-contract`
+# Install required packages for `cargo-contract`
 RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} \
     # Install cargo contract from git if the arg is set
+    # If branch is specified use it
+
+    # && if [ -n "$CARGO_CONTRACT_BRANCH" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    # echo "cargo-contract git: ${CARGO_CONTRACT_GIT} and branch: ${CARGO_CONTRACT_BRANCH}" && \
+    # cargo install --git ${CARGO_CONTRACT_GIT} --branch ${CARGO_CONTRACT_BRANCH} ; \
+    # # Else if tag is specified use it
+    # elif [ -n "$CARGO_CONTRACT_TAG" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    # echo "cargo-contract git: ${CARGO_CONTRACT_GIT} and tag: ${CARGO_CONTRACT_TAG}" && \
+    # cargo install --git ${CARGO_CONTRACT_GIT} --tag ${CARGO_CONTRACT_TAG} ;\
+    # # Else if commit is specified use it
+    # elif [ -n "$CARGO_CONTRACT_REV" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    # echo "cargo-contract git: ${CARGO_CONTRACT_GIT} and commit: ${CARGO_CONTRACT_REV}" && \
+    # cargo install --git ${CARGO_CONTRACT_GIT} --rev ${CARGO_CONTRACT_REV} ;\
+    # # Else if just git is specified, install from master
     && if [ -n "$CARGO_CONTRACT_GIT" ]; then \
-    cargo install --git ${CARGO_CONTRACT_GIT} ;\
+    COMMAND="cargo install --git ${CARGO_CONTRACT_GIT}" ; \
     else \
-    # Otherwise install from crates.io
-    cargo install cargo-contract --locked --version ${CARGO_CONTRACT_VERSION} ;\
+    COMMAND="cargo install cargo-contract --locked --version ${CARGO_CONTRACT_VERSION}" ;\
     fi \
+    && if [ -n "$CARGO_CONTRACT_BRANCH" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    COMMAND="${COMMAND} --branch ${CARGO_CONTRACT_BRANCH}" ; \
+    fi \
+    && if [ -n "$CARGO_CONTRACT_REV" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    COMMAND="${COMMAND} --rev ${CARGO_CONTRACT_REV}" ; \
+    fi \
+    && if [ -n "$CARGO_CONTRACT_TAG" ] && [ -n "$CARGO_CONTRACT_GIT" ]; then \
+    COMMAND="cargo install --git ${CARGO_CONTRACT_GIT} --tag ${CARGO_CONTRACT_TAG}" ; \
+    fi \
+    && echo "Executing ${COMMAND}" \
+    && eval "${COMMAND}" \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up

@@ -14,6 +14,7 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
 
 [dependencies]
+regex = "1"
 anyhow = "1.0.71"
 blake2 = "0.10.6"
 cargo_metadata = "0.15.4"

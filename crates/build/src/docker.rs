@@ -418,12 +418,15 @@ async fn run_build(
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
 fn compose_build_args() -> Result<String> {
+    use regex::Regex;
     let mut args: Vec<String> = vec!["--release".to_string()];
+
+    let rex = Regex::new(r"--image [.*]*")?;
 
     let mut os_args: Vec<String> = std::env::args()
         .filter(|a| {
             a != "--verifiable"
-                && a != "--image"
+                && !rex.is_match(&a)
                 && !a.contains("cargo-contract")
                 && a != "cargo"
                 && a != "contract"
