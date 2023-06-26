@@ -6,12 +6,6 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 ARG RUST_VERSION=1.69
 # The cargo contract version to use
 ARG CARGO_CONTRACT_VERSION=3.0.1
-# gcc package version
-ARG GCC_VERSION=4:10.2.1-1
-# wget package version
-ARG WGET_VERSION=1.21-1+deb11u1
-# g++ package version
-ARG G_VERSION=4:10.2.1-1
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
 # Branch to use in git repository
@@ -20,6 +14,12 @@ ARG CARGO_CONTRACT_BRANCH
 ARG CARGO_CONTRACT_REV
 # Tag to use in git repository
 ARG CARGO_CONTRACT_TAG
+# gcc package version
+ARG GCC_VERSION=4:10.2.1-1
+# wget package version
+ARG WGET_VERSION=1.21-1+deb11u1
+# g++ package version
+ARG G_VERSION=4:10.2.1-1
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -30,7 +30,11 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.image.documentation="https://github.com/paritytech/cargo-contract/blob/master/\
     build-image/README.md" \
     io.parity.version.rust=${RUST_VERSION} \
-    io.parity.version.cargo-contract=${CARGO_CONTRACT_VERSION} \
+    io.parity.version.cargo-contract.version=${CARGO_CONTRACT_VERSION} \
+    io.parity.version.cargo-contract.git.repository=${CARGO_CONTRACT_GIT} \
+    io.parity.version.cargo-contract.git.branch=${CARGO_CONTRACT_BRANCH} \
+    io.parity.version.cargo-contract.git.revision=${CARGO_CONTRACT_REV} \
+    io.parity.version.cargo-contract.git.tag=${CARGO_CONTRACT_TAG} \
     io.parity.version.gcc=${GCC_VERSION} \
     io.parity.version.wget=${WGET_VERSION} \
     io.parity.version.g_plus_plus=${G_VERSION}
