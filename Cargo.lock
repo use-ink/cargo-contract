@@ -862,7 +862,7 @@ dependencies = [
  "contract-metadata",
  "escape8259",
  "hex",
- "indexmap 1.9.3",
+ "indexmap 2.0.0",
  "ink",
  "ink_env",
  "ink_metadata",
