@@ -44,6 +44,10 @@ scale-info = "2.8.0"
 subxt = "0.29.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
+libsecp256k1 = { version = "0.7", default-features = false , features = [ "hmac" ] }
+sha3 = "0.10.8"
+sp-io = "23.0.0"
+impl-serde = "0.4.0"
 
 [build-dependencies]
 anyhow = "1.0.71"

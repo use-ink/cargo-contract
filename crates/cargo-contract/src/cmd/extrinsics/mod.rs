@@ -94,7 +94,8 @@ pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
-pub use subxt::PolkadotConfig as DefaultConfig;
+// pub use subxt::PolkadotConfig as DefaultConfig;
+pub use super::DefaultConfig;
 pub use upload::UploadCommand;
 
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;

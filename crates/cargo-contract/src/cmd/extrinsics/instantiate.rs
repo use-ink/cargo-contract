@@ -41,7 +41,7 @@ use crate::{
         Balance,
         CodeHash,
     },
-    DEFAULT_KEY_COL_WIDTH,
+    DEFAULT_KEY_COL_WIDTH, account::AccountId20,
 };
 use anyhow::{
     anyhow,
@@ -329,7 +329,7 @@ impl Exec {
         &self,
         result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
-        contract_address: subxt::utils::AccountId32,
+        contract_address: AccountId20,
         token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(

@@ -20,6 +20,8 @@ pub mod encode;
 pub mod info;
 pub mod runtime_api;
 
+use crate::account;
+
 pub(crate) use self::{
     build::{
         BuildCommand,
@@ -40,10 +42,25 @@ pub(crate) use self::extrinsics::{
 
 use subxt::{
     Config,
-    OnlineClient,
+    OnlineClient, SubstrateConfig,
 };
+use subxt::config::substrate::SubstrateExtrinsicParams;
 
-pub use subxt::PolkadotConfig as DefaultConfig;
+// pub use subxt::PolkadotConfig as DefaultConfig;
+pub use AcademyPowConfig as DefaultConfig;
+
+pub enum AcademyPowConfig{}
+impl subxt::Config for DefaultConfig {
+    type Index = <SubstrateConfig as Config>::Index;
+    type Hash = <SubstrateConfig as Config>::Hash;
+    type AccountId = account::AccountId20;
+    type Address = account::AccountId20;
+    type Signature = account::EthereumSignature;
+    type Hasher = <SubstrateConfig as Config>::Hasher;
+    type Header = <SubstrateConfig as Config>::Header;
+    type ExtrinsicParams = SubstrateExtrinsicParams<Self>;
+}
+
 type Client = OnlineClient<DefaultConfig>;
 type Balance = u128;
 type CodeHash = <DefaultConfig as Config>::Hash;
