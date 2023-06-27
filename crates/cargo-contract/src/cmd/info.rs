@@ -14,24 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    runtime_api::api::{self,},
-    Client,
-    DefaultConfig,
-};
-use crate::{
-    cmd::{
-        extrinsics::MAX_KEY_COL_WIDTH,
-        runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
-        Balance,
-        CodeHash,
-        ErrorVariant,
-    },
-    name_value_println,
-};
+use super::DefaultConfig;
+use crate::name_value_println;
 use anyhow::{
     anyhow,
     Result,
+};
+use contract_extrinsics::{
+    runtime_api::api::{
+        runtime_types::pallet_contracts::storage::ContractInfo,
+        {self,},
+    },
+    Balance,
+    Client,
+    CodeHash,
+    ErrorVariant,
+    MAX_KEY_COL_WIDTH,
 };
 use std::fmt::Debug;
 use subxt::{

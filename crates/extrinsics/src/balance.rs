@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -26,8 +26,10 @@ use rust_decimal::{
 };
 use serde_json::json;
 
-use super::Client;
-use crate::cmd::Balance;
+use super::{
+    Balance,
+    Client,
+};
 
 use anyhow::{
     anyhow,
@@ -239,7 +241,7 @@ impl BalanceVariant {
     /// by manipulating the token_decimals.
     ///
     /// If the number is divisible by 10^(`token_decimals` + `unit_zeros`),
-    /// It sets the [UnitPrefix] and divides the `value` into `Decimal`
+    /// It sets the `UnitPrefix` and divides the `value` into `Decimal`
     ///
     /// If no [TokenMetadata] was present, than that means
     /// that [Balance] is to be displayed in *normal* format

@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@ mod error;
 mod events;
 mod instantiate;
 mod remove;
+pub mod runtime_api;
 mod upload;
 
 #[cfg(test)]
@@ -46,19 +47,12 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{
-    cmd::{
-        Balance,
-        Client,
-    },
-    DEFAULT_KEY_COL_WIDTH,
-};
-
 use contract_build::{
     name_value_println,
     CrateMetadata,
     Verbosity,
     VerbosityFlags,
+    DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
 use scale::{
@@ -98,6 +92,9 @@ pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
 type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
+pub type Client = OnlineClient<DefaultConfig>;
+pub type Balance = u128;
+pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -317,7 +314,7 @@ impl WasmCode {
     }
 }
 
-/// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
+/// Create a new `PairSigner` from the given [`sr25519::Pair`].
 pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
     PairSigner::new(pair)
 }
