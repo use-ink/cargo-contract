@@ -99,6 +99,7 @@
 //! ```
 
 // mod account_id;
+mod account;
 mod decode;
 mod encode;
 pub mod env_types;

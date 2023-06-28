@@ -23,72 +23,72 @@
 use scale::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sha3::{Digest, Keccak256};
-use sp_core::{ecdsa, H160};
+// use sp_core::{ecdsa, H160};
 
-pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
+// pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-//TODO Maybe this should be upstreamed into Frontier (And renamed accordingly) so that it can
-// be used in palletEVM as well. It may also need more traits such as AsRef, AsMut, etc like
-// AccountId32 has.
+// //TODO Maybe this should be upstreamed into Frontier (And renamed accordingly) so that it can
+// // be used in palletEVM as well. It may also need more traits such as AsRef, AsMut, etc like
+// // AccountId32 has.
 
-/// The account type to be used in Moonbeam. It is a wrapper for 20 fixed bytes. We prefer to use
-/// a dedicated type to prevent using arbitrary 20 byte arrays were AccountIds are expected. With
-/// the introduction of the `scale-info` crate this benefit extends even to non-Rust tools like
-/// Polkadot JS.
+// /// The account type to be used in Moonbeam. It is a wrapper for 20 fixed bytes. We prefer to use
+// /// a dedicated type to prevent using arbitrary 20 byte arrays were AccountIds are expected. With
+// /// the introduction of the `scale-info` crate this benefit extends even to non-Rust tools like
+// /// Polkadot JS.
 
-#[derive(
-    Eq, PartialEq, Copy, Clone, Encode, Decode, TypeInfo, MaxEncodedLen, Default, PartialOrd, Ord,
-)]
-pub struct AccountId20(pub [u8; 20]);
+// #[derive(
+//     Eq, PartialEq, Copy, Clone, Encode, Decode, TypeInfo, MaxEncodedLen, Default, PartialOrd, Ord,
+// )]
+// pub struct AccountId20(pub [u8; 20]);
 
-impl_serde::impl_fixed_hash_serde!(AccountId20, 20);
+// impl_serde::impl_fixed_hash_serde!(AccountId20, 20);
 
-impl std::fmt::Display for AccountId20 {
-    //TODO This is a pretty quck-n-dirty implementation. Perhaps we should add
-    // checksum casing here? I bet there is a crate for that.
-    // Maybe this one https://github.com/miguelmota/rust-eth-checksum
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
+// impl std::fmt::Display for AccountId20 {
+//     //TODO This is a pretty quck-n-dirty implementation. Perhaps we should add
+//     // checksum casing here? I bet there is a crate for that.
+//     // Maybe this one https://github.com/miguelmota/rust-eth-checksum
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{:?}", self.0)
+//     }
+// }
 
-impl core::fmt::Debug for AccountId20 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", H160(self.0))
-    }
-}
+// impl core::fmt::Debug for AccountId20 {
+//     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+//         write!(f, "{:?}", H160(self.0))
+//     }
+// }
 
-impl From<[u8; 20]> for AccountId20 {
-    fn from(bytes: [u8; 20]) -> Self {
-        Self(bytes)
-    }
-}
+// impl From<[u8; 20]> for AccountId20 {
+//     fn from(bytes: [u8; 20]) -> Self {
+//         Self(bytes)
+//     }
+// }
 
-impl From<AccountId20> for [u8; 20] {
-    fn from(value: AccountId20) -> Self {
-        value.0
-    }
-}
+// impl From<AccountId20> for [u8; 20] {
+//     fn from(value: AccountId20) -> Self {
+//         value.0
+//     }
+// }
 
-impl From<[u8; 32]> for AccountId20 {
-    fn from(bytes: [u8; 32]) -> Self {
-        let mut buffer = [0u8; 20];
-        buffer.copy_from_slice(&bytes[..20]);
-        Self(buffer)
-    }
-}
+// impl From<[u8; 32]> for AccountId20 {
+//     fn from(bytes: [u8; 32]) -> Self {
+//         let mut buffer = [0u8; 20];
+//         buffer.copy_from_slice(&bytes[..20]);
+//         Self(buffer)
+//     }
+// }
 
-impl From<H160> for AccountId20 {
-    fn from(h160: H160) -> Self {
-        Self(h160.0)
-    }
-}
+// impl From<H160> for AccountId20 {
+//     fn from(h160: H160) -> Self {
+//         Self(h160.0)
+//     }
+// }
 
-impl From<AccountId20> for H160 {
-    fn from(value: AccountId20) -> Self {
-        H160(value.0)
-    }
-}
+// impl From<AccountId20> for H160 {
+//     fn from(value: AccountId20) -> Self {
+//         H160(value.0)
+//     }
+// }
 
 impl std::str::FromStr for AccountId20 {
     type Err = &'static str;
@@ -100,7 +100,7 @@ impl std::str::FromStr for AccountId20 {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, TypeInfo)]
 pub struct EthereumSignature(ecdsa::Signature);
 
 impl From<ecdsa::Signature> for EthereumSignature {
@@ -137,7 +137,7 @@ impl sp_runtime::traits::Verify for EthereumSignature {
 
 /// Public key for an Ethereum / Moonbeam compatible account
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, sp_core::RuntimeDebug, TypeInfo,
+    Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, TypeInfo,
 )]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EthereumSigner([u8; 20]);
