@@ -42,7 +42,6 @@ use subxt::{
     Config,
     OnlineClient,
     // We bring this one in so that we can extend and override its types.
-    // We could consider using polkadot's instead. They differ only in the 
     SubstrateConfig, config::extrinsic_params::BaseExtrinsicParams,
 };
 
