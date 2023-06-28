@@ -100,6 +100,8 @@ const IMAGE: &str = "paritytech/contracts-verifiable";
 // We assume the docker image contains the same tag as the current version of the crate
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+const MOUNT_DIR: &str = "/home/homeuser/contract";
+
 #[derive(Clone, Debug, Default)]
 pub enum ImageVariant {
     #[default]
@@ -191,14 +193,14 @@ fn read_build_result(
         build_result
             .target_directory
             .as_path()
-            .strip_prefix("/contract")?,
+            .strip_prefix(MOUNT_DIR)?,
     );
     build_result.target_directory = new_path;
 
     let new_path = build_result.dest_wasm.as_ref().map(|p| {
         host_folder.join(
             p.as_path()
-                .strip_prefix("/contract")
+                .strip_prefix(MOUNT_DIR)
                 .expect("cannot strip prefix"),
         )
     });
@@ -208,13 +210,13 @@ fn read_build_result(
         m.dest_bundle = host_folder.join(
             m.dest_bundle
                 .as_path()
-                .strip_prefix("/contract")
+                .strip_prefix(MOUNT_DIR)
                 .expect("cannot strip prefix"),
         );
         m.dest_metadata = host_folder.join(
             m.dest_metadata
                 .as_path()
-                .strip_prefix("/contract")
+                .strip_prefix(MOUNT_DIR)
                 .expect("cannot strip prefix"),
         );
         m
@@ -302,7 +304,7 @@ async fn run_build(
     let container_option = containers.first();
 
     let mount = Mount {
-        target: Some(String::from("/contract")),
+        target: Some(String::from(MOUNT_DIR)),
         source: Some(
             host_folder
                 .to_str()
