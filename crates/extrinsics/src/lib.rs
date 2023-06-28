@@ -20,12 +20,14 @@ mod error;
 mod events;
 mod instantiate;
 mod remove;
-pub mod runtime_api;
+mod runtime_api;
 mod upload;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
+
+use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
@@ -47,6 +49,7 @@ use std::{
     path::PathBuf,
 };
 
+use crate::runtime_api::api::{self,};
 use contract_build::{
     name_value_println,
     CrateMetadata,
@@ -464,6 +467,69 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     Ok(arr.into())
+}
+
+/// Fetch the contract info from the storage using the provided client.
+pub async fn fetch_contract_info(
+    contract: &AccountId32,
+    client: &Client,
+) -> Result<Option<ContractInfo>> {
+    let info_contract_call = api::storage().contracts().contract_info_of(contract);
+
+    let contract_info_of = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&info_contract_call)
+        .await?;
+
+    match contract_info_of {
+        Some(info_result) => {
+            let convert_trie_id = hex::encode(info_result.trie_id.0);
+            Ok(Some(ContractInfo {
+                trie_id: convert_trie_id,
+                code_hash: info_result.code_hash,
+                storage_items: info_result.storage_items,
+                storage_item_deposit: info_result.storage_item_deposit,
+            }))
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ContractInfo {
+    trie_id: String,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
+}
+
+impl ContractInfo {
+    /// Convert and return contract info in JSON format.
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    /// Display contract information in a formatted way
+    pub fn basic_display_format_contract_info(&self) {
+        name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
+        name_value_println!(
+            "Code Hash",
+            format!("{:?}", self.code_hash),
+            MAX_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Storage Items",
+            format!("{:?}", self.storage_items),
+            MAX_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Storage Deposit",
+            format!("{:?}", self.storage_item_deposit),
+            MAX_KEY_COL_WIDTH
+        );
+    }
 }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,

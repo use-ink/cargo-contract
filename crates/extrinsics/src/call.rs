@@ -33,10 +33,10 @@ use super::{
     PairSigner,
     StorageDeposit,
     TokenMetadata,
+    DEFAULT_KEY_COL_WIDTH,
     MAX_KEY_COL_WIDTH,
 };
 
-use crate::DEFAULT_KEY_COL_WIDTH;
 use contract_build::name_value_println;
 
 use anyhow::{

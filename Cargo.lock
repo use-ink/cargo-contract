@@ -644,7 +644,6 @@ dependencies = [
  "hex",
  "predicates",
  "regex",
- "serde",
  "serde_json",
 <<<<<<< HEAD
  "sp-core",
