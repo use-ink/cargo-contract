@@ -795,6 +795,13 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
+    let cargo_target_path = crate_metadata
+        .cargo_meta
+        .target_directory
+        .as_std_path()
+        .to_path_buf();
+    change_permissions(&cargo_target_path)?;
+
     Ok(BuildResult {
         dest_wasm,
         metadata_result,
@@ -806,6 +813,29 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         image: None,
         output_type: output_type.clone(),
     })
+}
+
+/// Modifies permissions of all entries in the dir to be read_only = false
+#[allow(clippy::permissions_set_readonly_false)]
+fn change_permissions(p: &PathBuf) -> Result<()> {
+    let files_and_paths = fs::read_dir(p)?;
+
+    for e in files_and_paths {
+        let entry = e?;
+        let entry_path = entry.path();
+        let meta = entry.metadata()?;
+        let mut perms = meta.permissions();
+        perms.set_readonly(false);
+
+        fs::set_permissions(&entry_path, perms)?;
+
+        // if it's a directory, then recursively change permissions in there too
+        if meta.is_dir() {
+            change_permissions(&entry_path)?;
+        }
+    }
+
+    Ok(())
 }
 
 /// Build the contract on host locally

@@ -100,7 +100,7 @@ const IMAGE: &str = "paritytech/contracts-verifiable";
 // We assume the docker image contains the same tag as the current version of the crate
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const MOUNT_DIR: &str = "/home/homeuser/contract";
+const MOUNT_DIR: &str = "/contract";
 
 #[derive(Clone, Debug, Default)]
 pub enum ImageVariant {

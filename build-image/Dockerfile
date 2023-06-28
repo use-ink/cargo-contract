@@ -102,9 +102,7 @@ FROM slimmed-rust as ink-dev
 
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract
 
-RUN useradd --create-home homeuser
-RUN mkdir /home/homeuser/contract
-WORKDIR /home/homeuser/contract
+WORKDIR /contract
 USER homeuser
 
 # default entry point
