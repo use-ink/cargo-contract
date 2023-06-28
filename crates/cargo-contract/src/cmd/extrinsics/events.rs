@@ -213,7 +213,7 @@ impl DisplayEvents {
 
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
-fn  contract_event_data_field(
+fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
     event_sig_topic: Option<&sp_core::H256>,
