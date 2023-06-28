@@ -103,7 +103,6 @@ FROM slimmed-rust as ink-dev
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract
 
 WORKDIR /contract
-USER homeuser
 
 # default entry point
 ENTRYPOINT ["cargo", "contract", "build", "--release"]
