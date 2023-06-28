@@ -17,7 +17,7 @@
 #![allow(clippy::too_many_arguments)]
 
 #[subxt::subxt(
-    runtime_metadata_path = "src/cmd/runtime_api/contracts_runtime.scale",
+    runtime_metadata_path = "src/cmd/runtime_api/academy_pow.scale",
     substitute_type(
         path = "sp_weights::weight_v2::Weight",
         with = "::subxt::utils::Static<::sp_weights::Weight>"
