@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use account::AccountId20;
+
 use crate::{
-    AccountId32,
     Hex,
     Value,
 };
@@ -37,7 +38,6 @@ use scale_info::{
 use std::{
     boxed::Box,
     collections::HashMap,
-    convert::TryFrom,
     str::FromStr,
 };
 
@@ -150,47 +150,26 @@ pub struct AccountId;
 
 impl CustomTypeEncoder for AccountId {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
-        let account_id = match value {
-            Value::Literal(literal) => {
-                AccountId32::from_str(literal).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing AccountId from literal `{}`: {}",
-                        literal,
-                        e
-                    )
-                })?
-            }
-            Value::String(string) => {
-                AccountId32::from_str(string).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Error parsing AccountId from string '{}': {}",
-                        string,
-                        e
-                    )
-                })?
-            }
-            Value::Hex(hex) => {
-                AccountId32::try_from(hex.bytes()).map_err(|_| {
-                    anyhow::anyhow!(
-                        "Error converting hex bytes `{:?}` to AccountId",
-                        hex.bytes()
-                    )
-                })?
-            }
+        let s = match value {
+            Value::Literal(literal) => literal,
+            Value::String(string) => string,
+            Value::Hex(hex) => hex.as_str(),
             _ => {
                 return Err(anyhow::anyhow!(
                     "Expected a string or a literal for an AccountId"
                 ))
             }
         };
+
+        let account_id = AccountId20::from_str(s);
         Ok(account_id.encode())
     }
 }
 
 impl CustomTypeDecoder for AccountId {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
-        let account_id = AccountId32::decode(input)?;
-        Ok(Value::Literal(account_id.to_ss58check()))
+        let account_id = AccountId20::decode(input)?;
+        Ok(Value::Literal(format!("{account_id}")))
     }
 }
 

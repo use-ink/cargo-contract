@@ -98,7 +98,7 @@
 //! println!("Encoded constructor data {:?}", data);
 //! ```
 
-mod account_id;
+// mod account_id;
 mod decode;
 mod encode;
 pub mod env_types;
@@ -106,8 +106,9 @@ mod scon;
 mod transcoder;
 mod util;
 
+pub use account::AccountId20;
+
 pub use self::{
-    account_id::AccountId32,
     scon::{
         Hex,
         Map,
