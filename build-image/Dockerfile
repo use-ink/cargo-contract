@@ -68,7 +68,6 @@ ARG CARGO_CONTRACT_TAG
 ARG CARGO_CONTRACT_REV
 ARG CARGO_CONTRACT_GIT
 
-
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
@@ -99,12 +98,14 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-
 FROM slimmed-rust as ink-dev
 
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract
 
-WORKDIR /contract
+RUN useradd --create-home homeuser
+RUN mkdir /home/myuser/contract
+WORKDIR /home/myuser/contract
+USER homeuser
 
 # default entry point
 ENTRYPOINT ["cargo", "contract", "build", "--release"]
