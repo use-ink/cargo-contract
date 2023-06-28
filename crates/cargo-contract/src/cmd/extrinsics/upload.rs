@@ -24,6 +24,7 @@ use super::{
     PairSigner,
     TokenMetadata,
 };
+use subxt::tx::Signer;
 use crate::{
     cmd::{
         extrinsics::{

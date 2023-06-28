@@ -67,7 +67,7 @@ use scale::{
 };
 use sp_core::{
     crypto::Pair,
-    sr25519,
+    ecdsa,
     Bytes,
 };
 use sp_weights::Weight;
@@ -94,10 +94,10 @@ pub use contract_transcode::ContractMessageTranscoder;
 pub use error::ErrorVariant;
 pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
-pub use subxt::PolkadotConfig as DefaultConfig;
+pub use crate::cmd::DefaultConfig;
 pub use upload::UploadCommand;
 
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
+type PairSigner = tx::PairSigner<DefaultConfig, ecdsa::Pair>;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -150,7 +150,7 @@ impl ExtrinsicOpts {
     }
 
     /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<sr25519::Pair> {
+    pub fn signer(&self) -> Result<ecdsa::Pair> {
         Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
             .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
@@ -318,7 +318,7 @@ impl WasmCode {
 }
 
 /// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
+pub fn pair_signer(pair: ecdsa::Pair) -> PairSigner {
     PairSigner::new(pair)
 }
 

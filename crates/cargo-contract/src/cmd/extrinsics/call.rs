@@ -29,6 +29,7 @@ use super::{
     TokenMetadata,
     MAX_KEY_COL_WIDTH,
 };
+use subxt::tx::Signer;
 
 use crate::{
     cmd::{
