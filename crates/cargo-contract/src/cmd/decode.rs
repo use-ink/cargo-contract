@@ -56,9 +56,10 @@ impl DecodeCommand {
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";
         let decoded_data = match self.r#type {
             DataType::Event => {
-                transcoder.decode_contract_event(
-                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
-                )?
+                todo!("Try each event in metadata to decode event data")
+                // transcoder.decode_contract_event(
+                //     &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
+                // )?
             }
             DataType::Message => {
                 transcoder.decode_contract_message(

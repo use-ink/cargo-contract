@@ -286,21 +286,25 @@ impl ContractMessageTranscoder {
             .find(|msg| msg.label() == &name.to_string())
     }
 
-    pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_contract_event(&self, event_sig_topic: &primitive_types::H256, data: &mut &[u8]) -> Result<Value> {
         // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
         // which we ignore because the structure of the event data is known for
         // decoding.
         let _len = <Compact<u32>>::decode(data)?;
-        let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
             .spec()
             .events()
-            .get(variant_index as usize)
+            .iter()
+            .find(|event|  if let Some(sig_topic) = event.signature_topic() {
+                sig_topic.as_bytes() == event_sig_topic.as_bytes()
+            } else {
+                false
+            })
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Event variant {} not found in contract metadata",
-                    variant_index
+                    "Event with signature topic {} not found in contract metadata",
+                    hex::encode(event_sig_topic)
                 )
             })?;
         tracing::debug!("Decoding contract event '{}'", event_spec.label());
