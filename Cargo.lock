@@ -669,6 +669,7 @@ dependencies = [
 name = "cargo-contract"
 version = "3.0.1"
 dependencies = [
+ "account",
  "anyhow",
  "assert_cmd",
  "async-std",
