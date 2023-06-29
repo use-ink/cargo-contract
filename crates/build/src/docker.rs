@@ -319,15 +319,19 @@ async fn run_build(
         ..Default::default()
     });
 
-    let user = if cfg!(unix) {
-        Some(format!(
+    let user;
+    #[cfg(unix)]
+    {
+        user = Some(format!(
             "{}:{}",
             users::get_current_uid(),
             users::get_current_gid()
-        ))
-    } else {
-        None
+        ));
     };
+    #[cfg(windows)]
+    {
+        user = None;
+    }
 
     let mut labels = HashMap::new();
     labels.insert("cmd_digest".to_string(), digest.to_string());
