@@ -189,6 +189,8 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-targets: "false"
 
       - name: Check Template
         run: >-

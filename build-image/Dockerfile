@@ -20,6 +20,7 @@ ARG GCC_VERSION=4:10.2.1-1
 ARG WGET_VERSION=1.21-1+deb11u1
 # g++ package version
 ARG G_VERSION=4:10.2.1-1
+ARG MUSL_V=1.2.2-1
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -37,7 +38,8 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.version.cargo-contract.git.tag=${CARGO_CONTRACT_TAG} \
     io.parity.version.gcc=${GCC_VERSION} \
     io.parity.version.wget=${WGET_VERSION} \
-    io.parity.version.g_plus_plus=${G_VERSION}
+    io.parity.version.g_plus_plus=${G_VERSION} \
+    io.parity.version.musl=${MUSL_V}
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -63,6 +65,7 @@ FROM slimmed-rust as cc-builder
 ARG CARGO_CONTRACT_VERSION
 ARG GCC_VERSION
 ARG G_VERSION
+ARG MUSL_V
 ARG CARGO_CONTRACT_BRANCH
 ARG CARGO_CONTRACT_TAG
 ARG CARGO_CONTRACT_REV
@@ -72,7 +75,7 @@ ARG CARGO_CONTRACT_GIT
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
 # Install required packages for `cargo-contract`
-RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} \
+RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-dev=${MUSL_V} \
     # Install cargo contract from git if the arg is set
     && if [ -n "$CARGO_CONTRACT_GIT" ]; then \
     COMMAND="cargo install --git ${CARGO_CONTRACT_GIT}" ; \
