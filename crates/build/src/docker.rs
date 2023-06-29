@@ -319,6 +319,12 @@ async fn run_build(
         ..Default::default()
     });
 
+    let user = Some(format!(
+        "{}:{}",
+        users::get_current_uid(),
+        users::get_current_gid()
+    ));
+
     let mut labels = HashMap::new();
     labels.insert("cmd_digest".to_string(), digest.to_string());
     let config = Config {
@@ -329,6 +335,7 @@ async fn run_build(
         host_config: host_cfg,
         attach_stderr: Some(true),
         tty: Some(true),
+        user,
         ..Default::default()
     };
     let options = Some(CreateContainerOptions {
