@@ -23,7 +23,7 @@ contract-metadata = { version = "3.0.1", path = "../metadata" }
 contract-transcode = { version = "3.0.1", path = "../transcode" }
 
 anyhow = "1.0.71"
-clap = { version = "4.3.9", features = ["derive", "env"] }
+clap = { version = "4.3.10", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
