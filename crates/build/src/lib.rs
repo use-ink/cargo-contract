@@ -296,8 +296,12 @@ fn exec_cargo_for_onchain_target(
             // Allow nightly features on a stable toolchain
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
+        // merge target specific flags with the common flags (defined here)
+        let rustflags = format!(
+            "{}\x1f-Dclippy::arithmetic_side_effects\x1f-Clinker-plugin-lto",
+            target.rustflags()
+        );
         // the linker needs our linker script as file
-        let rustflags = target.rustflags();
         if matches!(target, Target::RiscV) {
             fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
@@ -311,9 +315,11 @@ fn exec_cargo_for_onchain_target(
             ));
             Some(path)
         } else {
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags.to_string())));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
             None
         };
+        // run clippy while building the contract
+        env.push(("RUSTC_WRAPPER", Some("clippy-driver".to_string())));
 
         let cargo =
             util::cargo_cmd(command, &args, manifest_path.directory(), verbosity, env);

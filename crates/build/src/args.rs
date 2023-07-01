@@ -193,8 +193,8 @@ impl Target {
     /// Target specific flags to be set to `CARGO_ENCODED_RUSTFLAGS` while building.
     pub fn rustflags(&self) -> &'static str {
         match self {
-            Self::Wasm => "-C\x1flink-arg=-zstack-size=65536\x1f-C\x1flink-arg=--import-memory\x1f-Clinker-plugin-lto\x1f-C\x1ftarget-cpu=mvp",
-            Self::RiscV => "-Clinker-plugin-lto",
+            Self::Wasm => "-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp",
+            Self::RiscV => "",
         }
     }
 
