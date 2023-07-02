@@ -140,7 +140,7 @@ jobs:
           toolchain: 1.69
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src clippy
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -185,7 +185,7 @@ jobs:
           toolchain: 1.69
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src clippy
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
