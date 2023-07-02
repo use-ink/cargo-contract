@@ -140,12 +140,12 @@ impl Manifest {
             metadata_package: false,
         };
         let profile = manifest.profile_release_table_mut()?;
-        if let Some(enabled) =
-            profile.get("overflow-checks").and_then(|val| val.as_bool())
+        if profile
+            .get("overflow-checks")
+            .and_then(|val| val.as_bool())
+            .unwrap_or(false)
         {
-            if enabled {
-                anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
-            }
+            anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
         }
         Ok(manifest)
     }
