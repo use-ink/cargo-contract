@@ -69,6 +69,13 @@ docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production 
   cargo contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
+**Windows:** If you use PowerShell, change `$(pwd)` to `${pwd}`.
+```bash
+# Create a new contract in your current directory (in Windows PowerShell).
+docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux:production \
+  cargo contract new --target-dir /sources my_contract
+```
+
 If you want to reproduce other steps of CI process you can use the following
 [guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
 
