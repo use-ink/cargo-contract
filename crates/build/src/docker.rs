@@ -375,12 +375,11 @@ async fn run_build(
 
     maybe_println!(
         verbosity,
-        " {} {}\n {}",
+        " {} {}",
         format!("{build_steps}").bold(),
         "Started the build inside the container"
             .bright_green()
             .bold(),
-        "You can close this terminal session. The execution will be finished in the background"
     );
 
     let options = Some(WaitContainerOptions {
