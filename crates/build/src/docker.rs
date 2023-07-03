@@ -28,11 +28,10 @@
 //! 2. Parse other arguments that were passed to the host execution context
 //! 3. Calculate the digest of the command and use it
 //! to uniquely identify the container
-//! 4. If the container exists, we just start the build, if not, we create it it
+//! 4. If the container exists, we just start the build, if not, we create it
 //! 5. After the build, the docker container produces metadata with
 //! paths relative to its internal storage structure, we parse the file
 //! and overwrite those paths relative to the host machine.
-//! 6. Done!
 
 use std::{
     collections::{
@@ -60,6 +59,8 @@ use bollard::{
         Config,
         CreateContainerOptions,
         ListContainersOptions,
+        LogOutput,
+        LogsOptions,
         StopContainerOptions,
         WaitContainerOptions,
     },
@@ -283,7 +284,9 @@ async fn run_build(
     // we are hashing the inputted command
     // in order to reuse the container for the same permutation of arguments
     let mut s = DefaultHasher::new();
-    entrypoint.hash(&mut s);
+    // the data is set of commands and args and the image digest
+    let data = (entrypoint.clone(), build_image.id.clone());
+    data.hash(&mut s);
     let digest = s.finish();
     // taking the first 5 digits to be a unique identifier
     let digest_code: String = digest.to_string().chars().take(5).collect();
@@ -365,6 +368,11 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
+    let start_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .context("Invalid start time")?
+        .as_secs() as i64;
+
     maybe_println!(
         verbosity,
         " {} {}\n {}",
@@ -386,14 +394,11 @@ async fn run_build(
             Err(e) => {
                 // sometimes we cannot remove the file due to privileged access
                 let _ = std::fs::remove_file(build_result_path);
-                anyhow::bail!(
-                    "{}. Execution failed! Check logs for more details",
-                    e.to_string()
-                )
+                anyhow::bail!("{}. Execution failed!", e.to_string())
             }
         };
         if response.status_code != 0 {
-            anyhow::bail!("Execution failed! Status code: {}. Check the container's logs for more details", response.status_code);
+            anyhow::bail!("Execution failed! Status code: {}.", response.status_code);
         }
         Ok(())
     };
@@ -407,7 +412,36 @@ async fn run_build(
         pb.set_style(spinner_style);
         pb.set_message("Build is being executed...");
         while let Some(r) = wait_stream.next().await {
-            handle_error(r)?;
+            let res = handle_error(r);
+            if let Some(e) = res.err() {
+                let err_logs: Vec<LogOutput> = client
+                    .logs::<String>(
+                        &container_id,
+                        Some(LogsOptions {
+                            follow: false,
+                            stdout: true,
+                            stderr: true,
+                            since: start_time,
+                            ..Default::default()
+                        }),
+                    )
+                    .filter_map(|l| l.ok())
+                    .collect()
+                    .await;
+                let err_string = err_logs
+                    .iter()
+                    .filter_map(|l| {
+                        if let LogOutput::Console { message } = l {
+                            let msg = String::from_utf8(message.to_vec()).unwrap();
+                            Some(msg)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                anyhow::bail!("{}\n{}", e, err_string);
+            }
             pb.inc(1);
         }
         pb.finish_with_message("Done!")
