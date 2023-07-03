@@ -280,18 +280,9 @@ async fn run_build(
 
     entrypoint.append(&mut cmds);
 
-    // in order to optimise the container usage
-    // we are hashing the inputted command
-    // in order to reuse the container for the same permutation of arguments
-    let mut s = DefaultHasher::new();
-    // the data is set of commands and args and the image digest
-    let data = (entrypoint.clone(), build_image.id.clone());
-    data.hash(&mut s);
-    let digest = s.finish();
-    // taking the first 5 digits to be a unique identifier
-    let digest_code: String = digest.to_string().chars().take(5).collect();
-
-    let container_name = format!("ink-verified-{}-{}", contract_name, digest_code);
+    let digest_code = container_digest(entrypoint.clone(), build_image.id.clone());
+    let container_name =
+        format!("ink-verified-{}-{}", contract_name, digest_code.clone());
 
     let mut filters = HashMap::new();
     filters.insert("name".to_string(), vec![container_name.clone()]);
@@ -337,7 +328,7 @@ async fn run_build(
     }
 
     let mut labels = HashMap::new();
-    labels.insert("cmd_digest".to_string(), digest.to_string());
+    labels.insert("digest-code".to_string(), digest_code);
     let config = Config {
         image: Some(build_image.id.clone()),
         entrypoint: Some(entrypoint),
@@ -593,4 +584,19 @@ async fn pull_image(
     }
 
     Ok(())
+}
+
+/// Calculates the unique container's code
+fn container_digest(entrypoint: Vec<String>, image_digest: String) -> String {
+    // in order to optimise the container usage
+    // we are hashing the inputted command
+    // in order to reuse the container for the same permutation of arguments
+    let mut s = DefaultHasher::new();
+    // the data is set of commands and args and the image digest
+    let data = (entrypoint, image_digest);
+    data.hash(&mut s);
+    let digest = s.finish();
+    // taking the first 5 digits to be a unique identifier
+    let digest_code: String = digest.to_string().chars().take(5).collect();
+    digest_code
 }
