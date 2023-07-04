@@ -83,9 +83,7 @@ use std::{
 
 pub use balance::{
     BalanceVariant,
-    DenominatedBalance,
     TokenMetadata,
-    UnitPrefix,
 };
 pub use call::CallCommand;
 use contract_metadata::ContractMetadata;
