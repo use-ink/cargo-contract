@@ -14,24 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    runtime_api::api::{self,},
-    Client,
-    DefaultConfig,
-};
-use crate::{
-    cmd::{
-        extrinsics::MAX_KEY_COL_WIDTH,
-        runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
-        Balance,
-        CodeHash,
-        ErrorVariant,
-    },
-    name_value_println,
-};
+use super::DefaultConfig;
 use anyhow::{
     anyhow,
     Result,
+};
+use contract_extrinsics::{
+    fetch_contract_info,
+    ErrorVariant,
 };
 use std::fmt::Debug;
 use subxt::{
@@ -69,17 +59,10 @@ impl InfoCommand {
             let url = self.url.clone();
             let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-            let info_result = self.fetch_contract_info(&client).await?;
+            let info_result = fetch_contract_info(&self.contract, &client).await?;
 
             match info_result {
-                Some(info_result) => {
-                    let convert_trie_id = hex::encode(info_result.trie_id.0);
-                    let info_to_json = InfoToJson {
-                        trie_id: convert_trie_id,
-                        code_hash: info_result.code_hash,
-                        storage_items: info_result.storage_items,
-                        storage_item_deposit: info_result.storage_item_deposit,
-                    };
+                Some(info_to_json) => {
                     if self.output_json {
                         println!("{}", info_to_json.to_json()?);
                     } else {
@@ -96,54 +79,5 @@ impl InfoCommand {
                 }
             }
         })
-    }
-
-    async fn fetch_contract_info(&self, client: &Client) -> Result<Option<ContractInfo>> {
-        let info_contract_call =
-            api::storage().contracts().contract_info_of(&self.contract);
-
-        let contract_info_of = client
-            .storage()
-            .at_latest()
-            .await?
-            .fetch(&info_contract_call)
-            .await?;
-
-        Ok(contract_info_of)
-    }
-}
-
-#[derive(serde::Serialize)]
-struct InfoToJson {
-    trie_id: String,
-    code_hash: CodeHash,
-    storage_items: u32,
-    storage_item_deposit: Balance,
-}
-
-impl InfoToJson {
-    /// Convert and return contract info in JSON format.
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    /// Display contract information in a formatted way
-    pub fn basic_display_format_contract_info(&self) {
-        name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
-        name_value_println!(
-            "Code Hash",
-            format!("{:?}", self.code_hash),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Items",
-            format!("{:?}", self.storage_items),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Deposit",
-            format!("{:?}", self.storage_item_deposit),
-            MAX_KEY_COL_WIDTH
-        );
     }
 }
