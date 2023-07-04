@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -16,32 +16,26 @@
 
 use super::{
     display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
+    events::DisplayEvents,
     prompt_confirm_tx,
+    runtime_api::api,
     state_call,
     submit_extrinsic,
+    Balance,
     BalanceVariant,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
     PairSigner,
     StorageDeposit,
-    MAX_KEY_COL_WIDTH,
-};
-use crate::{
-    cmd::{
-        extrinsics::{
-            display_contract_exec_result_debug,
-            display_dry_run_result_warning,
-            events::DisplayEvents,
-            ErrorVariant,
-            TokenMetadata,
-        },
-        runtime_api::api,
-        Balance,
-        CodeHash,
-    },
+    TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
+    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,

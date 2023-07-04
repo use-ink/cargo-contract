@@ -31,7 +31,6 @@ use self::cmd::{
 };
 use cmd::encode::EncodeCommand;
 use contract_build::{
-    name_value_println,
     util::DEFAULT_KEY_COL_WIDTH,
     OutputType,
 };

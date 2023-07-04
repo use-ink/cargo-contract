@@ -66,6 +66,13 @@ docker run --rm -it -v $(pwd):/sources paritytech/contracts-ci-linux:production 
   cargo contract build --manifest-path=/sources/my_contract/Cargo.toml
 ```
 
+**Windows:** If you use PowerShell, change `$(pwd)` to `${pwd}`.
+```bash
+# Create a new contract in your current directory (in Windows PowerShell).
+docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux:production \
+  cargo contract new --target-dir /sources my_contract
+```
+
 If you want to reproduce other steps of CI process you can use the following
 [guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
 
@@ -99,15 +106,15 @@ artifact to the `target/` directory.
 
 ##### `cargo contract upload`
 
-Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract instantiate`
 
-Create an instance of a contract on chain. See [extrinsics](docs/extrinsics.md).
+Create an instance of a contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract call`
 
-Invoke a message on an existing contract on chain. See [extrinsics](docs/extrinsics.md).
+Invoke a message on an existing contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract decode`
 
@@ -119,7 +126,7 @@ The argument has to be given as hex-encoding, starting with `0x`.
 
 ##### `cargo contract remove`
 
-Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract info`
 

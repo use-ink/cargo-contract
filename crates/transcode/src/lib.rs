@@ -427,7 +427,7 @@ impl ContractMessageTranscoder {
                 data.len(),
                 arg_list_string,
                 encoded_bytes
-            ))
+            ));
         }
         Ok(())
     }
