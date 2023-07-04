@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -16,29 +16,23 @@
 
 use super::{
     display_dry_run_result_warning,
+    events::DisplayEvents,
+    name_value_println,
+    runtime_api::api::{
+        self,
+        runtime_types::pallet_contracts::wasm::Determinism,
+    },
     state_call,
     submit_extrinsic,
+    Balance,
     Client,
+    CodeHash,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
     PairSigner,
     TokenMetadata,
-};
-use crate::{
-    cmd::{
-        extrinsics::{
-            events::DisplayEvents,
-            ErrorVariant,
-            WasmCode,
-        },
-        runtime_api::api::{
-            self,
-            runtime_types::pallet_contracts::wasm::Determinism,
-        },
-        Balance,
-        CodeHash,
-    },
-    name_value_println,
+    WasmCode,
 };
 use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
@@ -126,7 +120,18 @@ impl UploadCommand {
                     )
                     .into())
                 }
+<<<<<<< HEAD:crates/cargo-contract/src/cmd/extrinsics/upload.rs
                 Ok(())
+=======
+            } else {
+                let code_hash = hex::encode(code_hash);
+                return Err(anyhow::anyhow!(
+                    "This contract has already been uploaded with code hash: 0x{code_hash}"
+                )
+                .into());
+            }
+            Ok(())
+>>>>>>> master:crates/extrinsics/src/upload.rs
         })
     }
 
@@ -162,7 +167,7 @@ impl UploadCommand {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
-        let call = crate::cmd::runtime_api::api::tx().contracts().upload_code(
+        let call = crate::runtime_api::api::tx().contracts().upload_code(
             code.0,
             storage_deposit_limit,
             Determinism::Enforced,

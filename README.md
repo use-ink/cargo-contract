@@ -119,15 +119,15 @@ artifact to the `target/` directory.
 
 ##### `cargo contract upload`
 
-Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+Upload a contract to a `pallet-contracts` enabled chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract instantiate`
 
-Create an instance of a contract on chain. See [extrinsics](docs/extrinsics.md).
+Create an instance of a contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract call`
 
-Invoke a message on an existing contract on chain. See [extrinsics](docs/extrinsics.md).
+Invoke a message on an existing contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract decode`
 
@@ -139,7 +139,7 @@ The argument has to be given as hex-encoding, starting with `0x`.
 
 ##### `cargo contract remove`
 
-Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](docs/extrinsics.md).
+Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crates/extrinsics/README.md).
 
 ##### `cargo contract info`
 
