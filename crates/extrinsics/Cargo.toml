@@ -27,7 +27,7 @@ serde = { version = "1.0.164", default-features = false, features = ["derive"] }
 serde_json = "1.0.97"
 url = { version = "2.4.0", features = ["serde"] }
 rust_decimal = "1.30"
-async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sp-core = "21.0.0"
 sp-runtime = "24.0.0"
 sp-weights = "20.0.0"

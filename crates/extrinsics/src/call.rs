@@ -37,23 +37,6 @@ use super::{
     MAX_KEY_COL_WIDTH,
 };
 
-<<<<<<< HEAD:crates/cargo-contract/src/cmd/extrinsics/call.rs
-use crate::{
-    cmd::{
-        extrinsics::{
-            display_contract_exec_result_debug,
-            display_dry_run_result_warning,
-            error::GenericError,
-            events::DisplayEvents,
-            ErrorVariant,
-        },
-        runtime_api::api,
-        Balance,
-    },
-    DEFAULT_KEY_COL_WIDTH,
-};
-=======
->>>>>>> master:crates/extrinsics/src/call.rs
 use contract_build::name_value_println;
 
 use anyhow::{
@@ -120,10 +103,7 @@ impl CallCommand {
 
         let signer = super::pair_signer(self.extrinsic_opts.signer()?);
 
-        Runtime::new()
-            .map_err(|e| {
-                ErrorVariant::Generic(GenericError::from_message(e.to_string()))
-            })?
+        Runtime::new()?
             .block_on(async {
                 let url = self.extrinsic_opts.url_to_string();
                 let client = OnlineClient::from_url(url.clone()).await?;
