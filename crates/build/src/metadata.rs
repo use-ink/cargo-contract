@@ -191,8 +191,8 @@ pub(crate) fn execute(
                 manifest
                     .with_added_crate_type("rlib")?
                     .with_profile_release_defaults(Profile {
-                        lto: Lto::Thin,
-                        ..Profile::default_contract_release()
+                        lto: Some(Lto::Thin),
+                        ..Profile::default()
                     })?
                     .with_empty_workspace();
                 Ok(())
