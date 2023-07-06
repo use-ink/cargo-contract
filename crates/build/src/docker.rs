@@ -42,7 +42,11 @@ use std::{
         Hash,
         Hasher,
     },
-    io::BufReader,
+    io::{
+        Read,
+        Write,
+        BufReader
+    },
     path::{
         Path,
         PathBuf,
@@ -56,6 +60,8 @@ use anyhow::{
 };
 use bollard::{
     container::{
+        AttachContainerResults,
+        AttachContainerOptions,
         Config,
         CreateContainerOptions,
         ListContainersOptions,
@@ -359,11 +365,6 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
-    let start_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .context("Invalid start time")?
-        .as_secs() as i64;
-
     maybe_println!(
         verbosity,
         " {} {}",
@@ -373,82 +374,99 @@ async fn run_build(
             .bold(),
     );
 
-    let options = Some(WaitContainerOptions {
-        condition: "not-running",
-    });
+    let mut attach_result = client
+        .attach_container(
+            &container_id,
+            Some(AttachContainerOptions::<String> {
+                stdout: Some(true),
+                stderr: Some(true),
+                stdin: Some(true),
+                stream: Some(true),
+                ..Default::default()
+            }),
+        )
+        .await?;
 
-    let mut wait_stream = client.wait_container(&container_id, options);
-    let handle_error = |r: Result<ContainerWaitResponse, Error>| -> Result<()> {
-        let response = match r {
-            Ok(v) => v,
-            Err(e) => {
-                // sometimes we cannot remove the file due to privileged access
-                let _ = std::fs::remove_file(build_result_path);
-                anyhow::bail!("{}. Execution failed!", e.to_string())
-            }
-        };
-        if response.status_code != 0 {
-            anyhow::bail!("Execution failed! Status code: {}.", response.status_code);
-        }
-        Ok(())
-    };
-    if verbosity.is_verbose() {
-        let spinner_style =
-            ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
-                .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-
-        let pb = ProgressBar::new(1000);
-        pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_style(spinner_style);
-        pb.set_message("Build is being executed...");
-        while let Some(r) = wait_stream.next().await {
-            let res = handle_error(r);
-            if let Some(e) = res.err() {
-                let err_logs: Vec<LogOutput> = client
-                    .logs::<String>(
-                        &container_id,
-                        Some(LogsOptions {
-                            follow: false,
-                            stdout: true,
-                            stderr: true,
-                            since: start_time,
-                            ..Default::default()
-                        }),
-                    )
-                    .filter_map(|l| l.ok())
-                    .collect()
-                    .await;
-                // cargo dumps compilation status together with other logs
-                // we need to filter our those messages
-                let rex = regex::Regex::new(r"\[=*> \]")?;
-                let err_string = err_logs
-                    .iter()
-                    .filter_map(|l| {
-                        if let LogOutput::Console { message } = l {
-                            let msg = String::from_utf8(message.to_vec()).unwrap();
-                            let msg =
-                                msg.split('\r').filter(|m| !rex.is_match(m)).collect();
-                            Some(msg)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<String>>()
-                    .join("");
-                anyhow::bail!("{}\n{}", e, err_string);
-            }
-            pb.inc(1);
-        }
-        pb.finish_with_message("Done!")
-    } else {
-        while let Some(r) = wait_stream.next().await {
-            handle_error(r)?;
-        }
+    // pipe docker attach output into stdout
+    let stdout = std::io::stdout();
+    let mut stdout = stdout.lock();
+    while let Some(Ok(output)) = attach_result.output.next().await {
+        stdout.write_all(output.into_bytes().as_ref())?;
+        stdout.flush()?;
     }
 
-    client
-        .stop_container(&container_id, Some(StopContainerOptions { t: 20 }))
-        .await?;
+    // let mut wait_stream = client.wait_container(&container_id, options);
+    // let handle_error = |r: Result<ContainerWaitResponse, Error>| -> Result<()> {
+    //     let response = match r {
+    //         Ok(v) => v,
+    //         Err(e) => {
+    //             // sometimes we cannot remove the file due to privileged access
+    //             let _ = std::fs::remove_file(build_result_path);
+    //             anyhow::bail!("{}. Execution failed!", e.to_string())
+    //         }
+    //     };
+    //     if response.status_code != 0 {
+    //         anyhow::bail!("Execution failed! Status code: {}.", response.status_code);
+    //     }
+    //     Ok(())
+    // };
+    // if verbosity.is_verbose() {
+    //     let spinner_style =
+    //         ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
+    //             .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+    //
+    //     let pb = ProgressBar::new(1000);
+    //     pb.enable_steady_tick(Duration::from_millis(100));
+    //     pb.set_style(spinner_style);
+    //     pb.set_message("Build is being executed...");
+    //     while let Some(r) = wait_stream.next().await {
+    //         let res = handle_error(r);
+    //         if let Some(e) = res.err() {
+    //             let err_logs: Vec<LogOutput> = client
+    //                 .logs::<String>(
+    //                     &container_id,
+    //                     Some(LogsOptions {
+    //                         follow: false,
+    //                         stdout: true,
+    //                         stderr: true,
+    //                         since: start_time,
+    //                         ..Default::default()
+    //                     }),
+    //                 )
+    //                 .filter_map(|l| l.ok())
+    //                 .collect()
+    //                 .await;
+    //             // cargo dumps compilation status together with other logs
+    //             // we need to filter our those messages
+    //             let rex = regex::Regex::new(r"\[=*> \]")?;
+    //             let err_string = err_logs
+    //                 .iter()
+    //                 .filter_map(|l| {
+    //                     if let LogOutput::Console { message } = l {
+    //                         let msg = String::from_utf8(message.to_vec()).unwrap();
+    //                         let msg =
+    //                             msg.split('\r').filter(|m| !rex.is_match(m)).collect();
+    //                         Some(msg)
+    //                     } else {
+    //                         None
+    //                     }
+    //                 })
+    //                 .collect::<Vec<String>>()
+    //                 .join("");
+    //             anyhow::bail!("{}\n{}", e, err_string);
+    //         }
+    //         pb.inc(1);
+    //     }
+    //     pb.finish_with_message("Done!")
+    // } else {
+    //     while let Some(r) = wait_stream.next().await {
+    //         handle_error(r)?;
+    //     }
+    // }
+
+    // client
+    //     .stop_container(&container_id, Some(StopContainerOptions { t: 20 }))
+    //     .await?;
 
     build_steps.increment_current();
     maybe_println!(
