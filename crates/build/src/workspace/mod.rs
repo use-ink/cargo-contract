@@ -25,10 +25,10 @@ pub use self::{
         ManifestPath,
     },
     profile::{
-        Profile,
         Lto,
         OptLevel,
         PanicStrategy,
+        Profile,
     },
 };
 
