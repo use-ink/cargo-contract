@@ -63,6 +63,9 @@ pub use self::{
         Manifest,
         ManifestPath,
         Profile,
+        Lto,
+        OptLevel,
+        PanicStrategy,
         Workspace,
     },
 };

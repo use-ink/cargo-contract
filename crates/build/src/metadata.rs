@@ -23,6 +23,8 @@ use crate::{
         ManifestPath,
         Workspace,
     },
+    Profile,
+    Lto,
     BuildMode,
     BuildSteps,
     Features,
@@ -188,7 +190,10 @@ pub(crate) fn execute(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?
+                    .with_profile_release_defaults(Profile {
+                        lto: Lto::Thin,
+                        ..Profile::default_contract_release()
+                    })?
                     .with_empty_workspace();
                 Ok(())
             })?

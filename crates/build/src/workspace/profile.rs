@@ -18,12 +18,12 @@ use toml::value;
 
 /// Subset of cargo profile settings to configure defaults for building contracts
 pub struct Profile {
-    opt_level: OptLevel,
-    lto: Lto,
+    pub opt_level: OptLevel,
+    pub lto: Lto,
     // `None` means use rustc default.
-    codegen_units: Option<u32>,
-    overflow_checks: bool,
-    panic: PanicStrategy,
+    pub codegen_units: Option<u32>,
+    pub overflow_checks: bool,
+    pub panic: PanicStrategy,
 }
 
 impl Profile {
