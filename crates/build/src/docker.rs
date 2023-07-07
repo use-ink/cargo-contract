@@ -43,9 +43,7 @@ use std::{
         Hasher,
     },
     io::{
-        Read,
         Write,
-        BufReader
     },
     path::{
         Path,
@@ -60,23 +58,17 @@ use anyhow::{
 };
 use bollard::{
     container::{
-        AttachContainerResults,
         AttachContainerOptions,
+        LogOutput,
         Config,
         CreateContainerOptions,
         ListContainersOptions,
-        LogOutput,
-        LogsOptions,
-        StopContainerOptions,
-        WaitContainerOptions,
     },
-    errors::Error,
     image::{
         CreateImageOptions,
         ListImagesOptions,
     },
     service::{
-        ContainerWaitResponse,
         HostConfig,
         ImageSummary,
         Mount,
@@ -99,6 +91,7 @@ use crate::{
     CrateMetadata,
     ExecuteArgs,
     Verbosity,
+    MetadataArtifacts,
 };
 
 use colored::Colorize;
@@ -166,9 +159,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            let build_result = read_build_result(&host_dir, &build_result_path)?;
-
-            update_metadata(&build_result, &verbosity, &mut build_steps, &build_image)?;
+            update_metadata(&crate_metadata, &verbosity, &mut build_steps, &build_image)?;
 
             Ok(BuildResult {
                 output_type,
@@ -178,88 +169,36 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         })
 }
 
-/// Reads the `BuildResult` produced by the docker execution
-fn read_build_result(
-    host_folder: &Path,
-    build_result_path: &PathBuf,
-) -> Result<BuildResult> {
-    let file = std::fs::File::open(build_result_path)?;
-    let mut build_result: BuildResult =
-        match serde_json::from_reader(BufReader::new(file)) {
-            Ok(result) => result,
-            Err(_) => {
-                // sometimes we cannot remove the file due to privileged access
-                let _ = std::fs::remove_file(build_result_path);
-                anyhow::bail!(
-                    "Error parsing output from docker build. The build probably failed!"
-                )
-            }
-        };
-
-    let new_path = host_folder.join(
-        build_result
-            .target_directory
-            .as_path()
-            .strip_prefix(MOUNT_DIR)?,
-    );
-    build_result.target_directory = new_path;
-
-    let new_path = build_result.dest_wasm.as_ref().map(|p| {
-        host_folder.join(
-            p.as_path()
-                .strip_prefix(MOUNT_DIR)
-                .expect("cannot strip prefix"),
-        )
-    });
-    build_result.dest_wasm = new_path;
-
-    build_result.metadata_result.as_mut().map(|mut m| {
-        m.dest_bundle = host_folder.join(
-            m.dest_bundle
-                .as_path()
-                .strip_prefix(MOUNT_DIR)
-                .expect("cannot strip prefix"),
-        );
-        m.dest_metadata = host_folder.join(
-            m.dest_metadata
-                .as_path()
-                .strip_prefix(MOUNT_DIR)
-                .expect("cannot strip prefix"),
-        );
-        m
-    });
-    Ok(build_result)
-}
-
 /// Overwrites `build_result` and `image` fields in the metadata
 fn update_metadata(
-    build_result: &BuildResult,
+    crate_metadata: &CrateMetadata,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
     build_image: &ImageSummary,
 ) -> Result<()> {
-    if let Some(metadata_artifacts) = &build_result.metadata_result {
-        let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
-        // find alternative unique identifier of the image, otherwise grab the digest
-        let image_tag = match build_image
-            .repo_tags
-            .iter()
-            .find(|t| !t.ends_with("latest"))
-        {
-            Some(tag) => tag.to_owned(),
-            None => build_image.id.clone(),
-        };
+    let metadata_artifacts = MetadataArtifacts {
+        dest_metadata: crate_metadata.metadata_path(),
+        dest_bundle: crate_metadata.contract_bundle_path(),
+    };
+    let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
+    // find alternative unique identifier of the image, otherwise grab the digest
+    let image_tag = match build_image
+        .repo_tags
+        .iter()
+        .find(|t| !t.ends_with("latest"))
+    {
+        Some(tag) => tag.to_owned(),
+        None => build_image.id.clone(),
+    };
 
-        metadata.image = Some(image_tag);
+    metadata.image = Some(image_tag);
 
-        crate::metadata::write_metadata(
-            metadata_artifacts,
-            metadata,
-            build_steps,
-            verbosity,
-        )?;
-    }
-    Ok(())
+    crate::metadata::write_metadata(
+        &metadata_artifacts,
+        metadata,
+        build_steps,
+        verbosity,
+    )
 }
 
 /// Creates the container and executed the build inside it
@@ -380,7 +319,6 @@ async fn run_build(
             Some(AttachContainerOptions::<String> {
                 stdout: Some(true),
                 stderr: Some(true),
-                stdin: Some(true),
                 stream: Some(true),
                 ..Default::default()
             }),
@@ -391,6 +329,18 @@ async fn run_build(
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
     while let Some(Ok(output)) = attach_result.output.next().await {
+        // todo: handle build error here
+        match output {
+            LogOutput::Stdout(bytes) => {
+                // todo: attempt to decode bytes to BuildResult and return Ok()
+                stdout.write_all(bytes.as_ref())?;
+            }
+            LogOutput::Stderr(bytes) => {
+                stdout.write_all(bytes.as_ref())?;
+            }
+            LogOutput::Console { message } => todo!("LogOutput::Console: {}", message),
+            LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn")
+        }
         stdout.write_all(output.into_bytes().as_ref())?;
         stdout.flush()?;
     }
