@@ -43,11 +43,11 @@ use std::{
         Hasher,
     },
     io::{
+        BufReader,
         Write,
     },
     path::{
         Path,
-        PathBuf,
     },
     time::Duration,
 };
@@ -132,11 +132,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             }
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
-            let mut manifest_dir_option = crate_metadata.manifest_path.directory();
-            let empty_path = PathBuf::new();
-            let contract_dir = manifest_dir_option.get_or_insert(&empty_path);
             let host_dir = std::env::current_dir()?;
-            let build_result_path = contract_dir.join("target/build_result.json");
             let args = compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults().map_err(|e| {
@@ -148,10 +144,9 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let build_image =
                 get_image(client.clone(), image, &verbosity, &mut build_steps).await?;
 
-            run_build(
+            let build_result = run_build(
                 args,
                 &build_image,
-                &build_result_path,
                 &crate_metadata.contract_artifact_name,
                 &host_dir,
                 &verbosity,
@@ -159,7 +154,12 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            update_metadata(&crate_metadata, &verbosity, &mut build_steps, &build_image)?;
+            let metadata_artifacts = MetadataArtifacts {
+                dest_metadata: crate_metadata.metadata_path(),
+                dest_bundle: crate_metadata.contract_bundle_path(),
+            };
+
+            update_metadata(&metadata_artifacts, &verbosity, &mut build_steps, &build_image)?;
 
             Ok(BuildResult {
                 output_type,
@@ -171,15 +171,11 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 
 /// Overwrites `build_result` and `image` fields in the metadata
 fn update_metadata(
-    crate_metadata: &CrateMetadata,
+    metadata_artifacts: &MetadataArtifacts,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
     build_image: &ImageSummary,
 ) -> Result<()> {
-    let metadata_artifacts = MetadataArtifacts {
-        dest_metadata: crate_metadata.metadata_path(),
-        dest_bundle: crate_metadata.contract_bundle_path(),
-    };
     let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
     // find alternative unique identifier of the image, otherwise grab the digest
     let image_tag = match build_image
@@ -205,22 +201,17 @@ fn update_metadata(
 async fn run_build(
     build_args: String,
     build_image: &ImageSummary,
-    build_result_path: &PathBuf,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
-) -> Result<()> {
+) -> Result<BuildResult> {
     let client = Docker::connect_with_socket_defaults()?;
 
     let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
-    let b_path_str = build_result_path
-        .as_os_str()
-        .to_str()
-        .context("Cannot convert Os String to String")?;
     let mut cmds = vec![format!(
-        "mkdir -p target && cargo contract build {} --output-json > {}",
-        build_args, b_path_str
+        "mkdir -p target && cargo contract build {} --output-json",
+        build_args,
     )];
 
     entrypoint.append(&mut cmds);
@@ -326,108 +317,35 @@ async fn run_build(
         .await?;
 
     // pipe docker attach output into stdout
-    let stdout = std::io::stdout();
-    let mut stdout = stdout.lock();
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
     while let Some(Ok(output)) = attach_result.output.next().await {
         // todo: handle build error here
         match output {
-            LogOutput::Stdout(bytes) => {
-                // todo: attempt to decode bytes to BuildResult and return Ok()
-                stdout.write_all(bytes.as_ref())?;
+            LogOutput::StdOut { message } => {
+                return serde_json::from_reader(BufReader::new(message.as_ref()))
+                    .context("Failed to deserialize build result from docker build")
+                // // todo: attempt to decode bytes to BuildResult and return Ok()
+                // match serde_json::from_reader(BufReader::new(message)) {
+                //     Ok(build_result) => {
+                //         return Ok(build_result);
+                //     }
+                //     Err(_) => {
+                //         stderr.write_all(message.as_ref())?;
+                //     }
+                // }
             }
-            LogOutput::Stderr(bytes) => {
-                stdout.write_all(bytes.as_ref())?;
+            LogOutput::StdErr { message } => {
+                stderr.write_all(message.as_ref())?;
             }
-            LogOutput::Console { message } => todo!("LogOutput::Console: {}", message),
+            LogOutput::Console { message } => todo!("LogOutput::Console: {:?}", message),
             LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn")
         }
-        stdout.write_all(output.into_bytes().as_ref())?;
-        stdout.flush()?;
+        // stdout.write_all(output.into_bytes().as_ref())?;
+        stderr.flush()?;
     }
 
-    // let mut wait_stream = client.wait_container(&container_id, options);
-    // let handle_error = |r: Result<ContainerWaitResponse, Error>| -> Result<()> {
-    //     let response = match r {
-    //         Ok(v) => v,
-    //         Err(e) => {
-    //             // sometimes we cannot remove the file due to privileged access
-    //             let _ = std::fs::remove_file(build_result_path);
-    //             anyhow::bail!("{}. Execution failed!", e.to_string())
-    //         }
-    //     };
-    //     if response.status_code != 0 {
-    //         anyhow::bail!("Execution failed! Status code: {}.", response.status_code);
-    //     }
-    //     Ok(())
-    // };
-    // if verbosity.is_verbose() {
-    //     let spinner_style =
-    //         ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
-    //             .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-    //
-    //     let pb = ProgressBar::new(1000);
-    //     pb.enable_steady_tick(Duration::from_millis(100));
-    //     pb.set_style(spinner_style);
-    //     pb.set_message("Build is being executed...");
-    //     while let Some(r) = wait_stream.next().await {
-    //         let res = handle_error(r);
-    //         if let Some(e) = res.err() {
-    //             let err_logs: Vec<LogOutput> = client
-    //                 .logs::<String>(
-    //                     &container_id,
-    //                     Some(LogsOptions {
-    //                         follow: false,
-    //                         stdout: true,
-    //                         stderr: true,
-    //                         since: start_time,
-    //                         ..Default::default()
-    //                     }),
-    //                 )
-    //                 .filter_map(|l| l.ok())
-    //                 .collect()
-    //                 .await;
-    //             // cargo dumps compilation status together with other logs
-    //             // we need to filter our those messages
-    //             let rex = regex::Regex::new(r"\[=*> \]")?;
-    //             let err_string = err_logs
-    //                 .iter()
-    //                 .filter_map(|l| {
-    //                     if let LogOutput::Console { message } = l {
-    //                         let msg = String::from_utf8(message.to_vec()).unwrap();
-    //                         let msg =
-    //                             msg.split('\r').filter(|m| !rex.is_match(m)).collect();
-    //                         Some(msg)
-    //                     } else {
-    //                         None
-    //                     }
-    //                 })
-    //                 .collect::<Vec<String>>()
-    //                 .join("");
-    //             anyhow::bail!("{}\n{}", e, err_string);
-    //         }
-    //         pb.inc(1);
-    //     }
-    //     pb.finish_with_message("Done!")
-    // } else {
-    //     while let Some(r) = wait_stream.next().await {
-    //         handle_error(r)?;
-    //     }
-    // }
-
-    // client
-    //     .stop_container(&container_id, Some(StopContainerOptions { t: 20 }))
-    //     .await?;
-
-    build_steps.increment_current();
-    maybe_println!(
-        verbosity,
-        " {} {}",
-        format!("{build_steps}").bold(),
-        "Docker container has finished the build. Reading the results"
-            .bright_green()
-            .bold(),
-    );
-    Ok(())
+    Err(anyhow::anyhow!("Failed to read build result from docker build"))
 }
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
