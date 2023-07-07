@@ -208,13 +208,16 @@ async fn run_build(
 ) -> Result<BuildResult> {
     let client = Docker::connect_with_socket_defaults()?;
 
-    let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
-    let mut cmds = vec![format!(
-        "mkdir -p target && cargo contract build {} --output-json",
-        build_args,
-    )];
+    // let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
+    // let mut cmds = vec![format!(
+    //     // "mkdir -p target && cargo contract build {} --output-json",
+    //     "cargo contract build {}",
+    //     build_args,
+    // )];
+    //
+    // entrypoint.append(&mut cmds);
 
-    entrypoint.append(&mut cmds);
+    let entrypoint = vec!["cargo".to_string(), "contract".to_string(), "build".to_string(), "--release".to_string(), "--output-json".to_string()];
 
     let digest_code = container_digest(entrypoint.clone(), build_image.id.clone());
     let container_name =
@@ -317,32 +320,36 @@ async fn run_build(
         .await?;
 
     // pipe docker attach output into stdout
-    let stderr = std::io::stderr();
-    let mut stderr = stderr.lock();
+    let stdout = std::io::stderr();
+    let mut stdout = stdout.lock();
     while let Some(Ok(output)) = attach_result.output.next().await {
         // todo: handle build error here
         match output {
             LogOutput::StdOut { message } => {
-                return serde_json::from_reader(BufReader::new(message.as_ref()))
-                    .context("Failed to deserialize build result from docker build")
-                // // todo: attempt to decode bytes to BuildResult and return Ok()
-                // match serde_json::from_reader(BufReader::new(message)) {
-                //     Ok(build_result) => {
-                //         return Ok(build_result);
-                //     }
-                //     Err(_) => {
-                //         stderr.write_all(message.as_ref())?;
-                //     }
-                // }
+                panic!("LogOutput::StdOut")
+                // return serde_json::from_reader(BufReader::new(message.as_ref()))
+                //     .context("Failed to deserialize build result from docker build")
             }
             LogOutput::StdErr { message } => {
-                stderr.write_all(message.as_ref())?;
+                panic!("LogOutput::StdErr")
+                // stderr.write_all(message.as_ref())?;
             }
-            LogOutput::Console { message } => todo!("LogOutput::Console: {:?}", message),
+            LogOutput::Console { message } => {
+                // todo this is probably reading line by line and the json is pretty printed...
+                match serde_json::from_reader(BufReader::new(message.as_ref())) {
+                    Ok(build_result) => {
+                        return Ok(build_result);
+                    }
+                    Err(_) => {
+                        stdout.write_all(message.as_ref())?;
+                        stdout.flush()?;
+                    }
+                }
+            },
             LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn")
         }
         // stdout.write_all(output.into_bytes().as_ref())?;
-        stderr.flush()?;
+        stdout.flush()?;
     }
 
     Err(anyhow::anyhow!("Failed to read build result from docker build"))
