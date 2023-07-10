@@ -368,7 +368,7 @@ async fn run_build(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
-        "Started the build inside the container"
+        format!("Started the build inside the container: {container_name}")
             .bright_green()
             .bold(),
     );
