@@ -418,17 +418,18 @@ async fn run_build(
                     .filter_map(|l| l.ok())
                     .collect()
                     .await;
-                // cargo dumps compilation status together with other logs
-                // we need to filter our those messages
-                let rex = regex::Regex::new(r"\[=*> \]")?;
                 let err_string = err_logs
                     .iter()
                     .filter_map(|l| {
                         if let LogOutput::Console { message } = l {
                             let msg = String::from_utf8(message.to_vec()).unwrap();
-                            let msg =
-                                msg.split('\r').filter(|m| !rex.is_match(m)).collect();
-                            Some(msg)
+                            // as the logs also contain compilation status output,
+                            // we need to take the slice from the start of the error
+                            // message
+                            let remainder = msg
+                                [msg.find(r"error\[.*\]").unwrap_or_default()..]
+                                .to_string();
+                            Some(remainder)
                         } else {
                             None
                         }
