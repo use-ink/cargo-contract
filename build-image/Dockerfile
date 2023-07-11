@@ -108,4 +108,4 @@ COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-
 WORKDIR /contract
 
 # default entry point
-ENTRYPOINT ["cargo", "contract", "build", "--release"]
+ENTRYPOINT ["cargo", "contract"]
