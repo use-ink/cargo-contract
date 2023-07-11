@@ -125,7 +125,7 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 /// Prints to stderr if `verbosity.is_verbose()` is `true`.
 /// Like `cargo`, we use stderr for verbose output.
 #[macro_export]
-macro_rules! maybe_println {
+macro_rules! verbose_println {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
             ::std::eprintln!($($msg)*);

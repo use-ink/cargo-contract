@@ -299,7 +299,7 @@ fn exec_cargo_for_onchain_target(
 
         // newer rustc versions might emit unsupported instructions
         if rustc_version::version_meta()?.semver >= Version::new(1, 70, 0) {
-            maybe_println!(
+            verbose_println!(
                 verbosity,
                 "{} {}",
                 "warning:".yellow().bold(),
@@ -334,7 +334,7 @@ fn exec_cargo_for_onchain_target(
     };
 
     if unstable_flags.original_manifest {
-        maybe_println!(
+        verbose_println!(
             verbosity,
             "{} {}",
             "warning:".yellow().bold(),
@@ -606,7 +606,7 @@ fn post_process_wasm(
     if !skip_wasm_validation {
         validate_wasm::validate_import_section(&module)?;
     } else {
-        maybe_println!(
+        verbose_println!(
             verbosity,
             " {}",
             "Skipping wasm validation! Contract code may be invalid."
@@ -718,7 +718,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         let total_steps = build_artifact.steps();
         if lint {
             steps.set_total_steps(total_steps + 1);
-            maybe_println!(
+            verbose_println!(
                 verbosity,
                 " {} {}",
                 format!("{steps}").bold(),
@@ -738,7 +738,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             let mut build_steps = BuildSteps::new();
             let pre_fingerprint = Fingerprint::new(&crate_metadata)?;
 
-            maybe_println!(
+            verbose_println!(
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
@@ -808,7 +808,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
             maybe_lint(&mut build_steps)?;
 
-            maybe_println!(
+            verbose_println!(
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
@@ -873,7 +873,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             let mut build_steps = BuildSteps::new();
             maybe_lint(&mut build_steps)?;
 
-            maybe_println!(
+            verbose_println!(
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
