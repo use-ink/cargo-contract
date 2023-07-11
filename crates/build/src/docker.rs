@@ -34,13 +34,11 @@
 //! and overwrite those paths relative to the host machine.
 
 use std::{
-    collections::HashMap,
     io::{
         BufReader,
         Write,
     },
     path::Path,
-    time::Duration,
 };
 
 use anyhow::{
@@ -53,26 +51,19 @@ use bollard::{
         AttachContainerResults,
         Config,
         CreateContainerOptions,
-        ListContainersOptions,
         LogOutput,
     },
     image::{
         CreateImageOptions,
-        ListImagesOptions,
     },
     service::{
         HostConfig,
-        ImageSummary,
         Mount,
         MountTypeEnum,
     },
     Docker,
 };
 use contract_metadata::ContractMetadata;
-use indicatif::{
-    ProgressBar,
-    ProgressStyle,
-};
 use tokio_stream::StreamExt;
 
 use crate::{
@@ -133,12 +124,19 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let _ = client.ping().await.map_err(|e| {
                 anyhow::anyhow!("{}\nIs your docker engine up and running?", e)
             })?;
-            let build_image =
-                get_image(client.clone(), image, &verbosity, &mut build_steps).await?;
+
+            let image = match image {
+                ImageVariant::Custom(i) => i.clone(),
+                ImageVariant::Default => {
+                    format!("{}:{}", IMAGE, VERSION)
+                }
+            };
+
+            pull_image(client.clone(), &image, &verbosity, &mut build_steps).await?;
 
             let build_result = run_build(
                 args,
-                &build_image,
+                &image,
                 &crate_metadata.contract_artifact_name,
                 &host_dir,
                 &verbosity,
@@ -155,7 +153,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 &metadata_artifacts,
                 &verbosity,
                 &mut build_steps,
-                &build_image,
+                &image,
             )?;
 
             Ok(BuildResult {
@@ -171,20 +169,11 @@ fn update_metadata(
     metadata_artifacts: &MetadataArtifacts,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
-    build_image: &ImageSummary,
+    build_image: &str,
 ) -> Result<()> {
     let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
-    // find alternative unique identifier of the image, otherwise grab the digest
-    let image_tag = match build_image
-        .repo_tags
-        .iter()
-        .find(|t| !t.ends_with("latest"))
-    {
-        Some(tag) => tag.to_owned(),
-        None => build_image.id.clone(),
-    };
 
-    metadata.image = Some(image_tag);
+    metadata.image = Some(build_image.to_owned());
 
     crate::metadata::write_metadata(&metadata_artifacts, metadata, build_steps, verbosity)
 }
@@ -192,7 +181,7 @@ fn update_metadata(
 /// Creates the container and executed the build inside it
 async fn run_build(
     build_args: String,
-    build_image: &ImageSummary,
+    build_image: &str,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
@@ -209,19 +198,6 @@ async fn run_build(
     ];
 
     let container_name = format!("ink-verified-{}", contract_name);
-
-    let mut filters = HashMap::new();
-    filters.insert("name".to_string(), vec![container_name.clone()]);
-
-    let containers = client
-        .list_containers(Some(ListContainersOptions::<String> {
-            all: true,
-            filters,
-            ..Default::default()
-        }))
-        .await?;
-
-    let container_option = containers.first();
 
     let mount = Mount {
         target: Some(String::from(MOUNT_DIR)),
@@ -253,10 +229,8 @@ async fn run_build(
         user = None;
     }
 
-    // let mut labels = HashMap::new();
-    // labels.insert("digest-code".to_string(), digest_code);
     let config = Config {
-        image: Some(build_image.id.clone()),
+        image: Some(build_image.to_string()),
         entrypoint: Some(entrypoint),
         cmd: Some(cmd),
         // labels: Some(labels),
@@ -271,15 +245,7 @@ async fn run_build(
         platform: Some("linux/amd64"),
     });
 
-    let container_id = match container_option {
-        Some(container) => {
-            container
-                .id
-                .clone()
-                .context("Container does not have an ID")?
-        }
-        None => client.create_container(options, config).await?.id,
-    };
+    let container_id = client.create_container(options, config).await?.id;
 
     client
         .start_container::<String>(&container_id, None)
@@ -309,14 +275,13 @@ async fn run_build(
     // pipe docker attach output into stdout
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
+    let mut build_result = None;
     while let Some(Ok(output)) = output.next().await {
-        // todo: handle build error here
         match output {
             LogOutput::StdOut { message } => {
-                let build_result =
-                    serde_json::from_reader(BufReader::new(message.as_ref()))
-                        .context("Error decoding BuildResult")?;
-                return Ok(build_result)
+                build_result =
+                    Some(serde_json::from_reader(BufReader::new(message.as_ref()))
+                        .context("Error decoding BuildResult"));
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -329,9 +294,13 @@ async fn run_build(
         }
     }
 
-    Err(anyhow::anyhow!(
-        "Failed to read build result from docker build"
-    ))
+    if let Some(build_result) = build_result {
+        build_result
+    } else {
+        Err(anyhow::anyhow!(
+            "Failed to read build result from docker build"
+        ))
+    }
 }
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
@@ -361,53 +330,10 @@ fn compose_build_args() -> Result<String> {
     Ok(joined_args)
 }
 
-/// Retrieve local of the image, otherwise pulls one from the registry
-async fn get_image(
-    client: Docker,
-    custom_image: ImageVariant,
-    verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
-) -> Result<ImageSummary> {
-    // if no custom image is specified, then we use the tag of the current version of
-    // `cargo-contract`
-    let image = match custom_image {
-        ImageVariant::Custom(i) => i.clone(),
-        ImageVariant::Default => {
-            format!("{}:{}", IMAGE, VERSION)
-        }
-    };
-
-    let build_image = match find_local_image(client.clone(), image.clone()).await? {
-        Some(image_s) => image_s,
-        None => {
-            build_steps.total_steps = build_steps.total_steps.map(|s| s + 1);
-            pull_image(client.clone(), image.clone(), verbosity, build_steps).await?;
-            find_local_image(client.clone(), image.clone())
-                .await?
-                .context("Could not pull the image from the registry")?
-        }
-    };
-
-    Ok(build_image)
-}
-
-/// Searches for the local copy of the docker image
-async fn find_local_image(client: Docker, image: String) -> Result<Option<ImageSummary>> {
-    let images = client
-        .list_images(Some(ListImagesOptions::<String> {
-            all: true,
-            ..Default::default()
-        }))
-        .await?;
-    let build_image = images.iter().find(|i| i.repo_tags.contains(&image));
-
-    Ok(build_image.cloned())
-}
-
 /// Pulls the docker image from the registry
 async fn pull_image(
     client: Docker,
-    image: String,
+    image: &str,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
 ) -> Result<()> {
@@ -431,31 +357,14 @@ async fn pull_image(
     build_steps.increment_current();
 
     if verbosity.is_verbose() {
-        let spinner_style = ProgressStyle::with_template(
-            " {spinner:.cyan} [{wide_bar:.cyan/blue}]\n {wide_msg}",
-        )?
-        .progress_chars("#>-")
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-        let pb = ProgressBar::new(1000);
-        pb.set_style(spinner_style);
-        pb.enable_steady_tick(Duration::from_millis(100));
-
         while let Some(summary_result) = pull_image_stream.next().await {
             let summary = summary_result?;
 
-            if let Some(progress_detail) = summary.progress_detail {
-                let total = progress_detail.total.map_or(1000, |v| v) as u64;
-                let current_step = progress_detail.current.map_or(1000, |v| v) as u64;
-                pb.set_length(total);
-                pb.set_position(current_step);
-
-                if let Some(msg) = summary.status {
-                    pb.set_message(msg);
-                }
+            if let Some(progress) = summary.progress {
+                // todo: use cursor to overwrite the line
+                println!("{}", progress);
             }
         }
-
-        pb.finish();
     } else {
         while pull_image_stream.next().await.is_some() {}
     }
