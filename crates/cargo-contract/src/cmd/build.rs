@@ -128,7 +128,7 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let build_mode = match self.build_release {
             true => BuildMode::Release,
