@@ -104,9 +104,9 @@ pub fn cargo_tty_output(cmd: Expression) -> Expression {
         .map(|(width, _)| width.to_string())
         .unwrap_or_else(|| "100".to_string());
 
-    cmd.env("CARGO_TERM_COLOR", "always")
+    cmd.env("CARGO_TERM_COLOR", "auto")
         .env("CARGO_TERM_PROGRESS_WIDTH", term_size)
-        .env("CARGO_TERM_PROGRESS_WHEN", "always")
+        .env("CARGO_TERM_PROGRESS_WHEN", "auto")
 }
 
 /// Returns the base name of the path.
