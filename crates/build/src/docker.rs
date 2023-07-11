@@ -295,6 +295,7 @@ async fn run_build(
     }
 
     // remove the container after the run is finished
+    // todo: mount a volume with crates.io index to speed up build in new container on the next run.
     let _ = client.remove_container(&container_id, None).await
         .context(format!("Error removing container {}", container_id))?;
 
