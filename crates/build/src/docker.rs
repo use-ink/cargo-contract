@@ -35,12 +35,7 @@
 
 use std::{
     collections::{
-        hash_map::DefaultHasher,
         HashMap,
-    },
-    hash::{
-        Hash,
-        Hasher,
     },
     io::{
         BufReader,
@@ -489,19 +484,4 @@ async fn pull_image(
     }
 
     Ok(())
-}
-
-/// Calculates the unique container's code
-fn container_digest(entrypoint: Vec<String>, image_digest: String) -> String {
-    // in order to optimise the container usage
-    // we are hashing the inputted command
-    // in order to reuse the container for the same permutation of arguments
-    let mut s = DefaultHasher::new();
-    // the data is set of commands and args and the image digest
-    let data = (entrypoint, image_digest);
-    data.hash(&mut s);
-    let digest = s.finish();
-    // taking the first 5 digits to be a unique identifier
-    let digest_code: String = digest.to_string().chars().take(5).collect();
-    digest_code
 }
