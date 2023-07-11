@@ -145,11 +145,6 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
-        }
-
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
