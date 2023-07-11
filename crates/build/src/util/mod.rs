@@ -127,7 +127,7 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
 macro_rules! maybe_println {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
-            ::std::println!($($msg)*);
+            ::std::eprintln!($($msg)*);
         }
     };
 }
