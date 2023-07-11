@@ -34,9 +34,7 @@
 //! and overwrite those paths relative to the host machine.
 
 use std::{
-    collections::{
-        HashMap,
-    },
+    collections::HashMap,
     io::{
         BufReader,
         Write,
@@ -51,15 +49,12 @@ use anyhow::{
 };
 use bollard::{
     container::{
+        AttachContainerOptions,
+        AttachContainerResults,
         Config,
         CreateContainerOptions,
         ListContainersOptions,
         LogOutput,
-    },
-    exec::{
-        CreateExecOptions,
-        StartExecOptions,
-        StartExecResults,
     },
     image::{
         CreateImageOptions,
@@ -205,9 +200,9 @@ async fn run_build(
 ) -> Result<BuildResult> {
     let client = Docker::connect_with_socket_defaults()?;
 
-    let entrypoint = vec![
-        "cargo".to_string(),
-        "contract".to_string(),
+    let entrypoint = vec!["cargo".to_string(), "contract".to_string()];
+
+    let cmd = vec![
         "build".to_string(),
         "--release".to_string(),
         "--output-json".to_string(),
@@ -262,8 +257,8 @@ async fn run_build(
     // labels.insert("digest-code".to_string(), digest_code);
     let config = Config {
         image: Some(build_image.id.clone()),
-        // entrypoint: Some(entrypoint),
-        cmd: None,
+        entrypoint: Some(entrypoint),
+        cmd: Some(cmd),
         // labels: Some(labels),
         host_config: host_cfg,
         attach_stderr: Some(true),
@@ -290,20 +285,16 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
-    let message = client
-        .create_exec(
+    let AttachContainerResults { mut output, .. } = client
+        .attach_container(
             &container_id,
-            CreateExecOptions {
-                attach_stdout: Some(true),
-                attach_stderr: Some(true),
-                cmd: Some(entrypoint),
+            Some(AttachContainerOptions::<String> {
+                stdout: Some(true),
+                stderr: Some(true),
+                stream: Some(true),
                 ..Default::default()
-            },
+            }),
         )
-        .await?;
-
-    let results = client
-        .start_exec(&message.id, None::<StartExecOptions>)
         .await?;
 
     maybe_println!(
@@ -315,28 +306,26 @@ async fn run_build(
             .bold(),
     );
 
-    if let StartExecResults::Attached { mut output, .. } = results {
-        // pipe docker attach output into stdout
-        let stderr = std::io::stderr();
-        let mut stderr = stderr.lock();
-        while let Some(Ok(output)) = output.next().await {
-            // todo: handle build error here
-            match output {
-                LogOutput::StdOut { message } => {
-                    let build_result =
-                        serde_json::from_reader(BufReader::new(message.as_ref()))
-                            .context("Error decoding BuildResult")?;
-                    return Ok(build_result)
-                }
-                LogOutput::StdErr { message } => {
-                    stderr.write_all(message.as_ref())?;
-                    stderr.flush()?;
-                }
-                LogOutput::Console { message: _ } => {
-                    panic!("LogOutput::Console")
-                }
-                LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
+    // pipe docker attach output into stdout
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    while let Some(Ok(output)) = output.next().await {
+        // todo: handle build error here
+        match output {
+            LogOutput::StdOut { message } => {
+                let build_result =
+                    serde_json::from_reader(BufReader::new(message.as_ref()))
+                        .context("Error decoding BuildResult")?;
+                return Ok(build_result)
             }
+            LogOutput::StdErr { message } => {
+                stderr.write_all(message.as_ref())?;
+                stderr.flush()?;
+            }
+            LogOutput::Console { message: _ } => {
+                panic!("LogOutput::Console")
+            }
+            LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
         }
     }
 
