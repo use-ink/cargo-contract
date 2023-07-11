@@ -294,6 +294,10 @@ async fn run_build(
         }
     }
 
+    // remove the container after the run is finished
+    let _ = client.remove_container(&container_id, None).await
+        .context(format!("Error removing container {}", container_id))?;
+
     if let Some(build_result) = build_result {
         build_result
     } else {
