@@ -53,9 +53,7 @@ use bollard::{
         CreateContainerOptions,
         LogOutput,
     },
-    image::{
-        CreateImageOptions,
-    },
+    image::CreateImageOptions,
     service::{
         HostConfig,
         Mount,
@@ -132,12 +130,16 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 }
             };
 
-            if let Err(err) = pull_image(client.clone(), &image, &verbosity, &mut build_steps).await {
-                // If the image could not be pulled, we will still attempt to use a local image of
-                // that name if it exists.
+            if let Err(err) =
+                pull_image(client.clone(), &image, &verbosity, &mut build_steps).await
+            {
+                // If the image could not be pulled, we will still attempt to use a local
+                // image of that name if it exists.
                 eprintln!(
                     "{}",
-                    format!("Failed to pull the docker image {}: {}", image, err).yellow().bold(),
+                    format!("Failed to pull the docker image {}: {}", image, err)
+                        .yellow()
+                        .bold(),
                 );
             }
 
@@ -156,12 +158,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 dest_bundle: crate_metadata.contract_bundle_path(),
             };
 
-            update_metadata(
-                &metadata_artifacts,
-                &verbosity,
-                &mut build_steps,
-                &image,
-            )?;
+            update_metadata(&metadata_artifacts, &verbosity, &mut build_steps, &image)?;
 
             Ok(BuildResult {
                 output_type,
@@ -286,9 +283,10 @@ async fn run_build(
     while let Some(Ok(output)) = output.next().await {
         match output {
             LogOutput::StdOut { message } => {
-                build_result =
-                    Some(serde_json::from_reader(BufReader::new(message.as_ref()))
-                        .context("Error decoding BuildResult"));
+                build_result = Some(
+                    serde_json::from_reader(BufReader::new(message.as_ref()))
+                        .context("Error decoding BuildResult"),
+                );
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -302,8 +300,11 @@ async fn run_build(
     }
 
     // remove the container after the run is finished
-    // todo: mount a volume with crates.io index to speed up build in new container on the next run.
-    let _ = client.remove_container(&container_id, None).await
+    // todo: mount a volume with crates.io index to speed up build in new container on the
+    // next run.
+    let _ = client
+        .remove_container(&container_id, None)
+        .await
         .context(format!("Error removing container {}", container_id))?;
 
     if let Some(build_result) = build_result {
