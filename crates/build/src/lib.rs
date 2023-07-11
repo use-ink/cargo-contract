@@ -150,7 +150,7 @@ impl Default for ExecuteArgs {
 }
 
 /// Result of the build process.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Default)] // todo: remove
 pub struct BuildResult {
     /// Path to the resulting Wasm file.
     pub dest_wasm: Option<PathBuf>,

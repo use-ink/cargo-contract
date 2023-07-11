@@ -46,9 +46,7 @@ use std::{
         BufReader,
         Write,
     },
-    path::{
-        Path,
-    },
+    path::Path,
     time::Duration,
 };
 
@@ -58,11 +56,15 @@ use anyhow::{
 };
 use bollard::{
     container::{
-        AttachContainerOptions,
-        LogOutput,
         Config,
         CreateContainerOptions,
         ListContainersOptions,
+        LogOutput,
+    },
+    exec::{
+        CreateExecOptions,
+        StartExecOptions,
+        StartExecResults,
     },
     image::{
         CreateImageOptions,
@@ -90,8 +92,8 @@ use crate::{
     BuildSteps,
     CrateMetadata,
     ExecuteArgs,
-    Verbosity,
     MetadataArtifacts,
+    Verbosity,
 };
 
 use colored::Colorize;
@@ -159,7 +161,12 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 dest_bundle: crate_metadata.contract_bundle_path(),
             };
 
-            update_metadata(&metadata_artifacts, &verbosity, &mut build_steps, &build_image)?;
+            update_metadata(
+                &metadata_artifacts,
+                &verbosity,
+                &mut build_steps,
+                &build_image,
+            )?;
 
             Ok(BuildResult {
                 output_type,
@@ -189,12 +196,7 @@ fn update_metadata(
 
     metadata.image = Some(image_tag);
 
-    crate::metadata::write_metadata(
-        &metadata_artifacts,
-        metadata,
-        build_steps,
-        verbosity,
-    )
+    crate::metadata::write_metadata(&metadata_artifacts, metadata, build_steps, verbosity)
 }
 
 /// Creates the container and executed the build inside it
@@ -208,20 +210,15 @@ async fn run_build(
 ) -> Result<BuildResult> {
     let client = Docker::connect_with_socket_defaults()?;
 
-    // let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
-    // let mut cmds = vec![format!(
-    //     // "mkdir -p target && cargo contract build {} --output-json",
-    //     "cargo contract build {}",
-    //     build_args,
-    // )];
-    //
-    // entrypoint.append(&mut cmds);
+    let entrypoint = vec![
+        "cargo".to_string(),
+        "contract".to_string(),
+        "build".to_string(),
+        "--release".to_string(),
+        "--output-json".to_string(),
+    ];
 
-    let entrypoint = vec!["cargo".to_string(), "contract".to_string(), "build".to_string(), "--release".to_string(), "--output-json".to_string()];
-
-    let digest_code = container_digest(entrypoint.clone(), build_image.id.clone());
-    let container_name =
-        format!("ink-verified-{}-{}", contract_name, digest_code.clone());
+    let container_name = format!("ink-verified-{}", contract_name);
 
     let mut filters = HashMap::new();
     filters.insert("name".to_string(), vec![container_name.clone()]);
@@ -266,16 +263,16 @@ async fn run_build(
         user = None;
     }
 
-    let mut labels = HashMap::new();
-    labels.insert("digest-code".to_string(), digest_code);
+    // let mut labels = HashMap::new();
+    // labels.insert("digest-code".to_string(), digest_code);
     let config = Config {
         image: Some(build_image.id.clone()),
-        entrypoint: Some(entrypoint),
+        // entrypoint: Some(entrypoint),
         cmd: None,
-        labels: Some(labels),
+        // labels: Some(labels),
         host_config: host_cfg,
         attach_stderr: Some(true),
-        tty: Some(true),
+        // tty: Some(true),
         user,
         ..Default::default()
     };
@@ -298,6 +295,22 @@ async fn run_build(
         .start_container::<String>(&container_id, None)
         .await?;
 
+    let message = client
+        .create_exec(
+            &container_id,
+            CreateExecOptions {
+                attach_stdout: Some(true),
+                attach_stderr: Some(true),
+                cmd: Some(entrypoint),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    let results = client
+        .start_exec(&message.id, None::<StartExecOptions>)
+        .await?;
+
     maybe_println!(
         verbosity,
         " {} {}",
@@ -307,52 +320,46 @@ async fn run_build(
             .bold(),
     );
 
-    let mut attach_result = client
-        .attach_container(
-            &container_id,
-            Some(AttachContainerOptions::<String> {
-                stdout: Some(true),
-                stderr: Some(true),
-                stream: Some(true),
-                ..Default::default()
-            }),
-        )
-        .await?;
-
-    // pipe docker attach output into stdout
-    let stdout = std::io::stderr();
-    let mut stdout = stdout.lock();
-    while let Some(Ok(output)) = attach_result.output.next().await {
-        // todo: handle build error here
-        match output {
-            LogOutput::StdOut { message } => {
-                panic!("LogOutput::StdOut")
-                // return serde_json::from_reader(BufReader::new(message.as_ref()))
-                //     .context("Failed to deserialize build result from docker build")
-            }
-            LogOutput::StdErr { message } => {
-                panic!("LogOutput::StdErr")
-                // stderr.write_all(message.as_ref())?;
-            }
-            LogOutput::Console { message } => {
-                // todo this is probably reading line by line and the json is pretty printed...
-                match serde_json::from_reader(BufReader::new(message.as_ref())) {
-                    Ok(build_result) => {
-                        return Ok(build_result);
-                    }
-                    Err(_) => {
-                        stdout.write_all(message.as_ref())?;
-                        stdout.flush()?;
-                    }
+    if let StartExecResults::Attached { mut output, .. } = results {
+        // pipe docker attach output into stdout
+        let stderr = std::io::stderr();
+        let mut stderr = stderr.lock();
+        let mut json_result_buf = Vec::new();
+        while let Some(Ok(output)) = output.next().await {
+            // todo: handle build error here
+            match output {
+                LogOutput::StdOut { message } => {
+                    json_result_buf.append(&mut message.to_vec());
+                    println!(
+                        "BuildResult {}",
+                        String::from_utf8(json_result_buf.clone())?
+                    );
                 }
-            },
-            LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn")
+                LogOutput::StdErr { message } => {
+                    stderr.write_all(message.as_ref())?;
+                    stderr.flush()?;
+                }
+                LogOutput::Console { message: _ } => {
+                    panic!("LogOutput::Console")
+                }
+                LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
+            }
         }
-        // stdout.write_all(output.into_bytes().as_ref())?;
-        stdout.flush()?;
+        // println!("BuildResult {}", String::from_utf8(json_result_buf.clone())?);
+        // todo this is probably reading line by line and the json is pretty printed...
+        return if json_result_buf.is_empty() {
+            Ok(Default::default())
+        } else {
+            let build_result =
+                serde_json::from_reader(BufReader::new(json_result_buf.as_slice()))
+                    .context("Error decoding BuildResult")?;
+            Ok(build_result)
+        }
     }
 
-    Err(anyhow::anyhow!("Failed to read build result from docker build"))
+    Err(anyhow::anyhow!(
+        "Failed to read build result from docker build"
+    ))
 }
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
