@@ -132,7 +132,14 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 }
             };
 
-            pull_image(client.clone(), &image, &verbosity, &mut build_steps).await?;
+            if let Err(err) = pull_image(client.clone(), &image, &verbosity, &mut build_steps).await {
+                // If the image could not be pulled, we will still attempt to use a local image of
+                // that name if it exists.
+                eprintln!(
+                    "{}",
+                    format!("Failed to pull the docker image {}: {}", image, err).yellow().bold(),
+                );
+            }
 
             let build_result = run_build(
                 args,
