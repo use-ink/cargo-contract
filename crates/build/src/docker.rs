@@ -319,16 +319,14 @@ async fn run_build(
         // pipe docker attach output into stdout
         let stderr = std::io::stderr();
         let mut stderr = stderr.lock();
-        let mut json_result_buf = Vec::new();
         while let Some(Ok(output)) = output.next().await {
             // todo: handle build error here
             match output {
                 LogOutput::StdOut { message } => {
-                    json_result_buf.append(&mut message.to_vec());
-                    println!(
-                        "BuildResult {}",
-                        String::from_utf8(json_result_buf.clone())?
-                    );
+                    let build_result =
+                        serde_json::from_reader(BufReader::new(message.as_ref()))
+                            .context("Error decoding BuildResult")?;
+                    return Ok(build_result)
                 }
                 LogOutput::StdErr { message } => {
                     stderr.write_all(message.as_ref())?;
@@ -339,16 +337,6 @@ async fn run_build(
                 }
                 LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
             }
-        }
-        // println!("BuildResult {}", String::from_utf8(json_result_buf.clone())?);
-        // todo this is probably reading line by line and the json is pretty printed...
-        return if json_result_buf.is_empty() {
-            Ok(Default::default())
-        } else {
-            let build_result =
-                serde_json::from_reader(BufReader::new(json_result_buf.as_slice()))
-                    .context("Error decoding BuildResult")?;
-            Ok(build_result)
         }
     }
 
