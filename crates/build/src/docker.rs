@@ -171,7 +171,7 @@ fn update_metadata(
 
     metadata.image = Some(build_image.to_owned());
 
-    crate::metadata::write_metadata(&metadata_artifacts, metadata, build_steps, verbosity)
+    crate::metadata::write_metadata(metadata_artifacts, metadata, build_steps, verbosity)
 }
 
 /// Creates the container, returning the container id if successful.
@@ -179,7 +179,7 @@ fn update_metadata(
 /// If the image is not available locally, it will be pulled from the registry.
 async fn create_container(
     client: &Docker,
-    build_args: String,
+    _build_args: String, // todo: add the build args to the cmd
     build_image: &str,
     contract_name: &str,
     host_folder: &Path,
@@ -274,12 +274,12 @@ async fn run_build(
     build_steps: &mut BuildSteps,
 ) -> Result<BuildResult> {
     client
-        .start_container::<String>(&container_id, None)
+        .start_container::<String>(container_id, None)
         .await?;
 
     let AttachContainerResults { mut output, .. } = client
         .attach_container(
-            &container_id,
+            container_id,
             Some(AttachContainerOptions::<String> {
                 stdout: Some(true),
                 stderr: Some(true),
@@ -324,8 +324,8 @@ async fn run_build(
     // remove the container after the run is finished
     // todo: mount a volume with crates.io index to speed up build in new container on the
     // next run.
-    let _ = client
-        .remove_container(&container_id, None)
+    client
+        .remove_container(container_id, None)
         .await
         .context(format!("Error removing container {}", container_id))?;
 
