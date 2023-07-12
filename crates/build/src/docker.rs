@@ -294,7 +294,7 @@ async fn create_container(
 
     cmd.append(&mut build_args);
 
-    let digest_code = container_digest(entrypoint.clone(), build_image.to_string());
+    let digest_code = container_digest(cmd.clone(), build_image.to_string());
     let container_name =
         format!("ink-verified-{}-{}", contract_name, digest_code.clone());
 
