@@ -55,6 +55,7 @@ use bollard::{
     },
     image::CreateImageOptions,
     service::{
+        ContainerCreateResponse,
         HostConfig,
         Mount,
         MountTypeEnum,
@@ -130,21 +131,9 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 }
             };
 
-            if let Err(err) =
-                pull_image(client.clone(), &image, &verbosity, &mut build_steps).await
-            {
-                // If the image could not be pulled, we will still attempt to use a local
-                // image of that name if it exists.
-                eprintln!(
-                    "{}",
-                    format!("Failed to pull the docker image {}: {}", image, err)
-                        .yellow()
-                        .bold(),
-                );
-            }
-
-            let build_result = run_build(
-                args,
+            let container = create_container(
+                &client,
+                args.clone(),
                 &image,
                 &crate_metadata.contract_artifact_name,
                 &host_dir,
@@ -152,6 +141,9 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 &mut build_steps,
             )
             .await?;
+
+            let build_result =
+                run_build(&client, &container.id, &verbosity, &mut build_steps).await?;
 
             let metadata_artifacts = MetadataArtifacts {
                 dest_metadata: crate_metadata.metadata_path(),
@@ -182,17 +174,18 @@ fn update_metadata(
     crate::metadata::write_metadata(&metadata_artifacts, metadata, build_steps, verbosity)
 }
 
-/// Creates the container and executed the build inside it
-async fn run_build(
+/// Creates the container, returning the container id if successful.
+///
+/// If the image is not available locally, it will be pulled from the registry.
+async fn create_container(
+    client: &Docker,
     build_args: String,
     build_image: &str,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
-) -> Result<BuildResult> {
-    let client = Docker::connect_with_socket_defaults()?;
-
+) -> Result<ContainerCreateResponse> {
     let entrypoint = vec!["cargo".to_string(), "contract".to_string()];
 
     let cmd = vec![
@@ -237,10 +230,8 @@ async fn run_build(
         image: Some(build_image.to_string()),
         entrypoint: Some(entrypoint),
         cmd: Some(cmd),
-        // labels: Some(labels),
         host_config: host_cfg,
         attach_stderr: Some(true),
-        // tty: Some(true),
         user,
         ..Default::default()
     };
@@ -249,8 +240,39 @@ async fn run_build(
         platform: Some("linux/amd64"),
     });
 
-    let container_id = client.create_container(options, config).await?.id;
+    match client
+        .create_container(options.clone(), config.clone())
+        .await
+    {
+        Ok(container) => Ok(container),
+        Err(err) => {
+            if matches!(
+                err,
+                bollard::errors::Error::DockerResponseServerError {
+                    status_code: 404,
+                    ..
+                }
+            ) {
+                // no such image locally, so pull and try again
+                pull_image(client, build_image, verbosity, build_steps).await?;
+                client
+                    .create_container(options, config)
+                    .await
+                    .context("Failed to create docker container")
+            } else {
+                Err(err.into())
+            }
+        }
+    }
+}
 
+/// Creates the container and executed the build inside it
+async fn run_build(
+    client: &Docker,
+    container_id: &str,
+    verbosity: &Verbosity,
+    build_steps: &mut BuildSteps,
+) -> Result<BuildResult> {
     client
         .start_container::<String>(&container_id, None)
         .await?;
@@ -345,7 +367,7 @@ fn compose_build_args() -> Result<String> {
 
 /// Pulls the docker image from the registry
 async fn pull_image(
-    client: Docker,
+    client: &Docker,
     image: &str,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
