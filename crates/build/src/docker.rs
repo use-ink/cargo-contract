@@ -250,6 +250,7 @@ async fn update_metadata(
             metadata,
             build_steps,
             verbosity,
+            true,
         )?;
     }
     Ok(())

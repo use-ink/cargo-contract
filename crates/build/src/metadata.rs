@@ -162,16 +162,13 @@ pub fn execute(
             serde_json::from_slice(&output.stdout)?;
         let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        build_steps.increment_current();
-
-        verbose_eprintln!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating bundle".bright_green().bold()
-        );
-        let contents = serde_json::to_string(&metadata)?;
-        fs::write(&metadata_artifacts.dest_bundle, contents)?;
+        write_metadata(
+            metadata_artifacts,
+            metadata,
+            &mut build_steps,
+            &verbosity,
+            false,
+        )?;
 
         Ok(())
     };
@@ -199,6 +196,7 @@ pub fn write_metadata(
     metadata: ContractMetadata,
     build_steps: &mut BuildSteps,
     verbosity: &Verbosity,
+    overwrite: bool,
 ) -> Result<()> {
     {
         let mut metadata = metadata.clone();
@@ -208,12 +206,21 @@ pub fn write_metadata(
         build_steps.increment_current();
     }
 
-    verbose_eprintln!(
-        verbosity,
-        " {} {}",
-        format!("{build_steps}").bold(),
-        "Updating paths".bright_cyan().bold()
-    );
+    if overwrite {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Updating paths".bright_cyan().bold()
+        );
+    } else {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Generating bundle".bright_green().bold()
+        );
+    }
     let contents = serde_json::to_string(&metadata)?;
     fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
