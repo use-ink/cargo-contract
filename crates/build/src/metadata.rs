@@ -17,8 +17,8 @@
 use crate::{
     code_hash,
     crate_metadata::CrateMetadata,
-    maybe_println,
     util,
+    verbose_eprintln,
     workspace::{
         ManifestPath,
         Workspace,
@@ -128,7 +128,7 @@ pub(crate) fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {} {}",
             format!("{build_steps}").bold(),
@@ -169,7 +169,7 @@ pub(crate) fn execute(
             build_steps.increment_current();
         }
 
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {} {}",
             format!("{build_steps}").bold(),
