@@ -42,11 +42,11 @@ use std::{
         Hash,
         Hasher,
     },
-    io::BufReader,
-    path::{
-        Path,
-        PathBuf,
+    io::{
+        BufReader,
+        Write,
     },
+    path::Path,
     time::Duration,
 };
 
@@ -56,21 +56,18 @@ use anyhow::{
 };
 use bollard::{
     container::{
+        AttachContainerOptions,
+        AttachContainerResults,
         Config,
         CreateContainerOptions,
         ListContainersOptions,
         LogOutput,
-        LogsOptions,
-        StopContainerOptions,
-        WaitContainerOptions,
     },
-    errors::Error,
     image::{
         CreateImageOptions,
         ListImagesOptions,
     },
     service::{
-        ContainerWaitResponse,
         HostConfig,
         ImageSummary,
         Mount,
@@ -133,11 +130,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             }
 
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
-            let mut manifest_dir_option = crate_metadata.manifest_path.directory();
-            let empty_path = PathBuf::new();
-            let contract_dir = manifest_dir_option.get_or_insert(&empty_path);
-            let host_dir = std::env::current_dir()?;
-            let build_result_path = contract_dir.join("target/build_result.json");
+            let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 
             let client = Docker::connect_with_socket_defaults().map_err(|e| {
@@ -146,23 +139,32 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             let _ = client.ping().await.map_err(|e| {
                 anyhow::anyhow!("{}\nIs your docker engine up and running?", e)
             })?;
-            let build_image =
-                get_image(client.clone(), image, &verbosity, &mut build_steps).await?;
 
-            run_build(
-                args,
-                &build_image,
-                &build_result_path,
+            let image = match image {
+                ImageVariant::Custom(i) => i.clone(),
+                ImageVariant::Default => {
+                    format!("{}:{}", IMAGE, VERSION)
+                }
+            };
+
+            let container = create_container(
+                &client,
+                args.clone(),
+                &image,
                 &crate_metadata.contract_artifact_name,
-                &host_dir,
+                &host_folder,
                 &verbosity,
                 &mut build_steps,
             )
             .await?;
 
-            let build_result = read_build_result(&host_dir, &build_result_path)?;
+            let mut build_result =
+                run_build(&client, &container, &verbosity, &mut build_steps).await?;
 
-            update_metadata(&build_result, &verbosity, &mut build_steps, &build_image)?;
+            update_build_result(&host_folder, &mut build_result)?;
+
+            update_metadata(&build_result, &verbosity, &mut build_steps, &image, &client)
+                .await?;
 
             Ok(BuildResult {
                 output_type,
@@ -173,23 +175,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
 }
 
 /// Reads the `BuildResult` produced by the docker execution
-fn read_build_result(
-    host_folder: &Path,
-    build_result_path: &PathBuf,
-) -> Result<BuildResult> {
-    let file = std::fs::File::open(build_result_path)?;
-    let mut build_result: BuildResult =
-        match serde_json::from_reader(BufReader::new(file)) {
-            Ok(result) => result,
-            Err(_) => {
-                // sometimes we cannot remove the file due to privileged access
-                let _ = std::fs::remove_file(build_result_path);
-                anyhow::bail!(
-                    "Error parsing output from docker build. The build probably failed!"
-                )
-            }
-        };
-
+fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Result<()> {
     let new_path = host_folder.join(
         build_result
             .target_directory
@@ -222,18 +208,23 @@ fn read_build_result(
         );
         m
     });
-    Ok(build_result)
+    Ok(())
 }
 
 /// Overwrites `build_result` and `image` fields in the metadata
-fn update_metadata(
+async fn update_metadata(
     build_result: &BuildResult,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
-    build_image: &ImageSummary,
+    build_image: &str,
+    client: &Docker,
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
         let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
+
+        let build_image = find_local_image(client, build_image.to_string())
+            .await?
+            .context("Image summary does not exist")?;
         // find alternative unique identifier of the image, otherwise grab the digest
         let image_tag = match build_image
             .repo_tags
@@ -256,31 +247,45 @@ fn update_metadata(
     Ok(())
 }
 
-/// Creates the container and executed the build inside it
-async fn run_build(
-    build_args: String,
-    build_image: &ImageSummary,
-    build_result_path: &PathBuf,
+/// Searches for the local copy of the docker image
+async fn find_local_image(
+    client: &Docker,
+    image: String,
+) -> Result<Option<ImageSummary>> {
+    let images = client
+        .list_images(Some(ListImagesOptions::<String> {
+            all: true,
+            ..Default::default()
+        }))
+        .await?;
+    let build_image = images.iter().find(|i| i.repo_tags.contains(&image));
+
+    Ok(build_image.cloned())
+}
+
+/// Creates the container, returning the container id if successful.
+///
+/// If the image is not available locally, it will be pulled from the registry.
+async fn create_container(
+    client: &Docker,
+    mut build_args: Vec<String>,
+    build_image: &str,
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
-) -> Result<()> {
-    let client = Docker::connect_with_socket_defaults()?;
+) -> Result<String> {
+    let entrypoint = vec!["cargo".to_string(), "contract".to_string()];
 
-    let mut entrypoint = vec!["/bin/bash".to_string(), "-c".to_string()];
-    let b_path_str = build_result_path
-        .as_os_str()
-        .to_str()
-        .context("Cannot convert Os String to String")?;
-    let mut cmds = vec![format!(
-        "mkdir -p target && cargo contract build {} --output-json > {}",
-        build_args, b_path_str
-    )];
+    let mut cmd = vec![
+        "build".to_string(),
+        "--release".to_string(),
+        "--output-json".to_string(),
+    ];
 
-    entrypoint.append(&mut cmds);
+    cmd.append(&mut build_args);
 
-    let digest_code = container_digest(entrypoint.clone(), build_image.id.clone());
+    let digest_code = container_digest(entrypoint.clone(), build_image.to_string());
     let container_name =
         format!("ink-verified-{}-{}", contract_name, digest_code.clone());
 
@@ -296,6 +301,10 @@ async fn run_build(
         .await?;
 
     let container_option = containers.first();
+
+    if let Some(summary) = container_option {
+        return summary.id.clone().context("container does not have an id")
+    }
 
     let mount = Mount {
         target: Some(String::from(MOUNT_DIR)),
@@ -327,16 +336,12 @@ async fn run_build(
         user = None;
     }
 
-    let mut labels = HashMap::new();
-    labels.insert("digest-code".to_string(), digest_code);
     let config = Config {
-        image: Some(build_image.id.clone()),
+        image: Some(build_image.to_string()),
         entrypoint: Some(entrypoint),
-        cmd: None,
-        labels: Some(labels),
+        cmd: Some(cmd),
         host_config: host_cfg,
         attach_stderr: Some(true),
-        tty: Some(true),
         user,
         ..Default::default()
     };
@@ -345,128 +350,100 @@ async fn run_build(
         platform: Some("linux/amd64"),
     });
 
-    let container_id = match container_option {
-        Some(container) => {
-            container
-                .id
-                .clone()
-                .context("Container does not have an ID")?
+    match client
+        .create_container(options.clone(), config.clone())
+        .await
+    {
+        Ok(container) => Ok(container.id),
+        Err(err) => {
+            if matches!(
+                err,
+                bollard::errors::Error::DockerResponseServerError {
+                    status_code: 404,
+                    ..
+                }
+            ) {
+                // no such image locally, so pull and try again
+                pull_image(client, build_image.to_string(), verbosity, build_steps)
+                    .await?;
+                client
+                    .create_container(options, config)
+                    .await
+                    .context("Failed to create docker container")
+                    .map(|o| o.id)
+            } else {
+                Err(err.into())
+            }
         }
-        None => client.create_container(options, config).await?.id,
-    };
+    }
+}
 
-    client
-        .start_container::<String>(&container_id, None)
+/// Creates the container and executed the build inside it
+async fn run_build(
+    client: &Docker,
+    container_id: &str,
+    verbosity: &Verbosity,
+    build_steps: &mut BuildSteps,
+) -> Result<BuildResult> {
+    client.start_container::<String>(container_id, None).await?;
+
+    let AttachContainerResults { mut output, .. } = client
+        .attach_container(
+            container_id,
+            Some(AttachContainerOptions::<String> {
+                stdout: Some(true),
+                stderr: Some(true),
+                stream: Some(true),
+                ..Default::default()
+            }),
+        )
         .await?;
-
-    let start_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .context("Invalid start time")?
-        .as_secs() as i64;
 
     verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
-        format!("Started the build inside the container: {container_name}")
+        "Started the build inside the container"
             .bright_green()
             .bold(),
     );
 
-    let options = Some(WaitContainerOptions {
-        condition: "not-running",
-    });
-
-    let mut wait_stream = client.wait_container(&container_id, options);
-    let handle_error = |r: Result<ContainerWaitResponse, Error>| -> Result<()> {
-        let response = match r {
-            Ok(v) => v,
-            Err(e) => {
-                // sometimes we cannot remove the file due to privileged access
-                let _ = std::fs::remove_file(build_result_path);
-                anyhow::bail!("{}. Execution failed!", e.to_string())
+    // pipe docker attach output into stdout
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    let mut build_result = None;
+    while let Some(Ok(output)) = output.next().await {
+        match output {
+            LogOutput::StdOut { message } => {
+                build_result = Some(
+                    serde_json::from_reader(BufReader::new(message.as_ref()))
+                        .context("Error decoding BuildResult"),
+                );
             }
-        };
-        if response.status_code != 0 {
-            anyhow::bail!("Execution failed! Status code: {}.", response.status_code);
-        }
-        Ok(())
-    };
-    if verbosity.is_verbose() {
-        let spinner_style =
-            ProgressStyle::with_template(" {spinner:.cyan.bold} {wide_msg}")?
-                .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-
-        let pb = ProgressBar::new(1000);
-        pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_style(spinner_style);
-        pb.set_message("Build is being executed...");
-        while let Some(r) = wait_stream.next().await {
-            let res = handle_error(r);
-            if let Some(e) = res.err() {
-                let err_logs: Vec<LogOutput> = client
-                    .logs::<String>(
-                        &container_id,
-                        Some(LogsOptions {
-                            follow: false,
-                            stdout: true,
-                            stderr: true,
-                            since: start_time,
-                            ..Default::default()
-                        }),
-                    )
-                    .filter_map(|l| l.ok())
-                    .collect()
-                    .await;
-                let err_string = err_logs
-                    .iter()
-                    .filter_map(|l| {
-                        if let LogOutput::Console { message } = l {
-                            let msg = String::from_utf8(message.to_vec()).unwrap();
-                            // as the logs also contain compilation status output,
-                            // we need to take the slice from the start of the error
-                            // message
-                            let remainder = msg
-                                [msg.find(r"error\[.*\]").unwrap_or_default()..]
-                                .to_string();
-                            Some(remainder)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<String>>()
-                    .join("");
-                anyhow::bail!("{}\n{}", e, err_string);
+            LogOutput::StdErr { message } => {
+                stderr.write_all(message.as_ref())?;
+                stderr.flush()?;
             }
-            pb.inc(1);
-        }
-        pb.finish_with_message("Done!")
-    } else {
-        while let Some(r) = wait_stream.next().await {
-            handle_error(r)?;
+            LogOutput::Console { message: _ } => {
+                panic!("LogOutput::Console")
+            }
+            LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
         }
     }
 
-    client
-        .stop_container(&container_id, Some(StopContainerOptions { t: 20 }))
-        .await?;
-
-    build_steps.increment_current();
-    verbose_eprintln!(
-        verbosity,
-        " {} {}",
-        format!("{build_steps}").bold(),
-        "Docker container has finished the build. Reading the results"
-            .bright_green()
-            .bold(),
-    );
-    Ok(())
+    if let Some(build_result) = build_result {
+        build_result
+    } else {
+        Err(anyhow::anyhow!(
+            "Failed to read build result from docker build"
+        ))
+    }
 }
 
 /// Takes CLI args from the host and appends them to the build command inside the docker
-fn compose_build_args() -> Result<String> {
+fn compose_build_args() -> Result<Vec<String>> {
     use regex::Regex;
-    let mut args: Vec<String> = vec!["--release".to_string()];
+    let mut args: Vec<String> = Vec::new();
 
     let rex = Regex::new(r"--image [.*]*")?;
     let args_string: String = std::env::args().collect();
@@ -480,62 +457,19 @@ fn compose_build_args() -> Result<String> {
                 && a != &"cargo"
                 && a != &"contract"
                 && a != &"build"
+                && a != &"--output-json"
         })
         .map(|s| s.to_string())
         .collect();
 
     args.append(&mut os_args);
 
-    let joined_args = args.join(" ");
-    Ok(joined_args)
-}
-
-/// Retrieve local of the image, otherwise pulls one from the registry
-async fn get_image(
-    client: Docker,
-    custom_image: ImageVariant,
-    verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
-) -> Result<ImageSummary> {
-    // if no custom image is specified, then we use the tag of the current version of
-    // `cargo-contract`
-    let image = match custom_image {
-        ImageVariant::Custom(i) => i.clone(),
-        ImageVariant::Default => {
-            format!("{}:{}", IMAGE, VERSION)
-        }
-    };
-
-    let build_image = match find_local_image(client.clone(), image.clone()).await? {
-        Some(image_s) => image_s,
-        None => {
-            build_steps.total_steps = build_steps.total_steps.map(|s| s + 1);
-            pull_image(client.clone(), image.clone(), verbosity, build_steps).await?;
-            find_local_image(client.clone(), image.clone())
-                .await?
-                .context("Could not pull the image from the registry")?
-        }
-    };
-
-    Ok(build_image)
-}
-
-/// Searches for the local copy of the docker image
-async fn find_local_image(client: Docker, image: String) -> Result<Option<ImageSummary>> {
-    let images = client
-        .list_images(Some(ListImagesOptions::<String> {
-            all: true,
-            ..Default::default()
-        }))
-        .await?;
-    let build_image = images.iter().find(|i| i.repo_tags.contains(&image));
-
-    Ok(build_image.cloned())
+    Ok(args)
 }
 
 /// Pulls the docker image from the registry
 async fn pull_image(
-    client: Docker,
+    client: &Docker,
     image: String,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
