@@ -308,8 +308,7 @@ fn exec_cargo_for_onchain_target(
 
         // newer rustc versions might emit unsupported instructions
         if rustc_version::version_meta()?.semver >= Version::new(1, 70, 0) {
-            maybe_println!(
-                verbosity,
+            eprintln!(
                 "{} {}",
                 "warning:".yellow().bold(),
                 "You are using a rustc version that might emit unsupported wasm instructions. Build using a version lower than 1.70.0 to make sure your contract will deploy."
@@ -343,7 +342,7 @@ fn exec_cargo_for_onchain_target(
     };
 
     if unstable_flags.original_manifest {
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             "{} {}",
             "warning:".yellow().bold(),
@@ -615,7 +614,7 @@ fn post_process_wasm(
     if !skip_wasm_validation {
         validate_wasm::validate_import_section(&module)?;
     } else {
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {}",
             "Skipping wasm validation! Contract code may be invalid."
@@ -743,7 +742,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 verbosity,
             )?;
 
-            maybe_println!(
+            verbose_eprintln!(
                 verbosity,
                 " {} {}",
                 format!("{build_steps}").bold(),
@@ -844,7 +843,7 @@ fn local_build(
     let mut build_steps = BuildSteps::new();
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
@@ -917,7 +916,7 @@ fn local_build(
         verbosity,
     )?;
 
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
@@ -977,7 +976,7 @@ pub fn maybe_lint(
     let total_steps = build_artifact.steps();
     if lint {
         steps.set_total_steps(total_steps + 1);
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {} {}",
             format!("{steps}").bold(),

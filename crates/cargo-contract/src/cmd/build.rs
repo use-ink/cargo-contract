@@ -136,7 +136,7 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let build_mode = if self.verifiable {
             BuildMode::Verifiable
@@ -165,11 +165,6 @@ impl BuildCommand {
             Some(i) => ImageVariant::Custom(i.clone()),
             None => ImageVariant::Default,
         };
-
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
-        }
 
         let args = ExecuteArgs {
             manifest_path,

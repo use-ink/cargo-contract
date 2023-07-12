@@ -17,8 +17,8 @@
 use crate::{
     code_hash,
     crate_metadata::CrateMetadata,
-    maybe_println,
     util,
+    verbose_eprintln,
     workspace::{
         ManifestPath,
         Workspace,
@@ -128,7 +128,7 @@ pub fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {} {}",
             format!("{build_steps}").bold(),
@@ -162,7 +162,16 @@ pub fn execute(
             serde_json::from_slice(&output.stdout)?;
         let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        write_metadata(metadata_artifacts, metadata, &mut build_steps, &verbosity)?;
+        build_steps.increment_current();
+
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Generating bundle".bright_green().bold()
+        );
+        let contents = serde_json::to_string(&metadata)?;
+        fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
         Ok(())
     };
@@ -199,7 +208,7 @@ pub fn write_metadata(
         build_steps.increment_current();
     }
 
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),

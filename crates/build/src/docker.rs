@@ -86,7 +86,7 @@ use indicatif::{
 use tokio_stream::StreamExt;
 
 use crate::{
-    maybe_println,
+    verbose_eprintln,
     BuildArtifacts,
     BuildResult,
     BuildSteps,
@@ -364,7 +364,7 @@ async fn run_build(
         .context("Invalid start time")?
         .as_secs() as i64;
 
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
@@ -452,7 +452,7 @@ async fn run_build(
         .await?;
 
     build_steps.increment_current();
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
@@ -549,7 +549,7 @@ async fn pull_image(
         None,
     );
 
-    maybe_println!(
+    verbose_eprintln!(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),

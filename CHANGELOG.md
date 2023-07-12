@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Dry-run result output improvements - [1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- Display build progress with --output-json, print to stderr [1211](https://github.com/paritytech/cargo-contract/pull/1211)
 
 ### Fixed
 - Configure tty output correctly - [#1209]((https://github.com/paritytech/cargo-contract/pull/1209))
