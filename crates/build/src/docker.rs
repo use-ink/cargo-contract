@@ -166,6 +166,14 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             update_metadata(&build_result, &verbosity, &mut build_steps, &image, &client)
                 .await?;
 
+            build_steps.increment_current();
+            verbose_eprintln!(
+                verbosity,
+                " {} {}",
+                format!("{build_steps}").bold(),
+                "Displaying results".bright_cyan().bold(),
+            );
+
             Ok(BuildResult {
                 output_type,
                 verbosity,
@@ -302,8 +310,8 @@ async fn create_container(
 
     let container_option = containers.first();
 
-    if let Some(summary) = container_option {
-        return summary.id.clone().context("container does not have an id")
+    if container_option.is_some() {
+        return Ok(container_name)
     }
 
     let mount = Mount {
@@ -354,7 +362,7 @@ async fn create_container(
         .create_container(options.clone(), config.clone())
         .await
     {
-        Ok(container) => Ok(container.id),
+        Ok(_) => Ok(container_name),
         Err(err) => {
             if matches!(
                 err,
@@ -370,7 +378,7 @@ async fn create_container(
                     .create_container(options, config)
                     .await
                     .context("Failed to create docker container")
-                    .map(|o| o.id)
+                    .map(|_| container_name)
             } else {
                 Err(err.into())
             }
@@ -381,15 +389,17 @@ async fn create_container(
 /// Creates the container and executed the build inside it
 async fn run_build(
     client: &Docker,
-    container_id: &str,
+    container_name: &str,
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
 ) -> Result<BuildResult> {
-    client.start_container::<String>(container_id, None).await?;
+    client
+        .start_container::<String>(container_name, None)
+        .await?;
 
     let AttachContainerResults { mut output, .. } = client
         .attach_container(
-            container_id,
+            container_name,
             Some(AttachContainerOptions::<String> {
                 stdout: Some(true),
                 stderr: Some(true),
@@ -403,8 +413,8 @@ async fn run_build(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
-        "Started the build inside the container"
-            .bright_green()
+        format!("Started the build inside the container: {}", container_name)
+            .bright_cyan()
             .bold(),
     );
 
@@ -488,7 +498,7 @@ async fn pull_image(
         " {} {}",
         format!("{build_steps}").bold(),
         "Image does not exist. Pulling one from the registry"
-            .bright_green()
+            .bright_cyan()
             .bold()
     );
     build_steps.increment_current();

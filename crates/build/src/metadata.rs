@@ -212,7 +212,7 @@ pub fn write_metadata(
         verbosity,
         " {} {}",
         format!("{build_steps}").bold(),
-        "Generating bundle".bright_green().bold()
+        "Updating paths".bright_cyan().bold()
     );
     let contents = serde_json::to_string(&metadata)?;
     fs::write(&metadata_artifacts.dest_bundle, contents)?;
