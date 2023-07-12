@@ -273,9 +273,7 @@ async fn run_build(
     verbosity: &Verbosity,
     build_steps: &mut BuildSteps,
 ) -> Result<BuildResult> {
-    client
-        .start_container::<String>(container_id, None)
-        .await?;
+    client.start_container::<String>(container_id, None).await?;
 
     let AttachContainerResults { mut output, .. } = client
         .attach_container(
