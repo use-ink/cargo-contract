@@ -204,7 +204,7 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     });
     build_result.dest_wasm = new_path;
 
-    build_result.metadata_result.as_mut().map(|mut m| {
+    build_result.metadata_result.as_mut().map(|m| {
         m.dest_bundle = host_folder.join(
             m.dest_bundle
                 .as_path()
