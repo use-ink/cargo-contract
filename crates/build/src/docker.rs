@@ -93,21 +93,24 @@ use crate::{
 };
 
 use colored::Colorize;
-
+/// Default image to be used for the build.
 const IMAGE: &str = "paritytech/contracts-verifiable";
-// We assume the docker image contains the same tag as the current version of the crate
+/// We assume the docker image contains the same tag as the current version of the crate.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
+/// The default directory to be mounted in the container.
 const MOUNT_DIR: &str = "/contract";
 
+/// The image to be used.
 #[derive(Clone, Debug, Default)]
 pub enum ImageVariant {
+    /// The default image is used, specified in the `IMAGE` constant.
     #[default]
     Default,
+    /// Custom image is used.
     Custom(String),
 }
 
-/// Launches the docker container to execute verifiable build
+/// Launches the docker container to execute verifiable build.
 pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
@@ -182,7 +185,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         })
 }
 
-/// Reads the `BuildResult` produced by the docker execution
+/// Updates `build_result` paths to the artefacts.
 fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Result<()> {
     let new_path = host_folder.join(
         build_result
@@ -219,7 +222,7 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     Ok(())
 }
 
-/// Overwrites `build_result` and `image` fields in the metadata
+/// Overwrites `build_result` and `image` fields in the metadata.
 async fn update_metadata(
     build_result: &BuildResult,
     verbosity: &Verbosity,
@@ -256,7 +259,7 @@ async fn update_metadata(
     Ok(())
 }
 
-/// Searches for the local copy of the docker image
+/// Searches for the local copy of the docker image.
 async fn find_local_image(
     client: &Docker,
     image: String,
@@ -387,7 +390,7 @@ async fn create_container(
     }
 }
 
-/// Creates the container and executed the build inside it
+/// Starts the container and executed the build inside it.
 async fn run_build(
     client: &Docker,
     container_name: &str,
@@ -451,15 +454,18 @@ async fn run_build(
     }
 }
 
-/// Takes CLI args from the host and appends them to the build command inside the docker
+/// Takes CLI args from the host and appends them to the build command inside the docker.
 fn compose_build_args() -> Result<Vec<String>> {
     use regex::Regex;
     let mut args: Vec<String> = Vec::new();
-
-    let rex = Regex::new(r"--image [.*]*")?;
-    let args_string: String = std::env::args().collect();
+    // match --image with arg with 1 or more white spaces surrounded
+    let rex = Regex::new(r#"--image[ ]*[^ ]*[ ]*"#)?;
+    // we join the args together, so we can remove `--image <arg>`
+    let args_string: String = std::env::args().collect::<Vec<String>>().join(" ");
     let args_string = rex.replace_all(&args_string, "").to_string();
 
+    // and then we turn it back to the vec, filtering out commands and arguments
+    // that should not be passed to the docker build command
     let mut os_args: Vec<String> = args_string
         .split_ascii_whitespace()
         .filter(|a| {
@@ -478,7 +484,7 @@ fn compose_build_args() -> Result<Vec<String>> {
     Ok(args)
 }
 
-/// Pulls the docker image from the registry
+/// Pulls the docker image from the registry.
 async fn pull_image(
     client: &Docker,
     image: String,
@@ -537,7 +543,7 @@ async fn pull_image(
     Ok(())
 }
 
-/// Calculates the unique container's code
+/// Calculates the unique container's code.
 fn container_digest(entrypoint: Vec<String>, image_digest: String) -> String {
     // in order to optimise the container usage
     // we are hashing the inputted command
