@@ -56,7 +56,7 @@ use std::{
 use url::Url;
 
 /// Artifacts resulting from metadata generation.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
@@ -109,7 +109,7 @@ pub struct WasmOptSettings {
 ///
 /// It does so by generating and invoking a temporary workspace member.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute(
+pub fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
     metadata_artifacts: &MetadataArtifacts,
@@ -160,23 +160,15 @@ pub(crate) fn execute(
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
             serde_json::from_slice(&output.stdout)?;
-        let metadata = ContractMetadata::new(source, contract, user, ink_meta);
-        {
-            let mut metadata = metadata.clone();
-            metadata.remove_source_wasm_attribute();
-            let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&metadata_artifacts.dest_metadata, contents)?;
-            build_steps.increment_current();
-        }
+        let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        verbose_eprintln!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating bundle".bright_green().bold()
-        );
-        let contents = serde_json::to_string(&metadata)?;
-        fs::write(&metadata_artifacts.dest_bundle, contents)?;
+        write_metadata(
+            metadata_artifacts,
+            metadata,
+            &mut build_steps,
+            &verbosity,
+            false,
+        )?;
 
         Ok(())
     };
@@ -195,6 +187,42 @@ pub(crate) fn execute(
             .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
+
+    Ok(())
+}
+
+pub fn write_metadata(
+    metadata_artifacts: &MetadataArtifacts,
+    metadata: ContractMetadata,
+    build_steps: &mut BuildSteps,
+    verbosity: &Verbosity,
+    overwrite: bool,
+) -> Result<()> {
+    {
+        let mut metadata = metadata.clone();
+        metadata.remove_source_wasm_attribute();
+        let contents = serde_json::to_string_pretty(&metadata)?;
+        fs::write(&metadata_artifacts.dest_metadata, contents)?;
+        build_steps.increment_current();
+    }
+
+    if overwrite {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Updating paths".bright_cyan().bold()
+        );
+    } else {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            format!("{build_steps}").bold(),
+            "Generating bundle".bright_green().bold()
+        );
+    }
+    let contents = serde_json::to_string(&metadata)?;
+    fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
     Ok(())
 }

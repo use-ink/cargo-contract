@@ -59,6 +59,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -121,7 +122,7 @@ impl InstantiateCommand {
         };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        async_std::task::block_on(async move {
+        Runtime::new()?.block_on(async {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             let token_metadata = TokenMetadata::query(&client).await?;

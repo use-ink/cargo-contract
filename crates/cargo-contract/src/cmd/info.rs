@@ -28,6 +28,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -55,7 +56,7 @@ impl InfoCommand {
             self.contract
         );
 
-        async_std::task::block_on(async {
+        Runtime::new()?.block_on(async {
             let url = self.url.clone();
             let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 

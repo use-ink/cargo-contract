@@ -14,6 +14,7 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
 
 [dependencies]
+regex = "1"
 anyhow = "1.0.71"
 blake2 = "0.10.6"
 cargo_metadata = "0.15.4"
@@ -38,8 +39,15 @@ wasm-opt = "0.113.0"
 which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.25", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1"
+bollard = "0.14"
+indicatif = "0.17"
 
 contract-metadata = { version = "3.0.1", path = "../metadata" }
+
+[target.'cfg(unix)'.dependencies]
+users = "0.11"
 
 [build-dependencies]
 anyhow = "1.0.71"
