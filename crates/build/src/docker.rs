@@ -527,7 +527,6 @@ async fn show_pull_progress(
 ) -> Result<()> {
     use crossterm::{
         cursor,
-        execute,
         terminal::{
             self,
             ClearType,
