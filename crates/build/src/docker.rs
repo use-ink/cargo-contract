@@ -34,6 +34,7 @@
 //! and overwrite those paths relative to the host machine.
 
 use std::{
+    cmp::Ordering,
     collections::{
         hash_map::DefaultHasher,
         HashMap,
@@ -46,8 +47,8 @@ use std::{
         BufReader,
         Write,
     },
+    marker::Unpin,
     path::Path,
-    time::Duration,
 };
 
 use anyhow::{
@@ -63,10 +64,12 @@ use bollard::{
         ListContainersOptions,
         LogOutput,
     },
+    errors::Error,
     image::{
         CreateImageOptions,
         ListImagesOptions,
     },
+    models::CreateImageInfo,
     service::{
         HostConfig,
         ImageSummary,
@@ -76,11 +79,10 @@ use bollard::{
     Docker,
 };
 use contract_metadata::ContractMetadata;
-use indicatif::{
-    ProgressBar,
-    ProgressStyle,
+use tokio_stream::{
+    Stream,
+    StreamExt,
 };
-use tokio_stream::StreamExt;
 
 use crate::{
     verbose_eprintln,
@@ -511,35 +513,77 @@ async fn pull_image(
     build_steps.increment_current();
 
     if verbosity.is_verbose() {
-        let spinner_style = ProgressStyle::with_template(
-            " {spinner:.cyan} [{wide_bar:.cyan/blue}]\n {wide_msg}",
-        )?
-        .progress_chars("#>-")
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-        let pb = ProgressBar::new(1000);
-        pb.set_style(spinner_style);
-        pb.enable_steady_tick(Duration::from_millis(100));
-
-        while let Some(summary_result) = pull_image_stream.next().await {
-            let summary = summary_result?;
-
-            if let Some(progress_detail) = summary.progress_detail {
-                let total = progress_detail.total.map_or(1000, |v| v) as u64;
-                let current_step = progress_detail.current.map_or(1000, |v| v) as u64;
-                pb.set_length(total);
-                pb.set_position(current_step);
-
-                if let Some(msg) = summary.status {
-                    pb.set_message(msg);
-                }
-            }
-        }
-
-        pb.finish();
+        show_pull_progress(pull_image_stream).await?
     } else {
         while pull_image_stream.next().await.is_some() {}
     }
 
+    Ok(())
+}
+
+/// Display the progress of the pulling of each image layer.
+async fn show_pull_progress(
+    mut pull_image_stream: impl Stream<Item = Result<CreateImageInfo, Error>> + Sized + Unpin,
+) -> Result<()> {
+    use crossterm::{
+        cursor,
+        terminal::{
+            self,
+            ClearType,
+        },
+    };
+
+    let mut layers = Vec::new();
+    let mut curr_index = 0i16;
+    while let Some(result) = pull_image_stream.next().await {
+        let info = result?;
+
+        let status = info.status.unwrap_or_default();
+        if status.starts_with("Digest:") || status.starts_with("Status:") {
+            eprintln!("{}", status);
+            continue
+        }
+
+        if let Some(id) = info.id {
+            let mut move_cursor = String::new();
+            if let Some(index) = layers.iter().position(|l| l == &id) {
+                let index = index + 1;
+                let diff = index as i16 - curr_index;
+                curr_index = index as i16;
+                match diff.cmp(&1) {
+                    Ordering::Greater => {
+                        let down = diff - 1;
+                        move_cursor = format!("{}", cursor::MoveDown(down as u16))
+                    }
+                    Ordering::Less => {
+                        let up = diff.abs() + 1;
+                        move_cursor = format!("{}", cursor::MoveUp(up as u16))
+                    }
+                    Ordering::Equal => {}
+                }
+            } else {
+                layers.push(id.clone());
+                let len = layers.len() as i16;
+                let diff = len - curr_index;
+                curr_index = len;
+                if diff > 1 {
+                    move_cursor = format!("{}", cursor::MoveDown(diff as u16))
+                }
+            };
+
+            let clear_line = terminal::Clear(ClearType::CurrentLine);
+
+            if status == "Pull complete" {
+                eprintln!("{}{}{}: {}", move_cursor, clear_line, id, status)
+            } else {
+                let progress = info.progress.unwrap_or_default();
+                eprintln!(
+                    "{}{}{}: {} {}",
+                    move_cursor, clear_line, id, status, progress
+                )
+            }
+        }
+    }
     Ok(())
 }
 
