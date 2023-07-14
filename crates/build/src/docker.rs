@@ -547,6 +547,7 @@ async fn show_pull_progress(
         if let Some(id) = info.id {
             let mut move_cursor = String::new();
             if let Some(index) = layers.iter().position(|l| l == &id) {
+                let index = index + 1;
                 let diff = index as i16 - curr_index;
                 curr_index = index as i16;
                 match diff.cmp(&1) {
