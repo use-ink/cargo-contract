@@ -42,7 +42,7 @@ strum = { version = "0.25", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
 bollard = "0.14"
-termion = "2.0.1"
+crossterm = "0.26.1"
 
 contract-metadata = { version = "3.0.1", path = "../metadata" }
 

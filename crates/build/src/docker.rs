@@ -525,6 +525,14 @@ async fn pull_image(
 async fn show_pull_progress(
     mut pull_image_stream: impl Stream<Item = Result<CreateImageInfo, Error>> + Sized + Unpin,
 ) -> Result<()> {
+    use crossterm::{
+        cursor,
+        terminal::{
+            self,
+            ClearType,
+        },
+    };
+
     let mut layers = Vec::new();
     let mut curr_index = 0i16;
     while let Some(result) = pull_image_stream.next().await {
@@ -544,11 +552,11 @@ async fn show_pull_progress(
                 match diff.cmp(&1) {
                     Ordering::Greater => {
                         let down = diff - 1;
-                        move_cursor = format!("{}", termion::cursor::Down(down as u16))
+                        move_cursor = format!("{}", cursor::MoveDown(down as u16))
                     }
                     Ordering::Less => {
                         let up = diff.abs() + 1;
-                        move_cursor = format!("{}", termion::cursor::Up(up as u16))
+                        move_cursor = format!("{}", cursor::MoveUp(up as u16))
                     }
                     Ordering::Equal => {}
                 }
@@ -558,11 +566,11 @@ async fn show_pull_progress(
                 let diff = len - curr_index;
                 curr_index = len;
                 if diff > 1 {
-                    move_cursor = format!("{}", termion::cursor::Down(diff as u16))
+                    move_cursor = format!("{}", cursor::MoveDown(diff as u16))
                 }
             };
 
-            let clear_line = termion::clear::CurrentLine;
+            let clear_line = terminal::Clear(ClearType::CurrentLine);
 
             if status == "Pull complete" {
                 println!("{}{}{}: {}", move_cursor, clear_line, id, status)
