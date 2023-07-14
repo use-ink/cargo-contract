@@ -36,6 +36,8 @@ pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(
     Eq, PartialEq, Copy, Clone, Encode, Decode, TypeInfo, MaxEncodedLen, Default, PartialOrd, Ord,
+    scale_encode::EncodeAsType,
+    scale_decode::DecodeAsType,
 )]
 pub struct AccountId20(pub [u8; 20]);
 
