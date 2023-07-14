@@ -527,6 +527,7 @@ async fn show_pull_progress(
 ) -> Result<()> {
     use crossterm::{
         cursor,
+        execute,
         terminal::{
             self,
             ClearType,
@@ -573,10 +574,10 @@ async fn show_pull_progress(
             let clear_line = terminal::Clear(ClearType::CurrentLine);
 
             if status == "Pull complete" {
-                println!("{}{}{}: {}", move_cursor, clear_line, id, status)
+                eprintln!("{}{}{}: {}", move_cursor, clear_line, id, status)
             } else {
                 let progress = info.progress.unwrap_or_default();
-                println!(
+                eprintln!(
                     "{}{}{}: {} {}",
                     move_cursor, clear_line, id, status, progress
                 )
