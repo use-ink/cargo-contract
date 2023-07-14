@@ -36,7 +36,6 @@ use super::{
     DEFAULT_KEY_COL_WIDTH,
     MAX_KEY_COL_WIDTH,
 };
-use subxt::tx::Signer;
 
 use contract_build::name_value_println;
 

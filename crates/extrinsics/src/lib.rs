@@ -22,12 +22,11 @@ mod instantiate;
 mod remove;
 mod runtime_api;
 mod upload;
+mod pair_signer;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
-
-use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
@@ -97,7 +96,7 @@ pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
 pub use upload::UploadCommand;
 
-type PairSigner = tx::PairSigner<DefaultConfig, ecdsa::Pair>;
+type PairSigner = pair_signer::PairSigner<DefaultConfig, ecdsa::Pair>;
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
