@@ -41,7 +41,6 @@ use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
-    Signer,
 };
 use tokio::runtime::Runtime;
 

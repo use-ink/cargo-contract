@@ -37,12 +37,6 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = "0.29.0"
 hex = "0.4.3"
 
-# Same crate as Academy PoW node, copied in and:
-# 1. Made to use published substrate dependency versions
-# 2. All feature gating removed.
-# TODO 3. Might be able to get rid of verification stuff and sp-io dependency
-account = { path = "../account" }
-
 [build-dependencies]
 anyhow = "1.0.71"
 substrate-build-script-utils = "5.0.0"

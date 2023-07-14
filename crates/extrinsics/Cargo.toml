@@ -36,3 +36,9 @@ scale-info = "2.8.0"
 subxt = "0.29.0"
 hex = "0.4.3"
 jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
+
+# Same crate as Academy PoW node, copied in and:
+# 1. Made to use published substrate dependency versions
+# 2. All feature gating removed.
+# TODO 3. Might be able to get rid of verification stuff and sp-io dependency
+account = { path = "../account" }
