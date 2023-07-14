@@ -618,48 +618,48 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn encode_account_id_custom_ss58_encoding() -> Result<()> {
-    //     let metadata = generate_metadata();
-    //     let transcoder = ContractMessageTranscoder::new(metadata);
-    //
-    //     let encoded = transcoder.encode(
-    //         "set_account_id",
-    //         ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
-    //     )?;
-    //
-    //     // encoded args follow the 4 byte selector
-    //     let encoded_args = &encoded[4..];
-    //
-    //     let expected =
-    //         AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
-    //             .unwrap();
-    //     assert_eq!(expected.encode(), encoded_args);
-    //     Ok(())
-    // }
+    #[test]
+    fn encode_account_id_custom_ss58_encoding() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
 
-    // #[test]
-    // fn encode_account_ids_vec_args() -> Result<()> {
-    //     let metadata = generate_metadata();
-    //     let transcoder = ContractMessageTranscoder::new(metadata);
-    //
-    //     let encoded = transcoder.encode(
-    //         "set_account_ids_vec",
-    //         ["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
-    //     )?;
-    //
-    //     // encoded args follow the 4 byte selector
-    //     let encoded_args = &encoded[4..];
-    //
-    //     let expected = vec![
-    //         AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
-    //             .unwrap(),
-    //         AccountId32::from_str("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty")
-    //             .unwrap(),
-    //     ];
-    //     assert_eq!(expected.encode(), encoded_args);
-    //     Ok(())
-    // }
+        let encoded = transcoder.encode(
+            "set_account_id",
+            ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected =
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap();
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
+
+    #[test]
+    fn encode_account_ids_vec_args() -> Result<()> {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded = transcoder.encode(
+            "set_account_ids_vec",
+            ["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+        )?;
+
+        // encoded args follow the 4 byte selector
+        let encoded_args = &encoded[4..];
+
+        let expected = vec![
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap(),
+            AccountId32::from_str("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty")
+                .unwrap(),
+        ];
+        assert_eq!(expected.encode(), encoded_args);
+        Ok(())
+    }
 
     #[test]
     fn encode_primitive_vec_args() -> Result<()> {

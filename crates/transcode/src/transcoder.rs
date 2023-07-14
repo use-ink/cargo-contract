@@ -182,7 +182,7 @@ mod tests {
             self,
             Hex,
             Map,
-            // Seq,
+            Seq,
             Tuple,
             Value,
         },
@@ -684,77 +684,77 @@ mod tests {
         )
     }
 
-    // #[test]
-    // fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-    //     type AccountId = AccountId32;
-    //
-    //     #[allow(dead_code)]
-    //     #[derive(TypeInfo)]
-    //     struct S {
-    //         no_alias: AccountId32,
-    //         aliased: AccountId,
-    //     }
-    //
-    //     transcode_roundtrip::<S>(
-    //         r#"S(
-    //             no_alias: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
-    //             aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
-    //          )"#,
-    //         Value::Map(Map::new(
-    //             Some("S"),
-    //             vec![
-    //                 (
-    //                     Value::String("no_alias".into()),
-    //                     Value::Literal(
-    //                         "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into(),
-    //                     ),
-    //                 ),
-    //                 (
-    //                     Value::String("aliased".into()),
-    //                     Value::Literal(
-    //                         "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into(),
-    //                     ),
-    //                 ),
-    //             ]
-    //             .into_iter()
-    //             .collect(),
-    //         )),
-    //     )
-    // }
+    #[test]
+    fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
+        type AccountId = AccountId32;
 
-    // #[test]
-    // fn transcode_account_id_custom_ss58_encoding_seq() -> Result<()> {
-    //     let hex_to_bytes = |hex: &str| -> Result<Value> {
-    //         let hex = Hex::from_str(hex)?;
-    //         let values = hex.bytes().iter().map(|b| Value::UInt((*b).into()));
-    //         Ok(Value::Seq(Seq::new(values.collect())))
-    //     };
-    //
-    //     transcode_roundtrip::<Vec<AccountId32>>(
-    //         r#"[
-    //             5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
-    //             5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
-    //          ]"#,
-    //         Value::Seq(Seq::new(
-    //             vec![
-    //                 Value::Tuple(
-    //                     Tuple::new(
-    //                         Some("AccountId32"),
-    //                         vec![hex_to_bytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")?]
-    //                     )
-    //                 ),
-    //                 Value::Tuple(
-    //                     Tuple::new(
-    //                         Some("AccountId32"),
-    //                         vec![hex_to_bytes("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")?]
-    //                     )
-    //                 )
-    //             ]
-    //                 .into_iter()
-    //                 .collect(),
-    //         )),
-    //     )
-    // }
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct S {
+            no_alias: AccountId32,
+            aliased: AccountId,
+        }
+
+        transcode_roundtrip::<S>(
+            r#"S(
+                no_alias: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
+                aliased: 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
+             )"#,
+            Value::Map(Map::new(
+                Some("S"),
+                vec![
+                    (
+                        Value::String("no_alias".into()),
+                        Value::Literal(
+                            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into(),
+                        ),
+                    ),
+                    (
+                        Value::String("aliased".into()),
+                        Value::Literal(
+                            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty".into(),
+                        ),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            )),
+        )
+    }
+
+    #[test]
+    fn transcode_account_id_custom_ss58_encoding_seq() -> Result<()> {
+        let hex_to_bytes = |hex: &str| -> Result<Value> {
+            let hex = Hex::from_str(hex)?;
+            let values = hex.bytes().iter().map(|b| Value::UInt((*b).into()));
+            Ok(Value::Seq(Seq::new(values.collect())))
+        };
+
+        transcode_roundtrip::<Vec<AccountId32>>(
+            r#"[
+                5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
+                5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
+             ]"#,
+            Value::Seq(Seq::new(
+                vec![
+                    Value::Tuple(
+                        Tuple::new(
+                            Some("AccountId32"),
+                            vec![hex_to_bytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")?]
+                        )
+                    ),
+                    Value::Tuple(
+                        Tuple::new(
+                            Some("AccountId32"),
+                            vec![hex_to_bytes("0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")?]
+                        )
+                    )
+                ]
+                    .into_iter()
+                    .collect(),
+            )),
+        )
+    }
 
     #[test]
     fn decode_h256_as_hex_string() -> Result<()> {
