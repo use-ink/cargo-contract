@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -15,28 +15,22 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    events::DisplayEvents,
+    name_value_println,
+    parse_code_hash,
+    runtime_api::api::{
+        self,
+        contracts::events::CodeRemoved,
+    },
     submit_extrinsic,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
     PairSigner,
     TokenMetadata,
-};
-use crate::{
-    cmd::{
-        extrinsics::{
-            events::DisplayEvents,
-            parse_code_hash,
-            ErrorVariant,
-        },
-        runtime_api::api::{
-            self,
-            contracts::events::CodeRemoved,
-        },
-        CodeHash,
-    },
-    name_value_println,
 };
 use anyhow::Result;
 use std::fmt::Debug;
@@ -44,6 +38,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
@@ -87,7 +82,7 @@ impl RemoveCommand {
             }
         }?;
 
-        async_std::task::block_on(async {
+        Runtime::new()?.block_on(async {
             let url = self.extrinsic_opts.url_to_string();
             let client = OnlineClient::from_url(url.clone()).await?;
             if let Some(code_removed) = self

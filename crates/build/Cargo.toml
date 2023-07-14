@@ -7,39 +7,47 @@ edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/paritytech/cargo-contract"
-documentation = "https://docs.rs/contract-metadata"
+documentation = "https://docs.rs/contract-build"
 homepage = "https://www.substrate.io/"
 description = "Library for building ink! smart contracts"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
 
 [dependencies]
+regex = "1"
 anyhow = "1.0.71"
 blake2 = "0.10.6"
 cargo_metadata = "0.15.4"
-colored = "2.0.0"
-clap = { version = "4.3.9", features = ["derive", "env"] }
+colored = "2.0.4"
+clap = { version = "4.3.11", features = ["derive", "env"] }
 duct = "0.13.6"
 heck = "0.4.0"
 hex = "0.4.3"
 impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-toml = "0.7.5"
+toml = "0.7.6"
 tracing = "0.1.37"
-parity-wasm = "0.45.0"
+parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
 semver = { version = "1.0.17", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.99"
+serde_json = "1.0.102"
 tempfile = "3.6.0"
 term_size = "0.3.2"
 url = { version = "2.4.0", features = ["serde"] }
-wasm-opt = "0.112.0"
+wasm-opt = "0.113.0"
 which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.25", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1"
+bollard = "0.14"
+crossterm = "0.26.1"
 
 contract-metadata = { version = "3.0.1", path = "../metadata" }
+
+[target.'cfg(unix)'.dependencies]
+users = "0.11"
 
 [build-dependencies]
 anyhow = "1.0.71"
@@ -47,5 +55,5 @@ walkdir = "2.3.3"
 zip = { version = "0.6.6", default-features = false }
 
 [dev-dependencies]
-pretty_assertions = "1.3.0"
+pretty_assertions = "1.4.0"
 wabt = "0.10.0"
