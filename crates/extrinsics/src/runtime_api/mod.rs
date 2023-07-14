@@ -22,10 +22,9 @@
         path = "sp_weights::weight_v2::Weight",
         with = "::subxt::utils::Static<::sp_weights::Weight>"
     ),
-    // This was just me grasping at a potential solution to the compile errors.
-    // substitute_type(
-    //     path = "account::AccountId20",
-    //     with = "::account::AccountId20"
-    // )
+    substitute_type(
+        path = "account::AccountId20",
+        with = "::account::AccountId20"
+    )
 )]
 pub mod api {}
