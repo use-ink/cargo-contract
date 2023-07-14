@@ -113,8 +113,8 @@ pub enum AcademyPowConfig{}
 impl subxt::Config for DefaultConfig {
     type Index = <SubstrateConfig as Config>::Index;
     type Hash = <SubstrateConfig as Config>::Hash;
-    type AccountId = contract_transcode::AccountId20;
-    type Address = contract_transcode::AccountId20;
+    type AccountId = account::AccountId20;
+    type Address = account::AccountId20;
     type Signature = account::EthereumSignature;
     type Hasher = <SubstrateConfig as Config>::Hasher;
     type Header = <SubstrateConfig as Config>::Header;
@@ -498,7 +498,7 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
 
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
-    contract: &AccountId32,
+    contract: &account::AccountId20,
     client: &Client,
 ) -> Result<Option<ContractInfo>> {
     let info_contract_call = api::storage().contracts().contract_info_of(contract);

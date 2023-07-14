@@ -106,8 +106,6 @@ mod scon;
 mod transcoder;
 mod util;
 
-pub use account::AccountId20;
-
 pub use self::{
     scon::{
         Hex,

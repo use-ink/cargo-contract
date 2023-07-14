@@ -229,7 +229,7 @@ fn format_err<E: Debug>(err: E) -> Error {
 // Until this crate actually compiles, you have to comment out pretty much all of this file to make the test build.
 #[test]
 fn make_sure_that_account_id_20_types_are_the_same_type() {
-    let a = contract_transcode::AccountId20::default();
+    let a = account::AccountId20::default();
     let b = account::AccountId20::default();
 
     assert_eq!(a, b, "If this compiles at all, they are the same type. (I guess it should pass too.)")

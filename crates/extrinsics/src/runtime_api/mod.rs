@@ -24,7 +24,7 @@
     ),
     // This was just me grasping at a potential solution to the compile errors.
     // substitute_type(
-    //     path = "contract_transcode::AccountId20",
+    //     path = "account::AccountId20",
     //     with = "::account::AccountId20"
     // )
 )]

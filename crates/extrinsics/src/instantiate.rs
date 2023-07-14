@@ -324,7 +324,7 @@ impl Exec {
         &self,
         result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
-        contract_address: contract_transcode::AccountId20,
+        contract_address: account::AccountId20,
         token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
