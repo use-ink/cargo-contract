@@ -24,6 +24,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
  - OS: [e.g. MacOS M1 or Debian]
+ - `cargo-contract` version [e.g. 3.0.1]
  - ink! version: [e.g. 4.2.0]
  - `substrate-contracts-node` version: [e.g. 0.14.0]
 
