@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -16,33 +16,26 @@
 
 use super::{
     display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
+    events::DisplayEvents,
     prompt_confirm_tx,
+    runtime_api::api,
     state_call,
     submit_extrinsic,
+    Balance,
     BalanceVariant,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
     PairSigner,
     StorageDeposit,
-    MAX_KEY_COL_WIDTH,
-};
-use subxt::tx::Signer;
-use crate::{
-    cmd::{
-        extrinsics::{
-            display_contract_exec_result_debug,
-            display_dry_run_result_warning,
-            events::DisplayEvents,
-            ErrorVariant,
-            TokenMetadata,
-        },
-        runtime_api::api,
-        Balance,
-        CodeHash,
-    },
+    TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
+    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -66,6 +59,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -128,7 +122,7 @@ impl InstantiateCommand {
         };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        async_std::task::block_on(async move {
+        Runtime::new()?.block_on(async {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             let token_metadata = TokenMetadata::query(&client).await?;
@@ -330,7 +324,7 @@ impl Exec {
         &self,
         result: &ExtrinsicEvents<DefaultConfig>,
         code_hash: Option<CodeHash>,
-        contract_address: contract_transcode::AccountId20,
+        contract_address: account::AccountId20,
         token_metadata: &TokenMetadata,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(

@@ -106,8 +106,6 @@ mod scon;
 mod transcoder;
 mod util;
 
-pub use account::AccountId20;
-
 pub use self::{
     scon::{
         Hex,
@@ -418,7 +416,7 @@ impl ContractMessageTranscoder {
                 data.len(),
                 arg_list_string,
                 encoded_bytes
-            ))
+            ));
         }
         Ok(())
     }

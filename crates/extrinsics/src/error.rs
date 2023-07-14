@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -63,6 +63,12 @@ impl From<anyhow::Error> for ErrorVariant {
 impl From<&str> for ErrorVariant {
     fn from(err: &str) -> Self {
         Self::Generic(GenericError::from_message(err.to_owned()))
+    }
+}
+
+impl From<std::io::Error> for ErrorVariant {
+    fn from(value: std::io::Error) -> Self {
+        Self::Generic(GenericError::from_message(value.to_string()))
     }
 }
 

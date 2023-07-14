@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -26,8 +26,10 @@ use rust_decimal::{
 };
 use serde_json::json;
 
-use super::Client;
-use crate::cmd::Balance;
+use super::{
+    Balance,
+    Client,
+};
 
 use anyhow::{
     anyhow,
@@ -162,39 +164,34 @@ impl BalanceVariant {
     /// Throws Error if `value` is of nigher precision that allowed.
     ///
     /// ```rust
-    /// use anyhow::{
-    ///     Ok,
-    ///     Result,
+    /// use contract_extrinsics::{
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
     /// let decimals = 6;
     /// let tm = TokenMetadata {
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(4, 1),
-    ///     unit: UnitPrefix::Micro,
-    ///     symbol: String::new("DOT"),
-    /// });
-    /// let result = sample_den_balance.denominate_balance(tm);
+    /// let sample_den_balance: BalanceVariant = "0.4\u{3bc}DOT".parse().unwrap();
+    /// let result = sample_den_balance.denominate_balance(&tm);
     /// assert!(result.is_err());
     /// ```
     ///
     /// Otherwise, [Balance] is returned:
     /// ```rust
-    ///  use anyhow::{Result, Ok};
-    ///  let decimals = 6;
-    ///  let tm = TokenMetadata {
-    ///        token_decimals: decimals,
-    ///        symbol: String::from("DOT"),
+    /// use contract_extrinsics::{
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
-    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(4123, 0),
-    ///     unit: UnitPrefix::Micro,
-    ///     symbol: String::new("DOT")
-    /// });
+    /// let decimals = 6;
+    /// let tm = TokenMetadata {
+    ///     token_decimals: decimals,
+    ///     symbol: String::from("DOT"),
+    /// };
+    /// let sample_den_balance: BalanceVariant = "4123\u{3bc}DOT".parse().unwrap();
     /// let balance = 4123;
-    /// let result = sample_den_balance.denominate_balance(tm).unwrap()
+    /// let result = sample_den_balance.denominate_balance(&tm).unwrap();
     /// assert_eq!(balance, result);
     /// ```
     pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
@@ -239,7 +236,7 @@ impl BalanceVariant {
     /// by manipulating the token_decimals.
     ///
     /// If the number is divisible by 10^(`token_decimals` + `unit_zeros`),
-    /// It sets the [UnitPrefix] and divides the `value` into `Decimal`
+    /// It sets the `UnitPrefix` and divides the `value` into `Decimal`
     ///
     /// If no [TokenMetadata] was present, than that means
     /// that [Balance] is to be displayed in *normal* format
@@ -247,23 +244,20 @@ impl BalanceVariant {
     ///
     /// # Examples
     /// ```rust
-    /// use anyhow::{
-    ///     Ok,
-    ///     Result,
+    /// use contract_extrinsics::{
+    ///     Balance,
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
     /// let decimals = 10;
     /// let tm = TokenMetadata {
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance = BalanceVariant::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(5005, 1),
-    ///     unit: UnitPrefix::Mega,
-    ///     symbol: String::from("DOT"),
-    /// });
+    /// let sample_den_balance: BalanceVariant = "500.5MDOT".parse().unwrap();
     /// let balance: Balance = 5_005_000_000_000_000_000;
-    /// let den_balance = BalanceVariant::from(balance, Some(tm));
-    /// assert_eq!(Ok(sample_den_balance), Ok(den_balance));
+    /// let den_balance = BalanceVariant::from(balance, Some(&tm)).unwrap();
+    /// assert_eq!(sample_den_balance, den_balance);
     /// ```
     pub fn from<T: Into<u128>>(
         value: T,

@@ -17,6 +17,9 @@ log = "0.4"
 serde = { version = "1.0.101", features = [ "derive" ] }
 sha3 = { version = "0.10", default-features = false }
 
+scale-decode = "0.7.0"
+scale-encode = "0.3.0"
+
 # Substrate
 parity-scale-codec = {version = "3.1.2", default-features = false, features = ["derive"] }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
