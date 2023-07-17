@@ -106,7 +106,7 @@ e.g. `cargo contract new --help`.
 Creates an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
-The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs)
+The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink-examples/blob/main/flipper/lib.rs)
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 
