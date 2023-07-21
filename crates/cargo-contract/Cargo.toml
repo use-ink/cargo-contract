@@ -47,7 +47,7 @@ which = "4.4.0"
 assert_cmd = "2.0.12"
 regex = "1.9.1"
 predicates = "3.0.3"
-tempfile = "3.6.0"
+tempfile = "3.7.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
