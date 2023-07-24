@@ -26,8 +26,10 @@ use crate::{
     BuildMode,
     BuildSteps,
     Features,
+    Lto,
     Network,
     OptimizationPasses,
+    Profile,
     UnstableFlags,
     Verbosity,
 };
@@ -180,7 +182,10 @@ pub fn execute(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?
+                    .with_profile_release_defaults(Profile {
+                        lto: Some(Lto::Thin),
+                        ..Profile::default()
+                    })?
                     .with_empty_workspace();
                 Ok(())
             })?

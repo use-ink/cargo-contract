@@ -61,8 +61,11 @@ pub use self::{
         OptimizationResult,
     },
     workspace::{
+        Lto,
         Manifest,
         ManifestPath,
+        OptLevel,
+        PanicStrategy,
         Profile,
         Workspace,
     },
