@@ -23,7 +23,7 @@ contract-extrinsics = { version = "3.0.1", path = "../extrinsics" }
 contract-transcode = { version = "3.0.1", path = "../transcode" }
 
 anyhow = "1.0.72"
-clap = { version = "4.3.17", features = ["derive", "env"] }
+clap = { version = "4.3.19", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 which = "4.4.0"
