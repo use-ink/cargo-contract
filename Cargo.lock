@@ -1323,12 +1323,12 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.20.1"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0558d22a7b463ed0241e993f76f09f30b126687447751a8638587b864e4b3944"
+checksum = "0209d94da627ab5605dcccf08bb18afa5009cfbef48d8a8b7d7bdbc79be25c5e"
 dependencies = [
- "darling_core 0.20.1",
- "darling_macro 0.20.1",
+ "darling_core 0.20.3",
+ "darling_macro 0.20.3",
 ]
 
 [[package]]
@@ -1347,9 +1347,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.20.1"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab8bfa2e259f8ee1ce5e97824a3c55ec4404a0d772ca7fa96bf19f0752a046eb"
+checksum = "177e3443818124b357d8e76f53be906d60937f0d3a90773a664fa63fa253e621"
 dependencies = [
  "fnv",
  "ident_case",
@@ -1372,11 +1372,11 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.20.1"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29a358ff9f12ec09c3e61fef9b5a9902623a695a46a917b07f269bff1445611a"
+checksum = "836a9bbc7ad63342d6d6e7b815ccab164bc77a2d95d84bc3117a8c0d5c98e2d5"
 dependencies = [
- "darling_core 0.20.1",
+ "darling_core 0.20.3",
  "quote",
  "syn 2.0.25",
 ]
@@ -1534,9 +1534,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "env_logger"
@@ -4956,9 +4956,9 @@ checksum = "734676eb262c623cec13c3155096e08d1f8f29adce39ba17948b18dad1e54142"
 
 [[package]]
 name = "subxt"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8472985db2cbeecea20de0e6a363617e520c1bfd992bc44eb5e05ed7b9ae5a4"
+checksum = "0ba02ada83ba2640c46e200a1758cc83ce876a16326d2c52ca5db41b7d6645ce"
 dependencies = [
  "base58",
  "blake2",
@@ -4988,9 +4988,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2de70c69dab0851c397c9b4d5084283f9e13178491dddb1da595910f902736e4"
+checksum = "3213eb04567e710aa253b94de74337c7b663eea52114805b8723129763282779"
 dependencies = [
  "frame-metadata 16.0.0",
  "heck",
@@ -5008,9 +5008,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-lightclient"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9659ae9b1134f9cb866d7d1cdb9d68145a0e3bd75b614c8a20c148372574795"
+checksum = "439a235bedd0e460c110e5341d919ec3a27f9be3dd4c1c944daad8a9b54d396d"
 dependencies = [
  "futures",
  "futures-util",
@@ -5025,11 +5025,11 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b7f8dcb31a63d155f96f607edd988322715f685f5bbf16a494d12410b75e46a"
+checksum = "cfda460cc5f701785973382c589e9bb12c23bb8d825bfc3ac547b7c672aba1c0"
 dependencies = [
- "darling 0.20.1",
+ "darling 0.20.3",
  "proc-macro-error",
  "subxt-codegen",
  "syn 2.0.25",
@@ -5037,9 +5037,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-metadata"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64efa96a7b5b23f5d51a7d22c78f7d6132d7580e048b07b2c73a2d00c16146b1"
+checksum = "0283bd02163913fbd0a5153d0b179533e48b239b953fa4e43baa27c73f18861c"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -5050,9 +5050,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-signer"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e44e1dc524a325ed290499f42c5ea268b711cba45b93c7149dc980b8f42607"
+checksum = "8829de70ce3df90bfeccee1d80a29d554bc0219d7031ed67c11679e3ddc95b7d"
 dependencies = [
  "bip39",
  "hex",
