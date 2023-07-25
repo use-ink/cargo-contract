@@ -157,8 +157,6 @@ impl ExtrinsicOpts {
         let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
         let keypair = Keypair::from_uri(&uri)?;
         Ok(keypair)
-        // Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-        //     .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
 
     /// Returns the verbosity
