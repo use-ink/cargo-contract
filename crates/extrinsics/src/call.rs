@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
@@ -179,7 +180,7 @@ impl CallCommand {
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
         let call_request = CallRequest {
-            origin: subxt::tx::Signer::<DefaultConfig>::account_id(signer),
+            origin: account_id(signer),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&token_metadata)?,
             gas_limit: None,

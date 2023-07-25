@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_dry_run_result_warning,
     events::DisplayEvents,
     name_value_println,
@@ -139,7 +140,7 @@ impl UploadCommand {
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
         let call_request = CodeUploadRequest {
-            origin: subxt::tx::Signer::<DefaultConfig>::account_id(signer),
+            origin: account_id(signer),
             code: code.0,
             storage_deposit_limit,
             determinism: Determinism::Enforced,

@@ -321,6 +321,11 @@ impl WasmCode {
     }
 }
 
+/// Get the account id from the Keypair
+pub fn account_id(keypair: &Keypair) -> AccountId32 {
+    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
+}
+
 const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 

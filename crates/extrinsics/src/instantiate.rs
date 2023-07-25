@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
@@ -364,7 +365,7 @@ impl Exec {
     > {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
-            origin: subxt::tx::Signer::<DefaultConfig>::account_id(&self.signer),
+            origin: account_id(&self.signer),
             value: self.args.value,
             gas_limit: None,
             storage_deposit_limit,
