@@ -30,7 +30,6 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     ExtrinsicOpts,
-    PairSigner,
     StorageDeposit,
     TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
@@ -56,6 +55,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -101,7 +101,7 @@ impl CallCommand {
         let call_data = transcoder.encode(&self.message, &self.args)?;
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
 
         Runtime::new()?
             .block_on(async {
@@ -168,7 +168,7 @@ impl CallCommand {
         &self,
         input_data: Vec<u8>,
         client: &Client,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<ContractExecResult<Balance, ()>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
@@ -179,7 +179,7 @@ impl CallCommand {
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
         let call_request = CallRequest {
-            origin: signer.account_id().clone(),
+            origin: subxt::tx::Signer::<DefaultConfig>::account_id(signer),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&token_metadata)?,
             gas_limit: None,
@@ -193,7 +193,7 @@ impl CallCommand {
         &self,
         client: &Client,
         data: Vec<u8>,
-        signer: &PairSigner,
+        signer: &Keypair,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<(), ErrorVariant> {
         tracing::debug!("calling contract {:?}", self.contract);
@@ -245,7 +245,7 @@ impl CallCommand {
         &self,
         client: &Client,
         data: Vec<u8>,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<Weight> {
         if self.extrinsic_opts.skip_dry_run {
             return match (self.gas_limit, self.proof_size) {

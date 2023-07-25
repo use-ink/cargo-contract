@@ -62,11 +62,7 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-    Bytes,
-};
+use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
     blocks,
@@ -74,6 +70,10 @@ use subxt::{
     tx,
     Config,
     OnlineClient,
+};
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
 };
 
 use std::{
@@ -97,7 +97,6 @@ pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
@@ -121,11 +120,12 @@ pub struct ExtrinsicOpts {
     )]
     url: url::Url,
     /// Secret key URI for the account deploying the contract.
+    ///
+    /// e.g.
+    /// - for a dev account "//Alice"
+    /// - with a password "//Alice///SECRET_PASSWORD"
     #[clap(name = "suri", long, short)]
     suri: String,
-    /// Password for the secret key.
-    #[clap(name = "password", long, short)]
-    password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     /// Submit the extrinsic for on-chain execution.
@@ -153,9 +153,12 @@ impl ExtrinsicOpts {
     }
 
     /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    pub fn signer(&self) -> Result<Keypair> {
+        let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
+        let keypair = Keypair::from_uri(&uri)?;
+        Ok(keypair)
+        // Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
+        //     .map_err(|_| anyhow::anyhow!("Secret string error"))
     }
 
     /// Returns the verbosity
@@ -320,11 +323,6 @@ impl WasmCode {
     }
 }
 
-/// Create a new `PairSigner` from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
-    PairSigner::new(pair)
-}
-
 const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
@@ -399,8 +397,7 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
-        Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
 {
     client
         .tx()
