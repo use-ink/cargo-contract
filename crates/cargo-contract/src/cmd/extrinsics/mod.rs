@@ -65,18 +65,19 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-    Bytes,
-};
+use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
     blocks,
     config,
     tx,
+    utils::AccountId32,
     Config,
     OnlineClient,
+};
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
 };
 
 use std::{
@@ -97,8 +98,6 @@ pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
-
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct ExtrinsicOpts {
@@ -118,11 +117,12 @@ pub struct ExtrinsicOpts {
     )]
     url: url::Url,
     /// Secret key URI for the account deploying the contract.
+    ///
+    /// e.g.
+    /// - for a dev account "//Alice"
+    /// - with a password "//Alice///SECRET_PASSWORD"
     #[clap(name = "suri", long, short)]
     suri: String,
-    /// Password for the secret key.
-    #[clap(name = "password", long, short)]
-    password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     /// Submit the extrinsic for on-chain execution.
@@ -150,9 +150,10 @@ impl ExtrinsicOpts {
     }
 
     /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    pub fn signer(&self) -> Result<Keypair> {
+        let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
+        let keypair = Keypair::from_uri(&uri)?;
+        Ok(keypair)
     }
 
     /// Returns the verbosity
@@ -317,9 +318,9 @@ impl WasmCode {
     }
 }
 
-/// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
-    PairSigner::new(pair)
+/// Get the account id from the Keypair
+pub fn account_id(keypair: &Keypair) -> AccountId32 {
+    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
 const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
@@ -327,7 +328,7 @@ pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance>,
+    result: &ContractResult<R, Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -352,7 +353,7 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
 }
 
 pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance>,
+    result: &ContractResult<R, Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -396,8 +397,7 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
-        Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
 {
     client
         .tx()

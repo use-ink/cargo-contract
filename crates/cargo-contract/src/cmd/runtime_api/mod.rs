@@ -19,7 +19,7 @@
 #[subxt::subxt(
     runtime_metadata_path = "src/cmd/runtime_api/contracts_runtime.scale",
     substitute_type(
-        type = "sp_weights::weight_v2::Weight",
+        path = "sp_weights::weight_v2::Weight",
         with = "::subxt::utils::Static<::sp_weights::Weight>"
     )
 )]
