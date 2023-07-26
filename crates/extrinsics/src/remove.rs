@@ -29,7 +29,6 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     ExtrinsicOpts,
-    PairSigner,
     TokenMetadata,
 };
 use anyhow::Result;
@@ -38,6 +37,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
 use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
@@ -61,7 +61,7 @@ impl RemoveCommand {
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
@@ -117,7 +117,7 @@ impl RemoveCommand {
         &self,
         client: &Client,
         code_hash: CodeHash,
-        signer: &PairSigner,
+        signer: &Keypair,
         transcoder: &ContractMessageTranscoder,
     ) -> Result<Option<CodeRemoved>, ErrorVariant> {
         let call = api::tx()

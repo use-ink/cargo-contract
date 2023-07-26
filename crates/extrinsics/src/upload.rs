@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_dry_run_result_warning,
     events::DisplayEvents,
     name_value_println,
@@ -30,7 +31,6 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     ExtrinsicOpts,
-    PairSigner,
     TokenMetadata,
     WasmCode,
 };
@@ -42,6 +42,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
 use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
@@ -61,7 +62,7 @@ impl UploadCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
@@ -128,7 +129,7 @@ impl UploadCommand {
         &self,
         code: WasmCode,
         client: &Client,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
@@ -139,7 +140,7 @@ impl UploadCommand {
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
         let call_request = CodeUploadRequest {
-            origin: signer.account_id().clone(),
+            origin: account_id(signer),
             code: code.0,
             storage_deposit_limit,
             determinism: Determinism::Enforced,
@@ -151,7 +152,7 @@ impl UploadCommand {
         &self,
         client: &Client,
         code: WasmCode,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
