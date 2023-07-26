@@ -14,7 +14,7 @@ description = "Setup and deployment tool for developing Wasm based smart contrac
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
-    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "src/**/*.scale",
+    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs",
 ]
 
 [dependencies]

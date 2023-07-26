@@ -11,7 +11,7 @@ documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "src/**/*.scale",]
 
 [dependencies]
 contract-build = { version = "3.1.0", path = "../build" }
