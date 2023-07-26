@@ -4,18 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.1.0]
+
+**Notable changes:**
+  - Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+  - Extrinsics extracted to separate crate - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+  - Fix building contracts with Rust >= 1.70: enable `sign_ext` Wasm opcode - [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
 
 ### Added
 - Standardised verifiable builds - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Enable Wasm sign_ext [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+- Expose extrinsics operations as a library - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Suggest valid message or constructor name, when misspelled - [#1162](https://github.com/paritytech/cargo-contract/pull/1162)
+- Add flag -y as a shortcut for --skip-confirm - [#1127](https://github.com/paritytech/cargo-contract/pull/1127)
+- Add command line argument --max-memory-pages - [#1128](https://github.com/paritytech/cargo-contract/pull/1128)
+- Show Gas consumption by default for dry-runs - [#1121](https://github.com/paritytech/cargo-contract/pull/1121)
 
 ### Changed
 - Dry-run result output improvements - [1123](https://github.com/paritytech/cargo-contract/pull/1123)
-- Display build progress with --output-json, print to stderr [1211](https://github.com/paritytech/cargo-contract/pull/1211)
+- Display build progress with --output-json, print to stderr - [1211](https://github.com/paritytech/cargo-contract/pull/1211)
+- Update `subxt` to `0.30.1` with new `subxt-signer` crate - [#1236](https://github.com/paritytech/cargo-contract/pull/1236)
+- Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
+- Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
+- Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
 
 ### Fixed
-- Configure tty output correctly - [#1209]((https://github.com/paritytech/cargo-contract/pull/1209))
-
+- Configure tty output correctly - [#1209](https://github.com/paritytech/cargo-contract/pull/1209)
+- Set `lto = "thin"` for metadata build to fix `linkme` on macOS - [#1200](https://github.com/paritytech/cargo-contract/pull/1200)
+- fix(build): An error when running with `--lint` - [#1174](https://github.com/paritytech/cargo-contract/pull/1174)
+- Dry-run result output improvements - [#1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- feat: use `CARGO_ENCODED_RUSTFLAGS` instead of `RUSTFLAGS` - [#1124](https://github.com/paritytech/cargo-contract/pull/1124)
 
 ## [3.0.1]
 
