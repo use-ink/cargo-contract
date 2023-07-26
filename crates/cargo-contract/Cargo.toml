@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "3.0.1"
+version = "3.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -14,13 +14,13 @@ description = "Setup and deployment tool for developing Wasm based smart contrac
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
-    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "src/**/*.scale",
+    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs",
 ]
 
 [dependencies]
-contract-build = { version = "3.0.1", path = "../build" }
-contract-extrinsics = { version = "3.0.1", path = "../extrinsics" }
-contract-transcode = { version = "3.0.1", path = "../transcode" }
+contract-build = { version = "3.1.0", path = "../build" }
+contract-extrinsics = { version = "3.1.0", path = "../extrinsics" }
+contract-transcode = { version = "3.1.0", path = "../transcode" }
 
 anyhow = "1.0.72"
 clap = { version = "4.3.19", features = ["derive", "env"] }

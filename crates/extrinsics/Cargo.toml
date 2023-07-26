@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "3.0.1"
+version = "3.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -11,12 +11,12 @@ documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "src/**/*.scale",]
 
 [dependencies]
-contract-build = { version = "3.0.1", path = "../build" }
-contract-metadata = { version = "3.0.1", path = "../metadata" }
-contract-transcode = { version = "3.0.1", path = "../transcode" }
+contract-build = { version = "3.1.0", path = "../build" }
+contract-metadata = { version = "3.1.0", path = "../metadata" }
+contract-transcode = { version = "3.1.0", path = "../transcode" }
 
 anyhow = "1.0.72"
 clap = { version = "4.3.19", features = ["derive", "env"] }
