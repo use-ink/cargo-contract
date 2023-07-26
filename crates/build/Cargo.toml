@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "3.0.1"
+version = "3.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -44,7 +44,7 @@ tokio-stream = "0.1"
 bollard = "0.14"
 crossterm = "0.26.1"
 
-contract-metadata = { version = "3.0.1", path = "../metadata" }
+contract-metadata = { version = "3.1.0", path = "../metadata" }
 
 [target.'cfg(unix)'.dependencies]
 users = "0.11"
