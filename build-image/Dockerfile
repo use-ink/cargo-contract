@@ -1,11 +1,9 @@
 FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 
 # The rust version to use
-# The 1.69 toolchain is temporarily required to build ink! contracts because of
-# https://github.com/paritytech/cargo-contract/issues/1139
-ARG RUST_VERSION=1.69
+ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=3.0.1
+ARG CARGO_CONTRACT_VERSION=3.1.0
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
 # Branch to use in git repository
