@@ -3,6 +3,7 @@ name = "contract-extrinsics"
 version = "3.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
+rust-version = "1.70"
 
 license = "Apache-2.0"
 readme = "README.md"
