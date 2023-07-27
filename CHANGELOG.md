@@ -4,12 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0]
+## [4.0.0-alpha]
+
+Replaces the yanked `3.1.0` due to issues with supporting *both* Rust versions < `1.70` 
+and >= `1.70`.
+
+If you intend to use `cargo-contract` with Rust >= `1.70`, and deploy to a node with a
+version of `pallet-contracts` at least `polkadot-1.0.0`, then this is the release to use.
+
+If you still want to compile with `1.69` and target an older version of `pallet-contracts`
+then use the previous `3.0.1` release.
 
 **Notable changes:**
-  - Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
-  - Extrinsics extracted to separate crate - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
-  - Fix building contracts with Rust >= 1.70: enable `sign_ext` Wasm opcode - [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+- Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Extrinsics extracted to separate crate - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Fix building contracts with Rust >= 1.70: enable `sign_ext` Wasm opcode - [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
 
 ### Added
 - Standardised verifiable builds - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
@@ -27,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
 - Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
 - Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
+- set minimum supported `rust-version` to `1.70` - [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
+- `[extrinsics]` update metadata to `substrate-contracts-node 0.29` - [#1242](https://github.com/paritytech/cargo-contract/pull/1242)
 
 ### Fixed
 - Configure tty output correctly - [#1209](https://github.com/paritytech/cargo-contract/pull/1209)
@@ -34,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(build): An error when running with `--lint` - [#1174](https://github.com/paritytech/cargo-contract/pull/1174)
 - Dry-run result output improvements - [#1123](https://github.com/paritytech/cargo-contract/pull/1123)
 - feat: use `CARGO_ENCODED_RUSTFLAGS` instead of `RUSTFLAGS` - [#1124](https://github.com/paritytech/cargo-contract/pull/1124)
+
+## [3.1.0] **YANKED**
 
 ## [3.0.1]
 
