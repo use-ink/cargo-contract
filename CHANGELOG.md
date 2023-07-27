@@ -36,7 +36,8 @@ then use the previous `3.0.1` release.
 - Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
 - Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
 - Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
-- set minimum supported `rust-version` to `1.70` [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
+- set minimum supported `rust-version` to `1.70` - [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
+- `[extrinsics]` update metadata to `substrate-contracts-node 0.29` - [#1242](https://github.com/paritytech/cargo-contract/pull/1242)
 
 ### Fixed
 - Configure tty output correctly - [#1209](https://github.com/paritytech/cargo-contract/pull/1209)
