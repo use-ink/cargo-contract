@@ -330,12 +330,10 @@ fn exec_cargo_for_onchain_target(
             let path = path.display();
             env.push((
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{rustflags} -Clink-arg=-T{path}",)),
+                Some(format!("{rustflags}\x1f-Clink-arg=-T{path}",)),
             ));
-            Some(path)
         } else {
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags.to_string())));
-            None
         };
 
         let cargo =
