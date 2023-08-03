@@ -319,7 +319,7 @@ fn exec_cargo_for_onchain_target(
             );
         }
 
-         // merge target specific flags with the common flags (defined here)
+        // merge target specific flags with the common flags (defined here)
         let rustflags = format!(
             "{}\x1f-Dclippy::arithmetic_side_effects\x1f-Clinker-plugin-lto",
             target.rustflags()
