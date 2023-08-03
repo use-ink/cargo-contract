@@ -320,7 +320,14 @@ fn exec_cargo_for_onchain_target(
         }
 
         // merge target specific flags with the common flags (defined here)
-        let rustflags = format!("{}\x1f-Clinker-plugin-lto", target.rustflags());
+        let rustflags = {
+            let common_flags = "-Clinker-plugin-lto";
+            if let Some(target_flags) = target.rustflags() {
+                format!("{}\x1f{}", target_flags, common_flags)
+            } else {
+                common_flags.to_string()
+            }
+        };
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
@@ -457,6 +464,7 @@ fn lint(
 /// Run cargo clippy on the unmodified manifest.
 fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
     let args = [
+        "--all-features",
         // customize clippy lints after the "--"
         "--",
         // this is a hard error because we want to guarantee that implicit overflows
