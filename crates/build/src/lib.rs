@@ -420,8 +420,7 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
     Ok(())
 }
 
-/// Executes `cargo dylint` with the ink! linting driver that is built during
-/// the `build.rs`.
+/// Inject our custom lints into the manifest and execute `cargo dylint` .
 ///
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
@@ -974,7 +973,7 @@ fn local_build(
     ))
 }
 
-pub fn maybe_lint(
+fn maybe_lint(
     steps: &mut BuildSteps,
     build_artifact: BuildArtifacts,
     lint: bool,
