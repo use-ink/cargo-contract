@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -155,7 +155,7 @@ pub fn init_tracing_subscriber() {
 /// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
 
@@ -235,7 +235,7 @@ async fn build_upload_instantiate_call() {
 
 /// Sanity test the whole lifecycle of:
 /// build -> upload -> remove
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_remove() {
     init_tracing_subscriber();
 
@@ -300,7 +300,7 @@ async fn build_upload_remove() {
 /// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_instantiate_info() {
     init_tracing_subscriber();
 

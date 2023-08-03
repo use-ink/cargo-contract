@@ -136,8 +136,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # Pinned to 1.69 for building contracts because of https://github.com/paritytech/cargo-contract/issues/1139
-          toolchain: 1.69
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
           components: rust-src, clippy
@@ -181,8 +180,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # Pinned to 1.69 for building contracts because of https://github.com/paritytech/cargo-contract/issues/1139
-          toolchain: 1.69
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
           components: rust-src, clippy

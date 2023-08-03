@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -20,11 +20,14 @@ mod error;
 mod events;
 mod instantiate;
 mod remove;
+mod runtime_api;
 mod upload;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
+
+use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
@@ -46,30 +49,20 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{
-    cmd::{
-        Balance,
-        Client,
-    },
-    DEFAULT_KEY_COL_WIDTH,
-};
-
+use crate::runtime_api::api::{self,};
 use contract_build::{
     name_value_println,
     CrateMetadata,
     Verbosity,
     VerbosityFlags,
+    DEFAULT_KEY_COL_WIDTH,
 };
 use pallet_contracts_primitives::ContractResult;
 use scale::{
     Decode,
     Encode,
 };
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-    Bytes,
-};
+use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
     blocks,
@@ -77,6 +70,10 @@ use subxt::{
     tx,
     Config,
     OnlineClient,
+};
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
 };
 
 use std::{
@@ -91,13 +88,18 @@ pub use balance::{
 pub use call::CallCommand;
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
-pub use error::ErrorVariant;
+pub use error::{
+    ErrorVariant,
+    GenericError,
+};
 pub use instantiate::InstantiateCommand;
 pub use remove::RemoveCommand;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::UploadCommand;
 
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
+pub type Client = OnlineClient<DefaultConfig>;
+pub type Balance = u128;
+pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -118,11 +120,12 @@ pub struct ExtrinsicOpts {
     )]
     url: url::Url,
     /// Secret key URI for the account deploying the contract.
+    ///
+    /// e.g.
+    /// - for a dev account "//Alice"
+    /// - with a password "//Alice///SECRET_PASSWORD"
     #[clap(name = "suri", long, short)]
     suri: String,
-    /// Password for the secret key.
-    #[clap(name = "password", long, short)]
-    password: Option<String>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
     /// Submit the extrinsic for on-chain execution.
@@ -150,9 +153,10 @@ impl ExtrinsicOpts {
     }
 
     /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
+    pub fn signer(&self) -> Result<Keypair> {
+        let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
+        let keypair = Keypair::from_uri(&uri)?;
+        Ok(keypair)
     }
 
     /// Returns the verbosity
@@ -317,9 +321,9 @@ impl WasmCode {
     }
 }
 
-/// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
-    PairSigner::new(pair)
+/// Get the account id from the Keypair
+pub fn account_id(keypair: &Keypair) -> AccountId32 {
+    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
 const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
@@ -396,8 +400,7 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
-        Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
 {
     client
         .tx()
@@ -467,6 +470,69 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     Ok(arr.into())
+}
+
+/// Fetch the contract info from the storage using the provided client.
+pub async fn fetch_contract_info(
+    contract: &AccountId32,
+    client: &Client,
+) -> Result<Option<ContractInfo>> {
+    let info_contract_call = api::storage().contracts().contract_info_of(contract);
+
+    let contract_info_of = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&info_contract_call)
+        .await?;
+
+    match contract_info_of {
+        Some(info_result) => {
+            let convert_trie_id = hex::encode(info_result.trie_id.0);
+            Ok(Some(ContractInfo {
+                trie_id: convert_trie_id,
+                code_hash: info_result.code_hash,
+                storage_items: info_result.storage_items,
+                storage_item_deposit: info_result.storage_item_deposit,
+            }))
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ContractInfo {
+    trie_id: String,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
+}
+
+impl ContractInfo {
+    /// Convert and return contract info in JSON format.
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    /// Display contract information in a formatted way
+    pub fn basic_display_format_contract_info(&self) {
+        name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
+        name_value_println!(
+            "Code Hash",
+            format!("{:?}", self.code_hash),
+            MAX_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Storage Items",
+            format!("{:?}", self.storage_items),
+            MAX_KEY_COL_WIDTH
+        );
+        name_value_println!(
+            "Storage Deposit",
+            format!("{:?}", self.storage_item_deposit),
+            MAX_KEY_COL_WIDTH
+        );
+    }
 }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,

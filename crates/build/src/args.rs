@@ -45,7 +45,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     #[default]
@@ -89,7 +89,15 @@ impl Network {
 
 /// Describes which artifacts to generate
 #[derive(
-    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+    Copy,
+    Clone,
+    Default,
+    Eq,
+    PartialEq,
+    Debug,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
@@ -223,8 +231,10 @@ pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     #[default]
     Debug,
-    /// The contract is build without any debugging functionality.
+    /// The contract is built without any debugging functionality.
     Release,
+    /// the contract is built in release mode and in a deterministic environment.
+    Verifiable,
 }
 
 impl fmt::Display for BuildMode {
@@ -232,6 +242,7 @@ impl fmt::Display for BuildMode {
         match self {
             Self::Debug => write!(f, "debug"),
             Self::Release => write!(f, "release"),
+            Self::Verifiable => write!(f, "verifiable"),
         }
     }
 }

@@ -21,6 +21,7 @@ use contract_build::{
     BuildResult,
     ExecuteArgs,
     Features,
+    ImageVariant,
     ManifestPath,
     Network,
     OptimizationPasses,
@@ -121,6 +122,13 @@ pub struct BuildCommand {
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u32,
+    /// Executes the build inside a docker container to produce a verifiable bundle.
+    /// Requires docker daemon running.
+    #[clap(long, default_value_t = false)]
+    verifiable: bool,
+    /// Specify a custom image for the verifiable build
+    #[clap(long, default_value = None)]
+    image: Option<String>,
 }
 
 impl BuildCommand {
@@ -128,11 +136,15 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let build_mode = match self.build_release {
-            true => BuildMode::Release,
-            false => BuildMode::Debug,
+        let build_mode = if self.verifiable {
+            BuildMode::Verifiable
+        } else {
+            match self.build_release {
+                true => BuildMode::Release,
+                false => BuildMode::Debug,
+            }
         };
 
         let network = match self.build_offline {
@@ -145,10 +157,14 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
+        if self.image.is_some() && build_mode != BuildMode::Verifiable {
+            anyhow::bail!("--image flag can only be used with verifiable builds!");
         }
+
+        let image = match &self.image {
+            Some(i) => ImageVariant::Custom(i.clone()),
+            None => ImageVariant::Default,
+        };
 
         let args = ExecuteArgs {
             manifest_path,
@@ -165,8 +181,8 @@ impl BuildCommand {
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
+            image,
         };
-
         contract_build::execute(args)
     }
 }
@@ -209,6 +225,7 @@ impl CheckCommand {
             skip_wasm_validation: false,
             target: self.target,
             max_memory_pages: 0,
+            image: ImageVariant::Default,
         };
 
         contract_build::execute(args)

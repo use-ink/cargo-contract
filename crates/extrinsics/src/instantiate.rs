@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -15,33 +15,27 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
+    events::DisplayEvents,
     prompt_confirm_tx,
+    runtime_api::api,
     state_call,
     submit_extrinsic,
+    Balance,
     BalanceVariant,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
-    PairSigner,
     StorageDeposit,
-    MAX_KEY_COL_WIDTH,
-};
-use crate::{
-    cmd::{
-        extrinsics::{
-            display_contract_exec_result_debug,
-            display_dry_run_result_warning,
-            events::DisplayEvents,
-            ErrorVariant,
-            TokenMetadata,
-        },
-        runtime_api::api,
-        Balance,
-        CodeHash,
-    },
+    TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
+    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -65,6 +59,8 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -116,7 +112,7 @@ impl InstantiateCommand {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
         let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
         let code = if let Some(code) = artifacts.code {
@@ -127,7 +123,7 @@ impl InstantiateCommand {
         };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        async_std::task::block_on(async move {
+        Runtime::new()?.block_on(async {
             let client = OnlineClient::from_url(url.clone()).await?;
 
             let token_metadata = TokenMetadata::query(&client).await?;
@@ -189,7 +185,7 @@ pub struct Exec {
     verbosity: Verbosity,
     url: String,
     client: Client,
-    signer: PairSigner,
+    signer: Keypair,
     transcoder: ContractMessageTranscoder,
     output_json: bool,
 }
@@ -369,7 +365,7 @@ impl Exec {
     > {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
-            origin: self.signer.account_id().clone(),
+            origin: account_id(&self.signer),
             value: self.args.value,
             gas_limit: None,
             storage_deposit_limit,

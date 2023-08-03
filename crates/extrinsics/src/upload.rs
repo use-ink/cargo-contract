@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -15,30 +15,24 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_dry_run_result_warning,
+    events::DisplayEvents,
+    name_value_println,
+    runtime_api::api::{
+        self,
+        runtime_types::pallet_contracts::wasm::Determinism,
+    },
     state_call,
     submit_extrinsic,
+    Balance,
     Client,
+    CodeHash,
     DefaultConfig,
+    ErrorVariant,
     ExtrinsicOpts,
-    PairSigner,
     TokenMetadata,
-};
-use crate::{
-    cmd::{
-        extrinsics::{
-            events::DisplayEvents,
-            ErrorVariant,
-            WasmCode,
-        },
-        runtime_api::api::{
-            self,
-            runtime_types::pallet_contracts::wasm::Determinism,
-        },
-        Balance,
-        CodeHash,
-    },
-    name_value_println,
+    WasmCode,
 };
 use anyhow::Result;
 use pallet_contracts_primitives::CodeUploadResult;
@@ -48,6 +42,8 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -66,7 +62,7 @@ impl UploadCommand {
 
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
@@ -77,54 +73,55 @@ impl UploadCommand {
         })?;
         let code_hash = code.code_hash();
 
-        async_std::task::block_on(async {
-            let url = self.extrinsic_opts.url_to_string();
-            let client = OnlineClient::from_url(url.clone()).await?;
+        Runtime::new()?
+            .block_on(async {
+                let url = self.extrinsic_opts.url_to_string();
+                let client = OnlineClient::from_url(url.clone()).await?;
 
-            if !self.extrinsic_opts.execute {
-                match self.upload_code_rpc(code, &client, &signer).await? {
-                    Ok(result) => {
-                        let upload_result = UploadDryRunResult {
-                            result: String::from("Success!"),
-                            code_hash: format!("{:?}", result.code_hash),
-                            deposit: result.deposit,
-                        };
-                        if self.output_json {
-                            println!("{}", upload_result.to_json()?);
-                        } else {
-                            upload_result.print();
-                            display_dry_run_result_warning("upload");
+                if !self.extrinsic_opts.execute {
+                    match self.upload_code_rpc(code, &client, &signer).await? {
+                        Ok(result) => {
+                            let upload_result = UploadDryRunResult {
+                                result: String::from("Success!"),
+                                code_hash: format!("{:?}", result.code_hash),
+                                deposit: result.deposit,
+                            };
+                            if self.output_json {
+                                println!("{}", upload_result.to_json()?);
+                            } else {
+                                upload_result.print();
+                                display_dry_run_result_warning("upload");
+                            }
+                        }
+                        Err(err) => {
+                            let metadata = client.metadata();
+                            let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
+                            if self.output_json {
+                                return Err(err)
+                            } else {
+                                name_value_println!("Result", err);
+                            }
                         }
                     }
-                    Err(err) => {
-                        let metadata = client.metadata();
-                        let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                        if self.output_json {
-                            return Err(err)
-                        } else {
-                            name_value_println!("Result", err);
-                        }
+                } else if let Some(code_stored) =
+                    self.upload_code(&client, code, &signer).await?
+                {
+                    let upload_result = UploadResult {
+                        code_hash: format!("{:?}", code_stored.code_hash),
+                    };
+                    if self.output_json {
+                        println!("{}", upload_result.to_json()?);
+                    } else {
+                        upload_result.print();
                     }
-                }
-            } else if let Some(code_stored) =
-                self.upload_code(&client, code, &signer).await?
-            {
-                let upload_result = UploadResult {
-                    code_hash: format!("{:?}", code_stored.code_hash),
-                };
-                if self.output_json {
-                    println!("{}", upload_result.to_json()?);
                 } else {
-                    upload_result.print();
+                    let code_hash = hex::encode(code_hash);
+                    return Err(anyhow::anyhow!(
+                        "This contract has already been uploaded with code hash: 0x{code_hash}"
+                    )
+                    .into())
                 }
-            } else {
-                let code_hash = hex::encode(code_hash);
-                return Err(anyhow::anyhow!(
-                    "This contract has already been uploaded with code hash: 0x{code_hash}"
-                )
-                .into())
-            }
-            Ok(())
+                Ok(())
         })
     }
 
@@ -132,7 +129,7 @@ impl UploadCommand {
         &self,
         code: WasmCode,
         client: &Client,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.extrinsic_opts.url_to_string();
         let token_metadata = TokenMetadata::query(client).await?;
@@ -143,7 +140,7 @@ impl UploadCommand {
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
         let call_request = CodeUploadRequest {
-            origin: signer.account_id().clone(),
+            origin: account_id(signer),
             code: code.0,
             storage_deposit_limit,
             determinism: Determinism::Enforced,
@@ -155,12 +152,12 @@ impl UploadCommand {
         &self,
         client: &Client,
         code: WasmCode,
-        signer: &PairSigner,
+        signer: &Keypair,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
-        let call = crate::cmd::runtime_api::api::tx().contracts().upload_code(
+        let call = crate::runtime_api::api::tx().contracts().upload_code(
             code.0,
             storage_deposit_limit,
             Determinism::Enforced,

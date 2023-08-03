@@ -222,16 +222,6 @@ impl Manifest {
             .map(Into::into)
     }
 
-    /// Set `[profile.release]` lto flag
-    pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
-        let lto = self
-            .profile_release_table_mut()?
-            .entry("lto")
-            .or_insert(enabled.into());
-        *lto = enabled.into();
-        Ok(self)
-    }
-
     /// Set preferred defaults for the `[profile.release]` section
     ///
     /// # Note

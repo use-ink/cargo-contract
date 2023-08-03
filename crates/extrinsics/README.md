@@ -1,6 +1,10 @@
-# Extrinsics
-`cargo-contract` provides CLI support for uploading, instantiating, calling and removing your contracts directly from the command
-line.
+# Contract Extrinsics
+
+Defines the extrinsics for smart contracts targeting [substrate](https://github.com/paritytech/substrate). 
+
+Currently part of [`cargo-contract`](https://github.com/paritytech/cargo-contract), the build tool for smart
+ contracts written in [ink!](https://github.com/paritytech/ink).
+
 
 ## Common arguments
 
@@ -125,8 +129,3 @@ argument to each of the extrinsic commands which allows specifying the contract 
 - `cargo upload ../path/to/mycontract.wasm`
 - `cargo instantiate ../path/to/mycontract.contract`
 - `cargo call ..path/to/mycontract.json`
-
-
-
-
-

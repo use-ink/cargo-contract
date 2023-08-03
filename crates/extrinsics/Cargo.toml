@@ -1,0 +1,40 @@
+[package]
+name = "contract-extrinsics"
+version = "4.0.0-alpha"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+rust-version = "1.70"
+
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/paritytech/cargo-contract"
+documentation = "https://docs.rs/contract-extrinsics"
+homepage = "https://www.substrate.io/"
+description = "Library defining extrinsics for smart contracts on substrate"
+keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "src/**/*.scale",]
+
+[dependencies]
+contract-build = { version = "4.0.0-alpha", path = "../build" }
+contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
+contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
+
+anyhow = "1.0.72"
+clap = { version = "4.3.19", features = ["derive", "env"] }
+tracing = "0.1.37"
+scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+colored = "2.0.4"
+serde = { version = "1.0.180", default-features = false, features = ["derive"] }
+serde_json = "1.0.104"
+url = { version = "2.4.0", features = ["serde"] }
+rust_decimal = "1.30"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+sp-core = "21.0.0"
+sp-runtime = "24.0.0"
+sp-weights = "20.0.0"
+pallet-contracts-primitives = "24.0.0"
+scale-info = "2.8.0"
+subxt = "0.30.1"
+subxt-signer = { version = "0.30.1", features = ["subxt", "sr25519"] }
+hex = "0.4.3"
+jsonrpsee = { version = "0.19.0", features = ["ws-client"] }

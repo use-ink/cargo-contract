@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -15,14 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    runtime_api::api::contracts::events::ContractEmitted,
     BalanceVariant,
     DefaultConfig,
     TokenMetadata,
 };
-use crate::{
-    cmd::runtime_api::api::contracts::events::ContractEmitted,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use colored::Colorize as _;
 use contract_build::Verbosity;
 use contract_transcode::{
