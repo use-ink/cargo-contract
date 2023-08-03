@@ -320,10 +320,7 @@ fn exec_cargo_for_onchain_target(
         }
 
         // merge target specific flags with the common flags (defined here)
-        let rustflags = format!(
-            "{}\x1f-Dclippy::arithmetic_side_effects\x1f-Clinker-plugin-lto",
-            target.rustflags()
-        );
+        let rustflags = format!("{}\x1f-Clinker-plugin-lto", target.rustflags());
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
@@ -340,8 +337,6 @@ fn exec_cargo_for_onchain_target(
         } else {
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };
-        // run clippy while building the contract
-        env.push(("RUSTC_WRAPPER", Some("clippy-driver".to_string())));
 
         let cargo =
             util::cargo_cmd(command, &args, manifest_path.directory(), *verbosity, env);
@@ -850,6 +845,14 @@ fn local_build(
     let mut build_steps = BuildSteps::new();
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
+    maybe_lint(
+        &mut build_steps,
+        *build_artifact,
+        *lint,
+        crate_metadata,
+        verbosity,
+    )?;
+
     verbose_eprintln!(
         verbosity,
         " {} {}",
@@ -914,14 +917,6 @@ fn local_build(
         );
         return Ok((None, build_info, dest_code_path, build_steps))
     }
-
-    maybe_lint(
-        &mut build_steps,
-        *build_artifact,
-        *lint,
-        crate_metadata,
-        verbosity,
-    )?;
 
     verbose_eprintln!(
         verbosity,
