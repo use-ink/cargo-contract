@@ -58,7 +58,10 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs linting checks during the build process
+    /// Performs ink! linting checks during the build process.
+    ///
+    /// This only applies to ink! custom lints of which are there none at the moment.
+    /// Basic clippy lints which we are deem important are run anyways.
     #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
@@ -176,7 +179,7 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes: self.optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            lint: self.lint,
+            dylint: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
@@ -220,7 +223,7 @@ impl CheckCommand {
             unstable_flags,
             optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
-            lint: false,
+            dylint: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
             target: self.target,
