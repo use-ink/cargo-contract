@@ -198,35 +198,27 @@ pub struct CheckCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    #[clap(flatten)]
-    features: Features,
-    #[clap(flatten)]
-    unstable_options: UnstableOptions,
-    #[clap(long, default_value = "wasm")]
-    target: Target,
 }
 
 impl CheckCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
-        let unstable_flags: UnstableFlags =
-            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
             build_mode: BuildMode::Debug,
-            features: self.features.clone(),
+            features: Default::default(),
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags,
+            unstable_flags: Default::default(),
             optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
             dylint: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
-            target: self.target,
+            target: Default::default(),
             max_memory_pages: 0,
             image: ImageVariant::Default,
         };
