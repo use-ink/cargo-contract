@@ -215,9 +215,9 @@ fn exec(cmd: Command) -> Result<()> {
 fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
         let upload_exec = upload_command.preprocess().await?;
-        let code_hash = upload_exec.code.code_hash();
+        let code_hash = upload_exec.code().code_hash();
 
-        if !upload_exec.opts.execute() {
+        if !upload_exec.opts().execute() {
             match upload_exec.upload_code_rpc().await? {
                 Ok(result) => {
                     let upload_result = UploadDryRunResult {
@@ -225,7 +225,7 @@ fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant> {
                         code_hash: format!("{:?}", result.code_hash),
                         deposit: result.deposit,
                     };
-                    if upload_exec.output_json {
+                    if upload_exec.output_json() {
                         println!("{}", upload_result.to_json()?);
                     } else {
                         upload_result.print();
@@ -233,9 +233,9 @@ fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant> {
                     }
                 }
                 Err(err) => {
-                    let metadata = upload_exec.client.metadata();
+                    let metadata = upload_exec.client().metadata();
                     let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                    if upload_exec.output_json {
+                    if upload_exec.output_json() {
                         return Err(err)
                     } else {
                         name_value_println!("Result", err);
@@ -245,19 +245,19 @@ fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant> {
         } else {
             let upload_result = upload_exec.upload_code().await?;
             let display_events = upload_result.display_events;
-            let output = if upload_exec.output_json {
+            let output = if upload_exec.output_json() {
                 display_events.to_json()?
             } else {
-                let token_metadata = TokenMetadata::query(&upload_exec.client).await?;
+                let token_metadata = TokenMetadata::query(upload_exec.client()).await?;
                 display_events
-                    .display_events(upload_exec.opts.verbosity()?, &token_metadata)?
+                    .display_events(upload_exec.opts().verbosity()?, &token_metadata)?
             };
             println!("{output}");
             if let Some(code_stored) = upload_result.code_stored {
                 let upload_result = CodeHashResult {
                     code_hash: format!("{:?}", code_stored.code_hash),
                 };
-                if upload_exec.output_json {
+                if upload_exec.output_json() {
                     println!("{}", upload_result.to_json()?);
                 } else {
                     upload_result.print();
@@ -280,11 +280,11 @@ fn handle_instantiate(
     Runtime::new()?.block_on(async {
         let instantiate_exec = instantiate_command.preprocess().await?;
 
-        if !instantiate_exec.opts.execute() {
+        if !instantiate_exec.opts().execute() {
             let result = instantiate_exec.instantiate_dry_run().await?;
             match instantiate_exec.do_not_execute().await {
                 Ok(dry_run_result) => {
-                    if instantiate_exec.output_json {
+                    if instantiate_exec.output_json() {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
@@ -296,7 +296,7 @@ fn handle_instantiate(
                     Ok(())
                 }
                 Err(object) => {
-                    if instantiate_exec.output_json {
+                    if instantiate_exec.output_json() {
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -306,14 +306,15 @@ fn handle_instantiate(
                 }
             }
         } else {
-            tracing::debug!("instantiate data {:?}", instantiate_exec.args.data);
+            tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = instantiate_exec
                 .pre_submit_dry_run_gas_estimate(true)
                 .await?;
-            if !instantiate_exec.opts.skip_confirm() {
+            if !instantiate_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     instantiate_exec.print_default_instantiate_preview(gas_limit);
-                    if let Code::Existing(code_hash) = instantiate_exec.args.code.clone()
+                    if let Code::Existing(code_hash) =
+                        instantiate_exec.args().code().clone()
                     {
                         name_value_println!(
                             "Code hash",
@@ -333,13 +334,16 @@ fn handle_instantiate(
 fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
         let call_exec = call_command.preprocess().await?;
-        if !call_exec.opts.execute() {
+        if !call_exec.opts().execute() {
             let result = call_exec.call_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
                     let value = call_exec
-                        .transcoder
-                        .decode_message_return(&call_exec.message, &mut &ret_val.data[..])
+                        .transcoder()
+                        .decode_message_return(
+                            call_exec.message(),
+                            &mut &ret_val.data[..],
+                        )
                         .context(format!(
                             "Failed to decode return value {:?}",
                             &ret_val
@@ -351,7 +355,7 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                         gas_required: result.gas_required,
                         storage_deposit: StorageDeposit::from(&result.storage_deposit),
                     };
-                    if call_exec.output_json {
+                    if call_exec.output_json() {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
@@ -362,9 +366,9 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                     };
                 }
                 Err(ref err) => {
-                    let metadata = call_exec.client.metadata();
+                    let metadata = call_exec.client().metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if call_exec.output_json {
+                    if call_exec.output_json() {
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -375,16 +379,16 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
         } else {
             let gas_limit = call_exec.pre_submit_dry_run_gas_estimate(true).await?;
 
-            if !call_exec.opts.skip_confirm() {
+            if !call_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     name_value_println!(
                         "Message",
-                        call_exec.message,
+                        call_exec.message(),
                         DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
                         "Args",
-                        call_exec.args.join(" "),
+                        call_exec.args().join(" "),
                         DEFAULT_KEY_COL_WIDTH
                     );
                     name_value_println!(
@@ -394,13 +398,13 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                     );
                 })?;
             }
-            let token_metadata = TokenMetadata::query(&call_exec.client).await?;
+            let token_metadata = TokenMetadata::query(call_exec.client()).await?;
             let display_events = call_exec.call(gas_limit).await?;
-            let output = if call_exec.output_json {
+            let output = if call_exec.output_json() {
                 display_events.to_json()?
             } else {
                 display_events
-                    .display_events(call_exec.opts.verbosity()?, &token_metadata)?
+                    .display_events(call_exec.opts().verbosity()?, &token_metadata)?
             };
             println!("{output}");
         }
@@ -413,25 +417,25 @@ fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant> {
         let remove_exec = remove_command.preprocess().await?;
         let remove_result = remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
-        let output = if remove_exec.output_json {
+        let output = if remove_exec.output_json() {
             display_events.to_json()?
         } else {
-            let token_metadata = TokenMetadata::query(&remove_exec.client).await?;
+            let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
             display_events
-                .display_events(remove_exec.opts.verbosity()?, &token_metadata)?
+                .display_events(remove_exec.opts().verbosity()?, &token_metadata)?
         };
         println!("{output}");
         if let Some(code_removed) = remove_result.code_removed {
             let remove_result = code_removed.code_hash;
 
-            if remove_exec.output_json {
+            if remove_exec.output_json() {
                 println!("{}", &remove_result);
             } else {
                 name_value_println!("Code hash", format!("{remove_result:?}"));
             }
             Result::<(), ErrorVariant>::Ok(())
         } else {
-            let error_code_hash = hex::encode(remove_exec.final_code_hash);
+            let error_code_hash = hex::encode(remove_exec.final_code_hash());
             Err(anyhow::anyhow!(
                 "Error removing the code for the supplied code hash: {}",
                 error_code_hash

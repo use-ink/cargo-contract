@@ -98,7 +98,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
 
 #[allow(clippy::new_ret_no_self)]
 impl UploadCommand {
-    /// Creates a new `UploadCommand` instance.
+    /// Returns a clean builder for [`UploadCommand`].
     pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: Self {
@@ -138,11 +138,11 @@ impl UploadCommand {
 }
 
 pub struct UploadExec {
-    pub opts: ExtrinsicOpts,
-    pub output_json: bool,
-    pub client: Client,
-    pub code: WasmCode,
-    pub signer: Keypair,
+    opts: ExtrinsicOpts,
+    output_json: bool,
+    client: Client,
+    code: WasmCode,
+    signer: Keypair,
 }
 
 impl UploadExec {
@@ -182,6 +182,26 @@ impl UploadExec {
             code_stored,
             display_events,
         })
+    }
+
+    pub fn opts(&self) -> &ExtrinsicOpts {
+        &self.opts
+    }
+
+    pub fn output_json(&self) -> bool {
+        self.output_json
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn code(&self) -> &WasmCode {
+        &self.code
+    }
+
+    pub fn signer(&self) -> &Keypair {
+        &self.signer
     }
 }
 

@@ -179,7 +179,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
 
 #[allow(clippy::new_ret_no_self)]
 impl CallCommand {
-    /// Creates a new `CallCommand` instance.
+    /// Returns a clean builder for [`CallCommand`].
     pub fn new(
     ) -> CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
     {
@@ -232,18 +232,18 @@ impl CallCommand {
 }
 
 pub struct CallExec {
-    pub contract: <DefaultConfig as Config>::AccountId,
-    pub message: String,
-    pub args: Vec<String>,
-    pub opts: ExtrinsicOpts,
-    pub gas_limit: Option<u64>,
-    pub proof_size: Option<u64>,
-    pub value: BalanceVariant,
-    pub output_json: bool,
-    pub client: Client,
-    pub transcoder: ContractMessageTranscoder,
-    pub call_data: Vec<u8>,
-    pub signer: Keypair,
+    contract: <DefaultConfig as Config>::AccountId,
+    message: String,
+    args: Vec<String>,
+    opts: ExtrinsicOpts,
+    gas_limit: Option<u64>,
+    proof_size: Option<u64>,
+    value: BalanceVariant,
+    output_json: bool,
+    client: Client,
+    transcoder: ContractMessageTranscoder,
+    call_data: Vec<u8>,
+    signer: Keypair,
 }
 
 impl CallExec {
@@ -339,6 +339,54 @@ impl CallExec {
                 }
             }
         }
+    }
+
+    pub fn contract(&self) -> &<DefaultConfig as Config>::AccountId {
+        &self.contract
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn args(&self) -> &Vec<String> {
+        &self.args
+    }
+
+    pub fn opts(&self) -> &ExtrinsicOpts {
+        &self.opts
+    }
+
+    pub fn gas_limit(&self) -> Option<u64> {
+        self.gas_limit
+    }
+
+    pub fn proof_size(&self) -> Option<u64> {
+        self.proof_size
+    }
+
+    pub fn value(&self) -> &BalanceVariant {
+        &self.value
+    }
+
+    pub fn output_json(&self) -> bool {
+        self.output_json
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
+    }
+
+    pub fn call_data(&self) -> &Vec<u8> {
+        &self.call_data
+    }
+
+    pub fn signer(&self) -> &Keypair {
+        &self.signer
     }
 }
 

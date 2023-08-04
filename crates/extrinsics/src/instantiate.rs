@@ -181,7 +181,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
 
 #[allow(clippy::new_ret_no_self)]
 impl InstantiateCommand {
-    /// Creates a new `InstantiateCommand` instance.
+    /// Returns a clean builder for [`InstantiateCommand`].
     pub fn new() -> InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
         InstantiateCommandBuilder {
             opts: Self {
@@ -253,32 +253,40 @@ impl InstantiateCommand {
 }
 
 pub struct InstantiateArgs {
-    pub constructor: String,
-    pub raw_args: Vec<String>,
-    pub value: Balance,
-    pub gas_limit: Option<u64>,
-    pub proof_size: Option<u64>,
-    pub storage_deposit_limit: Option<Balance>,
-    pub code: Code,
-    pub data: Vec<u8>,
-    pub salt: Vec<u8>,
+    constructor: String,
+    raw_args: Vec<String>,
+    value: Balance,
+    gas_limit: Option<u64>,
+    proof_size: Option<u64>,
+    storage_deposit_limit: Option<Balance>,
+    code: Code,
+    data: Vec<u8>,
+    salt: Vec<u8>,
 }
 
 impl InstantiateArgs {
     pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
         self.storage_deposit_limit.map(Into::into)
     }
+
+    pub fn code(&self) -> &Code {
+        &self.code
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
 }
 
 pub struct InstantiateExec {
-    pub opts: ExtrinsicOpts,
-    pub args: InstantiateArgs,
-    pub verbosity: Verbosity,
-    pub url: String,
-    pub client: Client,
-    pub signer: Keypair,
-    pub transcoder: ContractMessageTranscoder,
-    pub output_json: bool,
+    opts: ExtrinsicOpts,
+    args: InstantiateArgs,
+    verbosity: Verbosity,
+    url: String,
+    client: Client,
+    signer: Keypair,
+    transcoder: ContractMessageTranscoder,
+    output_json: bool,
 }
 
 impl InstantiateExec {
@@ -498,6 +506,38 @@ impl InstantiateExec {
             }
         }
     }
+
+    pub fn opts(&self) -> &ExtrinsicOpts {
+        &self.opts
+    }
+
+    pub fn args(&self) -> &InstantiateArgs {
+        &self.args
+    }
+
+    pub fn verbosity(&self) -> Verbosity {
+        self.verbosity
+    }
+
+    pub fn url(&self) -> &String {
+        &self.url
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn signer(&self) -> &Keypair {
+        &self.signer
+    }
+
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
+    }
+
+    pub fn output_json(&self) -> bool {
+        self.output_json
+    }
 }
 
 pub struct InstantiateExecResult {
@@ -512,12 +552,12 @@ pub struct InstantiateExecResult {
 pub struct InstantiateResult {
     /// Instantiated contract hash
     #[serde(skip_serializing_if = "Option::is_none")]
-    contract: Option<String>,
+    pub contract: Option<String>,
     /// Instantiated code hash
     #[serde(skip_serializing_if = "Option::is_none")]
-    code_hash: Option<String>,
+    pub code_hash: Option<String>,
     /// The events emitted from the instantiate extrinsic invocation.
-    events: DisplayEvents,
+    pub events: DisplayEvents,
 }
 
 impl InstantiateResult {

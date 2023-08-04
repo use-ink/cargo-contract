@@ -99,7 +99,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 
 #[allow(clippy::new_ret_no_self)]
 impl RemoveCommand {
-    /// Creates a new `RemoveCommand` instance.
+    /// Returns a clean builder for [`RemoveCommand`].
     pub fn new() -> RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
         RemoveCommandBuilder {
             opts: Self {
@@ -148,12 +148,12 @@ impl RemoveCommand {
 }
 
 pub struct RemoveExec {
-    pub final_code_hash: [u8; 32],
-    pub opts: ExtrinsicOpts,
-    pub output_json: bool,
-    pub client: Client,
-    pub transcoder: ContractMessageTranscoder,
-    pub signer: Keypair,
+    final_code_hash: [u8; 32],
+    opts: ExtrinsicOpts,
+    output_json: bool,
+    client: Client,
+    transcoder: ContractMessageTranscoder,
+    signer: Keypair,
 }
 
 impl RemoveExec {
@@ -175,6 +175,30 @@ impl RemoveExec {
             code_removed,
             display_events,
         })
+    }
+
+    pub fn final_code_hash(&self) -> [u8; 32] {
+        self.final_code_hash
+    }
+
+    pub fn opts(&self) -> &ExtrinsicOpts {
+        &self.opts
+    }
+
+    pub fn output_json(&self) -> bool {
+        self.output_json
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
+    }
+
+    pub fn signer(&self) -> &Keypair {
+        &self.signer
     }
 }
 

@@ -266,7 +266,7 @@ impl ExtrinsicOptsBuilder<state::Suri> {
 
 #[allow(clippy::new_ret_no_self)]
 impl ExtrinsicOpts {
-    /// Creates a new `ExtrinsicOpts` instance.
+    /// Returns a clean builder for [`ExtrinsicOpts`].
     pub fn new() -> ExtrinsicOptsBuilder<Missing<state::Suri>> {
         ExtrinsicOptsBuilder {
             opts: Self {
