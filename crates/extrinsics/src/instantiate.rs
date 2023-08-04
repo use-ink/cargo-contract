@@ -17,11 +17,9 @@
 use super::{
     account_id,
     display_contract_exec_result,
-    display_contract_exec_result_debug,
-    display_dry_run_result_warning,
     events::DisplayEvents,
-    prompt_confirm_tx,
     runtime_api::api,
+    state,
     state_call,
     submit_extrinsic,
     Balance,
@@ -32,6 +30,7 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     ExtrinsicOpts,
+    Missing,
     StorageDeposit,
     TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
@@ -48,9 +47,11 @@ use contract_build::{
     Verbosity,
 };
 use contract_transcode::Value;
+use subxt_signer::sr25519::Keypair;
 
 use pallet_contracts_primitives::ContractInstantiateResult;
 
+use core::marker::PhantomData;
 use scale::Encode;
 use sp_core::Bytes;
 use sp_weights::Weight;
@@ -59,8 +60,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
-use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -99,16 +98,112 @@ fn parse_hex_bytes(input: &str) -> Result<Bytes> {
     Ok(bytes.into())
 }
 
+/// A builder for the instantiate command.
+pub struct InstantiateCommandBuilder<ExtrinsicOptions> {
+    opts: InstantiateCommand,
+    marker: PhantomData<fn() -> ExtrinsicOptions>,
+}
+
+impl InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    /// Sets the extrinsic operation.
+    pub fn extrinsic_opts(
+        self,
+        extrinsic_opts: ExtrinsicOpts,
+    ) -> InstantiateCommandBuilder<state::ExtrinsicOptions> {
+        InstantiateCommandBuilder {
+            opts: InstantiateCommand {
+                extrinsic_opts,
+                ..self.opts
+            },
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<E> InstantiateCommandBuilder<E> {
+    /// Sets the name of the contract constructor to call.
+    pub fn constructor<T: Into<String>>(self, constructor: T) -> Self {
+        let mut this = self;
+        this.opts.constructor = constructor.into();
+        this
+    }
+
+    /// Sets the constructor arguments.
+    pub fn args(self, args: Vec<String>) -> Self {
+        let mut this = self;
+        this.opts.args = args;
+        this
+    }
+
+    /// Sets the initial balance to transfer to the instantiated contract.
+    pub fn value(self, value: BalanceVariant) -> Self {
+        let mut this = self;
+        this.opts.value = value;
+        this
+    }
+
+    /// Sets the maximum amount of gas to be used for this command.
+    pub fn gas_limit(self, gas_limit: u64) -> Self {
+        let mut this = self;
+        this.opts.gas_limit = Some(gas_limit);
+        this
+    }
+
+    /// Sets the maximum proof size for this instantiation.
+    pub fn proof_size(self, proof_size: u64) -> Self {
+        let mut this = self;
+        this.opts.proof_size = Some(proof_size);
+        this
+    }
+
+    /// Sets the salt used in the address derivation of the new contract.
+    pub fn salt(self, salt: Bytes) -> Self {
+        let mut this = self;
+        this.opts.salt = Some(salt);
+        this
+    }
+
+    /// Sets whether to export the call output in JSON format.
+    pub fn output_json(self, output_json: bool) -> Self {
+        let mut this = self;
+        this.opts.output_json = output_json;
+        this
+    }
+}
+
+impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
+    /// Finishes construction of the instantiate command.
+    pub async fn done(self) -> InstantiateExec {
+        let instantiate_command = self.opts;
+        instantiate_command.preprocess().await.unwrap()
+    }
+}
+
+#[allow(clippy::new_ret_no_self)]
 impl InstantiateCommand {
+    /// Creates a new `InstantiateCommand` instance.
+    pub fn new() -> InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
+        InstantiateCommandBuilder {
+            opts: Self {
+                constructor: String::from("new"),
+                args: Vec::new(),
+                extrinsic_opts: ExtrinsicOpts::default(),
+                value: "0".parse().unwrap(),
+                gas_limit: None,
+                proof_size: None,
+                salt: None,
+                output_json: false,
+            },
+            marker: PhantomData,
+        }
+    }
+
     pub fn is_json(&self) -> bool {
         self.output_json
     }
-    /// Instantiate a contract stored at the supplied code hash.
-    /// Returns the account id of the instantiated contract if successful.
-    ///
-    /// Creates an extrinsic with the `Contracts::instantiate` Call, submits via RPC, then
-    /// waits for the `ContractsEvent::Instantiated` event.
-    pub fn run(&self) -> Result<(), ErrorVariant> {
+
+    /// Helper method for preprocessing contract artifacts.
+    pub async fn preprocess(&self) -> Result<InstantiateExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
@@ -123,142 +218,104 @@ impl InstantiateCommand {
         };
         let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        Runtime::new()?.block_on(async {
-            let client = OnlineClient::from_url(url.clone()).await?;
+        let client = OnlineClient::from_url(url.clone()).await?;
 
-            let token_metadata = TokenMetadata::query(&client).await?;
+        let token_metadata = TokenMetadata::query(&client).await?;
 
-            let args = InstantiateArgs {
-                constructor: self.constructor.clone(),
-                raw_args: self.args.clone(),
-                value: self.value.denominate_balance(&token_metadata)?,
-                gas_limit: self.gas_limit,
-                proof_size: self.proof_size,
-                storage_deposit_limit: self
-                    .extrinsic_opts
-                    .storage_deposit_limit
-                    .as_ref()
-                    .map(|bv| bv.denominate_balance(&token_metadata))
-                    .transpose()?,
-                code,
-                data,
-                salt,
-            };
+        let args = InstantiateArgs {
+            constructor: self.constructor.clone(),
+            raw_args: self.args.clone(),
+            value: self.value.denominate_balance(&token_metadata)?,
+            gas_limit: self.gas_limit,
+            proof_size: self.proof_size,
+            storage_deposit_limit: self
+                .extrinsic_opts
+                .storage_deposit_limit
+                .as_ref()
+                .map(|bv| bv.denominate_balance(&token_metadata))
+                .transpose()?,
+            code,
+            data,
+            salt,
+        };
 
-            let exec = Exec {
-                args,
-                opts: self.extrinsic_opts.clone(),
-                url,
-                client,
-                verbosity,
-                signer,
-                transcoder,
-                output_json: self.output_json,
-            };
-
-            exec.exec(self.extrinsic_opts.execute).await
+        Ok(InstantiateExec {
+            args,
+            opts: self.extrinsic_opts.clone(),
+            url,
+            client,
+            verbosity,
+            signer,
+            transcoder,
+            output_json: self.output_json,
         })
     }
 }
 
-struct InstantiateArgs {
-    constructor: String,
-    raw_args: Vec<String>,
-    value: Balance,
-    gas_limit: Option<u64>,
-    proof_size: Option<u64>,
-    storage_deposit_limit: Option<Balance>,
-    code: Code,
-    data: Vec<u8>,
-    salt: Vec<u8>,
+pub struct InstantiateArgs {
+    pub constructor: String,
+    pub raw_args: Vec<String>,
+    pub value: Balance,
+    pub gas_limit: Option<u64>,
+    pub proof_size: Option<u64>,
+    pub storage_deposit_limit: Option<Balance>,
+    pub code: Code,
+    pub data: Vec<u8>,
+    pub salt: Vec<u8>,
 }
 
 impl InstantiateArgs {
-    fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
         self.storage_deposit_limit.map(Into::into)
     }
 }
 
-pub struct Exec {
-    opts: ExtrinsicOpts,
-    args: InstantiateArgs,
-    verbosity: Verbosity,
-    url: String,
-    client: Client,
-    signer: Keypair,
-    transcoder: ContractMessageTranscoder,
-    output_json: bool,
+pub struct InstantiateExec {
+    pub opts: ExtrinsicOpts,
+    pub args: InstantiateArgs,
+    pub verbosity: Verbosity,
+    pub url: String,
+    pub client: Client,
+    pub signer: Keypair,
+    pub transcoder: ContractMessageTranscoder,
+    pub output_json: bool,
 }
 
-impl Exec {
-    async fn exec(&self, execute: bool) -> Result<(), ErrorVariant> {
+impl InstantiateExec {
+    pub async fn do_not_execute(&self) -> Result<InstantiateDryRunResult, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
-        if !execute {
-            let result = self.instantiate_dry_run().await?;
-            match result.result {
-                Ok(ref ret_val) => {
-                    let value = self
-                        .transcoder
-                        .decode_constructor_return(
-                            &self.args.constructor,
-                            &mut &ret_val.result.data[..],
-                        )
-                        .context(format!(
-                            "Failed to decode return value {:?}",
-                            &ret_val
-                        ))?;
-                    let dry_run_result = InstantiateDryRunResult {
-                        result: value,
-                        contract: ret_val.account_id.to_string(),
-                        reverted: ret_val.result.did_revert(),
-                        gas_consumed: result.gas_consumed,
-                        gas_required: result.gas_required,
-                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
-                    };
-                    if self.output_json {
-                        println!("{}", dry_run_result.to_json()?);
-                    } else {
-                        dry_run_result.print();
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
-                            &result,
-                        )?;
-                        display_dry_run_result_warning("instantiate");
-                    }
-                }
-                Err(ref err) => {
-                    let metadata = self.client.metadata();
-                    let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if self.output_json {
-                        return Err(object)
-                    } else {
-                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
-                    }
-                }
+        let result = self.instantiate_dry_run().await?;
+        match result.result {
+            Ok(ref ret_val) => {
+                let value = self
+                    .transcoder
+                    .decode_constructor_return(
+                        &self.args.constructor,
+                        &mut &ret_val.result.data[..],
+                    )
+                    .context(format!("Failed to decode return value {:?}", &ret_val))?;
+                let dry_run_result = InstantiateDryRunResult {
+                    result: value,
+                    contract: ret_val.account_id.to_string(),
+                    reverted: ret_val.result.did_revert(),
+                    gas_consumed: result.gas_consumed,
+                    gas_required: result.gas_required,
+                    storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                };
+                Ok(dry_run_result)
             }
-        } else {
-            let gas_limit = self.pre_submit_dry_run_gas_estimate().await?;
-            match self.args.code.clone() {
-                Code::Upload(code) => {
-                    self.instantiate_with_code(code, gas_limit).await?;
-                }
-                Code::Existing(code_hash) => {
-                    self.instantiate(code_hash, gas_limit).await?;
-                }
+            Err(ref err) => {
+                let metadata = self.client.metadata();
+                Err(ErrorVariant::from_dispatch_error(err, &metadata)?)
             }
         }
-        Ok(())
     }
 
     async fn instantiate_with_code(
         &self,
         code: Vec<u8>,
         gas_limit: Weight,
-    ) -> Result<(), ErrorVariant> {
-        if !self.opts.skip_confirm {
-            prompt_confirm_tx(|| self.print_default_instantiate_preview(gas_limit))?;
-        }
-
+    ) -> Result<InstantiateExecResult, ErrorVariant> {
         let call = api::tx().contracts().instantiate_with_code(
             self.args.value,
             gas_limit.into(),
@@ -281,26 +338,19 @@ impl Exec {
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         let token_metadata = TokenMetadata::query(&self.client).await?;
-        self.display_result(&result, code_hash, instantiated.contract, &token_metadata)
-            .await
+        Ok(InstantiateExecResult {
+            result,
+            code_hash,
+            contract_address: instantiated.contract,
+            token_metadata,
+        })
     }
 
-    async fn instantiate(
+    async fn instantiate_with_code_hash(
         &self,
         code_hash: CodeHash,
         gas_limit: Weight,
-    ) -> Result<(), ErrorVariant> {
-        if !self.opts.skip_confirm {
-            prompt_confirm_tx(|| {
-                self.print_default_instantiate_preview(gas_limit);
-                name_value_println!(
-                    "Code hash",
-                    format!("{code_hash:?}"),
-                    DEFAULT_KEY_COL_WIDTH
-                );
-            })?;
-        }
-
+    ) -> Result<InstantiateExecResult, ErrorVariant> {
         let call = api::tx().contracts().instantiate(
             self.args.value,
             gas_limit.into(),
@@ -317,34 +367,54 @@ impl Exec {
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         let token_metadata = TokenMetadata::query(&self.client).await?;
-        self.display_result(&result, None, instantiated.contract, &token_metadata)
-            .await
+        Ok(InstantiateExecResult {
+            result,
+            code_hash: None,
+            contract_address: instantiated.contract,
+            token_metadata,
+        })
     }
 
-    async fn display_result(
+    pub async fn instantiate(
         &self,
-        result: &ExtrinsicEvents<DefaultConfig>,
-        code_hash: Option<CodeHash>,
-        contract_address: subxt::utils::AccountId32,
-        token_metadata: &TokenMetadata,
+        gas_limit: Weight,
+    ) -> Result<InstantiateExecResult, ErrorVariant> {
+        match self.args.code.clone() {
+            Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
+            Code::Existing(code_hash) => {
+                self.instantiate_with_code_hash(code_hash, gas_limit).await
+            }
+        }
+    }
+
+    pub async fn display_result(
+        &self,
+        instantiate_exec_result: InstantiateExecResult,
     ) -> Result<(), ErrorVariant> {
         let events = DisplayEvents::from_events(
-            result,
+            &instantiate_exec_result.result,
             Some(&self.transcoder),
             &self.client.metadata(),
         )?;
-        let contract_address = contract_address.to_string();
-
+        let contract_address = instantiate_exec_result.contract_address.to_string();
         if self.output_json {
             let display_instantiate_result = InstantiateResult {
-                code_hash: code_hash.map(|ch| format!("{ch:?}")),
+                code_hash: instantiate_exec_result
+                    .code_hash
+                    .map(|ch| format!("{ch:?}")),
                 contract: Some(contract_address),
                 events,
             };
             println!("{}", display_instantiate_result.to_json()?)
         } else {
-            println!("{}", events.display_events(self.verbosity, token_metadata)?);
-            if let Some(code_hash) = code_hash {
+            println!(
+                "{}",
+                events.display_events(
+                    self.verbosity,
+                    &instantiate_exec_result.token_metadata
+                )?
+            );
+            if let Some(code_hash) = instantiate_exec_result.code_hash {
                 name_value_println!("Code hash", format!("{code_hash:?}"));
             }
             name_value_println!("Contract", contract_address);
@@ -352,13 +422,13 @@ impl Exec {
         Ok(())
     }
 
-    fn print_default_instantiate_preview(&self, gas_limit: Weight) {
+    pub fn print_default_instantiate_preview(&self, gas_limit: Weight) {
         name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
         name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
         name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
     }
 
-    async fn instantiate_dry_run(
+    pub async fn instantiate_dry_run(
         &self,
     ) -> Result<
         ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>,
@@ -377,7 +447,10 @@ impl Exec {
     }
 
     /// Dry run the instantiation before tx submission. Returns the gas required estimate.
-    async fn pre_submit_dry_run_gas_estimate(&self) -> Result<Weight> {
+    pub async fn pre_submit_dry_run_gas_estimate(
+        &self,
+        print_to_terminal: bool,
+    ) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.args.gas_limit, self.args.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -388,13 +461,13 @@ impl Exec {
                 }
             };
         }
-        if !self.output_json {
+        if !self.output_json && print_to_terminal {
             super::print_dry_running_status(&self.args.constructor);
         }
         let instantiate_result = self.instantiate_dry_run().await?;
         match instantiate_result.result {
             Ok(_) => {
-                if !self.output_json {
+                if !self.output_json && print_to_terminal {
                     super::print_gas_required_success(instantiate_result.gas_required);
                 }
                 // use user specified values where provided, otherwise use the estimates
@@ -414,15 +487,24 @@ impl Exec {
                 if self.output_json {
                     Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                 } else {
-                    name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
-                        &instantiate_result,
-                    )?;
+                    if print_to_terminal {
+                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                            &instantiate_result,
+                        )?;
+                    }
                     Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
                 }
             }
         }
     }
+}
+
+pub struct InstantiateExecResult {
+    pub result: ExtrinsicEvents<DefaultConfig>,
+    pub code_hash: Option<CodeHash>,
+    pub contract_address: subxt::utils::AccountId32,
+    pub token_metadata: TokenMetadata,
 }
 
 /// Result of a successful contract instantiation for displaying.
@@ -495,7 +577,7 @@ struct InstantiateRequest {
 
 /// Reference to an existing code hash or a new Wasm module.
 #[derive(Clone, Encode)]
-enum Code {
+pub enum Code {
     /// A Wasm module as raw bytes.
     Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
