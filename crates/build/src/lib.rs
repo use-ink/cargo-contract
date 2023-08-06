@@ -385,7 +385,8 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
         }};
     }
 
-    let cargo = util::cargo_tty_output(cargo);
+    // unchecked: Even capture output on non exit return status
+    let cargo = util::cargo_tty_output(cargo).unchecked();
 
     let missing_main_err = "error[E0601]".as_bytes();
     let mut err_buf = VecDeque::with_capacity(missing_main_err.len());
