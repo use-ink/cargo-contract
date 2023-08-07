@@ -475,7 +475,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     // we execute clippy with the plain manifest no temp dir required
     invoke_cargo_and_scan_for_error(util::cargo_cmd(
         "clippy",
-        &args,
+        args,
         crate_metadata.manifest_path.directory(),
         verbosity,
         vec![],
