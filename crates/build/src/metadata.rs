@@ -24,7 +24,6 @@ use crate::{
         Workspace,
     },
     BuildMode,
-    BuildSteps,
     Features,
     Lto,
     Network,
@@ -118,7 +117,6 @@ pub fn execute(
     features: &Features,
     network: Network,
     verbosity: Verbosity,
-    mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<()> {
@@ -133,8 +131,8 @@ pub fn execute(
         verbose_eprintln!(
             verbosity,
             " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating metadata".bright_green().bold()
+            "[==]".bold(),
+            "Generating metadata".bright_green().bold(),
         );
         let target_dir = crate_metadata
             .target_directory
@@ -164,13 +162,7 @@ pub fn execute(
             serde_json::from_slice(&output.stdout)?;
         let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        write_metadata(
-            metadata_artifacts,
-            metadata,
-            &mut build_steps,
-            &verbosity,
-            false,
-        )?;
+        write_metadata(metadata_artifacts, metadata, &verbosity, false)?;
 
         Ok(())
     };
@@ -199,7 +191,6 @@ pub fn execute(
 pub fn write_metadata(
     metadata_artifacts: &MetadataArtifacts,
     metadata: ContractMetadata,
-    build_steps: &mut BuildSteps,
     verbosity: &Verbosity,
     overwrite: bool,
 ) -> Result<()> {
@@ -208,21 +199,20 @@ pub fn write_metadata(
         metadata.remove_source_wasm_attribute();
         let contents = serde_json::to_string_pretty(&metadata)?;
         fs::write(&metadata_artifacts.dest_metadata, contents)?;
-        build_steps.increment_current();
     }
 
     if overwrite {
         verbose_eprintln!(
             verbosity,
             " {} {}",
-            format!("{build_steps}").bold(),
+            "[==]".bold(),
             "Updating paths".bright_cyan().bold()
         );
     } else {
         verbose_eprintln!(
             verbosity,
             " {} {}",
-            format!("{build_steps}").bold(),
+            "[==]".bold(),
             "Generating bundle".bright_green().bold()
         );
     }

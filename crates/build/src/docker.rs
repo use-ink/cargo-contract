@@ -86,9 +86,7 @@ use tokio_stream::{
 
 use crate::{
     verbose_eprintln,
-    BuildArtifacts,
     BuildResult,
-    BuildSteps,
     CrateMetadata,
     ExecuteArgs,
     Verbosity,
@@ -119,7 +117,6 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         verbosity,
         output_type,
         target,
-        build_artifact,
         image,
         ..
     } = args;
@@ -127,13 +124,6 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         .enable_all()
         .build()?
         .block_on(async {
-            let mut build_steps = BuildSteps::new();
-
-            build_steps.set_total_steps(3);
-            if build_artifact == BuildArtifacts::CodeOnly {
-                build_steps.set_total_steps(2);
-            }
-
             let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
@@ -159,23 +149,19 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
                 &crate_metadata.contract_artifact_name,
                 &host_folder,
                 &verbosity,
-                &mut build_steps,
             )
             .await?;
 
-            let mut build_result =
-                run_build(&client, &container, &verbosity, &mut build_steps).await?;
+            let mut build_result = run_build(&client, &container, &verbosity).await?;
 
             update_build_result(&host_folder, &mut build_result)?;
 
-            update_metadata(&build_result, &verbosity, &mut build_steps, &image, &client)
-                .await?;
+            update_metadata(&build_result, &verbosity, &image, &client).await?;
 
-            build_steps.increment_current();
             verbose_eprintln!(
                 verbosity,
                 " {} {}",
-                format!("{build_steps}").bold(),
+                "[==]".bold(),
                 "Displaying results".bright_cyan().bold(),
             );
 
@@ -228,7 +214,6 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
 async fn update_metadata(
     build_result: &BuildResult,
     verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
     build_image: &str,
     client: &Docker,
 ) -> Result<()> {
@@ -250,13 +235,7 @@ async fn update_metadata(
 
         metadata.image = Some(image_tag);
 
-        crate::metadata::write_metadata(
-            metadata_artifacts,
-            metadata,
-            build_steps,
-            verbosity,
-            true,
-        )?;
+        crate::metadata::write_metadata(metadata_artifacts, metadata, verbosity, true)?;
     }
     Ok(())
 }
@@ -287,7 +266,6 @@ async fn create_container(
     contract_name: &str,
     host_folder: &Path,
     verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
 ) -> Result<String> {
     let entrypoint = vec!["cargo".to_string(), "contract".to_string()];
 
@@ -378,8 +356,7 @@ async fn create_container(
                 }
             ) {
                 // no such image locally, so pull and try again
-                pull_image(client, build_image.to_string(), verbosity, build_steps)
-                    .await?;
+                pull_image(client, build_image.to_string(), verbosity).await?;
                 client
                     .create_container(options, config)
                     .await
@@ -397,7 +374,6 @@ async fn run_build(
     client: &Docker,
     container_name: &str,
     verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
 ) -> Result<BuildResult> {
     client
         .start_container::<String>(container_name, None)
@@ -418,7 +394,7 @@ async fn run_build(
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         format!("Started the build inside the container: {}", container_name)
             .bright_cyan()
             .bold(),
@@ -487,12 +463,7 @@ fn compose_build_args() -> Result<Vec<String>> {
 }
 
 /// Pulls the docker image from the registry.
-async fn pull_image(
-    client: &Docker,
-    image: String,
-    verbosity: &Verbosity,
-    build_steps: &mut BuildSteps,
-) -> Result<()> {
+async fn pull_image(client: &Docker, image: String, verbosity: &Verbosity) -> Result<()> {
     let mut pull_image_stream = client.create_image(
         Some(CreateImageOptions {
             from_image: image,
@@ -505,12 +476,11 @@ async fn pull_image(
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         "Image does not exist. Pulling one from the registry"
             .bright_cyan()
             .bold()
     );
-    build_steps.increment_current();
 
     if verbosity.is_verbose() {
         show_pull_progress(pull_image_stream).await?

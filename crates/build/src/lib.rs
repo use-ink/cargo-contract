@@ -38,7 +38,6 @@ pub use self::{
     args::{
         BuildArtifacts,
         BuildMode,
-        BuildSteps,
         Features,
         Network,
         OutputType,
@@ -425,27 +424,17 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
 
 /// Run linting steps which include `clippy` (mandatory) + `dylint` (optional).
 fn lint(
-    steps: &mut BuildSteps,
-    build_artifact: BuildArtifacts,
     dylint: bool,
     crate_metadata: &CrateMetadata,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    let total_steps = build_artifact.steps();
-    if dylint {
-        steps.set_total_steps(total_steps + 1);
-    } else {
-        steps.set_total_steps(total_steps);
-    }
-
     // mandatory: Always run clippy.
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{steps}").bold(),
+        "[==]".bold(),
         "Checking clippy linting rules".bright_green().bold()
     );
-    steps.increment_current();
     exec_cargo_clippy(crate_metadata, *verbosity)?;
 
     // optional: Dylint only on demand (for now).
@@ -453,10 +442,9 @@ fn lint(
         verbose_eprintln!(
             verbosity,
             " {} {}",
-            format!("{steps}").bold(),
+            "[==]".bold(),
             "Checking ink! linting rules".bright_green().bold()
         );
-        steps.increment_current();
         exec_cargo_dylint(crate_metadata, *verbosity)?;
     }
     Ok(())
@@ -736,7 +724,7 @@ fn assert_compatible_ink_dependencies(
 /// Checks whether the supplied `ink_version` already contains the debug feature.
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
-pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
+pub fn assert_debug_mode_supported(ink_version: &Version) -> Result<()> {
     tracing::debug!("Contract version: {:?}", ink_version);
     let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
@@ -802,26 +790,19 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            let mut build_steps = BuildSteps::new();
             // Check basically means only running our linter without building.
-            lint(
-                &mut build_steps,
-                *build_artifact,
-                *dylint,
-                &crate_metadata,
-                verbosity,
-            )?;
+            lint(*dylint, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_wasm, _) =
+            let (opt_result, _, dest_wasm) =
                 local_build(&crate_metadata, &optimization_passes, &args)?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm, build_steps) =
+            let (opt_result, build_info, dest_wasm) =
                 local_build(&crate_metadata, &optimization_passes, &args).map_err(
                     |e| {
                         // build error -> bundle is stale
@@ -850,7 +831,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     features,
                     *network,
                     *verbosity,
-                    build_steps,
                     unstable_flags,
                     build_info,
                 )?;
@@ -877,13 +857,12 @@ fn local_build(
     crate_metadata: &CrateMetadata,
     optimization_passes: &OptimizationPasses,
     args: &ExecuteArgs,
-) -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
+) -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf)> {
     let ExecuteArgs {
         verbosity,
         features,
         build_mode,
         network,
-        build_artifact,
         unstable_flags,
         keep_debug_symbols,
         dylint,
@@ -893,16 +872,14 @@ fn local_build(
         ..
     } = args;
 
-    let mut build_steps = BuildSteps::new();
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_steps.increment_current();
     exec_cargo_for_onchain_target(
         crate_metadata,
         "build",
@@ -958,26 +935,19 @@ fn local_build(
             crate_metadata.original_code.display(),
             pre_fingerprint
         );
-        return Ok((None, build_info, dest_code_path, build_steps))
+        return Ok((None, build_info, dest_code_path))
     }
 
     // Needs to happen after fingerprint check because only then we know the number of
     // steps.
-    lint(
-        &mut build_steps,
-        *build_artifact,
-        *dylint,
-        crate_metadata,
-        verbosity,
-    )?;
+    lint(*dylint, crate_metadata, verbosity)?;
 
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         "Post processing code".bright_green().bold()
     );
-    build_steps.increment_current();
 
     // remove build artifacts so we don't have anything stale lingering around
     for t in Target::iter() {
@@ -1017,7 +987,6 @@ fn local_build(
         Some(optimization_result),
         build_info,
         crate_metadata.dest_code.clone(),
-        build_steps,
     ))
 }
 
