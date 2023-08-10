@@ -1249,7 +1249,7 @@ dependencies = [
  "cfg-if",
  "fiat-crypto",
  "packed_simd_2",
- "platforms 3.0.2",
+ "platforms",
  "subtle",
  "zeroize",
 ]
@@ -3221,12 +3221,6 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "platforms"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8d0eef3571242013a0d5dc84861c3ae4a652e56e12adf8bdc26ff5f8cb34c94"
-
-[[package]]
-name = "platforms"
 version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
@@ -4935,12 +4929,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-build-script-utils"
-version = "5.0.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cbc6b6e856dfd283e5116c3cc40c9f2efec2f0be49d9aaa27231a2b24bd454d"
-dependencies = [
- "platforms 2.0.0",
-]
+checksum = "9aa9303045de87997d05bb772a4540cd8af36685e7deb715611933c225a33ac2"
 
 [[package]]
 name = "subtle"
