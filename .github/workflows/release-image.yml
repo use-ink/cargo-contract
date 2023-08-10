@@ -35,7 +35,9 @@ jobs:
           build-args: |
             CARGO_CONTRACT_GIT="https://github.com/paritytech/cargo-contract"
             CARGO_CONTRACT_BRANCH="master"
-          tags: ${{ env.IMAGE_NAME }}:master
+          tags: |
+            ${{ env.IMAGE_NAME }}:master
+            ${{ env.IMAGE_NAME }}:latest
 
       - name: Build and push Docker image from release
         if: ${{ github.event_name == "release" }}
