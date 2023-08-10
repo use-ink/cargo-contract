@@ -39,6 +39,14 @@ jobs:
             ${{ env.IMAGE_NAME }}:master
             ${{ env.IMAGE_NAME }}:latest
 
+      # Store the version, stripping any v-prefix
+      - name: Write release version
+        if: ${{ github.event_name == "release" }}
+        run: |
+          GH_TAG=${{ github.event.release.tag_name }}
+          echo Published github tag: $GH_TAG
+          echo "DOCKER_TAG=${GH_TAG#v}" >> $GITHUB_ENV
+
       - name: Build and push Docker image from release
         if: ${{ github.event_name == "release" }}
         uses: docker/build-push-action@v4
@@ -49,5 +57,5 @@ jobs:
           build-args: |
             CARGO_CONTRACT_GIT="https://github.com/paritytech/cargo-contract"
             CARGO_CONTRACT_TAG=${{ github.event.release.tag_name }}
-          tags: ${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          tags: ${{ env.IMAGE_NAME }}:${DOCKER_TAG}
 
