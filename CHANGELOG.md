@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+
 ## [4.0.0-alpha]
 
-Replaces the yanked `3.1.0` due to issues with supporting *both* Rust versions < `1.70` 
+Replaces the yanked `3.1.0` due to issues with supporting *both* Rust versions < `1.70`
 and >= `1.70`.
 
 If you intend to use `cargo-contract` with Rust >= `1.70`, and deploy to a node with a
