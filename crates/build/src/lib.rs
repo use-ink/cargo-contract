@@ -319,10 +319,11 @@ fn exec_cargo_for_onchain_target(
         }
 
         // merge target specific flags with the common flags (defined here)
-        // We want to disable warnings here as they will be duplicates of the clippy pass. However,
-        // if we want to do so with either `--cap-lints allow` or  `-A warnings` the build will fail.
-        // It seems that the cross compilation depends on some warning to be enabled. Until we figure
-        // that out we need to live with duplicated warnings. For the metadata build we can disable
+        // We want to disable warnings here as they will be duplicates of the clippy pass.
+        // However, if we want to do so with either `--cap-lints allow` or  `-A
+        // warnings` the build will fail. It seems that the cross compilation
+        // depends on some warning to be enabled. Until we figure that out we need
+        // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let rustflags = {
             let common_flags = "-Clinker-plugin-lto";
@@ -877,8 +878,8 @@ fn local_build(
         ..
     } = args;
 
-    // We always want to lint first so we don't suppress any warnings when a build is skipped
-    // because of a matching fingerprint.
+    // We always want to lint first so we don't suppress any warnings when a build is
+    // skipped because of a matching fingerprint.
     lint(*dylint, crate_metadata, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
@@ -946,8 +947,6 @@ fn local_build(
         );
         return Ok((None, build_info, dest_code_path))
     }
-
-
 
     verbose_eprintln!(
         verbosity,
