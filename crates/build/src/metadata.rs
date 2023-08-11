@@ -154,7 +154,7 @@ pub fn execute(
             args,
             crate_metadata.manifest_path.directory(),
             verbosity,
-            vec![],
+            vec![("CARGO_ENCODED_RUSTFLAGS", Some("--cap-lints=allow".to_string()))],
         );
         let output = cmd.stdout_capture().run()?;
 
