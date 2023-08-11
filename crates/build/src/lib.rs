@@ -322,7 +322,7 @@ fn exec_cargo_for_onchain_target(
         let rustflags = {
             let common_flags = "-Clinker-plugin-lto";
             if let Some(target_flags) = target.rustflags() {
-                format!("{}\x1f{}", target_flags, common_flags)
+                format!("{}\x1f{}", common_flags, target_flags)
             } else {
                 common_flags.to_string()
             }
@@ -872,6 +872,10 @@ fn local_build(
         ..
     } = args;
 
+    // We always want to lint first so we don't suppress any warnings when a build is skipped
+    // because of a matching fingerprint.
+    lint(*dylint, crate_metadata, verbosity)?;
+
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
     verbose_eprintln!(
@@ -938,9 +942,7 @@ fn local_build(
         return Ok((None, build_info, dest_code_path))
     }
 
-    // Needs to happen after fingerprint check because only then we know the number of
-    // steps.
-    lint(*dylint, crate_metadata, verbosity)?;
+
 
     verbose_eprintln!(
         verbosity,
