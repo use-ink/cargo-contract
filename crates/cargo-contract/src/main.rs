@@ -322,7 +322,8 @@ fn handle_instantiate(
                     }
                 })?;
             }
-            let instantiate_result = instantiate_exec.instantiate(gas_limit).await?;
+            let instantiate_result =
+                instantiate_exec.instantiate(Some(gas_limit)).await?;
             instantiate_exec.display_result(instantiate_result).await?;
             Ok(())
         }
@@ -397,7 +398,7 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 })?;
             }
             let token_metadata = TokenMetadata::query(call_exec.client()).await?;
-            let display_events = call_exec.call(gas_limit).await?;
+            let display_events = call_exec.call(Some(gas_limit)).await?;
             let output = if call_exec.output_json() {
                 display_events.to_json()?
             } else {

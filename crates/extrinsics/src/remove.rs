@@ -123,7 +123,7 @@ impl RemoveCommand {
     /// available and sets up the client, signer, and other relevant parameters for the
     /// contract code removal operation.
     ///
-    /// Returns the [`RemoveExec`] containing the preprocessed data for the contract code
+    /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
     pub async fn preprocess(&self) -> Result<RemoveExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;

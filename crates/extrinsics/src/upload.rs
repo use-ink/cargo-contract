@@ -120,7 +120,7 @@ impl UploadCommand {
     /// required contract code is available and sets up the client and signer for the
     /// operation.
     ///
-    /// Returns the [`UploadExec`] containing the preprocessed data for the upload or
+    /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution, or an error in case of failure.
     pub async fn preprocess(&self) -> Result<UploadExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;

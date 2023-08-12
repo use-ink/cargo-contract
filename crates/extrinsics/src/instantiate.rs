@@ -413,8 +413,13 @@ impl InstantiateExec {
     /// result, contract address, and token metadata.
     pub async fn instantiate(
         &self,
-        gas_limit: Weight,
+        gas_limit: Option<Weight>,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
+        // use user specified values where provided, otherwise estimate
+        let gas_limit = match gas_limit {
+            Some(gas_limit) => gas_limit,
+            None => self.estimate_gas(false).await?,
+        };
         match self.args.code.clone() {
             Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
             Code::Existing(code_hash) => {

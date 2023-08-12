@@ -209,7 +209,7 @@ impl CallCommand {
     /// required contract code and message data are available, sets up the client, signer,
     /// and other relevant parameters, preparing for the contract call operation.
     ///
-    /// Returns the [`CallExec`] containing the preprocessed data for the contract call,
+    /// Returns the `CallExec` containing the preprocessed data for the contract call,
     /// or an error in case of failure.
     pub async fn preprocess(&self) -> Result<CallExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
@@ -292,7 +292,15 @@ impl CallExec {
     ///
     /// Returns the events generated from the contract call, or an error in case of
     /// failure.
-    pub async fn call(&self, gas_limit: Weight) -> Result<DisplayEvents, ErrorVariant> {
+    pub async fn call(
+        &self,
+        gas_limit: Option<Weight>,
+    ) -> Result<DisplayEvents, ErrorVariant> {
+        // use user specified values where provided, otherwise estimate
+        let gas_limit = match gas_limit {
+            Some(gas_limit) => gas_limit,
+            None => self.estimate_gas(false).await?,
+        };
         tracing::debug!("calling contract {:?}", self.contract);
         let token_metadata = TokenMetadata::query(&self.client).await?;
 
