@@ -115,7 +115,16 @@ impl RemoveCommand {
         self.output_json
     }
 
-    /// Helper method for preprocessing contract artifacts.
+    /// Preprocesses contract artifacts and options for subsequent removal of contract
+    /// code.
+    ///
+    /// This function prepares the necessary data for removing contract code based on the
+    /// provided contract artifacts and options. It ensures that the required code hash is
+    /// available and sets up the client, signer, and other relevant parameters for the
+    /// contract code removal operation.
+    ///
+    /// Returns the [`RemoveExec`] containing the preprocessed data for the contract code
+    /// removal, or an error in case of failure.
     pub async fn preprocess(&self) -> Result<RemoveExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
@@ -157,6 +166,15 @@ pub struct RemoveExec {
 }
 
 impl RemoveExec {
+    /// Removes a contract code from the blockchain.
+    ///
+    /// This function removes a contract code with the specified code hash from the
+    /// blockchain, ensuring that it's no longer available for instantiation or
+    /// execution. It interacts with the blockchain's runtime API to execute the
+    /// removal operation and provides the resulting events from the removal.
+    ///
+    /// Returns the [`RemoveResult`] containing the events generated from the contract
+    /// code removal, or an error in case of failure.
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);
         let call = api::tx()
@@ -177,26 +195,32 @@ impl RemoveExec {
         })
     }
 
+    /// Returns the final code hash.
     pub fn final_code_hash(&self) -> [u8; 32] {
         self.final_code_hash
     }
 
+    /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts {
         &self.opts
     }
 
+    /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }
 
+    /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
     }
 
+    /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
 
+    /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
     }

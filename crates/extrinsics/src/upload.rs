@@ -113,7 +113,15 @@ impl UploadCommand {
         self.output_json
     }
 
-    /// Helper method for preprocessing contract artifacts.
+    /// Preprocesses contract artifacts and options for subsequent upload or execution.
+    ///
+    /// This function prepares the necessary data for uploading or executing a contract
+    /// based on the provided contract artifacts and options. It ensures that the
+    /// required contract code is available and sets up the client and signer for the
+    /// operation.
+    ///
+    /// Returns the [`UploadExec`] containing the preprocessed data for the upload or
+    /// execution, or an error in case of failure.
     pub async fn preprocess(&self) -> Result<UploadExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let signer = self.extrinsic_opts.signer()?;
@@ -146,6 +154,12 @@ pub struct UploadExec {
 }
 
 impl UploadExec {
+    /// Uploads contract code to a specified URL using a JSON-RPC call.
+    ///
+    /// This function performs a JSON-RPC call to upload contract code to the given URL.
+    /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
+    /// then sends the request using the provided URL. This operation does not modify
+    /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.opts.url_to_string();
         let token_metadata = TokenMetadata::query(&self.client).await?;
@@ -164,6 +178,12 @@ impl UploadExec {
         state_call(&url, "ContractsApi_upload_code", call_request).await
     }
 
+    /// Uploads contract code to the blockchain with specified options.
+    ///
+    /// This function facilitates the process of uploading contract code to the
+    /// blockchain, utilizing the provided options.
+    /// The function handles the necessary interactions with the blockchain's runtime
+    /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
         let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self.opts.storage_deposit_limit(&token_metadata)?;
@@ -184,22 +204,27 @@ impl UploadExec {
         })
     }
 
+    /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts {
         &self.opts
     }
 
+    /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }
 
+    /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
     }
 
+    /// Returns the code.
     pub fn code(&self) -> &WasmCode {
         &self.code
     }
 
+    /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
     }

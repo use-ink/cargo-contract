@@ -282,7 +282,7 @@ fn handle_instantiate(
 
         if !instantiate_exec.opts().execute() {
             let result = instantiate_exec.instantiate_dry_run().await?;
-            match instantiate_exec.do_not_execute().await {
+            match instantiate_exec.simulate_instantiation().await {
                 Ok(dry_run_result) => {
                     if instantiate_exec.output_json() {
                         println!("{}", dry_run_result.to_json()?);
@@ -307,9 +307,7 @@ fn handle_instantiate(
             }
         } else {
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
-            let gas_limit = instantiate_exec
-                .pre_submit_dry_run_gas_estimate(true)
-                .await?;
+            let gas_limit = instantiate_exec.estimate_gas(true).await?;
             if !instantiate_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     instantiate_exec.print_default_instantiate_preview(gas_limit);
@@ -377,7 +375,7 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 }
             }
         } else {
-            let gas_limit = call_exec.pre_submit_dry_run_gas_estimate(true).await?;
+            let gas_limit = call_exec.estimate_gas(true).await?;
 
             if !call_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {

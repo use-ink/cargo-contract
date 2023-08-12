@@ -202,7 +202,15 @@ impl InstantiateCommand {
         self.output_json
     }
 
-    /// Helper method for preprocessing contract artifacts.
+    /// Preprocesses contract artifacts and options for instantiation.
+    ///
+    /// This function prepares the required data for instantiating a contract based on the
+    /// provided contract artifacts and options. It ensures that the necessary contract
+    /// code is available, sets up the client, signer, and other relevant parameters,
+    /// preparing for the instantiation process.
+    ///
+    /// Returns the [`InstantiateExec`] containing the preprocessed data for the
+    /// instantiation, or an error in case of failure.
     pub async fn preprocess(&self) -> Result<InstantiateExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
@@ -290,7 +298,17 @@ pub struct InstantiateExec {
 }
 
 impl InstantiateExec {
-    pub async fn do_not_execute(&self) -> Result<InstantiateDryRunResult, ErrorVariant> {
+    /// Simulates the instantiation of a contract without executing it on the blockchain.
+    ///
+    /// This function performs a dry-run simulation of the contract instantiation process
+    /// and returns an [`InstantiateDryRunResult`] object containing essential
+    /// information, including the contract address, gas consumption, and storage
+    /// deposit.
+    ///
+    /// It does not modify the state of the blockchain.
+    pub async fn simulate_instantiation(
+        &self,
+    ) -> Result<InstantiateDryRunResult, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         let result = self.instantiate_dry_run().await?;
         match result.result {
@@ -383,6 +401,16 @@ impl InstantiateExec {
         })
     }
 
+    /// Initiates the deployment of a smart contract on the blockchain.
+    ///
+    /// This function can be used to deploy a contract using either its source code or an
+    /// existing code hash. It triggers the instantiation process by submitting an
+    /// extrinsic with the specified gas limit, storage deposit, code or code hash,
+    /// input data, and salt.
+    ///
+    /// The deployment result provides essential information about the instantiation,
+    /// encapsulated in an [`InstantiateExecResult`] object, including the contract's
+    /// result, contract address, and token metadata.
     pub async fn instantiate(
         &self,
         gas_limit: Weight,
@@ -395,6 +423,8 @@ impl InstantiateExec {
         }
     }
 
+    /// Displays the results of contract instantiation, including contract address,
+    /// events, and optional code hash.
     pub async fn display_result(
         &self,
         instantiate_exec_result: InstantiateExecResult,
@@ -436,6 +466,8 @@ impl InstantiateExec {
         name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
     }
 
+    /// Performs a dry run of the contract instantiation process without modifying the
+    /// blockchain.
     pub async fn instantiate_dry_run(
         &self,
     ) -> Result<
@@ -454,11 +486,15 @@ impl InstantiateExec {
         state_call(&self.url, "ContractsApi_instantiate", &call_request).await
     }
 
-    /// Dry run the instantiation before tx submission. Returns the gas required estimate.
-    pub async fn pre_submit_dry_run_gas_estimate(
-        &self,
-        print_to_terminal: bool,
-    ) -> Result<Weight> {
+    /// Estimates the gas required for the contract instantiation process without
+    /// modifying the blockchain.
+    ///
+    /// This function provides a gas estimation for contract instantiation, considering
+    /// the user-specified values or using estimates based on a dry run.
+    ///
+    /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
+    /// an error.
+    pub async fn estimate_gas(&self, print_to_terminal: bool) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.args.gas_limit, self.args.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -507,34 +543,42 @@ impl InstantiateExec {
         }
     }
 
+    /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts {
         &self.opts
     }
 
+    /// Returns the instantiate arguments.
     pub fn args(&self) -> &InstantiateArgs {
         &self.args
     }
 
+    /// Returns the verbosity level.
     pub fn verbosity(&self) -> Verbosity {
         self.verbosity
     }
 
+    /// Returns the url.
     pub fn url(&self) -> &String {
         &self.url
     }
 
+    /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
     }
 
+    /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
     }
 
+    /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
 
+    /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }

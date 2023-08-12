@@ -134,9 +134,9 @@ impl<M, E> CallCommandBuilder<M, E> {
     }
 
     /// Sets the arguments of the contract message to call.
-    pub fn args(self, args: Vec<String>) -> Self {
+    pub fn args<T: ToString>(self, args: Vec<T>) -> Self {
         let mut this = self;
-        this.opts.args = args;
+        this.opts.args = args.into_iter().map(|arg| arg.to_string()).collect();
         this
     }
 
@@ -202,7 +202,15 @@ impl CallCommand {
         self.output_json
     }
 
-    /// Helper method for preprocessing contract artifacts.
+    /// Preprocesses contract artifacts and options for subsequent contract calls.
+    ///
+    /// This function prepares the necessary data for making a contract call based on the
+    /// provided contract artifacts, message, arguments, and options. It ensures that the
+    /// required contract code and message data are available, sets up the client, signer,
+    /// and other relevant parameters, preparing for the contract call operation.
+    ///
+    /// Returns the [`CallExec`] containing the preprocessed data for the contract call,
+    /// or an error in case of failure.
     pub async fn preprocess(&self) -> Result<CallExec> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
@@ -247,6 +255,15 @@ pub struct CallExec {
 }
 
 impl CallExec {
+    /// Simulates a contract call without modifying the blockchain.
+    ///
+    /// This function performs a dry run simulation of a contract call, capturing
+    /// essential information such as the contract address, gas consumption, and
+    /// storage deposit. The simulation is executed without actually executing the
+    /// call on the blockchain.
+    ///
+    /// Returns the dry run simulation result of type [`ContractExecResult`], which
+    /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
         let url = self.opts.url_to_string();
         let token_metadata = TokenMetadata::query(&self.client).await?;
@@ -267,6 +284,14 @@ impl CallExec {
         state_call(&url, "ContractsApi_call", call_request).await
     }
 
+    /// Calls a contract on the blockchain with a specified gas limit.
+    ///
+    /// This function facilitates the process of invoking a contract, specifying the gas
+    /// limit for the operation. It interacts with the blockchain's runtime API to
+    /// execute the contract call and provides the resulting events from the call.
+    ///
+    /// Returns the events generated from the contract call, or an error in case of
+    /// failure.
     pub async fn call(&self, gas_limit: Weight) -> Result<DisplayEvents, ErrorVariant> {
         tracing::debug!("calling contract {:?}", self.contract);
         let token_metadata = TokenMetadata::query(&self.client).await?;
@@ -290,11 +315,15 @@ impl CallExec {
         Ok(display_events)
     }
 
-    /// Dry run the call before tx submission. Returns the gas required estimate.
-    pub async fn pre_submit_dry_run_gas_estimate(
-        &self,
-        print_to_terminal: bool,
-    ) -> Result<Weight> {
+    /// Estimates the gas required for a contract call without modifying the blockchain.
+    ///
+    /// This function provides a gas estimation for contract calls, considering the
+    /// user-specified values or using estimates based on a dry run. The estimated gas
+    /// weight is returned, or an error is reported if the estimation fails.
+    ///
+    /// Returns the estimated gas weight of type [`Weight`] for contract calls, or an
+    /// error.
+    pub async fn estimate_gas(&self, print_to_terminal: bool) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.gas_limit, self.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -341,50 +370,62 @@ impl CallExec {
         }
     }
 
+    /// Returns the address of the the contract to call.
     pub fn contract(&self) -> &<DefaultConfig as Config>::AccountId {
         &self.contract
     }
 
+    /// Returns the name of the contract message to call.
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    /// Returns the arguments of the contract message to call.
     pub fn args(&self) -> &Vec<String> {
         &self.args
     }
 
+    /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts {
         &self.opts
     }
 
+    /// Returns the maximum amount of gas to be used for this command.
     pub fn gas_limit(&self) -> Option<u64> {
         self.gas_limit
     }
 
+    /// Returns the maximum proof size for this call.
     pub fn proof_size(&self) -> Option<u64> {
         self.proof_size
     }
 
+    /// Returns the value to be transferred as part of the call.
     pub fn value(&self) -> &BalanceVariant {
         &self.value
     }
 
+    /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }
 
+    /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
     }
 
+    /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
 
+    /// Returns the call data.
     pub fn call_data(&self) -> &Vec<u8> {
         &self.call_data
     }
 
+    /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
     }
