@@ -38,7 +38,6 @@ pub use self::{
     args::{
         BuildArtifacts,
         BuildMode,
-        BuildSteps,
         Features,
         Network,
         OutputType,
@@ -122,7 +121,7 @@ pub struct ExecuteArgs {
     pub unstable_flags: UnstableFlags,
     pub optimization_passes: Option<OptimizationPasses>,
     pub keep_debug_symbols: bool,
-    pub lint: bool,
+    pub dylint: bool,
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
@@ -142,7 +141,7 @@ impl Default for ExecuteArgs {
             unstable_flags: Default::default(),
             optimization_passes: Default::default(),
             keep_debug_symbols: Default::default(),
-            lint: Default::default(),
+            dylint: Default::default(),
             output_type: Default::default(),
             skip_wasm_validation: Default::default(),
             target: Default::default(),
@@ -319,8 +318,23 @@ fn exec_cargo_for_onchain_target(
             );
         }
 
+        // merge target specific flags with the common flags (defined here)
+        // We want to disable warnings here as they will be duplicates of the clippy pass.
+        // However, if we want to do so with either `--cap-lints allow` or  `-A
+        // warnings` the build will fail. It seems that the cross compilation
+        // depends on some warning to be enabled. Until we figure that out we need
+        // to live with duplicated warnings. For the metadata build we can disable
+        // warnings.
+        let rustflags = {
+            let common_flags = "-Clinker-plugin-lto";
+            if let Some(target_flags) = target.rustflags() {
+                format!("{}\x1f{}", common_flags, target_flags)
+            } else {
+                common_flags.to_string()
+            }
+        };
+
         // the linker needs our linker script as file
-        let rustflags = target.rustflags();
         if matches!(target, Target::RiscV) {
             fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
@@ -333,7 +347,7 @@ fn exec_cargo_for_onchain_target(
                 Some(format!("{rustflags}\x1f-Clink-arg=-T{path}",)),
             ));
         } else {
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags.to_string())));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };
 
         let cargo =
@@ -376,7 +390,8 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
         }};
     }
 
-    let cargo = util::cargo_tty_output(cargo);
+    // unchecked: Even capture output on non exit return status
+    let cargo = util::cargo_tty_output(cargo).unchecked();
 
     let missing_main_err = "error[E0601]".as_bytes();
     let mut err_buf = VecDeque::with_capacity(missing_main_err.len());
@@ -413,8 +428,55 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
     Ok(())
 }
 
-/// Executes `cargo dylint` with the ink! linting driver that is built during
-/// the `build.rs`.
+/// Run linting steps which include `clippy` (mandatory) + `dylint` (optional).
+fn lint(
+    dylint: bool,
+    crate_metadata: &CrateMetadata,
+    verbosity: &Verbosity,
+) -> Result<()> {
+    // mandatory: Always run clippy.
+    verbose_eprintln!(
+        verbosity,
+        " {} {}",
+        "[==]".bold(),
+        "Checking clippy linting rules".bright_green().bold()
+    );
+    exec_cargo_clippy(crate_metadata, *verbosity)?;
+
+    // optional: Dylint only on demand (for now).
+    if dylint {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Checking ink! linting rules".bright_green().bold()
+        );
+        exec_cargo_dylint(crate_metadata, *verbosity)?;
+    }
+    Ok(())
+}
+
+/// Run cargo clippy on the unmodified manifest.
+fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
+    let args = [
+        "--all-features",
+        // customize clippy lints after the "--"
+        "--",
+        // this is a hard error because we want to guarantee that implicit overflows
+        // never happen
+        "-Dclippy::arithmetic_side_effects",
+    ];
+    // we execute clippy with the plain manifest no temp dir required
+    invoke_cargo_and_scan_for_error(util::cargo_cmd(
+        "clippy",
+        args,
+        crate_metadata.manifest_path.directory(),
+        verbosity,
+        vec![],
+    ))
+}
+
+/// Inject our custom lints into the manifest and execute `cargo dylint` .
 ///
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
@@ -668,7 +730,7 @@ fn assert_compatible_ink_dependencies(
 /// Checks whether the supplied `ink_version` already contains the debug feature.
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
-pub fn assert_debug_mode_supported(ink_version: &Version) -> anyhow::Result<()> {
+pub fn assert_debug_mode_supported(ink_version: &Version) -> Result<()> {
     tracing::debug!("Contract version: {:?}", ink_version);
     let minimum_version = Version::parse("3.0.0-rc4").expect("parsing version failed");
     if ink_version < &minimum_version {
@@ -693,7 +755,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         build_artifact,
         unstable_flags,
         optimization_passes,
-        lint,
+        dylint,
         output_type,
         target,
         ..
@@ -734,42 +796,19 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
-            let mut build_steps = BuildSteps::new();
-            maybe_lint(
-                &mut build_steps,
-                *build_artifact,
-                *lint,
-                &crate_metadata,
-                verbosity,
-            )?;
-
-            verbose_eprintln!(
-                verbosity,
-                " {} {}",
-                format!("{build_steps}").bold(),
-                "Executing `cargo check`".bright_green().bold()
-            );
-            exec_cargo_for_onchain_target(
-                &crate_metadata,
-                "check",
-                features,
-                &BuildMode::Release,
-                network,
-                verbosity,
-                unstable_flags,
-                target,
-            )?;
+            // Check basically means only running our linter without building.
+            lint(*dylint, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_wasm, _) =
+            let (opt_result, _, dest_wasm) =
                 local_build(&crate_metadata, &optimization_passes, &args)?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm, build_steps) =
+            let (opt_result, build_info, dest_wasm) =
                 local_build(&crate_metadata, &optimization_passes, &args).map_err(
                     |e| {
                         // build error -> bundle is stale
@@ -798,7 +837,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     features,
                     *network,
                     *verbosity,
-                    build_steps,
                     unstable_flags,
                     build_info,
                 )?;
@@ -825,32 +863,33 @@ fn local_build(
     crate_metadata: &CrateMetadata,
     optimization_passes: &OptimizationPasses,
     args: &ExecuteArgs,
-) -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf, BuildSteps)> {
+) -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf)> {
     let ExecuteArgs {
         verbosity,
         features,
         build_mode,
         network,
-        build_artifact,
         unstable_flags,
         keep_debug_symbols,
-        lint,
+        dylint,
         skip_wasm_validation,
         target,
         max_memory_pages,
         ..
     } = args;
 
-    let mut build_steps = BuildSteps::new();
+    // We always want to lint first so we don't suppress any warnings when a build is
+    // skipped because of a matching fingerprint.
+    lint(*dylint, crate_metadata, verbosity)?;
+
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         "Building cargo project".bright_green().bold()
     );
-    build_steps.increment_current();
     exec_cargo_for_onchain_target(
         crate_metadata,
         "build",
@@ -906,24 +945,15 @@ fn local_build(
             crate_metadata.original_code.display(),
             pre_fingerprint
         );
-        return Ok((None, build_info, dest_code_path, build_steps))
+        return Ok((None, build_info, dest_code_path))
     }
-
-    maybe_lint(
-        &mut build_steps,
-        *build_artifact,
-        *lint,
-        crate_metadata,
-        verbosity,
-    )?;
 
     verbose_eprintln!(
         verbosity,
         " {} {}",
-        format!("{build_steps}").bold(),
+        "[==]".bold(),
         "Post processing code".bright_green().bold()
     );
-    build_steps.increment_current();
 
     // remove build artifacts so we don't have anything stale lingering around
     for t in Target::iter() {
@@ -963,33 +993,7 @@ fn local_build(
         Some(optimization_result),
         build_info,
         crate_metadata.dest_code.clone(),
-        build_steps,
     ))
-}
-
-pub fn maybe_lint(
-    steps: &mut BuildSteps,
-    build_artifact: BuildArtifacts,
-    lint: bool,
-    crate_metadata: &CrateMetadata,
-    verbosity: &Verbosity,
-) -> Result<()> {
-    let total_steps = build_artifact.steps();
-    if lint {
-        steps.set_total_steps(total_steps + 1);
-        verbose_eprintln!(
-            verbosity,
-            " {} {}",
-            format!("{steps}").bold(),
-            "Checking ink! linting rules".bright_green().bold()
-        );
-        steps.increment_current();
-        exec_cargo_dylint(crate_metadata, *verbosity)?;
-        Ok(())
-    } else {
-        steps.set_total_steps(total_steps);
-        Ok(())
-    }
 }
 
 /// Unique fingerprint for a file to detect whether it has changed.
