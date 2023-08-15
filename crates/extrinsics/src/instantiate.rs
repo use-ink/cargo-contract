@@ -129,9 +129,9 @@ impl<E> InstantiateCommandBuilder<E> {
     }
 
     /// Sets the constructor arguments.
-    pub fn args(self, args: Vec<String>) -> Self {
+    pub fn args<T: ToString>(self, args: Vec<T>) -> Self {
         let mut this = self;
-        this.opts.args = args;
+        this.opts.args = args.into_iter().map(|arg| arg.to_string()).collect();
         this
     }
 
