@@ -19,7 +19,7 @@ contract-build = { version = "4.0.0-alpha", path = "../build" }
 contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 
-anyhow = "1.0.72"
+anyhow = "1.0.73"
 clap = { version = "4.3.21", features = ["derive", "env"] }
 tracing = "0.1.37"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
@@ -37,4 +37,4 @@ scale-info = "2.8.0"
 subxt = "0.31.0"
 subxt-signer = { version = "0.31.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
-jsonrpsee = { version = "0.19.0", features = ["ws-client"] }
+jsonrpsee = { version = "0.20.0", features = ["ws-client"] }

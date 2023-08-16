@@ -22,7 +22,7 @@ contract-build = { version = "4.0.0-alpha", path = "../build" }
 contract-extrinsics = { version = "4.0.0-alpha", path = "../extrinsics" }
 contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 
-anyhow = "1.0.72"
+anyhow = "1.0.73"
 clap = { version = "4.3.21", features = ["derive", "env"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
@@ -38,14 +38,14 @@ subxt = "0.31.0"
 hex = "0.4.3"
 
 [build-dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.73"
 substrate-build-script-utils = "6.0.0"
 current_platform = "0.2.0"
 which = "4.4.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-regex = "1.9.1"
+regex = "1.9.3"
 predicates = "3.0.3"
 tempfile = "3.7.1"
 

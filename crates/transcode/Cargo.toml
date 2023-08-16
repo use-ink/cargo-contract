@@ -17,7 +17,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 path = "src/lib.rs"
 
 [dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.73"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.4", default-features = false }
 contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
@@ -35,7 +35,7 @@ scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive
 scale-info = { version = "2.8.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.183", default-features = false, features = ["derive"] }
 serde_json = "1.0.104"
-thiserror = "1.0.44"
+thiserror = "1.0.45"
 strsim = "0.10.0"
 
 [dev-dependencies]

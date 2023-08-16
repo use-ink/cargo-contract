@@ -175,9 +175,6 @@ fn exec(cmd: Command) -> Result<()> {
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
             );
-            if res.verbosity.is_verbose() {
-                println!("\nYour contract's code was built successfully.")
-            }
             Ok(())
         }
         Command::Upload(upload) => {
