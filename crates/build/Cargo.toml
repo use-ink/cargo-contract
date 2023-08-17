@@ -15,7 +15,7 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 
 [dependencies]
 regex = "1"
-anyhow = "1.0.73"
+anyhow = "1.0.75"
 blake2 = "0.10.6"
 cargo_metadata = "0.17.0"
 colored = "2.0.4"
@@ -50,7 +50,7 @@ contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 users = "0.11"
 
 [build-dependencies]
-anyhow = "1.0.73"
+anyhow = "1.0.75"
 walkdir = "2.3.3"
 zip = { version = "0.6.6", default-features = false }
 
