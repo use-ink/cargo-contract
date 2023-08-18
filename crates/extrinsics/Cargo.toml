@@ -20,7 +20,7 @@ contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 
 anyhow = "1.0.75"
-clap = { version = "4.3.21", features = ["derive", "env"] }
+clap = { version = "4.3.22", features = ["derive", "env"] }
 tracing = "0.1.37"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.0.4"
