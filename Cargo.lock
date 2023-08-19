@@ -747,6 +747,7 @@ dependencies = [
  "predicates",
  "regex",
  "serde_json",
+ "sp-weights",
  "substrate-build-script-utils",
  "subxt",
  "tempfile",

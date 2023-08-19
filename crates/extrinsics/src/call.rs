@@ -16,7 +16,6 @@
 
 use super::{
     account_id,
-    display_contract_exec_result,
     events::DisplayEvents,
     runtime_api::api,
     state,
@@ -34,7 +33,6 @@ use super::{
     StorageDeposit,
     TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
-    MAX_KEY_COL_WIDTH,
 };
 
 use anyhow::{
@@ -299,7 +297,7 @@ impl CallExec {
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
-            None => self.estimate_gas(false).await?,
+            None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);
         let token_metadata = TokenMetadata::query(&self.client).await?;
@@ -331,7 +329,7 @@ impl CallExec {
     ///
     /// Returns the estimated gas weight of type [`Weight`] for contract calls, or an
     /// error.
-    pub async fn estimate_gas(&self, print_to_terminal: bool) -> Result<Weight> {
+    pub async fn estimate_gas(&self) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.gas_limit, self.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -342,15 +340,9 @@ impl CallExec {
                 }
             };
         }
-        if !self.output_json && print_to_terminal {
-            super::print_dry_running_status(&self.message);
-        }
         let call_result = self.call_dry_run().await?;
         match call_result.result {
             Ok(_) => {
-                if !self.output_json && print_to_terminal {
-                    super::print_gas_required_success(call_result.gas_required);
-                }
                 // use user specified values where provided, otherwise use the estimates
                 let ref_time = self
                     .gas_limit
@@ -366,12 +358,6 @@ impl CallExec {
                 if self.output_json {
                     Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                 } else {
-                    if print_to_terminal {
-                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
-                            &call_result,
-                        )?;
-                    }
                     Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
                 }
             }

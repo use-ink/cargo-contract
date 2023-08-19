@@ -90,6 +90,7 @@ pub use balance::{
 pub use call::{
     CallCommand,
     CallDryRunResult,
+    CallExec,
     CallRequest,
 };
 use contract_metadata::ContractMetadata;
@@ -335,6 +336,10 @@ impl ExtrinsicOpts {
 
     pub fn skip_confirm(&self) -> bool {
         self.skip_confirm
+    }
+
+    pub fn skip_dry_run(&self) -> bool {
+        self.skip_dry_run
     }
 }
 
@@ -597,7 +602,7 @@ pub fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     }
 }
 
-fn print_dry_running_status(msg: &str) {
+pub fn print_dry_running_status(msg: &str) {
     println!(
         "{:>width$} {} (skip with --skip-dry-run)",
         "Dry-running".green().bold(),
@@ -606,7 +611,7 @@ fn print_dry_running_status(msg: &str) {
     );
 }
 
-fn print_gas_required_success(gas: Weight) {
+pub fn print_gas_required_success(gas: Weight) {
     println!(
         "{:>width$} Gas required estimated at {}",
         "Success!".green().bold(),

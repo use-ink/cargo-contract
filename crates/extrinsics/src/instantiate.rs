@@ -16,7 +16,6 @@
 
 use super::{
     account_id,
-    display_contract_exec_result,
     events::DisplayEvents,
     runtime_api::api,
     state,
@@ -34,7 +33,6 @@ use super::{
     StorageDeposit,
     TokenMetadata,
     DEFAULT_KEY_COL_WIDTH,
-    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -277,12 +275,24 @@ impl InstantiateArgs {
         self.storage_deposit_limit.map(Into::into)
     }
 
+    pub fn constructor(&self) -> &str {
+        &self.constructor
+    }
+
     pub fn code(&self) -> &Code {
         &self.code
     }
 
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn gas_limit(&self) -> Option<u64> {
+        self.gas_limit
+    }
+
+    pub fn proof_size(&self) -> Option<u64> {
+        self.proof_size
     }
 }
 
@@ -418,7 +428,7 @@ impl InstantiateExec {
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
-            None => self.estimate_gas(false).await?,
+            None => self.estimate_gas().await?,
         };
         match self.args.code.clone() {
             Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
@@ -499,7 +509,7 @@ impl InstantiateExec {
     ///
     /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
     /// an error.
-    pub async fn estimate_gas(&self, print_to_terminal: bool) -> Result<Weight> {
+    pub async fn estimate_gas(&self) -> Result<Weight> {
         if self.opts.skip_dry_run {
             return match (self.args.gas_limit, self.args.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -510,15 +520,9 @@ impl InstantiateExec {
                 }
             };
         }
-        if !self.output_json && print_to_terminal {
-            super::print_dry_running_status(&self.args.constructor);
-        }
         let instantiate_result = self.instantiate_dry_run().await?;
         match instantiate_result.result {
             Ok(_) => {
-                if !self.output_json && print_to_terminal {
-                    super::print_gas_required_success(instantiate_result.gas_required);
-                }
                 // use user specified values where provided, otherwise use the estimates
                 let ref_time = self
                     .args
@@ -536,12 +540,6 @@ impl InstantiateExec {
                 if self.output_json {
                     Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
                 } else {
-                    if print_to_terminal {
-                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
-                            &instantiate_result,
-                        )?;
-                    }
                     Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
                 }
             }

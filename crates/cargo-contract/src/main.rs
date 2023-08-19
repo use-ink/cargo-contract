@@ -58,15 +58,20 @@ use contract_extrinsics::{
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
+    print_dry_running_status,
+    print_gas_required_success,
     prompt_confirm_tx,
     CallDryRunResult,
+    CallExec,
     Code,
     CodeHashResult,
+    InstantiateExec,
     StorageDeposit,
     TokenMetadata,
     UploadDryRunResult,
     MAX_KEY_COL_WIDTH,
 };
+use sp_weights::Weight;
 
 // These crates are only used when we run integration tests `--features
 // integration-tests`. However since we can't have optional `dev-dependencies` we pretend
@@ -307,7 +312,8 @@ fn handle_instantiate(
             }
         } else {
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
-            let gas_limit = instantiate_exec.estimate_gas(true).await?;
+            let gas_limit =
+                pre_submit_dry_run_gas_estimate_instantiate(&instantiate_exec).await?;
             if !instantiate_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     instantiate_exec.print_default_instantiate_preview(gas_limit);
@@ -376,8 +382,7 @@ fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 }
             }
         } else {
-            let gas_limit = call_exec.estimate_gas(true).await?;
-
+            let gas_limit = pre_submit_dry_run_gas_estimate_call(&call_exec).await?;
             if !call_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     name_value_println!(
@@ -462,4 +467,104 @@ fn format_err<E: Debug>(err: E) -> Error {
         "ERROR:".bright_red().bold(),
         format!("{err:?}").bright_red()
     )
+}
+
+/// A helper function to estimate the gas required for a contract instantiation.
+pub async fn pre_submit_dry_run_gas_estimate_instantiate(
+    instantiate_exec: &InstantiateExec,
+) -> Result<Weight> {
+    if instantiate_exec.opts().skip_dry_run() {
+        return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
+                (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
+                _ => {
+                    Err(anyhow!(
+                        "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+                    ))
+                }
+            };
+    }
+    if !instantiate_exec.output_json() {
+        print_dry_running_status(instantiate_exec.args().constructor());
+    }
+    let instantiate_result = instantiate_exec.instantiate_dry_run().await?;
+    match instantiate_result.result {
+        Ok(_) => {
+            if !instantiate_exec.output_json() {
+                print_gas_required_success(instantiate_result.gas_required);
+            }
+            // use user specified values where provided, otherwise use the estimates
+            let ref_time = instantiate_exec
+                .args()
+                .gas_limit()
+                .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
+            let proof_size = instantiate_exec
+                .args()
+                .proof_size()
+                .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
+            Ok(Weight::from_parts(ref_time, proof_size))
+        }
+        Err(ref err) => {
+            let object = ErrorVariant::from_dispatch_error(
+                err,
+                &instantiate_exec.client().metadata(),
+            )?;
+            if instantiate_exec.output_json() {
+                Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
+            } else {
+                name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                    &instantiate_result,
+                )?;
+
+                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+            }
+        }
+    }
+}
+
+/// A helper function to estimate the gas required for a contract call.
+pub async fn pre_submit_dry_run_gas_estimate_call(
+    call_exec: &CallExec,
+) -> Result<Weight> {
+    if call_exec.opts().skip_dry_run() {
+        return match (call_exec.gas_limit(), call_exec.proof_size()) {
+            (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
+            _ => {
+                Err(anyhow!(
+                "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+            ))
+            }
+        };
+    }
+    if !call_exec.output_json() {
+        print_dry_running_status(call_exec.message());
+    }
+    let call_result = call_exec.call_dry_run().await?;
+    match call_result.result {
+        Ok(_) => {
+            if !call_exec.output_json() {
+                print_gas_required_success(call_result.gas_required);
+            }
+            // use user specified values where provided, otherwise use the estimates
+            let ref_time = call_exec
+                .gas_limit()
+                .unwrap_or_else(|| call_result.gas_required.ref_time());
+            let proof_size = call_exec
+                .proof_size()
+                .unwrap_or_else(|| call_result.gas_required.proof_size());
+            Ok(Weight::from_parts(ref_time, proof_size))
+        }
+        Err(ref err) => {
+            let object =
+                ErrorVariant::from_dispatch_error(err, &call_exec.client().metadata())?;
+            if call_exec.output_json() {
+                Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
+            } else {
+                name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+
+                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+            }
+        }
+    }
 }
