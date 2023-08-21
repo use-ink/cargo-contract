@@ -19,6 +19,7 @@ mod call;
 mod error;
 mod events;
 mod instantiate;
+mod prod_chains;
 mod remove;
 mod runtime_api;
 mod upload;
@@ -27,12 +28,12 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
+use prod_chains::ProductionChain;
 use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
     Context,
-    Ok,
     Result,
 };
 use colored::Colorize;
@@ -119,6 +120,9 @@ pub struct ExtrinsicOpts {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// A name of a production chain to upload or instantiate on the contract on.
+    #[clap(name = "chain", long, conflicts_with = "url")]
+    chain: Option<ProductionChain>,
     /// Secret key URI for the account deploying the contract.
     ///
     /// e.g.
@@ -165,7 +169,7 @@ impl ExtrinsicOpts {
     }
 
     /// Convert URL to String without omitting the default port
-    pub fn url_to_string(&self) -> String {
+    fn url_to_string(&self) -> String {
         let mut res = self.url.to_string();
         match (self.url.port(), self.url.port_or_known_default()) {
             (None, Some(port)) => {
@@ -173,6 +177,29 @@ impl ExtrinsicOpts {
                 res
             }
             _ => res,
+        }
+    }
+
+    /// Get the chain name and its URL endpoint.
+    /// If the user specify the endpoint manually,
+    /// but it still appears to be the production chain,
+    /// we still convert it.
+    pub fn chain_and_endpoint(&self) -> (Chain, String) {
+        if let Some(chain) = &self.chain {
+            (
+                Chain::Production(chain.to_string()),
+                chain.end_point().to_string(),
+            )
+        } else {
+            let url = self.url_to_string();
+            if let Some(chain) = ProductionChain::chain_by_endpoint(&url) {
+                (
+                    Chain::Production(chain.to_string()),
+                    chain.end_point().to_string(),
+                )
+            } else {
+                (Chain::Custom, url)
+            }
         }
     }
 
@@ -188,6 +215,12 @@ impl ExtrinsicOpts {
             .transpose()?
             .map(Into::into))
     }
+}
+
+#[derive(Debug)]
+pub enum Chain {
+    Production(String),
+    Custom,
 }
 
 /// Contract artifacts for use with extrinsic commands.
@@ -307,6 +340,15 @@ impl ContractArtifacts {
         let metadata = self.metadata()?;
         ContractMessageTranscoder::try_from(metadata)
             .context("Failed to deserialize ink project metadata from contract metadata")
+    }
+
+    /// Return true if the image is verifiable.
+    /// If the metadata can not be extracted then we assume that it can't be verified.
+    pub fn is_verifiable(&self) -> bool {
+        match self.metadata() {
+            Ok(m) => m.image.is_some(),
+            Err(_) => false,
+        }
     }
 }
 
@@ -439,6 +481,36 @@ fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
         // default is 'y'
         "y" | "" => Ok(()),
         "n" => Err(anyhow!("Transaction not submitted")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
+}
+
+/// Prompt the user to confirm the upload of unverifiable code to the production chain.
+fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
+    println!(
+        "{} (skip with --skip-validate)",
+        "Confirm upload:".bright_white().bold()
+    );
+    let warning = format!(
+        "You are trying to upload unverifiable code to {} mainnet",
+        chain
+    )
+    .bold()
+    .red();
+    print!("{}", warning);
+    println!(
+        "{} ({}/n): ",
+        "Continue?".bright_white().bold(),
+        "Y".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'y'
+        "y" | "" => Ok(()),
+        "n" => Err(anyhow!("Upload canceled!")),
         c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }

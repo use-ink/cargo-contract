@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+    prompt_confirm_unverifiable_upload,
+    Chain,
+};
+
 use super::{
     account_id,
     display_contract_exec_result,
@@ -113,7 +118,8 @@ impl InstantiateCommand {
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let signer = self.extrinsic_opts.signer()?;
-        let url = self.extrinsic_opts.url_to_string();
+        let (chain, url) = self.extrinsic_opts.chain_and_endpoint();
+        let is_verifiable = artifacts.is_verifiable();
         let verbosity = self.extrinsic_opts.verbosity()?;
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
@@ -154,6 +160,8 @@ impl InstantiateCommand {
                 signer,
                 transcoder,
                 output_json: self.output_json,
+                chain,
+                is_verifiable,
             };
 
             exec.exec(self.extrinsic_opts.execute).await
@@ -188,6 +196,8 @@ pub struct Exec {
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
     output_json: bool,
+    chain: Chain,
+    is_verifiable: bool,
 }
 
 impl Exec {
@@ -240,6 +250,11 @@ impl Exec {
             let gas_limit = self.pre_submit_dry_run_gas_estimate().await?;
             match self.args.code.clone() {
                 Code::Upload(code) => {
+                    if let Chain::Production(name) = &self.chain {
+                        if !self.is_verifiable {
+                            prompt_confirm_unverifiable_upload(name)?;
+                        }
+                    }
                     self.instantiate_with_code(code, gas_limit).await?;
                 }
                 Code::Existing(code_hash) => {

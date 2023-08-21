@@ -38,3 +38,4 @@ subxt = "0.31.0"
 subxt-signer = { version = "0.31.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
 jsonrpsee = { version = "0.20.0", features = ["ws-client"] }
+bimap = "0.6.3"
