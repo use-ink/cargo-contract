@@ -76,8 +76,8 @@ macro_rules! define_chains {
 define_chains! {
     /// A list of all production chains where the contract can be deployed to.
     pub enum ProductionChain {
-        AlephZero = "wss://ws.azero.dev",
-        Astar = "wss://rpc.astar.network",
-        Shiden = "wss://rpc.shiden.astar.network"
+        AlephZero = "wss://ws.azero.dev:443",
+        Astar = "wss://rpc.astar.network:443",
+        Shiden = "wss://rpc.shiden.astar.network:443"
     }
 }
