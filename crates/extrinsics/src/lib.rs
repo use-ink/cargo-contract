@@ -120,7 +120,7 @@ pub struct ExtrinsicOpts {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// A name of a production chain to upload or instantiate on the contract on.
+    /// A name of a production chain to upload or instantiate the contract on.
     #[clap(name = "chain", long, conflicts_with = "url")]
     chain: Option<ProductionChain>,
     /// Secret key URI for the account deploying the contract.
