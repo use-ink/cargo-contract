@@ -275,17 +275,6 @@ fn exec_cargo_for_onchain_target(
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
 
-        // newer rustc versions might emit unsupported instructions
-        if rustc_version::version_meta()?.semver >= Version::new(1, 70, 0) {
-            maybe_println!(
-                verbosity,
-                "{} {}",
-                "warning:".yellow().bold(),
-                "You are using a rustc version that might emit unsupported wasm instructions. Build using a version lower than 1.70.0 to make sure your contract will deploy."
-                    .bold()
-            );
-        }
-
         // the linker needs our linker script as file
         let rustflags = target.rustflags();
         if matches!(target, Target::RiscV) {
