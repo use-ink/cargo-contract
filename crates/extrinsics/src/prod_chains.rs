@@ -31,6 +31,7 @@ macro_rules! define_chains {
         pub enum $root { $($c),* }
 
         impl $root {
+            /// Returns the endpoint URL of a chain.
             pub fn end_point(&self) -> &str {
                 match self {
                     $(
@@ -39,6 +40,7 @@ macro_rules! define_chains {
                 }
             }
 
+            /// Returns the chain type from the endpoint URL
             pub fn chain_by_endpoint(ep: &str) -> Option<Self> {
                 match ep {
                     $(
