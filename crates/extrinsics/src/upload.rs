@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+    prompt_confirm_unverifiable_upload,
+    Chain,
+    GenericError,
+};
+
 use super::{
     account_id,
     display_dry_run_result_warning,
@@ -63,6 +69,7 @@ impl UploadCommand {
     pub fn run(&self) -> Result<(), ErrorVariant> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let signer = self.extrinsic_opts.signer()?;
+        let is_verifiable = artifacts.is_verifiable();
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
@@ -75,7 +82,7 @@ impl UploadCommand {
 
         Runtime::new()?
             .block_on(async {
-                let url = self.extrinsic_opts.url_to_string();
+                let (chain, url) = self.extrinsic_opts.chain_and_endpoint();
                 let client = OnlineClient::from_url(url.clone()).await?;
 
                 if !self.extrinsic_opts.execute {
@@ -104,7 +111,7 @@ impl UploadCommand {
                         }
                     }
                 } else if let Some(code_stored) =
-                    self.upload_code(&client, code, &signer).await?
+                    self.upload_code(&client, code, &signer, chain, is_verifiable).await?
                 {
                     let upload_result = UploadResult {
                         code_hash: format!("{:?}", code_stored.code_hash),
@@ -131,7 +138,7 @@ impl UploadCommand {
         client: &Client,
         signer: &Keypair,
     ) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let url = self.extrinsic_opts.url_to_string();
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts
@@ -153,7 +160,17 @@ impl UploadCommand {
         client: &Client,
         code: WasmCode,
         signer: &Keypair,
+        chain: Chain,
+        is_verifiable: bool,
     ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
+        if let Chain::Production(name) = chain {
+            if !is_verifiable {
+                prompt_confirm_unverifiable_upload(&name).map_err(|e| {
+                    ErrorVariant::Generic(GenericError::from_message(e.to_string()))
+                })?;
+            }
+        }
+
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit =
             self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;

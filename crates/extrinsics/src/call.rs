@@ -106,7 +106,7 @@ impl CallCommand {
 
         Runtime::new()?
             .block_on(async {
-                let url = self.extrinsic_opts.url_to_string();
+                let (_, url) = self.extrinsic_opts.chain_and_endpoint();
                 let client = OnlineClient::from_url(url.clone()).await?;
 
                 if !self.extrinsic_opts.execute {
@@ -171,7 +171,7 @@ impl CallCommand {
         client: &Client,
         signer: &Keypair,
     ) -> Result<ContractExecResult<Balance, ()>> {
-        let url = self.extrinsic_opts.url_to_string();
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
         let token_metadata = TokenMetadata::query(client).await?;
         let storage_deposit_limit = self
             .extrinsic_opts

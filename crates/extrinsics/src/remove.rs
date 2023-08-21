@@ -83,7 +83,7 @@ impl RemoveCommand {
         }?;
 
         Runtime::new()?.block_on(async {
-            let url = self.extrinsic_opts.url_to_string();
+            let (_, url) = self.extrinsic_opts.chain_and_endpoint();
             let client = OnlineClient::from_url(url.clone()).await?;
             if let Some(code_removed) = self
                 .remove_code(
