@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+- Specify prod chain URL with names and check for the verifiable build upon upload - [#1290](https://github.com/paritytech/cargo-contract/pull/1290)
 
 ## [4.0.0-alpha]
 
