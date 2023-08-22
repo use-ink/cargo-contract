@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "3.0.1"
+version = "3.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -39,7 +39,7 @@ which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.24", features = ["derive"] }
 
-contract-metadata = { version = "3.0.1", path = "../metadata" }
+contract-metadata = { version = "3.1.0", path = "../metadata" }
 
 [build-dependencies]
 anyhow = "1.0.71"
