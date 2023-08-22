@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    account_id,
     display_contract_exec_result,
     prompt_confirm_tx,
     state_call,
@@ -24,7 +25,6 @@ use super::{
     ContractMessageTranscoder,
     DefaultConfig,
     ExtrinsicOpts,
-    PairSigner,
     StorageDeposit,
     MAX_KEY_COL_WIDTH,
 };
@@ -63,6 +63,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -114,7 +115,7 @@ impl InstantiateCommand {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
-        let signer = super::pair_signer(self.extrinsic_opts.signer()?);
+        let signer = self.extrinsic_opts.signer()?;
         let url = self.extrinsic_opts.url_to_string();
         let verbosity = self.extrinsic_opts.verbosity()?;
         let code = if let Some(code) = artifacts.code {
@@ -187,7 +188,7 @@ pub struct Exec {
     verbosity: Verbosity,
     url: String,
     client: Client,
-    signer: PairSigner,
+    signer: Keypair,
     transcoder: ContractMessageTranscoder,
     output_json: bool,
 }
@@ -353,11 +354,12 @@ impl Exec {
 
     async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance>>
-    {
+    ) -> Result<
+        ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>,
+    > {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
-            origin: self.signer.account_id().clone(),
+            origin: account_id(&self.signer),
             value: self.args.value,
             gas_limit: None,
             storage_deposit_limit,

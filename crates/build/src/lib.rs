@@ -274,6 +274,7 @@ fn exec_cargo_for_onchain_target(
             // Allow nightly features on a stable toolchain
             env.push(("RUSTC_BOOTSTRAP", Some("1".to_string())))
         }
+
         // the linker needs our linker script as file
         let rustflags = target.rustflags();
         if matches!(target, Target::RiscV) {

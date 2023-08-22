@@ -27,14 +27,14 @@ rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 toml = "0.7.3"
 tracing = "0.1.37"
-parity-wasm = "0.45.0"
+parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
 semver = { version = "1.0.17", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1.0.96"
 tempfile = "3.5.0"
 term_size = "0.3.2"
 url = { version = "2.3.1", features = ["serde"] }
-wasm-opt = "0.112.0"
+wasm-opt = "0.113.0"
 which = "4.4.0"
 zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.24", features = ["derive"] }
