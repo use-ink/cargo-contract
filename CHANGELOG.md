@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0]
+
+This release allows building contracts with recent (> 1.69) Rust toolchains which can emit
+`signext` Wasm instructions. An extra pass is added to `wasm-opt` which "lowers" `signext`
+instructions to MVP compatible instructions. The resulting binaries can therefore be 
+deployed to chains with an older version of `pallet-contracts` which does not yet support
+those instructions.
+
+### Changed
+-  Backport SignextLowering #1189 + #1280 - [#1286](https://github.com/paritytech/cargo-contract/pull/1286)
+
 ## [3.0.1]
 
 ### Fixed
