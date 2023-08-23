@@ -30,17 +30,13 @@ use super::{
     ErrorVariant,
     ExtrinsicOpts,
     Missing,
-    StorageDeposit,
     TokenMetadata,
-    DEFAULT_KEY_COL_WIDTH,
 };
 
 use anyhow::{
     anyhow,
     Result,
 };
-use contract_build::name_value_println;
-use contract_transcode::Value;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
@@ -60,7 +56,6 @@ pub struct CallOpts {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     value: BalanceVariant,
-    output_json: bool,
 }
 
 /// A builder for the call command.
@@ -91,7 +86,6 @@ impl<E> CallCommandBuilder<Missing<state::Message>, E> {
                 gas_limit: None,
                 proof_size: None,
                 value: "0".parse().unwrap(),
-                output_json: false,
             },
             marker: PhantomData,
         }
@@ -163,13 +157,6 @@ impl<M, E> CallCommandBuilder<M, E> {
         this.opts.value = value;
         this
     }
-
-    /// Sets whether to export the call output in JSON format.
-    pub fn output_json(self, output_json: bool) -> Self {
-        let mut this = self;
-        this.opts.output_json = output_json;
-        this
-    }
 }
 
 impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
@@ -203,7 +190,6 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
             gas_limit: self.opts.gas_limit,
             proof_size: self.opts.proof_size,
             value: self.opts.value.clone(),
-            output_json: self.opts.output_json,
             client,
             transcoder,
             call_data,
@@ -220,7 +206,6 @@ pub struct CallExec {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     value: BalanceVariant,
-    output_json: bool,
     client: Client,
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
@@ -330,11 +315,7 @@ impl CallExec {
             Err(ref err) => {
                 let object =
                     ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
-                if self.output_json {
-                    Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
-                } else {
-                    Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
-                }
+                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
             }
         }
     }
@@ -374,11 +355,6 @@ impl CallExec {
         &self.value
     }
 
-    /// Returns whether to export the call output in JSON format.
-    pub fn output_json(&self) -> bool {
-        self.output_json
-    }
-
     /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
@@ -411,32 +387,4 @@ pub struct CallRequest {
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
-}
-
-/// Result of the contract call
-#[derive(serde::Serialize)]
-pub struct CallDryRunResult {
-    /// Was the operation reverted
-    pub reverted: bool,
-    pub data: Value,
-    pub gas_consumed: Weight,
-    pub gas_required: Weight,
-    /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit,
-}
-
-impl CallDryRunResult {
-    /// Returns a result in json format
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
-        name_value_println!(
-            "Reverted",
-            format!("{:?}", self.reverted),
-            DEFAULT_KEY_COL_WIDTH
-        );
-    }
 }

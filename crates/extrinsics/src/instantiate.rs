@@ -16,7 +16,6 @@
 
 use super::{
     account_id,
-    events::DisplayEvents,
     runtime_api::api,
     state,
     state_call,
@@ -39,10 +38,7 @@ use anyhow::{
     Context,
     Result,
 };
-use contract_build::{
-    name_value_println,
-    Verbosity,
-};
+use contract_build::name_value_println;
 use contract_transcode::Value;
 use subxt_signer::sr25519::Keypair;
 
@@ -66,7 +62,6 @@ struct InstantiateOpts {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     salt: Option<Bytes>,
-    output_json: bool,
 }
 
 /// A builder for the instantiate command.
@@ -87,7 +82,6 @@ impl InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
                 gas_limit: None,
                 proof_size: None,
                 salt: None,
-                output_json: false,
             },
             marker: PhantomData,
         }
@@ -156,13 +150,6 @@ impl<E> InstantiateCommandBuilder<E> {
         this.opts.salt = salt;
         this
     }
-
-    /// Sets whether to export the call output in JSON format.
-    pub fn output_json(self, output_json: bool) -> Self {
-        let mut this = self;
-        this.opts.output_json = output_json;
-        this
-    }
 }
 
 impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
@@ -183,7 +170,6 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             .unwrap();
         let signer = self.opts.extrinsic_opts.signer().unwrap();
         let url = self.opts.extrinsic_opts.url_to_string();
-        let verbosity = self.opts.extrinsic_opts.verbosity().unwrap();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
@@ -220,10 +206,8 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             opts: self.opts.extrinsic_opts.clone(),
             url,
             client,
-            verbosity,
             signer,
             transcoder,
-            output_json: self.opts.output_json,
         }
     }
 }
@@ -289,12 +273,10 @@ impl InstantiateArgs {
 pub struct InstantiateExec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
-    verbosity: Verbosity,
     url: String,
     client: Client,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
-    output_json: bool,
 }
 
 impl InstantiateExec {
@@ -428,49 +410,6 @@ impl InstantiateExec {
         }
     }
 
-    /// Displays the results of contract instantiation, including contract address,
-    /// events, and optional code hash.
-    pub async fn display_result(
-        &self,
-        instantiate_exec_result: InstantiateExecResult,
-    ) -> Result<(), ErrorVariant> {
-        let events = DisplayEvents::from_events(
-            &instantiate_exec_result.result,
-            Some(&self.transcoder),
-            &self.client.metadata(),
-        )?;
-        let contract_address = instantiate_exec_result.contract_address.to_string();
-        if self.output_json {
-            let display_instantiate_result = InstantiateResult {
-                code_hash: instantiate_exec_result
-                    .code_hash
-                    .map(|ch| format!("{ch:?}")),
-                contract: Some(contract_address),
-                events,
-            };
-            println!("{}", display_instantiate_result.to_json()?)
-        } else {
-            println!(
-                "{}",
-                events.display_events(
-                    self.verbosity,
-                    &instantiate_exec_result.token_metadata
-                )?
-            );
-            if let Some(code_hash) = instantiate_exec_result.code_hash {
-                name_value_println!("Code hash", format!("{code_hash:?}"));
-            }
-            name_value_println!("Contract", contract_address);
-        };
-        Ok(())
-    }
-
-    pub fn print_default_instantiate_preview(&self, gas_limit: Weight) {
-        name_value_println!("Constructor", self.args.constructor, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Args", self.args.raw_args.join(" "), DEFAULT_KEY_COL_WIDTH);
-        name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
-    }
-
     /// Performs a dry run of the contract instantiation process without modifying the
     /// blockchain.
     pub async fn instantiate_dry_run(
@@ -527,11 +466,7 @@ impl InstantiateExec {
             Err(ref err) => {
                 let object =
                     ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
-                if self.output_json {
-                    Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
-                } else {
-                    Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
-                }
+                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
             }
         }
     }
@@ -544,11 +479,6 @@ impl InstantiateExec {
     /// Returns the instantiate arguments.
     pub fn args(&self) -> &InstantiateArgs {
         &self.args
-    }
-
-    /// Returns the verbosity level.
-    pub fn verbosity(&self) -> Verbosity {
-        self.verbosity
     }
 
     /// Returns the url.
@@ -570,11 +500,6 @@ impl InstantiateExec {
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
-
-    /// Returns whether to export the call output in JSON format.
-    pub fn output_json(&self) -> bool {
-        self.output_json
-    }
 }
 
 pub struct InstantiateExecResult {
@@ -582,25 +507,6 @@ pub struct InstantiateExecResult {
     pub code_hash: Option<CodeHash>,
     pub contract_address: subxt::utils::AccountId32,
     pub token_metadata: TokenMetadata,
-}
-
-/// Result of a successful contract instantiation for displaying.
-#[derive(serde::Serialize)]
-pub struct InstantiateResult {
-    /// Instantiated contract hash
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub contract: Option<String>,
-    /// Instantiated code hash
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code_hash: Option<String>,
-    /// The events emitted from the instantiate extrinsic invocation.
-    pub events: DisplayEvents,
-}
-
-impl InstantiateResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
 }
 
 /// Result of the contract call

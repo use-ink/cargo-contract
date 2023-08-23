@@ -19,7 +19,6 @@ use contract_extrinsics::{
     prompt_confirm_tx,
     BalanceVariant,
     CallCommandBuilder,
-    CallDryRunResult,
     CallExec,
     DefaultConfig,
     ExtrinsicOpts,
@@ -27,6 +26,7 @@ use contract_extrinsics::{
     TokenMetadata,
     MAX_KEY_COL_WIDTH,
 };
+use contract_transcode::Value;
 use sp_weights::Weight;
 use subxt::Config;
 
@@ -78,7 +78,6 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
             .gas_limit(call_command.gas_limit)
             .proof_size(call_command.proof_size)
             .value(call_command.value.clone())
-            .output_json(call_command.output_json)
             .done()
             .await;
 
@@ -103,7 +102,7 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                         gas_required: result.gas_required,
                         storage_deposit: StorageDeposit::from(&result.storage_deposit),
                     };
-                    if call_exec.output_json() {
+                    if call_command.output_json() {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
@@ -116,7 +115,7 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 Err(ref err) => {
                     let metadata = call_exec.client().metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if call_exec.output_json() {
+                    if call_command.output_json() {
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -125,7 +124,11 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 }
             }
         } else {
-            let gas_limit = pre_submit_dry_run_gas_estimate_call(&call_exec).await?;
+            let gas_limit = pre_submit_dry_run_gas_estimate_call(
+                &call_exec,
+                call_command.output_json(),
+            )
+            .await?;
             if !call_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
                     name_value_println!(
@@ -147,7 +150,7 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
             }
             let token_metadata = TokenMetadata::query(call_exec.client()).await?;
             let display_events = call_exec.call(Some(gas_limit)).await?;
-            let output = if call_exec.output_json() {
+            let output = if call_command.output_json() {
                 display_events.to_json()?
             } else {
                 display_events
@@ -160,7 +163,10 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
 }
 
 /// A helper function to estimate the gas required for a contract call.
-async fn pre_submit_dry_run_gas_estimate_call(call_exec: &CallExec) -> Result<Weight> {
+async fn pre_submit_dry_run_gas_estimate_call(
+    call_exec: &CallExec,
+    output_json: bool,
+) -> Result<Weight> {
     if call_exec.opts().skip_dry_run() {
         return match (call_exec.gas_limit(), call_exec.proof_size()) {
             (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -171,13 +177,13 @@ async fn pre_submit_dry_run_gas_estimate_call(call_exec: &CallExec) -> Result<We
             }
         };
     }
-    if !call_exec.output_json() {
+    if !output_json {
         print_dry_running_status(call_exec.message());
     }
     let call_result = call_exec.call_dry_run().await?;
     match call_result.result {
         Ok(_) => {
-            if !call_exec.output_json() {
+            if !output_json {
                 print_gas_required_success(call_result.gas_required);
             }
             // use user specified values where provided, otherwise use the estimates
@@ -192,7 +198,7 @@ async fn pre_submit_dry_run_gas_estimate_call(call_exec: &CallExec) -> Result<We
         Err(ref err) => {
             let object =
                 ErrorVariant::from_dispatch_error(err, &call_exec.client().metadata())?;
-            if call_exec.output_json() {
+            if output_json {
                 Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
             } else {
                 name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -201,5 +207,33 @@ async fn pre_submit_dry_run_gas_estimate_call(call_exec: &CallExec) -> Result<We
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
+    }
+}
+
+/// Result of the contract call
+#[derive(serde::Serialize)]
+pub struct CallDryRunResult {
+    /// Was the operation reverted
+    pub reverted: bool,
+    pub data: Value,
+    pub gas_consumed: Weight,
+    pub gas_required: Weight,
+    /// Storage deposit after the operation
+    pub storage_deposit: StorageDeposit,
+}
+
+impl CallDryRunResult {
+    /// Returns a result in json format
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    pub fn print(&self) {
+        name_value_println!("Result", format!("{}", self.data), DEFAULT_KEY_COL_WIDTH);
+        name_value_println!(
+            "Reverted",
+            format!("{:?}", self.reverted),
+            DEFAULT_KEY_COL_WIDTH
+        );
     }
 }

@@ -21,8 +21,10 @@ use contract_extrinsics::{
     prompt_confirm_tx,
     BalanceVariant,
     Code,
+    DisplayEvents,
     ExtrinsicOpts,
     InstantiateCommandBuilder,
+    InstantiateExecResult,
     MAX_KEY_COL_WIDTH,
 };
 use sp_core::Bytes;
@@ -85,7 +87,6 @@ pub fn handle_instantiate(
             .gas_limit(instantiate_command.gas_limit)
             .proof_size(instantiate_command.proof_size)
             .salt(instantiate_command.salt.clone())
-            .output_json(instantiate_command.output_json)
             .done()
             .await;
 
@@ -93,7 +94,7 @@ pub fn handle_instantiate(
             let result = instantiate_exec.instantiate_dry_run().await?;
             match instantiate_exec.simulate_instantiation().await {
                 Ok(dry_run_result) => {
-                    if instantiate_exec.output_json() {
+                    if instantiate_command.output_json() {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
@@ -105,7 +106,7 @@ pub fn handle_instantiate(
                     Ok(())
                 }
                 Err(object) => {
-                    if instantiate_exec.output_json() {
+                    if instantiate_command.output_json() {
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -116,11 +117,14 @@ pub fn handle_instantiate(
             }
         } else {
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
-            let gas_limit =
-                pre_submit_dry_run_gas_estimate_instantiate(&instantiate_exec).await?;
+            let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
+                &instantiate_exec,
+                instantiate_command.output_json(),
+            )
+            .await?;
             if !instantiate_exec.opts().skip_confirm() {
                 prompt_confirm_tx(|| {
-                    instantiate_exec.print_default_instantiate_preview(gas_limit);
+                    print_default_instantiate_preview(&instantiate_exec, gas_limit);
                     if let Code::Existing(code_hash) =
                         instantiate_exec.args().code().clone()
                     {
@@ -134,7 +138,12 @@ pub fn handle_instantiate(
             }
             let instantiate_result =
                 instantiate_exec.instantiate(Some(gas_limit)).await?;
-            instantiate_exec.display_result(instantiate_result).await?;
+            display_result(
+                &instantiate_exec,
+                instantiate_result,
+                instantiate_command.output_json(),
+            )
+            .await?;
             Ok(())
         }
     })
@@ -143,6 +152,7 @@ pub fn handle_instantiate(
 /// A helper function to estimate the gas required for a contract instantiation.
 async fn pre_submit_dry_run_gas_estimate_instantiate(
     instantiate_exec: &InstantiateExec,
+    output_json: bool,
 ) -> Result<Weight> {
     if instantiate_exec.opts().skip_dry_run() {
         return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
@@ -154,13 +164,13 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
                 }
             };
     }
-    if !instantiate_exec.output_json() {
+    if !output_json {
         print_dry_running_status(instantiate_exec.args().constructor());
     }
     let instantiate_result = instantiate_exec.instantiate_dry_run().await?;
     match instantiate_result.result {
         Ok(_) => {
-            if !instantiate_exec.output_json() {
+            if !output_json {
                 print_gas_required_success(instantiate_result.gas_required);
             }
             // use user specified values where provided, otherwise use the estimates
@@ -179,7 +189,7 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
                 err,
                 &instantiate_exec.client().metadata(),
             )?;
-            if instantiate_exec.output_json() {
+            if output_json {
                 Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
             } else {
                 name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
@@ -190,5 +200,79 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
         }
+    }
+}
+
+/// Displays the results of contract instantiation, including contract address,
+/// events, and optional code hash.
+pub async fn display_result(
+    instantiate_exec: &InstantiateExec,
+    instantiate_exec_result: InstantiateExecResult,
+    output_json: bool,
+) -> Result<(), ErrorVariant> {
+    let events = DisplayEvents::from_events(
+        &instantiate_exec_result.result,
+        Some(instantiate_exec.transcoder()),
+        &instantiate_exec.client().metadata(),
+    )?;
+    let contract_address = instantiate_exec_result.contract_address.to_string();
+    if output_json {
+        let display_instantiate_result = InstantiateResult {
+            code_hash: instantiate_exec_result
+                .code_hash
+                .map(|ch| format!("{ch:?}")),
+            contract: Some(contract_address),
+            events,
+        };
+        println!("{}", display_instantiate_result.to_json()?)
+    } else {
+        println!(
+            "{}",
+            events.display_events(
+                instantiate_exec.opts().verbosity().unwrap(),
+                &instantiate_exec_result.token_metadata
+            )?
+        );
+        if let Some(code_hash) = instantiate_exec_result.code_hash {
+            name_value_println!("Code hash", format!("{code_hash:?}"));
+        }
+        name_value_println!("Contract", contract_address);
+    };
+    Ok(())
+}
+
+pub fn print_default_instantiate_preview(
+    instantiate_exec: &InstantiateExec,
+    gas_limit: Weight,
+) {
+    name_value_println!(
+        "Constructor",
+        instantiate_exec.args().constructor(),
+        DEFAULT_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Args",
+        instantiate_exec.args().raw_args().join(" "),
+        DEFAULT_KEY_COL_WIDTH
+    );
+    name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+}
+
+/// Result of a successful contract instantiation for displaying.
+#[derive(serde::Serialize)]
+pub struct InstantiateResult {
+    /// Instantiated contract hash
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract: Option<String>,
+    /// Instantiated code hash
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_hash: Option<String>,
+    /// The events emitted from the instantiate extrinsic invocation.
+    pub events: DisplayEvents,
+}
+
+impl InstantiateResult {
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 }

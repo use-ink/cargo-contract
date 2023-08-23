@@ -89,7 +89,6 @@ pub use balance::{
 };
 pub use call::{
     CallCommandBuilder,
-    CallDryRunResult,
     CallExec,
     CallRequest,
 };
@@ -99,6 +98,7 @@ pub use error::{
     ErrorVariant,
     GenericError,
 };
+pub use events::DisplayEvents;
 pub use instantiate::{
     Code,
     InstantiateArgs,
@@ -106,15 +106,12 @@ pub use instantiate::{
     InstantiateDryRunResult,
     InstantiateExec,
     InstantiateExecResult,
-    InstantiateResult,
 };
 pub use remove::RemoveCommandBuilder;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
-    CodeHashResult,
     CodeUploadRequest,
     UploadCommandBuilder,
-    UploadDryRunResult,
     UploadResult,
 };
 

@@ -17,7 +17,6 @@
 use super::{
     account_id,
     events::DisplayEvents,
-    name_value_println,
     runtime_api::api::{
         self,
         contracts::events::CodeStored,
@@ -48,7 +47,6 @@ use subxt_signer::sr25519::Keypair;
 
 struct UploadOpts {
     extrinsic_opts: ExtrinsicOpts,
-    output_json: bool,
 }
 
 /// A builder for the upload command.
@@ -63,7 +61,6 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: UploadOpts {
                 extrinsic_opts: ExtrinsicOpts::default(),
-                output_json: false,
             },
             marker: PhantomData,
         }
@@ -75,10 +72,7 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
         extrinsic_opts: ExtrinsicOpts,
     ) -> UploadCommandBuilder<state::ExtrinsicOptions> {
         UploadCommandBuilder {
-            opts: UploadOpts {
-                extrinsic_opts,
-                ..self.opts
-            },
+            opts: UploadOpts { extrinsic_opts },
             marker: PhantomData,
         }
     }
@@ -87,15 +81,6 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
 impl Default for UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl<E> UploadCommandBuilder<E> {
-    /// Sets whether to export the call output in JSON format.
-    pub fn output_json(self, output_json: bool) -> Self {
-        let mut this = self;
-        this.opts.output_json = output_json;
-        this
     }
 }
 
@@ -127,7 +112,6 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         let client = OnlineClient::from_url(url.clone()).await.unwrap();
         UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
-            output_json: self.opts.output_json,
             client,
             code,
             signer,
@@ -137,7 +121,6 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
 
 pub struct UploadExec {
     opts: ExtrinsicOpts,
-    output_json: bool,
     client: Client,
     code: WasmCode,
     signer: Keypair,
@@ -199,11 +182,6 @@ impl UploadExec {
         &self.opts
     }
 
-    /// Returns whether to export the call output in JSON format.
-    pub fn output_json(&self) -> bool {
-        self.output_json
-    }
-
     /// Returns the client.
     pub fn client(&self) -> &Client {
         &self.client
@@ -229,41 +207,7 @@ pub struct CodeUploadRequest {
     determinism: Determinism,
 }
 
-#[derive(serde::Serialize)]
-pub struct CodeHashResult {
-    pub code_hash: String,
-}
-
 pub struct UploadResult {
     pub code_stored: Option<CodeStored>,
     pub display_events: DisplayEvents,
-}
-
-#[derive(serde::Serialize)]
-pub struct UploadDryRunResult {
-    pub result: String,
-    pub code_hash: String,
-    pub deposit: Balance,
-}
-
-impl CodeHashResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
-    }
-}
-
-impl UploadDryRunResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", self.result);
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
-        name_value_println!("Deposit", format!("{:?}", self.deposit));
-    }
 }

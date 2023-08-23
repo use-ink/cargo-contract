@@ -40,7 +40,6 @@ use subxt_signer::sr25519::Keypair;
 pub struct RemoveOpts {
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     extrinsic_opts: ExtrinsicOpts,
-    output_json: bool,
 }
 
 /// A builder for the remove command.
@@ -56,7 +55,6 @@ impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
             opts: RemoveOpts {
                 code_hash: None,
                 extrinsic_opts: ExtrinsicOpts::default(),
-                output_json: false,
             },
             marker: PhantomData,
         }
@@ -88,13 +86,6 @@ impl<E> RemoveCommandBuilder<E> {
     pub fn code_hash(self, code_hash: Option<<DefaultConfig as Config>::Hash>) -> Self {
         let mut this = self;
         this.opts.code_hash = code_hash;
-        this
-    }
-
-    /// Sets whether to export the call output in JSON format.
-    pub fn output_json(self, output_json: bool) -> Self {
-        let mut this = self;
-        this.opts.output_json = output_json;
         this
     }
 }
@@ -133,7 +124,6 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         RemoveExec {
             final_code_hash,
             opts: self.opts.extrinsic_opts.clone(),
-            output_json: self.opts.output_json,
             client,
             transcoder,
             signer,
@@ -144,7 +134,6 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 pub struct RemoveExec {
     final_code_hash: [u8; 32],
     opts: ExtrinsicOpts,
-    output_json: bool,
     client: Client,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
@@ -188,11 +177,6 @@ impl RemoveExec {
     /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts {
         &self.opts
-    }
-
-    /// Returns whether to export the call output in JSON format.
-    pub fn output_json(&self) -> bool {
-        self.output_json
     }
 
     /// Returns the client.

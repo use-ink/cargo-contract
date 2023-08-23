@@ -38,12 +38,11 @@ pub fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant>
         let remove_exec = RemoveCommandBuilder::default()
             .code_hash(remove_command.code_hash)
             .extrinsic_opts(remove_command.extrinsic_opts.clone())
-            .output_json(remove_command.output_json)
             .done()
             .await;
         let remove_result = remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
-        let output = if remove_exec.output_json() {
+        let output = if remove_command.output_json() {
             display_events.to_json()?
         } else {
             let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
@@ -54,7 +53,7 @@ pub fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant>
         if let Some(code_removed) = remove_result.code_removed {
             let remove_result = code_removed.code_hash;
 
-            if remove_exec.output_json() {
+            if remove_command.output_json() {
                 println!("{}", &remove_result);
             } else {
                 name_value_println!("Code hash", format!("{remove_result:?}"));
