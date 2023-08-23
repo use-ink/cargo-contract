@@ -88,7 +88,7 @@ pub use balance::{
     TokenMetadata,
 };
 pub use call::{
-    CallCommand,
+    CallCommandBuilder,
     CallDryRunResult,
     CallExec,
     CallRequest,
@@ -102,18 +102,18 @@ pub use error::{
 pub use instantiate::{
     Code,
     InstantiateArgs,
-    InstantiateCommand,
+    InstantiateCommandBuilder,
     InstantiateDryRunResult,
     InstantiateExec,
     InstantiateExecResult,
     InstantiateResult,
 };
-pub use remove::RemoveCommand;
+pub use remove::RemoveCommandBuilder;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
     CodeHashResult,
     CodeUploadRequest,
-    UploadCommand,
+    UploadCommandBuilder,
     UploadDryRunResult,
     UploadResult,
 };
@@ -317,6 +317,36 @@ impl ExtrinsicOpts {
         }
     }
 
+    /// Return the file path of the contract artifact.
+    pub fn file(&self) -> Option<&PathBuf> {
+        self.file.as_ref()
+    }
+
+    /// Return the path to the `Cargo.toml` of the contract.
+    pub fn manifest_path(&self) -> Option<&PathBuf> {
+        self.manifest_path.as_ref()
+    }
+
+    /// Return the URL of the substrate node.
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    /// Return the secret URI of the signer.
+    pub fn suri(&self) -> &str {
+        &self.suri
+    }
+
+    /// Return the verbosity level.
+    pub fn verbosity_flags(&self) -> &VerbosityFlags {
+        &self.verbosity
+    }
+
+    /// Return whether to execute the extrinsic.
+    pub fn execute(&self) -> bool {
+        self.execute
+    }
+
     /// Get the storage deposit limit converted to compact for passing to extrinsics.
     pub fn storage_deposit_limit(
         &self,
@@ -330,16 +360,14 @@ impl ExtrinsicOpts {
             .map(Into::into))
     }
 
-    pub fn execute(&self) -> bool {
-        self.execute
-    }
-
-    pub fn skip_confirm(&self) -> bool {
-        self.skip_confirm
-    }
-
+    /// Return whether to skip dry-run.
     pub fn skip_dry_run(&self) -> bool {
         self.skip_dry_run
+    }
+
+    /// Return whether to skip confirmation prompt.
+    pub fn skip_confirm(&self) -> bool {
+        self.skip_confirm
     }
 }
 

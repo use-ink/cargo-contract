@@ -16,7 +16,6 @@
 
 use super::{
     events::DisplayEvents,
-    parse_code_hash,
     runtime_api::api::{
         self,
         contracts::events::CodeRemoved,
@@ -32,39 +31,44 @@ use super::{
 };
 use anyhow::Result;
 use core::marker::PhantomData;
-use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
 };
 use subxt_signer::sr25519::Keypair;
-#[derive(Debug, clap::Args)]
-#[clap(name = "remove", about = "Remove a contract's code")]
-pub struct RemoveCommand {
-    /// The hash of the smart contract code already uploaded to the chain.
-    #[clap(long, value_parser = parse_code_hash)]
+
+pub struct RemoveOpts {
     code_hash: Option<<DefaultConfig as Config>::Hash>,
-    #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// Export the call output as JSON.
-    #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
 /// A builder for the remove command.
 pub struct RemoveCommandBuilder<ExtrinsicOptions> {
-    opts: RemoveCommand,
+    opts: RemoveOpts,
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
 impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    /// Returns a clean builder for [`RemoveCommand`].
+    pub fn new() -> RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+        RemoveCommandBuilder {
+            opts: RemoveOpts {
+                code_hash: None,
+                extrinsic_opts: ExtrinsicOpts::default(),
+                output_json: false,
+            },
+            marker: PhantomData,
+        }
+    }
+
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
     ) -> RemoveCommandBuilder<state::ExtrinsicOptions> {
         RemoveCommandBuilder {
-            opts: RemoveCommand {
+            opts: RemoveOpts {
                 extrinsic_opts,
                 ..self.opts
             },
@@ -73,11 +77,17 @@ impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
     }
 }
 
+impl Default for RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E> RemoveCommandBuilder<E> {
     /// Sets the hash of the smart contract code already uploaded to the chain.
-    pub fn code_hash(self, code_hash: <DefaultConfig as Config>::Hash) -> Self {
+    pub fn code_hash(self, code_hash: Option<<DefaultConfig as Config>::Hash>) -> Self {
         let mut this = self;
-        this.opts.code_hash = Some(code_hash);
+        this.opts.code_hash = code_hash;
         this
     }
 
@@ -90,31 +100,6 @@ impl<E> RemoveCommandBuilder<E> {
 }
 
 impl RemoveCommandBuilder<state::ExtrinsicOptions> {
-    /// Finishes construction of the remove command.
-    pub async fn done(self) -> RemoveExec {
-        let remove_command = self.opts;
-        remove_command.preprocess().await.unwrap()
-    }
-}
-
-#[allow(clippy::new_ret_no_self)]
-impl RemoveCommand {
-    /// Returns a clean builder for [`RemoveCommand`].
-    pub fn new() -> RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
-        RemoveCommandBuilder {
-            opts: Self {
-                code_hash: None,
-                extrinsic_opts: ExtrinsicOpts::default(),
-                output_json: false,
-            },
-            marker: PhantomData,
-        }
-    }
-
-    pub fn is_json(&self) -> bool {
-        self.output_json
-    }
-
     /// Preprocesses contract artifacts and options for subsequent removal of contract
     /// code.
     ///
@@ -125,14 +110,14 @@ impl RemoveCommand {
     ///
     /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
-    pub async fn preprocess(&self) -> Result<RemoveExec> {
-        let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let transcoder = artifacts.contract_transcoder()?;
-        let signer = self.extrinsic_opts.signer()?;
+    pub async fn done(self) -> RemoveExec {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
+        let transcoder = artifacts.contract_transcoder().unwrap();
+        let signer = self.opts.extrinsic_opts.signer().unwrap();
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
+        let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
             (Some(code_h), _) => Ok(code_h.0),
             (None, Some(_)) => artifacts.code_hash(),
             (None, None) => Err(anyhow::anyhow!(
@@ -141,18 +126,18 @@ impl RemoveCommand {
                 path for artifacts files with --manifest-path",
                 artifacts_path.display()
             )),
-        }?;
-        let url = self.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await?;
+        }.unwrap();
+        let url = self.opts.extrinsic_opts.url_to_string();
+        let client = OnlineClient::from_url(url.clone()).await.unwrap();
 
-        Ok(RemoveExec {
+        RemoveExec {
             final_code_hash,
-            opts: self.extrinsic_opts.clone(),
-            output_json: self.output_json,
+            opts: self.opts.extrinsic_opts.clone(),
+            output_json: self.opts.output_json,
             client,
             transcoder,
             signer,
-        })
+        }
     }
 }
 

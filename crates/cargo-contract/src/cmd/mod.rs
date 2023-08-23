@@ -15,25 +15,39 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod build;
+pub mod call;
 pub mod decode;
 pub mod encode;
 pub mod info;
+pub mod instantiate;
+pub mod remove;
+pub mod upload;
 
 pub(crate) use self::{
     build::{
         BuildCommand,
         CheckCommand,
     },
+    call::{
+        handle_call,
+        CallCommand,
+    },
     decode::DecodeCommand,
     info::InfoCommand,
+    instantiate::{
+        handle_instantiate,
+        InstantiateCommand,
+    },
+    remove::{
+        handle_remove,
+        RemoveCommand,
+    },
+    upload::{
+        handle_upload,
+        UploadCommand,
+    },
 };
 
-pub(crate) use contract_extrinsics::{
-    CallCommand,
-    ErrorVariant,
-    InstantiateCommand,
-    RemoveCommand,
-    UploadCommand,
-};
+pub(crate) use contract_extrinsics::ErrorVariant;
 
 pub use subxt::PolkadotConfig as DefaultConfig;

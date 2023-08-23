@@ -41,7 +41,6 @@ use anyhow::{
 };
 use contract_build::{
     name_value_println,
-    util::decode_hex,
     Verbosity,
 };
 use contract_transcode::Value;
@@ -59,62 +58,59 @@ use subxt::{
     OnlineClient,
 };
 
-#[derive(Debug, clap::Args)]
-pub struct InstantiateCommand {
-    /// The name of the contract constructor to call
-    #[clap(name = "constructor", long, default_value = "new")]
+struct InstantiateOpts {
     constructor: String,
-    /// The constructor arguments, encoded as strings
-    #[clap(long, num_args = 0..)]
     args: Vec<String>,
-    #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// Transfers an initial balance to the instantiated contract
-    #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
-    /// Maximum amount of gas to be used for this command.
-    /// If not specified will perform a dry-run to estimate the gas consumed for the
-    /// instantiation.
-    #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
-    /// Maximum proof size for this instantiation.
-    /// If not specified will perform a dry-run to estimate the proof size required.
-    #[clap(long)]
     proof_size: Option<u64>,
-    /// A salt used in the address derivation of the new contract. Use to create multiple
-    /// instances of the same contract code from the same account.
-    #[clap(long, value_parser = parse_hex_bytes)]
     salt: Option<Bytes>,
-    /// Export the instantiate output in JSON format.
-    #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-}
-
-/// Parse hex encoded bytes.
-fn parse_hex_bytes(input: &str) -> Result<Bytes> {
-    let bytes = decode_hex(input)?;
-    Ok(bytes.into())
 }
 
 /// A builder for the instantiate command.
 pub struct InstantiateCommandBuilder<ExtrinsicOptions> {
-    opts: InstantiateCommand,
+    opts: InstantiateOpts,
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
 impl InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    /// Returns a clean builder for [`InstantiateCommand`].
+    pub fn new() -> InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
+        InstantiateCommandBuilder {
+            opts: InstantiateOpts {
+                constructor: String::from("new"),
+                args: Vec::new(),
+                extrinsic_opts: ExtrinsicOpts::default(),
+                value: "0".parse().unwrap(),
+                gas_limit: None,
+                proof_size: None,
+                salt: None,
+                output_json: false,
+            },
+            marker: PhantomData,
+        }
+    }
+
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
     ) -> InstantiateCommandBuilder<state::ExtrinsicOptions> {
         InstantiateCommandBuilder {
-            opts: InstantiateCommand {
+            opts: InstantiateOpts {
                 extrinsic_opts,
                 ..self.opts
             },
             marker: PhantomData,
         }
+    }
+}
+
+impl Default for InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -141,23 +137,23 @@ impl<E> InstantiateCommandBuilder<E> {
     }
 
     /// Sets the maximum amount of gas to be used for this command.
-    pub fn gas_limit(self, gas_limit: u64) -> Self {
+    pub fn gas_limit(self, gas_limit: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.gas_limit = Some(gas_limit);
+        this.opts.gas_limit = gas_limit;
         this
     }
 
     /// Sets the maximum proof size for this instantiation.
-    pub fn proof_size(self, proof_size: u64) -> Self {
+    pub fn proof_size(self, proof_size: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.proof_size = Some(proof_size);
+        this.opts.proof_size = proof_size;
         this
     }
 
     /// Sets the salt used in the address derivation of the new contract.
-    pub fn salt(self, salt: Bytes) -> Self {
+    pub fn salt(self, salt: Option<Bytes>) -> Self {
         let mut this = self;
-        this.opts.salt = Some(salt);
+        this.opts.salt = salt;
         this
     }
 
@@ -170,36 +166,6 @@ impl<E> InstantiateCommandBuilder<E> {
 }
 
 impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
-    /// Finishes construction of the instantiate command.
-    pub async fn done(self) -> InstantiateExec {
-        let instantiate_command = self.opts;
-        instantiate_command.preprocess().await.unwrap()
-    }
-}
-
-#[allow(clippy::new_ret_no_self)]
-impl InstantiateCommand {
-    /// Returns a clean builder for [`InstantiateCommand`].
-    pub fn new() -> InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
-        InstantiateCommandBuilder {
-            opts: Self {
-                constructor: String::from("new"),
-                args: Vec::new(),
-                extrinsic_opts: ExtrinsicOpts::default(),
-                value: "0".parse().unwrap(),
-                gas_limit: None,
-                proof_size: None,
-                salt: None,
-                output_json: false,
-            },
-            marker: PhantomData,
-        }
-    }
-
-    pub fn is_json(&self) -> bool {
-        self.output_json
-    }
-
     /// Preprocesses contract artifacts and options for instantiation.
     ///
     /// This function prepares the required data for instantiating a contract based on the
@@ -209,52 +175,56 @@ impl InstantiateCommand {
     ///
     /// Returns the [`InstantiateExec`] containing the preprocessed data for the
     /// instantiation, or an error in case of failure.
-    pub async fn preprocess(&self) -> Result<InstantiateExec> {
-        let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let transcoder = artifacts.contract_transcoder()?;
-        let data = transcoder.encode(&self.constructor, &self.args)?;
-        let signer = self.extrinsic_opts.signer()?;
-        let url = self.extrinsic_opts.url_to_string();
-        let verbosity = self.extrinsic_opts.verbosity()?;
+    pub async fn done(self) -> InstantiateExec {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
+        let transcoder = artifacts.contract_transcoder().unwrap();
+        let data = transcoder
+            .encode(&self.opts.constructor, &self.opts.args)
+            .unwrap();
+        let signer = self.opts.extrinsic_opts.signer().unwrap();
+        let url = self.opts.extrinsic_opts.url_to_string();
+        let verbosity = self.opts.extrinsic_opts.verbosity().unwrap();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
-            let code_hash = artifacts.code_hash()?;
+            let code_hash = artifacts.code_hash().unwrap();
             Code::Existing(code_hash.into())
         };
-        let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
+        let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let client = OnlineClient::from_url(url.clone()).await?;
+        let client = OnlineClient::from_url(url.clone()).await.unwrap();
 
-        let token_metadata = TokenMetadata::query(&client).await?;
+        let token_metadata = TokenMetadata::query(&client).await.unwrap();
 
         let args = InstantiateArgs {
-            constructor: self.constructor.clone(),
-            raw_args: self.args.clone(),
-            value: self.value.denominate_balance(&token_metadata)?,
-            gas_limit: self.gas_limit,
-            proof_size: self.proof_size,
+            constructor: self.opts.constructor.clone(),
+            raw_args: self.opts.args.clone(),
+            value: self.opts.value.denominate_balance(&token_metadata).unwrap(),
+            gas_limit: self.opts.gas_limit,
+            proof_size: self.opts.proof_size,
             storage_deposit_limit: self
+                .opts
                 .extrinsic_opts
                 .storage_deposit_limit
                 .as_ref()
                 .map(|bv| bv.denominate_balance(&token_metadata))
-                .transpose()?,
+                .transpose()
+                .unwrap(),
             code,
             data,
             salt,
         };
 
-        Ok(InstantiateExec {
+        InstantiateExec {
             args,
-            opts: self.extrinsic_opts.clone(),
+            opts: self.opts.extrinsic_opts.clone(),
             url,
             client,
             verbosity,
             signer,
             transcoder,
-            output_json: self.output_json,
-        })
+            output_json: self.opts.output_json,
+        }
     }
 }
 
@@ -271,28 +241,48 @@ pub struct InstantiateArgs {
 }
 
 impl InstantiateArgs {
-    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
-        self.storage_deposit_limit.map(Into::into)
-    }
-
+    /// Returns the constructor name.
     pub fn constructor(&self) -> &str {
         &self.constructor
+    }
+
+    /// Returns the constructor raw arguments.
+    pub fn raw_args(&self) -> &[String] {
+        &self.raw_args
+    }
+
+    /// Returns the value to transfer to the instantiated contract.
+    pub fn value(&self) -> Balance {
+        self.value
+    }
+
+    /// Returns the maximum amount of gas to be used for this command.
+    pub fn gas_limit(&self) -> Option<u64> {
+        self.gas_limit
+    }
+
+    /// Returns the maximum proof size for this instantiation.
+    pub fn proof_size(&self) -> Option<u64> {
+        self.proof_size
+    }
+
+    /// Returns the storage deposit limit for this instantiation.
+    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+        self.storage_deposit_limit.map(Into::into)
     }
 
     pub fn code(&self) -> &Code {
         &self.code
     }
 
+    /// Returns the input data for the contract constructor.
     pub fn data(&self) -> &[u8] {
         &self.data
     }
 
-    pub fn gas_limit(&self) -> Option<u64> {
-        self.gas_limit
-    }
-
-    pub fn proof_size(&self) -> Option<u64> {
-        self.proof_size
+    /// Returns the salt used in the address derivation of the new contract.
+    pub fn salt(&self) -> &[u8] {
+        &self.salt
     }
 }
 

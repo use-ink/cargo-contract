@@ -40,42 +40,53 @@ use anyhow::Result;
 use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
-use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
 };
 use subxt_signer::sr25519::Keypair;
 
-#[derive(Debug, clap::Args)]
-#[clap(name = "upload", about = "Upload a contract's code")]
-pub struct UploadCommand {
-    #[clap(flatten)]
+struct UploadOpts {
     extrinsic_opts: ExtrinsicOpts,
-    /// Export the call output in JSON format.
-    #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
 /// A builder for the upload command.
 pub struct UploadCommandBuilder<ExtrinsicOptions> {
-    opts: UploadCommand,
+    opts: UploadOpts,
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
 impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    /// Returns a clean builder for [`UploadCommand`].
+    pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+        UploadCommandBuilder {
+            opts: UploadOpts {
+                extrinsic_opts: ExtrinsicOpts::default(),
+                output_json: false,
+            },
+            marker: PhantomData,
+        }
+    }
+
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
     ) -> UploadCommandBuilder<state::ExtrinsicOptions> {
         UploadCommandBuilder {
-            opts: UploadCommand {
+            opts: UploadOpts {
                 extrinsic_opts,
                 ..self.opts
             },
             marker: PhantomData,
         }
+    }
+}
+
+impl Default for UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -89,59 +100,38 @@ impl<E> UploadCommandBuilder<E> {
 }
 
 impl UploadCommandBuilder<state::ExtrinsicOptions> {
-    /// Finishes construction of the upload command.
-    pub async fn done(self) -> UploadExec {
-        let upload_command = self.opts;
-        upload_command.preprocess().await.unwrap()
-    }
-}
-
-#[allow(clippy::new_ret_no_self)]
-impl UploadCommand {
-    /// Returns a clean builder for [`UploadCommand`].
-    pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
-        UploadCommandBuilder {
-            opts: Self {
-                extrinsic_opts: ExtrinsicOpts::default(),
-                output_json: false,
-            },
-            marker: PhantomData,
-        }
-    }
-
-    pub fn is_json(&self) -> bool {
-        self.output_json
-    }
-
-    /// Preprocesses contract artifacts and options for subsequent upload or execution.
+    /// Preprocesses contract artifacts and options for subsequent upload.
     ///
-    /// This function prepares the necessary data for uploading or executing a contract
+    /// This function prepares the necessary data for uploading a contract
     /// based on the provided contract artifacts and options. It ensures that the
     /// required contract code is available and sets up the client and signer for the
     /// operation.
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
-    /// execution, or an error in case of failure.
-    pub async fn preprocess(&self) -> Result<UploadExec> {
-        let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let signer = self.extrinsic_opts.signer()?;
+    /// execution.
+    pub async fn done(self) -> UploadExec {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
+        let signer = self.opts.extrinsic_opts.signer().unwrap();
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts.code.ok_or_else(|| {
-            anyhow::anyhow!(
-                "Contract code not found from artifact file {}",
-                artifacts_path.display()
-            )
-        })?;
-        let url = self.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await?;
-        Ok(UploadExec {
-            opts: self.extrinsic_opts.clone(),
-            output_json: self.output_json,
+        let code = artifacts
+            .code
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Contract code not found from artifact file {}",
+                    artifacts_path.display()
+                )
+            })
+            .unwrap();
+        let url = self.opts.extrinsic_opts.url_to_string();
+        let client = OnlineClient::from_url(url.clone()).await.unwrap();
+        UploadExec {
+            opts: self.opts.extrinsic_opts.clone(),
+            output_json: self.opts.output_json,
             client,
             code,
             signer,
-        })
+        }
     }
 }
 

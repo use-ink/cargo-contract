@@ -47,58 +47,63 @@ use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
-use std::fmt::Debug;
 use subxt::{
     Config,
     OnlineClient,
 };
 
-#[derive(Debug, clap::Args)]
-#[clap(name = "call", about = "Call a contract")]
-pub struct CallCommand {
-    /// The address of the the contract to call.
-    #[clap(name = "contract", long, env = "CONTRACT")]
+pub struct CallOpts {
     contract: <DefaultConfig as Config>::AccountId,
-    /// The name of the contract message to call.
-    #[clap(long, short)]
     message: String,
-    /// The arguments of the contract message to call.
-    #[clap(long, num_args = 0..)]
     args: Vec<String>,
-    #[clap(flatten)]
     extrinsic_opts: ExtrinsicOpts,
-    /// Maximum amount of gas (execution time) to be used for this command.
-    /// If not specified will perform a dry-run to estimate the gas consumed for the
-    /// call.
-    #[clap(name = "gas", long)]
     gas_limit: Option<u64>,
-    /// Maximum proof size for this call.
-    /// If not specified will perform a dry-run to estimate the proof size required for
-    /// the call.
-    #[clap(long)]
     proof_size: Option<u64>,
-    /// The value to be transferred as part of the call.
-    #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
-    /// Export the call output in JSON format.
-    #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
 /// A builder for the call command.
 pub struct CallCommandBuilder<Message, ExtrinsicOptions> {
-    opts: CallCommand,
+    opts: CallOpts,
     marker: PhantomData<fn() -> (Message, ExtrinsicOptions)>,
 }
 
+impl Default
+    for CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<E> CallCommandBuilder<Missing<state::Message>, E> {
+    /// Returns a clean builder for [`CallCommand`].
+    pub fn new(
+    ) -> CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
+    {
+        CallCommandBuilder {
+            opts: CallOpts {
+                contract: AccountId32([0; 32]),
+                message: String::new(),
+                args: Vec::new(),
+                extrinsic_opts: ExtrinsicOpts::default(),
+                gas_limit: None,
+                proof_size: None,
+                value: "0".parse().unwrap(),
+                output_json: false,
+            },
+            marker: PhantomData,
+        }
+    }
+
     /// Sets the name of the contract message to call.
     pub fn message<T: Into<String>>(
         self,
         message: T,
     ) -> CallCommandBuilder<state::Message, E> {
         CallCommandBuilder {
-            opts: CallCommand {
+            opts: CallOpts {
                 message: message.into(),
                 ..self.opts
             },
@@ -114,7 +119,7 @@ impl<M> CallCommandBuilder<M, Missing<state::ExtrinsicOptions>> {
         extrinsic_opts: ExtrinsicOpts,
     ) -> CallCommandBuilder<M, state::ExtrinsicOptions> {
         CallCommandBuilder {
-            opts: CallCommand {
+            opts: CallOpts {
                 extrinsic_opts,
                 ..self.opts
             },
@@ -139,16 +144,16 @@ impl<M, E> CallCommandBuilder<M, E> {
     }
 
     /// Sets the maximum amount of gas to be used for this command.
-    pub fn gas_limit(self, gas_limit: u64) -> Self {
+    pub fn gas_limit(self, gas_limit: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.gas_limit = Some(gas_limit);
+        this.opts.gas_limit = gas_limit;
         this
     }
 
     /// Sets the maximum proof size for this call.
-    pub fn proof_size(self, proof_size: u64) -> Self {
+    pub fn proof_size(self, proof_size: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.proof_size = Some(proof_size);
+        this.opts.proof_size = proof_size;
         this
     }
 
@@ -168,38 +173,6 @@ impl<M, E> CallCommandBuilder<M, E> {
 }
 
 impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
-    /// Finishes construction of the call command.
-    pub async fn done(self) -> CallExec {
-        let call_command = self.opts;
-        call_command.preprocess().await.unwrap()
-    }
-}
-
-#[allow(clippy::new_ret_no_self)]
-impl CallCommand {
-    /// Returns a clean builder for [`CallCommand`].
-    pub fn new(
-    ) -> CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
-    {
-        CallCommandBuilder {
-            opts: Self {
-                contract: AccountId32([0; 32]),
-                message: String::new(),
-                args: Vec::new(),
-                extrinsic_opts: ExtrinsicOpts::default(),
-                gas_limit: None,
-                proof_size: None,
-                value: "0".parse().unwrap(),
-                output_json: false,
-            },
-            marker: PhantomData,
-        }
-    }
-
-    pub fn is_json(&self) -> bool {
-        self.output_json
-    }
-
     /// Preprocesses contract artifacts and options for subsequent contract calls.
     ///
     /// This function prepares the necessary data for making a contract call based on the
@@ -209,31 +182,33 @@ impl CallCommand {
     ///
     /// Returns the `CallExec` containing the preprocessed data for the contract call,
     /// or an error in case of failure.
-    pub async fn preprocess(&self) -> Result<CallExec> {
-        let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let transcoder = artifacts.contract_transcoder()?;
+    pub async fn done(self) -> CallExec {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
+        let transcoder = artifacts.contract_transcoder().unwrap();
 
-        let call_data = transcoder.encode(&self.message, &self.args)?;
+        let call_data = transcoder
+            .encode(&self.opts.message, &self.opts.args)
+            .unwrap();
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
-        let signer = self.extrinsic_opts.signer()?;
+        let signer = self.opts.extrinsic_opts.signer().unwrap();
 
-        let url = self.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await?;
-        Ok(CallExec {
-            contract: self.contract.clone(),
-            message: self.message.clone(),
-            args: self.args.clone(),
-            opts: self.extrinsic_opts.clone(),
-            gas_limit: self.gas_limit,
-            proof_size: self.proof_size,
-            value: self.value.clone(),
-            output_json: self.output_json,
+        let url = self.opts.extrinsic_opts.url_to_string();
+        let client = OnlineClient::from_url(url.clone()).await.unwrap();
+        CallExec {
+            contract: self.opts.contract.clone(),
+            message: self.opts.message.clone(),
+            args: self.opts.args.clone(),
+            opts: self.opts.extrinsic_opts.clone(),
+            gas_limit: self.opts.gas_limit,
+            proof_size: self.opts.proof_size,
+            value: self.opts.value.clone(),
+            output_json: self.opts.output_json,
             client,
             transcoder,
             call_data,
             signer,
-        })
+        }
     }
 }
 
