@@ -2222,9 +2222,9 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cdc9dbbc38d0e0cd7b053068112ca8ab8140b8ece33b9e197af5544ed3d97e1"
+checksum = "870914970470fd77a3f42d3c5d1918b562817af127fd063ee8b1d9fbf59aa1fe"
 dependencies = [
  "cfg-if",
 ]
@@ -2255,9 +2255,9 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c4af49e092a93e65d1161ce31d23c2e57d724462c96a8944acd647a52787f0"
+checksum = "722ec3a5eb557124b001c60ff8f961079f6d566af643edea579f152b15822fe5"
 dependencies = [
  "blake2",
  "derive_more",
@@ -2270,9 +2270,9 @@ dependencies = [
 
 [[package]]
 name = "ink_env"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d5e1505c5deb7280743e4d7df72a91f52bbf4cb063f464c73f89dce00c70f92"
+checksum = "584e73bc0982f6f1a067bb63ebc75262f6dc54ed2a17060efa73eaba84dc9308"
 dependencies = [
  "arrayref",
  "blake2",
@@ -2287,8 +2287,8 @@ dependencies = [
  "parity-scale-codec",
  "paste",
  "rlibc",
- "scale-decode 0.5.0",
- "scale-encode 0.1.2",
+ "scale-decode",
+ "scale-encode",
  "scale-info",
  "secp256k1 0.27.0",
  "sha2 0.10.6",
@@ -2328,9 +2328,9 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4af082b4c2eb246d27b358411ef950811f851c1099aa507ba4bcdd7214d40ccd"
+checksum = "3fddff95ce3e01f42002fdaf96edda691dbccb08c9ae76d7101daa1fa634e601"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -2342,24 +2342,24 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d0662ba1d4aa26f0fea36ce6ef9ef1e510e24c900597d703b148c8c23b675b9"
+checksum = "d8cfdf91d2b442f08efb34dd3780fd6fbd3d033f63b42f62684fe47534948ef6"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52693c5e74600f5bd4c0f6d447ba9c4e491e4edf685eaf9f9f347a3cb1cde66b"
+checksum = "6414bcad12ebf0c3abbbb192a09e4d06e22f662cf3e19545204e1b0684be12a1"
 dependencies = [
  "derive_more",
  "ink_prelude",
  "parity-scale-codec",
- "scale-decode 0.5.0",
- "scale-encode 0.1.2",
+ "scale-decode",
+ "scale-encode",
  "scale-info",
  "xxhash-rust",
 ]
@@ -2384,9 +2384,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec58d70937c1e1490a00b84e2eb9a799f1a5331dd0e5cc68d550de1dbf6a8f4"
+checksum = "a8dcb50f70377ac35c28d63b06383a0a3cbb79542ea4cdc5b00e3e2b3de4a549"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -3812,16 +3812,6 @@ dependencies = [
 
 [[package]]
 name = "scale-bits"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dd7aca73785181cc41f0bbe017263e682b585ca660540ba569133901d013ecf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
-name = "scale-bits"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "036575c29af9b6e4866ffb7fa055dbf623fe7a9cc159b33786de6013a6969d89"
@@ -3833,19 +3823,6 @@ dependencies = [
 
 [[package]]
 name = "scale-decode"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7e5527e4b3bf079d4c0b2f253418598c380722ba37ef20fac9088081407f2b6"
-dependencies = [
- "parity-scale-codec",
- "scale-bits 0.3.0",
- "scale-decode-derive 0.5.0",
- "scale-info",
- "thiserror",
-]
-
-[[package]]
-name = "scale-decode"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7789f5728e4e954aaa20cadcc370b99096fb8645fca3c9333ace44bb18f30095"
@@ -3853,23 +3830,10 @@ dependencies = [
  "derive_more",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits 0.4.0",
- "scale-decode-derive 0.9.0",
+ "scale-bits",
+ "scale-decode-derive",
  "scale-info",
  "smallvec",
-]
-
-[[package]]
-name = "scale-decode-derive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b38741b2f78e4391b94eac6b102af0f6ea2b0f7fe65adb55d7f4004f507854db"
-dependencies = [
- "darling 0.14.4",
- "proc-macro-crate 1.3.1",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -3887,18 +3851,6 @@ dependencies = [
 
 [[package]]
 name = "scale-encode"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15546e5efbb45f0fc2291f7e202dee8623274c5d8bbfdf9c6886cc8b44a7ced3"
-dependencies = [
- "parity-scale-codec",
- "scale-encode-derive 0.1.2",
- "scale-info",
- "thiserror",
-]
-
-[[package]]
-name = "scale-encode"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d70cb4b29360105483fac1ed567ff95d65224a14dd275b6303ed0a654c78de5"
@@ -3906,23 +3858,10 @@ dependencies = [
  "derive_more",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits 0.4.0",
- "scale-encode-derive 0.5.0",
+ "scale-bits",
+ "scale-encode-derive",
  "scale-info",
  "smallvec",
-]
-
-[[package]]
-name = "scale-encode-derive"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd983cf0a9effd76138554ead18a6de542d1af175ac12fd5e91836c5c0268082"
-dependencies = [
- "darling 0.14.4",
- "proc-macro-crate 1.3.1",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -3976,9 +3915,9 @@ dependencies = [
  "either",
  "frame-metadata 15.0.0",
  "parity-scale-codec",
- "scale-bits 0.4.0",
- "scale-decode 0.9.0",
- "scale-encode 0.5.0",
+ "scale-bits",
+ "scale-decode",
+ "scale-encode",
  "scale-info",
  "serde",
  "yap",
@@ -4997,9 +4936,9 @@ dependencies = [
  "jsonrpsee 0.16.2",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits 0.4.0",
- "scale-decode 0.9.0",
- "scale-encode 0.5.0",
+ "scale-bits",
+ "scale-decode",
+ "scale-encode",
  "scale-info",
  "scale-value",
  "serde",
