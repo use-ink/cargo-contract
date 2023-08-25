@@ -15,11 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    CallCommand,
-    ExtrinsicOpts,
-    InstantiateCommand,
-    RemoveCommand,
-    UploadCommand,
+    CallCommandBuilder,
+    ExtrinsicOptsBuilder,
+    InstantiateCommandBuilder,
+    RemoveCommandBuilder,
+    UploadCommandBuilder,
 };
 use anyhow::Result;
 use predicates::prelude::*;
@@ -421,11 +421,11 @@ async fn api_build_upload_instantiate_call() {
     let contract_file = project_path.join("target/ink/flipper.contract");
 
     // upload the contract
-    let opts = ExtrinsicOpts::new()
-        .file(contract_file)
+    let opts = ExtrinsicOptsBuilder::default()
+        .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommand::new()
+    let upload = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
         .await;
@@ -434,7 +434,7 @@ async fn api_build_upload_instantiate_call() {
     upload_result.unwrap();
 
     // instantiate the contract
-    let instantiate = InstantiateCommand::new()
+    let instantiate = InstantiateCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .constructor("new")
         .args(["true"].to_vec())
@@ -448,7 +448,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // the value should be true
-    let call = CallCommand::new()
+    let call = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -467,7 +467,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // flip the value
-    let call = CallCommand::new()
+    let call = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("flip")
         .contract(instantiate_result.contract_address.clone())
@@ -481,7 +481,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // make sure the value has been flipped
-    let call = CallCommand::new()
+    let call = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -535,11 +535,11 @@ async fn api_build_upload_remove() {
     let contract_file = project_path.join("target/ink/incrementer.contract");
 
     // upload the contract
-    let opts = ExtrinsicOpts::new()
-        .file(contract_file)
+    let opts = ExtrinsicOptsBuilder::default()
+        .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommand::new()
+    let upload = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
         .await;
@@ -551,9 +551,9 @@ async fn api_build_upload_remove() {
     assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
-    let remove = RemoveCommand::new()
+    let remove = RemoveCommandBuilder::default()
         .extrinsic_opts(opts.clone())
-        .code_hash(code_hash_h256)
+        .code_hash(Some(code_hash_h256))
         .done()
         .await;
     let remove_result = remove.remove_code().await;
