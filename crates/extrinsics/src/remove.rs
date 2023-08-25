@@ -26,9 +26,9 @@ use super::{
     ContractMessageTranscoder,
     DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
     Missing,
 };
+use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::Result;
 use core::marker::PhantomData;
 use subxt::{

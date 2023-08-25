@@ -27,11 +27,11 @@ use super::{
     ContractMessageTranscoder,
     DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
     Missing,
     StorageDeposit,
     TokenMetadata,
 };
+use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::{
     anyhow,
     Context,
@@ -189,7 +189,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             storage_deposit_limit: self
                 .opts
                 .extrinsic_opts
-                .storage_deposit_limit
+                .storage_deposit_limit()
                 .as_ref()
                 .map(|bv| bv.denominate_balance(&token_metadata))
                 .transpose()
@@ -437,7 +437,7 @@ impl InstantiateExec {
     /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
     /// an error.
     pub async fn estimate_gas(&self) -> Result<Weight> {
-        if self.opts.skip_dry_run {
+        if self.opts.skip_dry_run() {
             return match (self.args.gas_limit, self.args.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
                 _ => {

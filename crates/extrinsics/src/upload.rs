@@ -30,11 +30,11 @@ use super::{
     CodeHash,
     DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
     Missing,
     TokenMetadata,
     WasmCode,
 };
+use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::Result;
 use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
@@ -138,7 +138,7 @@ impl UploadExec {
         let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit
+            .storage_deposit_limit()
             .as_ref()
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
@@ -159,7 +159,8 @@ impl UploadExec {
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
         let token_metadata = TokenMetadata::query(&self.client).await?;
-        let storage_deposit_limit = self.opts.storage_deposit_limit(&token_metadata)?;
+        let storage_deposit_limit =
+            self.opts.compact_storage_deposit_limit(&token_metadata)?;
         let call = crate::runtime_api::api::tx().contracts().upload_code(
             self.code.0.clone(),
             storage_deposit_limit,

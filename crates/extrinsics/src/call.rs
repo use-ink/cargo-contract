@@ -28,10 +28,10 @@ use super::{
     ContractMessageTranscoder,
     DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
     Missing,
     TokenMetadata,
 };
+use crate::extrinsic_opts::ExtrinsicOpts;
 
 use anyhow::{
     anyhow,
@@ -227,7 +227,7 @@ impl CallExec {
         let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit
+            .storage_deposit_limit()
             .as_ref()
             .map(|bv| bv.denominate_balance(&token_metadata))
             .transpose()?;
@@ -266,7 +266,7 @@ impl CallExec {
             self.contract.clone().into(),
             self.value.denominate_balance(&token_metadata)?,
             gas_limit.into(),
-            self.opts.storage_deposit_limit(&token_metadata)?,
+            self.opts.compact_storage_deposit_limit(&token_metadata)?,
             self.call_data.clone(),
         );
 
@@ -290,7 +290,7 @@ impl CallExec {
     /// Returns the estimated gas weight of type [`Weight`] for contract calls, or an
     /// error.
     pub async fn estimate_gas(&self) -> Result<Weight> {
-        if self.opts.skip_dry_run {
+        if self.opts.skip_dry_run() {
             return match (self.gas_limit, self.proof_size) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
                 _ => {
