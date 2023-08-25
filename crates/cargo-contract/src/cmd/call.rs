@@ -2,7 +2,6 @@ use crate::ErrorVariant;
 
 use contract_build::util::DEFAULT_KEY_COL_WIDTH;
 use std::fmt::Debug;
-use tokio::runtime::Runtime;
 
 use super::{
     display_contract_exec_result,
@@ -71,113 +70,103 @@ impl CallCommand {
         self.output_json
     }
 }
-pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
-    Runtime::new()?.block_on(async {
-        let extrinsic_opts = ExtrinsicOptsBuilder::default()
-            .file(call_command.extrinsic_cli_opts.file.clone())
-            .manifest_path(call_command.extrinsic_cli_opts.manifest_path.clone())
-            .url(call_command.extrinsic_cli_opts.url.clone())
-            .suri(call_command.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(
-                call_command
-                    .extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone(),
-            )
-            .skip_dry_run(call_command.extrinsic_cli_opts.skip_dry_run)
-            .done();
-        let call_exec = CallCommandBuilder::default()
-            .contract(call_command.contract.clone())
-            .message(call_command.message.clone())
-            .args(call_command.args.clone())
-            .extrinsic_opts(extrinsic_opts)
-            .gas_limit(call_command.gas_limit)
-            .proof_size(call_command.proof_size)
-            .value(call_command.value.clone())
-            .done()
-            .await;
+pub async fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
+    let extrinsic_opts = ExtrinsicOptsBuilder::default()
+        .file(call_command.extrinsic_cli_opts.file.clone())
+        .manifest_path(call_command.extrinsic_cli_opts.manifest_path.clone())
+        .url(call_command.extrinsic_cli_opts.url.clone())
+        .suri(call_command.extrinsic_cli_opts.suri.clone())
+        .storage_deposit_limit(
+            call_command
+                .extrinsic_cli_opts
+                .storage_deposit_limit
+                .clone(),
+        )
+        .skip_dry_run(call_command.extrinsic_cli_opts.skip_dry_run)
+        .done();
+    let call_exec = CallCommandBuilder::default()
+        .contract(call_command.contract.clone())
+        .message(call_command.message.clone())
+        .args(call_command.args.clone())
+        .extrinsic_opts(extrinsic_opts)
+        .gas_limit(call_command.gas_limit)
+        .proof_size(call_command.proof_size)
+        .value(call_command.value.clone())
+        .done()
+        .await;
 
-        if !call_command.extrinsic_cli_opts.execute {
-            let result = call_exec.call_dry_run().await?;
-            match result.result {
-                Ok(ref ret_val) => {
-                    let value = call_exec
-                        .transcoder()
-                        .decode_message_return(
-                            call_exec.message(),
-                            &mut &ret_val.data[..],
-                        )
-                        .context(format!(
-                            "Failed to decode return value {:?}",
-                            &ret_val
-                        ))?;
-                    let dry_run_result = CallDryRunResult {
-                        reverted: ret_val.did_revert(),
-                        data: value,
-                        gas_consumed: result.gas_consumed,
-                        gas_required: result.gas_required,
-                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
-                    };
-                    if call_command.output_json() {
-                        println!("{}", dry_run_result.to_json()?);
-                    } else {
-                        dry_run_result.print();
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
-                            &result,
-                        )?;
-                        display_dry_run_result_warning("message");
-                    };
-                }
-                Err(ref err) => {
-                    let metadata = call_exec.client().metadata();
-                    let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
-                    if call_command.output_json() {
-                        return Err(object)
-                    } else {
-                        name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
-                    }
+    if !call_command.extrinsic_cli_opts.execute {
+        let result = call_exec.call_dry_run().await?;
+        match result.result {
+            Ok(ref ret_val) => {
+                let value = call_exec
+                    .transcoder()
+                    .decode_message_return(call_exec.message(), &mut &ret_val.data[..])
+                    .context(format!("Failed to decode return value {:?}", &ret_val))?;
+                let dry_run_result = CallDryRunResult {
+                    reverted: ret_val.did_revert(),
+                    data: value,
+                    gas_consumed: result.gas_consumed,
+                    gas_required: result.gas_required,
+                    storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                };
+                if call_command.output_json() {
+                    println!("{}", dry_run_result.to_json()?);
+                } else {
+                    dry_run_result.print();
+                    display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
+                        &result,
+                    )?;
+                    display_dry_run_result_warning("message");
+                };
+            }
+            Err(ref err) => {
+                let metadata = call_exec.client().metadata();
+                let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
+                if call_command.output_json() {
+                    return Err(object)
+                } else {
+                    name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                    display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
                 }
             }
-        } else {
-            let gas_limit = pre_submit_dry_run_gas_estimate_call(
-                &call_exec,
-                call_command.output_json(),
-            )
-            .await?;
-            if !call_command.extrinsic_cli_opts.skip_confirm {
-                prompt_confirm_tx(|| {
-                    name_value_println!(
-                        "Message",
-                        call_exec.message(),
-                        DEFAULT_KEY_COL_WIDTH
-                    );
-                    name_value_println!(
-                        "Args",
-                        call_exec.args().join(" "),
-                        DEFAULT_KEY_COL_WIDTH
-                    );
-                    name_value_println!(
-                        "Gas limit",
-                        gas_limit.to_string(),
-                        DEFAULT_KEY_COL_WIDTH
-                    );
-                })?;
-            }
-            let token_metadata = TokenMetadata::query(call_exec.client()).await?;
-            let display_events = call_exec.call(Some(gas_limit)).await?;
-            let output = if call_command.output_json() {
-                display_events.to_json()?
-            } else {
-                display_events.display_events(
-                    call_command.extrinsic_cli_opts.verbosity().unwrap(),
-                    &token_metadata,
-                )?
-            };
-            println!("{output}");
         }
-        Ok(())
-    })
+    } else {
+        let gas_limit =
+            pre_submit_dry_run_gas_estimate_call(&call_exec, call_command.output_json())
+                .await?;
+        if !call_command.extrinsic_cli_opts.skip_confirm {
+            prompt_confirm_tx(|| {
+                name_value_println!(
+                    "Message",
+                    call_exec.message(),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+                name_value_println!(
+                    "Args",
+                    call_exec.args().join(" "),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+                name_value_println!(
+                    "Gas limit",
+                    gas_limit.to_string(),
+                    DEFAULT_KEY_COL_WIDTH
+                );
+            })?;
+        }
+        let token_metadata = TokenMetadata::query(call_exec.client()).await?;
+        let display_events = call_exec.call(Some(gas_limit)).await?;
+        let output = if call_command.output_json() {
+            display_events.to_json()?
+        } else {
+            display_events.display_events(
+                call_command.extrinsic_cli_opts.verbosity().unwrap(),
+                &token_metadata,
+            )?
+        };
+        println!("{output}");
+    }
+    Ok(())
 }
 
 /// A helper function to estimate the gas required for a contract call.

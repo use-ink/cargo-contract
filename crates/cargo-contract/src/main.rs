@@ -56,6 +56,7 @@ use std::{
     path::PathBuf,
     str::FromStr,
 };
+use tokio::runtime::Runtime;
 // These crates are only used when we run integration tests `--features
 // integration-tests`. However since we can't have optional `dev-dependencies` we pretend
 // to use them during normal test runs in order to satisfy the `unused_crate_dependencies`
@@ -157,6 +158,7 @@ fn main() {
 }
 
 fn exec(cmd: Command) -> Result<()> {
+    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;
@@ -182,21 +184,34 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Upload(upload) => {
-            handle_upload(upload)
-                .map_err(|err| map_extrinsic_err(err, upload.output_json()))
+            runtime.block_on(async {
+                handle_upload(upload)
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, upload.output_json()))
+            })
         }
         Command::Instantiate(instantiate) => {
-            handle_instantiate(instantiate)
-                .map_err(|err| map_extrinsic_err(err, instantiate.output_json()))
+            runtime.block_on(async {
+                handle_instantiate(instantiate)
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, instantiate.output_json()))
+            })
         }
         Command::Call(call) => {
-            handle_call(call).map_err(|err| map_extrinsic_err(err, call.output_json()))
+            runtime.block_on(async {
+                handle_call(call)
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, call.output_json()))
+            })
         }
         Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
-            handle_remove(remove)
-                .map_err(|err| map_extrinsic_err(err, remove.output_json()))
+            runtime.block_on(async {
+                handle_remove(remove)
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, remove.output_json()))
+            })
         }
         Command::Info(info) => info.run().map_err(format_err),
     }

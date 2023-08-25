@@ -1,6 +1,5 @@
 use crate::ErrorVariant;
 use std::fmt::Debug;
-use tokio::runtime::Runtime;
 
 use super::CLIExtrinsicOpts;
 use anyhow::Result;
@@ -34,54 +33,52 @@ impl RemoveCommand {
     }
 }
 
-pub fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant> {
-    Runtime::new()?.block_on(async {
-        let extrinsic_opts = ExtrinsicOptsBuilder::default()
-            .file(remove_command.extrinsic_cli_opts.file.clone())
-            .manifest_path(remove_command.extrinsic_cli_opts.manifest_path.clone())
-            .url(remove_command.extrinsic_cli_opts.url.clone())
-            .suri(remove_command.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(
-                remove_command
-                    .extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone(),
-            )
-            .skip_dry_run(remove_command.extrinsic_cli_opts.skip_dry_run)
-            .done();
-        let remove_exec = RemoveCommandBuilder::default()
-            .code_hash(remove_command.code_hash)
-            .extrinsic_opts(extrinsic_opts)
-            .done()
-            .await;
-        let remove_result = remove_exec.remove_code().await?;
-        let display_events = remove_result.display_events;
-        let output = if remove_command.output_json() {
-            display_events.to_json()?
-        } else {
-            let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
-            display_events.display_events(
-                remove_command.extrinsic_cli_opts.verbosity().unwrap(),
-                &token_metadata,
-            )?
-        };
-        println!("{output}");
-        if let Some(code_removed) = remove_result.code_removed {
-            let remove_result = code_removed.code_hash;
+pub async fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant> {
+    let extrinsic_opts = ExtrinsicOptsBuilder::default()
+        .file(remove_command.extrinsic_cli_opts.file.clone())
+        .manifest_path(remove_command.extrinsic_cli_opts.manifest_path.clone())
+        .url(remove_command.extrinsic_cli_opts.url.clone())
+        .suri(remove_command.extrinsic_cli_opts.suri.clone())
+        .storage_deposit_limit(
+            remove_command
+                .extrinsic_cli_opts
+                .storage_deposit_limit
+                .clone(),
+        )
+        .skip_dry_run(remove_command.extrinsic_cli_opts.skip_dry_run)
+        .done();
+    let remove_exec = RemoveCommandBuilder::default()
+        .code_hash(remove_command.code_hash)
+        .extrinsic_opts(extrinsic_opts)
+        .done()
+        .await;
+    let remove_result = remove_exec.remove_code().await?;
+    let display_events = remove_result.display_events;
+    let output = if remove_command.output_json() {
+        display_events.to_json()?
+    } else {
+        let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
+        display_events.display_events(
+            remove_command.extrinsic_cli_opts.verbosity().unwrap(),
+            &token_metadata,
+        )?
+    };
+    println!("{output}");
+    if let Some(code_removed) = remove_result.code_removed {
+        let remove_result = code_removed.code_hash;
 
-            if remove_command.output_json() {
-                println!("{}", &remove_result);
-            } else {
-                name_value_println!("Code hash", format!("{remove_result:?}"));
-            }
-            Result::<(), ErrorVariant>::Ok(())
+        if remove_command.output_json() {
+            println!("{}", &remove_result);
         } else {
-            let error_code_hash = hex::encode(remove_exec.final_code_hash());
-            Err(anyhow::anyhow!(
-                "Error removing the code for the supplied code hash: {}",
-                error_code_hash
-            )
-            .into())
+            name_value_println!("Code hash", format!("{remove_result:?}"));
         }
-    })
+        Result::<(), ErrorVariant>::Ok(())
+    } else {
+        let error_code_hash = hex::encode(remove_exec.final_code_hash());
+        Err(anyhow::anyhow!(
+            "Error removing the code for the supplied code hash: {}",
+            error_code_hash
+        )
+        .into())
+    }
 }
