@@ -35,37 +35,25 @@ use anyhow::{
     Ok,
     Result,
 };
-use colored::Colorize;
 use core::marker::PhantomData;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
     ws_client::WsClientBuilder,
 };
-use std::{
-    io::{
-        self,
-        Write,
-    },
-    path::PathBuf,
-};
+use std::path::PathBuf;
 use url::Url;
 
 use crate::runtime_api::api::{self,};
 use contract_build::{
-    name_value_println,
     CrateMetadata,
-    Verbosity,
-    VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::ContractResult;
 use scale::{
     Decode,
     Encode,
 };
 use sp_core::Bytes;
-use sp_weights::Weight;
 use subxt::{
     blocks,
     config,
@@ -107,11 +95,16 @@ pub use instantiate::{
     InstantiateExec,
     InstantiateExecResult,
 };
-pub use remove::RemoveCommandBuilder;
+pub use remove::{
+    RemoveCommandBuilder,
+    RemoveExec,
+};
+
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
     CodeUploadRequest,
     UploadCommandBuilder,
+    UploadExec,
     UploadResult,
 };
 
@@ -120,45 +113,14 @@ pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug, clap::Args)]
+#[derive(Clone, Debug)]
 pub struct ExtrinsicOpts {
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
-    #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
-    /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
     url: url::Url,
-    /// Secret key URI for the account deploying the contract.
-    ///
-    /// e.g.
-    /// - for a dev account "//Alice"
-    /// - with a password "//Alice///SECRET_PASSWORD"
-    #[clap(name = "suri", long, short)]
     suri: String,
-    #[clap(flatten)]
-    verbosity: VerbosityFlags,
-    /// Submit the extrinsic for on-chain execution.
-    #[clap(short('x'), long)]
-    execute: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the
-    /// storage. consumed.
-    #[clap(long)]
     storage_deposit_limit: Option<BalanceVariant>,
-    /// Before submitting a transaction, do not dry-run it via RPC first.
-    #[clap(long)]
     skip_dry_run: bool,
-    /// Before submitting a transaction, do not ask the user for confirmation.
-    #[clap(short('y'), long)]
-    skip_confirm: bool,
 }
 
 /// Type state for the extrinsics' commands to tell that some mandatory state has not yet
@@ -184,6 +146,14 @@ pub struct ExtrinsicOptsBuilder<Suri> {
 }
 
 impl ExtrinsicOptsBuilder<Missing<state::Suri>> {
+    /// Returns a clean builder for [`ExtrinsicOpts`].
+    pub fn new() -> ExtrinsicOptsBuilder<Missing<state::Suri>> {
+        ExtrinsicOptsBuilder {
+            opts: ExtrinsicOpts::default(),
+            marker: PhantomData,
+        }
+    }
+
     /// Sets the secret key URI for the account deploying the contract.
     pub fn suri<T: Into<String>>(self, suri: T) -> ExtrinsicOptsBuilder<state::Suri> {
         ExtrinsicOptsBuilder {
@@ -196,18 +166,24 @@ impl ExtrinsicOptsBuilder<Missing<state::Suri>> {
     }
 }
 
+impl Default for ExtrinsicOptsBuilder<Missing<state::Suri>> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S> ExtrinsicOptsBuilder<S> {
     /// Sets the path to the contract build artifact file.
-    pub fn file<T: Into<PathBuf>>(self, file: T) -> Self {
+    pub fn file<T: Into<PathBuf>>(self, file: Option<T>) -> Self {
         let mut this = self;
-        this.opts.file = Some(file.into());
+        this.opts.file = file.map(|f| f.into());
         this
     }
 
     /// Sets the path to the Cargo.toml of the contract.
-    pub fn manifest_path<T: Into<PathBuf>>(self, manifest_path: T) -> Self {
+    pub fn manifest_path<T: Into<PathBuf>>(self, manifest_path: Option<T>) -> Self {
         let mut this = self;
-        this.opts.manifest_path = Some(manifest_path.into());
+        this.opts.manifest_path = manifest_path.map(|f| f.into());
         this
     }
 
@@ -218,25 +194,14 @@ impl<S> ExtrinsicOptsBuilder<S> {
         this
     }
 
-    /// Sets the verbosity level.
-    pub fn verbosity(self, verbosity: VerbosityFlags) -> Self {
-        let mut this = self;
-        this.opts.verbosity = verbosity;
-        this
-    }
-
-    /// Sets whether to submit the extrinsic for on-chain execution.
-    pub fn execute(self, execute: bool) -> Self {
-        let mut this = self;
-        this.opts.execute = execute;
-        this
-    }
-
     /// Sets the maximum amount of balance that can be charged from the caller to pay for
     /// storage.
-    pub fn storage_deposit_limit(self, storage_deposit_limit: BalanceVariant) -> Self {
+    pub fn storage_deposit_limit(
+        self,
+        storage_deposit_limit: Option<BalanceVariant>,
+    ) -> Self {
         let mut this = self;
-        this.opts.storage_deposit_limit = Some(storage_deposit_limit);
+        this.opts.storage_deposit_limit = storage_deposit_limit;
         this
     }
 
@@ -244,13 +209,6 @@ impl<S> ExtrinsicOptsBuilder<S> {
     pub fn skip_dry_run(self, skip_dry_run: bool) -> Self {
         let mut this = self;
         this.opts.skip_dry_run = skip_dry_run;
-        this
-    }
-
-    /// Sets whether to skip the confirmation prompt.
-    pub fn skip_confirm(self, skip_confirm: bool) -> Self {
-        let mut this = self;
-        this.opts.skip_confirm = skip_confirm;
         this
     }
 }
@@ -272,11 +230,8 @@ impl ExtrinsicOpts {
                 manifest_path: None,
                 url: url::Url::parse("ws://localhost:9944").unwrap(),
                 suri: String::new(),
-                verbosity: VerbosityFlags::default(),
-                execute: false,
                 storage_deposit_limit: None,
                 skip_dry_run: false,
-                skip_confirm: false,
             },
             marker: PhantomData,
         }
@@ -295,11 +250,6 @@ impl ExtrinsicOpts {
         let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
         let keypair = Keypair::from_uri(&uri)?;
         Ok(keypair)
-    }
-
-    /// Returns the verbosity
-    pub fn verbosity(&self) -> Result<Verbosity> {
-        TryFrom::try_from(&self.verbosity)
     }
 
     /// Convert URL to String without omitting the default port
@@ -334,16 +284,6 @@ impl ExtrinsicOpts {
         &self.suri
     }
 
-    /// Return the verbosity level.
-    pub fn verbosity_flags(&self) -> &VerbosityFlags {
-        &self.verbosity
-    }
-
-    /// Return whether to execute the extrinsic.
-    pub fn execute(&self) -> bool {
-        self.execute
-    }
-
     /// Get the storage deposit limit converted to compact for passing to extrinsics.
     pub fn storage_deposit_limit(
         &self,
@@ -360,11 +300,6 @@ impl ExtrinsicOpts {
     /// Return whether to skip dry-run.
     pub fn skip_dry_run(&self) -> bool {
         self.skip_dry_run
-    }
-
-    /// Return whether to skip confirmation prompt.
-    pub fn skip_confirm(&self) -> bool {
-        self.skip_confirm
     }
 }
 
@@ -510,59 +445,6 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
     subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
-const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
-pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
-
-/// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), WIDTH);
-    name_value_println!("Gas Required", format!("{:?}", result.gas_required), WIDTH);
-    name_value_println!(
-        STORAGE_DEPOSIT_KEY,
-        format!("{:?}", result.storage_deposit),
-        WIDTH
-    );
-
-    // print debug messages aligned, only first line has key
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_dry_run_result_warning(command: &str) {
-    println!("Your {} call {} been executed.", command, "has not".bold());
-    println!(
-            "To submit the transaction and execute the call on chain, add {} flag to the command.",
-            "-x/--execute".bold()
-        );
-}
-
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors
@@ -601,48 +483,6 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     let params = rpc_params![func, Bytes(args.encode())];
     let bytes: Bytes = cli.request("state_call", params).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
-}
-
-/// Prompt the user to confirm transaction submission.
-pub fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
-    println!(
-        "{} (skip with --skip-confirm or -y)",
-        "Confirm transaction details:".bright_white().bold()
-    );
-    show_details();
-    print!(
-        "{} ({}/n): ",
-        "Submit?".bright_white().bold(),
-        "Y".bright_white().bold()
-    );
-
-    let mut buf = String::new();
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut buf)?;
-    match buf.trim().to_lowercase().as_str() {
-        // default is 'y'
-        "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Transaction not submitted")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
-    }
-}
-
-pub fn print_dry_running_status(msg: &str) {
-    println!(
-        "{:>width$} {} (skip with --skip-dry-run)",
-        "Dry-running".green().bold(),
-        msg.bright_white().bold(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
-}
-
-pub fn print_gas_required_success(gas: Weight) {
-    println!(
-        "{:>width$} Gas required estimated at {}",
-        "Success!".green().bold(),
-        gas.to_string().bright_white(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
@@ -698,24 +538,24 @@ impl ContractInfo {
         Ok(serde_json::to_string_pretty(self)?)
     }
 
-    /// Display contract information in a formatted way
-    pub fn basic_display_format_contract_info(&self) {
-        name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
-        name_value_println!(
-            "Code Hash",
-            format!("{:?}", self.code_hash),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Items",
-            format!("{:?}", self.storage_items),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Deposit",
-            format!("{:?}", self.storage_item_deposit),
-            MAX_KEY_COL_WIDTH
-        );
+    /// Return the trie_id of the contract.
+    pub fn trie_id(&self) -> &str {
+        &self.trie_id
+    }
+
+    /// Return the code_hash of the contract.
+    pub fn code_hash(&self) -> &CodeHash {
+        &self.code_hash
+    }
+
+    /// Return the number of storage items of the contract.
+    pub fn storage_items(&self) -> u32 {
+        self.storage_items
+    }
+
+    /// Return the storage item deposit of the contract.
+    pub fn storage_item_deposit(&self) -> Balance {
+        self.storage_item_deposit
     }
 }
 

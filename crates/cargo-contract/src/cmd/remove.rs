@@ -2,12 +2,13 @@ use crate::ErrorVariant;
 use std::fmt::Debug;
 use tokio::runtime::Runtime;
 
+use super::CLIExtrinsicOpts;
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
     parse_code_hash,
     DefaultConfig,
-    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
     TokenMetadata,
 };
@@ -20,7 +21,7 @@ pub struct RemoveCommand {
     #[clap(long, value_parser = parse_code_hash)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Export the call output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
@@ -35,9 +36,22 @@ impl RemoveCommand {
 
 pub fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
+        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+            .file(remove_command.extrinsic_cli_opts.file.clone())
+            .manifest_path(remove_command.extrinsic_cli_opts.manifest_path.clone())
+            .url(remove_command.extrinsic_cli_opts.url.clone())
+            .suri(remove_command.extrinsic_cli_opts.suri.clone())
+            .storage_deposit_limit(
+                remove_command
+                    .extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone(),
+            )
+            .skip_dry_run(remove_command.extrinsic_cli_opts.skip_dry_run)
+            .done();
         let remove_exec = RemoveCommandBuilder::default()
             .code_hash(remove_command.code_hash)
-            .extrinsic_opts(remove_command.extrinsic_opts.clone())
+            .extrinsic_opts(extrinsic_opts)
             .done()
             .await;
         let remove_result = remove_exec.remove_code().await?;
@@ -46,8 +60,10 @@ pub fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVariant>
             display_events.to_json()?
         } else {
             let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
-            display_events
-                .display_events(remove_exec.opts().verbosity()?, &token_metadata)?
+            display_events.display_events(
+                remove_command.extrinsic_cli_opts.verbosity().unwrap(),
+                &token_metadata,
+            )?
         };
         println!("{output}");
         if let Some(code_removed) = remove_result.code_removed {

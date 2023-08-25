@@ -4,6 +4,16 @@ use contract_build::util::DEFAULT_KEY_COL_WIDTH;
 use std::fmt::Debug;
 use tokio::runtime::Runtime;
 
+use super::{
+    display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
+    print_dry_running_status,
+    print_gas_required_success,
+    prompt_confirm_tx,
+    CLIExtrinsicOpts,
+    MAX_KEY_COL_WIDTH,
+};
 use anyhow::{
     anyhow,
     Context,
@@ -11,20 +21,13 @@ use anyhow::{
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    display_contract_exec_result,
-    display_contract_exec_result_debug,
-    display_dry_run_result_warning,
-    print_dry_running_status,
-    print_gas_required_success,
-    prompt_confirm_tx,
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
     DefaultConfig,
-    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
     StorageDeposit,
     TokenMetadata,
-    MAX_KEY_COL_WIDTH,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
@@ -43,7 +46,7 @@ pub struct CallCommand {
     #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Maximum amount of gas (execution time) to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the
     /// call.
@@ -70,18 +73,31 @@ impl CallCommand {
 }
 pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
+        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+            .file(call_command.extrinsic_cli_opts.file.clone())
+            .manifest_path(call_command.extrinsic_cli_opts.manifest_path.clone())
+            .url(call_command.extrinsic_cli_opts.url.clone())
+            .suri(call_command.extrinsic_cli_opts.suri.clone())
+            .storage_deposit_limit(
+                call_command
+                    .extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone(),
+            )
+            .skip_dry_run(call_command.extrinsic_cli_opts.skip_dry_run)
+            .done();
         let call_exec = CallCommandBuilder::default()
             .contract(call_command.contract.clone())
             .message(call_command.message.clone())
             .args(call_command.args.clone())
-            .extrinsic_opts(call_command.extrinsic_opts.clone())
+            .extrinsic_opts(extrinsic_opts)
             .gas_limit(call_command.gas_limit)
             .proof_size(call_command.proof_size)
             .value(call_command.value.clone())
             .done()
             .await;
 
-        if !call_exec.opts().execute() {
+        if !call_command.extrinsic_cli_opts.execute {
             let result = call_exec.call_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
@@ -129,7 +145,7 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
                 call_command.output_json(),
             )
             .await?;
-            if !call_exec.opts().skip_confirm() {
+            if !call_command.extrinsic_cli_opts.skip_confirm {
                 prompt_confirm_tx(|| {
                     name_value_println!(
                         "Message",
@@ -153,8 +169,10 @@ pub fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant> {
             let output = if call_command.output_json() {
                 display_events.to_json()?
             } else {
-                display_events
-                    .display_events(call_exec.opts().verbosity()?, &token_metadata)?
+                display_events.display_events(
+                    call_command.extrinsic_cli_opts.verbosity().unwrap(),
+                    &token_metadata,
+                )?
             };
             println!("{output}");
         }

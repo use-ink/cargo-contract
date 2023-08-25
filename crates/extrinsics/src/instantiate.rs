@@ -31,14 +31,12 @@ use super::{
     Missing,
     StorageDeposit,
     TokenMetadata,
-    DEFAULT_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
     Context,
     Result,
 };
-use contract_build::name_value_println;
 use contract_transcode::Value;
 use subxt_signer::sr25519::Keypair;
 
@@ -71,7 +69,7 @@ pub struct InstantiateCommandBuilder<ExtrinsicOptions> {
 }
 
 impl InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
-    /// Returns a clean builder for [`InstantiateCommand`].
+    /// Returns a clean builder for [`InstantiateExec`].
     pub fn new() -> InstantiateCommandBuilder<Missing<state::ExtrinsicOptions>> {
         InstantiateCommandBuilder {
             opts: InstantiateOpts {
@@ -528,21 +526,6 @@ impl InstantiateDryRunResult {
     /// Returns a result in json format
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", format!("{}", self.result), DEFAULT_KEY_COL_WIDTH);
-        name_value_println!(
-            "Reverted",
-            format!("{:?}", self.reverted),
-            DEFAULT_KEY_COL_WIDTH
-        );
-        name_value_println!("Contract", self.contract, DEFAULT_KEY_COL_WIDTH);
-        name_value_println!(
-            "Gas consumed",
-            self.gas_consumed.to_string(),
-            DEFAULT_KEY_COL_WIDTH
-        );
     }
 }
 

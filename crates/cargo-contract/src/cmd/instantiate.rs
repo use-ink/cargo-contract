@@ -1,7 +1,15 @@
-use crate::{
-    anyhow,
+use super::{
+    display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
     print_dry_running_status,
     print_gas_required_success,
+    prompt_confirm_tx,
+    CLIExtrinsicOpts,
+    MAX_KEY_COL_WIDTH,
+};
+use crate::{
+    anyhow,
     ErrorVariant,
     InstantiateExec,
     Weight,
@@ -13,19 +21,16 @@ use contract_build::{
         decode_hex,
         DEFAULT_KEY_COL_WIDTH,
     },
+    Verbosity,
 };
 use contract_extrinsics::{
-    display_contract_exec_result,
-    display_contract_exec_result_debug,
-    display_dry_run_result_warning,
-    prompt_confirm_tx,
     BalanceVariant,
     Code,
     DisplayEvents,
-    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
+    InstantiateDryRunResult,
     InstantiateExecResult,
-    MAX_KEY_COL_WIDTH,
 };
 use sp_core::Bytes;
 use std::fmt::Debug;
@@ -40,7 +45,7 @@ pub struct InstantiateCommand {
     #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant,
@@ -79,10 +84,23 @@ pub fn handle_instantiate(
     instantiate_command: &InstantiateCommand,
 ) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
+        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+            .file(instantiate_command.extrinsic_cli_opts.file.clone())
+            .manifest_path(instantiate_command.extrinsic_cli_opts.manifest_path.clone())
+            .url(instantiate_command.extrinsic_cli_opts.url.clone())
+            .suri(instantiate_command.extrinsic_cli_opts.suri.clone())
+            .storage_deposit_limit(
+                instantiate_command
+                    .extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone(),
+            )
+            .skip_dry_run(instantiate_command.extrinsic_cli_opts.skip_dry_run)
+            .done();
         let instantiate_exec = InstantiateCommandBuilder::default()
             .constructor(instantiate_command.constructor.clone())
             .args(instantiate_command.args.clone())
-            .extrinsic_opts(instantiate_command.extrinsic_opts.clone())
+            .extrinsic_opts(extrinsic_opts)
             .value(instantiate_command.value.clone())
             .gas_limit(instantiate_command.gas_limit)
             .proof_size(instantiate_command.proof_size)
@@ -90,14 +108,14 @@ pub fn handle_instantiate(
             .done()
             .await;
 
-        if !instantiate_exec.opts().execute() {
+        if !instantiate_command.extrinsic_cli_opts.execute {
             let result = instantiate_exec.instantiate_dry_run().await?;
             match instantiate_exec.simulate_instantiation().await {
                 Ok(dry_run_result) => {
                     if instantiate_command.output_json() {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
-                        dry_run_result.print();
+                        print_instantiate_dry_run_result(&dry_run_result);
                         display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
                             &result,
                         )?;
@@ -122,7 +140,7 @@ pub fn handle_instantiate(
                 instantiate_command.output_json(),
             )
             .await?;
-            if !instantiate_exec.opts().skip_confirm() {
+            if !instantiate_command.extrinsic_cli_opts.skip_confirm {
                 prompt_confirm_tx(|| {
                     print_default_instantiate_preview(&instantiate_exec, gas_limit);
                     if let Code::Existing(code_hash) =
@@ -142,6 +160,7 @@ pub fn handle_instantiate(
                 &instantiate_exec,
                 instantiate_result,
                 instantiate_command.output_json(),
+                instantiate_command.extrinsic_cli_opts.verbosity().unwrap(),
             )
             .await?;
             Ok(())
@@ -209,6 +228,7 @@ pub async fn display_result(
     instantiate_exec: &InstantiateExec,
     instantiate_exec_result: InstantiateExecResult,
     output_json: bool,
+    verbosity: Verbosity,
 ) -> Result<(), ErrorVariant> {
     let events = DisplayEvents::from_events(
         &instantiate_exec_result.result,
@@ -228,10 +248,7 @@ pub async fn display_result(
     } else {
         println!(
             "{}",
-            events.display_events(
-                instantiate_exec.opts().verbosity().unwrap(),
-                &instantiate_exec_result.token_metadata
-            )?
+            events.display_events(verbosity, &instantiate_exec_result.token_metadata)?
         );
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
@@ -275,4 +292,23 @@ impl InstantiateResult {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
+}
+
+pub fn print_instantiate_dry_run_result(result: &InstantiateDryRunResult) {
+    name_value_println!(
+        "Result",
+        format!("{}", result.result),
+        DEFAULT_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Reverted",
+        format!("{:?}", result.reverted),
+        DEFAULT_KEY_COL_WIDTH
+    );
+    name_value_println!("Contract", result.contract, DEFAULT_KEY_COL_WIDTH);
+    name_value_println!(
+        "Gas consumed",
+        result.gas_consumed.to_string(),
+        DEFAULT_KEY_COL_WIDTH
+    );
 }

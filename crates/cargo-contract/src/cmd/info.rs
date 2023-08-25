@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::DefaultConfig;
+use super::{
+    basic_display_format_contract_info,
+    DefaultConfig,
+};
 use anyhow::{
     anyhow,
     Result,
@@ -67,7 +70,7 @@ impl InfoCommand {
                     if self.output_json {
                         println!("{}", info_to_json.to_json()?);
                     } else {
-                        info_to_json.basic_display_format_contract_info();
+                        basic_display_format_contract_info(&info_to_json);
                     }
                     Ok(())
                 }

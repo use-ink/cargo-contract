@@ -56,7 +56,7 @@ pub struct UploadCommandBuilder<ExtrinsicOptions> {
 }
 
 impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
-    /// Returns a clean builder for [`UploadCommand`].
+    /// Returns a clean builder for [`UploadExec`].
     pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: UploadOpts {

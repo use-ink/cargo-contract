@@ -2,12 +2,15 @@ use crate::ErrorVariant;
 use std::fmt::Debug;
 use tokio::runtime::Runtime;
 
+use super::{
+    display_dry_run_result_warning,
+    CLIExtrinsicOpts,
+};
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    display_dry_run_result_warning,
     Balance,
-    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
     TokenMetadata,
     UploadCommandBuilder,
 };
@@ -16,7 +19,7 @@ use contract_extrinsics::{
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
     #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
@@ -31,14 +34,27 @@ impl UploadCommand {
 
 pub fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant> {
     Runtime::new()?.block_on(async {
+        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+            .file(upload_command.extrinsic_cli_opts.file.clone())
+            .manifest_path(upload_command.extrinsic_cli_opts.manifest_path.clone())
+            .url(upload_command.extrinsic_cli_opts.url.clone())
+            .suri(upload_command.extrinsic_cli_opts.suri.clone())
+            .storage_deposit_limit(
+                upload_command
+                    .extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone(),
+            )
+            .skip_dry_run(upload_command.extrinsic_cli_opts.skip_dry_run)
+            .done();
         let upload_exec = UploadCommandBuilder::default()
-            .extrinsic_opts(upload_command.extrinsic_opts.clone())
+            .extrinsic_opts(extrinsic_opts)
             .done()
             .await;
 
         let code_hash = upload_exec.code().code_hash();
 
-        if !upload_exec.opts().execute() {
+        if !upload_command.extrinsic_cli_opts.execute {
             match upload_exec.upload_code_rpc().await? {
                 Ok(result) => {
                     let upload_result = UploadDryRunResult {
@@ -70,8 +86,10 @@ pub fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVariant>
                 display_events.to_json()?
             } else {
                 let token_metadata = TokenMetadata::query(upload_exec.client()).await?;
-                display_events
-                    .display_events(upload_exec.opts().verbosity()?, &token_metadata)?
+                display_events.display_events(
+                    upload_command.extrinsic_cli_opts.verbosity()?,
+                    &token_metadata,
+                )?
             };
             println!("{output}");
             if let Some(code_stored) = upload_result.code_stored {

@@ -744,6 +744,7 @@ dependencies = [
  "contract-transcode",
  "current_platform",
  "hex",
+ "pallet-contracts-primitives",
  "predicates",
  "regex",
  "serde",

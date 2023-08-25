@@ -49,18 +49,13 @@ use contract_build::{
     util::DEFAULT_KEY_COL_WIDTH,
     OutputType,
 };
-use contract_extrinsics::{
-    print_dry_running_status,
-    print_gas_required_success,
-    InstantiateExec,
-};
+use contract_extrinsics::InstantiateExec;
 use sp_weights::Weight;
 use std::{
     fmt::Debug,
     path::PathBuf,
     str::FromStr,
 };
-
 // These crates are only used when we run integration tests `--features
 // integration-tests`. However since we can't have optional `dev-dependencies` we pretend
 // to use them during normal test runs in order to satisfy the `unused_crate_dependencies`

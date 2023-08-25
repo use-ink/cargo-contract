@@ -49,7 +49,7 @@ pub struct RemoveCommandBuilder<ExtrinsicOptions> {
 }
 
 impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
-    /// Returns a clean builder for [`RemoveCommand`].
+    /// Returns a clean builder for [`RemoveExec`].
     pub fn new() -> RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
         RemoveCommandBuilder {
             opts: RemoveOpts {
@@ -147,7 +147,7 @@ impl RemoveExec {
     /// execution. It interacts with the blockchain's runtime API to execute the
     /// removal operation and provides the resulting events from the removal.
     ///
-    /// Returns the [`RemoveResult`] containing the events generated from the contract
+    /// Returns the `RemoveResult` containing the events generated from the contract
     /// code removal, or an error in case of failure.
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);

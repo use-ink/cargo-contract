@@ -73,7 +73,7 @@ impl Default
 }
 
 impl<E> CallCommandBuilder<Missing<state::Message>, E> {
-    /// Returns a clean builder for [`CallCommand`].
+    /// Returns a clean builder for [`CallExec`].
     pub fn new(
     ) -> CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
     {
