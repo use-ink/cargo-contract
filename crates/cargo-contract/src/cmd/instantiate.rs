@@ -108,7 +108,7 @@ pub async fn handle_instantiate(
 
     if !instantiate_command.extrinsic_cli_opts.execute {
         let result = instantiate_exec.instantiate_dry_run().await?;
-        match instantiate_exec.simulate_instantiation().await {
+        match instantiate_exec.decode_instantiate_dry_run(&result).await {
             Ok(dry_run_result) => {
                 if instantiate_command.output_json() {
                     println!("{}", dry_run_result.to_json()?);

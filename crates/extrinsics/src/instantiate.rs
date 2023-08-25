@@ -278,19 +278,23 @@ pub struct InstantiateExec {
 }
 
 impl InstantiateExec {
-    /// Simulates the instantiation of a contract without executing it on the blockchain.
+    /// Decodes the result of a simulated contract instantiation.
     ///
-    /// This function performs a dry-run simulation of the contract instantiation process
-    /// and returns an [`InstantiateDryRunResult`] object containing essential
-    /// information, including the contract address, gas consumption, and storage
-    /// deposit.
+    /// This function decodes the result of a simulated contract instantiation dry run.
+    /// It processes the returned data, including the constructor's return value, contract
+    /// address, gas consumption, and storage deposit, and packages them into an
+    /// [`InstantiateDryRunResult`].
     ///
-    /// It does not modify the state of the blockchain.
-    pub async fn simulate_instantiation(
+    /// Returns the decoded dry run result, or an error in case of failure.
+    pub async fn decode_instantiate_dry_run(
         &self,
+        result: &ContractInstantiateResult<
+            <DefaultConfig as Config>::AccountId,
+            Balance,
+            (),
+        >,
     ) -> Result<InstantiateDryRunResult, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
-        let result = self.instantiate_dry_run().await?;
         match result.result {
             Ok(ref ret_val) => {
                 let value = self
@@ -315,6 +319,32 @@ impl InstantiateExec {
                 Err(ErrorVariant::from_dispatch_error(err, &metadata)?)
             }
         }
+    }
+
+    /// Simulates a contract instantiation without modifying the blockchain.
+    ///
+    /// This function performs a dry run simulation of a contract instantiation, capturing
+    /// essential information such as the contract address, gas consumption, and storage
+    /// deposit. The simulation is executed without actually executing the
+    /// instantiation on the blockchain.
+    ///
+    /// Returns the dry run simulation result, or an error in case of failure.
+    pub async fn instantiate_dry_run(
+        &self,
+    ) -> Result<
+        ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>,
+    > {
+        let storage_deposit_limit = self.args.storage_deposit_limit;
+        let call_request = InstantiateRequest {
+            origin: account_id(&self.signer),
+            value: self.args.value,
+            gas_limit: None,
+            storage_deposit_limit,
+            code: self.args.code.clone(),
+            data: self.args.data.clone(),
+            salt: self.args.salt.clone(),
+        };
+        state_call(&self.url, "ContractsApi_instantiate", &call_request).await
     }
 
     async fn instantiate_with_code(
@@ -406,26 +436,6 @@ impl InstantiateExec {
                 self.instantiate_with_code_hash(code_hash, gas_limit).await
             }
         }
-    }
-
-    /// Performs a dry run of the contract instantiation process without modifying the
-    /// blockchain.
-    pub async fn instantiate_dry_run(
-        &self,
-    ) -> Result<
-        ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>,
-    > {
-        let storage_deposit_limit = self.args.storage_deposit_limit;
-        let call_request = InstantiateRequest {
-            origin: account_id(&self.signer),
-            value: self.args.value,
-            gas_limit: None,
-            storage_deposit_limit,
-            code: self.args.code.clone(),
-            data: self.args.data.clone(),
-            salt: self.args.salt.clone(),
-        };
-        state_call(&self.url, "ContractsApi_instantiate", &call_request).await
     }
 
     /// Estimates the gas required for the contract instantiation process without
