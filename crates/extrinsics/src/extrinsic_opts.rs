@@ -30,7 +30,6 @@ pub struct ExtrinsicOpts {
     url: url::Url,
     suri: String,
     storage_deposit_limit: Option<BalanceVariant>,
-    skip_dry_run: bool,
 }
 
 /// Type state for the extrinsics' commands to tell that some mandatory state has not yet
@@ -114,13 +113,6 @@ impl<S> ExtrinsicOptsBuilder<S> {
         this.opts.storage_deposit_limit = storage_deposit_limit;
         this
     }
-
-    /// Sets whether to dry-run the transaction before submitting it.
-    pub fn skip_dry_run(self, skip_dry_run: bool) -> Self {
-        let mut this = self;
-        this.opts.skip_dry_run = skip_dry_run;
-        this
-    }
 }
 
 impl ExtrinsicOptsBuilder<state::Suri> {
@@ -141,7 +133,6 @@ impl ExtrinsicOpts {
                 url: url::Url::parse("ws://localhost:9944").unwrap(),
                 suri: String::new(),
                 storage_deposit_limit: None,
-                skip_dry_run: false,
             },
             marker: PhantomData,
         }
@@ -210,11 +201,6 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?
             .map(Into::into))
-    }
-
-    /// Return whether to skip dry-run.
-    pub fn skip_dry_run(&self) -> bool {
-        self.skip_dry_run
     }
 }
 

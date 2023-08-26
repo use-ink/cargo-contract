@@ -82,7 +82,6 @@ pub async fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant>
                 .storage_deposit_limit
                 .clone(),
         )
-        .skip_dry_run(call_command.extrinsic_cli_opts.skip_dry_run)
         .done();
     let call_exec = CallCommandBuilder::default()
         .contract(call_command.contract.clone())
@@ -132,9 +131,12 @@ pub async fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant>
             }
         }
     } else {
-        let gas_limit =
-            pre_submit_dry_run_gas_estimate_call(&call_exec, call_command.output_json())
-                .await?;
+        let gas_limit = pre_submit_dry_run_gas_estimate_call(
+            &call_exec,
+            call_command.output_json(),
+            call_command.extrinsic_cli_opts.skip_dry_run,
+        )
+        .await?;
         if !call_command.extrinsic_cli_opts.skip_confirm {
             prompt_confirm_tx(|| {
                 name_value_println!(
@@ -173,8 +175,9 @@ pub async fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant>
 async fn pre_submit_dry_run_gas_estimate_call(
     call_exec: &CallExec,
     output_json: bool,
+    skip_dry_run: bool,
 ) -> Result<Weight> {
-    if call_exec.opts().skip_dry_run() {
+    if skip_dry_run {
         return match (call_exec.gas_limit(), call_exec.proof_size()) {
             (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
             _ => {

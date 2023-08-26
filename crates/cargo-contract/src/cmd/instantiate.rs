@@ -93,7 +93,6 @@ pub async fn handle_instantiate(
                 .storage_deposit_limit
                 .clone(),
         )
-        .skip_dry_run(instantiate_command.extrinsic_cli_opts.skip_dry_run)
         .done();
     let instantiate_exec = InstantiateCommandBuilder::default()
         .constructor(instantiate_command.constructor.clone())
@@ -136,6 +135,7 @@ pub async fn handle_instantiate(
         let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
             &instantiate_exec,
             instantiate_command.output_json(),
+            instantiate_command.extrinsic_cli_opts.skip_dry_run,
         )
         .await?;
         if !instantiate_command.extrinsic_cli_opts.skip_confirm {
@@ -167,8 +167,9 @@ pub async fn handle_instantiate(
 async fn pre_submit_dry_run_gas_estimate_instantiate(
     instantiate_exec: &InstantiateExec,
     output_json: bool,
+    skip_dry_run: bool,
 ) -> Result<Weight> {
-    if instantiate_exec.opts().skip_dry_run() {
+    if skip_dry_run {
         return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
                 _ => {

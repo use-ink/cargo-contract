@@ -45,7 +45,6 @@ pub async fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVa
                 .storage_deposit_limit
                 .clone(),
         )
-        .skip_dry_run(remove_command.extrinsic_cli_opts.skip_dry_run)
         .done();
     let remove_exec = RemoveCommandBuilder::default()
         .code_hash(remove_command.code_hash)

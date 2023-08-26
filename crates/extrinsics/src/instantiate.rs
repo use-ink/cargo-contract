@@ -447,34 +447,32 @@ impl InstantiateExec {
     /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
     /// an error.
     pub async fn estimate_gas(&self) -> Result<Weight> {
-        if self.opts.skip_dry_run() {
-            return match (self.args.gas_limit, self.args.proof_size) {
-                (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
-                _ => {
-                    Err(anyhow!(
-                        "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
-                    ))
-                }
-            };
-        }
-        let instantiate_result = self.instantiate_dry_run().await?;
-        match instantiate_result.result {
-            Ok(_) => {
-                // use user specified values where provided, otherwise use the estimates
-                let ref_time = self
-                    .args
-                    .gas_limit
-                    .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
-                let proof_size = self
-                    .args
-                    .proof_size
-                    .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
+        match (self.args.gas_limit, self.args.proof_size) {
+            (Some(ref_time), Some(proof_size)) => {
                 Ok(Weight::from_parts(ref_time, proof_size))
             }
-            Err(ref err) => {
-                let object =
-                    ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
-                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+            _ => {
+                let instantiate_result = self.instantiate_dry_run().await?;
+                match instantiate_result.result {
+                    Ok(_) => {
+                        // use user specified values where provided, otherwise use the
+                        // estimates
+                        let ref_time = self.args.gas_limit.unwrap_or_else(|| {
+                            instantiate_result.gas_required.ref_time()
+                        });
+                        let proof_size = self.args.proof_size.unwrap_or_else(|| {
+                            instantiate_result.gas_required.proof_size()
+                        });
+                        Ok(Weight::from_parts(ref_time, proof_size))
+                    }
+                    Err(ref err) => {
+                        let object = ErrorVariant::from_dispatch_error(
+                            err,
+                            &self.client.metadata(),
+                        )?;
+                        Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+                    }
+                }
             }
         }
     }

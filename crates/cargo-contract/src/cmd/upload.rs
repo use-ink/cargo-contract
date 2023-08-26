@@ -43,7 +43,6 @@ pub async fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVa
                 .storage_deposit_limit
                 .clone(),
         )
-        .skip_dry_run(upload_command.extrinsic_cli_opts.skip_dry_run)
         .done();
     let upload_exec = UploadCommandBuilder::default()
         .extrinsic_opts(extrinsic_opts)
