@@ -989,6 +989,7 @@ name = "contract-extrinsics"
 version = "4.0.0-alpha"
 dependencies = [
  "anyhow",
+ "assert_cmd",
  "clap",
  "colored",
  "contract-build",
@@ -998,6 +999,8 @@ dependencies = [
  "jsonrpsee 0.20.0",
  "pallet-contracts-primitives",
  "parity-scale-codec",
+ "predicates",
+ "regex",
  "rust_decimal",
  "scale-info",
  "serde",
@@ -1007,8 +1010,10 @@ dependencies = [
  "sp-weights 20.0.0",
  "subxt",
  "subxt-signer",
+ "tempfile",
  "tokio",
  "tracing",
+ "tracing-subscriber 0.3.17",
  "url",
 ]
 
