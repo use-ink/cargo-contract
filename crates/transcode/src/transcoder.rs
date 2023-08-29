@@ -26,6 +26,7 @@ use super::{
         TypesByPath,
     },
     scon::Value,
+    AccountId32,
 };
 
 use anyhow::Result;
@@ -85,9 +86,9 @@ pub struct TranscoderBuilder {
 impl TranscoderBuilder {
     pub fn new(registry: &PortableRegistry) -> Self {
         let types_by_path = registry
-            .types()
+            .types
             .iter()
-            .map(|ty| (PathKey::from(ty.ty().path()), ty.id()))
+            .map(|ty| (PathKey::from(&ty.ty.path), ty.id))
             .collect::<TypesByPath>();
         Self {
             types_by_path,
@@ -97,10 +98,8 @@ impl TranscoderBuilder {
     }
 
     pub fn with_default_custom_type_transcoders(self) -> Self {
-        self.register_custom_type_transcoder::<sp_runtime::AccountId32, _>(
-            env_types::AccountId,
-        )
-        .register_custom_type_decoder::<sp_core::H256, _>(env_types::Hash)
+        self.register_custom_type_transcoder::<AccountId32, _>(env_types::AccountId)
+            .register_custom_type_decoder::<primitive_types::H256, _>(env_types::Hash)
     }
 
     pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
@@ -128,13 +127,13 @@ impl TranscoderBuilder {
                 tracing::debug!("Registered custom encoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
-                        "Attempted to register encoder with existing type id {:?}",
-                        type_id
+                        "Attempted to register encoder with existing type id {type_id:?}"
                     );
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
@@ -157,13 +156,13 @@ impl TranscoderBuilder {
                 tracing::debug!("Registered custom decoder for type `{:?}`", type_id);
                 if existing.is_some() {
                     panic!(
-                        "Attempted to register decoder with existing type id {:?}",
-                        type_id
+                        "Attempted to register decoder with existing type id {type_id:?}"
                     );
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
@@ -205,7 +204,7 @@ mod tests {
         let type_id = registry.register_type(&MetaType::new::<T>());
         let registry: PortableRegistry = registry.into();
 
-        Ok((registry, type_id.id()))
+        Ok((registry, type_id.id))
     }
 
     fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>
@@ -687,14 +686,12 @@ mod tests {
 
     #[test]
     fn transcode_account_id_custom_ss58_encoding() -> Result<()> {
-        env_logger::init();
-
-        type AccountId = sp_runtime::AccountId32;
+        type AccountId = AccountId32;
 
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            no_alias: sp_runtime::AccountId32,
+            no_alias: AccountId32,
             aliased: AccountId,
         }
 
@@ -733,7 +730,7 @@ mod tests {
             Ok(Value::Seq(Seq::new(values.collect())))
         };
 
-        transcode_roundtrip::<Vec<sp_runtime::AccountId32>>(
+        transcode_roundtrip::<Vec<AccountId32>>(
             r#"[
                 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,
                 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,
@@ -764,7 +761,7 @@ mod tests {
         #[allow(dead_code)]
         #[derive(TypeInfo)]
         struct S {
-            hash: sp_core::H256,
+            hash: primitive_types::H256,
         }
 
         transcode_roundtrip::<S>(

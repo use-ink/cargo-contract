@@ -27,7 +27,7 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
 fn decode_works() {
     // given
     let contract = r#"
-		#![cfg_attr(not(feature = "std"), no_std)]
+        #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 		#[ink::contract]
 		mod switcher {
@@ -69,15 +69,12 @@ fn decode_works() {
     let project_dir = tmp_dir.path().to_path_buf().join("switcher");
 
     let lib = project_dir.join("lib.rs");
-    std::fs::write(&lib, contract).expect("Failed to write contract lib.rs");
+    std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
-    cargo_contract(&project_dir)
-        .arg("build")
-        .arg("--skip-linting")
-        .assert()
-        .success();
+    cargo_contract(&project_dir).arg("build").assert().success();
 
+    // when
     let msg_data: &str = "babebabe01";
     let msg_decoded: &str = r#"switch { value: true }"#;
 
@@ -93,10 +90,27 @@ fn decode_works() {
         .success()
         .stdout(predicates::str::contains(msg_decoded));
 
+    // and when
+    let wrong_msg_data: &str = "babebabe010A";
+    let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `switch`, `value` but `0A` bytes were left unread";
+
+    // then
+    // wrong message data is being handled properly
+    cargo_contract(&project_dir)
+        .arg("decode")
+        .arg("--data")
+        .arg(wrong_msg_data)
+        .arg("-t")
+        .arg("message")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(error_msg));
+
+    // when
     let event_data: &str = "080001";
     let event_decoded: &str = r#"Switched { new_value: true }"#;
 
-    // and
+    // then
     // event data is being decoded properly
     cargo_contract(&project_dir)
         .arg("decode")
@@ -108,11 +122,28 @@ fn decode_works() {
         .success()
         .stdout(predicates::str::contains(event_decoded));
 
+    // and when
+    let wrong_event_data: &str = "0800010C";
+    let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `Switched`, `new_value` but `0C` bytes were left unread";
+
+    // then
+    // wrong event data is being handled properly
+    cargo_contract(&project_dir)
+        .arg("decode")
+        .arg("--data")
+        .arg(wrong_event_data)
+        .arg("-t")
+        .arg("event")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(error_msg));
+
+    // when
     let constructor_data: &str = "babebabe00";
     let constructor_decoded: &str = r#"new { init_value: false }"#;
 
-    // and
-    // event data is being decoded properly
+    // then
+    // constructor data is being decoded properly
     cargo_contract(&project_dir)
         .arg("decode")
         .arg("-d")
@@ -122,4 +153,20 @@ fn decode_works() {
         .assert()
         .success()
         .stdout(predicates::str::contains(constructor_decoded));
+
+    // and when
+    let wrong_constructor_data: &str = "babebabe00AC";
+    let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `new`, `init_value` but `AC` bytes were left unread";
+
+    // then
+    // wrong constructor data is being handled properly
+    cargo_contract(&project_dir)
+        .arg("decode")
+        .arg("-d")
+        .arg(wrong_constructor_data)
+        .arg("-t")
+        .arg("constructor")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(error_msg));
 }

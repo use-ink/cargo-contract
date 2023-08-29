@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -16,10 +16,8 @@
 
 pub mod build;
 pub mod decode;
-pub mod metadata;
-pub mod new;
-pub mod test;
-pub mod verify;
+pub mod encode;
+pub mod info;
 
 pub(crate) use self::{
     build::{
@@ -27,14 +25,15 @@ pub(crate) use self::{
         CheckCommand,
     },
     decode::DecodeCommand,
-    test::TestCommand,
-    verify::VerifyCommand,
+    info::InfoCommand,
 };
-mod extrinsics;
 
-pub(crate) use self::extrinsics::{
+pub(crate) use contract_extrinsics::{
     CallCommand,
     ErrorVariant,
     InstantiateCommand,
+    RemoveCommand,
     UploadCommand,
 };
+
+pub use subxt::PolkadotConfig as DefaultConfig;

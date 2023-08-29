@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::scon::Value;
-use crate::scon::Hex;
+use crate::{
+    AccountId32,
+    Hex,
+    Value,
+};
 use anyhow::{
     Context,
     Result,
@@ -30,10 +33,6 @@ use scale_info::{
     IntoPortable,
     Path,
     TypeInfo,
-};
-use sp_core::crypto::{
-    AccountId32,
-    Ss58Codec,
 };
 use std::{
     boxed::Box,
@@ -58,8 +57,8 @@ impl EnvTypesTranscoder {
         Self { encoders, decoders }
     }
 
-    /// If the given type id is for a type with custom encoding, encodes the given value with the
-    /// custom encoder and returns `true`. Otherwise returns `false`.
+    /// If the given type id is for a type with custom encoding, encodes the given value
+    /// with the custom encoder and returns `true`. Otherwise returns `false`.
     ///
     /// # Errors
     ///
@@ -117,29 +116,28 @@ impl PathKey {
         T: TypeInfo,
     {
         let type_info = T::type_info();
-        let path = type_info
-            .path()
-            .clone()
-            .into_portable(&mut Default::default());
+        let path = type_info.path.into_portable(&mut Default::default());
         PathKey::from(&path)
     }
 }
 
 impl From<&Path<PortableForm>> for PathKey {
     fn from(path: &Path<PortableForm>) -> Self {
-        PathKey(path.segments().to_vec())
+        PathKey(path.segments.to_vec())
     }
 }
 
 pub type TypesByPath = HashMap<PathKey, u32>;
 
-/// Implement this trait to define custom encoding for a type in a `scale-info` type registry.
-pub trait CustomTypeEncoder {
+/// Implement this trait to define custom encoding for a type in a `scale-info` type
+/// registry.
+pub trait CustomTypeEncoder: Send + Sync {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>>;
 }
 
-/// Implement this trait to define custom decoding for a type in a `scale-info` type registry.
-pub trait CustomTypeDecoder {
+/// Implement this trait to define custom decoding for a type in a `scale-info` type
+/// registry.
+pub trait CustomTypeDecoder: Send + Sync {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value>;
 }
 
@@ -196,13 +194,13 @@ impl CustomTypeDecoder for AccountId {
     }
 }
 
-/// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex encoded
-/// string.
+/// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex
+/// encoded string.
 pub struct Hash;
 
 impl CustomTypeDecoder for Hash {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
-        let hash = sp_core::H256::decode(input)?;
-        Ok(Value::Hex(Hex::from_str(&format!("{:?}", hash))?))
+        let hash = primitive_types::H256::decode(input)?;
+        Ok(Value::Hex(Hex::from_str(&format!("{hash:?}"))?))
     }
 }

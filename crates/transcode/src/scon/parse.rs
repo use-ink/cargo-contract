@@ -98,7 +98,8 @@ fn scon_string(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         // NOT a control character (0x00 - 0x1F)
         // NOT a quote character (0x22)
         // NOT a backslash character (0x5C)
-        // Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust char)
+        // Is within the unicode range (< 0x10FFFF) (this is already guaranteed by Rust
+        // char)
         (cv >= 0x20) && (cv != 0x22) && (cv != 0x5C)
     });
 
@@ -141,14 +142,15 @@ fn rust_ident(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
         .parse(input)
 }
 
-/// Parse a signed or unsigned integer literal, supports optional Rust style underscore separators.
+/// Parse a signed or unsigned integer literal, supports optional Rust style underscore
+/// separators.
 fn scon_integer(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     let sign = alt((char('+'), char('-')));
     pair(sign.opt(), separated_list0(char('_'), digit1))
         .map_res(|(sign, parts)| {
             let digits = parts.join("");
             if let Some(sign) = sign {
-                let s = format!("{}{}", sign, digits);
+                let s = format!("{sign}{digits}");
                 s.parse::<i128>().map(Value::Int)
             } else {
                 digits.parse::<u128>().map(Value::UInt)
@@ -195,8 +197,8 @@ fn scon_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .parse(input)
 }
 
-/// Parse a rust ident on its own which could represent a struct with no fields or a enum unit
-/// variant e.g. "None"
+/// Parse a rust ident on its own which could represent a struct with no fields or a enum
+/// unit variant e.g. "None"
 fn scon_unit_tuple(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
     rust_ident
         .map(|ident| Value::Tuple(Tuple::new(Some(ident), Vec::new())))
@@ -232,7 +234,8 @@ fn scon_hex(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
         .parse(input)
 }
 
-/// Parse any alphanumeric literal with more than 39 characters (the length of `u128::MAX`)
+/// Parse any alphanumeric literal with more than 39 characters (the length of
+/// `u128::MAX`)
 ///
 /// This is suitable for capturing e.g. Base58 encoded literals for Substrate addresses
 fn scon_literal(input: &str) -> IResult<&str, Value, ErrorTree<&str>> {
@@ -522,7 +525,8 @@ mod tests {
                         (Value::UInt(1), Value::String("a".into())),
                         (Value::String("b".into()), Value::UInt(2)),
                         (Value::String("c".into()), Value::Bool(true)),
-                        // (Value::String("d".into()), Value::Literal("5ALiteral".into())),
+                        // (Value::String("d".into()),
+                        // Value::Literal("5ALiteral".into())),
                     ]
                     .into_iter()
                     .collect()

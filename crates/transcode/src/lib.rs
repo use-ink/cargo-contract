@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-//! For interacting with contracts from the command line, arguments need to be "transcoded" from
-//! the string representation to the SCALE encoded representation.
+//! For interacting with contracts from the command line, arguments need to be
+//! "transcoded" from the string representation to the SCALE encoded representation.
 //!
 //! e.g. `"false" -> 0x00`
 //!
-//! And for displaying SCALE encoded data from events and RPC responses, it must be "transcoded"
-//! in the other direction from the SCALE encoded representation to a human readable string.
+//! And for displaying SCALE encoded data from events and RPC responses, it must be
+//! "transcoded" in the other direction from the SCALE encoded representation to a human
+//! readable string.
 //!
 //! e.g. `0x00 -> "false"`
 //!
@@ -33,10 +34,10 @@
 //!
 //! `"false" -> Value::Bool(false)`
 //!
-//! This value is then matched with the metadata for the expected type in that context. e.g. the
-//! [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
-//! accepts a `bool` argument to its `new` constructor, which will be reflected in the contract
-//! metadata as [`scale_info::TypeDefPrimitive::Bool`].
+//! This value is then matched with the metadata for the expected type in that context.
+//! e.g. the [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
+//! accepts a `bool` argument to its `new` constructor, which will be reflected in the
+//! contract metadata as [`scale_info::TypeDefPrimitive::Bool`].
 //!
 //! ```no_compile
 //! #[ink(constructor)]
@@ -46,14 +47,14 @@
 //! ```
 //!
 //! The parsed `Value::Bool(false)` argument value is then matched with the
-//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely encoded
-//! as a `bool`, resulting in `0x00`, which can then be appended as data to the message to invoke
-//! the constructor.
+//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely
+//! encoded as a `bool`, resulting in `0x00`, which can then be appended as data to the
+//! message to invoke the constructor.
 //!
 //! # Decoding
 //!
-//! First the type of the SCALE encoded data is determined from the metadata. e.g. the return type
-//! of a message when it is invoked as a "dry run" over RPC:
+//! First the type of the SCALE encoded data is determined from the metadata. e.g. the
+//! return type of a message when it is invoked as a "dry run" over RPC:
 //!
 //! ```no_compile
 //! #[ink(message)]
@@ -62,31 +63,32 @@
 //! }
 //! ```
 //!
-//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so that when
-//! the raw data is received it can be decoded into the correct [`Value`], which is then converted
-//! to a string for displaying to the user:
+//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so
+//! that when the raw data is received it can be decoded into the correct [`Value`], which
+//! is then converted to a string for displaying to the user:
 //!
 //! `0x00 -> Value::Bool(false) -> "false"`
 //!
 //! # SCALE Object Notation (SCON)
 //!
-//! Complex types can be represented as strings using `SCON` for human-computer interaction. It is
-//! intended to be similar to Rust syntax for instantiating types. e.g.
+//! Complex types can be represented as strings using `SCON` for human-computer
+//! interaction. It is intended to be similar to Rust syntax for instantiating types. e.g.
 //!
 //! `Foo { a: false, b: [0, 1, 2], c: "bar", d: (0, 1) }`
 //!
 //! This string could be parsed into a [`Value::Map`] and together with
-//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded bytes.
+//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded
+//! bytes.
 //!
-//! As with the example for the primitive `bool` above, this works in the other direction for
-//! decoding SCALE encoded bytes and converting them into a human readable string.
+//! As with the example for the primitive `bool` above, this works in the other direction
+//! for decoding SCALE encoded bytes and converting them into a human readable string.
 //!
 //! # Example
 //! ```no_run
 //! # use contract_metadata::ContractMetadata;
 //! # use contract_transcode::ContractMessageTranscoder;
 //! # use std::{path::Path, fs::File};
-//! let metadata_path = Path::new("/path/to/metadata.json");
+//! let metadata_path = Path::new("/path/to/contract.json");
 //! let transcoder = ContractMessageTranscoder::load(metadata_path).unwrap();
 //!
 //! let constructor = "new";
@@ -96,6 +98,7 @@
 //! println!("Encoded constructor data {:?}", data);
 //! ```
 
+mod account_id;
 mod decode;
 mod encode;
 pub mod env_types;
@@ -104,8 +107,11 @@ mod transcoder;
 mod util;
 
 pub use self::{
+    account_id::AccountId32,
     scon::{
+        Hex,
         Map,
+        Tuple,
         Value,
     },
     transcoder::{
@@ -123,6 +129,7 @@ use ink_metadata::{
     InkProject,
     MessageSpec,
 };
+use itertools::Itertools;
 use scale::{
     Compact,
     Decode,
@@ -136,8 +143,8 @@ use scale_info::{
     Field,
 };
 use std::{
+    cmp::Ordering,
     fmt::Debug,
-    fs::File,
     path::Path,
 };
 
@@ -146,6 +153,24 @@ use std::{
 pub struct ContractMessageTranscoder {
     metadata: InkProject,
     transcoder: Transcoder,
+}
+
+/// Find strings from an iterable of `possible_values` similar to a given value `v`
+/// Returns a Vec of all possible values that exceed a similarity threshold
+/// sorted by ascending similarity, most similar comes last
+/// Extracted from https://github.com/clap-rs/clap/blob/v4.3.4/clap_builder/src/parser/features/suggestions.rs#L11-L26
+fn did_you_mean<T, I>(v: &str, possible_values: I) -> Vec<String>
+where
+    T: AsRef<str>,
+    I: IntoIterator<Item = T>,
+{
+    let mut candidates: Vec<(f64, String)> = possible_values
+        .into_iter()
+        .map(|pv| (strsim::jaro(v, pv.as_ref()), pv.as_ref().to_owned()))
+        .filter(|(confidence, _)| *confidence > 0.7)
+        .collect();
+    candidates.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal));
+    candidates.into_iter().map(|(_, pv)| pv).collect()
 }
 
 impl ContractMessageTranscoder {
@@ -160,19 +185,15 @@ impl ContractMessageTranscoder {
         }
     }
 
-    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the given path.
+    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the
+    /// given path.
     pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {
         let path = metadata_path.as_ref();
-        let file = File::open(path)
-            .context(format!("Failed to open metadata file {}", path.display()))?;
-        let metadata: contract_metadata::ContractMetadata = serde_json::from_reader(file)
-            .context(format!(
-                "Failed to deserialize metadata file {}",
-                path.display()
-            ))?;
+        let metadata: contract_metadata::ContractMetadata =
+            contract_metadata::ContractMetadata::load(&metadata_path)?;
         let ink_metadata = serde_json::from_value(serde_json::Value::Object(
             metadata.abi,
         ))
@@ -202,19 +223,37 @@ impl ContractMessageTranscoder {
             ))
             }
             (None, None) => {
+                let constructors = self.constructors().map(|c| c.label());
+                let messages = self.messages().map(|c| c.label());
+                let possible_values: Vec<_> = constructors.chain(messages).collect();
+                let help_txt = did_you_mean(name, possible_values.clone())
+                    .first()
+                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
+                    .unwrap_or_else(|| {
+                        format!("Should be one of: {}", possible_values.iter().join(", "))
+                    });
+
                 return Err(anyhow::anyhow!(
-                    "No constructor or message with the name '{}' found",
-                    name
+                    "No constructor or message with the name '{name}' found.\n{help_txt}",
                 ))
             }
         };
+
+        let args: Vec<_> = args.into_iter().collect();
+        if spec_args.len() != args.len() {
+            anyhow::bail!(
+                "Invalid number of input arguments: expected {}, {} provided",
+                spec_args.len(),
+                args.len()
+            )
+        }
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
             let value = scon::parse_value(arg.as_ref())?;
             self.transcoder.encode(
                 self.metadata.registry(),
-                spec.ty().ty().id(),
+                spec.ty().ty().id,
                 &value,
                 &mut encoded,
             )?;
@@ -248,8 +287,9 @@ impl ContractMessageTranscoder {
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
-        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
-        // ignore because the structure of the event data is known for decoding.
+        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
+        // which we ignore because the structure of the event data is known for
+        // decoding.
         let _len = <Compact<u32>>::decode(data)?;
         let variant_index = data.read_byte()?;
         let event_spec = self
@@ -268,9 +308,11 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
+
+        Self::validate_length(data, event_spec.label(), &args)?;
 
         let name = event_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -287,7 +329,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Message with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode_upper(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract message '{}'", msg_spec.label());
@@ -295,9 +337,11 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
+
+        Self::validate_length(data, msg_spec.label(), &args)?;
 
         let name = msg_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -314,7 +358,7 @@ impl ContractMessageTranscoder {
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "Constructor with selector {} not found in contract metadata",
-                    hex::encode(&msg_selector)
+                    hex::encode_upper(msg_selector)
                 )
             })?;
         tracing::debug!("Decoding contract constructor '{}'", msg_spec.label());
@@ -322,9 +366,11 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
+
+        Self::validate_length(data, msg_spec.label(), &args)?;
 
         let name = msg_spec.label().to_string();
         let map = Map::new(Some(&name), args.into_iter().collect());
@@ -332,15 +378,60 @@ impl ContractMessageTranscoder {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_constructor_return(
+        &self,
+        name: &str,
+        data: &mut &[u8],
+    ) -> Result<Value> {
+        let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
+        })?;
+        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
+            self.decode(return_ty.ty().id, data)
+        } else {
+            Ok(Value::Unit)
+        }
+    }
+
+    pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id(), data)
+            self.decode(return_ty.ty().id, data)
         } else {
             Ok(Value::Unit)
         }
+    }
+
+    /// Checks if buffer empty, otherwise returns am error
+    fn validate_length(data: &[u8], label: &str, args: &[(Value, Value)]) -> Result<()> {
+        if !data.is_empty() {
+            let arg_list_string: String =
+                args.iter().fold(format!("`{label}`"), |init, arg| {
+                    format!("{}, `{}`", init, arg.0)
+                });
+            let encoded_bytes = hex::encode_upper(data);
+            return Err(anyhow::anyhow!(
+                "input length was longer than expected by {} byte(s).\nManaged to decode {} but `{}` bytes were left unread",
+                data.len(),
+                arg_list_string,
+                encoded_bytes
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        metadata: contract_metadata::ContractMetadata,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self::new(serde_json::from_value(
+            serde_json::Value::Object(metadata.abi),
+        )?))
     }
 }
 
@@ -371,13 +462,14 @@ impl CompositeTypeFields {
     pub fn from_fields(fields: &[Field<PortableForm>]) -> Result<Self> {
         if fields.iter().next().is_none() {
             Ok(Self::NoFields)
-        } else if fields.iter().all(|f| f.name().is_some()) {
+        } else if fields.iter().all(|f| f.name.is_some()) {
             let fields = fields
                 .iter()
                 .map(|field| {
                     CompositeTypeNamedField {
                         name: field
-                            .name()
+                            .name
+                            .as_ref()
                             .expect("All fields have a name; qed")
                             .to_owned(),
                         field: field.clone(),
@@ -385,7 +477,7 @@ impl CompositeTypeFields {
                 })
                 .collect();
             Ok(Self::Named(fields))
-        } else if fields.iter().all(|f| f.name().is_none()) {
+        } else if fields.iter().all(|f| f.name.is_none()) {
             Ok(Self::Unnamed(fields.to_vec()))
         } else {
             Err(anyhow::anyhow!(
@@ -487,12 +579,42 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("new", &["true"])?;
+        let encoded = transcoder.encode("new", ["true"])?;
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
         assert_eq!(true.encode(), encoded_args);
         Ok(())
+    }
+
+    #[test]
+    fn encode_misspelled_arg() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+        assert_eq!(
+            transcoder.encode("fip", ["true"]).unwrap_err().to_string(),
+            "No constructor or message with the name 'fip' found.\nDid you mean 'flip'?"
+        );
+    }
+
+    #[test]
+    fn encode_mismatching_args_length() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let result: Result<Vec<u8>> = transcoder.encode("new", Vec::<&str>::new());
+        assert!(result.is_err(), "Should return an error");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Invalid number of input arguments: expected 1, 0 provided"
+        );
+
+        let result: Result<Vec<u8>> = transcoder.encode("new", ["true", "false"]);
+        assert!(result.is_err(), "Should return an error");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Invalid number of input arguments: expected 1, 2 provided"
+        );
     }
 
     #[test]
@@ -502,16 +624,15 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_id",
-            &["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+            ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
         )?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
-        let expected = sp_core::crypto::AccountId32::from_str(
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        )
-        .unwrap();
+        let expected =
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap();
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
     }
@@ -523,21 +644,17 @@ mod tests {
 
         let encoded = transcoder.encode(
             "set_account_ids_vec",
-            &["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
+            ["[5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty]"],
         )?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
 
         let expected = vec![
-            sp_core::crypto::AccountId32::from_str(
-                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            )
-            .unwrap(),
-            sp_core::crypto::AccountId32::from_str(
-                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-            )
-            .unwrap(),
+            AccountId32::from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                .unwrap(),
+            AccountId32::from_str("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty")
+                .unwrap(),
         ];
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
@@ -548,7 +665,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = transcoder.encode("primitive_vec_args", &["[1, 2]"])?;
+        let encoded = transcoder.encode("primitive_vec_args", ["[1, 2]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
@@ -565,7 +682,7 @@ mod tests {
 
         let encoded = transcoder.encode(
             "uint_args",
-            &[
+            [
                 "0x00",
                 "0xDEAD",
                 "0xDEADBEEF",
@@ -594,7 +711,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
 
         let encoded =
-            transcoder.encode("uint_array_args", &["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
+            transcoder.encode("uint_array_args", ["[0xDE, 0xAD, 0xBE, 0xEF]"])?;
 
         // encoded args follow the 4 byte selector
         let encoded_args = &encoded[4..];
@@ -605,15 +722,44 @@ mod tests {
     }
 
     #[test]
-    fn decode_primitive_return() -> Result<()> {
+    fn decode_primitive_return() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let encoded = true.encode();
-        let decoded = transcoder.decode_return("get", &mut &encoded[..])?;
+        let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
+        let decoded = transcoder
+            .decode_message_return("get", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
-        assert_eq!(Value::Bool(true), decoded);
-        Ok(())
+        let expected = Value::Tuple(Tuple::new(
+            "Ok".into(),
+            [Value::Bool(true)].into_iter().collect(),
+        ));
+        assert_eq!(expected, decoded);
+    }
+
+    #[test]
+    fn decode_lang_error() {
+        use ink::primitives::LangError;
+
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded =
+            Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
+        let decoded = transcoder
+            .decode_message_return("get", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
+
+        let expected = Value::Tuple(Tuple::new(
+            "Err".into(),
+            [Value::Tuple(Tuple::new(
+                Some("CouldNotReadInput"),
+                Vec::new(),
+            ))]
+            .to_vec(),
+        ));
+        assert_eq!(expected, decoded);
     }
 
     #[test]
@@ -622,7 +768,7 @@ mod tests {
         let transcoder = ContractMessageTranscoder::new(metadata);
 
         // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 32], [1u32; 32]).encode();
+        let encoded = (0u8, [0u32; 8], [1u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
@@ -640,7 +786,7 @@ mod tests {
             83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
         ];
         // raw encoded event with event index prefix
-        let encoded = (0u8, hash, [0u32; 32]).encode();
+        let encoded = (0u8, hash, [0u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
@@ -672,5 +818,36 @@ mod tests {
         let _ = transcoder.decode_contract_message(&mut &encoded_bytes[..])?;
 
         Ok(())
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "input length was longer than expected by 1 byte(s).\nManaged to decode `flip` but `00` bytes were left unread"
+    )]
+    fn fail_decode_input_with_extra_bytes() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let encoded_bytes = hex::decode("633aa55100").unwrap();
+        let _ = transcoder
+            .decode_contract_message(&mut &encoded_bytes[..])
+            .unwrap();
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "input length was longer than expected by 2 byte(s).\nManaged to decode `Event1`, `name`, `from` but `0C10` bytes were left unread"
+    )]
+    fn fail_decode_contract_event_with_extra_bytes() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        // raw encoded event with event index prefix
+        let encoded = (0u8, [0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
+        // encode again as a Vec<u8> which has a len prefix.
+        let encoded_bytes = encoded.encode();
+        let _ = transcoder
+            .decode_contract_event(&mut &encoded_bytes[..])
+            .unwrap();
     }
 }
