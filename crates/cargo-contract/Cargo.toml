@@ -21,6 +21,7 @@ include = [
 contract-build = { version = "4.0.0-alpha", path = "../build" }
 contract-extrinsics = { version = "4.0.0-alpha", path = "../extrinsics" }
 contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
+contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 
 anyhow = "1.0.75"
 clap = { version = "4.4.0", features = ["derive", "env"] }
@@ -30,6 +31,7 @@ which = "4.4.0"
 colored = "2.0.4"
 serde_json = "1.0.105"
 url = { version = "2.4.1", features = ["serde"] }
+semver = "1.0"
 
 
 # dependencies for extrinsics (deploying and calling a contract)

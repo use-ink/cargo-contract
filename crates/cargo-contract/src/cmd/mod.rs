@@ -18,6 +18,7 @@ pub mod build;
 pub mod decode;
 pub mod encode;
 pub mod info;
+pub mod verify;
 
 pub(crate) use self::{
     build::{
@@ -26,6 +27,7 @@ pub(crate) use self::{
     },
     decode::DecodeCommand,
     info::InfoCommand,
+    verify::VerifyCommand,
 };
 
 pub(crate) use contract_extrinsics::{

@@ -28,6 +28,7 @@ use self::cmd::{
     InstantiateCommand,
     RemoveCommand,
     UploadCommand,
+    VerifyCommand,
 };
 use cmd::encode::EncodeCommand;
 use contract_build::{
@@ -136,6 +137,10 @@ enum Command {
     /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
+    /// Verifies that a given contract binary matches the build result of the specified
+    /// workspace.
+    #[clap(name = "verify")]
+    Verify(VerifyCommand),
 }
 
 fn main() {
@@ -199,6 +204,7 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, remove.is_json()))
         }
         Command::Info(info) => info.run().map_err(format_err),
+        Command::Verify(verify) => verify.run(),
     }
 }
 

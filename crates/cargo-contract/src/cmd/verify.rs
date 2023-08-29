@@ -14,26 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    cmd::{
-        build::{
-            execute,
-            ExecuteArgs,
-            VERSION,
-        },
-        metadata::BuildInfo,
-    },
-    maybe_println,
-    workspace::ManifestPath,
-    BuildArtifacts,
-    Verbosity,
-    VerbosityFlags,
-};
 use anyhow::{
     Context,
     Result,
 };
 use colored::Colorize;
+use contract_build::{
+    execute,
+    verbose_eprintln,
+    BuildArtifacts,
+    BuildInfo,
+    ExecuteArgs,
+    ManifestPath,
+    Verbosity,
+    VerbosityFlags,
+};
 use contract_metadata::{
     ContractMetadata,
     SourceWasm,
@@ -44,6 +39,8 @@ use std::{
     path::PathBuf,
 };
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Checks if a contract in the given workspace matches that of a reference contract.
 #[derive(Debug, clap::Args)]
 #[clap(name = "verify")]
@@ -51,7 +48,8 @@ pub struct VerifyCommand {
     /// Path to the `Cargo.toml` of the contract to verify.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// The reference Wasm contract (`*.contract`) that the workspace will be checked against.
+    /// The reference Wasm contract (`*.contract`) that the workspace will be checked
+    /// against.
     contract: PathBuf,
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
@@ -95,7 +93,7 @@ impl VerifyCommand {
 
         // 2. Check that the build info from the metadata matches our current setup.
         let expected_rust_toolchain = build_info.rust_toolchain;
-        let rust_toolchain = crate::util::rust_toolchain()
+        let rust_toolchain = contract_build::util::rust_toolchain()
             .expect("`rustc` always has a version associated with it.");
 
         let rustc_matches = rust_toolchain == expected_rust_toolchain;
@@ -109,8 +107,9 @@ impl VerifyCommand {
         let expected_cargo_contract_version = build_info.cargo_contract_version;
         let cargo_contract_version = semver::Version::parse(VERSION)?;
 
-        // Note, assuming both versions of `cargo-contract` were installed with the same lockfile
-        // (e.g `--locked`) then the versions of `wasm-opt` should also match.
+        // Note, assuming both versions of `cargo-contract` were installed with the same
+        // lockfile (e.g `--locked`) then the versions of `wasm-opt` should also
+        // match.
         let cargo_contract_matches =
             cargo_contract_version == expected_cargo_contract_version;
         let mismatched_cargo_contract = format!(
@@ -133,10 +132,11 @@ impl VerifyCommand {
             network: Default::default(),
             build_artifact: BuildArtifacts::CodeOnly,
             unstable_flags: Default::default(),
-            optimization_passes: build_info.wasm_opt_settings.optimization_passes,
+            optimization_passes: Some(build_info.wasm_opt_settings.optimization_passes),
             keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
-            skip_linting: true,
+            dylint: false,
             output_type: Default::default(),
+            ..Default::default()
         };
 
         let build_result = execute(args)?;
@@ -156,8 +156,8 @@ impl VerifyCommand {
         let built_wasm_path = if let Some(wasm) = build_result.dest_wasm {
             wasm
         } else {
-            // Since we're building the contract ourselves this should always be populated,
-            // but we'll bail out here just in case.
+            // Since we're building the contract ourselves this should always be
+            // populated, but we'll bail out here just in case.
             anyhow::bail!(
                 "\nThe metadata for the workspace contract does not contain a Wasm binary,\n\
                 therefore we are unable to verify the contract."
@@ -184,10 +184,10 @@ impl VerifyCommand {
             );
         }
 
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " \n{} {}",
-            "Succesfully verified contract".bright_green().bold(),
+            "Successfully verified contract".bright_green().bold(),
             format!("`{}`!", &metadata.contract.name).bold(),
         );
 
