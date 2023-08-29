@@ -53,9 +53,6 @@ pub struct VerifyCommand {
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    /// Denotes if the contract should be verified inside a docker image.
-    #[clap(long, default_value_t = false)]
-    docker: bool,
 }
 
 impl VerifyCommand {
