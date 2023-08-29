@@ -24,15 +24,14 @@ use contract_build::{
     verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
+    BuildMode,
     ExecuteArgs,
+    ImageVariant,
     ManifestPath,
     Verbosity,
     VerbosityFlags,
 };
-use contract_metadata::{
-    ContractMetadata,
-    SourceWasm,
-};
+use contract_metadata::ContractMetadata;
 
 use std::{
     fs::File,
@@ -54,6 +53,9 @@ pub struct VerifyCommand {
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
+    /// Denotes if the contract should be verified inside a docker image.
+    #[clap(long, default_value_t = false)]
+    docker: bool,
 }
 
 impl VerifyCommand {
@@ -91,70 +93,68 @@ impl VerifyCommand {
             &build_info,
         );
 
-        // 2. Check that the build info from the metadata matches our current setup.
-        let expected_rust_toolchain = build_info.rust_toolchain;
-        let rust_toolchain = contract_build::util::rust_toolchain()
-            .expect("`rustc` always has a version associated with it.");
+        let build_mode = if metadata.image.is_some() {
+            BuildMode::Verifiable
+        } else {
+            build_info.build_mode
+        };
 
-        let rustc_matches = rust_toolchain == expected_rust_toolchain;
-        let mismatched_rustc = format!(
+        // 2. Check that the build info from the metadata matches our current setup.
+        // if the build mode is `Verifiable` we skip
+        if build_mode != BuildMode::Verifiable {
+            let expected_rust_toolchain = build_info.rust_toolchain;
+            let rust_toolchain = contract_build::util::rust_toolchain()
+                .expect("`rustc` always has a version associated with it.");
+
+            let rustc_matches = rust_toolchain == expected_rust_toolchain;
+            let mismatched_rustc = format!(
             "\nYou are trying to `verify` a contract using the `{rust_toolchain}` toolchain.\n\
              However, the original contract was built using `{expected_rust_toolchain}`. Please\n\
              install the correct toolchain (`rustup install {expected_rust_toolchain}`) and\n\
              re-run the `verify` command.",);
-        anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
+            anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
-        let expected_cargo_contract_version = build_info.cargo_contract_version;
-        let cargo_contract_version = semver::Version::parse(VERSION)?;
+            let expected_cargo_contract_version = build_info.cargo_contract_version;
+            let cargo_contract_version = semver::Version::parse(VERSION)?;
 
-        // Note, assuming both versions of `cargo-contract` were installed with the same
-        // lockfile (e.g `--locked`) then the versions of `wasm-opt` should also
-        // match.
-        let cargo_contract_matches =
-            cargo_contract_version == expected_cargo_contract_version;
-        let mismatched_cargo_contract = format!(
-            "\nYou are trying to `verify` a contract using `cargo-contract` version \
+            // Note, assuming both versions of `cargo-contract` were installed with the
+            // same lockfile (e.g `--locked`) then the versions of `wasm-opt`
+            // should also match.
+            let cargo_contract_matches =
+                cargo_contract_version == expected_cargo_contract_version;
+            let mismatched_cargo_contract = format!(
+                "\nYou are trying to `verify` a contract using `cargo-contract` version \
             `{cargo_contract_version}`.\n\
              However, the original contract was built using `cargo-contract` version \
              `{expected_cargo_contract_version}`.\n\
              Please install the matching version and re-run the `verify` command.",
-        );
-        anyhow::ensure!(
-            cargo_contract_matches,
-            mismatched_cargo_contract.bright_yellow()
-        );
+            );
+            anyhow::ensure!(
+                cargo_contract_matches,
+                mismatched_cargo_contract.bright_yellow()
+            );
+        }
 
-        // 3. Call `cargo contract build` with the `BuildInfo` from the metadata.
+        // 3a. Call `cargo contract build` with the `BuildInfo` from the metadata.
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
             verbosity,
-            build_mode: build_info.build_mode,
-            network: Default::default(),
-            build_artifact: BuildArtifacts::CodeOnly,
-            unstable_flags: Default::default(),
+            build_mode,
+            build_artifact: BuildArtifacts::All,
             optimization_passes: Some(build_info.wasm_opt_settings.optimization_passes),
             keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
+            image: ImageVariant::from(metadata.image),
             dylint: false,
-            output_type: Default::default(),
             ..Default::default()
         };
 
         let build_result = execute(args)?;
 
-        // 4. Grab the built Wasm contract and compare it with the Wasm from the metadata.
-        let reference_wasm = if let Some(wasm) = metadata.source.wasm {
-            wasm
-        } else {
-            anyhow::bail!(
-                "\nThe metadata for the reference contract does not contain a Wasm binary,\n\
-                therefore we are unable to verify the contract."
-                .to_string()
-                .bright_yellow()
-            )
-        };
-
-        let built_wasm_path = if let Some(wasm) = build_result.dest_wasm {
-            wasm
+        // 4. Grab the code hash from the built contract and compare it with the reference
+        //    one.
+        let reference_code_hash = metadata.source.hash;
+        let built_contract_path = if let Some(m) = build_result.metadata_result {
+            m
         } else {
             // Since we're building the contract ourselves this should always be
             // populated, but we'll bail out here just in case.
@@ -166,18 +166,29 @@ impl VerifyCommand {
             )
         };
 
-        let fs_wasm = std::fs::read(built_wasm_path)?;
-        let built_wasm = SourceWasm::new(fs_wasm);
+        let target_bundle = built_contract_path.dest_bundle;
 
-        if reference_wasm != built_wasm {
+        let file = File::open(target_bundle.clone()).context(format!(
+            "Failed to open contract bundle {}",
+            target_bundle.display()
+        ))?;
+        let built_contract: ContractMetadata =
+            serde_json::from_reader(file).context(format!(
+                "Failed to deserialize contract bundle {}",
+                target_bundle.display()
+            ))?;
+
+        let target_code_hash = built_contract.source.hash;
+
+        if reference_code_hash != target_code_hash {
             tracing::debug!(
-                "Expected Wasm Binary '{}'\n\nGot Wasm Binary `{}`",
-                &reference_wasm,
-                &built_wasm
+                "Expected Wasm Binary '{:?}'\n\nGot Wasm Binary `{:?}`",
+                &reference_code_hash,
+                &target_code_hash
             );
 
             anyhow::bail!(format!(
-                "\nFailed to verify the authenticity of {} contract againt the workspace \n\
+                "\nFailed to verify the authenticity of {} contract against the workspace \n\
                 found at {}.",
                 format!("`{}`", metadata.contract.name).bright_white(),
                 format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
