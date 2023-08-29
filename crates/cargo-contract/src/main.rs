@@ -204,7 +204,16 @@ fn exec(cmd: Command) -> Result<()> {
                 .map_err(|err| map_extrinsic_err(err, remove.is_json()))
         }
         Command::Info(info) => info.run().map_err(format_err),
-        Command::Verify(verify) => verify.run(),
+        Command::Verify(verify) => {
+            let result = verify.run().map_err(format_err)?;
+
+            if result.output_json {
+                println!("{}", result.serialize_json()?)
+            } else if result.verbosity.is_verbose() {
+                println!("{}", result.display())
+            }
+            Ok(())
+        }
     }
 }
 

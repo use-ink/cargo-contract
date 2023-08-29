@@ -21,7 +21,6 @@ use anyhow::{
 use colored::Colorize;
 use contract_build::{
     execute,
-    verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
     BuildMode,
@@ -53,10 +52,13 @@ pub struct VerifyCommand {
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
+    /// Output the result in JSON format
+    #[clap(long, conflicts_with = "verbose")]
+    output_json: bool,
 }
 
 impl VerifyCommand {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self) -> Result<VerificationResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
@@ -140,7 +142,7 @@ impl VerifyCommand {
             build_artifact: BuildArtifacts::All,
             optimization_passes: Some(build_info.wasm_opt_settings.optimization_passes),
             keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
-            image: ImageVariant::from(metadata.image),
+            image: ImageVariant::from(metadata.image.clone()),
             dylint: false,
             ..Default::default()
         };
@@ -192,13 +194,43 @@ impl VerifyCommand {
             );
         }
 
-        verbose_eprintln!(
+        Ok(VerificationResult {
+            is_verified: true,
+            image: metadata.image,
+            contract: target_bundle.display().to_string(),
+            reference_contract: path.display().to_string(),
+            output_json: self.output_json,
             verbosity,
-            " \n{} {}",
-            "Successfully verified contract".bright_green().bold(),
-            format!("`{}`!", &metadata.contract.name).bold(),
-        );
+        })
+    }
+}
 
-        Ok(())
+/// The result of verification process
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct VerificationResult {
+    pub is_verified: bool,
+    pub image: Option<String>,
+    pub contract: String,
+    pub reference_contract: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub output_json: bool,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub verbosity: Verbosity,
+}
+
+impl VerificationResult {
+    /// Display the result in a fancy format
+    pub fn display(&self) -> String {
+        format!(
+            "\n{} {} against reference contract {}",
+            "Successfully verified contract".bright_green().bold(),
+            format!("`{}`", &self.contract).bold(),
+            format!("`{}`!", &self.reference_contract).bold()
+        )
+    }
+
+    /// Display the build results in a pretty formatted JSON string.
+    pub fn serialize_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 }

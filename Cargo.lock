@@ -748,6 +748,7 @@ dependencies = [
  "predicates",
  "regex",
  "semver",
+ "serde",
  "serde_json",
  "substrate-build-script-utils",
  "subxt",
