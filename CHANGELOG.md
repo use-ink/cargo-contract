@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+- Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
 
 ## [4.0.0-alpha]
 
@@ -240,7 +241,6 @@ This release supports the ink! [`v4.0.0-beta`](https://github.com/paritytech/ink
 
 ### Added
 - Add Rust specific build info to metadata - [#680](https://github.com/paritytech/cargo-contract/pull/680)
-- Add `verify` command - [#696](https://github.com/paritytech/cargo-contract/pull/696)
 
 ### Changed
 - Removed requirement to install binaryen. The `wasm-opt` tool is now compiled into `cargo-contract` - [#766](https://github.com/paritytech/cargo-contract/pull/766).
