@@ -179,7 +179,7 @@ impl VerifyCommand {
 
         if reference_code_hash != target_code_hash {
             tracing::debug!(
-                "Expected Wasm Binary '{:?}'\n\nGot Wasm Binary `{:?}`",
+                "Expected Code Hash: '{:?}'\n\nGot Code Hash: `{:?}`",
                 &reference_code_hash,
                 &target_code_hash
             );
