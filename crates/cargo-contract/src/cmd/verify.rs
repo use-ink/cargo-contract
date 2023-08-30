@@ -183,7 +183,7 @@ impl VerifyCommand {
         if reference_code_hash != target_code_hash {
             verbose_eprintln!(
                 verbosity,
-                "Expected Code Hash: '{:?}'\n\nGot Code Hash: `{:?}`",
+                "Expected Code Hash: '{}'\n\nGot Code Hash: `{}`",
                 &reference_code_hash,
                 &target_code_hash
             );

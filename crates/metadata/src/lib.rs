@@ -167,6 +167,18 @@ impl From<[u8; 32]> for CodeHash {
     }
 }
 
+impl Display for CodeHash {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let raw_string = self
+            .0
+            .iter()
+            .map(|b| format!("{:x?}", b))
+            .collect::<Vec<String>>()
+            .join("");
+        f.write_fmt(format_args!("0x{}", raw_string))
+    }
+}
+
 /// Information about the contract's Wasm code.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
