@@ -28,7 +28,7 @@ use contract_build::{
     ImageVariant,
     ManifestPath,
     Verbosity,
-    VerbosityFlags,
+    VerbosityFlags, verbose_eprintln,
 };
 use contract_metadata::ContractMetadata;
 
