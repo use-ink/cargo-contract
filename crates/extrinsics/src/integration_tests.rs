@@ -428,7 +428,8 @@ async fn api_build_upload_instantiate_call() {
     let upload = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
-        .await;
+        .await
+        .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     upload_result.unwrap();
@@ -439,7 +440,8 @@ async fn api_build_upload_instantiate_call() {
         .constructor("new")
         .args(["true"].to_vec())
         .done()
-        .await;
+        .await
+        .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
     let instantiate_result = instantiate_result.unwrap();
@@ -453,7 +455,8 @@ async fn api_build_upload_instantiate_call() {
         .message("get")
         .contract(instantiate_result.contract_address.clone())
         .done()
-        .await;
+        .await
+        .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -472,7 +475,8 @@ async fn api_build_upload_instantiate_call() {
         .message("flip")
         .contract(instantiate_result.contract_address.clone())
         .done()
-        .await;
+        .await
+        .unwrap();
     let call_result = call.call(None).await;
     assert!(call_result.is_ok(), "call failed");
     let call_result = call_result.unwrap();
@@ -486,7 +490,8 @@ async fn api_build_upload_instantiate_call() {
         .message("get")
         .contract(instantiate_result.contract_address.clone())
         .done()
-        .await;
+        .await
+        .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -542,7 +547,8 @@ async fn api_build_upload_remove() {
     let upload = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
-        .await;
+        .await
+        .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     let upload_result = upload_result.unwrap();
@@ -555,7 +561,8 @@ async fn api_build_upload_remove() {
         .extrinsic_opts(opts.clone())
         .code_hash(Some(code_hash_h256))
         .done()
-        .await;
+        .await
+        .unwrap();
     let remove_result = remove.remove_code().await;
     assert!(remove_result.is_ok(), "remove code failed");
     remove_result.unwrap();
