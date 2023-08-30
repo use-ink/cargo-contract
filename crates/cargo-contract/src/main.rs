@@ -19,10 +19,6 @@
 mod cmd;
 
 use self::cmd::{
-    handle_call,
-    handle_instantiate,
-    handle_remove,
-    handle_upload,
     BuildCommand,
     CallCommand,
     CheckCommand,
@@ -185,21 +181,23 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::Upload(upload) => {
             runtime.block_on(async {
-                handle_upload(upload)
+                upload
+                    .handle()
                     .await
                     .map_err(|err| map_extrinsic_err(err, upload.output_json()))
             })
         }
         Command::Instantiate(instantiate) => {
             runtime.block_on(async {
-                handle_instantiate(instantiate)
+                instantiate
+                    .handle()
                     .await
                     .map_err(|err| map_extrinsic_err(err, instantiate.output_json()))
             })
         }
         Command::Call(call) => {
             runtime.block_on(async {
-                handle_call(call)
+                call.handle()
                     .await
                     .map_err(|err| map_extrinsic_err(err, call.output_json()))
             })
@@ -208,7 +206,8 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
             runtime.block_on(async {
-                handle_remove(remove)
+                remove
+                    .handle()
                     .await
                     .map_err(|err| map_extrinsic_err(err, remove.output_json()))
             })

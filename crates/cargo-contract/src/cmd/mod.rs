@@ -28,24 +28,12 @@ pub(crate) use self::{
         BuildCommand,
         CheckCommand,
     },
-    call::{
-        handle_call,
-        CallCommand,
-    },
+    call::CallCommand,
     decode::DecodeCommand,
     info::InfoCommand,
-    instantiate::{
-        handle_instantiate,
-        InstantiateCommand,
-    },
-    remove::{
-        handle_remove,
-        RemoveCommand,
-    },
-    upload::{
-        handle_upload,
-        UploadCommand,
-    },
+    instantiate::InstantiateCommand,
+    remove::RemoveCommand,
+    upload::UploadCommand,
 };
 
 use crate::{
