@@ -50,7 +50,7 @@ pub async fn handle_remove(remove_command: &RemoveCommand) -> Result<(), ErrorVa
         .code_hash(remove_command.code_hash)
         .extrinsic_opts(extrinsic_opts)
         .done()
-        .await;
+        .await?;
     let remove_result = remove_exec.remove_code().await?;
     let display_events = remove_result.display_events;
     let output = if remove_command.output_json() {

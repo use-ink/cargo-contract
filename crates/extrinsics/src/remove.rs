@@ -101,10 +101,10 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
-    pub async fn done(self) -> RemoveExec {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
-        let transcoder = artifacts.contract_transcoder().unwrap();
-        let signer = self.opts.extrinsic_opts.signer().unwrap();
+    pub async fn done(self) -> Result<RemoveExec> {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
+        let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
@@ -117,17 +117,17 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
                 path for artifacts files with --manifest-path",
                 artifacts_path.display()
             )),
-        }.unwrap();
+        }?;
         let url = self.opts.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await.unwrap();
+        let client = OnlineClient::from_url(url.clone()).await?;
 
-        RemoveExec {
+        Ok(RemoveExec {
             final_code_hash,
             opts: self.opts.extrinsic_opts.clone(),
             client,
             transcoder,
             signer,
-        }
+        })
     }
 }
 

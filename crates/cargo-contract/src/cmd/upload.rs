@@ -47,7 +47,7 @@ pub async fn handle_upload(upload_command: &UploadCommand) -> Result<(), ErrorVa
     let upload_exec = UploadCommandBuilder::default()
         .extrinsic_opts(extrinsic_opts)
         .done()
-        .await;
+        .await?;
 
     let code_hash = upload_exec.code().code_hash();
 

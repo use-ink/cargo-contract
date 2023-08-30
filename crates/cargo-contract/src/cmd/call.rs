@@ -92,7 +92,7 @@ pub async fn handle_call(call_command: &CallCommand) -> Result<(), ErrorVariant>
         .proof_size(call_command.proof_size)
         .value(call_command.value.clone())
         .done()
-        .await;
+        .await?;
 
     if !call_command.extrinsic_cli_opts.execute {
         let result = call_exec.call_dry_run().await?;

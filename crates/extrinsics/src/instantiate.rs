@@ -160,30 +160,28 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the [`InstantiateExec`] containing the preprocessed data for the
     /// instantiation, or an error in case of failure.
-    pub async fn done(self) -> InstantiateExec {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
-        let transcoder = artifacts.contract_transcoder().unwrap();
-        let data = transcoder
-            .encode(&self.opts.constructor, &self.opts.args)
-            .unwrap();
-        let signer = self.opts.extrinsic_opts.signer().unwrap();
+    pub async fn done(self) -> Result<InstantiateExec> {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
+        let data = transcoder.encode(&self.opts.constructor, &self.opts.args)?;
+        let signer = self.opts.extrinsic_opts.signer()?;
         let url = self.opts.extrinsic_opts.url_to_string();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
-            let code_hash = artifacts.code_hash().unwrap();
+            let code_hash = artifacts.code_hash()?;
             Code::Existing(code_hash.into())
         };
         let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let client = OnlineClient::from_url(url.clone()).await.unwrap();
+        let client = OnlineClient::from_url(url.clone()).await?;
 
-        let token_metadata = TokenMetadata::query(&client).await.unwrap();
+        let token_metadata = TokenMetadata::query(&client).await?;
 
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
             raw_args: self.opts.args.clone(),
-            value: self.opts.value.denominate_balance(&token_metadata).unwrap(),
+            value: self.opts.value.denominate_balance(&token_metadata)?,
             gas_limit: self.opts.gas_limit,
             proof_size: self.opts.proof_size,
             storage_deposit_limit: self
@@ -192,21 +190,20 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
                 .storage_deposit_limit()
                 .as_ref()
                 .map(|bv| bv.denominate_balance(&token_metadata))
-                .transpose()
-                .unwrap(),
+                .transpose()?,
             code,
             data,
             salt,
         };
 
-        InstantiateExec {
+        Ok(InstantiateExec {
             args,
             opts: self.opts.extrinsic_opts.clone(),
             url,
             client,
             signer,
             transcoder,
-        }
+        })
     }
 }
 

@@ -94,28 +94,25 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done(self) -> UploadExec {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
-        let signer = self.opts.extrinsic_opts.signer().unwrap();
+    pub async fn done(self) -> Result<UploadExec> {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts
-            .code
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Contract code not found from artifact file {}",
-                    artifacts_path.display()
-                )
-            })
-            .unwrap();
+        let code = artifacts.code.ok_or_else(|| {
+            anyhow::anyhow!(
+                "Contract code not found from artifact file {}",
+                artifacts_path.display()
+            )
+        })?;
         let url = self.opts.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await.unwrap();
-        UploadExec {
+        let client = OnlineClient::from_url(url.clone()).await?;
+        Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
             client,
             code,
             signer,
-        }
+        })
     }
 }
 

@@ -169,20 +169,18 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
     ///
     /// Returns the `CallExec` containing the preprocessed data for the contract call,
     /// or an error in case of failure.
-    pub async fn done(self) -> CallExec {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts().unwrap();
-        let transcoder = artifacts.contract_transcoder().unwrap();
+    pub async fn done(self) -> Result<CallExec> {
+        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
 
-        let call_data = transcoder
-            .encode(&self.opts.message, &self.opts.args)
-            .unwrap();
+        let call_data = transcoder.encode(&self.opts.message, &self.opts.args)?;
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
-        let signer = self.opts.extrinsic_opts.signer().unwrap();
+        let signer = self.opts.extrinsic_opts.signer()?;
 
         let url = self.opts.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await.unwrap();
-        CallExec {
+        let client = OnlineClient::from_url(url.clone()).await?;
+        Ok(CallExec {
             contract: self.opts.contract.clone(),
             message: self.opts.message.clone(),
             args: self.opts.args.clone(),
@@ -194,7 +192,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
             transcoder,
             call_data,
             signer,
-        }
+        })
     }
 }
 

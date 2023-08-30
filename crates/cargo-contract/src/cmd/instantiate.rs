@@ -103,7 +103,7 @@ pub async fn handle_instantiate(
         .proof_size(instantiate_command.proof_size)
         .salt(instantiate_command.salt.clone())
         .done()
-        .await;
+        .await?;
 
     if !instantiate_command.extrinsic_cli_opts.execute {
         let result = instantiate_exec.instantiate_dry_run().await?;
