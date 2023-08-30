@@ -19,10 +19,10 @@ pub mod call;
 pub mod decode;
 pub mod encode;
 pub mod info;
-pub mod verify;
 pub mod instantiate;
 pub mod remove;
 pub mod upload;
+pub mod verify;
 
 pub(crate) use self::{
     build::{
@@ -32,10 +32,10 @@ pub(crate) use self::{
     call::CallCommand,
     decode::DecodeCommand,
     info::InfoCommand,
-    verify::VerifyCommand,
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
     upload::UploadCommand,
+    verify::VerifyCommand,
 };
 
 use crate::{

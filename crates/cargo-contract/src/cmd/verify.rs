@@ -21,6 +21,7 @@ use anyhow::{
 use colored::Colorize;
 use contract_build::{
     execute,
+    verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
     BuildMode,
@@ -28,7 +29,7 @@ use contract_build::{
     ImageVariant,
     ManifestPath,
     Verbosity,
-    VerbosityFlags, verbose_eprintln,
+    VerbosityFlags,
 };
 use contract_metadata::ContractMetadata;
 
@@ -180,7 +181,8 @@ impl VerifyCommand {
         let target_code_hash = built_contract.source.hash;
 
         if reference_code_hash != target_code_hash {
-            tracing::debug!(
+            verbose_eprintln!(
+                verbosity,
                 "Expected Code Hash: '{:?}'\n\nGot Code Hash: `{:?}`",
                 &reference_code_hash,
                 &target_code_hash
