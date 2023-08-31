@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ManifestPath;
+use crate::{
+    ManifestPath,
+    Target,
+};
 use anyhow::{
     Context,
     Result,
@@ -43,29 +46,33 @@ pub struct CrateMetadata {
     pub cargo_meta: cargo_metadata::Metadata,
     pub contract_artifact_name: String,
     pub root_package: Package,
-    pub original_wasm: PathBuf,
-    pub dest_wasm: PathBuf,
+    pub original_code: PathBuf,
+    pub dest_code: PathBuf,
     pub ink_version: Version,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
     pub target_directory: PathBuf,
+    pub target_file_path: PathBuf,
 }
 
 impl CrateMetadata {
     /// Attempt to construct [`CrateMetadata`] from the given manifest path.
-    pub fn from_manifest_path(manifest_path: Option<&PathBuf>) -> Result<Self> {
+    pub fn from_manifest_path(
+        manifest_path: Option<&PathBuf>,
+        target: Target,
+    ) -> Result<Self> {
         let manifest_path = ManifestPath::try_from(manifest_path)?;
-        Self::collect(&manifest_path)
+        Self::collect(&manifest_path, target)
     }
 
     /// Parses the contract manifest and returns relevant metadata.
-    pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
+    pub fn collect(manifest_path: &ManifestPath, target: Target) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
-        // Normalize the package name.
-        let package_name = root_package.name.replace('-', "_");
+        // Normalize the final contract artifact name.
+        let contract_artifact_name = root_package.name.replace('-', "_");
 
         if let Some(lib_name) = &root_package
             .targets
@@ -91,20 +98,20 @@ impl CrateMetadata {
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
-            target_directory = target_directory.join(package_name.clone());
+            target_directory = target_directory.join(contract_artifact_name.clone());
         }
 
-        // {target_dir}/wasm32-unknown-unknown/release/{package_name}.wasm
-        let mut original_wasm = target_directory.clone();
-        original_wasm.push("wasm32-unknown-unknown");
-        original_wasm.push("release");
-        original_wasm.push(package_name.clone());
-        original_wasm.set_extension("wasm");
+        // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
+        let mut original_code = target_directory.clone();
+        original_code.push(target.llvm_target());
+        original_code.push("release");
+        original_code.push(root_package.name.clone());
+        original_code.set_extension(target.source_extension());
 
-        // {target_dir}/{package_name}.wasm
-        let mut dest_wasm = target_directory.clone();
-        dest_wasm.push(package_name.clone());
-        dest_wasm.set_extension("wasm");
+        // {target_dir}/{contract_artifact_name}.code
+        let mut dest_code = target_directory.clone();
+        dest_code.push(contract_artifact_name.clone());
+        dest_code.set_extension(target.dest_extension());
 
         let ink_version = metadata
             .packages
@@ -131,13 +138,14 @@ impl CrateMetadata {
             manifest_path: manifest_path.clone(),
             cargo_meta: metadata,
             root_package,
-            contract_artifact_name: package_name,
-            original_wasm: original_wasm.into(),
-            dest_wasm: dest_wasm.into(),
+            contract_artifact_name,
+            original_code: original_code.into(),
+            dest_code: dest_code.into(),
             ink_version,
             documentation,
             homepage,
             user,
+            target_file_path: target_directory.join(".target").into(),
             target_directory: target_directory.into(),
         };
         Ok(crate_metadata)
@@ -179,8 +187,8 @@ fn get_cargo_metadata(manifest_path: &ManifestPath) -> Result<(CargoMetadata, Pa
         .and_then(|resolve| resolve.root.as_ref())
         .context("Cannot infer the root project id")?
         .clone();
-    // Find the root package by id in the list of packages. It is logical error if the root
-    // package is not found in the list.
+    // Find the root package by id in the list of packages. It is logical error if the
+    // root package is not found in the list.
     let root_package = metadata
         .packages
         .iter()

@@ -49,7 +49,8 @@ enum DataType {
 
 impl DecodeCommand {
     pub fn run(&self) -> Result<()> {
-        let crate_metadata = CrateMetadata::from_manifest_path(None)?;
+        let crate_metadata =
+            CrateMetadata::from_manifest_path(None, contract_build::Target::Wasm)?;
         let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
 
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";

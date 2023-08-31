@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -17,10 +17,10 @@
 #![allow(clippy::too_many_arguments)]
 
 #[subxt::subxt(
-    runtime_metadata_path = "src/cmd/runtime_api/contracts_runtime.scale",
+    runtime_metadata_path = "src/runtime_api/contracts_runtime.scale",
     substitute_type(
-        type = "sp_weights::weight_v2::Weight",
-        with = "::sp_weights::Weight"
+        path = "sp_weights::weight_v2::Weight",
+        with = "::subxt::utils::Static<::sp_weights::Weight>"
     )
 )]
 pub mod api {}

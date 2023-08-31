@@ -18,15 +18,13 @@
 pub mod tests;
 
 use crate::Verbosity;
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
+use duct::Expression;
 use std::{
-    ffi::OsStr,
+    ffi::OsString,
     path::Path,
-    process::Command,
 };
+use term_size as _;
 
 // Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
 pub(crate) fn rust_toolchain() -> Result<String> {
@@ -36,77 +34,79 @@ pub(crate) fn rust_toolchain() -> Result<String> {
     Ok(toolchain)
 }
 
-/// Invokes `cargo` with the subcommand `command` and the supplied `args`.
+/// Builds an [`Expression`] for invoking `cargo`.
 ///
 /// In case `working_dir` is set, the command will be invoked with that folder
 /// as the working directory.
 ///
 /// In case `env` is given environment variables can be either set or unset:
-///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to
-///     the `env` vector.
-///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env`
-///     vector.
-///
-/// If successful, returns the stdout bytes.
-pub fn invoke_cargo<I, S, P>(
+///   * To _set_ push an item a la `("VAR_NAME", Some("VAR_VALUE"))` to the `env` vector.
+///   * To _unset_ push an item a la `("VAR_NAME", None)` to the `env` vector.
+pub fn cargo_cmd<I, S, P>(
     command: &str,
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
-    env: Vec<(&str, Option<&str>)>,
-) -> Result<Vec<u8>>
+    env: Vec<(&str, Option<String>)>,
+) -> Expression
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
-    S: AsRef<OsStr>,
+    S: Into<OsString>,
     P: AsRef<Path>,
 {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    let mut cmd = Command::new(cargo);
+    let mut cmd_args = Vec::new();
+
+    cmd_args.push(command);
+    if command != "dylint" {
+        cmd_args.push("--color=always");
+    }
+
+    match verbosity {
+        Verbosity::Quiet => cmd_args.push("--quiet"),
+        Verbosity::Verbose => {
+            if command != "dylint" {
+                cmd_args.push("--verbose")
+            }
+        }
+        Verbosity::Default => (),
+    };
+
+    let mut cmd_args: Vec<OsString> = cmd_args.iter().map(Into::into).collect();
+    for arg in args {
+        cmd_args.push(arg.into());
+    }
+
+    let mut cmd = duct::cmd(cargo, &cmd_args);
 
     env.iter().for_each(|(env_key, maybe_env_val)| {
         match maybe_env_val {
-            Some(env_val) => cmd.env(env_key, env_val),
-            None => cmd.env_remove(env_key),
+            Some(env_val) => cmd = cmd.env(env_key, env_val),
+            None => cmd = cmd.env_remove(env_key),
         };
     });
 
     if let Some(path) = working_dir {
         tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
-        cmd.current_dir(path);
+        cmd = cmd.dir(path.as_ref());
     }
 
-    cmd.arg(command);
-    cmd.args(args);
-    match verbosity {
-        Verbosity::Quiet => cmd.arg("--quiet"),
-        Verbosity::Verbose => {
-            if command != "dylint" {
-                cmd.arg("--verbose")
-            } else {
-                &mut cmd
-            }
-        }
-        Verbosity::Default => &mut cmd,
-    };
+    cmd
+}
 
-    tracing::debug!("Invoking cargo: {:?}", cmd);
+/// Configures the cargo command to output colour and the progress bar.
+pub fn cargo_tty_output(cmd: Expression) -> Expression {
+    #[cfg(windows)]
+    let term_size = "100";
 
-    let child = cmd
-        // capture the stdout to return from this function as bytes
-        .stdout(std::process::Stdio::piped())
-        .spawn()
-        .context(format!("Error executing `{cmd:?}`"))?;
-    let output = child.wait_with_output()?;
+    #[cfg(not(windows))]
+    let term_size = term_size::dimensions_stderr()
+        .map(|(width, _)| width.to_string())
+        .unwrap_or_else(|| "100".to_string());
 
-    if output.status.success() {
-        Ok(output.stdout)
-    } else {
-        anyhow::bail!(
-            "`{:?}` failed with exit code: {:?}",
-            cmd,
-            output.status.code()
-        );
-    }
+    cmd.env("CARGO_TERM_COLOR", "auto")
+        .env("CARGO_TERM_PROGRESS_WIDTH", term_size)
+        .env("CARGO_TERM_PROGRESS_WHEN", "auto")
 }
 
 /// Returns the base name of the path.
@@ -122,12 +122,13 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     hex::decode(input.trim_start_matches("0x"))
 }
 
-/// Prints to stdout if `verbosity.is_verbose()` is `true`.
+/// Prints to stderr if `verbosity.is_verbose()` is `true`.
+/// Like `cargo`, we use stderr for verbose output.
 #[macro_export]
-macro_rules! maybe_println {
+macro_rules! verbose_eprintln {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
-            ::std::println!($($msg)*);
+            ::std::eprintln!($($msg)*);
         }
     };
 }

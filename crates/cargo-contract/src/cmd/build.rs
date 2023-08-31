@@ -21,10 +21,12 @@ use contract_build::{
     BuildResult,
     ExecuteArgs,
     Features,
+    ImageVariant,
     ManifestPath,
     Network,
     OptimizationPasses,
     OutputType,
+    Target,
     UnstableFlags,
     UnstableOptions,
     Verbosity,
@@ -35,7 +37,8 @@ use std::{
     path::PathBuf,
 };
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for deploying.
+/// Executes build of the smart contract which produces a Wasm binary that is ready for
+/// deploying.
 ///
 /// It does so by invoking `cargo build` and then post processing the final binary.
 #[derive(Debug, clap::Args)]
@@ -55,7 +58,10 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs linting checks during the build process
+    /// Performs ink! linting checks during the build process.
+    ///
+    /// This only applies to ink! custom lints of which are there none at the moment.
+    /// Basic clippy lints which we are deem important are run anyways.
     #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
@@ -65,8 +71,8 @@ pub struct BuildCommand {
     /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
     ///   `<name>.contract` file is skipped.
     ///
-    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the Wasm target,
-    ///    only checks for compilation errors.
+    /// - `check-only`: No artifacts produced: runs the `cargo check` command for the
+    ///   Wasm target, only checks for compilation errors.
     #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
@@ -79,14 +85,17 @@ pub struct BuildCommand {
     ///
     /// - `0`: execute no optimization passes
     ///
-    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration builds)
+    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration
+    ///   builds)
     ///
     /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
     ///
-    /// - `3`, execute 3 optimization passes (spends potentially a lot of time optimizing)
+    /// - `3`, execute 3 optimization passes (spends potentially a lot of time
+    ///   optimizing)
     ///
-    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot more time and memory
-    /// but is useful on more nested / complex / less-optimized input)
+    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot
+    ///   more time and memory but is useful on more nested / complex / less-optimized
+    ///   input)
     ///
     /// - `s`, execute default optimization passes, focusing on code size
     ///
@@ -95,8 +104,8 @@ pub struct BuildCommand {
     /// - The default value is `z`
     ///
     /// - It is possible to define the number of optimization passes in the
-    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes = "3"`.
-    ///   The CLI argument always takes precedence over the profile value.
+    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes
+    ///   = "3"`. The CLI argument always takes precedence over the profile value.
     #[clap(long)]
     optimization_passes: Option<OptimizationPasses>,
     /// Do not remove symbols (Wasm name section) when optimizing.
@@ -110,6 +119,19 @@ pub struct BuildCommand {
     /// Don't perform wasm validation checks e.g. for permitted imports.
     #[clap(long)]
     skip_wasm_validation: bool,
+    /// Which bytecode to build the contract into.
+    #[clap(long, default_value = "wasm")]
+    target: Target,
+    /// The maximum number of pages available for a wasm contract to allocate.
+    #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
+    max_memory_pages: u32,
+    /// Executes the build inside a docker container to produce a verifiable bundle.
+    /// Requires docker daemon running.
+    #[clap(long, default_value_t = false)]
+    verifiable: bool,
+    /// Specify a custom image for the verifiable build
+    #[clap(long, default_value = None)]
+    image: Option<String>,
 }
 
 impl BuildCommand {
@@ -117,11 +139,15 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let build_mode = match self.build_release {
-            true => BuildMode::Release,
-            false => BuildMode::Debug,
+        let build_mode = if self.verifiable {
+            BuildMode::Verifiable
+        } else {
+            match self.build_release {
+                true => BuildMode::Release,
+                false => BuildMode::Debug,
+            }
         };
 
         let network = match self.build_offline {
@@ -134,10 +160,14 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
+        if self.image.is_some() && build_mode != BuildMode::Verifiable {
+            anyhow::bail!("--image flag can only be used with verifiable builds!");
         }
+
+        let image = match &self.image {
+            Some(i) => ImageVariant::Custom(i.clone()),
+            None => ImageVariant::Default,
+        };
 
         let args = ExecuteArgs {
             manifest_path,
@@ -149,11 +179,13 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes: self.optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            lint: self.lint,
+            dylint: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
+            target: self.target,
+            max_memory_pages: self.max_memory_pages,
+            image,
         };
-
         contract_build::execute(args)
     }
 }
@@ -166,32 +198,29 @@ pub struct CheckCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    #[clap(flatten)]
-    features: Features,
-    #[clap(flatten)]
-    unstable_options: UnstableOptions,
 }
 
 impl CheckCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
-        let unstable_flags: UnstableFlags =
-            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
             build_mode: BuildMode::Debug,
-            features: self.features.clone(),
+            features: Default::default(),
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags,
+            unstable_flags: Default::default(),
             optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
-            lint: false,
+            dylint: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
+            target: Default::default(),
+            max_memory_pages: 0,
+            image: ImageVariant::Default,
         };
 
         contract_build::execute(args)

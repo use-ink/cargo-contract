@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -33,11 +33,21 @@ impl From<subxt::Error> for ErrorVariant {
     fn from(error: subxt::Error) -> Self {
         match error {
             subxt::Error::Runtime(subxt::error::DispatchError::Module(module_err)) => {
-                ErrorVariant::Module(ModuleError {
-                    pallet: module_err.pallet.clone(),
-                    error: module_err.error.clone(),
-                    docs: module_err.description,
-                })
+                module_err
+                    .details()
+                    .map(|details| {
+                        ErrorVariant::Module(ModuleError {
+                            pallet: details.pallet.name().to_string(),
+                            error: details.variant.name.to_string(),
+                            docs: details.variant.docs.clone(),
+                        })
+                    })
+                    .unwrap_or_else(|err| {
+                        ErrorVariant::Generic(GenericError::from_message(format!(
+                            "Error extracting subxt error details: {}",
+                            err
+                        )))
+                    })
             }
             err => ErrorVariant::Generic(GenericError::from_message(err.to_string())),
         }
@@ -53,6 +63,12 @@ impl From<anyhow::Error> for ErrorVariant {
 impl From<&str> for ErrorVariant {
     fn from(err: &str) -> Self {
         Self::Generic(GenericError::from_message(err.to_owned()))
+    }
+}
+
+impl From<std::io::Error> for ErrorVariant {
+    fn from(value: std::io::Error) -> Self {
+        Self::Generic(GenericError::from_message(value.to_string()))
     }
 }
 
@@ -81,11 +97,15 @@ impl ErrorVariant {
     ) -> anyhow::Result<ErrorVariant> {
         match error {
             DispatchError::Module(err) => {
-                let details = metadata.error(err.index, err.error[0])?;
+                let pallet = metadata.pallet_by_index_err(err.index)?;
+                let variant =
+                    pallet.error_variant_by_index(err.error[0]).ok_or_else(|| {
+                        anyhow::anyhow!("Error variant {} not found", err.error[0])
+                    })?;
                 Ok(ErrorVariant::Module(ModuleError {
-                    pallet: details.pallet().to_owned(),
-                    error: details.error().to_owned(),
-                    docs: details.docs().to_owned(),
+                    pallet: pallet.name().to_string(),
+                    error: variant.name.to_owned(),
+                    docs: variant.docs.to_owned(),
                 }))
             }
             err => {

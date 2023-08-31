@@ -27,7 +27,7 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
 fn encode_works() {
     // given
     let contract = r#"
-		#![cfg_attr(not(feature = "std"), no_std)]
+        #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
         #[ink::contract]
         mod incrementer {
@@ -49,7 +49,7 @@ fn encode_works() {
 
                 #[ink(message, selector = 0xBABABABA)]
                 pub fn inc(&mut self, by: i32) {
-                    self.value += by;
+                    self.value.saturating_add(by);
                 }
 
                 #[ink(message, selector = 0xCACACACA)]

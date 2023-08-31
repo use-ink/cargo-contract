@@ -15,11 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use wasm_opt::OptimizationOptions;
+use wasm_opt::{
+    Feature,
+    OptimizationOptions,
+    Pass,
+};
 
 use std::{
     fmt,
-    fs::metadata,
     path::PathBuf,
     str,
 };
@@ -35,8 +38,8 @@ pub struct WasmOptHandler {
 impl WasmOptHandler {
     /// Generate a new instance of the handler.
     ///
-    /// Fails if the `wasm-opt` binary is not installed on the system, or if an outdated `wasm-opt`
-    /// binary is used (currently a version >= 99 is required).
+    /// Fails if the `wasm-opt` binary is not installed on the system, or if an outdated
+    /// `wasm-opt` binary is used (currently a version >= 99 is required).
     pub fn new(
         optimization_level: OptimizationPasses,
         keep_debug_symbols: bool,
@@ -54,9 +57,9 @@ impl WasmOptHandler {
         &self,
         dest_wasm: &PathBuf,
         contract_artifact_name: &String,
-    ) -> Result<OptimizationResult> {
-        // We'll create a temporary file for our optimized Wasm binary. Note that we'll later
-        // overwrite this with the original path of the Wasm binary.
+    ) -> Result<()> {
+        // We'll create a temporary file for our optimized Wasm binary. Note that we'll
+        // later overwrite this with the original path of the Wasm binary.
         let mut dest_optimized = dest_wasm.clone();
         dest_optimized.set_file_name(format!("{contract_artifact_name}-opt.wasm"));
 
@@ -66,10 +69,14 @@ impl WasmOptHandler {
         );
 
         OptimizationOptions::from(self.optimization_level)
-            // Binaryen (and wasm-opt) now enables the `SignExt` and `MutableGlobals`
-            // features by default, so we want to disable those for now since
-            // `pallet-contracts` still needs to enable these.
             .mvp_features_only()
+            // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it,
+            // in order that the Wasm binary containing these instructions can be loaded.
+            .enable_feature(Feature::SignExt)
+            // This pass will then remove any `signext` instructions in order that the resulting
+            // Wasm binary is compatible with older versions of `pallet-contracts` which do not
+            // support the `signext` instruction.
+            .add_pass(Pass::SignextLowering)
             // the memory in our module is imported, `wasm-opt` needs to be told that
             // the memory is initialized to zeroes, otherwise it won't run the
             // memory-packing pre-pass.
@@ -84,16 +91,9 @@ impl WasmOptHandler {
             ))
         }
 
-        let original_size = metadata(dest_wasm)?.len() as f64 / 1000.0;
-        let optimized_size = metadata(&dest_optimized)?.len() as f64 / 1000.0;
-
         // Overwrite existing destination wasm file with the optimised version
         std::fs::rename(&dest_optimized, dest_wasm)?;
-        Ok(OptimizationResult {
-            dest_wasm: dest_wasm.clone(),
-            original_size,
-            optimized_size,
-        })
+        Ok(())
     }
 }
 
@@ -170,10 +170,8 @@ impl From<OptimizationPasses> for OptimizationOptions {
 }
 
 /// Result of the optimization process.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct OptimizationResult {
-    /// The path of the optimized Wasm file.
-    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.

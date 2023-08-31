@@ -20,16 +20,8 @@ use super::{
         runtime_types::sp_core::bounded::bounded_vec,
     },
     Client,
+    basic_display_format_contract_info,
     DefaultConfig,
-};
-use crate::{
-    cmd::{
-        runtime_api::api::runtime_types::pallet_contracts::storage::ContractInfo,
-        Balance,
-        CodeHash,
-        ErrorVariant,
-    },
-    name_value_println,
 };
 use anyhow::{
     anyhow,
@@ -39,10 +31,15 @@ use std::{
     fmt::Debug,
     io::Write,
 };
+use contract_extrinsics::{
+    fetch_contract_info,
+    ErrorVariant,
+};
 use subxt::{
     Config,
     OnlineClient,
 };
+use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -73,11 +70,11 @@ impl InfoCommand {
             self.contract
         );
 
-        async_std::task::block_on(async {
+        Runtime::new()?.block_on(async {
             let url = self.url.clone();
             let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-            let info_result = self.fetch_contract_info(&client).await?;
+            let info_result = fetch_contract_info(&self.contract, &client).await?;
 
             match info_result {
                 Some(info_result) => {

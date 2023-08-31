@@ -24,6 +24,7 @@ use crate::{
     ManifestPath,
     OptimizationPasses,
     OutputType,
+    Target,
     Verbosity,
 };
 use anyhow::Result;
@@ -61,8 +62,8 @@ macro_rules! build_tests {
 // All functions provided here are run sequentially as part of the same `#[test]`
 // sharing build artifacts (but nothing else) using the [`BuildTestContext`].
 //
-// The motivation for this is to considerably speed up these tests by only requiring dependencies
-// to be build once across all tests.
+// The motivation for this is to considerably speed up these tests by only requiring
+// dependencies to be build once across all tests.
 build_tests!(
     build_code_only,
     check_must_not_output_contract_artifacts_in_project_dir,
@@ -74,6 +75,7 @@ build_tests!(
     keep_debug_symbols_in_release_mode,
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
+    building_contract_with_build_rs_must_work,
     missing_cargo_dylint_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
@@ -85,7 +87,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -125,7 +127,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -162,9 +164,11 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         unstable_flags: Default::default(),
         optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
-        lint: false,
+        dylint: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
+        target: Default::default(),
+        ..Default::default()
     };
 
     // when
@@ -203,9 +207,11 @@ fn optimization_passes_from_profile_must_be_used(
         // no optimization passes specified.
         optimization_passes: None,
         keep_debug_symbols: false,
-        lint: false,
+        dylint: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
+        target: Default::default(),
+        ..Default::default()
     };
 
     // when
@@ -231,7 +237,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -250,7 +256,7 @@ fn building_template_in_release_mode_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -280,7 +286,33 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: false,
+        dylint: false,
+        ..Default::default()
+    };
+
+    // when
+    let res = super::execute(args);
+
+    // then
+    assert!(res.is_ok(), "building contract failed!");
+    Ok(())
+}
+
+fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Result<()> {
+    // given
+    let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+    test_manifest.add_package_value("build", "build.rs".to_string().into())?;
+    test_manifest.write()?;
+
+    let path = manifest_path.directory().expect("dir must exist");
+    let build_rs_path = path.join(Path::new("build.rs"));
+
+    fs::write(build_rs_path, "fn main() {}")?;
+
+    let args = ExecuteArgs {
+        manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::CheckOnly,
+        dylint: false,
         ..Default::default()
     };
 
@@ -298,7 +330,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -316,7 +348,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -333,7 +365,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
 
@@ -363,7 +395,7 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
-        lint: true,
+        dylint: true,
         ..Default::default()
     };
     let res = super::execute(args).map(|_| ()).unwrap_err();
@@ -398,15 +430,15 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     )?;
     test_manifest.write()?;
 
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path, Target::Wasm)?;
 
     // usually this file will be produced by a previous build step
-    let final_contract_wasm_path = &crate_metadata.dest_wasm;
+    let final_contract_wasm_path = &crate_metadata.dest_code;
     fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = ExecuteArgs {
-        lint: false,
+        dylint: false,
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();
@@ -460,7 +492,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let user = metadata_json.get("user").expect("user section not found");
 
     // calculate wasm hash
-    let fs_wasm = fs::read(&crate_metadata.dest_wasm)?;
+    let fs_wasm = fs::read(&crate_metadata.dest_code)?;
     let expected_hash = crate::code_hash(&fs_wasm[..]);
     let expected_wasm = build_byte_str(&fs_wasm);
 
@@ -629,17 +661,17 @@ fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
         .any(|e| e.name() == "name")
 }
 
-/// Enables running a group of tests sequentially, each starting with the original template
-/// contract, but maintaining the target directory so compilation artifacts are maintained across
-/// each test.
+/// Enables running a group of tests sequentially, each starting with the original
+/// template contract, but maintaining the target directory so compilation artifacts are
+/// maintained across each test.
 pub struct BuildTestContext {
     template_dir: PathBuf,
     working_dir: PathBuf,
 }
 
 impl BuildTestContext {
-    /// Create a new `BuildTestContext`, running the `new` command to create a blank contract
-    /// template project for testing the build process.
+    /// Create a new `BuildTestContext`, running the `new` command to create a blank
+    /// contract template project for testing the build process.
     pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
         crate::new_contract_project(working_project_name, Some(tmp_dir))
             .expect("new project creation failed");
@@ -656,14 +688,15 @@ impl BuildTestContext {
         })
     }
 
-    /// Run the supplied test. Test failure will print the error to `stdout`, and this will still
-    /// return `Ok(())` in order that subsequent tests will still be run.
+    /// Run the supplied test. Test failure will print the error to `stdout`, and this
+    /// will still return `Ok(())` in order that subsequent tests will still be run.
     ///
-    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so after
-    /// completion those files are reverted to their original state for the next test.
+    /// The test may modify the contracts project files (e.g. Cargo.toml, lib.rs), so
+    /// after completion those files are reverted to their original state for the next
+    /// test.
     ///
-    /// Importantly, the `target` directory is maintained so as to avoid recompiling all of the
-    /// dependencies for each test.
+    /// Importantly, the `target` directory is maintained so as to avoid recompiling all
+    /// of the dependencies for each test.
     pub fn run_test(
         &self,
         name: &str,
@@ -671,19 +704,20 @@ impl BuildTestContext {
     ) -> Result<()> {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
-        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+        let crate_metadata = CrateMetadata::collect(&manifest_path, Target::Wasm)?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
                 println!("{name} FAILED: {err:?}");
             }
         }
-        // revert to the original template files, but keep the `target` dir from the previous run.
+        // revert to the original template files, but keep the `target` dir from the
+        // previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
         // remove the original wasm artifact to force it to be rebuilt
-        if crate_metadata.original_wasm.exists() {
-            fs::remove_file(&crate_metadata.original_wasm)?;
+        if crate_metadata.original_code.exists() {
+            fs::remove_file(&crate_metadata.original_code)?;
         }
         Ok(())
     }

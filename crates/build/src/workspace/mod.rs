@@ -24,7 +24,12 @@ pub use self::{
         Manifest,
         ManifestPath,
     },
-    profile::Profile,
+    profile::{
+        Lto,
+        OptLevel,
+        PanicStrategy,
+        Profile,
+    },
 };
 
 use anyhow::Result;
@@ -34,59 +39,42 @@ use cargo_metadata::{
     PackageId,
 };
 
-use std::{
-    collections::HashMap,
-    path::{
-        Path,
-        PathBuf,
-    },
+use std::path::{
+    Path,
+    PathBuf,
 };
 
-/// Make a copy of a cargo workspace, maintaining only the directory structure and manifest
-/// files. Relative paths to source files and non-workspace dependencies are rewritten to absolute
-/// paths to the original locations.
+/// Make a copy of a contract project manifest, allow modifications to be made to it,
+/// rewrite the paths to point to the original project files, then write to a temporary
+/// directory.
 ///
-/// This allows custom amendments to be made to the manifest files without editing the originals
-/// directly.
+/// This allows custom amendments to be made to the manifest files without editing the
+/// originals directly.
 pub struct Workspace {
     workspace_root: PathBuf,
-    root_package: PackageId,
-    members: HashMap<PackageId, (Package, Manifest)>,
+    root_package: Package,
+    root_manifest: Manifest,
 }
 
 impl Workspace {
-    /// Create a new Workspace from the supplied cargo metadata.
+    /// Create a new Workspace from the supplied cargo metadata and the id of the root
+    /// contract package.
     pub fn new(metadata: &CargoMetadata, root_package: &PackageId) -> Result<Self> {
-        let member_manifest =
-            |package_id: &PackageId| -> Result<(PackageId, (Package, Manifest))> {
-                let package = metadata
-                    .packages
-                    .iter()
-                    .find(|p| p.id == *package_id)
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "Package '{package_id}' is a member and should be in the packages list"
-                        )
-                    });
-                let manifest_path = ManifestPath::new(&package.manifest_path)?;
-                let manifest = Manifest::new(manifest_path)?;
-                Ok((package_id.clone(), (package.clone(), manifest)))
-            };
-
-        let members = metadata
-            .workspace_members
+        let root_package = metadata
+            .packages
             .iter()
-            .map(member_manifest)
-            .collect::<Result<HashMap<_, _>>>()?;
+            .find(|p| p.id == *root_package)
+            .ok_or_else(|| {
+                anyhow::anyhow!("The root package should be a workspace member")
+            })?;
 
-        if !members.contains_key(root_package) {
-            anyhow::bail!("The root package should be a workspace member")
-        }
+        let manifest_path = ManifestPath::new(&root_package.manifest_path)?;
+        let root_manifest = Manifest::new(manifest_path)?;
 
         Ok(Workspace {
             workspace_root: metadata.workspace_root.clone().into(),
             root_package: root_package.clone(),
-            members,
+            root_manifest,
         })
     }
 
@@ -94,103 +82,48 @@ impl Workspace {
     ///
     /// # Note
     ///
-    /// The root package is the current workspace package being built, not to be confused with
-    /// the workspace root (where the top level workspace `Cargo.toml` is defined).
+    /// The root package is the current workspace package being built, not to be confused
+    /// with the workspace root (where the top level workspace `Cargo.toml` is
+    /// defined).
     pub fn with_root_package_manifest<F>(&mut self, f: F) -> Result<&mut Self>
     where
         F: FnOnce(&mut Manifest) -> Result<()>,
     {
-        let root_package_manifest = self
-            .members
-            .get_mut(&self.root_package)
-            .map(|(_, m)| m)
-            .expect("The root package should be a workspace member");
-        f(root_package_manifest)?;
-        Ok(self)
-    }
-
-    /// Amend the manifest of the package at `package_path` using the supplied function.
-    pub fn with_contract_manifest<F>(
-        &mut self,
-        package_path: &Path,
-        f: F,
-    ) -> Result<&mut Self>
-    where
-        F: FnOnce(&mut Manifest) -> Result<()>,
-    {
-        let manifest = self
-            .members
-            .iter_mut()
-            .find_map(|(_, (_, manifest))| {
-                // `package_path` is always absolute and canonicalized. Thus we need to
-                // canonicalize the manifest's directory path as well in order to compare
-                // both of them.
-                let manifest_path = manifest.path().directory()?;
-                let manifest_path = manifest_path.canonicalize().unwrap_or_else(|_| {
-                    panic!("Cannot canonicalize {}", manifest_path.display())
-                });
-                if manifest_path == package_path {
-                    Some(manifest)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Cannot find package with package path {} in workspace members",
-                    package_path.display(),
-                )
-            })?;
-        f(manifest)?;
+        f(&mut self.root_manifest)?;
         Ok(self)
     }
 
     /// Generates a package to invoke for generating contract metadata.
     ///
     /// The contract metadata will be generated for the package found at `package_path`.
-    pub(super) fn with_metadata_gen_package(
-        &mut self,
-        package_path: PathBuf,
-    ) -> Result<&mut Self> {
-        self.with_contract_manifest(&package_path, |manifest| {
-            manifest.with_metadata_package()?;
-            Ok(())
-        })
+    pub(super) fn with_metadata_gen_package(&mut self) -> Result<&mut Self> {
+        self.root_manifest.with_metadata_package()?;
+        Ok(self)
     }
 
-    /// Writes the amended manifests to the `target` directory, retaining the workspace directory
-    /// structure, but only with the `Cargo.toml` files.
+    /// Writes the amended manifest to the `target` directory. Relative paths will be
+    /// rewritten to absolute paths from the original project root.
     ///
-    /// Relative paths will be rewritten to absolute paths from the original workspace root, except
-    /// intra-workspace relative dependency paths which will be preserved.
-    ///
-    /// Returns the paths of the new manifests.
-    pub fn write<P: AsRef<Path>>(
-        &mut self,
-        target: P,
-    ) -> Result<Vec<(PackageId, ManifestPath)>> {
-        let exclude_member_package_names = self
-            .members
-            .iter()
-            .map(|(_, (p, _))| p.name.clone())
-            .collect::<Vec<_>>();
-        let mut new_manifest_paths = Vec::new();
-        for (package_id, (package, manifest)) in self.members.iter_mut() {
-            // replace the original workspace root with the temporary directory
-            let mut new_path: PathBuf = target.as_ref().into();
-            new_path.push(package.manifest_path.strip_prefix(&self.workspace_root)?);
-            let new_manifest = ManifestPath::new(new_path)?;
+    /// Returns the path of the new manifest.
+    pub fn write<P: AsRef<Path>>(&mut self, target: P) -> Result<ManifestPath> {
+        // replace the original workspace root with the temporary directory
+        let mut new_path: PathBuf = target.as_ref().into();
+        new_path.push(
+            self.root_package
+                .manifest_path
+                .strip_prefix(&self.workspace_root)?,
+        );
+        let new_manifest = ManifestPath::new(new_path)?;
 
-            manifest.rewrite_relative_paths(&exclude_member_package_names)?;
-            manifest.write(&new_manifest)?;
+        self.root_manifest.rewrite_relative_paths()?;
+        self.root_manifest.write(&new_manifest)?;
 
-            new_manifest_paths.push((package_id.clone(), new_manifest));
-        }
-        Ok(new_manifest_paths)
+        Ok(new_manifest)
     }
 
-    /// Copy the workspace with amended manifest files to a temporary directory, executing the
-    /// supplied function with the root manifest path before the directory is cleaned up.
+    /// Write the amended manifest file to a temporary directory, then execute the
+    /// supplied function with the temporary manifest path before the directory is
+    /// cleaned up.
     pub fn using_temp<F>(&mut self, f: F) -> Result<()>
     where
         F: FnOnce(&ManifestPath) -> Result<()>,
@@ -199,23 +132,11 @@ impl Workspace {
             .prefix("cargo-contract_")
             .tempdir()?;
         tracing::debug!("Using temp workspace at '{}'", tmp_dir.path().display());
-        let new_paths = self.write(&tmp_dir)?;
-        let tmp_root_manifest_path = new_paths
-            .iter()
-            .find_map(|(pid, path)| {
-                if *pid == self.root_package {
-                    Some(path)
-                } else {
-                    None
-                }
-            })
-            .expect("root package should be a member of the temp workspace");
+        let tmp_root_manifest_path = self.write(&tmp_dir)?;
 
         // copy the `Cargo.lock` file
         let src_lockfile = self.workspace_root.clone().join("Cargo.lock");
-        let dest_lockfile = tmp_root_manifest_path
-            .absolute_directory()?
-            .join("Cargo.lock");
+        let dest_lockfile = tmp_dir.path().join("Cargo.lock");
         if src_lockfile.exists() {
             tracing::debug!(
                 "Copying '{}' to ' '{}'",
@@ -225,6 +146,6 @@ impl Workspace {
             std::fs::copy(src_lockfile, dest_lockfile)?;
         }
 
-        f(tmp_root_manifest_path)
+        f(&tmp_root_manifest_path)
     }
 }

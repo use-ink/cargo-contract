@@ -158,7 +158,8 @@ impl Map {
         self.map.values()
     }
 
-    /// Return a reference to the value stored for string key, if it is present, else None.
+    /// Return a reference to the value stored for string key, if it is present, else
+    /// None.
     pub fn get_by_str(&self, key: &str) -> Option<&Value> {
         self.map.get(&Value::String(key.to_string()))
     }

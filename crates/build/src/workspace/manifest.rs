@@ -134,29 +134,48 @@ impl Manifest {
     pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
-
-        Ok(Manifest {
+        let mut manifest = Manifest {
             path: manifest_path,
             toml,
             metadata_package: false,
-        })
+        };
+        let profile = manifest.profile_release_table_mut()?;
+        if profile
+            .get("overflow-checks")
+            .and_then(|val| val.as_bool())
+            .unwrap_or(false)
+        {
+            anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
+        }
+        Ok(manifest)
     }
 
-    /// Get the path of the manifest file
-    pub(super) fn path(&self) -> &ManifestPath {
-        &self.path
+    /// Get the name of the package.
+    fn name(&self) -> Result<&str> {
+        self.toml
+            .get("package")
+            .ok_or_else(|| anyhow::anyhow!("package section not found"))?
+            .as_table()
+            .ok_or_else(|| anyhow::anyhow!("package section should be a table"))?
+            .get("name")
+            .ok_or_else(|| anyhow::anyhow!("package must have a name"))?
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("package name must be a string"))
     }
 
-    /// Get mutable reference to `[lib] crate-types = []` section
-    fn get_crate_types_mut(&mut self) -> Result<&mut value::Array> {
-        let lib = self
-            .toml
+    /// Get a mutable reference to the `[lib]` section.
+    fn lib_target_mut(&mut self) -> Result<&mut value::Table> {
+        self.toml
             .get_mut("lib")
-            .ok_or_else(|| anyhow::anyhow!("lib section not found"))?;
-
-        let crate_types = lib
+            .ok_or_else(|| anyhow::anyhow!("lib section not found"))?
             .as_table_mut()
-            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))?
+            .ok_or_else(|| anyhow::anyhow!("lib section should be a table"))
+    }
+
+    /// Get mutable reference to `[lib] crate-types = []` section.
+    fn crate_types_mut(&mut self) -> Result<&mut value::Array> {
+        let crate_types = self
+            .lib_target_mut()?
             .entry("crate-type")
             .or_insert(value::Value::Array(Default::default()));
 
@@ -165,18 +184,16 @@ impl Manifest {
             .ok_or_else(|| anyhow::anyhow!("crate-types should be an Array"))
     }
 
-    /// Set the contents of the `[lib] crate-types = []` section.
-    ///
-    /// Overwrites any existing crate types.
-    pub fn with_crate_types<'a, I>(&mut self, new_crate_types: I) -> Result<&mut Self>
-    where
-        I: IntoIterator<Item = &'a str>,
-    {
-        let existing_crate_types = self.get_crate_types_mut()?;
-        existing_crate_types.clear();
-        for crate_type in new_crate_types.into_iter() {
-            existing_crate_types.push(crate_type.into())
+    /// Replaces the `[lib]` target by a single `[bin]` target using the same file and
+    /// name.
+    pub fn with_replaced_lib_to_bin(&mut self) -> Result<&mut Self> {
+        let mut lib = self.lib_target_mut()?.clone();
+        self.toml.remove("lib");
+        if !lib.contains_key("name") {
+            lib.insert("name".into(), self.name()?.into());
         }
+        lib.remove("crate-types");
+        self.toml.insert("bin".into(), vec![lib].into());
         Ok(self)
     }
 
@@ -184,7 +201,7 @@ impl Manifest {
     ///
     /// If the value already exists, does nothing.
     pub fn with_added_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
-        let crate_types = self.get_crate_types_mut()?;
+        let crate_types = self.crate_types_mut()?;
         if !crate_type_exists(crate_type, crate_types) {
             crate_types.push(crate_type.into());
         }
@@ -192,7 +209,7 @@ impl Manifest {
     }
 
     /// Extract `optimization-passes` from `[package.metadata.contract]`
-    pub fn get_profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
+    pub fn profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
         self.toml
             .get("package")?
             .as_table()?
@@ -205,44 +222,35 @@ impl Manifest {
             .map(Into::into)
     }
 
-    /// Set `[profile.release]` lto flag
-    pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
-        let lto = self
-            .get_profile_release_table_mut()?
-            .entry("lto")
-            .or_insert(enabled.into());
-        *lto = enabled.into();
-        Ok(self)
-    }
-
     /// Set preferred defaults for the `[profile.release]` section
     ///
     /// # Note
     ///
-    /// Existing user defined settings for this section are preserved. Only if a setting is not
-    /// defined is the preferred default set.
+    /// Existing user defined settings for this section are preserved. Only if a setting
+    /// is not defined is the preferred default set.
     pub fn with_profile_release_defaults(
         &mut self,
         defaults: Profile,
     ) -> Result<&mut Self> {
-        let profile_release = self.get_profile_release_table_mut()?;
+        let profile_release = self.profile_release_table_mut()?;
         defaults.merge(profile_release);
         Ok(self)
     }
 
-    /// Set empty `[workspace]` section if it does not exist.
+    /// Set `[workspace]` section to an empty table. When building a contract project any
+    /// workspace members are not copied to the temporary workspace, so need to be
+    /// removed.
     ///
-    /// Ignores the `workspace` from the parent `Cargo.toml`.
-    /// This can reduce the size of the contract in some cases.
-    pub fn with_workspace(&mut self) -> Result<&mut Self> {
-        if let toml::map::Entry::Vacant(value) = self.toml.entry("workspace") {
-            value.insert(value::Value::Table(Default::default()));
-        }
-        Ok(self)
+    /// Additionally, where no workspace is already specified, this can in some cases
+    /// reduce the size of the contract.
+    pub fn with_empty_workspace(&mut self) -> &mut Self {
+        self.toml
+            .insert("workspace".into(), value::Value::Table(Default::default()));
+        self
     }
 
     /// Get mutable reference to `[profile.release]` section
-    fn get_profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
+    fn profile_release_table_mut(&mut self) -> Result<&mut value::Table> {
         let profile = self
             .toml
             .entry("profile")
@@ -261,7 +269,7 @@ impl Manifest {
     ///
     /// If the value does not exist, does nothing.
     pub fn with_removed_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
-        let crate_types = self.get_crate_types_mut()?;
+        let crate_types = self.crate_types_mut()?;
         if crate_type_exists(crate_type, crate_types) {
             crate_types.retain(|v| v.as_str().map_or(true, |s| s != crate_type));
         }
@@ -341,14 +349,9 @@ impl Manifest {
     ///
     /// - `[lib]/path`
     /// - `[dependencies]`
-    ///
-    /// Dependencies with package names specified in `exclude_deps` will not be rewritten.
-    pub fn rewrite_relative_paths(&mut self, exclude_deps: &[String]) -> Result<()> {
+    pub fn rewrite_relative_paths(&mut self) -> Result<()> {
         let manifest_dir = self.path.absolute_directory()?;
-        let path_rewrite = PathRewrite {
-            exclude_deps,
-            manifest_dir,
-        };
+        let path_rewrite = PathRewrite { manifest_dir };
         path_rewrite.rewrite_relative_paths(&mut self.toml)
     }
 
@@ -413,14 +416,23 @@ impl Manifest {
 }
 
 /// Replace relative paths with absolute paths with the working directory.
-struct PathRewrite<'a> {
-    exclude_deps: &'a [String],
+struct PathRewrite {
     manifest_dir: PathBuf,
 }
 
-impl<'a> PathRewrite<'a> {
+impl PathRewrite {
     /// Replace relative paths with absolute paths with the working directory.
     fn rewrite_relative_paths(&self, toml: &mut value::Table) -> Result<()> {
+        // Rewrite `[package.build]` path to an absolute path.
+        if let Some(package) = toml.get_mut("package") {
+            let package = package
+                .as_table_mut()
+                .ok_or_else(|| anyhow::anyhow!("`[package]` should be a table"))?;
+            if let Some(build) = package.get_mut("build") {
+                self.to_absolute_path("[package.build]".to_string(), build)?
+            }
+        }
+
         // Rewrite `[lib] path = /path/to/lib.rs`
         if let Some(lib) = toml.get_mut("lib") {
             self.rewrite_path(lib, "lib", "src/lib.rs")?;
@@ -516,14 +528,12 @@ impl<'a> PathRewrite<'a> {
                     package_name.to_string()
                 };
 
-                if !self.exclude_deps.contains(&package_name) {
-                    if let Some(dependency) = value.as_table_mut() {
-                        if let Some(dep_path) = dependency.get_mut("path") {
-                            self.to_absolute_path(
-                                format!("dependency {package_name}"),
-                                dep_path,
-                            )?;
-                        }
+                if let Some(dependency) = value.as_table_mut() {
+                    if let Some(dep_path) = dependency.get_mut("path") {
+                        self.to_absolute_path(
+                            format!("dependency {package_name}"),
+                            dep_path,
+                        )?;
                     }
                 }
             }

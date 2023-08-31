@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -18,9 +18,17 @@ mod balance;
 mod call;
 mod error;
 mod events;
+mod extrinsic_opts;
 mod instantiate;
 mod remove;
+mod runtime_api;
 mod upload;
+
+#[cfg(test)]
+#[cfg(feature = "integration-tests")]
+mod integration_tests;
+
+use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
@@ -28,45 +36,23 @@ use anyhow::{
     Ok,
     Result,
 };
-use colored::Colorize;
 use jsonrpsee::{
     core::client::ClientT,
     rpc_params,
     ws_client::WsClientBuilder,
 };
-use std::{
-    io::{
-        self,
-        Write,
-    },
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
-use crate::{
-    cmd::{
-        Balance,
-        Client,
-    },
+use crate::runtime_api::api::{self,};
+use contract_build::{
+    CrateMetadata,
     DEFAULT_KEY_COL_WIDTH,
 };
-
-use contract_build::{
-    name_value_println,
-    CrateMetadata,
-    Verbosity,
-    VerbosityFlags,
-};
-use pallet_contracts_primitives::ContractResult;
 use scale::{
     Decode,
     Encode,
 };
-use sp_core::{
-    crypto::Pair,
-    sr25519,
-    Bytes,
-};
-use sp_weights::Weight;
+use sp_core::Bytes;
 use subxt::{
     blocks,
     config,
@@ -74,6 +60,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt_signer::sr25519::Keypair;
 
 use std::{
     option::Option,
@@ -84,103 +71,47 @@ pub use balance::{
     BalanceVariant,
     TokenMetadata,
 };
-pub use call::CallCommand;
+pub use call::{
+    CallCommandBuilder,
+    CallExec,
+    CallRequest,
+};
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
-pub use error::ErrorVariant;
-pub use instantiate::InstantiateCommand;
-pub use remove::RemoveCommand;
+pub use error::{
+    ErrorVariant,
+    GenericError,
+};
+pub use events::DisplayEvents;
+pub use extrinsic_opts::{
+    state,
+    ExtrinsicOptsBuilder,
+    Missing,
+};
+pub use instantiate::{
+    Code,
+    InstantiateArgs,
+    InstantiateCommandBuilder,
+    InstantiateDryRunResult,
+    InstantiateExec,
+    InstantiateExecResult,
+};
+pub use remove::{
+    RemoveCommandBuilder,
+    RemoveExec,
+};
+
 pub use subxt::PolkadotConfig as DefaultConfig;
-pub use upload::UploadCommand;
+pub use upload::{
+    CodeUploadRequest,
+    UploadCommandBuilder,
+    UploadExec,
+    UploadResult,
+};
 
-type PairSigner = tx::PairSigner<DefaultConfig, sr25519::Pair>;
-
-/// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug, clap::Args)]
-pub struct ExtrinsicOpts {
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
-    #[clap(value_parser, conflicts_with = "manifest_path")]
-    file: Option<PathBuf>,
-    /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser)]
-    manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
-    /// Secret key URI for the account deploying the contract.
-    #[clap(name = "suri", long, short)]
-    suri: String,
-    /// Password for the secret key.
-    #[clap(name = "password", long, short)]
-    password: Option<String>,
-    #[clap(flatten)]
-    verbosity: VerbosityFlags,
-    /// Submit the extrinsic for on-chain execution.
-    #[clap(short('x'), long)]
-    execute: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the storage.
-    /// consumed.
-    #[clap(long)]
-    storage_deposit_limit: Option<BalanceVariant>,
-    /// Before submitting a transaction, do not dry-run it via RPC first.
-    #[clap(long)]
-    skip_dry_run: bool,
-    /// Before submitting a transaction, do not ask the user for confirmation.
-    #[clap(long)]
-    skip_confirm: bool,
-}
-
-impl ExtrinsicOpts {
-    /// Load contract artifacts.
-    pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
-        ContractArtifacts::from_manifest_or_file(
-            self.manifest_path.as_ref(),
-            self.file.as_ref(),
-        )
-    }
-
-    /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<sr25519::Pair> {
-        Pair::from_string(&self.suri, self.password.as_ref().map(String::as_ref))
-            .map_err(|_| anyhow::anyhow!("Secret string error"))
-    }
-
-    /// Returns the verbosity
-    pub fn verbosity(&self) -> Result<Verbosity> {
-        TryFrom::try_from(&self.verbosity)
-    }
-
-    /// Convert URL to String without omitting the default port
-    pub fn url_to_string(&self) -> String {
-        let mut res = self.url.to_string();
-        match (self.url.port(), self.url.port_or_known_default()) {
-            (None, Some(port)) => {
-                res.insert_str(res.len() - 1, &format!(":{port}"));
-                res
-            }
-            _ => res,
-        }
-    }
-
-    /// Get the storage deposit limit converted to compact for passing to extrinsics.
-    pub fn storage_deposit_limit(
-        &self,
-        token_metadata: &TokenMetadata,
-    ) -> Result<Option<scale::Compact<Balance>>> {
-        Ok(self
-            .storage_deposit_limit
-            .as_ref()
-            .map(|bv| bv.denominate_balance(token_metadata))
-            .transpose()?
-            .map(Into::into))
-    }
-}
+pub type Client = OnlineClient<DefaultConfig>;
+pub type Balance = u128;
+pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// Contract artifacts for use with extrinsic commands.
 #[derive(Debug)]
@@ -203,7 +134,10 @@ impl ContractArtifacts {
     ) -> Result<ContractArtifacts> {
         let artifact_path = match (manifest_path, file) {
             (manifest_path, None) => {
-                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
+                let crate_metadata = CrateMetadata::from_manifest_path(
+                    manifest_path,
+                    contract_build::Target::Wasm,
+                )?;
 
                 if crate_metadata.contract_bundle_path().exists() {
                     crate_metadata.contract_bundle_path()
@@ -223,7 +157,8 @@ impl ContractArtifacts {
         };
         Self::from_artifact_path(artifact_path.as_path())
     }
-    /// Given a contract artifact path, load the contract code and metadata where possible.
+    /// Given a contract artifact path, load the contract code and metadata where
+    /// possible.
     fn from_artifact_path(path: &Path) -> Result<Self> {
         tracing::debug!("Loading contracts artifacts from `{}`", path.display());
         let (metadata_path, metadata, code) =
@@ -309,76 +244,23 @@ impl WasmCode {
     }
 }
 
-/// Create a new [`PairSigner`] from the given [`sr25519::Pair`].
-pub fn pair_signer(pair: sr25519::Pair) -> PairSigner {
-    PairSigner::new(pair)
-}
-
-const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
-pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
-
-/// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), WIDTH);
-    name_value_println!("Gas Required", format!("{:?}", result.gas_required), WIDTH);
-    name_value_println!(
-        STORAGE_DEPOSIT_KEY,
-        format!("{:?}", result.storage_deposit),
-        WIDTH
-    );
-
-    // print debug messages aligned, only first line has key
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_dry_run_result_warning(command: &str) {
-    println!("Your {} call {} been executed.", command, "has not".bold());
-    println!(
-            "To submit the transaction and execute the call on chain, add {} flag to the command.",
-            "-x/--execute".bold()
-        );
+/// Get the account id from the Keypair
+pub fn account_id(keypair: &Keypair) -> AccountId32 {
+    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors
 ///
-/// If a runtime Module error occurs, this will only display the pallet and error indices. Dynamic
-/// lookups of the actual error will be available once the following issue is resolved:
-/// <https://github.com/paritytech/subxt/issues/443>.
+/// If a runtime Module error occurs, this will only display the pallet and error indices.
+/// Dynamic lookups of the actual error will be available once the following issue is
+/// resolved: <https://github.com/paritytech/subxt/issues/443>.
 ///
 /// # Finality
 ///
-/// Currently this will report success once the transaction is included in a block. In the future
-/// there could be a flag to wait for finality before reporting success.
+/// Currently this will report success once the transaction is included in a block. In the
+/// future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
     call: &Call,
@@ -388,8 +270,7 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Index, T::Hash>>::OtherParams:
-        Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
 {
     client
         .tx()
@@ -408,48 +289,6 @@ async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Res
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Prompt the user to confirm transaction submission.
-fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
-    println!(
-        "{} (skip with --skip-confirm)",
-        "Confirm transaction details:".bright_white().bold()
-    );
-    show_details();
-    print!(
-        "{} ({}/n): ",
-        "Submit?".bright_white().bold(),
-        "Y".bright_white().bold()
-    );
-
-    let mut buf = String::new();
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut buf)?;
-    match buf.trim().to_lowercase().as_str() {
-        // default is 'y'
-        "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Transaction not submitted")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
-    }
-}
-
-fn print_dry_running_status(msg: &str) {
-    println!(
-        "{:>width$} {} (skip with --skip-dry-run)",
-        "Dry-running".green().bold(),
-        msg.bright_white().bold(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
-}
-
-fn print_gas_required_success(gas: Weight) {
-    println!(
-        "{:>width$} Gas required estimated at {}",
-        "Success!".green().bold(),
-        gas.to_string().bright_white(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
-}
-
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
 pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     let bytes = contract_build::util::decode_hex(input)?;
@@ -461,8 +300,71 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`, required
-/// for json output.
+/// Fetch the contract info from the storage using the provided client.
+pub async fn fetch_contract_info(
+    contract: &AccountId32,
+    client: &Client,
+) -> Result<Option<ContractInfo>> {
+    let info_contract_call = api::storage().contracts().contract_info_of(contract);
+
+    let contract_info_of = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&info_contract_call)
+        .await?;
+
+    match contract_info_of {
+        Some(info_result) => {
+            let convert_trie_id = hex::encode(info_result.trie_id.0);
+            Ok(Some(ContractInfo {
+                trie_id: convert_trie_id,
+                code_hash: info_result.code_hash,
+                storage_items: info_result.storage_items,
+                storage_item_deposit: info_result.storage_item_deposit,
+            }))
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ContractInfo {
+    trie_id: String,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
+}
+
+impl ContractInfo {
+    /// Convert and return contract info in JSON format.
+    pub fn to_json(&self) -> Result<String> {
+        Ok(serde_json::to_string_pretty(self)?)
+    }
+
+    /// Return the trie_id of the contract.
+    pub fn trie_id(&self) -> &str {
+        &self.trie_id
+    }
+
+    /// Return the code_hash of the contract.
+    pub fn code_hash(&self) -> &CodeHash {
+        &self.code_hash
+    }
+
+    /// Return the number of storage items of the contract.
+    pub fn storage_items(&self) -> u32 {
+        self.storage_items
+    }
+
+    /// Return the storage item deposit of the contract.
+    pub fn storage_item_deposit(&self) -> Balance {
+        self.storage_item_deposit
+    }
+}
+
+/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
+/// required for json output.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
 pub enum StorageDeposit {
     /// The transaction reduced storage consumption.
@@ -472,8 +374,8 @@ pub enum StorageDeposit {
     Refund(Balance),
     /// The transaction increased overall storage usage.
     ///
-    /// This means that the specified amount of balance was transferred from the call origin
-    /// to the contracts involved.
+    /// This means that the specified amount of balance was transferred from the call
+    /// origin to the contracts involved.
     Charge(Balance),
 }
 

@@ -17,17 +17,18 @@
 use crate::{
     code_hash,
     crate_metadata::CrateMetadata,
-    maybe_println,
     util,
+    verbose_eprintln,
     workspace::{
         ManifestPath,
         Workspace,
     },
     BuildMode,
-    BuildSteps,
     Features,
+    Lto,
     Network,
     OptimizationPasses,
+    Profile,
     UnstableFlags,
     Verbosity,
 };
@@ -56,7 +57,7 @@ use std::{
 use url::Url;
 
 /// Artifacts resulting from metadata generation.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct MetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
@@ -109,14 +110,13 @@ pub struct WasmOptSettings {
 ///
 /// It does so by generating and invoking a temporary workspace member.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute(
+pub fn execute(
     crate_metadata: &CrateMetadata,
     final_contract_wasm: &Path,
     metadata_artifacts: &MetadataArtifacts,
     features: &Features,
     network: Network,
     verbosity: Verbosity,
-    mut build_steps: BuildSteps,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
 ) -> Result<()> {
@@ -128,11 +128,11 @@ pub(crate) fn execute(
     } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
-        maybe_println!(
+        verbose_eprintln!(
             verbosity,
             " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating metadata".bright_green().bold()
+            "[==]".bold(),
+            "Generating metadata".bright_green().bold(),
         );
         let target_dir = crate_metadata
             .target_directory
@@ -149,33 +149,23 @@ pub(crate) fn execute(
         network.append_to_args(&mut args);
         features.append_to_args(&mut args);
 
-        let stdout = util::invoke_cargo(
+        let cmd = util::cargo_cmd(
             "run",
             args,
             crate_metadata.manifest_path.directory(),
             verbosity,
-            vec![],
-        )?;
+            vec![(
+                "CARGO_ENCODED_RUSTFLAGS",
+                Some("--cap-lints=allow".to_string()),
+            )],
+        );
+        let output = cmd.stdout_capture().run()?;
 
         let ink_meta: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_slice(&stdout)?;
-        let metadata = ContractMetadata::new(source, contract, user, ink_meta);
-        {
-            let mut metadata = metadata.clone();
-            metadata.remove_source_wasm_attribute();
-            let contents = serde_json::to_string_pretty(&metadata)?;
-            fs::write(&metadata_artifacts.dest_metadata, contents)?;
-            build_steps.increment_current();
-        }
+            serde_json::from_slice(&output.stdout)?;
+        let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        maybe_println!(
-            verbosity,
-            " {} {}",
-            format!("{build_steps}").bold(),
-            "Generating bundle".bright_green().bold()
-        );
-        let contents = serde_json::to_string(&metadata)?;
-        fs::write(&metadata_artifacts.dest_bundle, contents)?;
+        write_metadata(metadata_artifacts, metadata, &verbosity, false)?;
 
         Ok(())
     };
@@ -187,14 +177,50 @@ pub(crate) fn execute(
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_added_crate_type("rlib")?
-                    .with_profile_release_lto(false)?;
+                    .with_profile_release_defaults(Profile {
+                        lto: Some(Lto::Thin),
+                        ..Profile::default()
+                    })?
+                    .with_empty_workspace();
                 Ok(())
             })?
-            .with_metadata_gen_package(
-                crate_metadata.manifest_path.absolute_directory()?,
-            )?
+            .with_metadata_gen_package()?
             .using_temp(generate_metadata)?;
     }
+
+    Ok(())
+}
+
+pub fn write_metadata(
+    metadata_artifacts: &MetadataArtifacts,
+    metadata: ContractMetadata,
+    verbosity: &Verbosity,
+    overwrite: bool,
+) -> Result<()> {
+    {
+        let mut metadata = metadata.clone();
+        metadata.remove_source_wasm_attribute();
+        let contents = serde_json::to_string_pretty(&metadata)?;
+        fs::write(&metadata_artifacts.dest_metadata, contents)?;
+    }
+
+    if overwrite {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Updating paths".bright_cyan().bold()
+        );
+    } else {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Generating bundle".bright_green().bold()
+        );
+    }
+    let contents = serde_json::to_string(&metadata)?;
+    fs::write(&metadata_artifacts.dest_bundle, contents)?;
 
     Ok(())
 }

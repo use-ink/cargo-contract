@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -15,14 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    runtime_api::api::contracts::events::ContractEmitted,
     BalanceVariant,
     DefaultConfig,
     TokenMetadata,
 };
-use crate::{
-    cmd::runtime_api::api::contracts::events::ContractEmitted,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use colored::Colorize as _;
 use contract_build::Verbosity;
 use contract_transcode::{
@@ -33,6 +31,7 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
+use scale_info::form::PortableForm;
 use std::{
     fmt::Write,
     str::FromStr,
@@ -41,7 +40,6 @@ use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
-    metadata::EventFieldMetadata,
 };
 
 /// Field that represent data of an event from invoking a contract extrinsic.
@@ -90,18 +88,20 @@ impl DisplayEvents {
     ) -> Result<DisplayEvents> {
         let mut events: Vec<Event> = vec![];
 
-        let runtime_metadata = subxt_metadata.runtime_metadata();
-        let events_transcoder = TranscoderBuilder::new(&runtime_metadata.types)
+        let events_transcoder = TranscoderBuilder::new(subxt_metadata.types())
             .with_default_custom_type_transcoders()
             .done();
 
         for event in result.iter() {
             let event = event?;
-            tracing::debug!("displaying event {:?}", event);
+            tracing::debug!(
+                "displaying event {}:{}",
+                event.pallet_name(),
+                event.variant_name()
+            );
 
-            let event_metadata =
-                subxt_metadata.event(event.pallet_index(), event.variant_index())?;
-            let event_fields = event_metadata.fields();
+            let event_metadata = event.event_metadata();
+            let event_fields = &event_metadata.variant.fields;
 
             let mut event_entry = Event {
                 pallet: event.pallet_name().to_string(),
@@ -115,7 +115,7 @@ impl DisplayEvents {
                 if <ContractEmitted as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
-                ) && field_metadata.name() == Some("data")
+                ) && field_metadata.name == Some("data".to_string())
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
                     let field = contract_event_data_field(
@@ -126,7 +126,8 @@ impl DisplayEvents {
                     event_entry.fields.push(field);
                 } else {
                     let field_name = field_metadata
-                        .name()
+                        .name
+                        .as_ref()
                         .map(|s| s.to_string())
                         .unwrap_or_else(|| {
                             let name = unnamed_field_name.to_string();
@@ -135,14 +136,14 @@ impl DisplayEvents {
                         });
 
                     let decoded_field = events_transcoder.decode(
-                        &runtime_metadata.types,
-                        field_metadata.type_id(),
+                        subxt_metadata.types(),
+                        field_metadata.ty.id,
                         event_data,
                     )?;
                     let field = Field::new(
                         field_name,
                         decoded_field,
-                        field_metadata.type_name().map(|s| s.to_string()),
+                        field_metadata.type_name.as_ref().map(|s| s.to_string()),
                     );
                     event_entry.fields.push(field);
                 }
@@ -210,7 +211,7 @@ impl DisplayEvents {
 /// [`ContractMessageTranscoder`] if available.
 fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
-    field_metadata: &EventFieldMetadata,
+    field_metadata: &scale_info::Field<PortableForm>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
@@ -230,6 +231,6 @@ fn contract_event_data_field(
     Ok(Field::new(
         String::from("data"),
         event_value,
-        field_metadata.type_name().map(|s| s.to_string()),
+        field_metadata.type_name.as_ref().map(|s| s.to_string()),
     ))
 }

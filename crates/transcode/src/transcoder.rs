@@ -86,9 +86,9 @@ pub struct TranscoderBuilder {
 impl TranscoderBuilder {
     pub fn new(registry: &PortableRegistry) -> Self {
         let types_by_path = registry
-            .types()
+            .types
             .iter()
-            .map(|ty| (PathKey::from(ty.ty().path()), ty.id()))
+            .map(|ty| (PathKey::from(&ty.ty.path), ty.id))
             .collect::<TypesByPath>();
         Self {
             types_by_path,
@@ -132,7 +132,8 @@ impl TranscoderBuilder {
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
@@ -160,7 +161,8 @@ impl TranscoderBuilder {
                 }
             }
             None => {
-                // if the type is not present in the registry, it just means it has not been used.
+                // if the type is not present in the registry, it just means it has not
+                // been used.
                 tracing::debug!("No matching type in registry for path {:?}.", path_key);
             }
         }
@@ -202,7 +204,7 @@ mod tests {
         let type_id = registry.register_type(&MetaType::new::<T>());
         let registry: PortableRegistry = registry.into();
 
-        Ok((registry, type_id.id()))
+        Ok((registry, type_id.id))
     }
 
     fn transcode_roundtrip<T>(input: &str, expected_output: Value) -> Result<()>

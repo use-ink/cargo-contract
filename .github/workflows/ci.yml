@@ -139,7 +139,7 @@ jobs:
           toolchain: stable
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -163,7 +163,7 @@ jobs:
         shell: bash
 
       - name: Run tests
-        run: cargo test --profile debug-ci --all-features -- --test-threads=1
+        run: cargo test --profile debug-ci --workspace --all-features -- --test-threads=1
 
   template:
     strategy:
@@ -183,7 +183,7 @@ jobs:
           toolchain: stable
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2

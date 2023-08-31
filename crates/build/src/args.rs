@@ -45,7 +45,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     #[default]
@@ -66,7 +66,8 @@ impl Verbosity {
     }
 }
 
-/// Use network connection to build contracts and generate metadata or use cached dependencies only.
+/// Use network connection to build contracts and generate metadata or use cached
+/// dependencies only.
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Default, serde::Serialize)]
 pub enum Network {
     /// Use network
@@ -88,7 +89,15 @@ impl Network {
 
 /// Describes which artifacts to generate
 #[derive(
-    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+    Copy,
+    Clone,
+    Default,
+    Eq,
+    PartialEq,
+    Debug,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
@@ -96,12 +105,12 @@ pub enum BuildArtifacts {
     #[clap(name = "all")]
     #[default]
     All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract` file is
-    /// skipped
+    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract`
+    /// file is skipped
     #[clap(name = "code-only")]
     CodeOnly,
-    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only checks for
-    /// compilation errors.
+    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only
+    /// checks for compilation errors.
     #[clap(name = "check-only")]
     CheckOnly,
 }
@@ -118,42 +127,60 @@ impl BuildArtifacts {
     }
 }
 
-/// Track and display the current and total number of steps.
-#[derive(Debug, Clone, Copy)]
-pub struct BuildSteps {
-    pub current_step: usize,
-    pub total_steps: Option<usize>,
+/// The list of targets that ink! supports.
+#[derive(
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
+    strum::EnumIter,
+)]
+pub enum Target {
+    /// WebAssembly
+    #[clap(name = "wasm")]
+    #[default]
+    Wasm,
+    /// RISC-V: Experimental
+    #[clap(name = "riscv")]
+    RiscV,
 }
 
-impl BuildSteps {
-    pub fn new() -> Self {
-        Self {
-            current_step: 1,
-            total_steps: None,
+impl Target {
+    /// The target string to be passed to rustc in order to build for this target.
+    pub fn llvm_target(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm32-unknown-unknown",
+            Self::RiscV => "riscv32i-unknown-none-elf",
         }
     }
 
-    pub fn increment_current(&mut self) {
-        self.current_step += 1;
+    /// Target specific flags to be set to `CARGO_ENCODED_RUSTFLAGS` while building.
+    pub fn rustflags(&self) -> Option<&'static str> {
+        match self {
+            Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
+            Self::RiscV => None,
+        }
     }
 
-    pub fn set_total_steps(&mut self, steps: usize) {
-        self.total_steps = Some(steps)
+    /// The file extension that is used by rustc when outputting the binary.
+    pub fn source_extension(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm",
+            Self::RiscV => "",
+        }
     }
-}
 
-impl Default for BuildSteps {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl fmt::Display for BuildSteps {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let total_steps = self
-            .total_steps
-            .map_or("*".to_string(), |steps| steps.to_string());
-        write!(f, "[{}/{}]", self.current_step, total_steps)
+    // The file extension that is used to store the post processed binary.
+    pub fn dest_extension(&self) -> &'static str {
+        match self {
+            Self::Wasm => "wasm",
+            Self::RiscV => "riscv",
+        }
     }
 }
 
@@ -165,8 +192,10 @@ pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     #[default]
     Debug,
-    /// The contract is build without any debugging functionality.
+    /// The contract is built without any debugging functionality.
     Release,
+    /// the contract is built in release mode and in a deterministic environment.
+    Verifiable,
 }
 
 impl fmt::Display for BuildMode {
@@ -174,6 +203,7 @@ impl fmt::Display for BuildMode {
         match self {
             Self::Debug => write!(f, "debug"),
             Self::Release => write!(f, "release"),
+            Self::Verifiable => write!(f, "verifiable"),
         }
     }
 }

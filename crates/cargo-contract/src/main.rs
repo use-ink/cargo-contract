@@ -29,18 +29,6 @@ use self::cmd::{
     RemoveCommand,
     UploadCommand,
 };
-use cmd::encode::EncodeCommand;
-use contract_build::{
-    name_value_println,
-    util::DEFAULT_KEY_COL_WIDTH,
-    OutputType,
-};
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-    str::FromStr,
-};
-
 use anyhow::{
     anyhow,
     Error,
@@ -51,11 +39,24 @@ use clap::{
     Parser,
     Subcommand,
 };
+use cmd::encode::EncodeCommand;
 use colored::Colorize;
-
-// These crates are only used when we run integration tests `--features integration-tests`. However
-// since we can't have optional `dev-dependencies` we pretend to use them during normal test runs
-// in order to satisfy the `unused_crate_dependencies` lint.
+use contract_build::{
+    util::DEFAULT_KEY_COL_WIDTH,
+    OutputType,
+};
+use contract_extrinsics::InstantiateExec;
+use sp_weights::Weight;
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+    str::FromStr,
+};
+use tokio::runtime::Runtime;
+// These crates are only used when we run integration tests `--features
+// integration-tests`. However since we can't have optional `dev-dependencies` we pretend
+// to use them during normal test runs in order to satisfy the `unused_crate_dependencies`
+// lint.
 #[cfg(test)]
 use assert_cmd as _;
 #[cfg(test)]
@@ -107,10 +108,12 @@ enum Command {
         #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
     },
-    /// Compiles the contract, generates metadata, bundles both together in a `<name>.contract` file
+    /// Compiles the contract, generates metadata, bundles both together in a
+    /// `<name>.contract` file
     #[clap(name = "build")]
     Build(BuildCommand),
-    /// Check that the code builds as Wasm; does not output any `<name>.contract` artifact to the `target/` directory
+    /// Check that the code builds as Wasm; does not output any `<name>.contract`
+    /// artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
     /// Upload contract code
@@ -151,6 +154,7 @@ fn main() {
 }
 
 fn exec(cmd: Command) -> Result<()> {
+    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;
@@ -173,31 +177,40 @@ fn exec(cmd: Command) -> Result<()> {
                 res.dest_wasm.is_none(),
                 "no dest_wasm must be on the generation result"
             );
-            if res.verbosity.is_verbose() {
-                println!("\nYour contract's code was built successfully.")
-            }
             Ok(())
         }
         Command::Upload(upload) => {
-            upload
-                .run()
-                .map_err(|err| map_extrinsic_err(err, upload.is_json()))
+            runtime.block_on(async {
+                upload
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, upload.output_json()))
+            })
         }
         Command::Instantiate(instantiate) => {
-            instantiate
-                .run()
-                .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
+            runtime.block_on(async {
+                instantiate
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, instantiate.output_json()))
+            })
         }
         Command::Call(call) => {
-            call.run()
-                .map_err(|err| map_extrinsic_err(err, call.is_json()))
+            runtime.block_on(async {
+                call.handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, call.output_json()))
+            })
         }
         Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
-            remove
-                .run()
-                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
+            runtime.block_on(async {
+                remove
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, remove.output_json()))
+            })
         }
         Command::Info(info) => info.run().map_err(format_err),
     }

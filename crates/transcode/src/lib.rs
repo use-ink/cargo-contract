@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-//! For interacting with contracts from the command line, arguments need to be "transcoded" from
-//! the string representation to the SCALE encoded representation.
+//! For interacting with contracts from the command line, arguments need to be
+//! "transcoded" from the string representation to the SCALE encoded representation.
 //!
 //! e.g. `"false" -> 0x00`
 //!
-//! And for displaying SCALE encoded data from events and RPC responses, it must be "transcoded"
-//! in the other direction from the SCALE encoded representation to a human readable string.
+//! And for displaying SCALE encoded data from events and RPC responses, it must be
+//! "transcoded" in the other direction from the SCALE encoded representation to a human
+//! readable string.
 //!
 //! e.g. `0x00 -> "false"`
 //!
@@ -33,10 +34,10 @@
 //!
 //! `"false" -> Value::Bool(false)`
 //!
-//! This value is then matched with the metadata for the expected type in that context. e.g. the
-//! [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
-//! accepts a `bool` argument to its `new` constructor, which will be reflected in the contract
-//! metadata as [`scale_info::TypeDefPrimitive::Bool`].
+//! This value is then matched with the metadata for the expected type in that context.
+//! e.g. the [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
+//! accepts a `bool` argument to its `new` constructor, which will be reflected in the
+//! contract metadata as [`scale_info::TypeDefPrimitive::Bool`].
 //!
 //! ```no_compile
 //! #[ink(constructor)]
@@ -46,14 +47,14 @@
 //! ```
 //!
 //! The parsed `Value::Bool(false)` argument value is then matched with the
-//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely encoded
-//! as a `bool`, resulting in `0x00`, which can then be appended as data to the message to invoke
-//! the constructor.
+//! [`scale_info::TypeDefPrimitive::Bool`] type metadata, and then the value can be safely
+//! encoded as a `bool`, resulting in `0x00`, which can then be appended as data to the
+//! message to invoke the constructor.
 //!
 //! # Decoding
 //!
-//! First the type of the SCALE encoded data is determined from the metadata. e.g. the return type
-//! of a message when it is invoked as a "dry run" over RPC:
+//! First the type of the SCALE encoded data is determined from the metadata. e.g. the
+//! return type of a message when it is invoked as a "dry run" over RPC:
 //!
 //! ```no_compile
 //! #[ink(message)]
@@ -62,24 +63,25 @@
 //! }
 //! ```
 //!
-//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so that when
-//! the raw data is received it can be decoded into the correct [`Value`], which is then converted
-//! to a string for displaying to the user:
+//! The metadata will define the return type as [`scale_info::TypeDefPrimitive::Bool`], so
+//! that when the raw data is received it can be decoded into the correct [`Value`], which
+//! is then converted to a string for displaying to the user:
 //!
 //! `0x00 -> Value::Bool(false) -> "false"`
 //!
 //! # SCALE Object Notation (SCON)
 //!
-//! Complex types can be represented as strings using `SCON` for human-computer interaction. It is
-//! intended to be similar to Rust syntax for instantiating types. e.g.
+//! Complex types can be represented as strings using `SCON` for human-computer
+//! interaction. It is intended to be similar to Rust syntax for instantiating types. e.g.
 //!
 //! `Foo { a: false, b: [0, 1, 2], c: "bar", d: (0, 1) }`
 //!
 //! This string could be parsed into a [`Value::Map`] and together with
-//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded bytes.
+//! [`scale_info::TypeDefComposite`] metadata could be transcoded into SCALE encoded
+//! bytes.
 //!
-//! As with the example for the primitive `bool` above, this works in the other direction for
-//! decoding SCALE encoded bytes and converting them into a human readable string.
+//! As with the example for the primitive `bool` above, this works in the other direction
+//! for decoding SCALE encoded bytes and converting them into a human readable string.
 //!
 //! # Example
 //! ```no_run
@@ -127,6 +129,7 @@ use ink_metadata::{
     InkProject,
     MessageSpec,
 };
+use itertools::Itertools;
 use scale::{
     Compact,
     Decode,
@@ -140,6 +143,7 @@ use scale_info::{
     Field,
 };
 use std::{
+    cmp::Ordering,
     fmt::Debug,
     path::Path,
 };
@@ -149,6 +153,24 @@ use std::{
 pub struct ContractMessageTranscoder {
     metadata: InkProject,
     transcoder: Transcoder,
+}
+
+/// Find strings from an iterable of `possible_values` similar to a given value `v`
+/// Returns a Vec of all possible values that exceed a similarity threshold
+/// sorted by ascending similarity, most similar comes last
+/// Extracted from https://github.com/clap-rs/clap/blob/v4.3.4/clap_builder/src/parser/features/suggestions.rs#L11-L26
+fn did_you_mean<T, I>(v: &str, possible_values: I) -> Vec<String>
+where
+    T: AsRef<str>,
+    I: IntoIterator<Item = T>,
+{
+    let mut candidates: Vec<(f64, String)> = possible_values
+        .into_iter()
+        .map(|pv| (strsim::jaro(v, pv.as_ref()), pv.as_ref().to_owned()))
+        .filter(|(confidence, _)| *confidence > 0.7)
+        .collect();
+    candidates.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal));
+    candidates.into_iter().map(|(_, pv)| pv).collect()
 }
 
 impl ContractMessageTranscoder {
@@ -163,7 +185,8 @@ impl ContractMessageTranscoder {
         }
     }
 
-    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the given path.
+    /// Attempt to create a [`ContractMessageTranscoder`] from the metadata file at the
+    /// given path.
     pub fn load<P>(metadata_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
@@ -200,9 +223,18 @@ impl ContractMessageTranscoder {
             ))
             }
             (None, None) => {
+                let constructors = self.constructors().map(|c| c.label());
+                let messages = self.messages().map(|c| c.label());
+                let possible_values: Vec<_> = constructors.chain(messages).collect();
+                let help_txt = did_you_mean(name, possible_values.clone())
+                    .first()
+                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
+                    .unwrap_or_else(|| {
+                        format!("Should be one of: {}", possible_values.iter().join(", "))
+                    });
+
                 return Err(anyhow::anyhow!(
-                    "No constructor or message with the name '{}' found",
-                    name
+                    "No constructor or message with the name '{name}' found.\n{help_txt}",
                 ))
             }
         };
@@ -221,7 +253,7 @@ impl ContractMessageTranscoder {
             let value = scon::parse_value(arg.as_ref())?;
             self.transcoder.encode(
                 self.metadata.registry(),
-                spec.ty().ty().id(),
+                spec.ty().ty().id,
                 &value,
                 &mut encoded,
             )?;
@@ -255,8 +287,9 @@ impl ContractMessageTranscoder {
     }
 
     pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
-        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`, which we
-        // ignore because the structure of the event data is known for decoding.
+        // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
+        // which we ignore because the structure of the event data is known for
+        // decoding.
         let _len = <Compact<u32>>::decode(data)?;
         let variant_index = data.read_byte()?;
         let event_spec = self
@@ -275,7 +308,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in event_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -304,7 +337,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -333,7 +366,7 @@ impl ContractMessageTranscoder {
         let mut args = Vec::new();
         for arg in msg_spec.args() {
             let name = arg.label().to_string();
-            let value = self.decode(arg.ty().ty().id(), data)?;
+            let value = self.decode(arg.ty().ty().id, data)?;
             args.push((Value::String(name), value));
         }
 
@@ -345,12 +378,27 @@ impl ContractMessageTranscoder {
         Ok(Value::Map(map))
     }
 
-    pub fn decode_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_constructor_return(
+        &self,
+        name: &str,
+        data: &mut &[u8],
+    ) -> Result<Value> {
+        let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
+            anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
+        })?;
+        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
+            self.decode(return_ty.ty().id, data)
+        } else {
+            Ok(Value::Unit)
+        }
+    }
+
+    pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
         if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id(), data)
+            self.decode(return_ty.ty().id, data)
         } else {
             Ok(Value::Unit)
         }
@@ -369,7 +417,7 @@ impl ContractMessageTranscoder {
                 data.len(),
                 arg_list_string,
                 encoded_bytes
-            ))
+            ));
         }
         Ok(())
     }
@@ -414,13 +462,14 @@ impl CompositeTypeFields {
     pub fn from_fields(fields: &[Field<PortableForm>]) -> Result<Self> {
         if fields.iter().next().is_none() {
             Ok(Self::NoFields)
-        } else if fields.iter().all(|f| f.name().is_some()) {
+        } else if fields.iter().all(|f| f.name.is_some()) {
             let fields = fields
                 .iter()
                 .map(|field| {
                     CompositeTypeNamedField {
                         name: field
-                            .name()
+                            .name
+                            .as_ref()
                             .expect("All fields have a name; qed")
                             .to_owned(),
                         field: field.clone(),
@@ -428,7 +477,7 @@ impl CompositeTypeFields {
                 })
                 .collect();
             Ok(Self::Named(fields))
-        } else if fields.iter().all(|f| f.name().is_none()) {
+        } else if fields.iter().all(|f| f.name.is_none()) {
             Ok(Self::Unnamed(fields.to_vec()))
         } else {
             Err(anyhow::anyhow!(
@@ -536,6 +585,16 @@ mod tests {
 
         assert_eq!(true.encode(), encoded_args);
         Ok(())
+    }
+
+    #[test]
+    fn encode_misspelled_arg() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+        assert_eq!(
+            transcoder.encode("fip", ["true"]).unwrap_err().to_string(),
+            "No constructor or message with the name 'fip' found.\nDid you mean 'flip'?"
+        );
     }
 
     #[test]
@@ -669,7 +728,7 @@ mod tests {
 
         let encoded = Result::<bool, ink::primitives::LangError>::Ok(true).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
@@ -689,7 +748,7 @@ mod tests {
         let encoded =
             Result::<bool, LangError>::Err(LangError::CouldNotReadInput).encode();
         let decoded = transcoder
-            .decode_return("get", &mut &encoded[..])
+            .decode_message_return("get", &mut &encoded[..])
             .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
 
         let expected = Value::Tuple(Tuple::new(
