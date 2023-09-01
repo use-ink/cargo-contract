@@ -383,16 +383,9 @@ fn check_buffer_size_invoke_cargo_clean(
             .parse()
             .context("`INK_STATIC_BUFFER_SIZE` must have an integer value.")?;
 
-        let cargo = util::cargo_cmd(
-            "clean",
-            Vec::<&str>::new(),
-            crate_metadata.manifest_path.directory(),
-            *verbosity,
-            vec![],
-        );
-
-        if let Ok(metadata) = ContractMetadata::load(crate_metadata.metadata_path()) {
-            let contract_buffer_size = metadata
+        let extract_buffer_size = |metadata_path: PathBuf| -> Result<u64> {
+            let size = ContractMetadata::load(metadata_path)
+                .context("Metadata is not present")?
                 .abi
                 // get `spec` field
                 .get("spec")
@@ -407,7 +400,19 @@ fn check_buffer_size_invoke_cargo_clean(
                 .as_u64()
                 .context("`staticBufferSize` value must be an integer.")?;
 
-            if contract_buffer_size == buffer_size_value {
+            Ok(size)
+        };
+
+        let cargo = util::cargo_cmd(
+            "clean",
+            Vec::<&str>::new(),
+            crate_metadata.manifest_path.directory(),
+            *verbosity,
+            vec![],
+        );
+
+        match extract_buffer_size(crate_metadata.metadata_path()) {
+            Ok(contract_buffer_size) if contract_buffer_size == buffer_size_value => {
                 verbose_eprintln!(
                     verbosity,
                     "{} {}",
@@ -415,17 +420,28 @@ fn check_buffer_size_invoke_cargo_clean(
                     "Detected a configured buffer size, but the value is already specified."
                         .bold()
                 );
-                return Ok(())
+            }
+            Ok(_) => {
+                verbose_eprintln!(
+                    verbosity,
+                    "{} {}",
+                    "warning:".yellow().bold(),
+                    "Detected a change in the configured buffer size. Rebuilding the project."
+                        .bold()
+                );
+                invoke_cargo_and_scan_for_error(cargo)?;
+            }
+            Err(_) => {
+                verbose_eprintln!(
+                    verbosity,
+                    "{} {}",
+                    "warning:".yellow().bold(),
+                    "Cannot find the previous size of the static buffer. Rebuilding the project."
+                        .bold()
+                );
+                invoke_cargo_and_scan_for_error(cargo)?;
             }
         }
-        verbose_eprintln!(
-            verbosity,
-            "{} {}",
-            "warning:".yellow().bold(),
-            "Detected a change in the configured buffer size. Rebuilding the project."
-                .bold()
-        );
-        invoke_cargo_and_scan_for_error(cargo)?;
     }
     Ok(())
 }
