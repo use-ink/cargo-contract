@@ -373,7 +373,7 @@ fn exec_cargo_for_onchain_target(
 
 /// Check if the `INK_STATIC_BUFFER_SIZE` is set.
 /// If so, then checks if the current contract has already been compiled with a new value.
-/// If not, or metadata is not present, we need to clean binaries and rebuilt.
+/// If not, or metadata is not present, we need to clean binaries and rebuild.
 fn check_buffer_size_invoke_cargo_clean(
     crate_metadata: &CrateMetadata,
     verbosity: &Verbosity,
