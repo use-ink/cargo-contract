@@ -28,6 +28,7 @@ use self::cmd::{
     InstantiateCommand,
     RemoveCommand,
     UploadCommand,
+    VerifyCommand,
 };
 use anyhow::{
     anyhow,
@@ -137,6 +138,10 @@ enum Command {
     /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
+    /// Verifies that a given contract binary matches the build result of the specified
+    /// workspace.
+    #[clap(name = "verify")]
+    Verify(VerifyCommand),
 }
 
 fn main() {
@@ -213,6 +218,16 @@ fn exec(cmd: Command) -> Result<()> {
             })
         }
         Command::Info(info) => info.run().map_err(format_err),
+        Command::Verify(verify) => {
+            let result = verify.run().map_err(format_err)?;
+
+            if result.output_json {
+                println!("{}", result.serialize_json()?)
+            } else if result.verbosity.is_verbose() {
+                println!("{}", result.display())
+            }
+            Ok(())
+        }
     }
 }
 

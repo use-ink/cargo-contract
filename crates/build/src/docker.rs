@@ -110,6 +110,16 @@ pub enum ImageVariant {
     Custom(String),
 }
 
+impl From<Option<String>> for ImageVariant {
+    fn from(value: Option<String>) -> Self {
+        if let Some(image) = value {
+            ImageVariant::Custom(image)
+        } else {
+            ImageVariant::Default
+        }
+    }
+}
+
 /// Launches the docker container to execute verifiable build.
 pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
@@ -408,8 +418,12 @@ async fn run_build(
         match output {
             LogOutput::StdOut { message } => {
                 build_result = Some(
-                    serde_json::from_reader(BufReader::new(message.as_ref()))
-                        .context("Error decoding BuildResult"),
+                    serde_json::from_reader(BufReader::new(message.as_ref())).context(
+                        format!(
+                            "Error decoding BuildResult:\n {}",
+                            std::str::from_utf8(&message).unwrap()
+                        ),
+                    ),
                 );
             }
             LogOutput::StdErr { message } => {
@@ -436,8 +450,8 @@ async fn run_build(
 fn compose_build_args() -> Result<Vec<String>> {
     use regex::Regex;
     let mut args: Vec<String> = Vec::new();
-    // match --image with arg with 1 or more white spaces surrounded
-    let rex = Regex::new(r#"--image[ ]*[^ ]*[ ]*"#)?;
+    // match `--image` or `verify` with arg with 1 or more white spaces surrounded
+    let rex = Regex::new(r#"(--image|verify)[ ]*[^ ]*[ ]*"#)?;
     // we join the args together, so we can remove `--image <arg>`
     let args_string: String = std::env::args().collect::<Vec<String>>().join(" ");
     let args_string = rex.replace_all(&args_string, "").to_string();

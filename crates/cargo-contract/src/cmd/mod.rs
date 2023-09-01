@@ -22,6 +22,7 @@ pub mod info;
 pub mod instantiate;
 pub mod remove;
 pub mod upload;
+pub mod verify;
 
 pub(crate) use self::{
     build::{
@@ -34,6 +35,7 @@ pub(crate) use self::{
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
     upload::UploadCommand,
+    verify::VerifyCommand,
 };
 
 use crate::{
