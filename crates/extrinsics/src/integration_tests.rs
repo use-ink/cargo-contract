@@ -22,6 +22,7 @@ use crate::{
     UploadCommandBuilder,
 };
 use anyhow::Result;
+use contract_build::code_hash;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -358,7 +359,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .output()
@@ -366,7 +367,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -377,6 +378,32 @@ async fn build_upload_instantiate_info() {
         output.status.success(),
         "getting info as JSON format failed: {stderr}"
     );
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--binary")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting Wasm code failed: {stderr}"
+    );
+
+    // construct the contract file path
+    let contract_wasm = project_path.join("target/ink/flipper.wasm");
+
+    let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
+    assert_eq!(code_hash(&code), code_hash(&output.stdout));
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--output-json")
+        .arg("--binary")
+        .assert()
+        .stdout(predicate::str::contains(r#""wasm": "0x"#));
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;

@@ -24,9 +24,13 @@ use anyhow::{
 };
 use contract_extrinsics::{
     fetch_contract_info,
+    fetch_wasm_code,
     ErrorVariant,
 };
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    io::Write,
+};
 use subxt::{
     Config,
     OnlineClient,
@@ -50,6 +54,9 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
+    /// Display the contract's Wasm bytecode.
+    #[clap(name = "binary", long)]
+    binary: bool,
 }
 
 impl InfoCommand {
@@ -67,10 +74,46 @@ impl InfoCommand {
 
             match info_result {
                 Some(info_to_json) => {
-                    if self.output_json {
-                        println!("{}", info_to_json.to_json()?);
-                    } else {
-                        basic_display_format_contract_info(&info_to_json);
+                    match (self.output_json, self.binary) {
+                        (true, false) => println!("{}", info_to_json.to_json()?),
+                        (false, false) => {
+                            basic_display_format_contract_info(&info_to_json)
+                        }
+                        // Binary flag applied
+                        (_, true) => {
+                            let wasm_code =
+                                fetch_wasm_code(*info_to_json.code_hash(), &client)
+                                    .await?;
+                            match (wasm_code, self.output_json) {
+                                (Some(code), false) => {
+                                    std::io::stdout()
+                                        .write_all(&code)
+                                        .expect("Writing to stdout failed")
+                                }
+                                (Some(code), true) => {
+                                    let wasm = serde_json::json!({
+                                        "wasm": format!("0x{}", hex::encode(code))
+                                    });
+                                    println!(
+                                        "{}",
+                                        serde_json::to_string_pretty(&wasm).map_err(
+                                            |err| {
+                                                anyhow!(
+                                                    "JSON serialization failed: {}",
+                                                    err
+                                                )
+                                            }
+                                        )?
+                                    );
+                                }
+                                (None, _) => {
+                                    return Err(anyhow!(
+                                        "Contract wasm code was not found"
+                                    )
+                                    .into())
+                                }
+                            }
+                        }
                     }
                     Ok(())
                 }

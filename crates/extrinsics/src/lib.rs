@@ -43,7 +43,7 @@ use jsonrpsee::{
 };
 use std::path::PathBuf;
 
-use crate::runtime_api::api::{self,};
+use crate::runtime_api::api;
 use contract_build::{
     CrateMetadata,
     DEFAULT_KEY_COL_WIDTH,
@@ -361,6 +361,21 @@ impl ContractInfo {
     pub fn storage_item_deposit(&self) -> Balance {
         self.storage_item_deposit
     }
+}
+
+/// Fetch the contract wasm code from the storage using the provided client and code hash.
+pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<Vec<u8>>> {
+    let pristine_code_address = api::storage().contracts().pristine_code(hash);
+
+    let pristine_bytes = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&pristine_code_address)
+        .await?
+        .map(|v| v.0);
+
+    Ok(pristine_bytes)
 }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,

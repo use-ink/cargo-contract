@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
 - Detect `INK_STATIC_BUFFER_SIZE` env var - [#1310](https://github.com/paritytech/cargo-contract/pull/1310)
 - Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
+- Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
 
 ## [4.0.0-alpha]
 
