@@ -15,11 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::{
-        self,
-        runtime_types::sp_core::bounded::bounded_vec,
-    },
-    Client,
     basic_display_format_contract_info,
     DefaultConfig,
 };
@@ -27,13 +22,14 @@ use anyhow::{
     anyhow,
     Result,
 };
+use contract_extrinsics::{
+    fetch_contract_info,
+    fetch_wasm_code,
+    ErrorVariant,
+};
 use std::{
     fmt::Debug,
     io::Write,
-};
-use contract_extrinsics::{
-    fetch_contract_info,
-    ErrorVariant,
 };
 use subxt::{
     Config,
@@ -77,54 +73,49 @@ impl InfoCommand {
             let info_result = fetch_contract_info(&self.contract, &client).await?;
 
             match info_result {
-                Some(info_result) => {
-                    let convert_trie_id = hex::encode(info_result.trie_id.0);
-
-                    let pristine_res =
-                        InfoCommand::fetch_pristine_code(info_result.code_hash, &client)
-                            .await?;
-                    match pristine_res {
-                        Some(pris_w) => {
-                            let wasm_code = hex::encode(pris_w.0.clone());
-                            let basic_info = BasicInfoToJson {
-                                trie_id: convert_trie_id.clone(),
-                                code_hash: info_result.code_hash,
-                                storage_items: info_result.storage_items,
-                                storage_item_deposit: info_result.storage_item_deposit,
-                            };
-                            if self.output_json {
-                                let base_code = "0x".to_owned();
-                                let final_format_code = base_code + &wasm_code;
-                                let info_to_json = GlobalInfoToJson {
-                                    trie_id: convert_trie_id.clone(),
-                                    code_hash: info_result.code_hash,
-                                    storage_items: info_result.storage_items,
-                                    storage_item_deposit: info_result
-                                        .storage_item_deposit,
-                                    pristine_wasm: Some(final_format_code),
-                                };
-                                if self.binary {
-                                    println!("{}", info_to_json.to_json()?);
-                                } else {
-                                    println!("{}", basic_info.to_json()?);
-                                }
-                            } else if self.binary {
-                                std::io::stdout().write_all(&pris_w.0).expect("writing to stdout failed");
-                            } else {
-                                InfoCommand::basic_display_format_contract_info(
-                                    basic_info,
-                                );
-                            }
-                            Ok(())
+                Some(info_to_json) => {
+                    match (self.output_json, self.binary) {
+                        (true, false) => println!("{}", info_to_json.to_json()?),
+                        (false, false) => {
+                            basic_display_format_contract_info(&info_to_json)
                         }
-                        None => {
-                            Err(anyhow!(
-                            "No pristine_code information was found for account id {}",
-                            info_result.code_hash
-                        )
-                            .into())
+                        // Binary flag applied
+                        (_, true) => {
+                            let wasm_code =
+                                fetch_wasm_code(*info_to_json.code_hash(), &client)
+                                    .await?;
+                            match (wasm_code, self.output_json) {
+                                (Some(code), false) => {
+                                    std::io::stdout()
+                                        .write_all(&code.0)
+                                        .expect("Writing to stdout failed")
+                                }
+                                (Some(code), true) => {
+                                    let wasm = serde_json::json!({
+                                        "wasm": format!("0x{}", hex::encode(code.0))
+                                    });
+                                    println!(
+                                        "{}",
+                                        serde_json::to_string_pretty(&wasm).map_err(
+                                            |err| {
+                                                anyhow!(
+                                                    "JSON serialization failed: {}",
+                                                    err
+                                                )
+                                            }
+                                        )?
+                                    );
+                                }
+                                (None, _) => {
+                                    return Err(anyhow!(
+                                        "Contract wasm code was not found"
+                                    )
+                                    .into())
+                                }
+                            }
                         }
                     }
+                    Ok(())
                 }
                 None => {
                     Err(anyhow!(
@@ -135,76 +126,5 @@ impl InfoCommand {
                 }
             }
         })
-    }
-
-    async fn fetch_contract_info(&self, client: &Client) -> Result<Option<ContractInfo>> {
-        let info_contract_call =
-            api::storage().contracts().contract_info_of(&self.contract);
-
-        let contract_info_of = client
-            .storage()
-            .at(None)
-            .await?
-            .fetch(&info_contract_call)
-            .await?;
-
-        Ok(contract_info_of)
-    }
-
-    async fn fetch_pristine_code(
-        hash: CodeHash,
-        client: &Client,
-    ) -> Result<Option<bounded_vec::BoundedVec<u8>>> {
-        let pristine_code_call = api::storage().contracts().pristine_code(hash);
-
-        let prinstine_bytes = client
-            .storage()
-            .at(None)
-            .await?
-            .fetch(&pristine_code_call)
-            .await?;
-
-        Ok(prinstine_bytes)
-    }
-
-    fn basic_display_format_contract_info(info: BasicInfoToJson) {
-        name_value_println!("TrieId:", format!("{}", info.trie_id));
-        name_value_println!("Code hash:", format!("{:?}", info.code_hash));
-        name_value_println!("Storage items:", format!("{:?}", info.storage_items));
-        name_value_println!(
-            "Storage deposit:",
-            format!("{:?}", info.storage_item_deposit)
-        );
-    }
-}
-
-#[derive(serde::Serialize)]
-struct GlobalInfoToJson {
-    trie_id: String,
-    code_hash: CodeHash,
-    storage_items: u32,
-    storage_item_deposit: Balance,
-    pristine_wasm: Option<String>,
-}
-
-impl GlobalInfoToJson {
-    /// Convert and return contract info in JSON format.
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-}
-
-#[derive(serde::Serialize)]
-struct BasicInfoToJson {
-    trie_id: String,
-    code_hash: CodeHash,
-    storage_items: u32,
-    storage_item_deposit: Balance,
-}
-
-impl BasicInfoToJson {
-    /// Convert and return contract info in JSON format.
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
     }
 }

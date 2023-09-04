@@ -31,14 +31,9 @@ pub(crate) use self::{
     call::CallCommand,
     decode::DecodeCommand,
     info::InfoCommand,
-};
-
-pub(crate) use self::extrinsics::{
-    CallCommand,
-    ErrorVariant,
-    InstantiateCommand,
-    RemoveCommand,
-    UploadCommand,
+    instantiate::InstantiateCommand,
+    remove::RemoveCommand,
+    upload::UploadCommand,
 };
 
 use crate::{

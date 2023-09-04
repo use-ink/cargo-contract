@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+- Add `--binary` flag for `info` command - [#1013](https://github.com/paritytech/cargo-contract/pull/1013/)
 
 ## [4.0.0-alpha]
 
@@ -84,7 +85,6 @@ then use the previous `3.0.1` release.
 ### Added
 - Add `info` command - [#993](https://github.com/paritytech/cargo-contract/pull/993)
 - Add `--output-json` flag for `info` command - [#1007](https://github.com/paritytech/cargo-contract/pull/1007)
-- Add `--binary` flag for `info` command - [#1013](https://github.com/paritytech/cargo-contract/pull/1013/)
 
 ### Changed
 - Minimum requirements of `ink!` dependencies all updated to `4.2.0` - [#1084](https://github.com/paritytech/cargo-contract/pull/1084)

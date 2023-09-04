@@ -22,6 +22,7 @@ use crate::{
     UploadCommandBuilder,
 };
 use anyhow::Result;
+use contract_build::code_hash;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -53,14 +54,6 @@ fn extract_contract_address(stdout: &str) -> &str {
         .expect("contract account regex capture");
     let contract_account = caps.get(1).unwrap().as_str();
     contract_account
-}
-
-// Find the code hash in the output
-fn extract_code_hash(stdout: &str) -> &str {
-    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
-    let caps = regex.captures(stdout).expect("Failed to find codehash");
-    let code_hash = caps.get(1).unwrap().as_str();
-    code_hash
 }
 
 /// Spawn and manage an instance of a compatible contracts enabled chain node.
@@ -288,7 +281,10 @@ async fn build_upload_remove() {
 
     let stdout = str::from_utf8(&output.stdout).unwrap();
 
-    let code_hash = extract_code_hash(stdout);
+    // find the code hash in the output
+    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
+    let caps = regex.captures(stdout).expect("Failed to find codehash");
+    let code_hash = caps.get(1).unwrap().as_str();
     assert_eq!(64, code_hash.len());
 
     let output = cargo_contract(project_path.as_path())
@@ -363,7 +359,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .output()
@@ -371,7 +367,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -383,17 +379,23 @@ async fn build_upload_instantiate_info() {
         "getting info as JSON format failed: {stderr}"
     );
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--binary")
         .output()
         .expect("failed to execute process");
-
+    let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(
         output.status.success(),
-        "displaying contract info including wasm prisme code"
+        "getting Wasm code failed: {stderr}"
     );
+
+    // construct the contract file path
+    let contract_wasm = project_path.join("target/ink/flipper.wasm");
+
+    let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
+    assert_eq!(code_hash(&code), code_hash(&output.stdout));
 
     cargo_contract(project_path.as_path())
         .arg("info")
@@ -401,11 +403,7 @@ async fn build_upload_instantiate_info() {
         .arg("--output-json")
         .arg("--binary")
         .assert()
-        .stdout(predicate::str::contains("trie_id"))
-        .stdout(predicate::str::contains("code_hash"))
-        .stdout(predicate::str::contains("storage_items"))
-        .stdout(predicate::str::contains("storage_item_deposit"))
-        .stdout(predicate::str::contains("pristine_wasm"));
+        .stdout(predicate::str::contains(r#""wasm": "0x"#));
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
