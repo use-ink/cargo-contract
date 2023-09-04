@@ -41,7 +41,7 @@ jsonrpsee = { version = "0.20.0", features = ["ws-client"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-regex = "1.9.3"
+regex = "1.9.5"
 predicates = "3.0.3"
 tempfile = "3.8.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
