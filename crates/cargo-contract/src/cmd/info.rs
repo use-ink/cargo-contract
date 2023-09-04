@@ -87,12 +87,12 @@ impl InfoCommand {
                             match (wasm_code, self.output_json) {
                                 (Some(code), false) => {
                                     std::io::stdout()
-                                        .write_all(&code.0)
+                                        .write_all(&code)
                                         .expect("Writing to stdout failed")
                                 }
                                 (Some(code), true) => {
                                     let wasm = serde_json::json!({
-                                        "wasm": format!("0x{}", hex::encode(code.0))
+                                        "wasm": format!("0x{}", hex::encode(code))
                                     });
                                     println!(
                                         "{}",
