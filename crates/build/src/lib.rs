@@ -17,6 +17,7 @@
 #![doc = include_str!("../README.md")]
 #![deny(unused_crate_dependencies)]
 
+use contract_metadata::ContractMetadata;
 use which as _;
 
 mod args;
@@ -367,6 +368,81 @@ fn exec_cargo_for_onchain_target(
             .using_temp(cargo_build)?;
     }
 
+    Ok(())
+}
+
+/// Check if the `INK_STATIC_BUFFER_SIZE` is set.
+/// If so, then checks if the current contract has already been compiled with a new value.
+/// If not, or metadata is not present, we need to clean binaries and rebuild.
+fn check_buffer_size_invoke_cargo_clean(
+    crate_metadata: &CrateMetadata,
+    verbosity: &Verbosity,
+) -> Result<()> {
+    if let Ok(buffer_size) = std::env::var("INK_STATIC_BUFFER_SIZE") {
+        let buffer_size_value: u64 = buffer_size
+            .parse()
+            .context("`INK_STATIC_BUFFER_SIZE` must have an integer value.")?;
+
+        let extract_buffer_size = |metadata_path: PathBuf| -> Result<u64> {
+            let size = ContractMetadata::load(metadata_path)
+                .context("Metadata is not present")?
+                .abi
+                // get `spec` field
+                .get("spec")
+                .context("spec field should be present in ABI.")?
+                // get `environment` field
+                .get("environment")
+                .context("environment field should be present in ABI.")?
+                // get `staticBufferSize` field
+                .get("staticBufferSize")
+                .context("`staticBufferSize` must be specified.")?
+                // convert to u64
+                .as_u64()
+                .context("`staticBufferSize` value must be an integer.")?;
+
+            Ok(size)
+        };
+
+        let cargo = util::cargo_cmd(
+            "clean",
+            Vec::<&str>::new(),
+            crate_metadata.manifest_path.directory(),
+            *verbosity,
+            vec![],
+        );
+
+        match extract_buffer_size(crate_metadata.metadata_path()) {
+            Ok(contract_buffer_size) if contract_buffer_size == buffer_size_value => {
+                verbose_eprintln!(
+                    verbosity,
+                    "{} {}",
+                    "info:".green().bold(),
+                    "Detected a configured buffer size, but the value is already specified."
+                        .bold()
+                );
+            }
+            Ok(_) => {
+                verbose_eprintln!(
+                    verbosity,
+                    "{} {}",
+                    "warning:".yellow().bold(),
+                    "Detected a change in the configured buffer size. Rebuilding the project."
+                        .bold()
+                );
+                invoke_cargo_and_scan_for_error(cargo)?;
+            }
+            Err(_) => {
+                verbose_eprintln!(
+                    verbosity,
+                    "{} {}",
+                    "warning:".yellow().bold(),
+                    "Cannot find the previous size of the static buffer. Rebuilding the project."
+                        .bold()
+                );
+                invoke_cargo_and_scan_for_error(cargo)?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -880,6 +956,7 @@ fn local_build(
         "[==]".bold(),
         "Building cargo project".bright_green().bold()
     );
+    check_buffer_size_invoke_cargo_clean(crate_metadata, verbosity)?;
     exec_cargo_for_onchain_target(
         crate_metadata,
         "build",
