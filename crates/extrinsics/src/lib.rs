@@ -52,7 +52,10 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::Bytes;
+use sp_core::{
+    hashing,
+    Bytes,
+};
 use subxt::{
     blocks,
     config,
@@ -376,6 +379,30 @@ pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<V
         .map(|v| v.0);
 
     Ok(pristine_bytes)
+}
+
+/// Fetch all contracts addresses from the storage using the provided client
+pub async fn fetch_all_contracts(
+    client: &Client,
+    count: u32,
+    from: Option<&AccountId32>,
+) -> Result<Vec<AccountId32>> {
+    let hash_pallet = hashing::twox_128(b"Contracts");
+    let hash_map = hashing::twox_128(b"ContractInfoOf");
+    let key = [hash_pallet, hash_map].concat();
+
+    let start_key = from.map(|e| [key.clone(), e.0.to_vec()].concat());
+    let keys = client
+        .rpc()
+        .storage_keys_paged(key.as_slice(), count, start_key.as_deref(), None)
+        .await?;
+
+    let contracts = keys
+        .into_iter()
+        .map(|e| AccountId32::decode(&mut &e.0[16 + 16 + 8..]))
+        .collect::<Result<_, _>>()?;
+
+    Ok(contracts)
 }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,

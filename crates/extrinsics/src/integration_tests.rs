@@ -405,6 +405,21 @@ async fn build_upload_instantiate_info() {
         .assert()
         .stdout(predicate::str::contains(r#""wasm": "0x"#));
 
+    let output = cargo_contract(project_path.as_path())
+        .arg("info")
+        .arg("--all")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting all contracts failed: {stderr}"
+    );
+
+    let contract_account_all = extract_contract_address(stdout);
+    assert_eq!(contract_account_all, contract_account, "{stdout:?}");
+
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
