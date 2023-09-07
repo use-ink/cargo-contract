@@ -72,6 +72,12 @@ impl From<std::io::Error> for ErrorVariant {
     }
 }
 
+impl From<serde_json::Error> for ErrorVariant {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Generic(GenericError::from_message(format!("{error:?}")))
+    }
+}
+
 #[derive(serde::Serialize)]
 pub struct ModuleError {
     pub pallet: String,

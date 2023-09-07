@@ -65,8 +65,10 @@ use std::io::{
     self,
     Write,
 };
-use subxt::utils::AccountId32;
-pub use subxt::PolkadotConfig as DefaultConfig;
+pub use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
+};
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -233,8 +235,10 @@ pub fn basic_display_format_contract_info(info: &ContractInfo) {
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts(contracts: &[AccountId32]) {
-    contracts.iter().for_each(|e: &AccountId32| {
-        name_value_println!("Contract", format!("{}", e), MAX_KEY_COL_WIDTH);
-    })
+pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId]) {
+    contracts
+        .iter()
+        .for_each(|e: &<DefaultConfig as Config>::AccountId| {
+            name_value_println!("Contract", format!("{}", e), MAX_KEY_COL_WIDTH);
+        })
 }

@@ -381,22 +381,30 @@ pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<V
     Ok(pristine_bytes)
 }
 
-/// Fetch all contracts addresses from the storage using the provided client
+/// Fetch all contracts addresses from the storage using the provided client and count of
+/// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
     client: &Client,
     count: u32,
     from: Option<&AccountId32>,
 ) -> Result<Vec<AccountId32>> {
-    let hash_pallet = hashing::twox_128(b"Contracts");
-    let hash_map = hashing::twox_128(b"ContractInfoOf");
-    let key = [hash_pallet, hash_map].concat();
+    // Pallet name Twox128 hash
+    let pallet_hash = hashing::twox_128(b"Contracts");
 
-    let start_key = from.map(|e| [key.clone(), e.0.to_vec()].concat());
+    // Map name Twox128 hash
+    let map_hash = hashing::twox_128(b"ContractInfoOf");
+    let key = [pallet_hash, map_hash].concat();
+
+    let start_key = from
+        .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
+
     let keys = client
         .rpc()
         .storage_keys_paged(key.as_slice(), count, start_key.as_deref(), None)
         .await?;
 
+    // StorageKey is a concatention of Twox128("Contracts"), Twox128("ContractInfoOf") and
+    // Twox64Concat(AccountId)
     let contracts = keys
         .into_iter()
         .map(|e| AccountId32::decode(&mut &e.0[16 + 16 + 8..]))

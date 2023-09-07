@@ -65,7 +65,7 @@ pub struct InfoCommand {
     #[clap(name = "binary", long, conflicts_with = "all")]
     binary: bool,
     /// Display all contracts addresses
-    #[clap(name = "all", long, conflicts_with = "contract")]
+    #[clap(name = "all", long)]
     all: bool,
 }
 
@@ -75,107 +75,80 @@ impl InfoCommand {
             let url = self.url.clone();
             let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
+            // All flag applied
             if self.all {
-                tracing::debug!("Getting all contracts");
-                let count = 100;
+                // Using count of 255 to avoid conversion issue to usize on
+                // any architecture
+                let count = 255;
                 let mut from = None;
-                let mut contracts_all = Vec::new();
+                let mut contracts = Vec::new();
                 loop {
-                    let mut contracts =
-                        fetch_all_contracts(&client, count, from.as_ref()).await?;
-                    display_all_contracts(&contracts);
+                    let len = contracts.len();
+                    contracts
+                        .append(&mut fetch_all_contracts(&client, count, from).await?);
                     if contracts.len()
-                        < count
-                            .try_into()
-                            .expect("Converting u32 to usize type failed")
+                        < len
+                            + <u32 as TryInto<usize>>::try_into(count)
+                                .expect("Conversion from u32 to usize failed")
                     {
-                        contracts_all.append(&mut contracts);
                         break
-                    } else {
-                        from = contracts.last().cloned();
-                        contracts_all.append(&mut contracts);
                     }
+                    from = contracts.last();
                 }
+
                 if self.output_json {
                     let contracts_json = serde_json::json!({
-                        "contracts": contracts_all
+                        "contracts": contracts
                     });
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&contracts_json).map_err(|err| {
-                            anyhow!("JSON serialization failed: {}", err)
-                        })?
-                    );
+                    println!("{}", serde_json::to_string_pretty(&contracts_json)?);
+                } else {
+                    display_all_contracts(&contracts)
                 }
                 Ok(())
             } else {
-                tracing::debug!(
-                    "Getting contract information for AccountId {:?}",
-                    self.contract
-                );
-                let info_result = fetch_contract_info(
-                    self.contract
-                        .as_ref()
-                        .expect("Contract argument was not provided"),
-                    &client,
-                )
-                .await?;
+                // Contract arg shall be always present in this case, it is enforced by
+                // clap configuration
+                let contract = self
+                    .contract
+                    .as_ref()
+                    .expect("Contract argument was not provided");
 
-                match info_result {
-                    Some(info_to_json) => {
-                        match (self.output_json, self.binary) {
-                            (true, false) => println!("{}", info_to_json.to_json()?),
-                            (false, false) => {
-                                basic_display_format_contract_info(&info_to_json)
+                let info_to_json =
+                    fetch_contract_info(contract, &client)
+                        .await?
+                        .ok_or(anyhow!(
+                            "No contract information was found for account id {}",
+                            contract
+                        ))?;
+
+                match (self.output_json, self.binary) {
+                    (true, false) => println!("{}", info_to_json.to_json()?),
+                    (false, false) => basic_display_format_contract_info(&info_to_json),
+                    // Binary flag applied
+                    (_, true) => {
+                        let wasm_code =
+                            fetch_wasm_code(*info_to_json.code_hash(), &client).await?;
+                        match (wasm_code, self.output_json) {
+                            (Some(code), false) => {
+                                std::io::stdout()
+                                    .write_all(&code)
+                                    .expect("Writing to stdout failed")
                             }
-                            // Binary flag applied
-                            (_, true) => {
-                                let wasm_code =
-                                    fetch_wasm_code(*info_to_json.code_hash(), &client)
-                                        .await?;
-                                match (wasm_code, self.output_json) {
-                                    (Some(code), false) => {
-                                        std::io::stdout()
-                                            .write_all(&code)
-                                            .expect("Writing to stdout failed")
-                                    }
-                                    (Some(code), true) => {
-                                        let wasm = serde_json::json!({
-                                            "wasm": format!("0x{}", hex::encode(code))
-                                        });
-                                        println!(
-                                            "{}",
-                                            serde_json::to_string_pretty(&wasm).map_err(
-                                                |err| {
-                                                    anyhow!(
-                                                        "JSON serialization failed: {}",
-                                                        err
-                                                    )
-                                                }
-                                            )?
-                                        );
-                                    }
-                                    (None, _) => {
-                                        return Err(anyhow!(
-                                            "Contract wasm code was not found"
-                                        )
-                                        .into())
-                                    }
-                                }
+                            (Some(code), true) => {
+                                let wasm = serde_json::json!({
+                                    "wasm": format!("0x{}", hex::encode(code))
+                                });
+                                println!("{}", serde_json::to_string_pretty(&wasm)?);
+                            }
+                            (None, _) => {
+                                return Err(
+                                    anyhow!("Contract wasm code was not found").into()
+                                )
                             }
                         }
-                        Ok(())
-                    }
-                    None => {
-                        Err(anyhow!(
-                            "No contract information was found for account id {}",
-                            self.contract
-                                .as_ref()
-                                .expect("Contract argument was not provided")
-                        )
-                        .into())
                     }
                 }
+                Ok(())
             }
         })
     }
