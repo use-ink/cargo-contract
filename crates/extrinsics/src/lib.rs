@@ -410,9 +410,9 @@ pub async fn fetch_all_contracts(
         .map(|e| {
             let mut account =
                 e.0.get(16 + 16 + 8..)
-                    .ok_or(anyhow!("Slice out of range"))?;
+                    .ok_or(anyhow!("Unexpected storage key size"))?;
             AccountId32::decode(&mut account)
-                .map_err(|err| anyhow!("Deserialization error: {}", err))
+                .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
         })
         .collect::<Result<_, _>>()?;
 
