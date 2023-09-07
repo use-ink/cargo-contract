@@ -407,7 +407,13 @@ pub async fn fetch_all_contracts(
     // Twox64Concat(AccountId)
     let contracts = keys
         .into_iter()
-        .map(|e| AccountId32::decode(&mut &e.0[16 + 16 + 8..]))
+        .map(|e| {
+            let mut account =
+                e.0.get(16 + 16 + 8..)
+                    .ok_or(anyhow!("Slice out of range"))?;
+            AccountId32::decode(&mut account)
+                .map_err(|err| anyhow!("Derialization error: {}", err))
+        })
         .collect::<Result<_, _>>()?;
 
     Ok(contracts)
