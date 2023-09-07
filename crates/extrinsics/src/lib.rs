@@ -367,7 +367,10 @@ impl ContractInfo {
 }
 
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
-pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<Vec<u8>>> {
+pub async fn fetch_wasm_code(
+    client: &Client,
+    hash: &CodeHash,
+) -> Result<Option<Vec<u8>>> {
     let pristine_code_address = api::storage().contracts().pristine_code(hash);
 
     let pristine_bytes = client

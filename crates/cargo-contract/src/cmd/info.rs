@@ -121,32 +121,29 @@ impl InfoCommand {
                             contract
                         ))?;
 
-                match (self.output_json, self.binary) {
-                    (true, false) => println!("{}", info_to_json.to_json()?),
-                    (false, false) => basic_display_format_contract_info(&info_to_json),
-                    // Binary flag applied
-                    (_, true) => {
-                        let wasm_code =
-                            fetch_wasm_code(*info_to_json.code_hash(), &client).await?;
-                        match (wasm_code, self.output_json) {
-                            (Some(code), false) => {
-                                std::io::stdout()
-                                    .write_all(&code)
-                                    .expect("Writing to stdout failed")
-                            }
-                            (Some(code), true) => {
-                                let wasm = serde_json::json!({
-                                    "wasm": format!("0x{}", hex::encode(code))
-                                });
-                                println!("{}", serde_json::to_string_pretty(&wasm)?);
-                            }
-                            (None, _) => {
-                                return Err(
-                                    anyhow!("Contract wasm code was not found").into()
-                                )
-                            }
-                        }
+                // Binary flag applied
+                if self.binary {
+                    let wasm_code = fetch_wasm_code(&client, info_to_json.code_hash())
+                        .await?
+                        .ok_or(anyhow!(
+                            "Contract wasm code was not found for account id {}",
+                            contract
+                        ))?;
+
+                    if self.output_json {
+                        let wasm = serde_json::json!({
+                            "wasm": format!("0x{}", hex::encode(wasm_code))
+                        });
+                        println!("{}", serde_json::to_string_pretty(&wasm)?);
+                    } else {
+                        std::io::stdout()
+                            .write_all(&wasm_code)
+                            .expect("Writing to stdout failed")
                     }
+                } else if self.output_json {
+                    println!("{}", info_to_json.to_json()?)
+                } else {
+                    basic_display_format_contract_info(&info_to_json)
                 }
                 Ok(())
             }
