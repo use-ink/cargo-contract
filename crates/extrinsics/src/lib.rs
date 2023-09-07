@@ -412,7 +412,7 @@ pub async fn fetch_all_contracts(
                 e.0.get(16 + 16 + 8..)
                     .ok_or(anyhow!("Slice out of range"))?;
             AccountId32::decode(&mut account)
-                .map_err(|err| anyhow!("Derialization error: {}", err))
+                .map_err(|err| anyhow!("Deserialization error: {}", err))
         })
         .collect::<Result<_, _>>()?;
 
