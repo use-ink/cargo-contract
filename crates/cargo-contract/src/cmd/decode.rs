@@ -19,32 +19,59 @@ use anyhow::{
     Context,
     Result,
 };
+use clap::{
+    Args,
+    Subcommand,
+};
 use colored::Colorize as _;
 use contract_build::{
     util,
     CrateMetadata,
 };
 use contract_transcode::ContractMessageTranscoder;
+use subxt::ext::scale_decode::ext::primitive_types;
 
-#[derive(Debug, Clone, clap::Args)]
-#[clap(
-    name = "decode",
-    about = "Decodes the input or output data of a contract"
-)]
+#[derive(Debug, Args)]
 pub struct DecodeCommand {
-    /// The type of data to encode.
-    #[clap(value_enum, short, long)]
-    r#type: DataType,
+    #[clap(subcommand)]
+    commands: DecodeCommands,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DecodeCommands {
+    #[clap(name = "message")]
+    Message(DecodeMessage),
+    /// Upload contract code
+    #[clap(name = "constructor")]
+    Constructor(DecodeConstructor),
+    /// Instantiate a contract
+    #[clap(name = "event")]
+    Event(DecodeEvent),
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct DecodeMessage {
     /// The data to decode; this has to be a hex value starting with `0x`.
     #[clap(short, long)]
     data: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-enum DataType {
-    Event,
-    Message,
-    Constructor,
+#[derive(Debug, Clone, Args)]
+pub struct DecodeConstructor {
+    /// The data to decode; this has to be a hex value starting with `0x`.
+    #[clap(short, long)]
+    data: String,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct DecodeEvent {
+    /// The signature topic of the event to be decoded; this has to be a hex value
+    /// starting with `0x`.
+    #[clap(short, long)]
+    signature_topic: String,
+    /// The data to decode; this has to be a hex value starting with `0x`.
+    #[clap(short, long)]
+    data: String,
 }
 
 impl DecodeCommand {
@@ -54,21 +81,25 @@ impl DecodeCommand {
         let transcoder = ContractMessageTranscoder::load(crate_metadata.metadata_path())?;
 
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";
-        let decoded_data = match self.r#type {
-            DataType::Event => {
-                todo!("Try each event in metadata to decode event data")
-                // transcoder.decode_contract_event(
-                //     &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
-                // )?
-            }
-            DataType::Message => {
+        let decoded_data = match &self.commands {
+            DecodeCommands::Message(message) => {
                 transcoder.decode_contract_message(
-                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
+                    &mut &util::decode_hex(&message.data).context(ERR_MSG)?[..],
                 )?
             }
-            DataType::Constructor => {
+            DecodeCommands::Constructor(constructor) => {
                 transcoder.decode_contract_constructor(
-                    &mut &util::decode_hex(&self.data).context(ERR_MSG)?[..],
+                    &mut &util::decode_hex(&constructor.data).context(ERR_MSG)?[..],
+                )?
+            }
+            DecodeCommands::Event(event) => {
+                let signature_topic_data =
+                    util::decode_hex(&event.signature_topic).context(ERR_MSG)?;
+                let signature_topic =
+                    primitive_types::H256::from_slice(&signature_topic_data);
+                transcoder.decode_contract_event(
+                    &signature_topic,
+                    &mut &util::decode_hex(&event.data).context(ERR_MSG)?[..],
                 )?
             }
         };

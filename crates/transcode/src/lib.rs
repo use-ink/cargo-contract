@@ -777,11 +777,12 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 8], [1u32; 8]).encode();
+        let signature_topic = <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC;
+        // raw encoded event
+        let encoded = ([0u32; 8], [1u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
-        let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+        let _ = transcoder.decode_contract_event(signature_topic, &mut &encoded_bytes[..])?;
 
         Ok(())
     }
@@ -795,11 +796,12 @@ mod tests {
             52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
             83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
         ];
+        let signature_topic = <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC;
         // raw encoded event with event index prefix
-        let encoded = (0u8, hash, [0u32; 8]).encode();
+        let encoded = (hash, [0u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
-        let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+        let decoded = transcoder.decode_contract_event(signature_topic, &mut &encoded_bytes[..])?;
 
         if let Value::Map(ref map) = decoded {
             let name_field = &map[&Value::String("name".into())];
@@ -852,12 +854,13 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
+        let signature_topic = <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC;
         // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
+        let encoded = ([0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder
-            .decode_contract_event(&mut &encoded_bytes[..])
+            .decode_contract_event(signature_topic, &mut &encoded_bytes[..])
             .unwrap();
     }
 }
