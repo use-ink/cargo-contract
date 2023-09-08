@@ -391,28 +391,26 @@ pub async fn fetch_all_contracts(
     count: u32,
     from: Option<&AccountId32>,
 ) -> Result<Vec<AccountId32>> {
-    // Pallet name Twox128 hash
-    let pallet_hash = hashing::twox_128(b"Contracts");
-
-    // Map name Twox128 hash
-    let map_hash = hashing::twox_128(b"ContractInfoOf");
-    let key = [pallet_hash, map_hash].concat();
-
+    let key = api::storage()
+        .contracts()
+        .contract_info_of_root()
+        .to_root_bytes();
     let start_key = from
         .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
-
     let keys = client
-        .rpc()
-        .storage_keys_paged(key.as_slice(), count, start_key.as_deref(), None)
+        .storage()
+        .at_latest()
+        .await?
+        .fetch_keys(key.as_ref(), count, start_key.as_deref())
         .await?;
 
-    // StorageKey is a concatention of Twox128("Contracts"), Twox128("ContractInfoOf") and
+    // StorageKey is a concatention of contract_info_of root key and
     // Twox64Concat(AccountId)
     let contracts = keys
         .into_iter()
         .map(|e| {
             let mut account =
-                e.0.get(16 + 16 + 8..)
+                e.0.get(key.len() + 8..)
                     .ok_or(anyhow!("Unexpected storage key size"))?;
             AccountId32::decode(&mut account)
                 .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
