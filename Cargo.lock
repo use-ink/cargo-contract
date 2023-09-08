@@ -1061,7 +1061,7 @@ dependencies = [
  "indexmap 2.0.0",
  "ink",
  "ink_env",
- "ink_metadata",
+ "ink_metadata 4.2.0",
  "itertools 0.11.0",
  "nom",
  "nom-supreme",
@@ -2252,9 +2252,9 @@ dependencies = [
  "derive_more",
  "ink_env",
  "ink_macro",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 4.3.0",
+ "ink_prelude 4.3.0",
+ "ink_primitives 4.3.0",
  "ink_storage",
  "parity-scale-codec",
 ]
@@ -2281,7 +2281,7 @@ dependencies = [
  "heck",
  "impl-serde",
  "ink_ir",
- "ink_primitives",
+ "ink_primitives 4.3.0",
  "itertools 0.10.5",
  "log",
  "parity-scale-codec",
@@ -2300,7 +2300,7 @@ checksum = "722ec3a5eb557124b001c60ff8f961079f6d566af643edea579f152b15822fe5"
 dependencies = [
  "blake2",
  "derive_more",
- "ink_primitives",
+ "ink_primitives 4.3.0",
  "parity-scale-codec",
  "secp256k1 0.27.0",
  "sha2 0.10.7",
@@ -2319,8 +2319,8 @@ dependencies = [
  "derive_more",
  "ink_allocator",
  "ink_engine",
- "ink_prelude",
- "ink_primitives",
+ "ink_prelude 4.3.0",
+ "ink_primitives 4.3.0",
  "ink_storage_traits",
  "num-traits",
  "parity-scale-codec",
@@ -2357,12 +2357,27 @@ checksum = "8579576c995ca9baa032584beca19155cbd63b6739570aa9da4d35a0415f4be8"
 dependencies = [
  "ink_codegen",
  "ink_ir",
- "ink_primitives",
+ "ink_primitives 4.3.0",
  "parity-scale-codec",
  "proc-macro2",
  "quote",
  "syn 2.0.29",
  "synstructure",
+]
+
+[[package]]
+name = "ink_metadata"
+version = "4.2.0"
+source = "git+https://github.com/paritytech/ink/#b61123fcdfd30c91d021db249f8c6b5f26a66cb4"
+dependencies = [
+ "derive_more",
+ "impl-serde",
+ "ink_prelude 4.2.0",
+ "ink_primitives 4.2.0",
+ "linkme",
+ "scale-info",
+ "schemars",
+ "serde",
 ]
 
 [[package]]
@@ -2373,10 +2388,18 @@ checksum = "3fddff95ce3e01f42002fdaf96edda691dbccb08c9ae76d7101daa1fa634e601"
 dependencies = [
  "derive_more",
  "impl-serde",
- "ink_prelude",
- "ink_primitives",
+ "ink_prelude 4.3.0",
+ "ink_primitives 4.3.0",
  "scale-info",
  "serde",
+]
+
+[[package]]
+name = "ink_prelude"
+version = "4.2.0"
+source = "git+https://github.com/paritytech/ink/#b61123fcdfd30c91d021db249f8c6b5f26a66cb4"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -2390,12 +2413,26 @@ dependencies = [
 
 [[package]]
 name = "ink_primitives"
+version = "4.2.0"
+source = "git+https://github.com/paritytech/ink/#b61123fcdfd30c91d021db249f8c6b5f26a66cb4"
+dependencies = [
+ "derive_more",
+ "ink_prelude 4.2.0",
+ "parity-scale-codec",
+ "scale-decode",
+ "scale-encode",
+ "scale-info",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "ink_primitives"
 version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6414bcad12ebf0c3abbbb192a09e4d06e22f662cf3e19545204e1b0684be12a1"
 dependencies = [
  "derive_more",
- "ink_prelude",
+ "ink_prelude 4.3.0",
  "parity-scale-codec",
  "scale-decode",
  "scale-encode",
@@ -2413,9 +2450,9 @@ dependencies = [
  "cfg-if",
  "derive_more",
  "ink_env",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 4.3.0",
+ "ink_prelude 4.3.0",
+ "ink_primitives 4.3.0",
  "ink_storage_traits",
  "parity-scale-codec",
  "scale-info",
@@ -2427,9 +2464,9 @@ version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8dcb50f70377ac35c28d63b06383a0a3cbb79542ea4cdc5b00e3e2b3de4a549"
 dependencies = [
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
+ "ink_metadata 4.3.0",
+ "ink_prelude 4.3.0",
+ "ink_primitives 4.3.0",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -2778,6 +2815,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d240c6f7e1ba3a28b0249f774e6a9dd0175054b52dfbb61b16eb8505c3785c9"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "linkme"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f948366ad5bb46b5514ba7a7a80643726eef08b06632592699676748c8bc33b"
+dependencies = [
+ "linkme-impl",
+]
+
+[[package]]
+name = "linkme-impl"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc28438cad73dcc90ff3466fc329a9252b1b8ba668eb0d5668ba97088cf4eef0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.29",
 ]
 
 [[package]]
@@ -3908,6 +3965,7 @@ dependencies = [
  "derive_more",
  "parity-scale-codec",
  "scale-info-derive",
+ "schemars",
  "serde",
 ]
 
@@ -3950,6 +4008,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c3733bf4cf7ea0880754e19cb5a462007c4a8c1914bff372ccc95b464f1df88"
 dependencies = [
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "schemars"
+version = "0.8.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "763f8cd0d4c71ed8389c90cb8100cba87e763bd01a8e614d4f0af97bcd50a161"
+dependencies = [
+ "dyn-clone",
+ "schemars_derive",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "schemars_derive"
+version = "0.8.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0f696e21e10fa546b7ffb1c9672c6de8fbc7a81acf59524386d8639bf12737"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -4130,6 +4212,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.29",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85bf8229e7920a9f636479437026331ce11aa132b4dde37d121944a44d6e5f3c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
