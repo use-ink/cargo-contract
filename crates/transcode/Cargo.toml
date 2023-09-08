@@ -45,7 +45,7 @@ strsim = "0.10.0"
 assert_matches = "1.5.0"
 #ink = "4.3.0"
 # todo: use crates.io release when available
-ink_metadata = { git = "https://github.com/paritytech/ink/", package = "ink" }
+ink = { git = "https://github.com/paritytech/ink/", package = "ink" }
 sp-core = "22.0.0"
 sp-keyring = "25.0.0"
 
