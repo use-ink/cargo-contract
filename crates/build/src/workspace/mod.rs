@@ -24,7 +24,12 @@ pub use self::{
         Manifest,
         ManifestPath,
     },
-    profile::Profile,
+    profile::{
+        Lto,
+        OptLevel,
+        PanicStrategy,
+        Profile,
+    },
 };
 
 use anyhow::Result;

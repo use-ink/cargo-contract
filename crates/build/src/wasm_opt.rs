@@ -18,6 +18,7 @@ use anyhow::Result;
 use wasm_opt::{
     Feature,
     OptimizationOptions,
+    Pass,
 };
 
 use std::{
@@ -68,9 +69,14 @@ impl WasmOptHandler {
         );
 
         OptimizationOptions::from(self.optimization_level)
-            // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it.
             .mvp_features_only()
+            // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it,
+            // in order that the Wasm binary containing these instructions can be loaded.
             .enable_feature(Feature::SignExt)
+            // This pass will then remove any `signext` instructions in order that the resulting
+            // Wasm binary is compatible with older versions of `pallet-contracts` which do not
+            // support the `signext` instruction.
+            .add_pass(Pass::SignextLowering)
             // the memory in our module is imported, `wasm-opt` needs to be told that
             // the memory is initialized to zeroes, otherwise it won't run the
             // memory-packing pre-pass.
@@ -164,10 +170,8 @@ impl From<OptimizationPasses> for OptimizationOptions {
 }
 
 /// Result of the optimization process.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct OptimizationResult {
-    /// The path of the optimized Wasm file.
-    pub dest_wasm: PathBuf,
     /// The original Wasm size.
     pub original_size: f64,
     /// The Wasm size after optimizations have been applied.

@@ -45,7 +45,7 @@ impl TryFrom<&VerbosityFlags> for Verbosity {
 }
 
 /// Denotes if output should be printed to stdout.
-#[derive(Clone, Copy, Default, serde::Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Verbosity {
     /// Use default output
     #[default]
@@ -89,7 +89,15 @@ impl Network {
 
 /// Describes which artifacts to generate
 #[derive(
-    Copy, Clone, Default, Eq, PartialEq, Debug, clap::ValueEnum, serde::Serialize,
+    Copy,
+    Clone,
+    Default,
+    Eq,
+    PartialEq,
+    Debug,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
@@ -112,49 +120,10 @@ impl BuildArtifacts {
     /// Used as output on the cli.
     pub fn steps(&self) -> usize {
         match self {
-            BuildArtifacts::All => 4,
-            BuildArtifacts::CodeOnly => 3,
+            BuildArtifacts::All => 5,
+            BuildArtifacts::CodeOnly => 4,
             BuildArtifacts::CheckOnly => 1,
         }
-    }
-}
-
-/// Track and display the current and total number of steps.
-#[derive(Debug, Clone, Copy)]
-pub struct BuildSteps {
-    pub current_step: usize,
-    pub total_steps: Option<usize>,
-}
-
-impl BuildSteps {
-    pub fn new() -> Self {
-        Self {
-            current_step: 1,
-            total_steps: None,
-        }
-    }
-
-    pub fn increment_current(&mut self) {
-        self.current_step += 1;
-    }
-
-    pub fn set_total_steps(&mut self, steps: usize) {
-        self.total_steps = Some(steps)
-    }
-}
-
-impl Default for BuildSteps {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl fmt::Display for BuildSteps {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let total_steps = self
-            .total_steps
-            .map_or("*".to_string(), |steps| steps.to_string());
-        write!(f, "[{}/{}]", self.current_step, total_steps)
     }
 }
 
@@ -191,10 +160,10 @@ impl Target {
     }
 
     /// Target specific flags to be set to `CARGO_ENCODED_RUSTFLAGS` while building.
-    pub fn rustflags(&self) -> &'static str {
+    pub fn rustflags(&self) -> Option<&'static str> {
         match self {
-            Self::Wasm => "-C\x1flink-arg=-zstack-size=65536\x1f-C\x1flink-arg=--import-memory\x1f-Clinker-plugin-lto\x1f-C\x1ftarget-cpu=mvp",
-            Self::RiscV => "-Clinker-plugin-lto",
+            Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
+            Self::RiscV => None,
         }
     }
 
@@ -223,8 +192,10 @@ pub enum BuildMode {
     /// Functionality to output debug messages is build into the contract.
     #[default]
     Debug,
-    /// The contract is build without any debugging functionality.
+    /// The contract is built without any debugging functionality.
     Release,
+    /// the contract is built in release mode and in a deterministic environment.
+    Verifiable,
 }
 
 impl fmt::Display for BuildMode {
@@ -232,6 +203,7 @@ impl fmt::Display for BuildMode {
         match self {
             Self::Debug => write!(f, "debug"),
             Self::Release => write!(f, "release"),
+            Self::Verifiable => write!(f, "verifiable"),
         }
     }
 }

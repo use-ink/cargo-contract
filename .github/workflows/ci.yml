@@ -22,7 +22,7 @@ jobs:
           components: rustfmt
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check Formatting
         uses: actions-rs/cargo@v1
@@ -59,7 +59,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check each crate
         run: |
@@ -83,7 +83,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
         # Check permissions of GITHUB_TOKEN, workaround for permission issues
         # with @dependabot PRs. See https://github.com/actions-rs/clippy-check/issues/2#issuecomment-807878478
@@ -130,17 +130,16 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # Pinned to 1.69 for building contracts because of https://github.com/paritytech/cargo-contract/issues/1139
-          toolchain: 1.69
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -164,7 +163,7 @@ jobs:
         shell: bash
 
       - name: Run tests
-        run: cargo test --profile debug-ci --all-features -- --test-threads=1
+        run: cargo test --profile debug-ci --workspace --all-features -- --test-threads=1
 
   template:
     strategy:
@@ -175,17 +174,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # Pinned to 1.69 for building contracts because of https://github.com/paritytech/cargo-contract/issues/1139
-          toolchain: 1.69
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src
+          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2

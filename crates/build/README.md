@@ -1,6 +1,6 @@
 # contract-build
 
-A crate for building [`ink!`](https://github.com/paritytech/ink) smart contracts. Used by 
+A crate for building [`ink!`](https://github.com/paritytech/ink) smart contracts. Used by
 [`cargo-contract`](https://github.com/paritytech/cargo-contract).
 
 ## Usage
@@ -17,6 +17,7 @@ use contract_build::{
     OutputType,
     UnstableFlags,
     Target,
+    ImageVariant,
 };
 
 let manifest_path = ManifestPath::new("my-contract/Cargo.toml").unwrap();
@@ -31,11 +32,12 @@ let args = contract_build::ExecuteArgs {
     unstable_flags: UnstableFlags::default(),
     optimization_passes: Some(OptimizationPasses::default()),
     keep_debug_symbols: false,
-    lint: false,
+    dylint: false,
     output_type: OutputType::Json,
     skip_wasm_validation: false,
     target: Target::Wasm,
     max_memory_pages: 16,
+    image: ImageVariant::Default,
 };
 
 contract_build::execute(args);

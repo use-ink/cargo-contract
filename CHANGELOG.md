@@ -6,13 +6,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+- Detect `INK_STATIC_BUFFER_SIZE` env var - [#1310](https://github.com/paritytech/cargo-contract/pull/1310)
+- Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
+- Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
+
+## [4.0.0-alpha]
+
+Replaces the yanked `3.1.0` due to issues with supporting *both* Rust versions < `1.70`
+and >= `1.70`.
+
+If you intend to use `cargo-contract` with Rust >= `1.70`, and deploy to a node with a
+version of `pallet-contracts` at least `polkadot-1.0.0`, then this is the release to use.
+
+If you still want to compile with `1.69` and target an older version of `pallet-contracts`
+then use the previous `3.0.1` release.
+
+**Notable changes:**
+- Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Extrinsics extracted to separate crate - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Fix building contracts with Rust >= 1.70: enable `sign_ext` Wasm opcode - [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+
+### Added
+- Standardised verifiable builds - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Enable Wasm sign_ext [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+- Expose extrinsics operations as a library - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Suggest valid message or constructor name, when misspelled - [#1162](https://github.com/paritytech/cargo-contract/pull/1162)
+- Add flag -y as a shortcut for --skip-confirm - [#1127](https://github.com/paritytech/cargo-contract/pull/1127)
+- Add command line argument --max-memory-pages - [#1128](https://github.com/paritytech/cargo-contract/pull/1128)
+- Show Gas consumption by default for dry-runs - [#1121](https://github.com/paritytech/cargo-contract/pull/1121)
+
 ### Changed
-- Dry-run result output improvements [1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- Dry-run result output improvements - [1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- Display build progress with --output-json, print to stderr - [1211](https://github.com/paritytech/cargo-contract/pull/1211)
+- Update `subxt` to `0.30.1` with new `subxt-signer` crate - [#1236](https://github.com/paritytech/cargo-contract/pull/1236)
+- Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
+- Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
+- Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
+- set minimum supported `rust-version` to `1.70` - [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
+- `[extrinsics]` update metadata to `substrate-contracts-node 0.29` - [#1242](https://github.com/paritytech/cargo-contract/pull/1242)
+
+### Fixed
+- Configure tty output correctly - [#1209](https://github.com/paritytech/cargo-contract/pull/1209)
+- Set `lto = "thin"` for metadata build to fix `linkme` on macOS - [#1200](https://github.com/paritytech/cargo-contract/pull/1200)
+- fix(build): An error when running with `--lint` - [#1174](https://github.com/paritytech/cargo-contract/pull/1174)
+- Dry-run result output improvements - [#1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- feat: use `CARGO_ENCODED_RUSTFLAGS` instead of `RUSTFLAGS` - [#1124](https://github.com/paritytech/cargo-contract/pull/1124)
+
+## [3.1.0] **YANKED**
 
 ## [3.0.1]
 
 ### Fixed
-- `[contract-build]` flush the remaining buffered bytes [1118](https://github.com/paritytech/cargo-contract/pull/1118)
+- `[contract-build]` flush the remaining buffered bytes - [1118](https://github.com/paritytech/cargo-contract/pull/1118)
 
 ## [3.0.0]
 
@@ -23,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contracts are build as `bin` crate now (we used `cdylib` before) - [#1076](https://github.com/paritytech/cargo-contract/pull/1076)
   - BREAKING CHANGE: Make sure that your contract is `no_main` by having this on top of your contract:
     - `#![cfg_attr(not(feature = "std"), no_std, no_main)]`
-    - This will be detected and suggested for `error[E0601]`  [#1113](https://github.com/paritytech/cargo-contract/pull/1113)
+    - This will be detected and suggested for `error[E0601]` - [#1113](https://github.com/paritytech/cargo-contract/pull/1113)
 - Update contracts node metadata (#1105)
   - Compatible with `substrate-contracts-node 0.25.0-a2b09462c7c`
 

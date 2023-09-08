@@ -14,7 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+    CallCommandBuilder,
+    ExtrinsicOptsBuilder,
+    InstantiateCommandBuilder,
+    RemoveCommandBuilder,
+    UploadCommandBuilder,
+};
 use anyhow::Result;
+use contract_build::code_hash;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -155,7 +163,7 @@ pub fn init_tracing_subscriber() {
 /// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_instantiate_call() {
     init_tracing_subscriber();
 
@@ -235,7 +243,7 @@ async fn build_upload_instantiate_call() {
 
 /// Sanity test the whole lifecycle of:
 /// build -> upload -> remove
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_remove() {
     init_tracing_subscriber();
 
@@ -300,7 +308,7 @@ async fn build_upload_remove() {
 /// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
 /// be installed and available on the `PATH`, and the no other process running using the
 /// default port `9944`.
-#[async_std::test]
+#[tokio::test]
 async fn build_upload_instantiate_info() {
     init_tracing_subscriber();
 
@@ -351,7 +359,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .output()
@@ -359,7 +367,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -370,6 +378,221 @@ async fn build_upload_instantiate_info() {
         output.status.success(),
         "getting info as JSON format failed: {stderr}"
     );
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--binary")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting Wasm code failed: {stderr}"
+    );
+
+    // construct the contract file path
+    let contract_wasm = project_path.join("target/ink/flipper.wasm");
+
+    let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
+    assert_eq!(code_hash(&code), code_hash(&output.stdout));
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--output-json")
+        .arg("--binary")
+        .assert()
+        .stdout(predicate::str::contains(r#""wasm": "0x"#));
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// This test uses contract extrinsics API to test the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> call
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn api_build_upload_instantiate_call() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    // construct the contract file path
+    let contract_file = project_path.join("target/ink/flipper.contract");
+
+    // upload the contract
+    let opts = ExtrinsicOptsBuilder::default()
+        .file(Some(contract_file))
+        .suri("//Alice")
+        .done();
+    let upload = UploadCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .done()
+        .await
+        .unwrap();
+    let upload_result = upload.upload_code().await;
+    assert!(upload_result.is_ok(), "upload code failed");
+    upload_result.unwrap();
+
+    // instantiate the contract
+    let instantiate = InstantiateCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .constructor("new")
+        .args(["true"].to_vec())
+        .done()
+        .await
+        .unwrap();
+    let instantiate_result = instantiate.instantiate(None).await;
+    assert!(instantiate_result.is_ok(), "instantiate code failed");
+    let instantiate_result = instantiate_result.unwrap();
+    let contract_account = instantiate_result.contract_address.to_string();
+    assert_eq!(48, contract_account.len(), "{contract_account:?}");
+
+    // call the contract
+    // the value should be true
+    let call = CallCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .message("get")
+        .contract(instantiate_result.contract_address.clone())
+        .done()
+        .await
+        .unwrap();
+    let result = call.call_dry_run().await;
+    assert!(result.is_ok(), "call failed");
+    let result = result.unwrap();
+    let ret_val = result.result.unwrap();
+    let value = call
+        .transcoder()
+        .decode_message_return(call.message(), &mut &ret_val.data[..])
+        .unwrap()
+        .to_string();
+    assert!(value.contains("true"), "{:#?}", value);
+
+    // call the contract
+    // flip the value
+    let call = CallCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .message("flip")
+        .contract(instantiate_result.contract_address.clone())
+        .done()
+        .await
+        .unwrap();
+    let call_result = call.call(None).await;
+    assert!(call_result.is_ok(), "call failed");
+    let call_result = call_result.unwrap();
+    let output = call_result.to_json().unwrap();
+    assert!(output.contains("ExtrinsicSuccess"), "{:#?}", output);
+
+    // call the contract
+    // make sure the value has been flipped
+    let call = CallCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .message("get")
+        .contract(instantiate_result.contract_address.clone())
+        .done()
+        .await
+        .unwrap();
+    let result = call.call_dry_run().await;
+    assert!(result.is_ok(), "call failed");
+    let result = result.unwrap();
+    let ret_val = result.result.unwrap();
+    let value = call
+        .transcoder()
+        .decode_message_return(call.message(), &mut &ret_val.data[..])
+        .unwrap()
+        .to_string();
+    assert!(value.contains("false"), "{:#?}", value);
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// Sanity test the whole lifecycle of:
+/// build -> upload -> remove
+#[tokio::test]
+async fn api_build_upload_remove() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("incrementer")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("incrementer");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    // construct the contract file path
+    let contract_file = project_path.join("target/ink/incrementer.contract");
+
+    // upload the contract
+    let opts = ExtrinsicOptsBuilder::default()
+        .file(Some(contract_file))
+        .suri("//Alice")
+        .done();
+    let upload = UploadCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .done()
+        .await
+        .unwrap();
+    let upload_result = upload.upload_code().await;
+    assert!(upload_result.is_ok(), "upload code failed");
+    let upload_result = upload_result.unwrap();
+    let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
+    let code_hash = hex::encode(code_hash_h256);
+    assert_eq!(64, code_hash.len(), "{code_hash:?}");
+
+    // remove the contract
+    let remove = RemoveCommandBuilder::default()
+        .extrinsic_opts(opts.clone())
+        .code_hash(Some(code_hash_h256))
+        .done()
+        .await
+        .unwrap();
+    let remove_result = remove.remove_code().await;
+    assert!(remove_result.is_ok(), "remove code failed");
+    remove_result.unwrap();
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
