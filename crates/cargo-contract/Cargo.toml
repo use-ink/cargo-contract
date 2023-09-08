@@ -39,9 +39,9 @@ semver = "1.0"
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = "0.31.0"
-sp-core = "21.0.0"
-sp-weights = "20.0.0"
-pallet-contracts-primitives = "24.0.0"
+sp-core = "22.0.0"
+sp-weights = "21.0.0"
+pallet-contracts-primitives = "25.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
