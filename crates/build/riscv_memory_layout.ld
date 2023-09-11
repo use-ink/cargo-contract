@@ -1,17 +1,17 @@
-MEMORY {
-    RAM : ORIGIN = 0x00000000, LENGTH =  2M
-}
-
 SECTIONS {
-    . = ORIGIN(RAM);
-    .text : { *(.init) *(.text .text.*) } > REGION_TEXT
-    .rodata : { *(.rodata) *(.rodata.*) } > REGION_RODATA
-    .bss : { *(.sbss) *(.bss) *(.bss.*) } > REGION_DATA
-    .data : { *(.data) } > REGION_DATA
+    . = 0x10000;
+    .rodata : { *(.rodata) *(.rodata.*) }
+    .data.rel.ro : { *(.data.rel.ro) *(.data.rel.ro.*) }
+    .got : { *(.got) *(.got.*) }
+
+    . = ALIGN(0x4000);
+    .data : { *(.sdata) *(.data) }
+    .bss : { *(.sbss) *(.bss) *(.bss.*) }
+
+    . = 0xf0000000;
+
+    .text : { KEEP(*(.text.polkavm_export)) *(.text .text.*) }
+
     /DISCARD/ : { *(.eh_frame) }
     . = ALIGN(4);
 }
-
-REGION_ALIAS("REGION_TEXT", RAM);
-REGION_ALIAS("REGION_RODATA", RAM);
-REGION_ALIAS("REGION_DATA", RAM);
