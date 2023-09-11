@@ -29,7 +29,6 @@ use contract_build::{
     CrateMetadata,
 };
 use contract_transcode::ContractMessageTranscoder;
-use subxt::ext::scale_decode::ext::primitive_types;
 
 #[derive(Debug, Args)]
 pub struct DecodeCommand {

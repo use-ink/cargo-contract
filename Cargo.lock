@@ -756,6 +756,7 @@ dependencies = [
  "hex",
  "pallet-contracts-primitives",
  "predicates",
+ "primitive-types",
  "regex",
  "semver",
  "serde",

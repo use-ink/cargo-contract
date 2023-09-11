@@ -105,7 +105,8 @@ fn decode_works() {
         .stderr(predicates::str::contains(error_msg));
 
     // when
-    let signature_topic = "TODO";
+    let signature_topic =
+        "325c98ff66bd0d9d1c10789ae1f2a17bdfb2dcf6aa3d8092669afafdef1cb72d";
     let event_data: &str = "0001";
     let event_decoded: &str = r#"Switched { new_value: true }"#;
 
@@ -123,7 +124,7 @@ fn decode_works() {
         .stdout(predicates::str::contains(event_decoded));
 
     // and when
-    let wrong_event_data: &str = "0800010C";
+    let wrong_event_data: &str = "00010C";
     let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `Switched`, `new_value` but `0C` bytes were left unread";
 
     // then
