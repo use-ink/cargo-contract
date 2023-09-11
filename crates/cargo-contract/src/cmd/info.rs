@@ -70,19 +70,19 @@ pub struct InfoCommand {
 
 impl InfoCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let url = self.url.clone();
-        let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
+        let client = OnlineClient::<DefaultConfig>::from_url(&self.url).await?;
 
         // All flag applied
         if self.all {
             // 1000 is max allowed value
-            const COUNT: u32 = 1000;
+            const MAX_COUNT: u32 = 1000;
             let mut from = None;
             let mut contracts = Vec::new();
             loop {
                 let len = contracts.len();
-                contracts.append(&mut fetch_all_contracts(&client, COUNT, from).await?);
-                if contracts.len() < len + COUNT as usize {
+                contracts
+                    .append(&mut fetch_all_contracts(&client, MAX_COUNT, from).await?);
+                if contracts.len() < len + MAX_COUNT as usize {
                     break
                 }
                 from = contracts.last();

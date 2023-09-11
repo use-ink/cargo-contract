@@ -417,8 +417,7 @@ async fn build_upload_instantiate_info() {
         "getting all contracts failed: {stderr}"
     );
 
-    let contract_account_all = extract_contract_address(stdout);
-    assert_eq!(contract_account_all, contract_account, "{stdout:?}");
+    assert_eq!(stdout.trim_end(), contract_account, "{stdout:?}");
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;

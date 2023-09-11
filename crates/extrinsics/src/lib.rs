@@ -384,18 +384,33 @@ pub async fn fetch_wasm_code(
     Ok(pristine_bytes)
 }
 
-/// Fetch all contracts addresses from the storage using the provided client and count of
+/// Parse a contract account address from a storage key. Returns error if a key is
+/// malformated.
+fn parse_contract_account_address(
+    storage_contract_account_key: &[u8],
+    storage_contract_root_key_len: usize,
+) -> Result<AccountId32> {
+    // storage_contract_account_key is a concatenation of contract_info_of root key and
+    // Twox64Concat(AccountId)
+    let mut account = storage_contract_account_key
+        .get(storage_contract_root_key_len + 8..)
+        .ok_or(anyhow!("Unexpected storage key size"))?;
+    AccountId32::decode(&mut account)
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+}
+
+/// Fetch all contract addresses from the storage using the provided client and count of
 /// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
     client: &Client,
     count: u32,
-    from: Option<&AccountId32>,
+    count_from: Option<&AccountId32>,
 ) -> Result<Vec<AccountId32>> {
     let key = api::storage()
         .contracts()
         .contract_info_of_root()
         .to_root_bytes();
-    let start_key = from
+    let start_key = count_from
         .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
     let keys = client
         .storage()
@@ -404,17 +419,9 @@ pub async fn fetch_all_contracts(
         .fetch_keys(key.as_ref(), count, start_key.as_deref())
         .await?;
 
-    // StorageKey is a concatention of contract_info_of root key and
-    // Twox64Concat(AccountId)
     let contracts = keys
         .into_iter()
-        .map(|e| {
-            let mut account =
-                e.0.get(key.len() + 8..)
-                    .ok_or(anyhow!("Unexpected storage key size"))?;
-            AccountId32::decode(&mut account)
-                .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-        })
+        .map(|e| parse_contract_account_address(&e.0, key.len()))
         .collect::<Result<_, _>>()?;
 
     Ok(contracts)

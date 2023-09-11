@@ -238,7 +238,5 @@ pub fn basic_display_format_contract_info(info: &ContractInfo) {
 pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId]) {
     contracts
         .iter()
-        .for_each(|e: &<DefaultConfig as Config>::AccountId| {
-            name_value_println!("Contract", format!("{}", e), MAX_KEY_COL_WIDTH);
-        })
+        .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
 }
