@@ -82,10 +82,9 @@ fn decode_works() {
     // message data is being decoded properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("message")
         .arg("--data")
         .arg(msg_data)
-        .arg("-t")
-        .arg("message")
         .assert()
         .success()
         .stdout(predicates::str::contains(msg_decoded));
@@ -98,42 +97,45 @@ fn decode_works() {
     // wrong message data is being handled properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("message")
         .arg("--data")
         .arg(wrong_msg_data)
-        .arg("-t")
-        .arg("message")
         .assert()
         .failure()
         .stderr(predicates::str::contains(error_msg));
 
     // when
-    let event_data: &str = "080001";
+    let signature_topic =
+        "325c98ff66bd0d9d1c10789ae1f2a17bdfb2dcf6aa3d8092669afafdef1cb72d";
+    let event_data: &str = "0001";
     let event_decoded: &str = r#"Switched { new_value: true }"#;
 
     // then
     // event data is being decoded properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("event")
+        .arg("--signature-topic")
+        .arg(signature_topic)
         .arg("--data")
         .arg(event_data)
-        .arg("-t")
-        .arg("event")
         .assert()
         .success()
         .stdout(predicates::str::contains(event_decoded));
 
     // and when
-    let wrong_event_data: &str = "0800010C";
+    let wrong_event_data: &str = "00010C";
     let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `Switched`, `new_value` but `0C` bytes were left unread";
 
     // then
     // wrong event data is being handled properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("event")
+        .arg("--signature-topic")
+        .arg(signature_topic)
         .arg("--data")
         .arg(wrong_event_data)
-        .arg("-t")
-        .arg("event")
         .assert()
         .failure()
         .stderr(predicates::str::contains(error_msg));
@@ -146,10 +148,9 @@ fn decode_works() {
     // constructor data is being decoded properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("constructor")
         .arg("-d")
         .arg(constructor_data)
-        .arg("-t")
-        .arg("constructor")
         .assert()
         .success()
         .stdout(predicates::str::contains(constructor_decoded));
@@ -162,10 +163,9 @@ fn decode_works() {
     // wrong constructor data is being handled properly
     cargo_contract(&project_dir)
         .arg("decode")
+        .arg("constructor")
         .arg("-d")
         .arg(wrong_constructor_data)
-        .arg("-t")
-        .arg("constructor")
         .assert()
         .failure()
         .stderr(predicates::str::contains(error_msg));

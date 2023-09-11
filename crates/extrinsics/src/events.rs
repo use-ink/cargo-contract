@@ -110,6 +110,7 @@ impl DisplayEvents {
             };
 
             let event_data = &mut event.field_bytes();
+            let event_sig_topic = event.topics().iter().next();
             let mut unnamed_field_name = 0;
             for field_metadata in event_fields {
                 if <ContractEmitted as StaticEvent>::is_event(
@@ -121,6 +122,7 @@ impl DisplayEvents {
                     let field = contract_event_data_field(
                         transcoder,
                         field_metadata,
+                        event_sig_topic,
                         event_data,
                     )?;
                     event_entry.fields.push(field);
@@ -212,18 +214,24 @@ impl DisplayEvents {
 fn contract_event_data_field(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
+    event_sig_topic: Option<&sp_core::H256>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
-        match transcoder.decode_contract_event(event_data) {
-            Ok(contract_event) => contract_event,
-            Err(err) => {
-                tracing::warn!(
-                    "Decoding contract event failed: {:?}. It might have come from another contract.",
-                    err
-                );
-                Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+        if let Some(event_sig_topic) = event_sig_topic {
+            match transcoder.decode_contract_event(event_sig_topic, event_data) {
+                Ok(contract_event) => contract_event,
+                Err(err) => {
+                    tracing::warn!(
+                        "Decoding contract event failed: {:?}. It might have come from another contract.",
+                        err
+                    );
+                    Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+                }
             }
+        } else {
+            tracing::info!("Anonymous event not decoded. Data displayed as raw hex.");
+            Value::Hex(Hex::from_str(&hex::encode(event_data))?)
         }
     } else {
         Value::Hex(Hex::from_str(&hex::encode(event_data))?)
