@@ -81,16 +81,6 @@ impl DecodeCommand {
 
         const ERR_MSG: &str = "Failed to decode specified data as a hex value";
         let decoded_data = match &self.commands {
-            DecodeCommands::Message(message) => {
-                transcoder.decode_contract_message(
-                    &mut &util::decode_hex(&message.data).context(ERR_MSG)?[..],
-                )?
-            }
-            DecodeCommands::Constructor(constructor) => {
-                transcoder.decode_contract_constructor(
-                    &mut &util::decode_hex(&constructor.data).context(ERR_MSG)?[..],
-                )?
-            }
             DecodeCommands::Event(event) => {
                 let signature_topic_data =
                     util::decode_hex(&event.signature_topic).context(ERR_MSG)?;
@@ -99,6 +89,16 @@ impl DecodeCommand {
                 transcoder.decode_contract_event(
                     &signature_topic,
                     &mut &util::decode_hex(&event.data).context(ERR_MSG)?[..],
+                )?
+            }
+            DecodeCommands::Message(message) => {
+                transcoder.decode_contract_message(
+                    &mut &util::decode_hex(&message.data).context(ERR_MSG)?[..],
+                )?
+            }
+            DecodeCommands::Constructor(constructor) => {
+                transcoder.decode_contract_constructor(
+                    &mut &util::decode_hex(&constructor.data).context(ERR_MSG)?[..],
                 )?
             }
         };
