@@ -217,7 +217,9 @@ fn exec(cmd: Command) -> Result<()> {
                     .map_err(|err| map_extrinsic_err(err, remove.output_json()))
             })
         }
-        Command::Info(info) => info.run().map_err(format_err),
+        Command::Info(info) => {
+            runtime.block_on(async { info.run().await.map_err(format_err) })
+        }
         Command::Verify(verify) => {
             let result = verify.run().map_err(format_err)?;
 

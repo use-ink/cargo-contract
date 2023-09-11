@@ -37,7 +37,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -70,83 +69,75 @@ pub struct InfoCommand {
 }
 
 impl InfoCommand {
-    pub fn run(&self) -> Result<(), ErrorVariant> {
-        Runtime::new()?.block_on(async {
-            let url = self.url.clone();
-            let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
+    pub async fn run(&self) -> Result<(), ErrorVariant> {
+        let url = self.url.clone();
+        let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
 
-            // All flag applied
-            if self.all {
-                // Using count of 255 to avoid conversion issue to usize on
-                // any architecture
-                let count = 255;
-                let mut from = None;
-                let mut contracts = Vec::new();
-                loop {
-                    let len = contracts.len();
-                    contracts
-                        .append(&mut fetch_all_contracts(&client, count, from).await?);
-                    if contracts.len()
-                        < len
-                            + <u32 as TryInto<usize>>::try_into(count)
-                                .expect("Conversion from u32 to usize failed")
-                    {
-                        break
-                    }
-                    from = contracts.last();
+        // All flag applied
+        if self.all {
+            // 1000 is max allowed value
+            const COUNT: u32 = 1000;
+            let mut from = None;
+            let mut contracts = Vec::new();
+            loop {
+                let len = contracts.len();
+                contracts.append(&mut fetch_all_contracts(&client, COUNT, from).await?);
+                if contracts.len() < len + COUNT as usize {
+                    break
                 }
+                from = contracts.last();
+            }
+
+            if self.output_json {
+                let contracts_json = serde_json::json!({
+                    "contracts": contracts
+                });
+                println!("{}", serde_json::to_string_pretty(&contracts_json)?);
+            } else {
+                display_all_contracts(&contracts)
+            }
+            Ok(())
+        } else {
+            // Contract arg shall be always present in this case, it is enforced by
+            // clap configuration
+            let contract = self
+                .contract
+                .as_ref()
+                .expect("Contract argument was not provided");
+
+            let info_to_json =
+                fetch_contract_info(contract, &client)
+                    .await?
+                    .ok_or(anyhow!(
+                        "No contract information was found for account id {}",
+                        contract
+                    ))?;
+
+            // Binary flag applied
+            if self.binary {
+                let wasm_code = fetch_wasm_code(&client, info_to_json.code_hash())
+                    .await?
+                    .ok_or(anyhow!(
+                        "Contract wasm code was not found for account id {}",
+                        contract
+                    ))?;
 
                 if self.output_json {
-                    let contracts_json = serde_json::json!({
-                        "contracts": contracts
+                    let wasm = serde_json::json!({
+                        "wasm": format!("0x{}", hex::encode(wasm_code))
                     });
-                    println!("{}", serde_json::to_string_pretty(&contracts_json)?);
+                    println!("{}", serde_json::to_string_pretty(&wasm)?);
                 } else {
-                    display_all_contracts(&contracts)
+                    std::io::stdout()
+                        .write_all(&wasm_code)
+                        .expect("Writing to stdout failed")
                 }
-                Ok(())
+            } else if self.output_json {
+                println!("{}", info_to_json.to_json()?)
             } else {
-                // Contract arg shall be always present in this case, it is enforced by
-                // clap configuration
-                let contract = self
-                    .contract
-                    .as_ref()
-                    .expect("Contract argument was not provided");
-
-                let info_to_json =
-                    fetch_contract_info(contract, &client)
-                        .await?
-                        .ok_or(anyhow!(
-                            "No contract information was found for account id {}",
-                            contract
-                        ))?;
-
-                // Binary flag applied
-                if self.binary {
-                    let wasm_code = fetch_wasm_code(&client, info_to_json.code_hash())
-                        .await?
-                        .ok_or(anyhow!(
-                            "Contract wasm code was not found for account id {}",
-                            contract
-                        ))?;
-
-                    if self.output_json {
-                        let wasm = serde_json::json!({
-                            "wasm": format!("0x{}", hex::encode(wasm_code))
-                        });
-                        println!("{}", serde_json::to_string_pretty(&wasm)?);
-                    } else {
-                        std::io::stdout()
-                            .write_all(&wasm_code)
-                            .expect("Writing to stdout failed")
-                    }
-                } else if self.output_json {
-                    println!("{}", info_to_json.to_json()?)
-                } else {
-                    basic_display_format_contract_info(&info_to_json)
-                }
-                Ok(())
+                basic_display_format_contract_info(&info_to_json)
             }
-        })
+            Ok(())
+        }
     }
 }
