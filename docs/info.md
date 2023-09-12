@@ -19,3 +19,4 @@ cargo contract info \
 - `--url` the url of the rpc endpoint you want to specify - by default `ws://localhost:9944`.
 - `--output-json` to export the output as JSON.
 - `--binary` outputs Wasm code as a binary blob. If used in combination with `--output-json`, outputs Wasm code as JSON object with hex string.
+- `--all` outputs all contracts addresses. It can not be used together with `--binary` flag.

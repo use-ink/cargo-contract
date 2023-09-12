@@ -52,7 +52,10 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::Bytes;
+use sp_core::{
+    hashing,
+    Bytes,
+};
 use subxt::{
     blocks,
     config,
@@ -364,7 +367,10 @@ impl ContractInfo {
 }
 
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
-pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<Vec<u8>>> {
+pub async fn fetch_wasm_code(
+    client: &Client,
+    hash: &CodeHash,
+) -> Result<Option<Vec<u8>>> {
     let pristine_code_address = api::storage().contracts().pristine_code(hash);
 
     let pristine_bytes = client
@@ -376,6 +382,49 @@ pub async fn fetch_wasm_code(hash: CodeHash, client: &Client) -> Result<Option<V
         .map(|v| v.0);
 
     Ok(pristine_bytes)
+}
+
+/// Parse a contract account address from a storage key. Returns error if a key is
+/// malformated.
+fn parse_contract_account_address(
+    storage_contract_account_key: &[u8],
+    storage_contract_root_key_len: usize,
+) -> Result<AccountId32> {
+    // storage_contract_account_key is a concatenation of contract_info_of root key and
+    // Twox64Concat(AccountId)
+    let mut account = storage_contract_account_key
+        .get(storage_contract_root_key_len + 8..)
+        .ok_or(anyhow!("Unexpected storage key size"))?;
+    AccountId32::decode(&mut account)
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+}
+
+/// Fetch all contract addresses from the storage using the provided client and count of
+/// requested elements starting from an optional address
+pub async fn fetch_all_contracts(
+    client: &Client,
+    count: u32,
+    count_from: Option<&AccountId32>,
+) -> Result<Vec<AccountId32>> {
+    let key = api::storage()
+        .contracts()
+        .contract_info_of_root()
+        .to_root_bytes();
+    let start_key = count_from
+        .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
+    let keys = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch_keys(key.as_ref(), count, start_key.as_deref())
+        .await?;
+
+    let contracts = keys
+        .into_iter()
+        .map(|e| parse_contract_account_address(&e.0, key.len()))
+        .collect::<Result<_, _>>()?;
+
+    Ok(contracts)
 }
 
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
