@@ -70,7 +70,8 @@ pub struct InfoCommand {
 
 impl InfoCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let client = OnlineClient::<DefaultConfig>::from_url(&self.url).await?;
+        let client =
+            OnlineClient::<DefaultConfig>::from_url(url_to_string(&self.url)).await?;
 
         // All flag applied
         if self.all {
@@ -140,5 +141,20 @@ impl InfoCommand {
             }
             Ok(())
         }
+    }
+}
+
+// Converts a URL into a string representation without excluding the default port.
+fn url_to_string(url: &url::Url) -> String {
+    match (url.port(), url.port_or_known_default()) {
+        (None, Some(port)) => {
+            format!(
+                "{}:{port}{}",
+                &url[..url::Position::AfterHost],
+                &url[url::Position::BeforePath..]
+            )
+            .to_string()
+        }
+        _ => url.to_string(),
     }
 }
