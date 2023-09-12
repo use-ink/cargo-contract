@@ -144,8 +144,8 @@ impl InfoCommand {
     }
 }
 
-// Converts a URL into a string representation without excluding the default port.
-fn url_to_string(url: &url::Url) -> String {
+// Converts a Url into a String representation without excluding the default port.
+pub fn url_to_string(url: &url::Url) -> String {
     match (url.port(), url.port_or_known_default()) {
         (None, Some(port)) => {
             format!(
