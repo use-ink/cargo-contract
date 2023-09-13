@@ -427,6 +427,21 @@ pub async fn fetch_all_contracts(
     Ok(contracts)
 }
 
+// Converts a Url into a String representation without excluding the default port.
+pub fn url_to_string(url: &url::Url) -> String {
+    match (url.port(), url.port_or_known_default()) {
+        (None, Some(port)) => {
+            format!(
+                "{}:{port}{}",
+                &url[..url::Position::AfterHost],
+                &url[url::Position::BeforePath..]
+            )
+            .to_string()
+        }
+        _ => url.to_string(),
+    }
+}
+
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
 /// required for json output.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
@@ -472,5 +487,28 @@ mod tests {
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok())
+    }
+
+    #[test]
+    fn url_to_string_works() {
+        // with custom port
+        let url = url::Url::parse("ws://127.0.0.1:9944").unwrap();
+        assert_eq!(url_to_string(&url), "ws://127.0.0.1:9944/");
+
+        // with default port
+        let url = url::Url::parse("wss://127.0.0.1:443").unwrap();
+        assert_eq!(url_to_string(&url), "wss://127.0.0.1:443/");
+
+        // with default port and path
+        let url = url::Url::parse("wss://127.0.0.1:443/test/1").unwrap();
+        assert_eq!(url_to_string(&url), "wss://127.0.0.1:443/test/1");
+
+        // with default port and domain
+        let url = url::Url::parse("wss://test.io:443").unwrap();
+        assert_eq!(url_to_string(&url), "wss://test.io:443/");
+
+        // with default port, doamain and path
+        let url = url::Url::parse("wss://test.io/test/1").unwrap();
+        assert_eq!(url_to_string(&url), "wss://test.io:443/test/1");
     }
 }

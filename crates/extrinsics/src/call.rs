@@ -21,6 +21,7 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
+    url_to_string,
     AccountId32,
     Balance,
     BalanceVariant,
@@ -178,7 +179,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
 
         let signer = self.opts.extrinsic_opts.signer()?;
 
-        let url = self.opts.extrinsic_opts.url_to_string();
+        let url = url_to_string(self.opts.extrinsic_opts.url());
         let client = OnlineClient::from_url(url.clone()).await?;
         Ok(CallExec {
             contract: self.opts.contract.clone(),
@@ -221,7 +222,7 @@ impl CallExec {
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
-        let url = self.opts.url_to_string();
+        let url = url_to_string(self.opts.url());
         let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts

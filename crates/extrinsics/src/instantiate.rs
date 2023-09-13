@@ -20,6 +20,7 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
+    url_to_string,
     Balance,
     BalanceVariant,
     Client,
@@ -165,7 +166,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.opts.constructor, &self.opts.args)?;
         let signer = self.opts.extrinsic_opts.signer()?;
-        let url = self.opts.extrinsic_opts.url_to_string();
+        let url = url_to_string(self.opts.extrinsic_opts.url());
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {

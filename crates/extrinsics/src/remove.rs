@@ -22,6 +22,7 @@ use super::{
     },
     state,
     submit_extrinsic,
+    url_to_string,
     Client,
     ContractMessageTranscoder,
     DefaultConfig,
@@ -118,7 +119,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )),
         }?;
-        let url = self.opts.extrinsic_opts.url_to_string();
+        let url = url_to_string(self.opts.extrinsic_opts.url());
         let client = OnlineClient::from_url(url.clone()).await?;
 
         Ok(RemoveExec {

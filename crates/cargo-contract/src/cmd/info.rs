@@ -27,6 +27,7 @@ use contract_extrinsics::{
     fetch_all_contracts,
     fetch_contract_info,
     fetch_wasm_code,
+    url_to_string,
     ErrorVariant,
 };
 use std::{
@@ -141,20 +142,5 @@ impl InfoCommand {
             }
             Ok(())
         }
-    }
-}
-
-// Converts a Url into a String representation without excluding the default port.
-pub fn url_to_string(url: &url::Url) -> String {
-    match (url.port(), url.port_or_known_default()) {
-        (None, Some(port)) => {
-            format!(
-                "{}:{port}{}",
-                &url[..url::Position::AfterHost],
-                &url[url::Position::BeforePath..]
-            )
-            .to_string()
-        }
-        _ => url.to_string(),
     }
 }
