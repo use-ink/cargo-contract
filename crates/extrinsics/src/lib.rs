@@ -507,7 +507,7 @@ mod tests {
         let url = url::Url::parse("wss://test.io:443").unwrap();
         assert_eq!(url_to_string(&url), "wss://test.io:443/");
 
-        // with default port, doamain and path
+        // with default port, domain and path
         let url = url::Url::parse("wss://test.io/test/1").unwrap();
         assert_eq!(url_to_string(&url), "wss://test.io:443/test/1");
     }
