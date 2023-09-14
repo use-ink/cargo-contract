@@ -28,6 +28,7 @@ use anyhow::{
 };
 
 use crate::{
+    url_to_string,
     Balance,
     BalanceVariant,
     ContractArtifacts,
@@ -180,8 +181,8 @@ impl ExtrinsicOpts {
     }
 
     /// Return the URL of the substrate node.
-    pub fn url(&self) -> &Url {
-        &self.url
+    pub fn url(&self) -> String {
+        url_to_string(&self.url)
     }
 
     /// Return the secret URI of the signer.
