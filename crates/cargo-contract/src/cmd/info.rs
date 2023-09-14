@@ -27,6 +27,7 @@ use contract_extrinsics::{
     fetch_all_contracts,
     fetch_contract_info,
     fetch_wasm_code,
+    url_to_string,
     ErrorVariant,
 };
 use std::{
@@ -70,7 +71,8 @@ pub struct InfoCommand {
 
 impl InfoCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let client = OnlineClient::<DefaultConfig>::from_url(&self.url).await?;
+        let client =
+            OnlineClient::<DefaultConfig>::from_url(url_to_string(&self.url)).await?;
 
         // All flag applied
         if self.all {

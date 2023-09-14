@@ -105,8 +105,8 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )
         })?;
-        let url = self.opts.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await?;
+        let url = self.opts.extrinsic_opts.url();
+        let client = OnlineClient::from_url(url).await?;
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
             client,
@@ -131,7 +131,7 @@ impl UploadExec {
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let url = self.opts.url_to_string();
+        let url = self.opts.url();
         let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
