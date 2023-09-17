@@ -122,8 +122,7 @@ impl CrateMetadata {
                         Version::parse(&package.version.to_string())
                             .expect("Invalid ink crate version string"),
                     )
-                }
-                else {
+                } else {
                     None
                 }
             })
