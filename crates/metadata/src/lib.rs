@@ -95,9 +95,6 @@ use std::{
 };
 use url::Url;
 
-/// Version of the currently executing `cargo-contract` binary.
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 /// Smart contract metadata.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContractMetadata {
@@ -156,7 +153,7 @@ impl ContractMetadata {
     /// binary
     pub fn check_ink_compatibility(&self) -> Result<()> {
         if let Language::Ink = self.source.language.language {
-            check_contract_ink_compatibility(&self.source.language.version, None)?;
+            check_contract_ink_compatibility(&self.source.language.version)?;
         }
         Ok(())
     }
@@ -657,34 +654,13 @@ impl ContractBuilder {
 
 /// Checks whether the contract's ink! version is compatible with the cargo-contract
 /// binary.
-///
-/// Hence this function only returns an `Err` if it is a proper mismatch according
-/// to semantic versioning.
-pub fn check_contract_ink_compatibility(
-    ink_version: &Version,
-    cargo_contract_version: Option<&Version>,
-) -> Result<()> {
-    let cargo_contract_dependent_version =
-        Version::parse("2.0.0-alpha.3").expect("Parsing version failed");
-    let ink_dependent_version =
-        Version::parse("4.0.0-alpha.3").expect("Parsing version failed");
+pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
+    let ink_minimal_version =
+        Version::parse("4.0.0-alpha.1").expect("Parsing version failed");
 
-    let cargo_contract_version = cargo_contract_version
-        .cloned()
-        .or(Version::parse(VERSION).ok())
-        .expect("Parsing crate version failed");
-
-    if *ink_version >= ink_dependent_version
-        && cargo_contract_version < cargo_contract_dependent_version
-    {
+    if ink_minimal_version > *ink_version {
         anyhow::bail!(
-            "Cargo-contract not compatible with contract ink version. Upgrade cargo-contract to 2.x version or downgrade ink to 3.x version"
-        );
-    } else if *ink_version < ink_dependent_version
-        && cargo_contract_version >= cargo_contract_dependent_version
-    {
-        anyhow::bail!(
-            "Cargo-contract not compatible with contract ink version. Downgrade cargo-contract to 1.x version or upgrade ink to 4.x version"
+            "The cargo-contract is not compatible with the contract's ink! version. Please either downgrade cargo-contract to version 1.x or upgrade ink! to version 4.x."
         );
     }
     Ok(())
@@ -980,21 +956,9 @@ mod tests {
 
     #[test]
     fn ink_check_failes_when_incompatible_version() {
-        let ink_version = Version::new(4, 2, 3);
-        let cargo_contract_version = Version::new(1, 2, 3);
-        let res =
-            check_contract_ink_compatibility(&ink_version, Some(&cargo_contract_version))
-                .expect_err("Version check should failed");
-        assert_eq!(
-            res.to_string(),
-            "Cargo-contract not compatible with contract ink version. Upgrade cargo-contract to 2.x version or downgrade ink to 3.x version"
-        );
-
         let ink_version = Version::new(3, 2, 0);
-        let cargo_contract_version = Version::new(4, 0, 0);
-        let res =
-            check_contract_ink_compatibility(&ink_version, Some(&cargo_contract_version))
-                .expect_err("Version check should failed");
+        let res = check_contract_ink_compatibility(&ink_version)
+            .expect_err("Ink version check should fail");
 
         assert_eq!(
             res.to_string(),
@@ -1005,15 +969,12 @@ mod tests {
     #[test]
     fn ink_check_succeeds_when_compatible_version() {
         let ink_version = Version::new(4, 2, 3);
-        let cargo_contract_version = Version::new(3, 0, 0);
-        let res =
-            check_contract_ink_compatibility(&ink_version, Some(&cargo_contract_version));
+        let res = check_contract_ink_compatibility(&ink_version);
         assert!(res.is_ok());
 
-        let cargo_contract_version =
-            Version::parse("2.0.0-alpha.4").expect("Parsing version must work");
-        let res =
-            check_contract_ink_compatibility(&ink_version, Some(&cargo_contract_version));
+        let ink_version =
+            Version::parse("4.0.0-alpha.4").expect("Parsing version must work");
+        let res = check_contract_ink_compatibility(&ink_version);
         assert!(res.is_ok());
     }
 }

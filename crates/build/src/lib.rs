@@ -858,7 +858,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    check_contract_ink_compatibility(&crate_metadata.ink_version, None)?;
+    check_contract_ink_compatibility(&crate_metadata.ink_version)?;
 
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();
