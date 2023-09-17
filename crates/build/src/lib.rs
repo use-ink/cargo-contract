@@ -17,7 +17,10 @@
 #![doc = include_str!("../README.md")]
 #![deny(unused_crate_dependencies)]
 
-use contract_metadata::ContractMetadata;
+use contract_metadata::{
+    check_contract_ink_compatibility,
+    ContractMetadata,
+};
 use which as _;
 
 mod args;
@@ -854,6 +857,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
+
+    check_contract_ink_compatibility(&crate_metadata.ink_version, None)?;
 
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();

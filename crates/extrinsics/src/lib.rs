@@ -168,6 +168,7 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
+                    metadata.check_ink_compatibility()?;
                     let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
@@ -183,6 +184,7 @@ impl ContractArtifacts {
                         (metadata_path, None, code)
                     } else {
                         let metadata = ContractMetadata::load(&metadata_path)?;
+                        metadata.check_ink_compatibility()?;
                         (metadata_path, Some(metadata), code)
                     }
                 }
