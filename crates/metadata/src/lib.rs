@@ -962,7 +962,7 @@ mod tests {
 
         assert_eq!(
             res.to_string(),
-            "Cargo-contract not compatible with contract ink version. Downgrade cargo-contract to 1.x version or upgrade ink to 4.x version"
+            "The cargo-contract is not compatible with the contract's ink! version. Please either downgrade cargo-contract to version 1.x or upgrade ink! to version 4.x."
         );
     }
 
