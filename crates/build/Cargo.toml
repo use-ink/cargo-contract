@@ -17,21 +17,21 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 regex = "1"
 anyhow = "1.0.75"
 blake2 = "0.10.6"
-cargo_metadata = "0.17.0"
+cargo_metadata = "0.18.0"
 colored = "2.0.4"
-clap = { version = "4.4.2", features = ["derive", "env"] }
+clap = { version = "4.4.4", features = ["derive", "env"] }
 duct = "0.13.6"
 heck = "0.4.0"
 hex = "0.4.3"
 impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-toml = "0.7.8"
+toml = "0.8.0"
 tracing = "0.1.37"
 parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
 semver = { version = "1.0.18", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.106"
+serde_json = "1.0.107"
 tempfile = "3.8.0"
 term_size = "0.3.2"
 url = { version = "2.4.1", features = ["serde"] }
@@ -41,7 +41,7 @@ zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.25", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
-bollard = "0.14"
+bollard = "0.15"
 crossterm = "0.27.0"
 
 contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }

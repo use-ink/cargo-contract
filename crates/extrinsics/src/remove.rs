@@ -118,8 +118,8 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )),
         }?;
-        let url = self.opts.extrinsic_opts.url_to_string();
-        let client = OnlineClient::from_url(url.clone()).await?;
+        let url = self.opts.extrinsic_opts.url();
+        let client = OnlineClient::from_url(url).await?;
 
         Ok(RemoveExec {
             final_code_hash,

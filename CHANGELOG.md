@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
 - Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
 - Add `--all` flag for `info` command - [#1319](https://github.com/paritytech/cargo-contract/pull/1319)
+- Fix for a Url to String conversion in `info` command - [#1330](https://github.com/paritytech/cargo-contract/pull/1330)
 - Add contract language detection feature for `info` command - [#1329](https://github.com/paritytech/cargo-contract/pull/1329)
 
 ## [4.0.0-alpha]
