@@ -20,7 +20,13 @@ use anyhow::{
     Result,
 };
 pub use contract_metadata::Language;
-use parity_wasm::elements::Module;
+use parity_wasm::elements::{
+    FuncBody,
+    FunctionType,
+    Module,
+    Type,
+    ValueType,
+};
 
 /// Detects the programming language of a smart contract from its WebAssembly (Wasm)
 /// binary code.
@@ -36,6 +42,13 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     let start_section = module.start_section();
     let mut custom_sections = module.custom_sections().map(|e| e.name()).peekable();
 
+    // Looking for the ink! function signature: pub fn deny_payment<E>() -> Result<(),
+    // DispatchError> While the function is declared with the inline attribute, the
+    // compiler does not appear to inline it, even when building in release mode.
+    // (type (;4;) (func (result i32)))
+    // (func (;7;) (type 4) (result i32)
+    let ink_func_sig = Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
+
     let import_section_first = import_section
         .ok_or(anyhow!("Missing required import section"))?
         .entries()
@@ -46,6 +59,7 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     if import_section_first != "memory"
         && start_section.is_none()
         && custom_sections.peek().is_none()
+        && find_function(&module, &ink_func_sig).is_ok()
     {
         return Ok(Language::Ink)
     } else if import_section_first == "memory"
@@ -61,6 +75,46 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     }
 
     bail!("Language unsupported or unrecognized")
+}
+
+/// Search for a functions in a WebAssembly (Wasm) module that matches a given function
+/// type.
+///
+/// If one or more functions matching the specified type are found, this function returns
+/// their bodies in a vector; otherwise, it returns an error.
+fn find_function<'a>(
+    module: &'a Module,
+    function_type: &Type,
+) -> Result<Vec<&'a FuncBody>> {
+    let func_type_idx = module
+        .type_section()
+        .ok_or(anyhow!("Missing required type section"))?
+        .types()
+        .iter()
+        .position(|e| e == function_type)
+        .ok_or(anyhow!("Requested function type not found"))?;
+
+    let functions = module
+        .function_section()
+        .ok_or(anyhow!("Missing required function section"))?
+        .entries()
+        .iter()
+        .enumerate()
+        .filter(|(_, elem)| elem.type_ref() == func_type_idx as u32)
+        .map(|(idx, _)| {
+            module
+                .code_section()
+                .ok_or(anyhow!("Missing required code section"))?
+                .bodies()
+                .get(idx)
+                .ok_or(anyhow!("Requested function not found code section"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    if functions.is_empty() {
+        bail!("Function not found");
+    }
+    Ok(functions)
 }
 
 #[cfg(test)]
@@ -93,9 +147,13 @@ mod tests {
         let contract = r#"
         (module
             (type (;0;) (func (param i32 i32 i32)))
+            (type (;1;) (func (result i32)))
             (import "seal" "foo" (func (;5;) (type 0)))
             (import "env" "memory" (func (;5;) (type 0)))
             (func (;5;) (type 0))
+            (func (;6;) (type 1) (result i32)
+            (local i32 i64 i64)
+            local.get 0)
         )"#;
         let code = wabt::wat2wasm(contract).expect("invalid wabt");
         let lang = determine_language(&code);
