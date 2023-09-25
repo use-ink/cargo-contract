@@ -77,8 +77,12 @@ impl CustomMatch for VersionReq {
 fn comparator_into_version(cmp: &Comparator) -> Version {
     Version {
         major: cmp.major,
-        minor: cmp.minor.unwrap(),
-        patch: cmp.patch.unwrap(),
+        minor: cmp
+            .minor
+            .expect("minor version number needs to be provided in version requirements"),
+        patch: cmp
+            .patch
+            .expect("patch version number needs to be provided in version requirements"),
         pre: cmp.pre.clone(),
         build: BuildMetadata::EMPTY,
     }
