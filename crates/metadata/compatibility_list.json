@@ -1,0 +1,12 @@
+{
+    "versions": [
+        {
+            "cargo-contract": ">=1.0.0,<2.0.0-alpha.3",
+            "ink": ">=3.0.0-alpha.1,<4.0.0-alpha.3"
+        },
+        {
+            "cargo-contract": ">=2.0.0-alpha.3",
+            "ink": ">=4.0.0-alpha.3"
+        }
+    ]
+}

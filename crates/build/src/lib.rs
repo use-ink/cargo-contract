@@ -18,7 +18,7 @@
 #![deny(unused_crate_dependencies)]
 
 use contract_metadata::{
-    check_contract_ink_compatibility,
+    compatibility::check_contract_ink_compatibility,
     ContractMetadata,
 };
 use which as _;
@@ -858,7 +858,9 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    check_contract_ink_compatibility(&crate_metadata.ink_version)?;
+    if let Err(e) = check_contract_ink_compatibility(&crate_metadata.ink_version) {
+        eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
+    }
 
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();

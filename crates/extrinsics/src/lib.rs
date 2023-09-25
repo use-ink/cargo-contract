@@ -28,6 +28,7 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
+use colored::Colorize;
 use subxt::utils::AccountId32;
 
 use anyhow::{
@@ -168,7 +169,6 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    metadata.check_ink_compatibility()?;
                     let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
@@ -184,7 +184,6 @@ impl ContractArtifacts {
                         (metadata_path, None, code)
                     } else {
                         let metadata = ContractMetadata::load(&metadata_path)?;
-                        metadata.check_ink_compatibility()?;
                         (metadata_path, Some(metadata), code)
                     }
                 }
@@ -197,6 +196,12 @@ impl ContractArtifacts {
                     )
                 }
             };
+
+        if let Some(contract_metadata) = metadata.as_ref() {
+            if let Err(e) = contract_metadata.check_ink_compatibility() {
+                eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
+            }
+        }
         Ok(Self {
             artifacts_path: path.into(),
             metadata_path,
