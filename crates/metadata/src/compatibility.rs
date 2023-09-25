@@ -60,9 +60,11 @@ impl CustomMatch for VersionReq {
                 Op::GreaterEq => cmp_ver <= version,
                 Op::Less => cmp_ver > version,
                 Op::LessEq => cmp_ver >= version,
-                _ => panic!(
+                _ => {
+                    panic!(
                     "comparison operator in the version requirements is not supported"
-                ),
+                )
+                }
             };
             if !res {
                 return false
