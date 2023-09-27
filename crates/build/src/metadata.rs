@@ -156,7 +156,7 @@ pub fn execute(
             verbosity,
             vec![(
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some("--cap-lints=allow".to_string()),
+                Some("--cap-lints=allow\x1f-Clink-dead-code".to_string()),
             )],
         );
         let output = cmd.stdout_capture().run()?;
