@@ -310,44 +310,6 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-/// Calculate total contract deposit
-async fn get_contract_total_deposit(
-    storage_base_deposit: Balance,
-    storage_item_deposit: Balance,
-    storage_byte_deposit: Balance,
-    client: &Client,
-) -> Result<Balance> {
-    let contract_pallet_version = fetch_contracts_pallet_version(client).await?;
-    let mut contract_deposit = storage_base_deposit
-        .saturating_add(storage_item_deposit)
-        .saturating_add(storage_byte_deposit);
-
-    // From contracts pallet version 10 deposit calculation has changed
-    if contract_pallet_version >= 10 {
-        let existential_deposit_address =
-            api::constants().balances().existential_deposit();
-        let existential_deposit = client.constants().at(&existential_deposit_address)?;
-        contract_deposit = contract_deposit.saturating_sub(existential_deposit);
-    }
-    Ok(contract_deposit)
-}
-
-/// Fetch contracts pallet version from the storage using the provided client.
-async fn fetch_contracts_pallet_version(client: &Client) -> Result<u16> {
-    let hash_pallet = hashing::twox_128(b"Contracts");
-    let hash_version = hashing::twox_128(b":__STORAGE_VERSION__:");
-    let key = [hash_pallet, hash_version].concat();
-
-    let version = client
-        .rpc()
-        .storage(key.as_slice(), None)
-        .await?
-        .ok_or(anyhow!("Failed to get storage version of contracts pallet"))?
-        .0;
-    let version = u16::decode(&mut version.as_slice())?;
-    Ok(version)
-}
-
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
     contract: &AccountId32,
@@ -365,21 +327,11 @@ pub async fn fetch_contract_info(
     match contract_info_of {
         Some(info_result) => {
             let convert_trie_id = hex::encode(info_result.trie_id.0);
-
-            let total_deposit = get_contract_total_deposit(
-                info_result.storage_base_deposit,
-                info_result.storage_item_deposit,
-                info_result.storage_byte_deposit,
-                client,
-            )
-            .await?;
-
             Ok(Some(ContractInfo {
                 trie_id: convert_trie_id,
                 code_hash: info_result.code_hash,
                 storage_items: info_result.storage_items,
                 storage_item_deposit: info_result.storage_item_deposit,
-                storage_total_deposit: total_deposit,
             }))
         }
         None => Ok(None),
@@ -392,7 +344,6 @@ pub struct ContractInfo {
     code_hash: CodeHash,
     storage_items: u32,
     storage_item_deposit: Balance,
-    storage_total_deposit: Balance,
 }
 
 impl ContractInfo {
@@ -419,11 +370,6 @@ impl ContractInfo {
     /// Return the storage item deposit of the contract.
     pub fn storage_item_deposit(&self) -> Balance {
         self.storage_item_deposit
-    }
-
-    /// Return the storage item deposit of the contract.
-    pub fn storage_total_deposit(&self) -> Balance {
-        self.storage_total_deposit
     }
 }
 
