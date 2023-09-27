@@ -119,7 +119,7 @@ impl CLIExtrinsicOpts {
     }
 }
 
-const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
+const STORAGE_DEPOSIT_KEY: &str = "Storage Total Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
@@ -228,8 +228,13 @@ pub fn basic_display_format_contract_info(info: &ContractInfo) {
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Storage Deposit",
+        "Storage Item Deposit",
         format!("{:?}", info.storage_item_deposit()),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Storage Total Deposit",
+        format!("{:?}", info.storage_total_deposit()),
         MAX_KEY_COL_WIDTH
     );
 }
