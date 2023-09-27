@@ -149,6 +149,12 @@ pub fn execute(
         network.append_to_args(&mut args);
         features.append_to_args(&mut args);
 
+        #[cfg(windows)]
+        let link_dead_code = "";
+
+        #[cfg(not(windows))]
+        let link_dead_code = "\x1f-Clink-dead-code";
+
         let cmd = util::cargo_cmd(
             "run",
             args,
@@ -156,7 +162,7 @@ pub fn execute(
             verbosity,
             vec![(
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some("--cap-lints=allow\x1f-Clink-dead-code".to_string()),
+                Some(format!("--cap-lints=allow{link_dead_code}")),
             )],
         );
         let output = cmd.stdout_capture().run()?;
