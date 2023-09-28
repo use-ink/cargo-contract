@@ -228,7 +228,7 @@ pub fn basic_display_format_contract_info(info: &ContractInfo) {
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Storage Item Deposit",
+        "Storage Items Deposit",
         format!("{:?}", info.storage_item_deposit()),
         MAX_KEY_COL_WIDTH
     );
