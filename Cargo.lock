@@ -765,7 +765,7 @@ dependencies = [
  "sp-core",
  "sp-weights",
  "substrate-build-script-utils",
- "subxt",
+ "subxt 0.32.0",
  "tempfile",
  "tokio",
  "tracing",
@@ -1041,7 +1041,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-weights",
- "subxt",
+ "subxt 0.32.0",
  "subxt-signer",
  "tempfile",
  "tokio",
@@ -2538,7 +2538,7 @@ checksum = "367a292944c07385839818bb71c8d76611138e2dedb0677d035b8da21d29c78b"
 dependencies = [
  "jsonrpsee-client-transport 0.16.3",
  "jsonrpsee-core 0.16.3",
- "jsonrpsee-http-client",
+ "jsonrpsee-http-client 0.16.3",
  "jsonrpsee-types 0.16.3",
 ]
 
@@ -2548,7 +2548,9 @@ version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ad9b31183a8bcbe843e32ca8554ad2936633548d95a7bb6a8e14c767dea6b05"
 dependencies = [
+ "jsonrpsee-client-transport 0.20.1",
  "jsonrpsee-core 0.20.1",
+ "jsonrpsee-http-client 0.20.1",
  "jsonrpsee-types 0.20.1",
  "jsonrpsee-ws-client",
 ]
@@ -2629,6 +2631,7 @@ dependencies = [
  "beef",
  "futures-timer",
  "futures-util",
+ "hyper",
  "jsonrpsee-types 0.20.1",
  "rustc-hash",
  "serde",
@@ -2655,6 +2658,26 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-http-client"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dd865d0072764cb937b0110a92b5f53e995f7101cb346beca03d93a2dea79de"
+dependencies = [
+ "async-trait",
+ "hyper",
+ "hyper-rustls",
+ "jsonrpsee-core 0.20.1",
+ "jsonrpsee-types 0.20.1",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tower",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -3430,9 +3453,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.66"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18fb31db3f9bddb2ea821cde30a9f70117e3f119938b5ee630b7403aa6e2ead9"
+checksum = "3d433d9f1a3e8c1263d9456598b16fec66f4acc9a74dacffd35c7bb09b3a1328"
 dependencies = [
  "unicode-ident",
 ]
@@ -5050,7 +5073,38 @@ dependencies = [
  "futures",
  "hex",
  "impl-serde",
- "jsonrpsee 0.16.3",
+ "parity-scale-codec",
+ "primitive-types",
+ "scale-bits",
+ "scale-decode",
+ "scale-encode",
+ "scale-info",
+ "scale-value",
+ "serde",
+ "serde_json",
+ "sp-core-hashing 9.0.0",
+ "subxt-macro 0.31.0",
+ "subxt-metadata 0.31.0",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "subxt"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86ad149b178bedc983532ed795e0024dcdcb802a7f93377172c8aa6a3429590f"
+dependencies = [
+ "async-trait",
+ "base58",
+ "blake2",
+ "derivative",
+ "either",
+ "frame-metadata 16.0.0",
+ "futures",
+ "hex",
+ "impl-serde",
+ "jsonrpsee 0.20.1",
  "parity-scale-codec",
  "primitive-types",
  "scale-bits",
@@ -5062,8 +5116,8 @@ dependencies = [
  "serde_json",
  "sp-core-hashing 9.0.0",
  "subxt-lightclient",
- "subxt-macro",
- "subxt-metadata",
+ "subxt-macro 0.32.0",
+ "subxt-metadata 0.32.0",
  "thiserror",
  "tracing",
 ]
@@ -5082,7 +5136,27 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scale-info",
- "subxt-metadata",
+ "subxt-metadata 0.31.0",
+ "syn 2.0.29",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "subxt-codegen"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b82d423038ed4e49b1b337b174c6c2a0a01d1f7d60d8094bfa2c1bce29ac41aa"
+dependencies = [
+ "frame-metadata 16.0.0",
+ "heck",
+ "hex",
+ "jsonrpsee 0.20.1",
+ "parity-scale-codec",
+ "proc-macro2",
+ "quote",
+ "scale-info",
+ "subxt-metadata 0.32.0",
  "syn 2.0.29",
  "thiserror",
  "tokio",
@@ -5090,9 +5164,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-lightclient"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aa72c1cb7e06772efa1476949c3f0e83718c79c1b2615eb510c076b012e9c84"
+checksum = "5d3aba25e5309150ae74dd75badac9780814292332cfdd79827aff56b354f763"
 dependencies = [
  "futures",
  "futures-util",
@@ -5113,7 +5187,19 @@ checksum = "afe9f7e2994a20ab9748a9a040a3fe96054faa219a60ed21af51b9ab9e5f7da6"
 dependencies = [
  "darling 0.20.3",
  "proc-macro-error",
- "subxt-codegen",
+ "subxt-codegen 0.31.0",
+ "syn 2.0.29",
+]
+
+[[package]]
+name = "subxt-macro"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a32cb896b742c5cc269a3a4da7f090f61e2b8552c7337f5e038e63a9301ea44"
+dependencies = [
+ "darling 0.20.3",
+ "proc-macro-error",
+ "subxt-codegen 0.32.0",
  "syn 2.0.29",
 ]
 
@@ -5122,6 +5208,19 @@ name = "subxt-metadata"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "880017c466f66af10e1c9b28cfa4cb2e4f59ab1bfe0b0f7250f7aca6e9d593b0"
+dependencies = [
+ "frame-metadata 16.0.0",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core-hashing 9.0.0",
+ "thiserror",
+]
+
+[[package]]
+name = "subxt-metadata"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9928f1b9679351800285f4acab6980d2b8e04b7a6decfbf71e258ee6e74a2dc8"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -5147,7 +5246,7 @@ dependencies = [
  "secrecy",
  "sha2 0.10.7",
  "sp-core-hashing 9.0.0",
- "subxt",
+ "subxt 0.31.0",
  "thiserror",
  "zeroize",
 ]
@@ -5476,6 +5575,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "tower"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
+dependencies = [
+ "futures-core",
+ "futures-util",
+ "pin-project",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower-layer"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
+
+[[package]]
 name = "tower-service"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5488,6 +5608,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
  "cfg-if",
+ "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
