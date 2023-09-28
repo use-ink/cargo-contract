@@ -303,7 +303,7 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-/// Calculate total contract deposit
+/// Calculate the total contract deposit.
 async fn get_contract_total_deposit(
     storage_base_deposit: Balance,
     storage_item_deposit: Balance,
@@ -315,7 +315,7 @@ async fn get_contract_total_deposit(
         .saturating_add(storage_item_deposit)
         .saturating_add(storage_byte_deposit);
 
-    // From contracts pallet version 10 deposit calculation has changed
+    // From contracts pallet version 10 deposit calculation has changed.
     if contract_pallet_version >= 10 {
         let existential_deposit_address =
             api::constants().balances().existential_deposit();
@@ -325,7 +325,7 @@ async fn get_contract_total_deposit(
     Ok(contract_deposit)
 }
 
-/// Fetch contracts pallet version from the storage using the provided client.
+/// Fetch the contracts pallet version from the storage using the provided client.
 async fn fetch_contracts_pallet_version(client: &Client) -> Result<u16> {
     let hash_pallet = hashing::twox_128(b"Contracts");
     let hash_version = hashing::twox_128(b":__STORAGE_VERSION__:");
@@ -445,7 +445,7 @@ fn parse_contract_account_address(
     storage_contract_root_key_len: usize,
 ) -> Result<AccountId32> {
     // storage_contract_account_key is a concatenation of contract_info_of root key and
-    // Twox64Concat(AccountId)
+    // Twox64Concat(AccountId).
     let mut account = storage_contract_account_key
         .get(storage_contract_root_key_len + 8..)
         .ok_or(anyhow!("Unexpected storage key size"))?;
@@ -454,7 +454,7 @@ fn parse_contract_account_address(
 }
 
 /// Fetch all contract addresses from the storage using the provided client and count of
-/// requested elements starting from an optional address
+/// requested elements starting from an optional address.
 pub async fn fetch_all_contracts(
     client: &Client,
     count: u32,
