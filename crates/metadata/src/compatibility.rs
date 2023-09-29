@@ -20,9 +20,6 @@ use anyhow::{
     Result,
 };
 use semver::{
-    BuildMetadata,
-    Comparator,
-    Op,
     Version,
     VersionReq,
 };
@@ -32,60 +29,15 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, serde::Deserialize)]
 struct CompatibilityList {
-    versions: Vec<CompatibilityInfo>,
+    #[serde(rename = "cargo-contract")]
+    cargo_contracts: Vec<CargoContract>,
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct CompatibilityInfo {
-    #[serde(rename = "cargo-contract")]
-    cargo_contract_req: VersionReq,
-    #[serde(rename = "ink")]
-    ink_req: VersionReq,
-}
-
-trait CustomMatch {
-    fn matches_including_pre_releases(&self, version: &Version) -> bool;
-}
-
-// The VersionReq matching mechanism behaves in such a way that 4.0.0-alpha.1 does not
-// satisfy the requirement ">2.0.0,<5.0.0". To modify this behavior, a custom matching
-// implementation has been provided.
-impl CustomMatch for VersionReq {
-    fn matches_including_pre_releases(&self, version: &Version) -> bool {
-        for cmp in &self.comparators {
-            let cmp_ver = &comparator_into_version(cmp);
-            let res = match cmp.op {
-                Op::Exact => cmp_ver == version,
-                Op::Greater => cmp_ver < version,
-                Op::GreaterEq => cmp_ver <= version,
-                Op::Less => cmp_ver > version,
-                Op::LessEq => cmp_ver >= version,
-                _ => {
-                    panic!(
-                    "comparison operator in the version requirements is not supported"
-                )
-                }
-            };
-            if !res {
-                return false
-            }
-        }
-        true
-    }
-}
-
-fn comparator_into_version(cmp: &Comparator) -> Version {
-    Version {
-        major: cmp.major,
-        minor: cmp
-            .minor
-            .expect("minor version number needs to be provided in version requirements"),
-        patch: cmp
-            .patch
-            .expect("patch version number needs to be provided in version requirements"),
-        pre: cmp.pre.clone(),
-        build: BuildMetadata::EMPTY,
-    }
+struct CargoContract {
+    version: Version,
+    #[serde(rename = "ink-versions")]
+    ink_req: Vec<VersionReq>,
 }
 
 /// Checks whether the contract's ink! version is compatible with the cargo-contract
@@ -96,48 +48,57 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
     let cargo_contract_version =
         semver::Version::parse(VERSION).expect("Parsing version failed");
 
-    let compatible = compatibility_list.versions.iter().find(|&e| {
-        matches!(
-            (
-                e.cargo_contract_req
-                    .matches_including_pre_releases(&cargo_contract_version),
-                e.ink_req.matches_including_pre_releases(ink_version)
-            ),
-            (true, true)
-        )
+    // Check for compatibility
+    let compatible = compatibility_list.cargo_contracts.iter().find(|&e| {
+        e.version == cargo_contract_version
+            && e.ink_req.iter().any(|req| req.matches(ink_version))
     });
 
-    // Compatible versions has not been found
     if compatible.is_none() {
-        let matching_req = compatibility_list
-            .versions
+        // Find matching ink! versions
+        let ink_matches = compatibility_list
+            .cargo_contracts
+            .iter()
+            .find_map(|e| {
+                if e.version == cargo_contract_version {
+                    return Some(&e.ink_req)
+                }
+                None
+            })
+            .map(|req_list| {
+                let versions = req_list
+                    .iter()
+                    .map(|req| format!("'{}'", req))
+                    .collect::<Vec<_>>()
+                    .join(" or ");
+                format!("update the contract ink! to version {}", versions)
+            })
+            .unwrap_or_default();
+
+        // Find best cargo-contract version
+        let cargo_contract_match = compatibility_list
+            .cargo_contracts
             .iter()
             .filter_map(|e| {
-                match (
-                    e.cargo_contract_req
-                        .matches_including_pre_releases(&cargo_contract_version),
-                    e.ink_req.matches_including_pre_releases(ink_version),
-                ) {
-                    (true, false) => {
-                        Some(format!(
-                            "update the contract ink! to version '{}'",
-                            e.ink_req
-                        ))
-                    }
-                    (false, true) => {
-                        Some(format!(
-                            "update the cargo-contract to version '{}'",
-                            e.cargo_contract_req
-                        ))
-                    }
-                    (_, _) => None,
+                if e.ink_req.iter().any(|req| req.matches(ink_version)) {
+                    return Some(&e.version)
+                }
+                None
+            })
+            .max_by(|a, b| {
+                match (!a.pre.is_empty(), !b.pre.is_empty()) {
+                    (false, true) => std::cmp::Ordering::Greater,
+                    (true, false) => std::cmp::Ordering::Less,
+                    (_, _) => a.cmp(b),
                 }
             })
-            .collect::<Vec<_>>();
-        if !matching_req.is_empty() {
+            .map(|ver| format!("update the cargo-contract to version '{}'", ver))
+            .unwrap_or_default();
+
+        let matches = [cargo_contract_match, ink_matches].join(" or ");
+        if !matches.is_empty() {
             return Err(anyhow!(
-                "The cargo-contract is not compatible with the contract's ink! version. Please {}",
-                matching_req.join(" or ")
+                "The cargo-contract is not compatible with the contract's ink! version. Please {matches}"
             ))
         } else {
             bail!("The cargo-contract is not compatible with the contract's ink! version, but a matching version could not be found")
@@ -159,7 +120,17 @@ mod tests {
 
         assert_eq!(
             res.to_string(),
-            "The cargo-contract is not compatible with the contract's ink! version. Please update the cargo-contract to version '>=1.0.0, <2.0.0-alpha.3' or update the contract ink! to version '>=4.0.0-alpha.3'"
+            "The cargo-contract is not compatible with the contract's ink! version. Please update the cargo-contract to version '1.5.0' or update the contract ink! to version '^4.0.0-alpha.3' or '^4.0.0'"
+        );
+
+        let ink_version =
+            Version::parse("4.0.0-alpha.1").expect("Parsing version must work");
+        let res = check_contract_ink_compatibility(&ink_version)
+            .expect_err("Ink version check should fail");
+
+        assert_eq!(
+            res.to_string(),
+            "The cargo-contract is not compatible with the contract's ink! version. Please update the cargo-contract to version '1.5.0' or update the contract ink! to version '^4.0.0-alpha.3' or '^4.0.0'"
         );
     }
 
