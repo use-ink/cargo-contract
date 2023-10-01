@@ -47,22 +47,32 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
     let compatibility_map: CompatibilityMap = serde_json::from_str(compatibility_list)?;
     let cargo_contract_version =
         semver::Version::parse(VERSION).expect("Parsing version failed");
-    let ink_req = &compatibility_map.cargo_contract.get( &cargo_contract_version ).ok_or(anyhow!("Missing compatibility configuration for cargo-contract: {cargo_contract_version}"))?.ink;
+    let ink_req = &compatibility_map
+        .cargo_contract
+        .get(&cargo_contract_version)
+        .ok_or(anyhow!(
+            "Missing compatibility configuration for cargo-contract: {}",
+            cargo_contract_version
+        ))?
+        .ink;
 
+    // Check if the ink! version matches any of the requirement
     if !ink_req.iter().any(|req| req.matches(ink_version)) {
-        // Find matching ink! versions
-        let mut ink_matches = ink_req
+        // Get matching ink! versions
+        let ink_matches = ink_req
             .iter()
             .map(|req| format!("'{}'", req))
             .collect::<Vec<_>>()
             .join(", ");
-        if !ink_matches.is_empty() {
-            ink_matches =
-                format!("update the contract ink! to version [{}]", ink_matches);
-        }
+
+        let ink_matches_message = if !ink_matches.is_empty() {
+            format!("update the contract ink! to a version of {}", ink_matches)
+        } else {
+            String::default()
+        };
 
         // Find best cargo-contract version
-        let cargo_contract_match = compatibility_map
+        let cargo_contract_match_message = compatibility_map
             .cargo_contract
             .iter()
             .filter_map(|(ver, comp)| {
@@ -81,17 +91,21 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
             .map(|ver| format!("update the cargo-contract to version '{}'", ver))
             .unwrap_or_default();
 
-        let matches = [cargo_contract_match, ink_matches]
+        let matches_message = [cargo_contract_match_message, ink_matches_message]
             .into_iter()
             .filter(|m| !m.is_empty())
             .collect::<Vec<_>>()
             .join(" or ");
-        if !matches.is_empty() {
+        if !matches_message.is_empty() {
             return Err(anyhow!(
-                "The cargo-contract is not compatible with the contract's ink! version. Please {matches}"
+                "The cargo-contract is not compatible with the contract's ink! version. Please {}",
+                 matches_message
             ))
         } else {
-            bail!("The cargo-contract is not compatible with the contract's ink! version, but a matching version could not be found")
+            bail!(
+                "The cargo-contract is not compatible with the contract's ink! version, \
+                but a matching version could not be found"
+            )
         }
     }
     Ok(())
@@ -110,7 +124,9 @@ mod tests {
 
         assert_eq!(
             res.to_string(),
-            "The cargo-contract is not compatible with the contract's ink! version. Please update the cargo-contract to version '1.5.0' or update the contract ink! to version ['^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha']"
+            "The cargo-contract is not compatible with the contract's ink! version. \
+            Please update the cargo-contract to version '1.5.0' or \
+            update the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
         );
 
         let ink_version =
@@ -119,8 +135,10 @@ mod tests {
             .expect_err("Ink version check should fail");
 
         assert_eq!(
-            res.to_string(),
-            "The cargo-contract is not compatible with the contract's ink! version. Please update the cargo-contract to version '1.5.0' or update the contract ink! to version ['^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha']"
+                res.to_string(),
+                "The cargo-contract is not compatible with the contract's ink! version. \
+                Please update the cargo-contract to version '1.5.0' or \
+                update the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
         );
     }
 
