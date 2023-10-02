@@ -174,9 +174,10 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
         };
         let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let client = OnlineClient::from_url(&url).await?;
+        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
 
-        let token_metadata = TokenMetadata::query(&client).await?;
+        let token_metadata = TokenMetadata::query(rpc).await?;
 
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
@@ -203,6 +204,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             client,
             signer,
             transcoder,
+            token_metadata,
         })
     }
 }
@@ -272,6 +274,7 @@ pub struct InstantiateExec {
     client: Client,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
+    token_metadata: TokenMetadata,
 }
 
 impl InstantiateExec {
@@ -370,12 +373,11 @@ impl InstantiateExec {
             .find_last::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         Ok(InstantiateExecResult {
             result,
             code_hash,
             contract_address: instantiated.contract,
-            token_metadata,
+            token_metadata: self.token_metadata.clone(),
         })
     }
 
@@ -399,12 +401,11 @@ impl InstantiateExec {
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         Ok(InstantiateExecResult {
             result,
             code_hash: None,
             contract_address: instantiated.contract,
-            token_metadata,
+            token_metadata: self.token_metadata.clone(),
         })
     }
 

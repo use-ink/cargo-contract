@@ -179,7 +179,11 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         let signer = self.opts.extrinsic_opts.signer()?;
 
         let url = self.opts.extrinsic_opts.url();
-        let client = OnlineClient::from_url(url).await?;
+        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+
+        let token_metadata = TokenMetadata::query(rpc).await?;
+
         Ok(CallExec {
             contract: self.opts.contract.clone(),
             message: self.opts.message.clone(),
@@ -192,6 +196,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
             transcoder,
             call_data,
             signer,
+            token_metadata,
         })
     }
 }
@@ -208,6 +213,7 @@ pub struct CallExec {
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
     signer: Keypair,
+    token_metadata: TokenMetadata,
 }
 
 impl CallExec {
@@ -222,17 +228,16 @@ impl CallExec {
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
         let url = self.opts.url();
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
             .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
+            .map(|bv| bv.denominate_balance(&self.token_metadata))
             .transpose()?;
         let call_request = CallRequest {
             origin: account_id(&self.signer),
             dest: self.contract.clone(),
-            value: self.value.denominate_balance(&token_metadata)?,
+            value: self.value.denominate_balance(&self.token_metadata)?,
             gas_limit: None,
             storage_deposit_limit,
             input_data: self.call_data.clone(),
@@ -258,13 +263,13 @@ impl CallExec {
             None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);
-        let token_metadata = TokenMetadata::query(&self.client).await?;
 
         let call = api::tx().contracts().call(
             self.contract.clone().into(),
-            self.value.denominate_balance(&token_metadata)?,
+            self.value.denominate_balance(&self.token_metadata)?,
             gas_limit.into(),
-            self.opts.compact_storage_deposit_limit(&token_metadata)?,
+            self.opts
+                .compact_storage_deposit_limit(&self.token_metadata)?,
             self.call_data.clone(),
         );
 
@@ -371,6 +376,11 @@ impl CallExec {
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
+    }
+
+    /// Returns the token metadata.
+    pub fn token_metadata(&self) -> &TokenMetadata {
+        &self.token_metadata
     }
 }
 

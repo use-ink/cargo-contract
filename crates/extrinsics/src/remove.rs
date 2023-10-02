@@ -27,6 +27,7 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     Missing,
+    TokenMetadata,
 };
 use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::Result;
@@ -118,8 +119,12 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )),
         }?;
+
         let url = self.opts.extrinsic_opts.url();
-        let client = OnlineClient::from_url(url).await?;
+        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+
+        let token_metadata = TokenMetadata::query(rpc).await?;
 
         Ok(RemoveExec {
             final_code_hash,
@@ -127,6 +132,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
             client,
             transcoder,
             signer,
+            token_metadata,
         })
     }
 }
@@ -137,6 +143,7 @@ pub struct RemoveExec {
     client: Client,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
+    token_metadata: TokenMetadata,
 }
 
 impl RemoveExec {
@@ -192,6 +199,11 @@ impl RemoveExec {
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
+    }
+
+    /// Returns the token metadata.
+    pub fn token_metadata(&self) -> &TokenMetadata {
+        &self.token_metadata
     }
 }
 

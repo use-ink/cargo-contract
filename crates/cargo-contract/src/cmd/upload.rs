@@ -26,7 +26,6 @@ use contract_build::name_value_println;
 use contract_extrinsics::{
     Balance,
     ExtrinsicOptsBuilder,
-    TokenMetadata,
     UploadCommandBuilder,
 };
 
@@ -92,10 +91,9 @@ impl UploadCommand {
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {
-                let token_metadata = TokenMetadata::query(upload_exec.client()).await?;
                 display_events.display_events(
                     self.extrinsic_cli_opts.verbosity()?,
-                    &token_metadata,
+                    upload_exec.token_metadata(),
                 )?
             };
             println!("{output}");

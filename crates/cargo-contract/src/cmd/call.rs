@@ -42,7 +42,6 @@ use contract_extrinsics::{
     DefaultConfig,
     ExtrinsicOptsBuilder,
     StorageDeposit,
-    TokenMetadata,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
@@ -173,14 +172,13 @@ impl CallCommand {
                     );
                 })?;
             }
-            let token_metadata = TokenMetadata::query(call_exec.client()).await?;
             let display_events = call_exec.call(Some(gas_limit)).await?;
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {
                 display_events.display_events(
                     self.extrinsic_cli_opts.verbosity().unwrap(),
-                    &token_metadata,
+                    &call_exec.token_metadata(),
                 )?
             };
             println!("{output}");

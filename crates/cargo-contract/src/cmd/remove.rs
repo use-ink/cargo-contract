@@ -25,7 +25,6 @@ use contract_extrinsics::{
     DefaultConfig,
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
-    TokenMetadata,
 };
 use subxt::Config;
 
@@ -66,10 +65,9 @@ impl RemoveCommand {
         let output = if self.output_json() {
             display_events.to_json()?
         } else {
-            let token_metadata = TokenMetadata::query(remove_exec.client()).await?;
             display_events.display_events(
                 self.extrinsic_cli_opts.verbosity().unwrap(),
-                &token_metadata,
+                &remove_exec.token_metadata(),
             )?
         };
         println!("{output}");

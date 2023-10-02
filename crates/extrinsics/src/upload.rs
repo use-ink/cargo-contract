@@ -105,13 +105,19 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )
         })?;
+
         let url = self.opts.extrinsic_opts.url();
-        let client = OnlineClient::from_url(url).await?;
+        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+
+        let token_metadata = TokenMetadata::query(rpc).await?;
+
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
             client,
             code,
             signer,
+            token_metadata,
         })
     }
 }
@@ -121,6 +127,7 @@ pub struct UploadExec {
     client: Client,
     code: WasmCode,
     signer: Keypair,
+    token_metadata: TokenMetadata,
 }
 
 impl UploadExec {
@@ -132,12 +139,11 @@ impl UploadExec {
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let url = self.opts.url();
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
             .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
+            .map(|bv| bv.denominate_balance(&self.token_metadata))
             .transpose()?;
         let call_request = CodeUploadRequest {
             origin: account_id(&self.signer),
@@ -155,9 +161,9 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
-        let token_metadata = TokenMetadata::query(&self.client).await?;
-        let storage_deposit_limit =
-            self.opts.compact_storage_deposit_limit(&token_metadata)?;
+        let storage_deposit_limit = self
+            .opts
+            .compact_storage_deposit_limit(&self.token_metadata)?;
         let call = crate::runtime_api::api::tx().contracts().upload_code(
             self.code.0.clone(),
             storage_deposit_limit,
@@ -193,6 +199,11 @@ impl UploadExec {
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
+    }
+
+    /// Returns the token metadata.
+    pub fn token_metadata(&self) -> &TokenMetadata {
+        &self.token_metadata
     }
 }
 
