@@ -30,31 +30,32 @@ use semver::{
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, serde::Deserialize)]
-struct CompatibilityMap {
+struct Compatibility {
     #[serde(rename = "cargo-contract")]
-    cargo_contract: HashMap<Version, Compatibility>,
+    cargo_contract_compatibility: HashMap<Version, Requirements>,
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct Compatibility {
-    ink: Vec<VersionReq>,
+struct Requirements {
+    #[serde(rename = "ink")]
+    ink_requirements: Vec<VersionReq>,
 }
 
 /// Checks whether the contract's ink! version is compatible with the cargo-contract
 /// binary.
 pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
     let compatibility_list = include_str!("../compatibility_list.json");
-    let compatibility_map: CompatibilityMap = serde_json::from_str(compatibility_list)?;
+    let compatibility: Compatibility = serde_json::from_str(compatibility_list)?;
     let cargo_contract_version =
         semver::Version::parse(VERSION).expect("Parsing version failed");
-    let ink_req = &compatibility_map
-        .cargo_contract
+    let ink_req = &compatibility
+        .cargo_contract_compatibility
         .get(&cargo_contract_version)
         .ok_or(anyhow!(
             "Missing compatibility configuration for cargo-contract: {}",
             cargo_contract_version
         ))?
-        .ink;
+        .ink_requirements;
 
     // Check if the ink! version matches any of the requirement
     if !ink_req.iter().any(|req| req.matches(ink_version)) {
@@ -72,11 +73,15 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
         };
 
         // Find best cargo-contract version
-        let cargo_contract_match_message = compatibility_map
-            .cargo_contract
+        let cargo_contract_match_message = compatibility
+            .cargo_contract_compatibility
             .iter()
-            .filter_map(|(ver, comp)| {
-                if comp.ink.iter().any(|req| req.matches(ink_version)) {
+            .filter_map(|(ver, reqs)| {
+                if reqs
+                    .ink_requirements
+                    .iter()
+                    .any(|req| req.matches(ink_version))
+                {
                     return Some(ver)
                 }
                 None
