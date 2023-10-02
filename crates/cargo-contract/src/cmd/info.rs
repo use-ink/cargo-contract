@@ -78,18 +78,7 @@ impl InfoCommand {
         if self.all {
             // 1000 is max allowed value
             const MAX_COUNT: u32 = 1000;
-            let mut count_from = None;
-            let mut contracts = Vec::new();
-            loop {
-                let len = contracts.len();
-                contracts.append(
-                    &mut fetch_all_contracts(&client, MAX_COUNT, count_from).await?,
-                );
-                if contracts.len() < len + MAX_COUNT as usize {
-                    break
-                }
-                count_from = contracts.last();
-            }
+            let contracts = fetch_all_contracts(&client, MAX_COUNT).await?;
 
             if self.output_json {
                 let contracts_json = serde_json::json!({

@@ -52,10 +52,7 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{
-    hashing,
-    Bytes,
-};
+use sp_core::Bytes;
 use subxt::{
     blocks,
     config,
@@ -404,27 +401,24 @@ fn parse_contract_account_address(
 pub async fn fetch_all_contracts(
     client: &Client,
     count: u32,
-    count_from: Option<&AccountId32>,
 ) -> Result<Vec<AccountId32>> {
-    let key = api::storage()
-        .contracts()
-        .contract_info_of_root()
-        .to_root_bytes();
-    let start_key = count_from
-        .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
-    let keys = client
-        .storage()
-        .at_latest()
-        .await?
-        .fetch_keys(key.as_ref(), count, start_key.as_deref())
-        .await?;
+    let query = api::storage().contracts().contract_info_of_iter();
 
-    let contracts = keys
-        .into_iter()
-        .map(|e| parse_contract_account_address(&e.0, key.len()))
-        .collect::<Result<_, _>>()?;
+    let mut contracts = client.storage().at_latest().await?.iter(query).await?;
 
-    Ok(contracts)
+    let mut contract_accounts = Vec::new();
+    while let Some(result) = contracts.next().await {
+        if contract_accounts.len() >= count as usize {
+            break
+        }
+        // at the moment we are ignoring the contract info itself, this could be improved
+        // by returning this information.
+        let (key, _contract_info) = result?;
+        let contract_account = parse_contract_account_address(&key, key.len())?;
+        contract_accounts.push(contract_account);
+    }
+
+    Ok(contract_accounts)
 }
 
 // Converts a Url into a String representation without excluding the default port.
