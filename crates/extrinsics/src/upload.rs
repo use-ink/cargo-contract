@@ -18,7 +18,6 @@ use super::{
     account_id,
     events::DisplayEvents,
     runtime_api::api::{
-        self,
         contracts::events::CodeStored,
         runtime_types::pallet_contracts::wasm::Determinism,
     },
@@ -40,6 +39,7 @@ use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
+    backend::rpc::RpcClient,
     Config,
     OnlineClient,
 };
@@ -107,13 +107,14 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         })?;
 
         let url = self.opts.extrinsic_opts.url();
-        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
 
-        let token_metadata = TokenMetadata::query(rpc).await?;
+        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
 
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
+            rpc,
             client,
             code,
             signer,
@@ -124,6 +125,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
 
 pub struct UploadExec {
     opts: ExtrinsicOpts,
+    rpc: RpcClient,
     client: Client,
     code: WasmCode,
     signer: Keypair,
@@ -138,7 +140,6 @@ impl UploadExec {
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let url = self.opts.url();
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
@@ -151,7 +152,7 @@ impl UploadExec {
             storage_deposit_limit,
             determinism: Determinism::Enforced,
         };
-        state_call(&url, "ContractsApi_upload_code", call_request).await
+        state_call(self.rpc.clone(), "ContractsApi_upload_code", call_request).await
     }
 
     /// Uploads contract code to the blockchain with specified options.
@@ -170,11 +171,12 @@ impl UploadExec {
             Determinism::Enforced,
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
         let display_events =
             DisplayEvents::from_events(&result, None, &self.client.metadata())?;
 
-        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
+        let code_stored = result.find_first::<CodeStored>()?;
         Ok(UploadResult {
             code_stored,
             display_events,

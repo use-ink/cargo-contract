@@ -44,6 +44,7 @@ use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
 use subxt::{
+    backend::rpc::RpcClient,
     Config,
     OnlineClient,
 };
@@ -179,10 +180,10 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         let signer = self.opts.extrinsic_opts.signer()?;
 
         let url = self.opts.extrinsic_opts.url();
-        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
+        let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
 
-        let token_metadata = TokenMetadata::query(rpc).await?;
+        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
 
         Ok(CallExec {
             contract: self.opts.contract.clone(),
@@ -192,6 +193,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
             gas_limit: self.opts.gas_limit,
             proof_size: self.opts.proof_size,
             value: self.opts.value.clone(),
+            rpc,
             client,
             transcoder,
             call_data,
@@ -209,6 +211,7 @@ pub struct CallExec {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     value: BalanceVariant,
+    rpc: RpcClient,
     client: Client,
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
@@ -227,7 +230,6 @@ impl CallExec {
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
-        let url = self.opts.url();
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
@@ -242,7 +244,7 @@ impl CallExec {
             storage_deposit_limit,
             input_data: self.call_data.clone(),
         };
-        state_call(&url, "ContractsApi_call", call_request).await
+        state_call(self.rpc.clone(), "ContractsApi_call", call_request).await
     }
 
     /// Calls a contract on the blockchain with a specified gas limit.
@@ -273,7 +275,8 @@ impl CallExec {
             self.call_data.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
 
         let display_events = DisplayEvents::from_events(
             &result,

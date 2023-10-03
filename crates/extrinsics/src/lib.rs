@@ -33,13 +33,7 @@ use subxt::utils::AccountId32;
 use anyhow::{
     anyhow,
     Context,
-    Ok,
     Result,
-};
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
 };
 use std::path::PathBuf;
 
@@ -52,11 +46,8 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::Bytes;
 use subxt::{
-    backend::{
-        rpc::RpcClient
-    },
+    backend::rpc::RpcClient,
     blocks,
     config,
     tx,
@@ -277,9 +268,13 @@ where
     Signer: tx::Signer<T>,
     <T::ExtrinsicParams as config::ExtrinsicParams<T>>::OtherParams: Default,
 {
+    let account_id = Signer::account_id(signer);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
     client
         .tx()
-        .sign_and_submit_then_watch_default(call, signer)
+        .create_signed_with_nonce(call, signer, account_nonce, Default::default())?
+        .submit_and_watch()
         .await?
         .wait_for_in_block()
         .await?
@@ -295,14 +290,16 @@ async fn get_account_nonce<T>(
     client: &OnlineClient<T>,
     rpc: RpcClient,
     account_id: &T::AccountId,
-) -> Result<u64, subxt::Error>
+) -> core::result::Result<u64, subxt::Error>
 where
-    T: Config
+    T: Config,
 {
     let rpc = LegacyRpcMethods::<T>::new(rpc);
-    let best_block = rpc.chain_get_block_hash(None)?;
-    let account_nonce_bytes = self
-        .client
+    let best_block = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or(subxt::Error::Other("Best block not found".into()))?;
+    let account_nonce_bytes = client
         .backend()
         .call(
             "AccountNonceApi_account_nonce",
@@ -323,8 +320,11 @@ where
     Ok(account_nonce)
 }
 
-
-async fn state_call<A: Encode, R: Decode>(rpc: RpcClient, func: &str, args: A) -> Result<R> {
+async fn state_call<A: Encode, R: Decode>(
+    rpc: RpcClient,
+    func: &str,
+    args: A,
+) -> Result<R> {
     let cli = subxt::backend::legacy::LegacyRpcMethods::<DefaultConfig>::new(rpc);
     let params = args.encode();
     let bytes = cli.state_call(func, Some(&params), None).await?;

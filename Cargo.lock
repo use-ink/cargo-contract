@@ -1030,7 +1030,6 @@ dependencies = [
  "contract-transcode",
  "futures",
  "hex",
- "jsonrpsee",
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "predicates",
@@ -2540,7 +2539,6 @@ dependencies = [
  "jsonrpsee-core",
  "jsonrpsee-http-client",
  "jsonrpsee-types",
- "jsonrpsee-ws-client",
 ]
 
 [[package]]
@@ -2617,19 +2615,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-ws-client"
-version = "0.20.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d88e35e9dfa89248ae3e92f689c1f0a190ce12d377eba7d2d08e5a7f6cc5694a"
-dependencies = [
- "http",
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
- "jsonrpsee-types",
- "url",
 ]
 
 [[package]]

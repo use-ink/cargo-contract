@@ -38,7 +38,6 @@ scale-info = "2.8.0"
 subxt = "0.32.0"
 subxt-signer = { version = "0.32.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
-jsonrpsee = { version = "0.20.1", features = ["ws-client"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.12"

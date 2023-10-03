@@ -47,6 +47,7 @@ use scale::Encode;
 use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
+    backend::rpc::RpcClient,
     blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
@@ -177,7 +178,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
         let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
 
-        let token_metadata = TokenMetadata::query(rpc).await?;
+        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
 
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
@@ -201,6 +202,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             args,
             opts: self.opts.extrinsic_opts.clone(),
             url,
+            rpc,
             client,
             signer,
             transcoder,
@@ -271,6 +273,7 @@ pub struct InstantiateExec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     url: String,
+    rpc: RpcClient,
     client: Client,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
@@ -344,7 +347,7 @@ impl InstantiateExec {
             data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
-        state_call(&self.url, "ContractsApi_instantiate", &call_request).await
+        state_call(self.rpc.clone(), "ContractsApi_instantiate", &call_request).await
     }
 
     async fn instantiate_with_code(
@@ -361,7 +364,8 @@ impl InstantiateExec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
 
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
@@ -395,7 +399,8 @@ impl InstantiateExec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
