@@ -459,6 +459,7 @@ pub async fn fetch_all_contracts(
     count: u32,
 ) -> Result<Vec<AccountId32>> {
     let query = api::storage().contracts().contract_info_of_iter();
+    let root_key = query.to_root_bytes();
 
     let best_block = get_best_block(rpc).await?;
     let mut contracts = client.storage().at(best_block).iter(query).await?;
@@ -471,7 +472,7 @@ pub async fn fetch_all_contracts(
         // at the moment we are ignoring the contract info itself, this could be improved
         // by returning this information.
         let (key, _contract_info) = result?;
-        let contract_account = parse_contract_account_address(&key, key.len())?;
+        let contract_account = parse_contract_account_address(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }
 
