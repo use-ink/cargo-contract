@@ -54,6 +54,9 @@ use scale::{
 };
 use sp_core::Bytes;
 use subxt::{
+    backend::{
+        rpc::RpcClient
+    },
     blocks,
     config,
     tx,
@@ -66,6 +69,7 @@ use std::{
     option::Option,
     path::Path,
 };
+use subxt::backend::legacy::LegacyRpcMethods;
 
 pub use balance::{
     BalanceVariant,
@@ -263,6 +267,7 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
 /// future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
+    rpc: RpcClient,
     call: &Call,
     signer: &Signer,
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
@@ -282,10 +287,47 @@ where
         .await
 }
 
-async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
-    let cli = WsClientBuilder::default().build(&url).await?;
-    let params = rpc_params![func, Bytes(args.encode())];
-    let bytes: Bytes = cli.request("state_call", params).await?;
+/// Return the account nonce at the *best* block for an account ID.
+///
+/// Replace this with the new `account_id` query available in the next `subxt`
+/// release.
+async fn get_account_nonce<T>(
+    client: &OnlineClient<T>,
+    rpc: RpcClient,
+    account_id: &T::AccountId,
+) -> Result<u64, subxt::Error>
+where
+    T: Config
+{
+    let rpc = LegacyRpcMethods::<T>::new(rpc);
+    let best_block = rpc.chain_get_block_hash(None)?;
+    let account_nonce_bytes = self
+        .client
+        .backend()
+        .call(
+            "AccountNonceApi_account_nonce",
+            Some(&scale::Encode::encode(&account_id)),
+            best_block,
+        )
+        .await?;
+
+    // custom decoding from a u16/u32/u64 into a u64, based on the number of bytes we
+    // got back.
+    let cursor = &mut &account_nonce_bytes[..];
+    let account_nonce: u64 = match account_nonce_bytes.len() {
+        2 => <u16 as scale::Decode>::decode(cursor)?.into(),
+        4 => <u32 as scale::Decode>::decode(cursor)?.into(),
+        8 => <u64 as scale::Decode>::decode(cursor)?,
+        _ => return Err(subxt::Error::Decode(subxt::error::DecodeError::custom_string(format!("state call AccountNonceApi_account_nonce returned an unexpected number of bytes: {} (expected 2, 4 or 8)", account_nonce_bytes.len()))))
+    };
+    Ok(account_nonce)
+}
+
+
+async fn state_call<A: Encode, R: Decode>(rpc: RpcClient, func: &str, args: A) -> Result<R> {
+    let cli = subxt::backend::legacy::LegacyRpcMethods::<DefaultConfig>::new(rpc);
+    let params = args.encode();
+    let bytes = cli.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
