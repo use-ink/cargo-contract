@@ -178,7 +178,7 @@ impl CallCommand {
             } else {
                 display_events.display_events(
                     self.extrinsic_cli_opts.verbosity().unwrap(),
-                    &call_exec.token_metadata(),
+                    call_exec.token_metadata(),
                 )?
             };
             println!("{output}");

@@ -67,7 +67,7 @@ impl RemoveCommand {
         } else {
             display_events.display_events(
                 self.extrinsic_cli_opts.verbosity().unwrap(),
-                &remove_exec.token_metadata(),
+                remove_exec.token_metadata(),
             )?
         };
         println!("{output}");
