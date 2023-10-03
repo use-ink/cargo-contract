@@ -436,6 +436,21 @@ pub async fn fetch_wasm_code(
     Ok(pristine_bytes)
 }
 
+/// Parse a contract account address from a storage key. Returns error if a key is
+/// malformated.
+fn parse_contract_account_address(
+    storage_contract_account_key: &[u8],
+    storage_contract_root_key_len: usize,
+) -> Result<AccountId32> {
+    // storage_contract_account_key is a concatenation of contract_info_of root key and
+    // Twox64Concat(AccountId)
+    let mut account = storage_contract_account_key
+        .get(storage_contract_root_key_len + 8..)
+        .ok_or(anyhow!("Unexpected storage key size"))?;
+    AccountId32::decode(&mut account)
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+}
+
 /// Fetch all contract addresses from the storage using the provided client and count of
 /// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
@@ -456,8 +471,7 @@ pub async fn fetch_all_contracts(
         // at the moment we are ignoring the contract info itself, this could be improved
         // by returning this information.
         let (key, _contract_info) = result?;
-        let contract_account = AccountId32::decode(&mut &key[..])
-            .map_err(|err| anyhow!("AccountId deserialization error: {}", err))?;
+        let contract_account = parse_contract_account_address(&key, key.len())?;
         contract_accounts.push(contract_account);
     }
 
