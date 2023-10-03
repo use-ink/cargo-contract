@@ -342,17 +342,29 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
+/// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
+async fn get_best_block(
+    rpc: RpcClient,
+) -> core::result::Result<<DefaultConfig as Config>::Hash, subxt::Error> {
+    let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc);
+    rpc.chain_get_block_hash(None)
+        .await?
+        .ok_or(subxt::Error::Other("Best block not found".into()))
+}
+
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
     contract: &AccountId32,
+    rpc: RpcClient,
     client: &Client,
 ) -> Result<Option<ContractInfo>> {
     let info_contract_call = api::storage().contracts().contract_info_of(contract);
 
+    let best_block = get_best_block(rpc).await?;
+
     let contract_info_of = client
         .storage()
-        .at_latest()
-        .await?
+        .at(best_block)
         .fetch(&info_contract_call)
         .await?;
 
@@ -408,14 +420,15 @@ impl ContractInfo {
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
 pub async fn fetch_wasm_code(
     client: &Client,
+    rpc: RpcClient,
     hash: &CodeHash,
 ) -> Result<Option<Vec<u8>>> {
     let pristine_code_address = api::storage().contracts().pristine_code(hash);
+    let best_block = get_best_block(rpc).await?;
 
     let pristine_bytes = client
         .storage()
-        .at_latest()
-        .await?
+        .at(best_block)
         .fetch(&pristine_code_address)
         .await?
         .map(|v| v.0);
@@ -442,11 +455,13 @@ fn parse_contract_account_address(
 /// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
     client: &Client,
+    rpc: RpcClient,
     count: u32,
 ) -> Result<Vec<AccountId32>> {
     let query = api::storage().contracts().contract_info_of_iter();
 
-    let mut contracts = client.storage().at_latest().await?.iter(query).await?;
+    let best_block = get_best_block(rpc).await?;
+    let mut contracts = client.storage().at(best_block).iter(query).await?;
 
     let mut contract_accounts = Vec::new();
     while let Some(result) = contracts.next().await {
