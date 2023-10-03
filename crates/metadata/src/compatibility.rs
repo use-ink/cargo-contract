@@ -57,23 +57,32 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
         ))?
         .ink_requirements;
 
+    // Ink! requirements can not be empty
+    if ink_req.is_empty() {
+        bail!(
+            "Missing ink! requirements for cargo-contract: {}",
+            cargo_contract_version
+        );
+    }
+
     // Check if the ink! version matches any of the requirement
     if !ink_req.iter().any(|req| req.matches(ink_version)) {
-        // Get matching ink! versions
-        let ink_matches = ink_req
+        // Get required ink! versions
+        let ink_required_versions = ink_req
             .iter()
             .map(|req| format!("'{}'", req))
             .collect::<Vec<_>>()
             .join(", ");
 
-        let ink_matches_message = if !ink_matches.is_empty() {
-            format!("update the contract ink! to a version of {}", ink_matches)
-        } else {
-            String::default()
-        };
+        let ink_update_message = format!(
+            "update the contract ink! to a version of {}",
+            ink_required_versions
+        );
+        let contract_not_compatible_message = "The cargo-contract is not compatible \
+                                                    with the contract's ink! version. Please";
 
         // Find best cargo-contract version
-        let cargo_contract_match_message = compatibility
+        let best_cargo_contract_version = compatibility
             .cargo_contract_compatibility
             .iter()
             .filter_map(|(ver, reqs)| {
@@ -93,25 +102,19 @@ pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
                     (_, _) => a.cmp(b),
                 }
             })
-            .map(|ver| format!("update the cargo-contract to version '{}'", ver))
-            .unwrap_or_default();
+            .ok_or(anyhow!(
+                "{} {}",
+                contract_not_compatible_message,
+                ink_update_message
+            ))?;
 
-        let matches_message = [cargo_contract_match_message, ink_matches_message]
-            .into_iter()
-            .filter(|m| !m.is_empty())
-            .collect::<Vec<_>>()
-            .join(" or ");
-        if !matches_message.is_empty() {
-            return Err(anyhow!(
-                "The cargo-contract is not compatible with the contract's ink! version. Please {}",
-                 matches_message
-            ))
-        } else {
-            bail!(
-                "The cargo-contract is not compatible with the contract's ink! version, \
-                but a matching version could not be found"
-            )
-        }
+        bail!(
+            "{} update the cargo-contract to version \
+            '{}' or {}",
+            contract_not_compatible_message,
+            best_cargo_contract_version,
+            ink_update_message
+        );
     }
     Ok(())
 }
@@ -130,8 +133,8 @@ mod tests {
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
-            Please update the cargo-contract to version '1.5.0' or \
-            update the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
+            Please update the cargo-contract to version '1.5.0' or update \
+            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
         );
 
         let ink_version =
@@ -142,8 +145,8 @@ mod tests {
         assert_eq!(
                 res.to_string(),
                 "The cargo-contract is not compatible with the contract's ink! version. \
-                Please update the cargo-contract to version '1.5.0' or \
-                update the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
+                Please update the cargo-contract to version '1.5.0' or update \
+                the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
         );
     }
 
