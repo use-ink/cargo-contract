@@ -39,7 +39,10 @@ use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
-    backend::rpc::RpcClient,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -107,10 +110,11 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         })?;
 
         let url = self.opts.extrinsic_opts.url();
-        let rpc = RpcClient::from_url(&url).await?;
-        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
@@ -125,7 +129,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
 
 pub struct UploadExec {
     opts: ExtrinsicOpts,
-    rpc: RpcClient,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     code: WasmCode,
     signer: Keypair,
@@ -172,7 +176,7 @@ impl UploadExec {
         );
 
         let result =
-            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
         let display_events =
             DisplayEvents::from_events(&result, None, &self.client.metadata())?;
 

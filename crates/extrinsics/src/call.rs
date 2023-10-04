@@ -44,7 +44,10 @@ use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
 use subxt::{
-    backend::rpc::RpcClient,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -182,8 +185,9 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         let url = self.opts.extrinsic_opts.url();
         let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc);
 
-        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         Ok(CallExec {
             contract: self.opts.contract.clone(),
@@ -211,7 +215,7 @@ pub struct CallExec {
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     value: BalanceVariant,
-    rpc: RpcClient,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
@@ -276,7 +280,7 @@ impl CallExec {
         );
 
         let result =
-            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let display_events = DisplayEvents::from_events(
             &result,

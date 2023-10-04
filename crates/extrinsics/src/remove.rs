@@ -33,7 +33,10 @@ use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::Result;
 use core::marker::PhantomData;
 use subxt::{
-    backend::rpc::RpcClient,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -122,10 +125,11 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         }?;
 
         let url = self.opts.extrinsic_opts.url();
-        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
-        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         Ok(RemoveExec {
             final_code_hash,
@@ -142,7 +146,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 pub struct RemoveExec {
     final_code_hash: [u8; 32],
     opts: ExtrinsicOpts,
-    rpc: RpcClient,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
@@ -166,7 +170,7 @@ impl RemoveExec {
             .remove_code(sp_core::H256(code_hash.0));
 
         let result =
-            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
         let display_events = DisplayEvents::from_events(
             &result,
             Some(&self.transcoder),

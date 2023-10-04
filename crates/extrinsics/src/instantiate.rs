@@ -47,7 +47,10 @@ use scale::Encode;
 use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
-    backend::rpc::RpcClient,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
@@ -175,10 +178,11 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
         };
         let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let rpc = subxt::backend::rpc::RpcClient::from_url(&url).await?;
-        let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(rpc.clone()).await?;
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
@@ -273,7 +277,7 @@ pub struct InstantiateExec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     url: String,
-    rpc: RpcClient,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
@@ -365,7 +369,7 @@ impl InstantiateExec {
         );
 
         let result =
-            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
@@ -400,7 +404,7 @@ impl InstantiateExec {
         );
 
         let result =
-            submit_extrinsic(&self.client, self.rpc.clone(), &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?

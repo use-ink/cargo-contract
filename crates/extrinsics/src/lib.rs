@@ -258,7 +258,7 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
 /// future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<T>,
     call: &Call,
     signer: &Signer,
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
@@ -288,13 +288,12 @@ where
 /// release.
 async fn get_account_nonce<T>(
     client: &OnlineClient<T>,
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<T>,
     account_id: &T::AccountId,
 ) -> core::result::Result<u64, subxt::Error>
 where
     T: Config,
 {
-    let rpc = LegacyRpcMethods::<T>::new(rpc);
     let best_block = rpc
         .chain_get_block_hash(None)
         .await?
@@ -321,13 +320,12 @@ where
 }
 
 async fn state_call<A: Encode, R: Decode>(
-    rpc: RpcClient,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     func: &str,
     args: A,
 ) -> Result<R> {
-    let cli = LegacyRpcMethods::<DefaultConfig>::new(rpc);
     let params = args.encode();
-    let bytes = cli.state_call(func, Some(&params), None).await?;
+    let bytes = rpc.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
