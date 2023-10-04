@@ -67,6 +67,7 @@
 #![deny(unused_crate_dependencies)]
 
 mod byte_str;
+pub mod compatibility;
 
 use anyhow::{
     Context,
@@ -147,6 +148,17 @@ impl ContractMetadata {
             "Failed to deserialize metadata file {}",
             path.display()
         ))
+    }
+
+    /// Checks whether the contract's ink! version is compatible with the cargo-contract
+    /// binary
+    pub fn check_ink_compatibility(&self) -> Result<()> {
+        if let Language::Ink = self.source.language.language {
+            compatibility::check_contract_ink_compatibility(
+                &self.source.language.version,
+            )?;
+        }
+        Ok(())
     }
 }
 

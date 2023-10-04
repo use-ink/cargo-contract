@@ -17,7 +17,10 @@
 #![doc = include_str!("../README.md")]
 #![deny(unused_crate_dependencies)]
 
-use contract_metadata::ContractMetadata;
+use contract_metadata::{
+    compatibility::check_contract_ink_compatibility,
+    ContractMetadata,
+};
 use which as _;
 
 mod args;
@@ -864,6 +867,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     assert_compatible_ink_dependencies(manifest_path, *verbosity)?;
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
+    }
+
+    if let Err(e) = check_contract_ink_compatibility(&crate_metadata.ink_version) {
+        eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
     }
 
     let clean_metadata = || {

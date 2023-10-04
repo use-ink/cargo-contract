@@ -28,6 +28,7 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
+use colored::Colorize;
 use subxt::utils::AccountId32;
 
 use anyhow::{
@@ -195,6 +196,12 @@ impl ContractArtifacts {
                     )
                 }
             };
+
+        if let Some(contract_metadata) = metadata.as_ref() {
+            if let Err(e) = contract_metadata.check_ink_compatibility() {
+                eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
+            }
+        }
         Ok(Self {
             artifacts_path: path.into(),
             metadata_path,
