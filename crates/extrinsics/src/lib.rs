@@ -325,7 +325,7 @@ async fn state_call<A: Encode, R: Decode>(
     func: &str,
     args: A,
 ) -> Result<R> {
-    let cli = subxt::backend::legacy::LegacyRpcMethods::<DefaultConfig>::new(rpc);
+    let cli = LegacyRpcMethods::<DefaultConfig>::new(rpc);
     let params = args.encode();
     let bytes = cli.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
