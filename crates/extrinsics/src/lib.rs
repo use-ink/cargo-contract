@@ -456,7 +456,6 @@ fn parse_contract_account_address(
 pub async fn fetch_all_contracts(
     client: &Client,
     rpc: RpcClient,
-    count: u32,
 ) -> Result<Vec<AccountId32>> {
     let root_key = api::storage()
         .contracts()
@@ -472,9 +471,6 @@ pub async fn fetch_all_contracts(
 
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
-        if contract_accounts.len() >= count as usize {
-            break
-        }
         let key = result?;
         let contract_account = parse_contract_account_address(&key, root_key.len())?;
         contract_accounts.push(contract_account);

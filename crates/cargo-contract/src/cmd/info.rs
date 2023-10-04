@@ -77,9 +77,7 @@ impl InfoCommand {
 
         // All flag applied
         if self.all {
-            // 1000 is max allowed value
-            const MAX_COUNT: u32 = 1000;
-            let contracts = fetch_all_contracts(&client, rpc, MAX_COUNT).await?;
+            let contracts = fetch_all_contracts(&client, rpc).await?;
 
             if self.output_json {
                 let contracts_json = serde_json::json!({
