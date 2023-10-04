@@ -172,6 +172,21 @@ pub fn execute(
 
     if unstable_options.original_manifest {
         generate_metadata(&crate_metadata.manifest_path)?;
+    } else if unstable_options.workspace_mode {
+        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
+            .with_root_package_manifest(|manifest| {
+                manifest
+                    .with_added_crate_type("rlib")?
+                    .with_profile_release_defaults(Profile {
+                        lto: Some(Lto::Thin),
+                        ..Profile::default()
+                    })?
+                    .with_fixed_workspace_dependencies(crate_metadata)?
+                    .with_empty_workspace();
+                Ok(())
+            })?
+            .with_metadata_gen_package()?
+            .using_temp(generate_metadata)?;
     } else {
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
