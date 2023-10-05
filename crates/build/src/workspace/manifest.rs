@@ -637,6 +637,8 @@ fn merge_workspace_with_crate_dependencies(
         dependency.remove("workspace");
         for (key, value) in workspace_dependency {
             if let Some(config) = dependency.get_mut(key) {
+                // If it's an array we merge the values,
+                // otherwise we keep the crate value.
                 if let toml::Value::Array(value) = value {
                     if let toml::Value::Array(config) = config {
                         config.extend(value.clone());
