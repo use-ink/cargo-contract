@@ -384,12 +384,12 @@ impl Manifest {
         merge_workspace_with_crate_dependencies(
             "dependencies",
             &mut self.toml,
-            &workspace_dependencies,
+            workspace_dependencies,
         )?;
         merge_workspace_with_crate_dependencies(
             "dev-dependencies",
             &mut self.toml,
-            &workspace_dependencies,
+            workspace_dependencies,
         )?;
 
         Ok(self)
@@ -637,17 +637,11 @@ fn merge_workspace_with_crate_dependencies(
         dependency.remove("workspace");
         for (key, value) in workspace_dependency {
             if let Some(config) = dependency.get_mut(key) {
-                match value {
-                    // If it's an array, we append the values
-                    toml::Value::Array(value) => {
-                        if let toml::Value::Array(config) = config {
-                            config.extend(value.clone());
-                        }
+                if let toml::Value::Array(value) = value {
+                    if let toml::Value::Array(config) = config {
+                        config.extend(value.clone());
                     }
-                    // Anything else, we keep the crate value
-                    _ => {}
                 }
-
                 continue
             }
             dependency.insert(key.clone(), value.clone());
