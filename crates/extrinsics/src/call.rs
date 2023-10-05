@@ -248,7 +248,7 @@ impl CallExec {
             storage_deposit_limit,
             input_data: self.call_data.clone(),
         };
-        state_call(self.rpc.clone(), "ContractsApi_call", call_request).await
+        state_call(&self.rpc, "ContractsApi_call", call_request).await
     }
 
     /// Calls a contract on the blockchain with a specified gas limit.

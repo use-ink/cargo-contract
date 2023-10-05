@@ -351,7 +351,7 @@ impl InstantiateExec {
             data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
-        state_call(self.rpc.clone(), "ContractsApi_instantiate", &call_request).await
+        state_call(&self.rpc, "ContractsApi_instantiate", &call_request).await
     }
 
     async fn instantiate_with_code(

@@ -156,7 +156,7 @@ impl UploadExec {
             storage_deposit_limit,
             determinism: Determinism::Enforced,
         };
-        state_call(self.rpc.clone(), "ContractsApi_upload_code", call_request).await
+        state_call(&self.rpc, "ContractsApi_upload_code", call_request).await
     }
 
     /// Uploads contract code to the blockchain with specified options.

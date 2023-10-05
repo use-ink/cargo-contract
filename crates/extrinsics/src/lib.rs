@@ -48,7 +48,6 @@ use scale::{
     Encode,
 };
 use subxt::{
-    backend::rpc::RpcClient,
     blocks,
     config,
     tx,
@@ -327,7 +326,7 @@ where
 }
 
 async fn state_call<A: Encode, R: Decode>(
-    rpc: LegacyRpcMethods<DefaultConfig>,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     func: &str,
     args: A,
 ) -> Result<R> {
@@ -349,9 +348,8 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
 
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
 async fn get_best_block(
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
 ) -> core::result::Result<<DefaultConfig as Config>::Hash, subxt::Error> {
-    let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc);
     rpc.chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))
@@ -360,7 +358,7 @@ async fn get_best_block(
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
     contract: &AccountId32,
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     client: &Client,
 ) -> Result<Option<ContractInfo>> {
     let info_contract_call = api::storage().contracts().contract_info_of(contract);
@@ -425,7 +423,7 @@ impl ContractInfo {
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
 pub async fn fetch_wasm_code(
     client: &Client,
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     hash: &CodeHash,
 ) -> Result<Option<Vec<u8>>> {
     let pristine_code_address = api::storage().contracts().pristine_code(hash);
@@ -460,7 +458,7 @@ fn parse_contract_account_address(
 /// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
     client: &Client,
-    rpc: RpcClient,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
 ) -> Result<Vec<AccountId32>> {
     let root_key = api::storage()
         .contracts()
