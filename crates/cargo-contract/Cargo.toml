@@ -39,7 +39,7 @@ semver = "1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = "0.32.0"
+subxt = "0.32.1"
 sp-core = "22.0.0"
 sp-weights = "21.0.0"
 pallet-contracts-primitives = "25.0.0"
