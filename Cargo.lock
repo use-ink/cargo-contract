@@ -5042,9 +5042,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-signer"
-version = "0.32.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf1c1fa2b719eac18ed37d734e33f70ebb25f68920d8e951149c0d942c0879b5"
+checksum = "d82e5abb896d5f5a6581d5b86a5e7f015e318122498d8163211e8f61f83b54d2"
 dependencies = [
  "bip39",
  "hex",

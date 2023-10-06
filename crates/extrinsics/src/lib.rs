@@ -289,9 +289,6 @@ where
 }
 
 /// Return the account nonce at the *best* block for an account ID.
-///
-/// Replace this with the new `account_id` query available in the next `subxt`
-/// release.
 async fn get_account_nonce<T>(
     client: &OnlineClient<T>,
     rpc: &LegacyRpcMethods<T>,
@@ -304,24 +301,12 @@ where
         .chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))?;
-    let account_nonce_bytes = client
-        .backend()
-        .call(
-            "AccountNonceApi_account_nonce",
-            Some(&scale::Encode::encode(&account_id)),
-            best_block,
-        )
+    let account_nonce = client
+        .blocks()
+        .at(best_block)
+        .await?
+        .account_nonce(account_id)
         .await?;
-
-    // custom decoding from a u16/u32/u64 into a u64, based on the number of bytes we
-    // got back.
-    let cursor = &mut &account_nonce_bytes[..];
-    let account_nonce: u64 = match account_nonce_bytes.len() {
-        2 => <u16 as scale::Decode>::decode(cursor)?.into(),
-        4 => <u32 as scale::Decode>::decode(cursor)?.into(),
-        8 => <u64 as scale::Decode>::decode(cursor)?,
-        _ => return Err(subxt::Error::Decode(subxt::error::DecodeError::custom_string(format!("state call AccountNonceApi_account_nonce returned an unexpected number of bytes: {} (expected 2, 4 or 8)", account_nonce_bytes.len()))))
-    };
     Ok(account_nonce)
 }
 
