@@ -629,14 +629,24 @@ fn merge_workspace_with_crate_dependencies(
             continue
         }
 
-        let workspace_dependency = workspace_dependencies
-            .get(name)
-            .unwrap()
-            .as_table()
-            .unwrap();
+        let workspace_dependency = workspace_dependencies.get(name).unwrap();
+        let workspace_dependency = match workspace_dependency {
+            toml::Value::Table(table) => table.to_owned(),
+            // If the workspace dependency is just a version string, we create a table
+            toml::Value::String(version) => {
+                let mut table = toml::value::Table::new();
+                table.insert("version".to_string(), toml::Value::String(version.clone()));
+                table
+            }
+            // If the workspace dependency is invalid, we throw an error
+            _ => {
+                anyhow::bail!("Invalid workspace dependency for {}", name);
+            }
+        };
+
         dependency.remove("workspace");
         for (key, value) in workspace_dependency {
-            if let Some(config) = dependency.get_mut(key) {
+            if let Some(config) = dependency.get_mut(&key) {
                 // If it's an array we merge the values,
                 // otherwise we keep the crate value.
                 if let toml::Value::Array(value) = value {
