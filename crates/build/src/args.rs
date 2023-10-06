@@ -228,14 +228,13 @@ pub struct UnstableOptions {
 #[derive(Clone, Default)]
 pub struct UnstableFlags {
     pub original_manifest: bool,
-    pub workspace_mode: bool,
 }
 
 impl TryFrom<&UnstableOptions> for UnstableFlags {
     type Error = anyhow::Error;
 
     fn try_from(value: &UnstableOptions) -> Result<Self, Self::Error> {
-        let valid_flags = ["original-manifest", "workspace-mode"];
+        let valid_flags = ["original-manifest"];
         let invalid_flags = value
             .options
             .iter()
@@ -246,7 +245,6 @@ impl TryFrom<&UnstableOptions> for UnstableFlags {
         }
         Ok(UnstableFlags {
             original_manifest: value.options.contains(&"original-manifest".to_owned()),
-            workspace_mode: value.options.contains(&"workspace-mode".to_owned()),
         })
     }
 }

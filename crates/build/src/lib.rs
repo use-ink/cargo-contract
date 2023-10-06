@@ -359,23 +359,13 @@ fn exec_cargo_for_onchain_target(
                 .bold()
         );
         cargo_build(&crate_metadata.manifest_path)?;
-    } else if unstable_flags.workspace_mode {
-        Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
-            .with_root_package_manifest(|manifest| {
-                manifest
-                    .with_replaced_lib_to_bin()?
-                    .with_profile_release_defaults(Profile::default_contract_release())?
-                    .with_fixed_workspace_dependencies(crate_metadata)?
-                    .with_empty_workspace();
-                Ok(())
-            })?
-            .using_temp(cargo_build)?;
     } else {
         Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
             .with_root_package_manifest(|manifest| {
                 manifest
                     .with_replaced_lib_to_bin()?
                     .with_profile_release_defaults(Profile::default_contract_release())?
+                    .with_merged_workspace_dependencies(crate_metadata)?
                     .with_empty_workspace();
                 Ok(())
             })?

@@ -345,7 +345,7 @@ impl Manifest {
     }
 
     /// Merge the workspace dependencies with the crate dependencies.
-    pub fn with_fixed_workspace_dependencies(
+    pub fn with_merged_workspace_dependencies(
         &mut self,
         crate_metadata: &CrateMetadata,
     ) -> Result<&mut Self> {
