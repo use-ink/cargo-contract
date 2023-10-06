@@ -34,13 +34,7 @@ use subxt::utils::AccountId32;
 use anyhow::{
     anyhow,
     Context,
-    Ok,
     Result,
-};
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
 };
 use std::path::PathBuf;
 
@@ -52,10 +46,6 @@ use contract_build::{
 use scale::{
     Decode,
     Encode,
-};
-use sp_core::{
-    hashing,
-    Bytes,
 };
 use subxt::{
     blocks,
@@ -70,6 +60,7 @@ use std::{
     option::Option,
     path::Path,
 };
+use subxt::backend::legacy::LegacyRpcMethods;
 
 pub use balance::{
     BalanceVariant,
@@ -273,6 +264,7 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
 /// future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<T, Call, Signer>(
     client: &OnlineClient<T>,
+    rpc: &LegacyRpcMethods<T>,
     call: &Call,
     signer: &Signer,
 ) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
@@ -280,11 +272,15 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
+    <T::ExtrinsicParams as config::ExtrinsicParams<T>>::OtherParams: Default,
 {
+    let account_id = Signer::account_id(signer);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
     client
         .tx()
-        .sign_and_submit_then_watch_default(call, signer)
+        .create_signed_with_nonce(call, signer, account_nonce, Default::default())?
+        .submit_and_watch()
         .await?
         .wait_for_in_block()
         .await?
@@ -292,10 +288,50 @@ where
         .await
 }
 
-async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
-    let cli = WsClientBuilder::default().build(&url).await?;
-    let params = rpc_params![func, Bytes(args.encode())];
-    let bytes: Bytes = cli.request("state_call", params).await?;
+/// Return the account nonce at the *best* block for an account ID.
+///
+/// Replace this with the new `account_id` query available in the next `subxt`
+/// release.
+async fn get_account_nonce<T>(
+    client: &OnlineClient<T>,
+    rpc: &LegacyRpcMethods<T>,
+    account_id: &T::AccountId,
+) -> core::result::Result<u64, subxt::Error>
+where
+    T: Config,
+{
+    let best_block = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or(subxt::Error::Other("Best block not found".into()))?;
+    let account_nonce_bytes = client
+        .backend()
+        .call(
+            "AccountNonceApi_account_nonce",
+            Some(&scale::Encode::encode(&account_id)),
+            best_block,
+        )
+        .await?;
+
+    // custom decoding from a u16/u32/u64 into a u64, based on the number of bytes we
+    // got back.
+    let cursor = &mut &account_nonce_bytes[..];
+    let account_nonce: u64 = match account_nonce_bytes.len() {
+        2 => <u16 as scale::Decode>::decode(cursor)?.into(),
+        4 => <u32 as scale::Decode>::decode(cursor)?.into(),
+        8 => <u64 as scale::Decode>::decode(cursor)?,
+        _ => return Err(subxt::Error::Decode(subxt::error::DecodeError::custom_string(format!("state call AccountNonceApi_account_nonce returned an unexpected number of bytes: {} (expected 2, 4 or 8)", account_nonce_bytes.len()))))
+    };
+    Ok(account_nonce)
+}
+
+async fn state_call<A: Encode, R: Decode>(
+    rpc: &LegacyRpcMethods<DefaultConfig>,
+    func: &str,
+    args: A,
+) -> Result<R> {
+    let params = args.encode();
+    let bytes = rpc.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
@@ -310,17 +346,28 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
+/// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
+async fn get_best_block(
+    rpc: &LegacyRpcMethods<DefaultConfig>,
+) -> core::result::Result<<DefaultConfig as Config>::Hash, subxt::Error> {
+    rpc.chain_get_block_hash(None)
+        .await?
+        .ok_or(subxt::Error::Other("Best block not found".into()))
+}
+
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
     contract: &AccountId32,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     client: &Client,
 ) -> Result<Option<ContractInfo>> {
     let info_contract_call = api::storage().contracts().contract_info_of(contract);
 
+    let best_block = get_best_block(rpc).await?;
+
     let contract_info_of = client
         .storage()
-        .at_latest()
-        .await?
+        .at(best_block)
         .fetch(&info_contract_call)
         .await?;
 
@@ -376,14 +423,15 @@ impl ContractInfo {
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
 pub async fn fetch_wasm_code(
     client: &Client,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     hash: &CodeHash,
 ) -> Result<Option<Vec<u8>>> {
     let pristine_code_address = api::storage().contracts().pristine_code(hash);
+    let best_block = get_best_block(rpc).await?;
 
     let pristine_bytes = client
         .storage()
-        .at_latest()
-        .await?
+        .at(best_block)
         .fetch(&pristine_code_address)
         .await?
         .map(|v| v.0);
@@ -410,28 +458,28 @@ fn parse_contract_account_address(
 /// requested elements starting from an optional address
 pub async fn fetch_all_contracts(
     client: &Client,
-    count: u32,
-    count_from: Option<&AccountId32>,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
 ) -> Result<Vec<AccountId32>> {
-    let key = api::storage()
+    let root_key = api::storage()
         .contracts()
-        .contract_info_of_root()
+        .contract_info_of_iter()
         .to_root_bytes();
-    let start_key = count_from
-        .map(|e| [key.clone(), hashing::twox_64(&e.0).to_vec(), e.0.to_vec()].concat());
-    let keys = client
+
+    let best_block = get_best_block(rpc).await?;
+    let mut keys = client
         .storage()
-        .at_latest()
-        .await?
-        .fetch_keys(key.as_ref(), count, start_key.as_deref())
+        .at(best_block)
+        .fetch_raw_keys(root_key.clone())
         .await?;
 
-    let contracts = keys
-        .into_iter()
-        .map(|e| parse_contract_account_address(&e.0, key.len()))
-        .collect::<Result<_, _>>()?;
+    let mut contract_accounts = Vec::new();
+    while let Some(result) = keys.next().await {
+        let key = result?;
+        let contract_account = parse_contract_account_address(&key, root_key.len())?;
+        contract_accounts.push(contract_account);
+    }
 
-    Ok(contracts)
+    Ok(contract_accounts)
 }
 
 // Converts a Url into a String representation without excluding the default port.
