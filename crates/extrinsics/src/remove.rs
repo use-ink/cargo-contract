@@ -27,11 +27,16 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     Missing,
+    TokenMetadata,
 };
 use crate::extrinsic_opts::ExtrinsicOpts;
 use anyhow::Result;
 use core::marker::PhantomData;
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -118,15 +123,22 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )),
         }?;
+
         let url = self.opts.extrinsic_opts.url();
-        let client = OnlineClient::from_url(url).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
+
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         Ok(RemoveExec {
             final_code_hash,
             opts: self.opts.extrinsic_opts.clone(),
+            rpc,
             client,
             transcoder,
             signer,
+            token_metadata,
         })
     }
 }
@@ -134,9 +146,11 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 pub struct RemoveExec {
     final_code_hash: [u8; 32],
     opts: ExtrinsicOpts,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
+    token_metadata: TokenMetadata,
 }
 
 impl RemoveExec {
@@ -155,7 +169,8 @@ impl RemoveExec {
             .contracts()
             .remove_code(sp_core::H256(code_hash.0));
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
         let display_events = DisplayEvents::from_events(
             &result,
             Some(&self.transcoder),
@@ -192,6 +207,11 @@ impl RemoveExec {
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
+    }
+
+    /// Returns the token metadata.
+    pub fn token_metadata(&self) -> &TokenMetadata {
+        &self.token_metadata
     }
 }
 
