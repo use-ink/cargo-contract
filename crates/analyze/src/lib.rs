@@ -99,7 +99,7 @@ fn is_ink_function_present(module: &Module) -> bool {
     }
 }
 
-// Check if any function in the 'name' section contains the specified name.
+/// Check if any function in the 'name' section contains the specified name.
 fn has_function_name(module: &Module, name: &str) -> bool {
     // The contract compiled in debug mode includes function names in the name section.
     module
