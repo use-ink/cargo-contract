@@ -28,6 +28,7 @@ use parity_wasm::elements::{
     Instruction,
     Module,
     Type,
+    TypeSection,
     ValueType,
 };
 
@@ -59,19 +60,21 @@ fn is_ink_function_present(module: &Module) -> bool {
     let import_section = module
         .import_section()
         .expect("Import setction shall be present");
+
     // Signature for 'deny_payment' ink! function.
     let ink_func_deny_payment_sig =
         Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
     // Signature for 'transferred_value' ink! function.
     let ink_func_transferred_value_sig =
         Type::Function(FunctionType::new(vec![ValueType::I32], vec![]));
+
     // The deny_payment and transferred_value functions internally call the
     // value_transferred function. Getting its index from import section.
     let value_transferred_index =
         // For ink! >4
-        get_import_function_index(import_section, "value_transferred").or(
+        get_function_import_index(import_section, "value_transferred").or(
             // For ink! 3.x
-            get_import_function_index(import_section, "seal_value_transferred"),
+            get_function_import_index(import_section, "seal_value_transferred"),
         );
 
     let mut functions: Vec<&FuncBody> = Vec::new();
@@ -85,16 +88,15 @@ fn is_ink_function_present(module: &Module) -> bool {
     }
 
     if let Ok(index) = value_transferred_index {
-        if functions.iter().any(|&body| {
+        functions.iter().any(|&body| {
             body.code().elements().iter().any(|instruction| {
                 // Matches the 'value_transferred' function.
                 matches!(instruction, &Instruction::Call(i) if i as usize == index)
             })
-        }) {
-            return true
-        }
+        })
+    } else {
+        false
     }
-    false
 }
 
 // Check if any function in the 'name' section contains the specified name.
@@ -123,14 +125,28 @@ fn has_custom_section(module: &Module, section_name: &str) -> bool {
 }
 
 /// Get the function index from the import section.
-fn get_import_function_index(imports: &ImportSection, field: &str) -> Result<usize> {
-    let index = imports
+fn get_function_import_index(
+    import_section: &ImportSection,
+    field: &str,
+) -> Result<usize> {
+    import_section
         .entries()
         .iter()
         .filter(|&entry| matches!(entry.external(), External::Function(_)))
         .position(|e| e.field() == field)
-        .ok_or(anyhow!("Missing required import for: {}", field))?;
-    Ok(index)
+        .ok_or(anyhow!("Missing required import for: {}", field))
+}
+
+/// Get the function type index from the type section.
+fn get_function_type_index(
+    type_section: &TypeSection,
+    function_type: &Type,
+) -> Result<usize> {
+    type_section
+        .types()
+        .iter()
+        .position(|e| e == function_type)
+        .ok_or(anyhow!("Requested function type not found"))
 }
 
 /// Search for a functions in a WebAssembly (Wasm) module that matches a given function
@@ -142,15 +158,12 @@ fn filter_function_by_type<'a>(
     module: &'a Module,
     function_type: &Type,
 ) -> Result<Vec<&'a FuncBody>> {
-    let func_type_idx = module
+    let type_section = module
         .type_section()
-        .ok_or(anyhow!("Missing required type section"))?
-        .types()
-        .iter()
-        .position(|e| e == function_type)
-        .ok_or(anyhow!("Requested function type not found"))?;
+        .ok_or(anyhow!("Missing required type section"))?;
+    let func_type_idx = get_function_type_index(type_section, function_type)?;
 
-    let functions = module
+    module
         .function_section()
         .ok_or(anyhow!("Missing required function section"))?
         .entries()
@@ -165,12 +178,7 @@ fn filter_function_by_type<'a>(
                 .get(idx)
                 .ok_or(anyhow!("Requested function not found code section"))
         })
-        .collect::<Result<Vec<_>>>()?;
-
-    if functions.is_empty() {
-        bail!("Function not found");
-    }
-    Ok(functions)
+        .collect::<Result<Vec<_>>>()
 }
 
 #[cfg(test)]
