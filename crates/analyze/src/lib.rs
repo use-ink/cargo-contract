@@ -21,8 +21,11 @@ use anyhow::{
 };
 pub use contract_metadata::Language;
 use parity_wasm::elements::{
+    External,
     FuncBody,
     FunctionType,
+    ImportSection,
+    Instruction,
     Module,
     Type,
     ValueType,
@@ -34,47 +37,100 @@ use parity_wasm::elements::{
 /// This function accepts a Wasm code as input and employs a set of heuristics to identify
 /// the contract's source language. It currently supports detection for Ink!, Solidity,
 /// and AssemblyScript languages.
-///
-/// If multiple language patterns are found in the code, the function returns an error.
 pub fn determine_language(code: &[u8]) -> Result<Language> {
-    let module: Module = parity_wasm::deserialize_buffer(code)?;
-    let import_section = module.import_section();
+    let wasm_module: Module = parity_wasm::deserialize_buffer(code)?;
+    let module = wasm_module.clone().parse_names().unwrap_or(wasm_module);
     let start_section = module.start_section();
-    let mut custom_sections = module.custom_sections().map(|e| e.name()).peekable();
-
-    // Looking for the ink! function signature: pub fn deny_payment<E>() -> Result<(),
-    // DispatchError> While the function is declared with the inline attribute, the
-    // compiler does not appear to inline it, even when building in release mode.
-    // (type (;4;) (func (result i32)))
-    // (func (;7;) (type 4) (result i32)
-    let ink_func_sig = Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
-
-    let import_section_first = import_section
-        .ok_or(anyhow!("Missing required import section"))?
-        .entries()
-        .first()
-        .map(|e| e.field())
-        .ok_or(anyhow!("Missing required import section"))?;
-
-    if import_section_first != "memory"
-        && start_section.is_none()
-        && custom_sections.peek().is_none()
-        && find_function(&module, &ink_func_sig).is_ok()
+    if start_section.is_none()
+        && (is_ink_function_present(&module) || has_function_name(&module, "ink_env"))
     {
         return Ok(Language::Ink)
-    } else if import_section_first == "memory"
-        && start_section.is_none()
-        && custom_sections.any(|e| e == "name")
-    {
+    } else if start_section.is_none() && has_custom_section(&module, "producers") {
         return Ok(Language::Solidity)
-    } else if import_section_first != "memory"
-        && start_section.is_some()
-        && custom_sections.any(|e| e == "sourceMappingURL")
-    {
+    } else if start_section.is_some() && has_custom_section(&module, "sourceMappingURL") {
         return Ok(Language::AssemblyScript)
     }
 
     bail!("Language unsupported or unrecognized")
+}
+
+/// Checks if a ink! function is present.
+fn is_ink_function_present(module: &Module) -> bool {
+    let import_section = module
+        .import_section()
+        .expect("Import setction shall be present");
+    // Signature for 'deny_payment' ink! function.
+    let ink_func_deny_payment_sig =
+        Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
+    // Signature for 'transferred_value' ink! function.
+    let ink_func_transferred_value_sig =
+        Type::Function(FunctionType::new(vec![ValueType::I32], vec![]));
+    // The deny_payment and transferred_value functions internally call the
+    // value_transferred function. Getting its index from import section.
+    let value_transferred_index =
+        // For ink! >4
+        get_import_function_index(import_section, "value_transferred").or(
+            // For ink! 3.x
+            get_import_function_index(import_section, "seal_value_transferred"),
+        );
+
+    let mut functions: Vec<&FuncBody> = Vec::new();
+    let function_signatures =
+        vec![&ink_func_deny_payment_sig, &ink_func_transferred_value_sig];
+
+    for signature in function_signatures {
+        if let Ok(mut func) = filter_function_by_type(module, signature) {
+            functions.append(&mut func);
+        }
+    }
+
+    if let Ok(index) = value_transferred_index {
+        if functions.iter().any(|&body| {
+            body.code().elements().iter().any(|instruction| {
+                // Matches the 'value_transferred' function.
+                matches!(instruction, &Instruction::Call(i) if i as usize == index)
+            })
+        }) {
+            return true
+        }
+    }
+    false
+}
+
+// Check if any function in the 'name' section contains the specified name.
+fn has_function_name(module: &Module, name: &str) -> bool {
+    // The contract compiled in debug mode includes function names in the name section.
+    module
+        .names_section()
+        .map(|section| {
+            if let Some(functions) = section.functions() {
+                functions
+                    .names()
+                    .iter()
+                    .any(|(_, func)| func.contains(name))
+            } else {
+                false
+            }
+        })
+        .unwrap_or(false)
+}
+
+/// Check if custom section is present.
+fn has_custom_section(module: &Module, section_name: &str) -> bool {
+    module
+        .custom_sections()
+        .any(|section| section.name() == section_name)
+}
+
+/// Get the function index from the import section.
+fn get_import_function_index(imports: &ImportSection, field: &str) -> Result<usize> {
+    let index = imports
+        .entries()
+        .iter()
+        .filter(|&entry| matches!(entry.external(), External::Function(_)))
+        .position(|e| e.field() == field)
+        .ok_or(anyhow!("Missing required import for: {}", field))?;
+    Ok(index)
 }
 
 /// Search for a functions in a WebAssembly (Wasm) module that matches a given function
@@ -82,7 +138,7 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
 ///
 /// If one or more functions matching the specified type are found, this function returns
 /// their bodies in a vector; otherwise, it returns an error.
-fn find_function<'a>(
+fn filter_function_by_type<'a>(
     module: &'a Module,
     function_type: &Type,
 ) -> Result<Vec<&'a FuncBody>> {
@@ -148,12 +204,51 @@ mod tests {
         (module
             (type (;0;) (func (param i32 i32 i32)))
             (type (;1;) (func (result i32)))
-            (import "seal" "foo" (func (;5;) (type 0)))
-            (import "env" "memory" (func (;5;) (type 0)))
-            (func (;5;) (type 0))
-            (func (;6;) (type 1) (result i32)
+            (type (;2;) (func (param i32 i32)))
+            (import "seal" "foo" (func (;0;) (type 0)))
+            (import "seal0" "value_transferred" (func (;1;) (type 2)))
+            (import "env" "memory" (memory (;0;) 2 16))
+            (func (;2;) (type 2))
+            (func (;3;) (type 1) (result i32)
             (local i32 i64 i64)
-            local.get 0)
+            global.get 0
+            i32.const 32
+            i32.sub
+            local.tee 0
+            global.set 0
+            local.get 0
+            i64.const 0
+            i64.store offset=8
+            local.get 0
+            i64.const 0
+            i64.store
+            local.get 0
+            i32.const 16
+            i32.store offset=28
+            local.get 0
+            local.get 0
+            i32.const 28
+            i32.add
+            call 1
+            local.get 0
+            i64.load offset=8
+            local.set 1
+            local.get 0
+            i64.load
+            local.set 2
+            local.get 0
+            i32.const 32
+            i32.add
+            global.set 0
+            i32.const 5
+            i32.const 4
+            local.get 1
+            local.get 2
+            i64.or
+            i64.eqz
+            select
+        )
+            (global (;0;) (mut i32) (i32.const 65536))
         )"#;
         let code = wabt::wat2wasm(contract).expect("invalid wabt");
         let lang = determine_language(&code);
@@ -168,14 +263,14 @@ mod tests {
         let contract = r#"
         (module
             (type (;0;) (func (param i32 i32 i32)))
-            (import "env" "memory" (func (;5;) (type 0)))
-            (func (;5;) (type 0))
+            (import "env" "memory" (memory (;0;) 16 16))
+            (func (;0;) (type 0))
         )
         "#;
         let code = wabt::wat2wasm(contract).expect("invalid wabt");
         // Custom sections are not supported in wabt format, injecting using parity_wasm
         let mut module: Module = parity_wasm::deserialize_buffer(&code).unwrap();
-        module.set_custom_section("name".to_string(), Vec::new());
+        module.set_custom_section("producers".to_string(), Vec::new());
         let code = module.into_bytes().unwrap();
         let lang = determine_language(&code);
         assert!(
@@ -190,11 +285,11 @@ mod tests {
         (module
             (type $none_=>_none (func))
             (type (;0;) (func (param i32 i32 i32)))
-            (import "seal" "foo" (func (;5;) (type 0)))
-            (import "env" "memory" (func (;5;) (type 0)))
+            (import "seal" "foo" (func (;0;) (type 0)))
+            (import "env" "memory" (memory $0 2 16))
             (start $~start)
             (func $~start (type $none_=>_none))
-            (func (;5;) (type 0))
+            (func (;1;) (type 0))
         )
         "#;
         let code = wabt::wat2wasm(contract).expect("invalid wabt");
