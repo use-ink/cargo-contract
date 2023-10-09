@@ -18,7 +18,6 @@ use super::{
     account_id,
     events::DisplayEvents,
     runtime_api::api::{
-        self,
         contracts::events::CodeStored,
         runtime_types::pallet_contracts::wasm::Determinism,
     },
@@ -40,6 +39,10 @@ use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -105,22 +108,32 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
                 artifacts_path.display()
             )
         })?;
+
         let url = self.opts.extrinsic_opts.url();
-        let client = OnlineClient::from_url(url).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
+
+        let token_metadata = TokenMetadata::query(&rpc).await?;
+
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
+            rpc,
             client,
             code,
             signer,
+            token_metadata,
         })
     }
 }
 
 pub struct UploadExec {
     opts: ExtrinsicOpts,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     code: WasmCode,
     signer: Keypair,
+    token_metadata: TokenMetadata,
 }
 
 impl UploadExec {
@@ -131,13 +144,11 @@ impl UploadExec {
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let url = self.opts.url();
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
             .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
+            .map(|bv| bv.denominate_balance(&self.token_metadata))
             .transpose()?;
         let call_request = CodeUploadRequest {
             origin: account_id(&self.signer),
@@ -145,7 +156,7 @@ impl UploadExec {
             storage_deposit_limit,
             determinism: Determinism::Enforced,
         };
-        state_call(&url, "ContractsApi_upload_code", call_request).await
+        state_call(&self.rpc, "ContractsApi_upload_code", call_request).await
     }
 
     /// Uploads contract code to the blockchain with specified options.
@@ -155,20 +166,21 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
-        let token_metadata = TokenMetadata::query(&self.client).await?;
-        let storage_deposit_limit =
-            self.opts.compact_storage_deposit_limit(&token_metadata)?;
+        let storage_deposit_limit = self
+            .opts
+            .compact_storage_deposit_limit(&self.token_metadata)?;
         let call = crate::runtime_api::api::tx().contracts().upload_code(
             self.code.0.clone(),
             storage_deposit_limit,
             Determinism::Enforced,
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
         let display_events =
             DisplayEvents::from_events(&result, None, &self.client.metadata())?;
 
-        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
+        let code_stored = result.find_first::<CodeStored>()?;
         Ok(UploadResult {
             code_stored,
             display_events,
@@ -193,6 +205,11 @@ impl UploadExec {
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
+    }
+
+    /// Returns the token metadata.
+    pub fn token_metadata(&self) -> &TokenMetadata {
+        &self.token_metadata
     }
 }
 

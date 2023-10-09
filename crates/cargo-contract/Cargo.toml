@@ -25,7 +25,7 @@ contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 contract-analyze = { version = "0.1.0", path = "../analyze" }
 
 anyhow = "1.0.75"
-clap = { version = "4.4.4", features = ["derive", "env"] }
+clap = { version = "4.4.6", features = ["derive", "env"] }
 primitive-types = { version = "0.12.1", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
@@ -40,7 +40,7 @@ semver = "1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = "0.31.0"
+subxt = "0.32.1"
 sp-core = "22.0.0"
 sp-weights = "21.0.0"
 pallet-contracts-primitives = "25.0.0"
@@ -48,13 +48,13 @@ hex = "0.4.3"
 
 [build-dependencies]
 anyhow = "1.0.75"
-substrate-build-script-utils = "7.0.0"
+substrate-build-script-utils = "8.0.0"
 current_platform = "0.2.0"
 which = "4.4.2"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-regex = "1.9.5"
+regex = "1.9.6"
 predicates = "3.0.4"
 tempfile = "3.8.0"
 

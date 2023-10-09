@@ -47,6 +47,10 @@ use scale::Encode;
 use sp_core::Bytes;
 use sp_weights::Weight;
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     blocks::ExtrinsicEvents,
     Config,
     OnlineClient,
@@ -174,9 +178,11 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
         };
         let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
 
-        let client = OnlineClient::from_url(&url).await?;
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(&client).await?;
+        let token_metadata = TokenMetadata::query(&rpc).await?;
 
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
@@ -200,9 +206,11 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             args,
             opts: self.opts.extrinsic_opts.clone(),
             url,
+            rpc,
             client,
             signer,
             transcoder,
+            token_metadata,
         })
     }
 }
@@ -269,9 +277,11 @@ pub struct InstantiateExec {
     opts: ExtrinsicOpts,
     args: InstantiateArgs,
     url: String,
+    rpc: LegacyRpcMethods<DefaultConfig>,
     client: Client,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
+    token_metadata: TokenMetadata,
 }
 
 impl InstantiateExec {
@@ -341,7 +351,7 @@ impl InstantiateExec {
             data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
-        state_call(&self.url, "ContractsApi_instantiate", &call_request).await
+        state_call(&self.rpc, "ContractsApi_instantiate", &call_request).await
     }
 
     async fn instantiate_with_code(
@@ -358,7 +368,8 @@ impl InstantiateExec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
@@ -370,12 +381,11 @@ impl InstantiateExec {
             .find_last::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         Ok(InstantiateExecResult {
             result,
             code_hash,
             contract_address: instantiated.contract,
-            token_metadata,
+            token_metadata: self.token_metadata.clone(),
         })
     }
 
@@ -393,18 +403,18 @@ impl InstantiateExec {
             self.args.salt.clone(),
         );
 
-        let result = submit_extrinsic(&self.client, &call, &self.signer).await?;
+        let result =
+            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let instantiated = result
             .find_first::<api::contracts::events::Instantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
-        let token_metadata = TokenMetadata::query(&self.client).await?;
         Ok(InstantiateExecResult {
             result,
             code_hash: None,
             contract_address: instantiated.contract,
-            token_metadata,
+            token_metadata: self.token_metadata.clone(),
         })
     }
 

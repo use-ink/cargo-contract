@@ -124,7 +124,7 @@ impl PartialEq for Map {
 
 impl PartialOrd for Map {
     fn partial_cmp(&self, other: &Map) -> Option<Ordering> {
-        self.iter().partial_cmp(other.iter())
+        Some(self.cmp(other))
     }
 }
 
