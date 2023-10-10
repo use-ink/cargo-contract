@@ -41,7 +41,7 @@ hex = "0.4.3"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-regex = "1.9.6"
+regex = "1.10.0"
 predicates = "3.0.4"
 tempfile = "3.8.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
