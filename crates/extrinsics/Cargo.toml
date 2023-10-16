@@ -22,7 +22,7 @@ contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 anyhow = "1.0.75"
 clap = { version = "4.4.6", features = ["derive", "env"] }
 futures = { version = "0.3.27", default-features = false, features = ["std"] }
-tracing = "0.1.37"
+tracing = "0.1.39"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.0.4"
 serde = { version = "1.0.189", default-features = false, features = ["derive"] }
