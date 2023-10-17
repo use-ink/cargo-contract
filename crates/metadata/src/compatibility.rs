@@ -134,7 +134,7 @@ mod tests {
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
             Please update the cargo-contract to version '1.5.0' or update \
-            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
+            the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
         );
 
         let ink_version =
@@ -146,18 +146,18 @@ mod tests {
                 res.to_string(),
                 "The cargo-contract is not compatible with the contract's ink! version. \
                 Please update the cargo-contract to version '1.5.0' or update \
-                the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0', '^5.0.0-alpha'"
+                the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
         );
     }
 
     #[test]
     fn ink_check_succeeds_when_compatible_version() {
-        let ink_version = Version::new(4, 2, 3);
+        let ink_version = Version::new(5, 0, 0);
         let res = check_contract_ink_compatibility(&ink_version);
         assert!(res.is_ok());
 
         let ink_version =
-            Version::parse("4.0.0-alpha.4").expect("Parsing version must work");
+            Version::parse("5.0.0-alpha.4").expect("Parsing version must work");
         let res = check_contract_ink_compatibility(&ink_version);
         assert!(res.is_ok());
     }

@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
 - Add `--all` flag for `info` command - [#1319](https://github.com/paritytech/cargo-contract/pull/1319)
 - Fix for a Url to String conversion in `info` command - [#1330](https://github.com/paritytech/cargo-contract/pull/1330)
-- Add warning message when using incompatible contract's ink! version [#1334](https://github.com/paritytech/cargo-contract/pull/1334)
+- Add warning message when using incompatible contract's ink! version - [#1334](https://github.com/paritytech/cargo-contract/pull/1334)
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
+- Remove check for compatible `scale` and `scale-info` versions - [#1352](https://github.com/paritytech/cargo-contract/pull/)
 
 ## [4.0.0-alpha]
 

@@ -764,38 +764,6 @@ fn post_process_wasm(
     Ok(())
 }
 
-/// Asserts that the contract's dependencies are compatible to the ones used in ink!.
-///
-/// This function utilizes `cargo tree`, which takes semver into consideration.
-///
-/// Hence this function only returns an `Err` if it is a proper mismatch according
-/// to semantic versioning. This means that either:
-///     - the major version mismatches, differences in the minor/patch version are not
-///       considered incompatible.
-///     - or if the version starts with zero (i.e. `0.y.z`) a mismatch in the minor
-///       version is already considered incompatible.
-fn assert_compatible_ink_dependencies(
-    manifest_path: &ManifestPath,
-    verbosity: Verbosity,
-) -> Result<()> {
-    for dependency in ["parity-scale-codec", "scale-info"].iter() {
-        let args = ["-i", dependency, "--duplicates"];
-        let cargo =
-            util::cargo_cmd("tree", args, manifest_path.directory(), verbosity, vec![]);
-        cargo
-            .stdout_null()
-            .run()
-            .with_context(|| {
-                format!(
-                    "Mismatching versions of `{dependency}` were found!\n\
-                     Please ensure that your contract and your ink! dependencies use a compatible \
-                     version of this package."
-                )
-            })?;
-    }
-    Ok(())
-}
-
 /// Checks whether the supplied `ink_version` already contains the debug feature.
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
@@ -853,7 +821,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     let crate_metadata = CrateMetadata::collect(manifest_path, *target)?;
 
-    assert_compatible_ink_dependencies(manifest_path, *verbosity)?;
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
@@ -1159,44 +1126,6 @@ mod unit_tests {
             res.to_string(),
             "Building the contract in debug mode requires an ink! version newer than `3.0.0-rc3`!"
         );
-    }
-
-    #[test]
-    fn project_template_dependencies_must_be_ink_compatible() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            // the manifest path
-
-            // when
-            let res =
-                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
-
-            // then
-            assert!(res.is_ok());
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn detect_mismatching_parity_scale_codec_dependencies() {
-        with_new_contract_project(|manifest_path| {
-            // given
-            // the manifest path
-
-            // at the time of writing this test ink! already uses `parity-scale-codec`
-            // in a version > 2, hence 1 is an incompatible version.
-            let mut manifest = TestContractManifest::new(manifest_path.clone())?;
-            manifest.set_dependency_version("scale", "1.0.0")?;
-            manifest.write()?;
-
-            // when
-            let res =
-                assert_compatible_ink_dependencies(&manifest_path, Verbosity::Default);
-
-            // then
-            assert!(res.is_err());
-            Ok(())
-        })
     }
 
     #[test]
