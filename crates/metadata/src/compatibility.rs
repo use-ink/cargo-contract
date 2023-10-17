@@ -143,10 +143,10 @@ mod tests {
             .expect_err("Ink version check should fail");
 
         assert_eq!(
-                res.to_string(),
-                "The cargo-contract is not compatible with the contract's ink! version. \
-                Please update the cargo-contract to version '1.5.0' or update \
-                the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
+            res.to_string(),
+            "The cargo-contract is not compatible with the contract's ink! version. \
+            Please update the cargo-contract to version '1.5.0' or update \
+            the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
         );
     }
 
