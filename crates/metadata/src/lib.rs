@@ -156,6 +156,7 @@ impl ContractMetadata {
         if let Language::Ink = self.source.language.language {
             compatibility::check_contract_ink_compatibility(
                 &self.source.language.version,
+                None,
             )?;
         }
         Ok(())

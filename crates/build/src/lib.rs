@@ -825,7 +825,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
     }
 
-    if let Err(e) = check_contract_ink_compatibility(&crate_metadata.ink_version) {
+    if let Err(e) = check_contract_ink_compatibility(&crate_metadata.ink_version, None) {
         eprintln!("{} {}", "warning:".yellow().bold(), e.to_string().bold());
     }
 

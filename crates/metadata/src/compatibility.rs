@@ -43,11 +43,17 @@ struct Requirements {
 
 /// Checks whether the contract's ink! version is compatible with the cargo-contract
 /// binary.
-pub fn check_contract_ink_compatibility(ink_version: &Version) -> Result<()> {
+pub fn check_contract_ink_compatibility(
+    ink_version: &Version,
+    cargo_contract_version: Option<Version>,
+) -> Result<()> {
     let compatibility_list = include_str!("../compatibility_list.json");
     let compatibility: Compatibility = serde_json::from_str(compatibility_list)?;
-    let cargo_contract_version =
-        semver::Version::parse(VERSION).expect("Parsing version failed");
+    let cargo_contract_version = if let Some(version) = cargo_contract_version {
+        version
+    } else {
+        semver::Version::parse(VERSION).expect("Parsing version failed")
+    };
     let ink_req = &compatibility
         .cargo_contract_compatibility
         .get(&cargo_contract_version)
@@ -127,38 +133,43 @@ mod tests {
     #[test]
     fn ink_check_failes_when_incompatible_version() {
         let ink_version = Version::new(3, 2, 0);
-        let res = check_contract_ink_compatibility(&ink_version)
-            .expect_err("Ink version check should fail");
+        let cargo_contract_version = Some(Version::new(3, 2, 0));
+        let res = check_contract_ink_compatibility(
+            &ink_version,
+            cargo_contract_version.clone(),
+        )
+        .expect_err("Ink version check should fail");
 
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
             Please update the cargo-contract to version '1.5.0' or update \
-            the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
+            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
         );
 
         let ink_version =
             Version::parse("4.0.0-alpha.1").expect("Parsing version must work");
-        let res = check_contract_ink_compatibility(&ink_version)
+        let res = check_contract_ink_compatibility(&ink_version, cargo_contract_version)
             .expect_err("Ink version check should fail");
 
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
             Please update the cargo-contract to version '1.5.0' or update \
-            the contract ink! to a version of '^5.0.0-alpha', '^5.0.0'"
+            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
         );
     }
 
     #[test]
     fn ink_check_succeeds_when_compatible_version() {
-        let ink_version = Version::new(5, 0, 0);
-        let res = check_contract_ink_compatibility(&ink_version);
+        let ink_version = Version::new(4, 2, 0);
+        let cargo_contract_version = Some(Version::new(3, 2, 0));
+        let res = check_contract_ink_compatibility(&ink_version, cargo_contract_version);
         assert!(res.is_ok());
 
         let ink_version =
             Version::parse("5.0.0-alpha.4").expect("Parsing version must work");
-        let res = check_contract_ink_compatibility(&ink_version);
+        let res = check_contract_ink_compatibility(&ink_version, None);
         assert!(res.is_ok());
     }
 }
