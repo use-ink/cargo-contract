@@ -1093,13 +1093,7 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod unit_tests {
     use super::*;
-    use crate::{
-        util::tests::{
-            with_new_contract_project,
-            TestContractManifest,
-        },
-        Verbosity,
-    };
+    use crate::Verbosity;
     use semver::Version;
 
     #[test]
