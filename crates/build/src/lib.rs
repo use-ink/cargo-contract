@@ -293,7 +293,6 @@ fn exec_cargo_for_onchain_target(
 
         let mut args = vec![
             format!("--target={}", target.llvm_target()),
-            "-Zbuild-std=core,alloc".to_owned(),
             "--no-default-features".to_owned(),
             "--release".to_owned(),
             target_dir,
@@ -323,6 +322,7 @@ fn exec_cargo_for_onchain_target(
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
+            env.push(("RUSTUP_TOOLCHAIN", Some("rv32e-nightly-2023-04-05".to_string())));
             fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
                 .target_directory
@@ -334,6 +334,7 @@ fn exec_cargo_for_onchain_target(
                 Some(format!("{}\x1f-Clink-arg=-T{path}", target.rustflags())),
             ));
         } else {
+            args.push("-Zbuild-std=core,alloc".to_owned());
             env.push((
                 "CARGO_ENCODED_RUSTFLAGS",
                 Some(target.rustflags().to_owned()),
