@@ -27,7 +27,7 @@ impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 toml = "0.8.2"
-tracing = "0.1.39"
+tracing = "0.1.40"
 parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
 semver = { version = "1.0.20", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
