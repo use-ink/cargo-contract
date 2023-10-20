@@ -28,7 +28,13 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use subxt::utils::AccountId32;
+use subxt::{utils::AccountId32,
+    ext::scale_value::{
+            Composite,
+            Value,
+            ValueDef,
+        },
+};
 
 use anyhow::{
     anyhow,
@@ -115,6 +121,9 @@ pub use upload::{
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
+
+use api::runtime_types::pallet_contracts::storage::ContractInfo;
+type StorageVersion = u16;
 
 /// Contract artifacts for use with extrinsic commands.
 #[derive(Debug)]
@@ -325,8 +334,42 @@ async fn get_contract_total_deposit(
     Ok(contract_deposit)
 }
 
+async fn get_contract_total_deposit2(deposit_account: &AccountId32, pallet_contracts_version: StorageVersion) -> Result<Balance> {
+    Ok(1)
+}
+
+/// Try to extract the given field from a dynamic [`Value`].
+///
+/// Returns `Err` if:
+///   - The value is not a [`Value::Composite`] with [`Composite::Named`] fields
+///   - The value does not contain a field with the given name.
+fn get_composite_field_value<'a, T, C>(
+    value: &'a Value<T>,
+    field_name: &str,
+) -> Result<&'a Value<T>>
+where
+    C: subxt::Config,
+{
+    if let ValueDef::Composite(Composite::Named(fields)) = &value.value {
+        let (_, field) = fields
+            .iter()
+            .find(|(name, _)| name == field_name)
+            .ok_or_else(|| {
+                anyhow!("No field named '{}' found", field_name)
+            })?;
+        Ok(field)
+    } else {
+        anyhow::bail!("Expected a composite type with named fields")
+    }
+}
+
+fn getDepositAccount(contract_info: &ContractInfo) -> Option<AccountId32> {
+    //let deposit_account = get_composite_field_value::<_, DefaultConfig>(contract_info, "deposit_account")?;
+    None
+}
+
 /// Fetch the contracts pallet version from the storage using the provided client.
-async fn fetch_contracts_pallet_version(client: &Client) -> Result<u16> {
+async fn fetch_contracts_pallet_version(client: &Client) -> Result<StorageVersion> {
     let hash_pallet = hashing::twox_128(b"Contracts");
     let hash_version = hashing::twox_128(b":__STORAGE_VERSION__:");
     let key = [hash_pallet, hash_version].concat();
@@ -337,10 +380,30 @@ async fn fetch_contracts_pallet_version(client: &Client) -> Result<u16> {
         .await?
         .ok_or(anyhow!("Failed to get storage version of contracts pallet"))?
         .0;
-    let version = u16::decode(&mut version.as_slice())?;
+    let version = StorageVersion::decode(&mut version.as_slice())?;
+    println!("pallet version {}", version);
     Ok(version)
 }
 
+async fn get_account_balance(account: &AccountId32, client: &Client) -> Result<(Balance, Balance)> {
+    let storage_query = api::storage().system().account(account);
+    let result = client
+        .storage()
+        .at_latest()
+        .await?
+        .fetch(&storage_query)
+        .await?;
+    let result: api::runtime_types::frame_system::AccountInfo<u32, api::runtime_types::pallet_balances::types::AccountData<u128>> = result.unwrap();
+    println!(
+        "contract balance: free: {} reserved: {}",
+        result.data.free, result.data.reserved
+    );
+    let ex = api::constants().balances().existential_deposit();
+    let value = client.constants().at(&ex)?;
+    println!("existential deposit: {}", value);
+
+    Ok((result.data.free, result.data.reserved))
+}
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info(
     contract: &AccountId32,
@@ -348,17 +411,22 @@ pub async fn fetch_contract_info(
 ) -> Result<Option<ContractInfo>> {
     let info_contract_call = api::storage().contracts().contract_info_of(contract);
 
-    let contract_info_of = client
+    let contract_info_of: Option<api::runtime_types::pallet_contracts::storage::ContractInfo> = client
         .storage()
         .at_latest()
         .await?
         .fetch(&info_contract_call)
         .await?;
-
+    println!("Contract account balance");
+    get_account_balance(contract, client).await?;
     match contract_info_of {
         Some(info_result) => {
             let convert_trie_id = hex::encode(info_result.trie_id.0);
 
+
+            println!("Deposit account balance");
+            get_account_balance(&info_result.deposit_account.0, client).await?;
+            println!("base: {}, item: {}, byte: {}", info_result.storage_base_deposit, info_result.storage_item_deposit, info_result.storage_byte_deposit);
             let total_deposit = get_contract_total_deposit(
                 info_result.storage_base_deposit,
                 info_result.storage_item_deposit,
@@ -366,6 +434,10 @@ pub async fn fetch_contract_info(
                 client,
             )
             .await?;
+
+
+
+            get_contract_total_deposit2(contract, ).await?;
 
             Ok(Some(ContractInfo {
                 trie_id: convert_trie_id,
