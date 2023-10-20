@@ -33,8 +33,12 @@ use super::{
     TokenMetadata,
     WasmCode,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    check_env_types,
+    extrinsic_opts::ExtrinsicOpts,
+};
 use anyhow::Result;
+use contract_transcode::ContractMessageTranscoder;
 use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
@@ -99,6 +103,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     /// execution.
     pub async fn done(self) -> Result<UploadExec> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
@@ -123,6 +128,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
             code,
             signer,
             token_metadata,
+            transcoder,
         })
     }
 }
@@ -134,6 +140,7 @@ pub struct UploadExec {
     code: WasmCode,
     signer: Keypair,
     token_metadata: TokenMetadata,
+    transcoder: ContractMessageTranscoder,
 }
 
 impl UploadExec {
@@ -144,6 +151,7 @@ impl UploadExec {
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
+        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
@@ -166,6 +174,7 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
+        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self
             .opts
             .compact_storage_deposit_limit(&self.token_metadata)?;
@@ -210,6 +219,11 @@ impl UploadExec {
     /// Returns the token metadata.
     pub fn token_metadata(&self) -> &TokenMetadata {
         &self.token_metadata
+    }
+
+    /// Returns the contract message transcoder.
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
     }
 }
 

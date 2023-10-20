@@ -31,7 +31,10 @@ use super::{
     StorageDeposit,
     TokenMetadata,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    check_env_types,
+    extrinsic_opts::ExtrinsicOpts,
+};
 use anyhow::{
     anyhow,
     Context,
@@ -341,6 +344,7 @@ impl InstantiateExec {
     ) -> Result<
         ContractInstantiateResult<<DefaultConfig as Config>::AccountId, Balance, ()>,
     > {
+        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest {
             origin: account_id(&self.signer),
@@ -434,7 +438,10 @@ impl InstantiateExec {
     ) -> Result<InstantiateExecResult, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
-            Some(gas_limit) => gas_limit,
+            Some(gas_limit) => {
+                check_env_types(self.client(), self.transcoder())?;
+                gas_limit
+            }
             None => self.estimate_gas().await?,
         };
         match self.args.code.clone() {

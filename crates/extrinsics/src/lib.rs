@@ -29,6 +29,7 @@ mod upload;
 mod integration_tests;
 
 use colored::Colorize;
+use contract_transcode::compare_node_env_with_contract;
 use subxt::utils::AccountId32;
 
 use anyhow::{
@@ -368,6 +369,17 @@ pub async fn fetch_contract_info(
         }
         None => Ok(None),
     }
+}
+
+fn check_env_types<T>(
+    client: &OnlineClient<T>,
+    transcoder: &ContractMessageTranscoder,
+) -> Result<()>
+where
+    T: Config,
+{
+    compare_node_env_with_contract(client.metadata().types(), transcoder)
+        .map_err(|e| anyhow!("Verification of types match failed: {:?}", e))
 }
 
 #[derive(serde::Serialize)]
