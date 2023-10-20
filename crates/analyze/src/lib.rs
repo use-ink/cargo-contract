@@ -42,14 +42,15 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     let wasm_module: Module = parity_wasm::deserialize_buffer(code)?;
     let module = wasm_module.clone().parse_names().unwrap_or(wasm_module);
     let start_section = module.start_section();
-    if start_section.is_none()
-        && (is_ink_function_present(&module) || has_function_name(&module, "ink_env"))
-    {
-        return Ok(Language::Ink)
-    } else if start_section.is_none() && has_custom_section(&module, "producers") {
+
+    if start_section.is_none() && has_custom_section(&module, "producers") {
         return Ok(Language::Solidity)
     } else if start_section.is_some() && has_custom_section(&module, "sourceMappingURL") {
         return Ok(Language::AssemblyScript)
+    } else if start_section.is_none()
+        && (is_ink_function_present(&module) || has_function_name(&module, "ink_env"))
+    {
+        return Ok(Language::Ink)
     }
 
     bail!("Language unsupported or unrecognized")
@@ -71,9 +72,9 @@ fn is_ink_function_present(module: &Module) -> bool {
     // The deny_payment and transferred_value functions internally call the
     // value_transferred function. Getting its index from import section.
     let value_transferred_index =
-        // For ink! >4
+        // For ink! >=4
         get_function_import_index(import_section, "value_transferred").or(
-            // For ink! 3.x
+            // For ink! ^3
             get_function_import_index(import_section, "seal_value_transferred"),
         );
 
@@ -161,7 +162,7 @@ fn filter_function_by_type<'a>(
     let type_section = module
         .type_section()
         .ok_or(anyhow!("Missing required type section"))?;
-    let func_type_idx = get_function_type_index(type_section, function_type)?;
+    let func_type_index = get_function_type_index(type_section, function_type)?;
 
     module
         .function_section()
@@ -169,13 +170,13 @@ fn filter_function_by_type<'a>(
         .entries()
         .iter()
         .enumerate()
-        .filter(|(_, elem)| elem.type_ref() == func_type_idx as u32)
-        .map(|(idx, _)| {
+        .filter(|(_, elem)| elem.type_ref() == func_type_index as u32)
+        .map(|(index, _)| {
             module
                 .code_section()
                 .ok_or(anyhow!("Missing required code section"))?
                 .bodies()
-                .get(idx)
+                .get(index)
                 .ok_or(anyhow!("Requested function not found code section"))
         })
         .collect::<Result<Vec<_>>>()
