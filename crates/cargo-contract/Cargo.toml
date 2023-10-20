@@ -24,14 +24,14 @@ contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 
 anyhow = "1.0.75"
-clap = { version = "4.4.4", features = ["derive", "env"] }
-primitive-types = { version = "0.12.1", default-features = false, features = ["codec", "scale-info", "serde"] }
-tracing = "0.1.37"
+clap = { version = "4.4.6", features = ["derive", "env"] }
+primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
+tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-which = "4.4.2"
+which = "5.0.0"
 colored = "2.0.4"
 serde_json = "1.0.107"
-serde = { version = "1.0.183", default-features = false, features = ["derive"] }
+serde = { version = "1.0.189", default-features = false, features = ["derive"] }
 url = { version = "2.4.1", features = ["serde"] }
 semver = "1.0"
 
@@ -39,7 +39,7 @@ semver = "1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = "0.31.0"
+subxt = "0.32.1"
 sp-core = "22.0.0"
 sp-weights = "21.0.0"
 pallet-contracts-primitives = "25.0.0"
@@ -47,13 +47,13 @@ hex = "0.4.3"
 
 [build-dependencies]
 anyhow = "1.0.75"
-substrate-build-script-utils = "7.0.0"
+substrate-build-script-utils = "8.0.0"
 current_platform = "0.2.0"
-which = "4.4.2"
+which = "5.0.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
-regex = "1.9.5"
+regex = "1.10.2"
 predicates = "3.0.4"
 tempfile = "3.8.0"
 

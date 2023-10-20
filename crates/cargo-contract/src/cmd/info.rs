@@ -35,6 +35,10 @@ use std::{
     io::Write,
 };
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
@@ -71,25 +75,14 @@ pub struct InfoCommand {
 
 impl InfoCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
+        let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
         let client =
-            OnlineClient::<DefaultConfig>::from_url(url_to_string(&self.url)).await?;
+            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc_cli.clone());
 
         // All flag applied
         if self.all {
-            // 1000 is max allowed value
-            const MAX_COUNT: u32 = 1000;
-            let mut count_from = None;
-            let mut contracts = Vec::new();
-            loop {
-                let len = contracts.len();
-                contracts.append(
-                    &mut fetch_all_contracts(&client, MAX_COUNT, count_from).await?,
-                );
-                if contracts.len() < len + MAX_COUNT as usize {
-                    break
-                }
-                count_from = contracts.last();
-            }
+            let contracts = fetch_all_contracts(&client, &rpc).await?;
 
             if self.output_json {
                 let contracts_json = serde_json::json!({
@@ -108,17 +101,16 @@ impl InfoCommand {
                 .as_ref()
                 .expect("Contract argument was not provided");
 
-            let info_to_json =
-                fetch_contract_info(contract, &client)
-                    .await?
-                    .ok_or(anyhow!(
-                        "No contract information was found for account id {}",
-                        contract
-                    ))?;
+            let info_to_json = fetch_contract_info(contract, &rpc, &client)
+                .await?
+                .ok_or(anyhow!(
+                    "No contract information was found for account id {}",
+                    contract
+                ))?;
 
             // Binary flag applied
             if self.binary {
-                let wasm_code = fetch_wasm_code(&client, info_to_json.code_hash())
+                let wasm_code = fetch_wasm_code(&client, &rpc, info_to_json.code_hash())
                     .await?
                     .ok_or(anyhow!(
                         "Contract wasm code was not found for account id {}",
