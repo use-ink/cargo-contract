@@ -22,7 +22,7 @@ contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 anyhow = "1.0.75"
 clap = { version = "4.4.6", features = ["derive", "env"] }
 futures = { version = "0.3.27", default-features = false, features = ["std"] }
-tracing = "0.1.39"
+tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.0.4"
 serde = { version = "1.0.189", default-features = false, features = ["derive"] }
@@ -34,7 +34,7 @@ sp-core = "22.0.0"
 sp-runtime = "25.0.0"
 sp-weights = "21.0.0"
 pallet-contracts-primitives = "25.0.0"
-scale-info = "2.8.0"
+scale-info = "2.10.0"
 subxt = "0.32.1"
 subxt-signer = { version = "0.32.1", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
