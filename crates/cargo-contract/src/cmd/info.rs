@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    basic_display_format_contract_info,
+    basic_display_format_extended_contract_info,
     display_all_contracts,
     DefaultConfig,
 };
@@ -23,11 +23,15 @@ use anyhow::{
     anyhow,
     Result,
 };
+use contract_analyze::determine_language;
 use contract_extrinsics::{
     fetch_all_contracts,
     fetch_contract_info,
     fetch_wasm_code,
     url_to_string,
+    Balance,
+    CodeHash,
+    ContractInfo,
     ErrorVariant,
 };
 use std::{
@@ -108,15 +112,14 @@ impl InfoCommand {
                     contract
                 ))?;
 
+            let wasm_code = fetch_wasm_code(&client, &rpc, info_to_json.code_hash())
+                .await?
+                .ok_or(anyhow!(
+                    "Contract wasm code was not found for account id {}",
+                    contract
+                ))?;
             // Binary flag applied
             if self.binary {
-                let wasm_code = fetch_wasm_code(&client, &rpc, info_to_json.code_hash())
-                    .await?
-                    .ok_or(anyhow!(
-                        "Contract wasm code was not found for account id {}",
-                        contract
-                    ))?;
-
                 if self.output_json {
                     let wasm = serde_json::json!({
                         "wasm": format!("0x{}", hex::encode(wasm_code))
@@ -128,11 +131,45 @@ impl InfoCommand {
                         .expect("Writing to stdout failed")
                 }
             } else if self.output_json {
-                println!("{}", info_to_json.to_json()?)
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&ExtendedContractInfo::new(
+                        info_to_json,
+                        &wasm_code
+                    ))?
+                )
             } else {
-                basic_display_format_contract_info(&info_to_json)
+                basic_display_format_extended_contract_info(&ExtendedContractInfo::new(
+                    info_to_json,
+                    &wasm_code,
+                ))
             }
             Ok(())
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ExtendedContractInfo {
+    pub trie_id: String,
+    pub code_hash: CodeHash,
+    pub storage_items: u32,
+    pub storage_item_deposit: Balance,
+    pub source_language: String,
+}
+
+impl ExtendedContractInfo {
+    pub fn new(contract_info: ContractInfo, code: &[u8]) -> Self {
+        let language = match determine_language(code).ok() {
+            Some(lang) => lang.to_string(),
+            None => "Unknown".to_string(),
+        };
+        ExtendedContractInfo {
+            trie_id: contract_info.trie_id().to_string(),
+            code_hash: *contract_info.code_hash(),
+            storage_items: contract_info.storage_items(),
+            storage_item_deposit: contract_info.storage_item_deposit(),
+            source_language: language,
         }
     }
 }

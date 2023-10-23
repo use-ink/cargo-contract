@@ -31,7 +31,10 @@ pub(crate) use self::{
     },
     call::CallCommand,
     decode::DecodeCommand,
-    info::InfoCommand,
+    info::{
+        ExtendedContractInfo,
+        InfoCommand,
+    },
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
     upload::UploadCommand,
@@ -58,7 +61,6 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     Balance,
     BalanceVariant,
-    ContractInfo,
 };
 use pallet_contracts_primitives::ContractResult;
 use std::io::{
@@ -215,21 +217,26 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_contract_info(info: &ContractInfo) {
-    name_value_println!("TrieId", format!("{}", info.trie_id()), MAX_KEY_COL_WIDTH);
+pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) {
+    name_value_println!("TrieId", format!("{}", info.trie_id), MAX_KEY_COL_WIDTH);
     name_value_println!(
         "Code Hash",
-        format!("{:?}", info.code_hash()),
+        format!("{:?}", info.code_hash),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
         "Storage Items",
-        format!("{:?}", info.storage_items()),
+        format!("{:?}", info.storage_items),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
         "Storage Deposit",
-        format!("{:?}", info.storage_item_deposit()),
+        format!("{:?}", info.storage_item_deposit),
+        MAX_KEY_COL_WIDTH
+    );
+    name_value_println!(
+        "Source Language",
+        format!("{}", info.source_language),
         MAX_KEY_COL_WIDTH
     );
 }

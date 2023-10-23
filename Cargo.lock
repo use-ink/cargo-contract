@@ -749,6 +749,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "colored",
+ "contract-analyze",
  "contract-build",
  "contract-extrinsics",
  "contract-metadata",
@@ -976,6 +977,16 @@ name = "constant_time_eq"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21a53c0a4d288377e7415b53dcfc3c04da5cdc2cc95c8d5ac178b58f0b861ad6"
+
+[[package]]
+name = "contract-analyze"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "contract-metadata",
+ "parity-wasm",
+ "wabt",
+]
 
 [[package]]
 name = "contract-build"
