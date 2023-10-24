@@ -67,6 +67,10 @@ pub(crate) fn resolve_type_definition(
         .context("Type is not present in registry")?;
     if tt.type_params.is_empty() {
         if let TypeDef::Composite(comp) = &tt.type_def {
+            if comp.fields.len() > 1 || comp.fields.is_empty() {
+                anyhow::bail!("Composite field has incorrect composite type format")
+            }
+
             let tt_id = comp
                 .fields
                 .get(0)
@@ -150,4 +154,64 @@ fn compare_type(
         }
     }
     Ok(type_def == tt_def)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::marker::PhantomData;
+
+    use scale::{
+        Decode,
+        Encode,
+    };
+    use scale_info::{TypeInfo, IntoPortable as _, Registry, PortableRegistry};
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct AccountId([u8; 32]);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Balance(u128);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Hash([u8; 32]);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Hasher;
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Timestamp(u64);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct BlockNumber(u32);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct EnvironmentType<T>(PhantomData<T>);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct Environment {
+        account_id: EnvironmentType<AccountId>,
+        balance: EnvironmentType<Balance>,
+        hash: EnvironmentType<Hash>,
+        hasher: EnvironmentType<Hasher>,
+        timestamp: EnvironmentType<Timestamp>,
+        block_number: EnvironmentType<BlockNumber>,
+    }
+
+    #[test]
+    fn resolve_works() {
+        let mut registry = Registry::new();
+        let env = Environment::type_info().into_portable(&mut registry);
+
+        let portable: PortableRegistry = registry.into();
+
+        println!("{:#?}", portable)
+    }
 }
