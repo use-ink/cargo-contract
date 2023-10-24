@@ -11,7 +11,7 @@ use anyhow::{
     Result,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EnvCheckError {
     CheckFailed(String),
     RegistryError(String),
@@ -183,10 +183,7 @@ mod tests {
         Encode,
     };
     use scale_info::{
-        form::{
-            MetaForm,
-            PortableForm,
-        },
+        form::PortableForm,
         MetaType,
         PortableRegistry,
         Registry,
@@ -197,7 +194,10 @@ mod tests {
 
     use crate::{
         compare_node_env_with_contract,
-        env_check::resolve_type_definition,
+        env_check::{
+            resolve_type_definition,
+            EnvCheckError,
+        },
     };
 
     #[derive(Encode, Decode, TypeInfo)]
@@ -296,7 +296,14 @@ mod tests {
         let _ = resolve_type_definition(&portable, 15).unwrap();
     }
 
-    fn generate_contract_ink_project() -> InkProject {
+    fn generate_contract_ink_project<A, BA, BN, H, T>() -> InkProject
+    where
+        A: TypeInfo + 'static,
+        BA: TypeInfo + 'static,
+        BN: TypeInfo + 'static,
+        H: TypeInfo + 'static,
+        T: TypeInfo + 'static,
+    {
         // let _ = generate_metadata();
         let leaf = LeafLayout::from_key::<u8>(LayoutKey::new(0_u8));
         let layout = Layout::Leaf(leaf);
@@ -332,31 +339,31 @@ mod tests {
             .events(Vec::new())
             .environment(
                 EnvironmentSpec::new()
-                    .account_id(TypeSpec::with_name_segs::<AccountId, _>(
+                    .account_id(TypeSpec::with_name_segs::<A, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["AccountId"]),
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
-                    .balance(TypeSpec::with_name_segs::<Balance, _>(
+                    .balance(TypeSpec::with_name_segs::<BA, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["Balance"]),
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
-                    .hash(TypeSpec::with_name_segs::<Hash, _>(
+                    .hash(TypeSpec::with_name_segs::<H, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["Hash"]),
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
-                    .timestamp(TypeSpec::with_name_segs::<Timestamp, _>(
+                    .timestamp(TypeSpec::with_name_segs::<T, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["Timestamp"]),
                             ::core::convert::AsRef::as_ref,
                         ),
                     ))
-                    .block_number(TypeSpec::with_name_segs::<BlockNumber, _>(
+                    .block_number(TypeSpec::with_name_segs::<BN, _>(
                         ::core::iter::Iterator::map(
                             ::core::iter::IntoIterator::into_iter(["BlockNumber"]),
                             ::core::convert::AsRef::as_ref,
@@ -384,9 +391,32 @@ mod tests {
 
         let portable: PortableRegistry = registry.into();
 
-        let ink_project = generate_contract_ink_project();
+        let ink_project = generate_contract_ink_project::<
+            AccountId,
+            Balance,
+            BlockNumber,
+            Hash,
+            Timestamp,
+        >();
 
         let valid = compare_node_env_with_contract(&portable, &ink_project);
         assert!(valid.is_ok(), "{}", valid.err().unwrap())
+    }
+
+    #[test]
+    fn contract_and_node_mismatch() {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<Environment>());
+
+        let portable: PortableRegistry = registry.into();
+
+        let ink_project =
+            generate_contract_ink_project::<AccountId, Balance, BlockNumber, Hash, u8>();
+
+        let result = compare_node_env_with_contract(&portable, &ink_project);
+        assert_eq!(
+            result.err(),
+            Some(EnvCheckError::CheckFailed("timestamp".to_string()))
+        )
     }
 }
