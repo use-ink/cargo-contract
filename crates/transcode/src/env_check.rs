@@ -385,7 +385,6 @@ mod tests {
         let portable: PortableRegistry = registry.into();
 
         let ink_project = generate_contract_ink_project();
-        // println!("{}", serde_json::to_string_pretty(&portable).unwrap());
 
         let valid = compare_node_env_with_contract(&portable, &ink_project);
         assert!(valid.is_ok(), "{}", valid.err().unwrap())
