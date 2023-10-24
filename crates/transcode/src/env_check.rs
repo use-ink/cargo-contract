@@ -158,13 +158,21 @@ fn compare_type(
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
-
     use scale::{
         Decode,
         Encode,
     };
-    use scale_info::{TypeInfo, IntoPortable as _, Registry, PortableRegistry};
+    use scale_info::{
+        form::PortableForm,
+        MetaType,
+        PortableRegistry,
+        Registry,
+        TypeDef,
+        TypeInfo,
+    };
+    use std::marker::PhantomData;
+
+    use crate::env_check::resolve_type_definition;
 
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
@@ -189,7 +197,6 @@ mod tests {
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
     pub struct BlockNumber(u32);
-
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
     pub struct EnvironmentType<T>(PhantomData<T>);
@@ -208,10 +215,26 @@ mod tests {
     #[test]
     fn resolve_works() {
         let mut registry = Registry::new();
-        let env = Environment::type_info().into_portable(&mut registry);
+        registry.register_type(&MetaType::new::<Environment>());
+        let u64_typedef =
+            TypeDef::<PortableForm>::Primitive(scale_info::TypeDefPrimitive::U64);
 
         let portable: PortableRegistry = registry.into();
+        let resolved_type = resolve_type_definition(&portable, 12);
+        assert!(resolved_type.is_ok());
+        let resolved_type = resolved_type.unwrap();
 
-        println!("{:#?}", portable)
+        println!("{}", serde_json::to_string_pretty(&portable).unwrap());
+        assert_eq!(u64_typedef, resolved_type);
+    }
+
+    #[test]
+    #[should_panic(expected = "Type is not present in registry")]
+    fn resolve_unknown_type_fails() {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<Environment>());
+
+        let portable: PortableRegistry = registry.into();
+        let _ = resolve_type_definition(&portable, 18).unwrap();
     }
 }
