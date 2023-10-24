@@ -45,10 +45,15 @@ impl From<anyhow::Error> for EnvCheckError {
 }
 
 fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<PortableForm>>> {
+    let segments: Vec<&str> = if cfg!(test) {
+        vec!["contract_transcode", "env_check", "tests", "Environment"]
+    } else {
+        vec!["pallet_contracts", "Environment"]
+    };
     let env_type = registry
         .types
         .iter()
-        .find(|t| t.ty.path.segments == ["pallet_contracts", "Environment"])
+        .find(|t| t.ty.path.segments == segments)
         .context("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?")?;
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
@@ -158,12 +163,30 @@ fn compare_type(
 
 #[cfg(test)]
 mod tests {
+    use ink_metadata::{
+        layout::{
+            Layout,
+            LayoutKey,
+            LeafLayout,
+        },
+        ConstructorSpec,
+        ContractSpec,
+        EnvironmentSpec,
+        InkProject,
+        MessageParamSpec,
+        MessageSpec,
+        ReturnTypeSpec,
+        TypeSpec,
+    };
     use scale::{
         Decode,
         Encode,
     };
     use scale_info::{
-        form::PortableForm,
+        form::{
+            MetaForm,
+            PortableForm,
+        },
         MetaType,
         PortableRegistry,
         Registry,
@@ -172,7 +195,10 @@ mod tests {
     };
     use std::marker::PhantomData;
 
-    use crate::env_check::resolve_type_definition;
+    use crate::{
+        compare_node_env_with_contract,
+        env_check::resolve_type_definition,
+    };
 
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
@@ -268,5 +294,100 @@ mod tests {
 
         let portable: PortableRegistry = registry.into();
         let _ = resolve_type_definition(&portable, 15).unwrap();
+    }
+
+    fn generate_contract_ink_project() -> InkProject {
+        // let _ = generate_metadata();
+        let leaf = LeafLayout::from_key::<u8>(LayoutKey::new(0_u8));
+        let layout = Layout::Leaf(leaf);
+        #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+        pub enum NoChainExtension {}
+
+        type ChainExtension = NoChainExtension;
+        const MAX_EVENT_TOPICS: usize = 4;
+        const BUFFER_SIZE: usize = 1 << 14;
+
+        // given
+        let contract: ContractSpec = ContractSpec::new()
+            .constructors(vec![ConstructorSpec::from_label("new")
+                .selector([94u8, 189u8, 136u8, 214u8])
+                .payable(true)
+                .args(vec![MessageParamSpec::new("init_value")
+                    .of_type(TypeSpec::with_name_segs::<i32, _>(
+                        vec!["i32"].into_iter().map(AsRef::as_ref),
+                    ))
+                    .done()])
+                .returns(ReturnTypeSpec::new(None))
+                .docs(Vec::new())
+                .done()])
+            .messages(vec![MessageSpec::from_label("get")
+                .selector([37u8, 68u8, 74u8, 254u8])
+                .mutates(false)
+                .payable(false)
+                .args(Vec::new())
+                .returns(ReturnTypeSpec::new(TypeSpec::with_name_segs::<i32, _>(
+                    vec!["i32"].into_iter().map(AsRef::as_ref),
+                )))
+                .done()])
+            .events(Vec::new())
+            .environment(
+                EnvironmentSpec::new()
+                    .account_id(TypeSpec::with_name_segs::<AccountId, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["AccountId"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .balance(TypeSpec::with_name_segs::<Balance, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["Balance"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .hash(TypeSpec::with_name_segs::<Hash, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["Hash"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .timestamp(TypeSpec::with_name_segs::<Timestamp, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["Timestamp"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .block_number(TypeSpec::with_name_segs::<BlockNumber, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["BlockNumber"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .chain_extension(TypeSpec::with_name_segs::<ChainExtension, _>(
+                        ::core::iter::Iterator::map(
+                            ::core::iter::IntoIterator::into_iter(["ChainExtension"]),
+                            ::core::convert::AsRef::as_ref,
+                        ),
+                    ))
+                    .max_event_topics(MAX_EVENT_TOPICS)
+                    .static_buffer_size(BUFFER_SIZE)
+                    .done(),
+            )
+            .done();
+
+        InkProject::new(layout, contract)
+    }
+
+    #[test]
+    fn contract_and_node_match() {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<Environment>());
+
+        let portable: PortableRegistry = registry.into();
+
+        let ink_project = generate_contract_ink_project();
+        // println!("{}", serde_json::to_string_pretty(&portable).unwrap());
+
+        let valid = compare_node_env_with_contract(&portable, &ink_project);
+        assert!(valid.is_ok(), "{}", valid.err().unwrap())
     }
 }
