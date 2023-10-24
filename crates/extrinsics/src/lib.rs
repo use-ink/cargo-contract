@@ -378,8 +378,8 @@ fn check_env_types<T>(
 where
     T: Config,
 {
-    compare_node_env_with_contract(client.metadata().types(), transcoder)
-        .map_err(|e| anyhow!("Verification of types match failed: {:?}", e))
+    compare_node_env_with_contract(client.metadata().types(), transcoder.metadata())
+        .map_err(|e| e.into())
 }
 
 #[derive(serde::Serialize)]

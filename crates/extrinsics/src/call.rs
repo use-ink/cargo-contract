@@ -189,6 +189,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
         let rpc = LegacyRpcMethods::new(rpc);
+        check_env_types(&client, &transcoder)?;
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
 
@@ -237,7 +238,6 @@ impl CallExec {
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
-        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
@@ -269,10 +269,7 @@ impl CallExec {
     ) -> Result<DisplayEvents, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
-            Some(gas_limit) => {
-                check_env_types(self.client(), self.transcoder())?;
-                gas_limit
-            }
+            Some(gas_limit) => gas_limit,
             None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);

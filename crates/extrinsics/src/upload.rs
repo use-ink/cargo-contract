@@ -117,6 +117,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         let url = self.opts.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        check_env_types(&client, &transcoder)?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
@@ -151,7 +152,6 @@ impl UploadExec {
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit()
@@ -174,7 +174,6 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
-        check_env_types(self.client(), self.transcoder())?;
         let storage_deposit_limit = self
             .opts
             .compact_storage_deposit_limit(&self.token_metadata)?;

@@ -107,8 +107,6 @@ mod scon;
 mod transcoder;
 mod util;
 
-use crate::env_check::resolve_type_definition;
-
 pub use self::{
     account_id::AccountId32,
     env_check::compare_node_env_with_contract,
@@ -145,8 +143,6 @@ use scale_info::{
         PortableForm,
     },
     Field,
-    PortableRegistry,
-    TypeDef,
 };
 use std::{
     cmp::Ordering,
@@ -272,46 +268,16 @@ impl ContractMessageTranscoder {
             .decode(self.metadata.registry(), type_id, input)
     }
 
+    pub fn metadata(&self) -> &InkProject {
+        &self.metadata
+    }
+
     fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<PortableForm>> {
         self.metadata.spec().constructors().iter()
     }
 
     fn messages(&self) -> impl Iterator<Item = &MessageSpec<PortableForm>> {
         self.metadata.spec().messages().iter()
-    }
-    /// Compares the contract's environment type with a provided type definition.
-    pub fn compare_type(
-        &self,
-        type_name: &str,
-        type_def: TypeDef<PortableForm>,
-        node_registry: &PortableRegistry,
-    ) -> Result<bool> {
-        let contract_registry = self.metadata.registry();
-        let tt_id = match type_name {
-            "account_id" => self.metadata.spec().environment().account_id().ty().id,
-            "balance" => self.metadata.spec().environment().balance().ty().id,
-            "hash" => self.metadata.spec().environment().hash().ty().id,
-            "timestamp" => self.metadata.spec().environment().timestamp().ty().id,
-            "block_number" => self.metadata.spec().environment().block_number().ty().id,
-            _ => anyhow::bail!("Trying to resolve unknown environment type"),
-        };
-        let tt_def = resolve_type_definition(contract_registry, tt_id)?;
-        if let TypeDef::Array(node_arr) = &type_def {
-            let node_arr_type =
-                resolve_type_definition(node_registry, node_arr.type_param.id)?;
-            if let TypeDef::Array(contract_arr) = &tt_def {
-                if node_arr.len != contract_arr.len {
-                    anyhow::bail!("Mismatch in array lengths");
-                }
-                let contract_arr_type = resolve_type_definition(
-                    contract_registry,
-                    contract_arr.type_param.id,
-                )?;
-                return Ok(contract_arr_type == node_arr_type)
-            }
-        }
-        println!("Node {:?}\nContract: {:?}", type_def, tt_def);
-        Ok(type_def == tt_def)
     }
 
     fn find_message_spec(&self, name: &str) -> Option<&MessageSpec<PortableForm>> {
