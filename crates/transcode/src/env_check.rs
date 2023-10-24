@@ -197,6 +197,18 @@ mod tests {
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
     pub struct BlockNumber(u32);
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct SomeStruct {
+        one: u32,
+        two: u64,
+    }
+
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct CompositeBlockNumber(SomeStruct);
+
     #[derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
     pub struct EnvironmentType<T>(PhantomData<T>);
@@ -212,6 +224,17 @@ mod tests {
         block_number: EnvironmentType<BlockNumber>,
     }
 
+    #[derive(Encode, Decode, TypeInfo)]
+    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    pub struct InvalidEnvironment {
+        account_id: EnvironmentType<AccountId>,
+        balance: EnvironmentType<Balance>,
+        hash: EnvironmentType<Hash>,
+        hasher: EnvironmentType<Hasher>,
+        timestamp: EnvironmentType<Timestamp>,
+        block_number: EnvironmentType<CompositeBlockNumber>,
+    }
+
     #[test]
     fn resolve_works() {
         let mut registry = Registry::new();
@@ -224,7 +247,6 @@ mod tests {
         assert!(resolved_type.is_ok());
         let resolved_type = resolved_type.unwrap();
 
-        println!("{}", serde_json::to_string_pretty(&portable).unwrap());
         assert_eq!(u64_typedef, resolved_type);
     }
 
@@ -236,5 +258,15 @@ mod tests {
 
         let portable: PortableRegistry = registry.into();
         let _ = resolve_type_definition(&portable, 18).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Composite field has incorrect composite type format")]
+    fn composite_type_fails_to_resolve() {
+        let mut registry = Registry::new();
+        registry.register_type(&MetaType::new::<InvalidEnvironment>());
+
+        let portable: PortableRegistry = registry.into();
+        let _ = resolve_type_definition(&portable, 15).unwrap();
     }
 }
