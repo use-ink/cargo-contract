@@ -16,6 +16,7 @@
 
 mod balance;
 mod call;
+mod env_check;
 mod error;
 mod events;
 mod extrinsic_opts;
@@ -29,7 +30,7 @@ mod upload;
 mod integration_tests;
 
 use colored::Colorize;
-use contract_transcode::compare_node_env_with_contract;
+use env_check::compare_node_env_with_contract;
 use subxt::utils::AccountId32;
 
 use anyhow::{

@@ -101,7 +101,6 @@
 mod account_id;
 mod decode;
 mod encode;
-mod env_check;
 pub mod env_types;
 mod scon;
 mod transcoder;
@@ -109,7 +108,6 @@ mod util;
 
 pub use self::{
     account_id::AccountId32,
-    env_check::compare_node_env_with_contract,
     scon::{
         Hex,
         Map,

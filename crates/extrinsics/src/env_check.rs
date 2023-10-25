@@ -46,7 +46,7 @@ impl From<anyhow::Error> for EnvCheckError {
 
 fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<PortableForm>>> {
     let segments: Vec<&str> = if cfg!(test) {
-        vec!["contract_transcode", "env_check", "tests", "Environment"]
+        vec!["contract_extrinsics", "env_check", "tests", "Environment"]
     } else {
         vec!["pallet_contracts", "Environment"]
     };
@@ -200,47 +200,37 @@ mod tests {
         },
     };
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct AccountId([u8; 32]);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct Balance(u128);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct Hash([u8; 32]);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct Hasher;
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct Timestamp(u64);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct BlockNumber(u32);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct SomeStruct {
         one: u32,
         two: u64,
     }
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct CompositeBlockNumber(SomeStruct);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct EnvironmentType<T>(PhantomData<T>);
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct Environment {
         account_id: EnvironmentType<AccountId>,
         balance: EnvironmentType<Balance>,
@@ -250,8 +240,7 @@ mod tests {
         block_number: EnvironmentType<BlockNumber>,
     }
 
-    #[derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     pub struct InvalidEnvironment {
         account_id: EnvironmentType<AccountId>,
         balance: EnvironmentType<Balance>,
@@ -307,7 +296,8 @@ mod tests {
         // let _ = generate_metadata();
         let leaf = LeafLayout::from_key::<u8>(LayoutKey::new(0_u8));
         let layout = Layout::Leaf(leaf);
-        #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+
+        #[derive(scale_info::TypeInfo)]
         pub enum NoChainExtension {}
 
         type ChainExtension = NoChainExtension;

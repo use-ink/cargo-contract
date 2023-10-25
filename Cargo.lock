@@ -1030,6 +1030,7 @@ dependencies = [
  "contract-transcode",
  "futures",
  "hex",
+ "ink_metadata",
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "predicates",
@@ -1089,7 +1090,6 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "strsim",
- "subxt",
  "thiserror",
  "tracing",
 ]
