@@ -33,8 +33,12 @@ use super::{
     TokenMetadata,
     WasmCode,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    check_env_types,
+    extrinsic_opts::ExtrinsicOpts,
+};
 use anyhow::Result;
+use contract_transcode::ContractMessageTranscoder;
 use core::marker::PhantomData;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
@@ -99,6 +103,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     /// execution.
     pub async fn done(self) -> Result<UploadExec> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+        let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
@@ -112,6 +117,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         let url = self.opts.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        check_env_types(&client, &transcoder)?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
@@ -123,6 +129,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
             code,
             signer,
             token_metadata,
+            transcoder,
         })
     }
 }
@@ -134,6 +141,7 @@ pub struct UploadExec {
     code: WasmCode,
     signer: Keypair,
     token_metadata: TokenMetadata,
+    transcoder: ContractMessageTranscoder,
 }
 
 impl UploadExec {
@@ -210,6 +218,11 @@ impl UploadExec {
     /// Returns the token metadata.
     pub fn token_metadata(&self) -> &TokenMetadata {
         &self.token_metadata
+    }
+
+    /// Returns the contract message transcoder.
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
     }
 }
 
