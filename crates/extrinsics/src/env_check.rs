@@ -1,3 +1,4 @@
+use contract_build::Verbosity;
 use ink_metadata::InkProject;
 use scale_info::{
     form::PortableForm,
@@ -19,7 +20,7 @@ fn get_node_env_fields(
         t.ty.path.segments[len - 2..] == ["pallet_contracts", "Environment"]
     }) else {
         // if we can't find the type, then we use the old contract version.
-        contract_build::verbose_eprintln!(true, "The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
+        contract_build::verbose_eprintln!(Verbosity::Verbose, "The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
         return Ok(None)
     };
 
