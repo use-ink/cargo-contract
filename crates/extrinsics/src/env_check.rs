@@ -14,16 +14,12 @@ use anyhow::{
 fn get_node_env_fields(
     registry: &PortableRegistry,
 ) -> Result<Option<Vec<Field<PortableForm>>>> {
-    let env_type_option = registry.types.iter().find(|t| {
+    let Some(env_type) = registry.types.iter().find(|t| {
         let len = t.ty.path.segments.len();
         t.ty.path.segments[len - 2..] == ["pallet_contracts", "Environment"]
-    });
-
-    let env_type = if let Some(tt) = env_type_option {
-        tt
-    } else {
+    }) else {
         // if we can't find the type, then we use the old contract version.
-        tracing::warn!("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
+        contract_build::verbose_eprintln!(true, "The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
         return Ok(None)
     };
 
@@ -77,10 +73,7 @@ pub fn compare_node_env_with_contract(
     node_registry: &PortableRegistry,
     contract_metadata: &InkProject,
 ) -> Result<()> {
-    let env_fields_option = get_node_env_fields(node_registry)?;
-    let env_fields = if let Some(f) = env_fields_option {
-        f
-    } else {
+    let Some(env_fields) = get_node_env_fields(node_registry)? else {
         return Ok(())
     };
     for field in env_fields {
