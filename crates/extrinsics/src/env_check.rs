@@ -16,7 +16,8 @@ fn get_node_env_fields(
 ) -> Result<Option<Vec<Field<PortableForm>>>> {
     let Some(env_type) = registry.types.iter().find(|t| {
         let len = t.ty.path.segments.len();
-        t.ty.path.segments[len - 2..] == ["pallet_contracts", "Environment"]
+        let bound = len.saturating_sub(2);
+        t.ty.path.segments[bound..] == ["pallet_contracts", "Environment"]
     }) else {
         // if we can't find the type, then we use the old contract version.
         eprintln!(
