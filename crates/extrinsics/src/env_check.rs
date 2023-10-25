@@ -45,15 +45,10 @@ impl From<anyhow::Error> for EnvCheckError {
 }
 
 fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<PortableForm>>> {
-    let segments: Vec<&str> = if cfg!(test) {
-        vec!["contract_extrinsics", "env_check", "tests", "Environment"]
-    } else {
-        vec!["pallet_contracts", "Environment"]
-    };
     let env_type = registry
         .types
         .iter()
-        .find(|t| t.ty.path.segments == segments)
+        .find(|t| t.ty.path.segments.contains(&"Environment".to_string()))
         .context("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?")?;
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
