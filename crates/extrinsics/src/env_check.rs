@@ -19,13 +19,13 @@ fn get_node_env_fields(
         t.ty.path.segments[len - 2..] == ["pallet_contracts", "Environment"]
     });
 
-    // if we can't find the type, then we use the old contract version.
-    if env_type_option.is_none() {
+    let env_type = if let Some(tt) = env_type_option {
+        tt
+    } else {
+        // if we can't find the type, then we use the old contract version.
         tracing::warn!("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
         return Ok(None)
-    }
-
-    let env_type = env_type_option.unwrap();
+    };
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
         Ok(Some(composite.fields.clone()))
@@ -78,10 +78,11 @@ pub fn compare_node_env_with_contract(
     contract_metadata: &InkProject,
 ) -> Result<()> {
     let env_fields_option = get_node_env_fields(node_registry)?;
-    if env_fields_option.is_none() {
+    let env_fields = if let Some(f) = env_fields_option {
+        f
+    } else {
         return Ok(())
-    }
-    let env_fields = env_fields_option.unwrap();
+    };
     for field in env_fields {
         let field_name = field.name.context("Field does not have a name")?;
         if &field_name == "hasher" {
