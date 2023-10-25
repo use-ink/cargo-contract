@@ -11,39 +11,6 @@ use anyhow::{
     Result,
 };
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum EnvCheckError {
-    CheckFailed(String),
-    RegistryError(String),
-}
-
-impl std::fmt::Display for EnvCheckError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::CheckFailed(e) => {
-                f.write_fmt(format_args!(
-                    "Type check failed with following error: {}",
-                    e
-                ))
-            }
-            Self::RegistryError(e) => {
-                f.write_fmt(format_args!(
-                    "Error occurred while parsing type registry: {}",
-                    e
-                ))
-            }
-        }
-    }
-}
-
-impl std::error::Error for EnvCheckError {}
-
-impl From<anyhow::Error> for EnvCheckError {
-    fn from(value: anyhow::Error) -> Self {
-        Self::RegistryError(value.to_string())
-    }
-}
-
 fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<PortableForm>>> {
     let env_type = registry
         .types
@@ -100,7 +67,7 @@ pub(crate) fn resolve_type_definition(
 pub fn compare_node_env_with_contract(
     node_registry: &PortableRegistry,
     contract_metadata: &InkProject,
-) -> Result<(), EnvCheckError> {
+) -> Result<()> {
     let env_fields = get_node_env_fields(node_registry)?;
     for field in env_fields {
         let field_name = field.name.context("Field does not have a name")?;
@@ -111,7 +78,7 @@ pub fn compare_node_env_with_contract(
         let checked =
             compare_type(&field_name, field_def, contract_metadata, node_registry)?;
         if !checked {
-            return Err(EnvCheckError::CheckFailed(field_name))
+            anyhow::bail!("Failed to validate the field: {}", field_name);
         }
     }
     Ok(())
@@ -189,10 +156,7 @@ mod tests {
 
     use crate::{
         compare_node_env_with_contract,
-        env_check::{
-            resolve_type_definition,
-            EnvCheckError,
-        },
+        env_check::resolve_type_definition,
     };
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
@@ -400,8 +364,8 @@ mod tests {
 
         let result = compare_node_env_with_contract(&portable, &ink_project);
         assert_eq!(
-            result.err(),
-            Some(EnvCheckError::CheckFailed("timestamp".to_string()))
+            result.err().unwrap().to_string(),
+            "Failed to validate the field: timestamp"
         )
     }
 }

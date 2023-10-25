@@ -380,7 +380,6 @@ where
     T: Config,
 {
     compare_node_env_with_contract(client.metadata().types(), transcoder.metadata())
-        .map_err(|e| e.into())
 }
 
 #[derive(serde::Serialize)]
