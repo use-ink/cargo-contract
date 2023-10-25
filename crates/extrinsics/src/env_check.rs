@@ -11,18 +11,24 @@ use anyhow::{
     Result,
 };
 
-fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<PortableForm>>> {
-    let env_type = registry
-        .types
-        .iter()
-        .find(|t| {
-            let len = t.ty.path.segments.len();
-            t.ty.path.segments[len-2..] == ["pallet_contracts", "Environment"]}
-        )
-        .context("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?")?;
+fn get_node_env_fields(
+    registry: &PortableRegistry,
+) -> Result<Option<Vec<Field<PortableForm>>>> {
+    let env_type_option = registry.types.iter().find(|t| {
+        let len = t.ty.path.segments.len();
+        t.ty.path.segments[len - 2..] == ["pallet_contracts", "Environment"]
+    });
+
+    // if we can't find the type, then we use the old contract version.
+    if env_type_option.is_none() {
+        tracing::warn!("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?");
+        return Ok(None)
+    }
+
+    let env_type = env_type_option.unwrap();
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
-        Ok(composite.fields.clone())
+        Ok(Some(composite.fields.clone()))
     } else {
         anyhow::bail!("`Environment` type definition is in the wrong format");
     }
@@ -71,7 +77,11 @@ pub fn compare_node_env_with_contract(
     node_registry: &PortableRegistry,
     contract_metadata: &InkProject,
 ) -> Result<()> {
-    let env_fields = get_node_env_fields(node_registry)?;
+    let env_fields_option = get_node_env_fields(node_registry)?;
+    if env_fields_option.is_none() {
+        return Ok(())
+    }
+    let env_fields = env_fields_option.unwrap();
     for field in env_fields {
         let field_name = field.name.context("Field does not have a name")?;
         if &field_name == "hasher" {
