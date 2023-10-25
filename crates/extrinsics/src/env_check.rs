@@ -15,7 +15,10 @@ fn get_node_env_fields(registry: &PortableRegistry) -> Result<Vec<Field<Portable
     let env_type = registry
         .types
         .iter()
-        .find(|t| t.ty.path.segments.contains(&"Environment".to_string()))
+        .find(|t| {
+            let len = t.ty.path.segments.len();
+            t.ty.path.segments[len-2..] == ["pallet_contracts", "Environment"]}
+        )
         .context("The node does not contain `Environment` type. Are you using correct `pallet-contracts` version?")?;
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
@@ -190,6 +193,7 @@ mod tests {
     pub struct EnvironmentType<T>(PhantomData<T>);
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
+    #[scale_info(replace_segment("tests", "pallet_contracts"))]
     pub struct Environment {
         account_id: EnvironmentType<AccountId>,
         balance: EnvironmentType<Balance>,
@@ -200,6 +204,8 @@ mod tests {
     }
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
+    #[scale_info(replace_segment("tests", "pallet_contracts"))]
+    #[scale_info(replace_segment("InvalidEnvironment", "Environment"))]
     pub struct InvalidEnvironment {
         account_id: EnvironmentType<AccountId>,
         balance: EnvironmentType<Balance>,
