@@ -21,6 +21,7 @@ pub mod encode;
 pub mod info;
 pub mod instantiate;
 pub mod remove;
+pub mod storage;
 pub mod upload;
 pub mod verify;
 
