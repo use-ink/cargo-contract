@@ -29,7 +29,6 @@ use crate::{
 };
 
 use std::{
-    collections::HashSet,
     convert::TryFrom,
     fs,
     path::{
@@ -603,11 +602,6 @@ fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
 }
 
-fn remove_duplicates(vec: Vec<T>) -> Vec<T> {
-    let set: HashSet<_> = vec.into_iter().collect();
-    set.into_iter().collect()
-}
-
 fn merge_workspace_with_crate_dependencies(
     section_name: &str,
     crate_toml: &mut value::Table,
@@ -660,7 +654,14 @@ fn merge_workspace_with_crate_dependencies(
                 if let toml::Value::Array(value) = value {
                     if let toml::Value::Array(config) = config {
                         config.extend(value.clone());
-                        *config = remove_duplicates(config);
+
+                        let mut new_config = Vec::new();
+                        for v in config.iter() {
+                            if !new_config.contains(v) {
+                                new_config.push(v.clone());
+                            }
+                        }
+                        *config = new_config;
                     }
                 }
             } else {
