@@ -31,7 +31,10 @@ use super::{
     Missing,
     TokenMetadata,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    check_env_types,
+    extrinsic_opts::ExtrinsicOpts,
+};
 
 use anyhow::{
     anyhow,
@@ -186,6 +189,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
         let rpc = LegacyRpcMethods::new(rpc);
+        check_env_types(&client, &transcoder)?;
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
 

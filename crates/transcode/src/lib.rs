@@ -266,6 +266,10 @@ impl ContractMessageTranscoder {
             .decode(self.metadata.registry(), type_id, input)
     }
 
+    pub fn metadata(&self) -> &InkProject {
+        &self.metadata
+    }
+
     fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<PortableForm>> {
         self.metadata.spec().constructors().iter()
     }
