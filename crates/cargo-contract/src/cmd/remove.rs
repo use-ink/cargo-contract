@@ -62,7 +62,7 @@ impl RemoveCommand {
             .await?;
         let remove_result = remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
-        let output = if self.output_json() {
+        let output_events = if self.output_json() {
             display_events.to_json()?
         } else {
             display_events.display_events(
@@ -70,13 +70,18 @@ impl RemoveCommand {
                 remove_exec.token_metadata(),
             )?
         };
-        println!("{output}");
         if let Some(code_removed) = remove_result.code_removed {
             let remove_result = code_removed.code_hash;
 
             if self.output_json() {
-                println!("{}", &remove_result);
+                let json_object = serde_json::json!({
+                    "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
+                    "removed_code_hash": remove_result,
+                });
+                let json_object = serde_json::to_string_pretty(&json_object)?;
+                println!("{}", json_object);
             } else {
+                println!("{}", output_events);
                 name_value_println!("Code hash", format!("{remove_result:?}"));
             }
             Result::<(), ErrorVariant>::Ok(())
