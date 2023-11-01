@@ -74,6 +74,7 @@ impl RemoveCommand {
             let remove_result = code_removed.code_hash;
 
             if self.output_json() {
+                // Create a JSON object with the events and the removed code hash.
                 let json_object = serde_json::json!({
                     "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
                     "removed_code_hash": remove_result,
