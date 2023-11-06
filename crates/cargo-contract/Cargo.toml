@@ -48,7 +48,7 @@ hex = "0.4.3"
 
 [build-dependencies]
 anyhow = "1.0.75"
-substrate-build-script-utils = "8.0.0"
+substrate-build-script-utils = "9.0.0"
 current_platform = "0.2.0"
 which = "5.0.0"
 

@@ -4956,9 +4956,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-build-script-utils"
-version = "8.0.0"
+version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78127cdb5849eed7399ff9c730faea57c2a4e148e3b46e565abe98248432feb9"
+checksum = "8a3b7556a62d77b7b8abc34e425817f6f563c2f2aa7142f1c4e93e6422156cc1"
 
 [[package]]
 name = "subtle"
