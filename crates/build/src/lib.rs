@@ -365,6 +365,7 @@ fn exec_cargo_for_onchain_target(
                 manifest
                     .with_replaced_lib_to_bin()?
                     .with_profile_release_defaults(Profile::default_contract_release())?
+                    .with_merged_workspace_dependencies(crate_metadata)?
                     .with_empty_workspace();
                 Ok(())
             })?
