@@ -433,7 +433,7 @@ pub async fn fetch_contract_info(
         trie_id: hex::encode(info.trie_id.0),
         code_hash: info.code_hash,
         storage_items: info.storage_items,
-        storage_item_deposit: info.storage_item_deposit,
+        storage_items_deposit: info.storage_item_deposit,
         storage_total_deposit: total_balance,
     })
 }
@@ -453,7 +453,7 @@ pub struct ContractInfo {
     trie_id: String,
     code_hash: CodeHash,
     storage_items: u32,
-    storage_item_deposit: Balance,
+    storage_items_deposit: Balance,
     storage_total_deposit: Balance,
 }
 
@@ -479,8 +479,8 @@ impl ContractInfo {
     }
 
     /// Return the storage item deposit of the contract.
-    pub fn storage_item_deposit(&self) -> Balance {
-        self.storage_item_deposit
+    pub fn storage_items_deposit(&self) -> Balance {
+        self.storage_items_deposit
     }
 
     /// Return the storage item deposit of the contract.

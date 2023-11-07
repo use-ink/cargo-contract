@@ -231,7 +231,7 @@ pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) 
     );
     name_value_println!(
         "Storage Items Deposit",
-        format!("{:?}", info.storage_item_deposit),
+        format!("{:?}", info.storage_items_deposit),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(

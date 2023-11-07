@@ -149,7 +149,7 @@ pub struct ExtendedContractInfo {
     pub trie_id: String,
     pub code_hash: CodeHash,
     pub storage_items: u32,
-    pub storage_item_deposit: Balance,
+    pub storage_items_deposit: Balance,
     pub storage_total_deposit: Balance,
     pub source_language: String,
 }
@@ -164,7 +164,7 @@ impl ExtendedContractInfo {
             trie_id: contract_info.trie_id().to_string(),
             code_hash: *contract_info.code_hash(),
             storage_items: contract_info.storage_items(),
-            storage_item_deposit: contract_info.storage_item_deposit(),
+            storage_items_deposit: contract_info.storage_items_deposit(),
             storage_total_deposit: contract_info.storage_total_deposit(),
             source_language: language,
         }
