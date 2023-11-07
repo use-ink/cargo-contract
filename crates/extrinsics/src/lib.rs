@@ -16,6 +16,7 @@
 
 mod balance;
 mod call;
+mod env_check;
 mod error;
 mod events;
 mod extrinsic_opts;
@@ -35,6 +36,7 @@ use subxt::{
 };
 
 use colored::Colorize;
+use env_check::compare_node_env_with_contract;
 
 use anyhow::{
     anyhow,
@@ -430,6 +432,16 @@ pub async fn fetch_contract_info(
         storage_item_deposit: info.storage_item_deposit,
         storage_total_deposit: total_balance,
     })
+}
+
+fn check_env_types<T>(
+    client: &OnlineClient<T>,
+    transcoder: &ContractMessageTranscoder,
+) -> Result<()>
+where
+    T: Config,
+{
+    compare_node_env_with_contract(client.metadata().types(), transcoder.metadata())
 }
 
 #[derive(serde::Serialize)]

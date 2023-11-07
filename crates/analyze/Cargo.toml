@@ -1,0 +1,13 @@
+[package]
+name = "contract-analyze"
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+
+[dependencies]
+contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
+parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
+anyhow = "1.0.75"
+
+[dev-dependencies]
+wabt = "0.10.0"
