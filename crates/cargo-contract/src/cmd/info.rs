@@ -101,12 +101,7 @@ impl InfoCommand {
                 .as_ref()
                 .expect("Contract argument was not provided");
 
-            let info_to_json = fetch_contract_info(contract, &rpc, &client)
-                .await?
-                .ok_or(anyhow!(
-                    "No contract information was found for account id {}",
-                    contract
-                ))?;
+            let info_to_json = fetch_contract_info(contract, &rpc, &client).await?;
 
             // Binary flag applied
             if self.binary {

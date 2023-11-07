@@ -28,18 +28,13 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-<<<<<<< HEAD
-use subxt::{utils::AccountId32,
-    ext::scale_value::{
-            Composite,
-            Value,
-            ValueDef,
-        },
+use subxt::{
+    ext::scale_value::Value,
+    storage::dynamic,
+    utils::AccountId32,
 };
-=======
+
 use colored::Colorize;
-use subxt::utils::AccountId32;
->>>>>>> origin/master
 
 use anyhow::{
     anyhow,
@@ -117,9 +112,6 @@ pub use upload::{
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
-
-use api::runtime_types::pallet_contracts::storage::ContractInfo;
-type StorageVersion = u16;
 
 /// Contract artifacts for use with extrinsic commands.
 #[derive(Debug)]
@@ -344,97 +336,36 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-/// Calculate the total contract deposit.
-async fn get_contract_total_deposit(
-    storage_base_deposit: Balance,
-    storage_item_deposit: Balance,
-    storage_byte_deposit: Balance,
+#[derive(scale_decode::DecodeAsType, Debug)]
+struct AccountData {
+    pub free: Balance,
+    pub reserved: Balance,
+}
+
+/// Return the account data for an account ID.
+async fn get_account_balance(
+    account: &AccountId32,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
     client: &Client,
-) -> Result<Balance> {
-    let contract_pallet_version = fetch_contracts_pallet_version(client).await?;
-    let mut contract_deposit = storage_base_deposit
-        .saturating_add(storage_item_deposit)
-        .saturating_add(storage_byte_deposit);
+) -> Result<AccountData> {
+    let storage_query =
+        subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
+    let best_block = get_best_block(rpc).await?;
 
-    // From contracts pallet version 10 deposit calculation has changed.
-    if contract_pallet_version >= 10 {
-        let existential_deposit_address =
-            api::constants().balances().existential_deposit();
-        let existential_deposit = client.constants().at(&existential_deposit_address)?;
-        contract_deposit = contract_deposit.saturating_sub(existential_deposit);
-    }
-    Ok(contract_deposit)
-}
-
-async fn get_contract_total_deposit2(deposit_account: &AccountId32, pallet_contracts_version: StorageVersion) -> Result<Balance> {
-    Ok(1)
-}
-
-/// Try to extract the given field from a dynamic [`Value`].
-///
-/// Returns `Err` if:
-///   - The value is not a [`Value::Composite`] with [`Composite::Named`] fields
-///   - The value does not contain a field with the given name.
-fn get_composite_field_value<'a, T, C>(
-    value: &'a Value<T>,
-    field_name: &str,
-) -> Result<&'a Value<T>>
-where
-    C: subxt::Config,
-{
-    if let ValueDef::Composite(Composite::Named(fields)) = &value.value {
-        let (_, field) = fields
-            .iter()
-            .find(|(name, _)| name == field_name)
-            .ok_or_else(|| {
-                anyhow!("No field named '{}' found", field_name)
-            })?;
-        Ok(field)
-    } else {
-        anyhow::bail!("Expected a composite type with named fields")
-    }
-}
-
-fn getDepositAccount(contract_info: &ContractInfo) -> Option<AccountId32> {
-    //let deposit_account = get_composite_field_value::<_, DefaultConfig>(contract_info, "deposit_account")?;
-    None
-}
-
-/// Fetch the contracts pallet version from the storage using the provided client.
-async fn fetch_contracts_pallet_version(client: &Client) -> Result<StorageVersion> {
-    let hash_pallet = hashing::twox_128(b"Contracts");
-    let hash_version = hashing::twox_128(b":__STORAGE_VERSION__:");
-    let key = [hash_pallet, hash_version].concat();
-
-    let version = client
-        .rpc()
-        .storage(key.as_slice(), None)
-        .await?
-        .ok_or(anyhow!("Failed to get storage version of contracts pallet"))?
-        .0;
-    let version = StorageVersion::decode(&mut version.as_slice())?;
-    println!("pallet version {}", version);
-    Ok(version)
-}
-
-async fn get_account_balance(account: &AccountId32, client: &Client) -> Result<(Balance, Balance)> {
-    let storage_query = api::storage().system().account(account);
-    let result = client
+    let account = client
         .storage()
-        .at_latest()
-        .await?
+        .at(best_block)
         .fetch(&storage_query)
-        .await?;
-    let result: api::runtime_types::frame_system::AccountInfo<u32, api::runtime_types::pallet_balances::types::AccountData<u128>> = result.unwrap();
-    println!(
-        "contract balance: free: {} reserved: {}",
-        result.data.free, result.data.reserved
-    );
-    let ex = api::constants().balances().existential_deposit();
-    let value = client.constants().at(&ex)?;
-    println!("existential deposit: {}", value);
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
 
-    Ok((result.data.free, result.data.reserved))
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    struct AccountInfo {
+        data: AccountData,
+    }
+
+    let data = account.as_type::<AccountInfo>()?.data;
+    Ok(data)
 }
 
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
@@ -451,48 +382,54 @@ pub async fn fetch_contract_info(
     contract: &AccountId32,
     rpc: &LegacyRpcMethods<DefaultConfig>,
     client: &Client,
-) -> Result<Option<ContractInfo>> {
-    let info_contract_call = api::storage().contracts().contract_info_of(contract);
-
+) -> Result<ContractInfo> {
     let best_block = get_best_block(rpc).await?;
 
-    let contract_info_of = client
+    let contract_info_address = dynamic(
+        "Contracts",
+        "ContractInfoOf",
+        vec![Value::from_bytes(contract)],
+    );
+    let contract_info = client
         .storage()
         .at(best_block)
-        .fetch(&info_contract_call)
-        .await?;
-    println!("Contract account balance");
-    get_account_balance(contract, client).await?;
-    match contract_info_of {
-        Some(info_result) => {
-            let convert_trie_id = hex::encode(info_result.trie_id.0);
+        .fetch(&contract_info_address)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Failed to fetch contract info"))?;
 
-
-            println!("Deposit account balance");
-            get_account_balance(&info_result.deposit_account.0, client).await?;
-            println!("base: {}, item: {}, byte: {}", info_result.storage_base_deposit, info_result.storage_item_deposit, info_result.storage_byte_deposit);
-            let total_deposit = get_contract_total_deposit(
-                info_result.storage_base_deposit,
-                info_result.storage_item_deposit,
-                info_result.storage_byte_deposit,
-                client,
-            )
-            .await?;
-
-
-
-            get_contract_total_deposit2(contract, ).await?;
-
-            Ok(Some(ContractInfo {
-                trie_id: convert_trie_id,
-                code_hash: info_result.code_hash,
-                storage_items: info_result.storage_items,
-                storage_item_deposit: info_result.storage_item_deposit,
-                storage_total_deposit: total_deposit,
-            }))
-        }
-        None => Ok(None),
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    struct ContractInfoOf {
+        trie_id: BoundedVec<u8>,
+        code_hash: CodeHash,
+        storage_items: u32,
+        storage_item_deposit: Balance,
     }
+    #[derive(scale_decode::DecodeAsType)]
+    struct DepositAccount {
+        deposit_account: AccountId32,
+    }
+
+    let total_balance: Balance = match contract_info.as_type::<DepositAccount>() {
+        Ok(account) => {
+            // StorageVersion >= 10 and < 15 contains deposit in separate account
+            let deposit_account = AccountId32(account.deposit_account.0);
+            get_account_balance(&deposit_account, rpc, client)
+                .await?
+                .free
+        }
+        Err(_) => get_account_balance(contract, rpc, client).await?.reserved,
+    };
+
+    let info = contract_info.as_type::<ContractInfoOf>()?;
+    Ok(ContractInfo {
+        trie_id: hex::encode(info.trie_id.0),
+        code_hash: info.code_hash,
+        storage_items: info.storage_items,
+        storage_item_deposit: info.storage_item_deposit,
+        storage_total_deposit: total_balance,
+    })
 }
 
 #[derive(serde::Serialize)]

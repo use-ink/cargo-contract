@@ -1035,6 +1035,7 @@ dependencies = [
  "predicates",
  "regex",
  "rust_decimal",
+ "scale-decode",
  "scale-info",
  "serde",
  "serde_json",
