@@ -235,13 +235,13 @@ pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) 
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Source Language",
-        format!("{}", info.source_language),
+        "Storage Total Deposit",
+        format!("{:?}", info.storage_total_deposit),
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Storage Total Deposit",
-        format!("{:?}", info.storage_total_deposit),
+        "Source Language",
+        format!("{}", info.source_language),
         MAX_KEY_COL_WIDTH
     );
 }

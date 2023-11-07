@@ -397,8 +397,12 @@ pub async fn fetch_contract_info(
         .at(best_block)
         .fetch(&contract_info_address)
         .await?
-        .ok_or_else(|| anyhow::anyhow!("Failed to fetch contract info"))?;
-
+        .ok_or_else(|| {
+            anyhow!(
+                "No contract information was found for account id {}",
+                contract
+            )
+        })?;
     #[derive(scale_decode::DecodeAsType, Debug)]
     pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
     #[derive(scale_decode::DecodeAsType, Debug)]
