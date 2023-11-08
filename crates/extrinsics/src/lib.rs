@@ -29,9 +29,14 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
+use subxt::{
+    ext::scale_value::Value,
+    storage::dynamic,
+    utils::AccountId32,
+};
+
 use colored::Colorize;
 use env_check::compare_node_env_with_contract;
-use subxt::utils::AccountId32;
 
 use anyhow::{
     anyhow,
@@ -333,6 +338,38 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
+#[derive(scale_decode::DecodeAsType, Debug)]
+struct AccountData {
+    pub free: Balance,
+    pub reserved: Balance,
+}
+
+/// Return the account data for an account ID.
+async fn get_account_balance(
+    account: &AccountId32,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
+    client: &Client,
+) -> Result<AccountData> {
+    let storage_query =
+        subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
+    let best_block = get_best_block(rpc).await?;
+
+    let account = client
+        .storage()
+        .at(best_block)
+        .fetch(&storage_query)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
+
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    struct AccountInfo {
+        data: AccountData,
+    }
+
+    let data = account.as_type::<AccountInfo>()?.data;
+    Ok(data)
+}
+
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
 async fn get_best_block(
     rpc: &LegacyRpcMethods<DefaultConfig>,
@@ -347,29 +384,58 @@ pub async fn fetch_contract_info(
     contract: &AccountId32,
     rpc: &LegacyRpcMethods<DefaultConfig>,
     client: &Client,
-) -> Result<Option<ContractInfo>> {
-    let info_contract_call = api::storage().contracts().contract_info_of(contract);
-
+) -> Result<ContractInfo> {
     let best_block = get_best_block(rpc).await?;
 
-    let contract_info_of = client
+    let contract_info_address = dynamic(
+        "Contracts",
+        "ContractInfoOf",
+        vec![Value::from_bytes(contract)],
+    );
+    let contract_info = client
         .storage()
         .at(best_block)
-        .fetch(&info_contract_call)
-        .await?;
-
-    match contract_info_of {
-        Some(info_result) => {
-            let convert_trie_id = hex::encode(info_result.trie_id.0);
-            Ok(Some(ContractInfo {
-                trie_id: convert_trie_id,
-                code_hash: info_result.code_hash,
-                storage_items: info_result.storage_items,
-                storage_item_deposit: info_result.storage_item_deposit,
-            }))
-        }
-        None => Ok(None),
+        .fetch(&contract_info_address)
+        .await?
+        .ok_or_else(|| {
+            anyhow!(
+                "No contract information was found for account id {}",
+                contract
+            )
+        })?;
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
+    #[derive(scale_decode::DecodeAsType, Debug)]
+    struct ContractInfoOf {
+        trie_id: BoundedVec<u8>,
+        code_hash: CodeHash,
+        storage_items: u32,
+        storage_item_deposit: Balance,
     }
+    #[derive(scale_decode::DecodeAsType)]
+    struct DepositAccount {
+        deposit_account: AccountId32,
+    }
+
+    let total_balance: Balance = match contract_info.as_type::<DepositAccount>() {
+        Ok(account) => {
+            // StorageVersion >= 10 and < 15 contains deposit in separate account
+            let deposit_account = AccountId32(account.deposit_account.0);
+            get_account_balance(&deposit_account, rpc, client)
+                .await?
+                .free
+        }
+        Err(_) => get_account_balance(contract, rpc, client).await?.reserved,
+    };
+
+    let info = contract_info.as_type::<ContractInfoOf>()?;
+    Ok(ContractInfo {
+        trie_id: hex::encode(info.trie_id.0),
+        code_hash: info.code_hash,
+        storage_items: info.storage_items,
+        storage_items_deposit: info.storage_item_deposit,
+        storage_total_deposit: total_balance,
+    })
 }
 
 fn check_env_types<T>(
@@ -387,7 +453,8 @@ pub struct ContractInfo {
     trie_id: String,
     code_hash: CodeHash,
     storage_items: u32,
-    storage_item_deposit: Balance,
+    storage_items_deposit: Balance,
+    storage_total_deposit: Balance,
 }
 
 impl ContractInfo {
@@ -412,8 +479,13 @@ impl ContractInfo {
     }
 
     /// Return the storage item deposit of the contract.
-    pub fn storage_item_deposit(&self) -> Balance {
-        self.storage_item_deposit
+    pub fn storage_items_deposit(&self) -> Balance {
+        self.storage_items_deposit
+    }
+
+    /// Return the storage item deposit of the contract.
+    pub fn storage_total_deposit(&self) -> Balance {
+        self.storage_total_deposit
     }
 }
 
@@ -443,7 +515,7 @@ fn parse_contract_account_address(
     storage_contract_root_key_len: usize,
 ) -> Result<AccountId32> {
     // storage_contract_account_key is a concatenation of contract_info_of root key and
-    // Twox64Concat(AccountId)
+    // Twox64Concat(AccountId).
     let mut account = storage_contract_account_key
         .get(storage_contract_root_key_len + 8..)
         .ok_or(anyhow!("Unexpected storage key size"))?;
@@ -452,7 +524,7 @@ fn parse_contract_account_address(
 }
 
 /// Fetch all contract addresses from the storage using the provided client and count of
-/// requested elements starting from an optional address
+/// requested elements starting from an optional address.
 pub async fn fetch_all_contracts(
     client: &Client,
     rpc: &LegacyRpcMethods<DefaultConfig>,

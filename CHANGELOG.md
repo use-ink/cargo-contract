@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
 - Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
+- Add `Storage Total Deposit` to `info` command output - [#1347](https://github.com/paritytech/cargo-contract/pull/1347)
 
 ## [4.0.0-alpha]
 
