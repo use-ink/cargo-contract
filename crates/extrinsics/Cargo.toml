@@ -34,7 +34,6 @@ sp-core = "22.0.0"
 sp-runtime = "25.0.0"
 sp-weights = "21.0.0"
 pallet-contracts-primitives = "25.0.0"
-scale-decode = "0.9.0"
 scale-info = "2.10.0"
 subxt = "0.32.1"
 subxt-signer = { version = "0.32.1", features = ["subxt", "sr25519"] }

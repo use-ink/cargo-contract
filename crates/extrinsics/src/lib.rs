@@ -29,12 +29,6 @@ mod upload;
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use subxt::{
-    ext::scale_value::Value,
-    storage::dynamic,
-    utils::AccountId32,
-};
-
 use colored::Colorize;
 use env_check::compare_node_env_with_contract;
 
@@ -57,10 +51,17 @@ use scale::{
 use subxt::{
     blocks,
     config,
+    ext::{
+        scale_decode,
+        scale_value::Value,
+    },
+    storage::dynamic,
     tx,
+    utils::AccountId32,
     Config,
     OnlineClient,
 };
+
 use subxt_signer::sr25519::Keypair;
 
 use std::{
@@ -339,6 +340,7 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
 }
 
 #[derive(scale_decode::DecodeAsType, Debug)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 struct AccountData {
     pub free: Balance,
     pub reserved: Balance,
@@ -362,6 +364,7 @@ async fn get_account_balance(
         .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
 
     #[derive(scale_decode::DecodeAsType, Debug)]
+    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct AccountInfo {
         data: AccountData,
     }
@@ -404,8 +407,10 @@ pub async fn fetch_contract_info(
             )
         })?;
     #[derive(scale_decode::DecodeAsType, Debug)]
+    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
     #[derive(scale_decode::DecodeAsType, Debug)]
+    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct ContractInfoOf {
         trie_id: BoundedVec<u8>,
         code_hash: CodeHash,
@@ -413,15 +418,20 @@ pub async fn fetch_contract_info(
         storage_item_deposit: Balance,
     }
     #[derive(scale_decode::DecodeAsType)]
+    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct DepositAccount {
         deposit_account: AccountId32,
     }
 
     let total_balance: Balance = match contract_info.as_type::<DepositAccount>() {
         Ok(account) => {
-            // StorageVersion >= 10 and < 15 contains deposit in separate account
-            let deposit_account = AccountId32(account.deposit_account.0);
-            get_account_balance(&deposit_account, rpc, client)
+            // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
+            // in a secondary account (deposit account). Other versions store it as
+            // reserved balance on the main contract's account. If the
+            // `deposit_account` field is present in a contract info structure,
+            // the contract's deposit is in this account.
+            let deposit_account = &account.deposit_account;
+            get_account_balance(deposit_account, rpc, client)
                 .await?
                 .free
         }
