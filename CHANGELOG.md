@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add warning message when using incompatible contract's ink! version - [#1334](https://github.com/paritytech/cargo-contract/pull/1334)
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
+- Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
 
 ## [4.0.0-alpha]
 

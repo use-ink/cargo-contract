@@ -187,6 +187,7 @@ pub fn execute(
                         lto: Some(Lto::Thin),
                         ..Profile::default()
                     })?
+                    .with_merged_workspace_dependencies(crate_metadata)?
                     .with_empty_workspace();
                 Ok(())
             })?
