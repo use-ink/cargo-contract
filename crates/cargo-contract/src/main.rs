@@ -27,6 +27,7 @@ use self::cmd::{
     InfoCommand,
     InstantiateCommand,
     RemoveCommand,
+    StorageCommand,
     UploadCommand,
     VerifyCommand,
 };
@@ -138,6 +139,9 @@ enum Command {
     /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
+    /// Inspect the on-chain storage of a contract.
+    #[clap(name = "storage")]
+    Storage(StorageCommand),
     /// Verifies that a given contract binary matches the build result of the specified
     /// workspace.
     #[clap(name = "verify")]
@@ -219,6 +223,9 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::Info(info) => {
             runtime.block_on(async { info.run().await.map_err(format_err) })
+        }
+        Command::Storage(storage) => {
+            runtime.block_on(async { storage.run().await.map_err(format_err) })
         }
         Command::Verify(verify) => {
             let result = verify.run().map_err(format_err)?;

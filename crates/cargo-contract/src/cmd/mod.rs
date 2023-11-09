@@ -38,6 +38,7 @@ pub(crate) use self::{
     },
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
+    storage::StorageCommand,
     upload::UploadCommand,
     verify::VerifyCommand,
 };

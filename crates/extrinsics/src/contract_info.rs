@@ -22,6 +22,7 @@ use anyhow::{
 use super::{
     get_best_block,
     runtime_api::api,
+    url_to_string,
     Balance,
     Client,
     CodeHash,
@@ -29,39 +30,131 @@ use super::{
 };
 
 use scale::Decode;
+use sp_core::storage::PrefixedStorageKey;
 use std::option::Option;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
+    backend::{
+        legacy::{
+            rpc_methods::Bytes,
+            LegacyRpcMethods,
+        },
+        rpc::{
+            rpc_params,
+            RpcClient,
+        },
+    },
     utils::AccountId32,
+    Config,
+    OnlineClient,
 };
 
-/// Fetch the contract info from the storage using the provided client.
-pub async fn fetch_contract_info(
-    contract: &AccountId32,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-    client: &Client,
-) -> Result<Option<ContractInfo>> {
-    let info_contract_call = api::storage().contracts().contract_info_of(contract);
+/// Methods for querying contracts over RPC.
+pub struct ContractInfoRpc {
+    rpc_client: RpcClient,
+    rpc_methods: LegacyRpcMethods<DefaultConfig>,
+    client: Client,
+}
 
-    let best_block = get_best_block(rpc).await?;
+impl ContractInfoRpc {
+    /// Create a new instance of the ContractsRpc.
+    pub async fn new(url: &url::Url) -> Result<Self> {
+        let rpc_client = RpcClient::from_url(url_to_string(&url)).await?;
+        let client =
+            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_client.clone()).await?;
+        let rpc_methods = LegacyRpcMethods::<DefaultConfig>::new(rpc_client.clone());
 
-    let contract_info_of = client
-        .storage()
-        .at(best_block)
-        .fetch(&info_contract_call)
-        .await?;
+        Ok(Self {
+            rpc_client,
+            rpc_methods,
+            client,
+        })
+    }
 
-    match contract_info_of {
-        Some(info_result) => {
-            let convert_trie_id = hex::encode(info_result.trie_id.0);
-            Ok(Some(ContractInfo {
-                trie_id: convert_trie_id,
-                code_hash: info_result.code_hash,
-                storage_items: info_result.storage_items,
-                storage_item_deposit: info_result.storage_item_deposit,
-            }))
+    /// Fetch the contract info from the storage using the provided client.
+    pub async fn fetch_contract_info(
+        &self,
+        contract: &AccountId32,
+    ) -> Result<Option<ContractInfo>> {
+        let info_contract_call = api::storage().contracts().contract_info_of(contract);
+
+        let best_block = get_best_block(&self.rpc_methods).await?;
+
+        let contract_info_of = self
+            .client
+            .storage()
+            .at(best_block)
+            .fetch(&info_contract_call)
+            .await?;
+
+        match contract_info_of {
+            Some(info_result) => {
+                let convert_trie_id = hex::encode(info_result.trie_id.0);
+                Ok(Some(ContractInfo {
+                    trie_id: convert_trie_id,
+                    code_hash: info_result.code_hash,
+                    storage_items: info_result.storage_items,
+                    storage_item_deposit: info_result.storage_item_deposit,
+                }))
+            }
+            None => Ok(None),
         }
-        None => Ok(None),
+    }
+
+    pub async fn fetch_contract_storage(
+        &self,
+        child_storage_key: &PrefixedStorageKey,
+        key: &[u8],
+        block_hash: Option<<DefaultConfig as Config>::Hash>,
+    ) -> Result<Option<Vec<u8>>> {
+        let params = rpc_params![child_storage_key, hex::encode(key), block_hash];
+        let data: Option<Bytes> = self
+            .rpc_client
+            .request("childstate_getStorage", params)
+            .await?;
+        Ok(data.map(|b| b.0))
+    }
+
+    /// Fetch the contract wasm code from the storage using the provided client and code
+    /// hash.
+    pub async fn fetch_wasm_code(&self, hash: &CodeHash) -> Result<Option<Vec<u8>>> {
+        let pristine_code_address = api::storage().contracts().pristine_code(hash);
+        let best_block = get_best_block(&self.rpc_methods).await?;
+
+        let pristine_bytes = self
+            .client
+            .storage()
+            .at(best_block)
+            .fetch(&pristine_code_address)
+            .await?
+            .map(|v| v.0);
+
+        Ok(pristine_bytes)
+    }
+
+    /// Fetch all contract addresses from the storage using the provided client and count
+    /// of requested elements starting from an optional address
+    pub async fn fetch_all_contracts(&self) -> Result<Vec<AccountId32>> {
+        let root_key = api::storage()
+            .contracts()
+            .contract_info_of_iter()
+            .to_root_bytes();
+
+        let best_block = get_best_block(&self.rpc_methods).await?;
+        let mut keys = self
+            .client
+            .storage()
+            .at(best_block)
+            .fetch_raw_keys(root_key.clone())
+            .await?;
+
+        let mut contract_accounts = Vec::new();
+        while let Some(result) = keys.next().await {
+            let key = result?;
+            let contract_account = parse_contract_account_address(&key, root_key.len())?;
+            contract_accounts.push(contract_account);
+        }
+
+        Ok(contract_accounts)
     }
 }
 
@@ -98,29 +191,18 @@ impl ContractInfo {
     pub fn storage_item_deposit(&self) -> Balance {
         self.storage_item_deposit
     }
-}
 
-/// Fetch the contract wasm code from the storage using the provided client and code hash.
-pub async fn fetch_wasm_code(
-    client: &Client,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-    hash: &CodeHash,
-) -> Result<Option<Vec<u8>>> {
-    let pristine_code_address = api::storage().contracts().pristine_code(hash);
-    let best_block = get_best_block(rpc).await?;
-
-    let pristine_bytes = client
-        .storage()
-        .at(best_block)
-        .fetch(&pristine_code_address)
-        .await?
-        .map(|v| v.0);
-
-    Ok(pristine_bytes)
+    /// Get the prefixed storage key for the contract, used to access the contract's
+    /// storage
+    pub fn prefixed_storage_key(&self) -> PrefixedStorageKey {
+        let trie_id = hex::decode(&self.trie_id)
+            .expect("trie_id should be valid hex encoded bytes.");
+        sp_core::storage::ChildInfo::new_default(&trie_id).into_prefixed_storage_key()
+    }
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
-/// malformated.
+/// malformed.
 fn parse_contract_account_address(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
@@ -132,32 +214,4 @@ fn parse_contract_account_address(
         .ok_or(anyhow!("Unexpected storage key size"))?;
     AccountId32::decode(&mut account)
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-}
-
-/// Fetch all contract addresses from the storage using the provided client and count of
-/// requested elements starting from an optional address
-pub async fn fetch_all_contracts(
-    client: &Client,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-) -> Result<Vec<AccountId32>> {
-    let root_key = api::storage()
-        .contracts()
-        .contract_info_of_iter()
-        .to_root_bytes();
-
-    let best_block = get_best_block(rpc).await?;
-    let mut keys = client
-        .storage()
-        .at(best_block)
-        .fetch_raw_keys(root_key.clone())
-        .await?;
-
-    let mut contract_accounts = Vec::new();
-    while let Some(result) = keys.next().await {
-        let key = result?;
-        let contract_account = parse_contract_account_address(&key, root_key.len())?;
-        contract_accounts.push(contract_account);
-    }
-
-    Ok(contract_accounts)
 }

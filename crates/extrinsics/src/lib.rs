@@ -64,10 +64,8 @@ pub use call::{
 };
 pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{
-    fetch_all_contracts,
-    fetch_contract_info,
-    fetch_wasm_code,
     ContractInfo,
+    ContractInfoRpc,
 };
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;
