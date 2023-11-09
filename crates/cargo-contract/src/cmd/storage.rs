@@ -31,8 +31,8 @@ use std::{
 };
 use subxt::{
     backend::{
-        legacy::LegacyRpcMethods,
-        rpc::RpcClient,
+        legacy::{rpc_methods::Bytes, LegacyRpcMethods},
+        rpc::{RpcClient, rpc_params},
     },
     Config,
     OnlineClient,
@@ -84,9 +84,33 @@ impl StorageCommand {
         let contract_info = fetch_contract_info(&self.contract, &rpc, &client).await?
             .ok_or(anyhow!(
                 "No contract information was found for account id {}",
-                contract
+                self.contract
             ))?;
+
+        let trie_id = hex::decode(contract_info.trie_id())?;
+        let prefixed_storage_key = sp_core::storage::ChildInfo::new_default(&trie_id).into_prefixed_storage_key();
 
         Ok(())
     }
+
+    /// Fetch the raw bytes for a given storage key
+    pub async fn state_get_storage(
+        client: &RpcClient,
+        prefixed_storage_key: sp_core::storage::PrefixedStorageKey,
+        key: &[u8],
+        hash: Option<<DefaultConfig as Config>::Hash>,
+    ) -> Result<Option<Vec<u8>>, subxt::Error> {
+        // todo: add jsonrpc dependency.
+        let params = rpc_params![to_hex(key), hash];
+        let data: Option<Bytes> = self.client.request("childstate_getStorage", params).await?;
+        Ok(data.map(|b| b.0))
+    }
+
+    // #[method(name = "childstate_getStorage", blocking)]
+    // fn storage(
+    //     &self,
+    //     child_storage_key: PrefixedStorageKey,
+    //     key: StorageKey,
+    //     hash: Option<Hash>,
+    // ) -> RpcResult<Option<StorageData>>;
 }
