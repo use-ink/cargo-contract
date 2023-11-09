@@ -51,8 +51,9 @@ use scale::{
 use subxt::{
     blocks,
     config,
+    dynamic::DecodedValueThunk,
     ext::{
-        scale_decode,
+        scale_decode::DecodeAsType,
         scale_value::Value,
     },
     storage::dynamic,
@@ -339,7 +340,7 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
-#[derive(scale_decode::DecodeAsType, Debug)]
+#[derive(DecodeAsType, Debug)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 struct AccountData {
     pub free: Balance,
@@ -363,7 +364,7 @@ async fn get_account_balance(
         .await?
         .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
 
-    #[derive(scale_decode::DecodeAsType, Debug)]
+    #[derive(DecodeAsType, Debug)]
     #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct AccountInfo {
         data: AccountData,
@@ -380,6 +381,18 @@ async fn get_best_block(
     rpc.chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))
+}
+
+/// Decode the account id from the contract info
+fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<AccountId32> {
+    #[derive(DecodeAsType)]
+    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+    struct DepositAccount {
+        deposit_account: AccountId32,
+    }
+
+    let account = contract_info.as_type::<DepositAccount>()?;
+    Ok(account.deposit_account)
 }
 
 /// Fetch the contract info from the storage using the provided client.
@@ -406,10 +419,10 @@ pub async fn fetch_contract_info(
                 contract
             )
         })?;
-    #[derive(scale_decode::DecodeAsType, Debug)]
+    #[derive(DecodeAsType, Debug)]
     #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
-    #[derive(scale_decode::DecodeAsType, Debug)]
+    #[derive(DecodeAsType, Debug)]
     #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct ContractInfoOf {
         trie_id: BoundedVec<u8>,
@@ -417,21 +430,15 @@ pub async fn fetch_contract_info(
         storage_items: u32,
         storage_item_deposit: Balance,
     }
-    #[derive(scale_decode::DecodeAsType)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    struct DepositAccount {
-        deposit_account: AccountId32,
-    }
 
-    let total_balance: Balance = match contract_info.as_type::<DepositAccount>() {
-        Ok(account) => {
-            // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
-            // in a secondary account (deposit account). Other versions store it as
-            // reserved balance on the main contract's account. If the
-            // `deposit_account` field is present in a contract info structure,
-            // the contract's deposit is in this account.
-            let deposit_account = &account.deposit_account;
-            get_account_balance(deposit_account, rpc, client)
+    // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
+    // in a secondary account (deposit account). Other versions store it as
+    // reserved balance on the main contract's account. If the
+    // `deposit_account` field is present in a contract info structure,
+    // the contract's deposit is in this account.
+    let total_balance: Balance = match get_deposit_account_id(&contract_info) {
+        Ok(deposit_account) => {
+            get_account_balance(&deposit_account, rpc, client)
                 .await?
                 .free
         }
@@ -607,6 +614,11 @@ impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDepo
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
+    use scale_info::form::PortableForm;
+    use subxt::ext::frame_metadata;
+
     use super::*;
 
     #[test]
@@ -644,5 +656,84 @@ mod tests {
         // with default port, domain and path
         let url = url::Url::parse("wss://test.io/test/1").unwrap();
         assert_eq!(url_to_string(&url), "wss://test.io:443/test/1");
+    }
+
+    #[test]
+    fn deposit_decode_works() {
+        use scale_info::TypeInfo;
+        use subxt::metadata::DecodeWithMetadata;
+
+        // subxt::utils::AccountId32 does not implement scale_info::TypeInfo
+        #[derive(Debug, Clone, PartialEq, Eq, Encode, TypeInfo, DecodeAsType)]
+        #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+        struct AccountId32([u8; 32]);
+
+        #[derive(Debug, Clone, PartialEq, Eq, Encode, TypeInfo, DecodeAsType)]
+        #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+        struct ContractInfoOf {
+            some_account: AccountId32,
+            deposit_account: AccountId32,
+            another_deposit_account: AccountId32,
+        }
+
+        let contract_info_ty = scale_info::MetaType::new::<ContractInfoOf>();
+        let unit = scale_info::MetaType::new::<()>();
+        let mut types = scale_info::Registry::new();
+        let contract_info_ty_id = types.register_type(&contract_info_ty);
+        let unit_id = types.register_type(&unit);
+        let types: scale_info::PortableRegistry = types.into();
+        let contract_info = ContractInfoOf {
+            some_account: AccountId32([0u8; 32]),
+            deposit_account: AccountId32([1u8; 32]),
+            another_deposit_account: AccountId32([2u8; 32]),
+        };
+        let bytes = contract_info.encode();
+
+        let contract_info_value_metadata: frame_metadata::v15::CustomValueMetadata<
+            PortableForm,
+        > = frame_metadata::v15::CustomValueMetadata {
+            ty: contract_info_ty_id,
+            value: contract_info.encode(),
+        };
+
+        let frame_metadata = frame_metadata::v15::RuntimeMetadataV15 {
+            types,
+            pallets: vec![],
+            extrinsic: frame_metadata::v15::ExtrinsicMetadata {
+                version: 0,
+                address_ty: unit_id,
+                call_ty: unit_id,
+                signature_ty: unit_id,
+                extra_ty: unit_id,
+                signed_extensions: vec![],
+            },
+            ty: unit_id,
+            apis: vec![],
+            outer_enums: frame_metadata::v15::OuterEnums {
+                call_enum_ty: unit_id,
+                event_enum_ty: unit_id,
+                error_enum_ty: unit_id,
+            },
+            custom: frame_metadata::v15::CustomMetadata {
+                map: BTreeMap::from_iter([(
+                    "ContractInfoOf".to_string(),
+                    contract_info_value_metadata,
+                )]),
+            },
+        };
+
+        let metadata: subxt::metadata::types::Metadata = frame_metadata
+            .try_into()
+            .expect("metadata conversion must work");
+        let contract_info_thunk = DecodedValueThunk::decode_with_metadata(
+            &mut &*bytes,
+            contract_info_ty_id.id,
+            &metadata.into(),
+        )
+        .expect("contract info must be decoded");
+        let deposit = get_deposit_account_id(&contract_info_thunk)
+            .expect("deposit account must be decoded from contract info");
+
+        assert_eq!(deposit.0, contract_info.deposit_account.0);
     }
 }
