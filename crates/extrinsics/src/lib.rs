@@ -66,6 +66,7 @@ pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{
     ContractInfo,
     ContractInfoRpc,
+    ContractStorageKey,
 };
 use contract_metadata::ContractMetadata;
 pub use contract_transcode::ContractMessageTranscoder;

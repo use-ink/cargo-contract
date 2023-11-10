@@ -1034,6 +1034,7 @@ version = "4.0.0-alpha"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "blake2",
  "clap",
  "colored",
  "contract-build",

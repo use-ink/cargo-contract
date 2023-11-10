@@ -103,15 +103,41 @@ impl ContractInfoRpc {
     pub async fn fetch_contract_storage(
         &self,
         child_storage_key: &PrefixedStorageKey,
-        key: &[u8],
+        key: &ContractStorageKey,
         block_hash: Option<<DefaultConfig as Config>::Hash>,
     ) -> Result<Option<Vec<u8>>> {
-        let params = rpc_params![child_storage_key, hex::encode(key), block_hash];
+        let key_hex = key.hashed_to_hex();
+        tracing::debug!("fetch_contract_storage: child_storage_key: {child_storage_key:?} for key: {key_hex:?}");
+        let params = rpc_params![child_storage_key, key_hex, block_hash];
         let data: Option<Bytes> = self
             .rpc_client
             .request("childstate_getStorage", params)
             .await?;
         Ok(data.map(|b| b.0))
+    }
+
+    pub async fn fetch_storage_keys_paged(
+        &self,
+        child_storage_key: &PrefixedStorageKey,
+        prefix: Option<&[u8]>,
+        count: u32,
+        start_key: Option<&[u8]>,
+        block_hash: Option<<DefaultConfig as Config>::Hash>,
+    ) -> Result<Vec<Vec<u8>>> {
+        let prefix_hex = prefix.map(|p| format!("0x{}", hex::encode(p)));
+        let start_key_hex = start_key.map(|p| format!("0x{}", hex::encode(p)));
+        let params = rpc_params![
+            child_storage_key,
+            prefix_hex,
+            count,
+            start_key_hex,
+            block_hash
+        ];
+        let data: Vec<Bytes> = self
+            .rpc_client
+            .request("childstate_getKeysPaged", params)
+            .await?;
+        Ok(data.into_iter().map(|b| b.0).collect())
     }
 
     /// Fetch the contract wasm code from the storage using the provided client and code
@@ -214,4 +240,38 @@ fn parse_contract_account_address(
         .ok_or(anyhow!("Unexpected storage key size"))?;
     AccountId32::decode(&mut account)
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+}
+
+/// Represents a 32 bit storage key within a contract's storage.
+pub struct ContractStorageKey {
+    raw: [u8; 4],
+}
+
+impl ContractStorageKey {
+    /// Create a new instance of the ContractStorageKey.
+    pub fn new(raw: [u8; 4]) -> Self {
+        Self { raw }
+    }
+
+    /// Returns the hex encoded hashed `blake2_128_concat` representation of the storage
+    /// key.
+    pub fn hashed_to_hex(&self) -> String {
+        use blake2::digest::{
+            consts::U16,
+            Digest as _,
+        };
+
+        let mut blake2_128 = blake2::Blake2b::<U16>::new();
+        blake2_128.update(&self.raw);
+        let result = blake2_128.finalize();
+
+        let concat = result
+            .as_slice()
+            .iter()
+            .chain(self.raw.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+
+        hex::encode(concat)
+    }
 }

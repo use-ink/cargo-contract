@@ -20,6 +20,7 @@ contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
 contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
 
 anyhow = "1.0.75"
+blake2 = { version = "0.10.6", default-features = false }
 clap = { version = "4.4.7", features = ["derive", "env"] }
 futures = { version = "0.3.29", default-features = false, features = ["std"] }
 tracing = "0.1.40"

@@ -22,6 +22,7 @@ use anyhow::{
 use contract_extrinsics::{
     ContractArtifacts,
     ContractInfoRpc,
+    ContractStorageKey,
     ErrorVariant,
 };
 use std::{
@@ -77,15 +78,27 @@ impl StorageCommand {
                 ))?;
 
         let child_storage_key = contract_info.prefixed_storage_key();
-        let root_key = [0u8, 0, 0, 0];
+        let root_key = ContractStorageKey::new([0u8, 0, 0, 0]);
+
+        let storage_keys = rpc
+            .fetch_storage_keys_paged(&child_storage_key, None, 100, None, None)
+            .await?;
+
+        for storage_key in storage_keys {
+            println!("storage key: {}", hex::encode(storage_key));
+        }
 
         let root_storage = rpc
             .fetch_contract_storage(&child_storage_key, &root_key, None)
-            .await?;
+            .await?
+            .ok_or(anyhow!(
+                "No contract storage was found for account id {}",
+                self.contract
+            ))?;
 
         let root_cell = ContractStorageCell {
-            key: hex::encode(root_key),
-            value: hex::encode(root_storage.unwrap_or_default()),
+            key: root_key.hashed_to_hex(),
+            value: hex::encode(root_storage),
         };
 
         let contract_storage = ContractStorage { root: root_cell };
