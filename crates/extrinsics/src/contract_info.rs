@@ -289,7 +289,8 @@ mod tests {
 
     #[test]
     fn deposit_decode_works() {
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_V11.scale")]
+        // This version of metadata includes the deposit_account field in ContractInfo
+        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_v11.scale")]
         mod api_v11 {}
 
         use api_v11::runtime_types::{
@@ -300,8 +301,10 @@ mod tests {
             },
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_V11.scale").unwrap();
-        let metadata = Metadata::decode(&mut &*metadata_bytes).unwrap();
+        let metadata_bytes = std::fs::read("src/runtime_api/metadata_v11.scale")
+            .expect("the metadata must be present");
+        let metadata =
+            Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
         let contract_info_type_id = get_metadata_type_index(
             "ContractInfo",
             "pallet_contracts::storage",
@@ -335,6 +338,8 @@ mod tests {
 
     #[test]
     fn deposit_decode_fails() {
+        // This version of metadata does not include the deposit_account field in
+        // ContractInfo
         #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata.scale")]
         mod api_v15 {}
 
@@ -346,8 +351,10 @@ mod tests {
             pallet_contracts::storage::ContractInfo,
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_V11.scale").unwrap();
-        let metadata = Metadata::decode(&mut &*metadata_bytes).unwrap();
+        let metadata_bytes = std::fs::read("src/runtime_api/metadata.scale")
+            .expect("the metadata must be present");
+        let metadata =
+            Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
         let contract_info_type_id = get_metadata_type_index(
             "ContractInfo",
             "pallet_contracts::storage",
@@ -377,7 +384,7 @@ mod tests {
             .expect_err("decoding the deposit account must fail");
         assert_eq!(
             res.to_string(),
-            "Error at : Error decoding bytes given the type ID and registry provided: Not enough data to fill buffer"
+            "Error at : Field deposit_account does not exist in our encoded data"
         );
     }
 }
