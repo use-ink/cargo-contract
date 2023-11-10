@@ -235,7 +235,7 @@ pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) 
         MAX_KEY_COL_WIDTH
     );
     name_value_println!(
-        "Storage Total Deposit",
+        STORAGE_DEPOSIT_KEY,
         format!("{:?}", info.storage_total_deposit),
         MAX_KEY_COL_WIDTH
     );
