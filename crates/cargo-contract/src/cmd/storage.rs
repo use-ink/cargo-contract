@@ -80,6 +80,7 @@ impl StorageCommand {
         let child_storage_key = contract_info.prefixed_storage_key();
         let root_key = ContractStorageKey::new([0u8, 0, 0, 0]);
 
+        // todo: fetch all storage keys and map to metadata?
         let storage_keys = rpc
             .fetch_storage_keys_paged(&child_storage_key, None, 100, None, None)
             .await?;
