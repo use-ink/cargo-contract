@@ -100,6 +100,9 @@ impl ContractInfoRpc {
         }
     }
 
+    /// Fetch the contract storage at the given key.
+    ///
+    /// For more information about how storage keys are calculated see: https://use.ink/datastructures/storage-in-metadata
     pub async fn fetch_contract_storage(
         &self,
         child_storage_key: &PrefixedStorageKey,
