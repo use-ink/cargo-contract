@@ -75,7 +75,7 @@ async fn get_account_balance(
     Ok(data)
 }
 
-/// Decode the account id from the contract info
+/// Decode the deposit account from the contract info
 fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<AccountId32> {
     #[derive(DecodeAsType)]
     #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
@@ -263,28 +263,16 @@ mod tests {
         DecodeWithMetadata,
     };
 
-    #[test]
-    fn deposit_decode_works() {
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_V11.scale")]
-        pub mod api_v11 {}
-
-        use api_v11::runtime_types::{
-            bounded_collections::bounded_vec::BoundedVec,
-            pallet_contracts::storage::{
-                ContractInfo,
-                DepositAccount,
-            },
-        };
-
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_V11.scale").unwrap();
-        let metadata = Metadata::decode(&mut &*metadata_bytes).unwrap();
-
+    /// Find the type index in the metadata.
+    fn get_metadata_type_index(
+        ident: &'static str,
+        module_path: &'static str,
+        metadata: &Metadata,
+    ) -> Result<usize> {
         let contract_info_path =
-            Path::from_segments(vec!["pallet_contracts", "storage", "ContractInfo"])
-                .unwrap()
-                .into_portable(&mut Default::default());
+            Path::new(ident, module_path).into_portable(&mut Default::default());
 
-        let contract_info_type_id = metadata
+        metadata
             .types()
             .types
             .iter()
@@ -296,7 +284,30 @@ mod tests {
                     None
                 }
             })
-            .expect("the contract info type must be present in the metadata");
+            .ok_or(anyhow!("Type not found"))
+    }
+
+    #[test]
+    fn deposit_decode_works() {
+        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_V11.scale")]
+        mod api_v11 {}
+
+        use api_v11::runtime_types::{
+            bounded_collections::bounded_vec::BoundedVec,
+            pallet_contracts::storage::{
+                ContractInfo,
+                DepositAccount,
+            },
+        };
+
+        let metadata_bytes = std::fs::read("src/runtime_api/metadata_V11.scale").unwrap();
+        let metadata = Metadata::decode(&mut &*metadata_bytes).unwrap();
+        let contract_info_type_id = get_metadata_type_index(
+            "ContractInfo",
+            "pallet_contracts::storage",
+            &metadata,
+        )
+        .expect("the contract info type must be present in the metadata");
 
         let contract_info = ContractInfo {
             trie_id: BoundedVec(vec![]),
@@ -320,5 +331,53 @@ mod tests {
             .expect("the deposit account must be decoded from contract info");
 
         assert_eq!(deposit, contract_info.deposit_account.0);
+    }
+
+    #[test]
+    fn deposit_decode_fails() {
+        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata.scale")]
+        mod api_v15 {}
+
+        use api_v15::runtime_types::{
+            bounded_collections::{
+                bounded_btree_map::BoundedBTreeMap,
+                bounded_vec::BoundedVec,
+            },
+            pallet_contracts::storage::ContractInfo,
+        };
+
+        let metadata_bytes = std::fs::read("src/runtime_api/metadata_V11.scale").unwrap();
+        let metadata = Metadata::decode(&mut &*metadata_bytes).unwrap();
+        let contract_info_type_id = get_metadata_type_index(
+            "ContractInfo",
+            "pallet_contracts::storage",
+            &metadata,
+        )
+        .expect("the contract info type must be present in the metadata");
+
+        let contract_info = ContractInfo {
+            trie_id: BoundedVec(vec![]),
+            code_hash: Default::default(),
+            storage_bytes: 1,
+            storage_items: 1,
+            storage_byte_deposit: 1,
+            storage_item_deposit: 1,
+            storage_base_deposit: 1,
+            delegate_dependencies: BoundedBTreeMap(vec![]),
+        };
+
+        let contract_info_thunk = DecodedValueThunk::decode_with_metadata(
+            &mut &*contract_info.encode(),
+            contract_info_type_id as u32,
+            &metadata.into(),
+        )
+        .expect("the contract info must be decoded");
+
+        let res = get_deposit_account_id(&contract_info_thunk)
+            .expect_err("decoding the deposit account must fail");
+        assert_eq!(
+            res.to_string(),
+            "Error at : Error decoding bytes given the type ID and registry provided: Not enough data to fill buffer"
+        );
     }
 }
