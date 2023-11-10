@@ -39,6 +39,7 @@ use subxt::{
     },
     Config,
     OnlineClient,
+    ext::scale_encode,
 };
 use subxt_signer::sr25519::Keypair;
 
@@ -142,6 +143,13 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         })
     }
 }
+#[derive(
+    scale_encode::EncodeAsType
+)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+struct RemoveCode {
+    code_hash: sp_core::H256,
+}
 
 pub struct RemoveExec {
     final_code_hash: [u8; 32],
@@ -165,9 +173,11 @@ impl RemoveExec {
     /// code removal, or an error in case of failure.
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);
-        let call = api::tx()
-            .contracts()
-            .remove_code(sp_core::H256(code_hash.0));
+
+        let call = subxt::tx::Payload::new("Contracts", "remove_code", RemoveCode {code_hash},);
+        // let call = api::tx()
+        //     .contracts()
+        //     .remove_code(sp_core::H256(code_hash.0));
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
