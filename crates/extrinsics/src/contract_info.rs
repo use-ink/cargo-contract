@@ -296,7 +296,7 @@ mod tests {
         use api_v11::runtime_types::{
             bounded_collections::bounded_vec::BoundedVec,
             pallet_contracts::storage::{
-                ContractInfo,
+                ContractInfo as ContractInfoV11,
                 DepositAccount,
             },
         };
@@ -312,7 +312,7 @@ mod tests {
         )
         .expect("the contract info type must be present in the metadata");
 
-        let contract_info = ContractInfo {
+        let contract_info = ContractInfoV11 {
             trie_id: BoundedVec(vec![]),
             deposit_account: DepositAccount(AccountId32([7u8; 32])),
             code_hash: Default::default(),
@@ -348,7 +348,7 @@ mod tests {
                 bounded_btree_map::BoundedBTreeMap,
                 bounded_vec::BoundedVec,
             },
-            pallet_contracts::storage::ContractInfo,
+            pallet_contracts::storage::ContractInfo as ContractInfoV15,
         };
 
         let metadata_bytes = std::fs::read("src/runtime_api/metadata.scale")
@@ -362,7 +362,7 @@ mod tests {
         )
         .expect("the contract info type must be present in the metadata");
 
-        let contract_info = ContractInfo {
+        let contract_info = ContractInfoV15 {
             trie_id: BoundedVec(vec![]),
             code_hash: Default::default(),
             storage_bytes: 1,
