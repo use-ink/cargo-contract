@@ -278,7 +278,7 @@ impl CallExec {
             .mutates()
         {
             let inner = anyhow!(
-                "Tried to execute a call to immutable contract message '{}'. Please do a dry-run instead.",
+                "Tried to execute a call on the immutable contract message '{}'. Please do a dry-run instead.",
                 &self.message
             );
             return Err(inner.into());
