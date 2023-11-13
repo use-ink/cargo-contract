@@ -15,27 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    CallCommandBuilder,
-    ExtrinsicOptsBuilder,
-    InstantiateCommandBuilder,
-    RemoveCommandBuilder,
-    UploadCommandBuilder,
+    CallCommandBuilder, ExtrinsicOptsBuilder, InstantiateCommandBuilder,
+    RemoveCommandBuilder, UploadCommandBuilder,
 };
 use anyhow::Result;
 use contract_build::code_hash;
 use predicates::prelude::*;
-use std::{
-    ffi::OsStr,
-    path::Path,
-    process,
-    str,
-    thread,
-    time,
-};
-use subxt::{
-    OnlineClient,
-    PolkadotConfig as DefaultConfig,
-};
+use std::{ffi::OsStr, path::Path, process, str, thread, time};
+use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
 
@@ -96,24 +83,22 @@ impl ContractsNodeProcess {
             );
             let result = OnlineClient::new().await;
             if let Ok(client) = result {
-                break Ok(client)
+                break Ok(client);
             }
             if attempts < MAX_ATTEMPTS {
                 attempts += 1;
-                continue
+                continue;
             }
             if let Err(err) = result {
-                break Err(err)
+                break Err(err);
             }
         };
         match client {
-            Ok(client) => {
-                Ok(Self {
-                    proc,
-                    client,
-                    tmp_dir,
-                })
-            }
+            Ok(client) => Ok(Self {
+                proc,
+                client,
+                tmp_dir,
+            }),
             Err(err) => {
                 let err = anyhow::anyhow!(
                     "Failed to connect to node rpc after {} attempts: {}",
@@ -508,6 +493,13 @@ async fn api_build_upload_instantiate_call() {
         .unwrap()
         .to_string();
     assert!(value.contains("true"), "{:#?}", value);
+
+    // call the contract on the immutable "get" message trying to execute
+    // this should fail because "get" is immutable
+    match call.call(None).await {
+        Err(crate::ErrorVariant::Generic(_)) => {}
+        _ => panic!("immutable call was not prevented"),
+    }
 
     // call the contract
     // flip the value

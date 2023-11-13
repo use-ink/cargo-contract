@@ -15,31 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    account_id,
-    events::DisplayEvents,
-    runtime_api::api,
-    state,
-    state_call,
-    submit_extrinsic,
-    AccountId32,
-    Balance,
-    BalanceVariant,
-    Client,
-    ContractMessageTranscoder,
-    DefaultConfig,
-    ErrorVariant,
-    Missing,
-    TokenMetadata,
+    account_id, events::DisplayEvents, runtime_api::api, state, state_call,
+    submit_extrinsic, AccountId32, Balance, BalanceVariant, Client,
+    ContractMessageTranscoder, DefaultConfig, ErrorVariant, Missing, TokenMetadata,
 };
-use crate::{
-    check_env_types,
-    extrinsic_opts::ExtrinsicOpts,
-};
+use crate::{check_env_types, extrinsic_opts::ExtrinsicOpts};
 
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::{anyhow, Result};
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
@@ -47,12 +29,8 @@ use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
 use subxt::{
-    backend::{
-        legacy::LegacyRpcMethods,
-        rpc::RpcClient,
-    },
-    Config,
-    OnlineClient,
+    backend::{legacy::LegacyRpcMethods, rpc::RpcClient},
+    Config, OnlineClient,
 };
 
 pub struct CallOpts {
@@ -267,6 +245,23 @@ impl CallExec {
         &self,
         gas_limit: Option<Weight>,
     ) -> Result<DisplayEvents, ErrorVariant> {
+        if !self
+            .transcoder()
+            .metadata()
+            .spec()
+            .messages()
+            .iter()
+            .find(|msg| msg.label() == &self.message)
+            .expect("message exist after calling CallExec::done()")
+            .mutates()
+        {
+            let inner = anyhow!(
+                "Tried to execute a call to immutable contract message '{}'. Please do a dry-run instead.",
+                &self.message
+            );
+            return Err(inner.into());
+        }
+
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
