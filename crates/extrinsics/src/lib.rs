@@ -38,6 +38,10 @@ use contract_build::{
     CrateMetadata,
     DEFAULT_KEY_COL_WIDTH,
 };
+use pallet_contracts_primitives::{
+    ContractResult,
+    InstantiateReturnValue,
+};
 use scale::{
     Decode,
     Encode,
@@ -52,6 +56,8 @@ use subxt::{
     OnlineClient,
 };
 use subxt_signer::sr25519::Keypair;
+
+use sp_runtime::DispatchError;
 
 pub use balance::{
     BalanceVariant,
@@ -94,6 +100,7 @@ pub use remove::{
     RemoveExec,
 };
 
+use subxt::ext::scale_encode;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
     CodeUploadRequest,
@@ -105,6 +112,13 @@ pub use upload::{
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
+
+/// Result type of a `bare_instantiate` call as well as `ContractsApi::instantiate`.
+pub type ContractInstantiateResult<AccountId, Balance, EventRecord> = ContractResult<
+    Result<InstantiateReturnValue<AccountId>, DispatchError>,
+    Balance,
+    EventRecord,
+>;
 
 /// The Wasm code of a contract.
 #[derive(Debug)]
@@ -120,6 +134,67 @@ impl WasmCode {
 /// Get the account id from the Keypair
 pub fn account_id(keypair: &Keypair) -> AccountId32 {
     subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
+}
+
+/// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Debug,
+    Default,
+    scale::Encode,
+    scale::Decode,
+    scale::MaxEncodedLen,
+    scale_encode::EncodeAsType,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct Weight {
+    #[codec(compact)]
+    /// The weight of computational time used based on some reference hardware.
+    ref_time: u64,
+    #[codec(compact)]
+    /// The weight of storage space used by proof of validity.
+    proof_size: u64,
+}
+
+impl Weight {
+    /// Construct [`Weight`] from weight parts, namely reference time and proof size
+    /// weights.
+    pub const fn from_parts(ref_time: u64, proof_size: u64) -> Self {
+        Self {
+            ref_time,
+            proof_size,
+        }
+    }
+}
+
+impl From<sp_weights::Weight> for Weight {
+    fn from(weight: sp_weights::Weight) -> Self {
+        Self {
+            ref_time: weight.ref_time(),
+            proof_size: weight.proof_size(),
+        }
+    }
+}
+
+impl From<Weight> for sp_weights::Weight {
+    fn from(weight: Weight) -> Self {
+        sp_weights::Weight::from_parts(weight.ref_time, weight.proof_size)
+    }
+}
+
+impl core::fmt::Display for Weight {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "Weight(ref_time: {}, proof_size: {})",
+            self.ref_time, self.proof_size
+        )
+    }
 }
 
 /// Wait for the transaction to be included successfully into a block.

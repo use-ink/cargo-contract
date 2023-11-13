@@ -161,7 +161,7 @@ impl InstantiateCommand {
                 })?;
             }
             let instantiate_result =
-                instantiate_exec.instantiate(Some(gas_limit)).await?;
+                instantiate_exec.instantiate(Some(gas_limit.into())).await?;
             display_result(
                 &instantiate_exec,
                 instantiate_result,

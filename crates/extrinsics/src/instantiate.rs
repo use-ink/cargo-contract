@@ -16,7 +16,10 @@
 
 use super::{
     account_id,
-    runtime_api::api,
+    events::{
+        CodeStored,
+        ContractInstantiated,
+    },
     state,
     state_call,
     submit_extrinsic,
@@ -30,6 +33,7 @@ use super::{
     Missing,
     StorageDeposit,
     TokenMetadata,
+    Weight,
 };
 use crate::{
     check_env_types,
@@ -48,13 +52,13 @@ use pallet_contracts_primitives::ContractInstantiateResult;
 use core::marker::PhantomData;
 use scale::Encode;
 use sp_core::Bytes;
-use sp_weights::Weight;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
+    ext::scale_encode,
     Config,
     OnlineClient,
 };
@@ -319,8 +323,8 @@ impl InstantiateExec {
                     result: value,
                     contract: ret_val.account_id.to_string(),
                     reverted: ret_val.result.did_revert(),
-                    gas_consumed: result.gas_consumed,
-                    gas_required: result.gas_required,
+                    gas_consumed: result.gas_consumed.into(),
+                    gas_required: result.gas_required.into(),
                     storage_deposit: StorageDeposit::from(&result.storage_deposit),
                 };
                 Ok(dry_run_result)
@@ -363,13 +367,18 @@ impl InstantiateExec {
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = api::tx().contracts().instantiate_with_code(
-            self.args.value,
-            gas_limit.into(),
-            self.args.storage_deposit_limit_compact(),
-            code.to_vec(),
-            self.args.data.clone(),
-            self.args.salt.clone(),
+        // TODO: check if should be used unvalidated
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "instantiate_with_code",
+            InstantiateWithCode {
+                value: self.args.value,
+                gas_limit,
+                storage_deposit_limit: self.args.storage_deposit_limit,
+                code,
+                data: self.args.data.clone(),
+                salt: self.args.salt.clone(),
+            },
         );
 
         let result =
@@ -378,11 +387,11 @@ impl InstantiateExec {
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = result
-            .find_first::<api::contracts::events::CodeStored>()?
+            .find_first::<CodeStored>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = result
-            .find_last::<api::contracts::events::Instantiated>()?
+            .find_last::<ContractInstantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -398,20 +407,24 @@ impl InstantiateExec {
         code_hash: CodeHash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = api::tx().contracts().instantiate(
-            self.args.value,
-            gas_limit.into(),
-            self.args.storage_deposit_limit_compact(),
-            code_hash,
-            self.args.data.clone(),
-            self.args.salt.clone(),
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "instantiate_with_code",
+            Instantiate {
+                value: self.args.value,
+                gas_limit,
+                storage_deposit_limit: self.args.storage_deposit_limit,
+                code: code_hash,
+                data: self.args.data.clone(),
+                salt: self.args.salt.clone(),
+            },
         );
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
+            .find_first::<ContractInstantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -567,4 +580,30 @@ pub enum Code {
     Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
     Existing(<DefaultConfig as Config>::Hash),
+}
+
+/// A raw call to `pallet-contracts`'s `instantiate_with_code`.
+#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct InstantiateWithCode {
+    #[codec(compact)]
+    value: Balance,
+    gas_limit: Weight,
+    storage_deposit_limit: Option<Balance>,
+    code: Vec<u8>,
+    data: Vec<u8>,
+    salt: Vec<u8>,
+}
+
+/// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
+#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct Instantiate {
+    #[codec(compact)]
+    value: Balance,
+    gas_limit: Weight,
+    storage_deposit_limit: Option<Balance>,
+    code: CodeHash,
+    data: Vec<u8>,
+    salt: Vec<u8>,
 }

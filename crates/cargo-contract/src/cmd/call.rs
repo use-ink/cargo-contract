@@ -172,7 +172,7 @@ impl CallCommand {
                     );
                 })?;
             }
-            let display_events = call_exec.call(Some(gas_limit)).await?;
+            let display_events = call_exec.call(Some(gas_limit.into())).await?;
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {

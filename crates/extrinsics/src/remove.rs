@@ -15,14 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::DisplayEvents,
-    runtime_api::api::{
-        self,
-        contracts::events::CodeRemoved,
+    events::{
+        CodeRemoved,
+        DisplayEvents,
     },
     state,
     submit_extrinsic,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
     ErrorVariant,
@@ -37,14 +37,14 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    ext::scale_encode,
     Config,
     OnlineClient,
-    ext::scale_encode,
 };
 use subxt_signer::sr25519::Keypair;
 
 pub struct RemoveOpts {
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
+    code_hash: Option<CodeHash>,
     extrinsic_opts: ExtrinsicOpts,
 }
 
@@ -143,12 +143,10 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         })
     }
 }
-#[derive(
-    scale_encode::EncodeAsType
-)]
+#[derive(scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 struct RemoveCode {
-    code_hash: sp_core::H256,
+    code_hash: CodeHash,
 }
 
 pub struct RemoveExec {
@@ -174,10 +172,8 @@ impl RemoveExec {
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);
 
-        let call = subxt::tx::Payload::new("Contracts", "remove_code", RemoveCode {code_hash},);
-        // let call = api::tx()
-        //     .contracts()
-        //     .remove_code(sp_core::H256(code_hash.0));
+        let call =
+            subxt::tx::Payload::new("Contracts", "remove_code", RemoveCode { code_hash });
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;

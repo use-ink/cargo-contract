@@ -15,8 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::contracts::events::ContractEmitted,
+    Balance,
     BalanceVariant,
+    CodeHash,
     DefaultConfig,
     TokenMetadata,
 };
@@ -40,8 +41,93 @@ use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
+    ext::{
+        scale_decode,
+        scale_encode,
+    },
+    Config,
 };
 
+#[derive(
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+    Debug,
+)]
+#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+/// A custom event emitted by the contract.
+pub struct ContractEmitted {
+    pub contract: <DefaultConfig as Config>::AccountId,
+    pub data: Vec<u8>,
+}
+
+impl StaticEvent for ContractEmitted {
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "ContractEmitted";
+}
+
+/// A contract was successfully instantiated.
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct ContractInstantiated {
+    /// Account id of the deployer.
+    pub deployer: <DefaultConfig as Config>::AccountId,
+    /// Account id where the contract was instantiated to.
+    pub contract: <DefaultConfig as Config>::AccountId,
+}
+
+impl StaticEvent for ContractInstantiated {
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "Instantiated";
+}
+
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct CodeStored {
+    /// Hash under which the contract code was stored.
+    pub code_hash: CodeHash,
+}
+
+impl StaticEvent for CodeStored {
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "CodeStored";
+}
+
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct CodeRemoved {
+    pub code_hash: CodeHash,
+    pub deposit_released: Balance,
+    pub remover: <DefaultConfig as Config>::AccountId,
+}
+
+impl StaticEvent for CodeRemoved {
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "CodeRemoved";
+}
 /// Field that represent data of an event from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Field {

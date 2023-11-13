@@ -21,7 +21,6 @@ use anyhow::{
 
 use super::{
     get_best_block,
-    runtime_api::api,
     Balance,
     Client,
     CodeHash,
@@ -47,6 +46,10 @@ struct AccountData {
     pub free: Balance,
     pub reserved: Balance,
 }
+
+#[derive(DecodeAsType, Debug)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 
 /// Return the account data for an account ID.
 async fn get_account_balance(
@@ -111,9 +114,7 @@ pub async fn fetch_contract_info(
                 contract
             )
         })?;
-    #[derive(DecodeAsType, Debug)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
+
     #[derive(DecodeAsType, Debug)]
     #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
     struct ContractInfoOf {

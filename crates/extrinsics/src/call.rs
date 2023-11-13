@@ -17,7 +17,6 @@
 use super::{
     account_id,
     events::DisplayEvents,
-    runtime_api::api,
     state,
     state_call,
     submit_extrinsic,
@@ -30,6 +29,7 @@ use super::{
     ErrorVariant,
     Missing,
     TokenMetadata,
+    Weight,
 };
 use crate::{
     check_env_types,
@@ -42,7 +42,6 @@ use anyhow::{
 };
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
-use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
@@ -51,6 +50,8 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    ext::scale_encode,
+    utils::MultiAddress,
     Config,
     OnlineClient,
 };
@@ -273,14 +274,23 @@ impl CallExec {
             None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);
+        let storage_deposit_limit = self
+            .opts
+            .storage_deposit_limit()
+            .as_ref()
+            .map(|bv| bv.denominate_balance(&self.token_metadata))
+            .transpose()?;
 
-        let call = api::tx().contracts().call(
-            self.contract.clone().into(),
-            self.value.denominate_balance(&self.token_metadata)?,
-            gas_limit.into(),
-            self.opts
-                .compact_storage_deposit_limit(&self.token_metadata)?,
-            self.call_data.clone(),
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "call",
+            Call {
+                dest: self.contract.clone().into(),
+                value: self.value.denominate_balance(&self.token_metadata)?,
+                gas_limit,
+                storage_deposit_limit,
+                data: self.call_data.clone(),
+            },
         );
 
         let result =
@@ -406,4 +416,16 @@ pub struct CallRequest {
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
+}
+
+/// A raw call to `pallet-contracts`'s `call`.
+#[derive(Debug, scale::Decode, scale::Encode, scale_encode::EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct Call {
+    dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
+    #[codec(compact)]
+    value: Balance,
+    gas_limit: Weight,
+    storage_deposit_limit: Option<Balance>,
+    data: Vec<u8>,
 }

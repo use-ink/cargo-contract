@@ -16,10 +16,9 @@
 
 use super::{
     account_id,
-    events::DisplayEvents,
-    runtime_api::api::{
-        contracts::events::CodeStored,
-        runtime_types::pallet_contracts::wasm::Determinism,
+    events::{
+        CodeStored,
+        DisplayEvents,
     },
     state,
     state_call,
@@ -47,6 +46,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    ext::scale_encode,
     Config,
     OnlineClient,
 };
@@ -174,13 +174,22 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
+        // TODO: check why enum is being used here
         let storage_deposit_limit = self
             .opts
-            .compact_storage_deposit_limit(&self.token_metadata)?;
-        let call = crate::runtime_api::api::tx().contracts().upload_code(
-            self.code.0.clone(),
-            storage_deposit_limit,
-            Determinism::Enforced,
+            .storage_deposit_limit()
+            .as_ref()
+            .map(|bv| bv.denominate_balance(&self.token_metadata))
+            .transpose()?;
+
+        let call = subxt::tx::Payload::new(
+            "Contracts",
+            "upload_code",
+            UploadCode {
+                code: self.code.0.clone(),
+                storage_deposit_limit,
+                determinism: Determinism::Enforced,
+            },
         );
 
         let result =
@@ -238,4 +247,43 @@ pub struct CodeUploadRequest {
 pub struct UploadResult {
     pub code_stored: Option<CodeStored>,
     pub display_events: DisplayEvents,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    scale::Decode,
+    scale::Encode,
+    scale_encode::EncodeAsType,
+)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub enum Determinism {
+    /// The execution should be deterministic and hence no indeterministic instructions
+    /// are allowed.
+    ///
+    /// Dispatchables always use this mode in order to make on-chain execution
+    /// deterministic.
+    Enforced,
+    /// Allow calling or uploading an indeterministic code.
+    ///
+    /// This is only possible when calling into `pallet-contracts` directly via
+    /// [`crate::Pallet::bare_call`].
+    ///
+    /// # Note
+    ///
+    /// **Never** use this mode for on-chain execution.
+    Relaxed,
+}
+
+/// A raw call to `pallet-contracts`'s `upload`.
+#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub struct UploadCode {
+    code: Vec<u8>,
+    storage_deposit_limit: Option<Balance>,
+    determinism: Determinism,
 }
