@@ -15,13 +15,31 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    account_id, events::DisplayEvents, runtime_api::api, state, state_call,
-    submit_extrinsic, AccountId32, Balance, BalanceVariant, Client,
-    ContractMessageTranscoder, DefaultConfig, ErrorVariant, Missing, TokenMetadata,
+    account_id,
+    events::DisplayEvents,
+    runtime_api::api,
+    state,
+    state_call,
+    submit_extrinsic,
+    AccountId32,
+    Balance,
+    BalanceVariant,
+    Client,
+    ContractMessageTranscoder,
+    DefaultConfig,
+    ErrorVariant,
+    Missing,
+    TokenMetadata,
 };
-use crate::{check_env_types, extrinsic_opts::ExtrinsicOpts};
+use crate::{
+    check_env_types,
+    extrinsic_opts::ExtrinsicOpts,
+};
 
-use anyhow::{anyhow, Result};
+use anyhow::{
+    anyhow,
+    Result,
+};
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
@@ -29,8 +47,12 @@ use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
 use subxt::{
-    backend::{legacy::LegacyRpcMethods, rpc::RpcClient},
-    Config, OnlineClient,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
+    Config,
+    OnlineClient,
 };
 
 pub struct CallOpts {

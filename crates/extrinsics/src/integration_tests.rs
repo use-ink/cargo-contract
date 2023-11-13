@@ -15,14 +15,27 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    CallCommandBuilder, ExtrinsicOptsBuilder, InstantiateCommandBuilder,
-    RemoveCommandBuilder, UploadCommandBuilder,
+    CallCommandBuilder,
+    ExtrinsicOptsBuilder,
+    InstantiateCommandBuilder,
+    RemoveCommandBuilder,
+    UploadCommandBuilder,
 };
 use anyhow::Result;
 use contract_build::code_hash;
 use predicates::prelude::*;
-use std::{ffi::OsStr, path::Path, process, str, thread, time};
-use subxt::{OnlineClient, PolkadotConfig as DefaultConfig};
+use std::{
+    ffi::OsStr,
+    path::Path,
+    process,
+    str,
+    thread,
+    time,
+};
+use subxt::{
+    OnlineClient,
+    PolkadotConfig as DefaultConfig,
+};
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
 
@@ -94,11 +107,13 @@ impl ContractsNodeProcess {
             }
         };
         match client {
-            Ok(client) => Ok(Self {
-                proc,
-                client,
-                tmp_dir,
-            }),
+            Ok(client) => {
+                Ok(Self {
+                    proc,
+                    client,
+                    tmp_dir,
+                })
+            }
             Err(err) => {
                 let err = anyhow::anyhow!(
                     "Failed to connect to node rpc after {} attempts: {}",
