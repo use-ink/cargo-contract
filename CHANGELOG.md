@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
 - Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
 
+### Fixed
+- Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
+
 ## [4.0.0-alpha]
 
 Replaces the yanked `3.1.0` due to issues with supporting *both* Rust versions < `1.70`
