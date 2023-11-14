@@ -145,7 +145,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 }
 #[derive(scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct RemoveCode {
+pub struct RemoveCode {
     code_hash: CodeHash,
 }
 

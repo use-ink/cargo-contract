@@ -367,7 +367,6 @@ impl InstantiateExec {
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        // TODO: check if should be used unvalidated
         let call = subxt::tx::Payload::new(
             "Contracts",
             "instantiate_with_code",

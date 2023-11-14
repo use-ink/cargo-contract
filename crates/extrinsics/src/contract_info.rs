@@ -40,17 +40,6 @@ use subxt::{
     utils::AccountId32,
 };
 
-#[derive(DecodeAsType, Debug)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct AccountData {
-    pub free: Balance,
-    pub reserved: Balance,
-}
-
-#[derive(DecodeAsType, Debug)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
-
 /// Return the account data for an account ID.
 async fn get_account_balance(
     account: &AccountId32,
@@ -68,24 +57,12 @@ async fn get_account_balance(
         .await?
         .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
 
-    #[derive(DecodeAsType, Debug)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    struct AccountInfo {
-        data: AccountData,
-    }
-
     let data = account.as_type::<AccountInfo>()?.data;
     Ok(data)
 }
 
 /// Decode the deposit account from the contract info
 fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<AccountId32> {
-    #[derive(DecodeAsType)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    struct DepositAccount {
-        deposit_account: AccountId32,
-    }
-
     let account = contract_info.as_type::<DepositAccount>()?;
     Ok(account.deposit_account)
 }
@@ -114,15 +91,6 @@ pub async fn fetch_contract_info(
                 contract
             )
         })?;
-
-    #[derive(DecodeAsType, Debug)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    struct ContractInfoOf {
-        trie_id: BoundedVec<u8>,
-        code_hash: CodeHash,
-        storage_items: u32,
-        storage_item_deposit: Balance,
-    }
 
     // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
     // in a secondary account (deposit account). Other versions store it as
@@ -226,7 +194,7 @@ fn parse_contract_account_address(
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
-/// Fetch all contract addresses from the storage using the provided client
+/// Fetch all contract addresses from the storage using the provided client.
 pub async fn fetch_all_contracts(
     client: &Client,
     rpc: &LegacyRpcMethods<DefaultConfig>,
@@ -254,6 +222,43 @@ pub async fn fetch_all_contracts(
     Ok(contract_accounts)
 }
 
+/// A struct used in the storage reads to access account info.
+#[derive(DecodeAsType, Debug)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+struct AccountInfo {
+    data: AccountData,
+}
+
+/// A struct used in the storage reads to access account data.
+#[derive(Debug, DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+struct AccountData {
+    pub free: Balance,
+    pub reserved: Balance,
+}
+
+/// A struct representing `Vec`` used in the storage reads.
+#[derive(Debug, DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+struct BoundedVec<T>(pub ::std::vec::Vec<T>);
+
+/// A struct used in the storage reads to access contract info.
+#[derive(Debug, DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+struct ContractInfoOf {
+    trie_id: BoundedVec<u8>,
+    code_hash: CodeHash,
+    storage_items: u32,
+    storage_item_deposit: Balance,
+}
+
+/// A struct used in storage reads to access the deposit account from contract info.
+#[derive(Debug, DecodeAsType)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+struct DepositAccount {
+    deposit_account: AccountId32,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,7 +272,7 @@ mod tests {
         DecodeWithMetadata,
     };
 
-    /// Find the type index in the metadata.
+    // Find the type index in the metadata.
     fn get_metadata_type_index(
         ident: &'static str,
         module_path: &'static str,

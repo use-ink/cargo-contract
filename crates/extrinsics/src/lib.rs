@@ -38,10 +38,6 @@ use contract_build::{
     CrateMetadata,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::{
-    ContractResult,
-    InstantiateReturnValue,
-};
 use scale::{
     Decode,
     Encode,
@@ -56,8 +52,6 @@ use subxt::{
     OnlineClient,
 };
 use subxt_signer::sr25519::Keypair;
-
-use sp_runtime::DispatchError;
 
 pub use balance::{
     BalanceVariant,
@@ -112,13 +106,6 @@ pub use upload::{
 pub type Client = OnlineClient<DefaultConfig>;
 pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
-
-/// Result type of a `bare_instantiate` call as well as `ContractsApi::instantiate`.
-pub type ContractInstantiateResult<AccountId, Balance, EventRecord> = ContractResult<
-    Result<InstantiateReturnValue<AccountId>, DispatchError>,
-    Balance,
-    EventRecord,
->;
 
 /// The Wasm code of a contract.
 #[derive(Debug)]

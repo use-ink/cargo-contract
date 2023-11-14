@@ -48,6 +48,7 @@ use subxt::{
     Config,
 };
 
+/// A custom event emitted by the contract.
 #[derive(
     scale::Decode,
     scale::Encode,
@@ -57,7 +58,6 @@ use subxt::{
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-/// A custom event emitted by the contract.
 pub struct ContractEmitted {
     pub contract: <DefaultConfig as Config>::AccountId,
     pub data: Vec<u8>,
@@ -90,6 +90,7 @@ impl StaticEvent for ContractInstantiated {
     const EVENT: &'static str = "Instantiated";
 }
 
+/// An event triggered by either the `instantiate_with_code` or the `upload_code` call.
 #[derive(
     Debug,
     scale::Decode,
@@ -109,6 +110,7 @@ impl StaticEvent for CodeStored {
     const EVENT: &'static str = "CodeStored";
 }
 
+/// An event triggered by the `remove_code` call.
 #[derive(
     Debug,
     scale::Decode,
@@ -151,7 +153,7 @@ impl Field {
     }
 }
 
-/// An event produced from from invoking a contract extrinsic.
+/// An event produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Event {
     /// name of a pallet
