@@ -30,6 +30,7 @@ use super::{
 
 use scale::Decode;
 use std::option::Option;
+use sp_runtime::traits::AccountIdConversion;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     dynamic::DecodedValueThunk,
@@ -111,40 +112,76 @@ pub async fn fetch_contract_info(
                 contract
             )
         })?;
-    #[derive(DecodeAsType, Debug)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
-    #[derive(DecodeAsType, Debug)]
-    #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-    struct ContractInfoOf {
-        trie_id: BoundedVec<u8>,
-        code_hash: CodeHash,
-        storage_items: u32,
-        storage_item_deposit: Balance,
+
+    let contract_info_versioned = ContractInfoVersioned::new(contract.clone(), &contract_info)?;
+    let deposit_account = contract_info_versioned.deposit_account();
+    let account_data = get_account_balance(deposit_account, rpc, client).await?;
+    contract_info_versioned.to_contract_info(&account_data, &contract_info)
+}
+
+pub struct ContractInfoVersioned {
+    deposit_account: AccountId32,
+    version: ContractInfoVersion,
+}
+
+pub enum ContractInfoVersion {
+    V11,
+    V15,
+}
+
+impl ContractInfoVersioned {
+    pub fn new(contract_account: AccountId32, contract_info: &DecodedValueThunk) -> Result<Self> {
+        #[derive(DecodeAsType)]
+        #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+        struct DepositAccount {
+            deposit_account: AccountId32,
+        }
+
+        let account = contract_info.as_type::<DepositAccount>();
+
+        match account {
+            Ok(account) => Ok(Self {
+                deposit_account: account.deposit_account,
+                version: ContractInfoVersion::V11,
+            }),
+            Err(_) => Ok(Self {
+                deposit_account: contract_account,
+                version: ContractInfoVersion::V15,
+            })
+        }
     }
 
-    // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
-    // in a secondary account (deposit account). Other versions store it as
-    // reserved balance on the main contract's account. If the
-    // `deposit_account` field is present in a contract info structure,
-    // the contract's deposit is in this account.
-    let total_balance: Balance = match get_deposit_account_id(&contract_info) {
-        Ok(deposit_account) => {
-            get_account_balance(&deposit_account, rpc, client)
-                .await?
-                .free
-        }
-        Err(_) => get_account_balance(contract, rpc, client).await?.reserved,
-    };
+    pub fn deposit_account(&self) -> &AccountId32 {
+        &self.deposit_account
+    }
 
-    let info = contract_info.as_type::<ContractInfoOf>()?;
-    Ok(ContractInfo {
-        trie_id: hex::encode(info.trie_id.0),
-        code_hash: info.code_hash,
-        storage_items: info.storage_items,
-        storage_items_deposit: info.storage_item_deposit,
-        storage_total_deposit: total_balance,
-    })
+    pub fn to_contract_info(&self, account_data: &AccountData, contract_info: &DecodedValueThunk) -> Result<ContractInfo> {
+        #[derive(DecodeAsType, Debug)]
+        #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+        pub struct BoundedVec<T>(pub ::std::vec::Vec<T>);
+        #[derive(DecodeAsType, Debug)]
+        #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+        struct ContractInfoOf {
+            trie_id: BoundedVec<u8>,
+            code_hash: CodeHash,
+            storage_items: u32,
+            storage_item_deposit: Balance,
+        }
+        let total_balance =
+            match self.version {
+                Self::V11 => account_data.free,
+                Self::V15 => account_data.reserved
+            };
+
+        let info = contract_info.as_type::<ContractInfoOf>()?;
+        Ok(ContractInfo {
+            trie_id: hex::encode(info.trie_id.0),
+            code_hash: info.code_hash,
+            storage_items: info.storage_items,
+            storage_items_deposit: info.storage_item_deposit,
+            storage_total_deposit: total_balance,
+        })
+    }
 }
 
 #[derive(serde::Serialize)]
