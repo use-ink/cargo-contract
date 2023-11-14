@@ -45,7 +45,7 @@ assert_cmd = "2.0.12"
 regex = "1.10.2"
 predicates = "3.0.4"
 tempfile = "3.8.1"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [features]
 integration-tests = []
