@@ -28,7 +28,7 @@ colored = "2.0.4"
 serde = { version = "1.0.192", default-features = false, features = ["derive"] }
 serde_json = "1.0.108"
 url = { version = "2.4.1", features = ["serde"] }
-rust_decimal = "1.32"
+rust_decimal = "1.33"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sp-core = "22.0.0"
 sp-runtime = "25.0.0"
