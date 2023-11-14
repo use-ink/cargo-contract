@@ -55,7 +55,7 @@ use subxt::{
     scale_encode::EncodeAsType,
     Debug,
 )]
-#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 /// A custom event emitted by the contract.
 pub struct ContractEmitted {
@@ -76,7 +76,7 @@ impl StaticEvent for ContractEmitted {
     scale_decode::DecodeAsType,
     scale_encode::EncodeAsType,
 )]
-#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct ContractInstantiated {
     /// Account id of the deployer.
@@ -97,7 +97,7 @@ impl StaticEvent for ContractInstantiated {
     scale_decode::DecodeAsType,
     scale_encode::EncodeAsType,
 )]
-#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct CodeStored {
     /// Hash under which the contract code was stored.
@@ -116,7 +116,7 @@ impl StaticEvent for CodeStored {
     scale_decode::DecodeAsType,
     scale_encode::EncodeAsType,
 )]
-#[decode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_decode")]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct CodeRemoved {
     pub code_hash: CodeHash,
@@ -128,6 +128,7 @@ impl StaticEvent for CodeRemoved {
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "CodeRemoved";
 }
+
 /// Field that represent data of an event from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Field {

@@ -58,7 +58,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    ext::scale_encode,
+    ext::{
+        codec::Compact,
+        scale_encode,
+    },
     Config,
     OnlineClient,
 };
@@ -201,10 +204,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             storage_deposit_limit: self
                 .opts
                 .extrinsic_opts
-                .storage_deposit_limit()
-                .as_ref()
-                .map(|bv| bv.denominate_balance(&token_metadata))
-                .transpose()?,
+                .storage_deposit_limit_balance(&token_metadata)?,
             code,
             data,
             salt,
@@ -374,7 +374,7 @@ impl InstantiateExec {
             InstantiateWithCode {
                 value: self.args.value,
                 gas_limit,
-                storage_deposit_limit: self.args.storage_deposit_limit,
+                storage_deposit_limit: self.args.storage_deposit_limit_compact(),
                 code,
                 data: self.args.data.clone(),
                 salt: self.args.salt.clone(),
@@ -413,7 +413,7 @@ impl InstantiateExec {
             Instantiate {
                 value: self.args.value,
                 gas_limit,
-                storage_deposit_limit: self.args.storage_deposit_limit,
+                storage_deposit_limit: self.args.storage_deposit_limit_compact(),
                 code: code_hash,
                 data: self.args.data.clone(),
                 salt: self.args.salt.clone(),
@@ -583,26 +583,26 @@ pub enum Code {
 }
 
 /// A raw call to `pallet-contracts`'s `instantiate_with_code`.
-#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
-#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+#[derive(Debug, scale_encode::EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct InstantiateWithCode {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<Compact<Balance>>,
     code: Vec<u8>,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
 
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
-#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
-#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+#[derive(Debug, scale_encode::EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct Instantiate {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<Compact<Balance>>,
     code: CodeHash,
     data: Vec<u8>,
     salt: Vec<u8>,

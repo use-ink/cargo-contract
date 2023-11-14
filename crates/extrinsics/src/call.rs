@@ -50,7 +50,10 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::scale_encode,
+    ext::{
+        codec::Compact,
+        scale_encode,
+    },
     utils::MultiAddress,
     Config,
     OnlineClient,
@@ -241,10 +244,7 @@ impl CallExec {
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CallRequest {
             origin: account_id(&self.signer),
             dest: self.contract.clone(),
@@ -276,10 +276,7 @@ impl CallExec {
         tracing::debug!("calling contract {:?}", self.contract);
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .compact_storage_deposit_limit(&self.token_metadata)?;
 
         let call = subxt::tx::Payload::new(
             "Contracts",
@@ -419,13 +416,13 @@ pub struct CallRequest {
 }
 
 /// A raw call to `pallet-contracts`'s `call`.
-#[derive(Debug, scale::Decode, scale::Encode, scale_encode::EncodeAsType)]
-#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+#[derive(scale_encode::EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct Call {
     dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<Compact<Balance>>,
     data: Vec<u8>,
 }

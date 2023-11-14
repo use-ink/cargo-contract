@@ -46,7 +46,10 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::scale_encode,
+    ext::{
+        codec::Compact,
+        scale_encode,
+    },
     Config,
     OnlineClient,
 };
@@ -154,10 +157,7 @@ impl UploadExec {
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CodeUploadRequest {
             origin: account_id(&self.signer),
             code: self.code.0.clone(),
@@ -174,13 +174,9 @@ impl UploadExec {
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
-        // TODO: check why enum is being used here
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .compact_storage_deposit_limit(&self.token_metadata)?;
 
         let call = subxt::tx::Payload::new(
             "Contracts",
@@ -280,10 +276,10 @@ pub enum Determinism {
 }
 
 /// A raw call to `pallet-contracts`'s `upload`.
-#[derive(Debug, scale::Encode, scale::Decode, scale_encode::EncodeAsType)]
-#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+#[derive(Debug, scale_encode::EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub struct UploadCode {
     code: Vec<u8>,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<Compact<Balance>>,
     determinism: Determinism,
 }
