@@ -154,7 +154,7 @@ impl ContractInfoRaw {
     }
 }
 
-#[derive(Debug, serde::Serialize, std::cmp::PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize)]
 pub struct ContractInfo {
     trie_id: String,
     code_hash: CodeHash,
