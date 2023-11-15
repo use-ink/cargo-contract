@@ -419,7 +419,7 @@ mod tests {
             pallet_contracts::storage::ContractInfo as ContractInfoV15,
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata.scale")
+        let metadata_bytes = std::fs::read("src/runtime_api/metadata_v15.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
