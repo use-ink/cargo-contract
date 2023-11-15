@@ -99,7 +99,7 @@ pub async fn fetch_contract_info(
 
 /// Enum representing different types of contract info, distinguishing between
 /// main account deposit and secondary account deposit.
-pub enum ContractInfoRaw {
+enum ContractInfoRaw {
     MainAccountDeposit(AccountId32, ContractInfoOf),
     SecondaryAccountDeposit(AccountId32, ContractInfoOf),
 }
@@ -267,7 +267,7 @@ struct AccountInfo {
 /// A struct used in the storage reads to access account data.
 #[derive(Clone, Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct AccountData {
+struct AccountData {
     free: Balance,
     reserved: Balance,
 }
@@ -280,7 +280,7 @@ struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 /// A struct used in the storage reads to access contract info.
 #[derive(Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct ContractInfoOf {
+struct ContractInfoOf {
     trie_id: BoundedVec<u8>,
     code_hash: CodeHash,
     storage_items: u32,
