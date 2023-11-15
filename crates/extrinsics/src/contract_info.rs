@@ -94,7 +94,8 @@ pub async fn fetch_contract_info(
     Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
-/// Struct representing contract info, supporting deposit on either the main or secondary account.
+/// Struct representing contract info, supporting deposit on either the main or secondary
+/// account.
 struct ContractInfoRaw {
     deposit_account: AccountId32,
     contract_info: ContractInfoOf,
