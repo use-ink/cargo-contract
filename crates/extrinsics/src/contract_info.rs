@@ -86,31 +86,29 @@ pub async fn fetch_contract_info(
             )
         })?;
 
-    let contract_info_raw = ContractInfoRaw::new(contract, contract_info_value)?;
-    let deposit_account = match contract_info_raw {
-        ContractInfoRaw::MainAccountDeposit(ref account, _)
-        | ContractInfoRaw::SecondaryAccountDeposit(ref account, _) => account,
-    };
+    let contract_info_raw = ContractInfoRaw::new(contract.clone(), contract_info_value)?;
+    let deposit_account = contract_info_raw.get_deposit_account();
 
     let deposit_account_data = get_account_balance(deposit_account, rpc, client).await?;
     Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
-/// Enum representing different types of contract info, distinguishing between
-/// main account deposit and secondary account deposit.
-pub enum ContractInfoRaw {
-    MainAccountDeposit(AccountId32, ContractInfoOf),
-    SecondaryAccountDeposit(AccountId32, ContractInfoOf),
+/// Struct representing contract info, supporting deposit on either the main or secondary
+/// account.
+struct ContractInfoRaw {
+    deposit_account: AccountId32,
+    contract_info: ContractInfoOf,
+    deposit_on_main_account: bool,
 }
 
 impl ContractInfoRaw {
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
     /// contract info value. Determines whether it's a main or secondary account deposit.
     pub fn new(
-        contract: &AccountId32,
+        contract_account: AccountId32,
         contract_info_value: DecodedValueThunk,
     ) -> Result<Self> {
-        let info = contract_info_value.as_type::<ContractInfoOf>()?;
+        let contract_info = contract_info_value.as_type::<ContractInfoOf>()?;
         // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
         // in a secondary account (deposit account). Other versions store it as
         // reserved balance on the main contract's account. If the
@@ -118,31 +116,40 @@ impl ContractInfoRaw {
         // the contract's deposit is in this account.
         match Self::get_deposit_account_id(&contract_info_value) {
             Ok(deposit_account) => {
-                Ok(Self::SecondaryAccountDeposit(deposit_account, info))
+                Ok(Self {
+                    deposit_account,
+                    contract_info,
+                    deposit_on_main_account: false,
+                })
             }
-            Err(_) => Ok(Self::MainAccountDeposit(contract.clone(), info)),
+            Err(_) => {
+                Ok(Self {
+                    deposit_account: contract_account,
+                    contract_info,
+                    deposit_on_main_account: true,
+                })
+            }
         }
+    }
+
+    pub fn get_deposit_account(&self) -> &AccountId32 {
+        &self.deposit_account
     }
 
     /// Convert `ContractInfoRaw` to `ContractInfo`
     pub fn into_contract_info(self, deposit: AccountData) -> ContractInfo {
-        let total_deposit = match self {
-            Self::MainAccountDeposit(_, _) => deposit.free,
-
-            Self::SecondaryAccountDeposit(_, _) => deposit.reserved,
+        let total_deposit = if self.deposit_on_main_account {
+            deposit.reserved
+        } else {
+            deposit.free
         };
 
-        match self {
-            Self::MainAccountDeposit(_, ref info)
-            | Self::SecondaryAccountDeposit(_, ref info) => {
-                ContractInfo {
-                    trie_id: hex::encode(&info.trie_id.0),
-                    code_hash: info.code_hash,
-                    storage_items: info.storage_items,
-                    storage_items_deposit: info.storage_item_deposit,
-                    storage_total_deposit: total_deposit,
-                }
-            }
+        ContractInfo {
+            trie_id: hex::encode(&self.contract_info.trie_id.0),
+            code_hash: self.contract_info.code_hash,
+            storage_items: self.contract_info.storage_items,
+            storage_items_deposit: self.contract_info.storage_item_deposit,
+            storage_total_deposit: total_deposit,
         }
     }
 
@@ -153,7 +160,7 @@ impl ContractInfoRaw {
     }
 }
 
-#[derive(Debug, serde::Serialize, std::cmp::PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize)]
 pub struct ContractInfo {
     trie_id: String,
     code_hash: CodeHash,
@@ -269,7 +276,7 @@ struct AccountInfo {
 /// A struct used in the storage reads to access account data.
 #[derive(Clone, Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct AccountData {
+struct AccountData {
     free: Balance,
     reserved: Balance,
 }
@@ -282,7 +289,7 @@ struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 /// A struct used in the storage reads to access contract info.
 #[derive(Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-pub struct ContractInfoOf {
+struct ContractInfoOf {
     trie_id: BoundedVec<u8>,
     code_hash: CodeHash,
     storage_items: u32,
@@ -377,7 +384,7 @@ mod tests {
         .expect("the contract info must be decoded");
 
         let contract = AccountId32([0u8; 32]);
-        let contract_info_raw = ContractInfoRaw::new(&contract, contract_info_thunk)
+        let contract_info_raw = ContractInfoRaw::new(contract, contract_info_thunk)
             .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
@@ -392,7 +399,7 @@ mod tests {
                 code_hash: contract_info_v11.code_hash,
                 storage_items: contract_info_v11.storage_items,
                 storage_items_deposit: contract_info_v11.storage_item_deposit,
-                storage_total_deposit: account_data.reserved,
+                storage_total_deposit: account_data.free,
             }
         );
     }
@@ -401,7 +408,7 @@ mod tests {
     fn contract_info_v15_decode_works() {
         // This version of metadata does not include the deposit_account field in
         // ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata.scale")]
+        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_v15.scale")]
         mod api_v15 {}
 
         use api_v15::runtime_types::{
@@ -442,7 +449,7 @@ mod tests {
         .expect("the contract info must be decoded");
 
         let contract = AccountId32([0u8; 32]);
-        let contract_info_raw = ContractInfoRaw::new(&contract, contract_info_thunk)
+        let contract_info_raw = ContractInfoRaw::new(contract, contract_info_thunk)
             .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
@@ -457,7 +464,7 @@ mod tests {
                 code_hash: contract_info_v15.code_hash,
                 storage_items: contract_info_v15.storage_items,
                 storage_items_deposit: contract_info_v15.storage_item_deposit,
-                storage_total_deposit: account_data.free,
+                storage_total_deposit: account_data.reserved,
             }
         );
     }

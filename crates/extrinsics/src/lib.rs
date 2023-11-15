@@ -24,7 +24,6 @@ mod events;
 mod extrinsic_opts;
 mod instantiate;
 mod remove;
-mod runtime_api;
 mod upload;
 
 #[cfg(test)]
