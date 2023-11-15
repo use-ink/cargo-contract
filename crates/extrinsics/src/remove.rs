@@ -143,11 +143,6 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         })
     }
 }
-#[derive(scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct RemoveCode {
-    code_hash: CodeHash,
-}
 
 pub struct RemoveExec {
     final_code_hash: [u8; 32],
@@ -224,4 +219,11 @@ impl RemoveExec {
 pub struct RemoveResult {
     pub code_removed: Option<CodeRemoved>,
     pub display_events: DisplayEvents,
+}
+
+/// A raw call to `pallet-contracts`'s `remove_code`.
+#[derive(scale_encode::EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+struct RemoveCode {
+    code_hash: CodeHash,
 }

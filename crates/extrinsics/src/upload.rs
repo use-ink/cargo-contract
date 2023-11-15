@@ -275,10 +275,10 @@ pub enum Determinism {
     Relaxed,
 }
 
-/// A raw call to `pallet-contracts`'s `upload`.
+/// A raw call to `pallet-contracts`'s `upload_code`.
 #[derive(Debug, scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct UploadCode {
+struct UploadCode {
     code: Vec<u8>,
     storage_deposit_limit: Option<Compact<Balance>>,
     determinism: Determinism,

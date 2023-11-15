@@ -584,7 +584,7 @@ pub enum Code {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code`.
 #[derive(Debug, scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct InstantiateWithCode {
+struct InstantiateWithCode {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
@@ -597,7 +597,7 @@ pub struct InstantiateWithCode {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct Instantiate {
+struct Instantiate {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,

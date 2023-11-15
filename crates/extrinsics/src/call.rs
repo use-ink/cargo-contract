@@ -418,7 +418,7 @@ pub struct CallRequest {
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(scale_encode::EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct Call {
+struct Call {
     dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
     #[codec(compact)]
     value: Balance,
