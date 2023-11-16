@@ -93,7 +93,6 @@ pub use remove::{
     RemoveExec,
 };
 
-use subxt::ext::scale_encode;
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
     CodeUploadRequest,
@@ -122,64 +121,38 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
     subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
-/// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
-#[derive(
-    Copy,
-    Clone,
-    Eq,
-    PartialEq,
-    Debug,
-    Default,
-    scale::Encode,
-    scale::Decode,
-    scale::MaxEncodedLen,
-    scale_encode::EncodeAsType,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct Weight {
-    #[codec(compact)]
-    /// The weight of computational time used based on some reference hardware.
-    ref_time: u64,
-    #[codec(compact)]
-    /// The weight of storage space used by proof of validity.
-    proof_size: u64,
-}
+mod ex_weight {
+    use subxt::ext::scale_encode;
 
-impl Weight {
-    /// Construct [`Weight`] from weight parts, namely reference time and proof size
-    /// weights.
-    pub const fn from_parts(ref_time: u64, proof_size: u64) -> Self {
-        Self {
-            ref_time,
-            proof_size,
+    /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
+    #[derive(Debug, scale_encode::EncodeAsType)]
+    #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+    pub(crate) struct Weight {
+        #[codec(compact)]
+        /// The weight of computational time used based on some reference hardware.
+        ref_time: u64,
+        #[codec(compact)]
+        /// The weight of storage space used by proof of validity.
+        proof_size: u64,
+    }
+
+    impl From<sp_weights::Weight> for Weight {
+        fn from(weight: sp_weights::Weight) -> Self {
+            Self {
+                ref_time: weight.ref_time(),
+                proof_size: weight.proof_size(),
+            }
         }
     }
-}
 
-impl From<sp_weights::Weight> for Weight {
-    fn from(weight: sp_weights::Weight) -> Self {
-        Self {
-            ref_time: weight.ref_time(),
-            proof_size: weight.proof_size(),
+    impl core::fmt::Display for Weight {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            write!(
+                f,
+                "Weight(ref_time: {}, proof_size: {})",
+                self.ref_time, self.proof_size
+            )
         }
-    }
-}
-
-impl From<Weight> for sp_weights::Weight {
-    fn from(weight: Weight) -> Self {
-        sp_weights::Weight::from_parts(weight.ref_time, weight.proof_size)
-    }
-}
-
-impl core::fmt::Display for Weight {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "Weight(ref_time: {}, proof_size: {})",
-            self.ref_time, self.proof_size
-        )
     }
 }
 

@@ -17,6 +17,7 @@
 use super::{
     account_id,
     events::DisplayEvents,
+    ex_weight,
     state,
     state_call,
     submit_extrinsic,
@@ -29,7 +30,6 @@ use super::{
     ErrorVariant,
     Missing,
     TokenMetadata,
-    Weight,
 };
 use crate::{
     check_env_types,
@@ -42,6 +42,7 @@ use anyhow::{
 };
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
+use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
@@ -301,7 +302,7 @@ impl CallExec {
             Call {
                 dest: self.contract.clone().into(),
                 value: self.value.denominate_balance(&self.token_metadata)?,
-                gas_limit,
+                gas_limit: gas_limit.into(),
                 storage_deposit_limit,
                 data: self.call_data.clone(),
             },
@@ -439,7 +440,7 @@ struct Call {
     dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
     #[codec(compact)]
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: ex_weight::Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
     data: Vec<u8>,
 }

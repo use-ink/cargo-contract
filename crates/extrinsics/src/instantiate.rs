@@ -20,6 +20,7 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
+    ex_weight,
     state,
     state_call,
     submit_extrinsic,
@@ -33,7 +34,6 @@ use super::{
     Missing,
     StorageDeposit,
     TokenMetadata,
-    Weight,
 };
 use crate::{
     check_env_types,
@@ -52,6 +52,7 @@ use pallet_contracts_primitives::ContractInstantiateResult;
 use core::marker::PhantomData;
 use scale::Encode;
 use sp_core::Bytes;
+use sp_weights::Weight;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -323,8 +324,8 @@ impl InstantiateExec {
                     result: value,
                     contract: ret_val.account_id.to_string(),
                     reverted: ret_val.result.did_revert(),
-                    gas_consumed: result.gas_consumed.into(),
-                    gas_required: result.gas_required.into(),
+                    gas_consumed: result.gas_consumed,
+                    gas_required: result.gas_required,
                     storage_deposit: StorageDeposit::from(&result.storage_deposit),
                 };
                 Ok(dry_run_result)
@@ -372,7 +373,7 @@ impl InstantiateExec {
             "instantiate_with_code",
             InstantiateWithCode {
                 value: self.args.value,
-                gas_limit,
+                gas_limit: gas_limit.into(),
                 storage_deposit_limit: self.args.storage_deposit_limit_compact(),
                 code,
                 data: self.args.data.clone(),
@@ -411,7 +412,7 @@ impl InstantiateExec {
             "instantiate_with_code",
             Instantiate {
                 value: self.args.value,
-                gas_limit,
+                gas_limit: gas_limit.into(),
                 storage_deposit_limit: self.args.storage_deposit_limit_compact(),
                 code: code_hash,
                 data: self.args.data.clone(),
@@ -587,7 +588,7 @@ pub enum Code {
 struct InstantiateWithCode {
     #[codec(compact)]
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: ex_weight::Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
     code: Vec<u8>,
     data: Vec<u8>,
@@ -600,7 +601,7 @@ struct InstantiateWithCode {
 struct Instantiate {
     #[codec(compact)]
     value: Balance,
-    gas_limit: Weight,
+    gas_limit: ex_weight::Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
     code: CodeHash,
     data: Vec<u8>,
