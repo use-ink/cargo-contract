@@ -125,7 +125,7 @@ pub struct ExecuteArgs {
     pub unstable_flags: UnstableFlags,
     pub optimization_passes: Option<OptimizationPasses>,
     pub keep_debug_symbols: bool,
-    pub dylint: bool,
+    pub extra_lints: bool,
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
@@ -145,7 +145,7 @@ impl Default for ExecuteArgs {
             unstable_flags: Default::default(),
             optimization_passes: Default::default(),
             keep_debug_symbols: Default::default(),
-            dylint: Default::default(),
+            extra_lints: Default::default(),
             output_type: Default::default(),
             skip_wasm_validation: Default::default(),
             target: Default::default(),
@@ -497,13 +497,13 @@ fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
     Ok(())
 }
 
-/// Run linting steps which include `clippy` (mandatory) + `dylint` (optional).
+/// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
+/// they're part of the compilation process and implement security-critical features.
 fn lint(
-    dylint: bool,
+    extra_lints: bool,
     crate_metadata: &CrateMetadata,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    // mandatory: Always run clippy.
     verbose_eprintln!(
         verbosity,
         " {} {}",
@@ -512,16 +512,14 @@ fn lint(
     );
     exec_cargo_clippy(crate_metadata, *verbosity)?;
 
-    // optional: Dylint only on demand (for now).
-    if dylint {
-        verbose_eprintln!(
-            verbosity,
-            " {} {}",
-            "[==]".bold(),
-            "Checking ink! linting rules".bright_green().bold()
-        );
-        exec_cargo_dylint(crate_metadata, *verbosity)?;
-    }
+    verbose_eprintln!(
+        verbosity,
+        " {} {}",
+        "[==]".bold(),
+        "Checking ink! linting rules".bright_green().bold()
+    );
+    exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
+
     Ok(())
 }
 
@@ -549,7 +547,11 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 ///
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
-fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
+fn exec_cargo_dylint(
+    _extra_lints: bool,
+    crate_metadata: &CrateMetadata,
+    verbosity: Verbosity,
+) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
     // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
@@ -792,7 +794,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         build_artifact,
         unstable_flags,
         optimization_passes,
-        dylint,
+        extra_lints,
         output_type,
         target,
         ..
@@ -837,7 +839,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*dylint, &crate_metadata, verbosity)?;
+            lint(*extra_lints, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -911,7 +913,7 @@ fn local_build(
         network,
         unstable_flags,
         keep_debug_symbols,
-        dylint,
+        extra_lints,
         skip_wasm_validation,
         target,
         max_memory_pages,
@@ -920,7 +922,7 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*dylint, crate_metadata, verbosity)?;
+    lint(*extra_lints, crate_metadata, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 

@@ -144,7 +144,7 @@ impl VerifyCommand {
             optimization_passes: Some(build_info.wasm_opt_settings.optimization_passes),
             keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
             image: ImageVariant::from(metadata.image.clone()),
-            dylint: false,
+            extra_lints: false,
             ..Default::default()
         };
 
