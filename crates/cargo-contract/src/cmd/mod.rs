@@ -21,6 +21,7 @@ pub mod encode;
 pub mod info;
 pub mod instantiate;
 pub mod remove;
+pub mod schema;
 pub mod upload;
 pub mod verify;
 
@@ -37,6 +38,10 @@ pub(crate) use self::{
     },
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
+    schema::{
+        GenerateSchemaCommand,
+        VerifySchemaCommand,
+    },
     upload::UploadCommand,
     verify::VerifyCommand,
 };
