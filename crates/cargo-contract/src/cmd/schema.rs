@@ -22,9 +22,9 @@ enum Metadata {
     /// Represents the outer schema format of the contract
     #[clap(name = "outer")]
     #[default]
+    Outer,
     /// Represents the inner schema format of the contract.
     /// Contains specification of the ink! contract.
-    Outer,
     #[clap(name = "inner")]
     Inner,
 }
@@ -37,23 +37,15 @@ pub struct GenerateSchemaCommand {
     metadata: Metadata,
 }
 
-/// Represents the result of schema generation
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct GenerationResult {
-    pub schema: String,
-}
-
 impl GenerateSchemaCommand {
-    pub fn run(&self) -> Result<GenerationResult> {
+    pub fn run(&self) -> Result<String> {
         let schema = match self.metadata {
             Metadata::Outer => schema_for!(ink_metadata::InkProject),
             Metadata::Inner => schema_for!(ink_metadata::ConstructorSpec),
         };
         let pretty_string = serde_json::to_string_pretty(&schema)?;
 
-        Ok(GenerationResult {
-            schema: pretty_string,
-        })
+        Ok(pretty_string)
     }
 }
 
@@ -100,7 +92,7 @@ impl VerifySchemaCommand {
             metadata_source = path.display().to_string();
         }
 
-        // 1a. Read metadata file
+        // 1b. Read metadata file
         if let Some(path) = &self.metadata {
             let file = File::open(path)
                 .context(format!("Failed to open metadata file {}", path.display()))?;
