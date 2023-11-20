@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add schema generation and verification - [#1404](https://github.com/paritytech/cargo-contract/pull/1404)
 - Compare `Environment` types against the node - [#1377](https://github.com/paritytech/cargo-contract/pull/1377)
 - Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
 - Detect `INK_STATIC_BUFFER_SIZE` env var - [#1310](https://github.com/paritytech/cargo-contract/pull/1310)
@@ -19,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
 - Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
+- Add `Storage Total Deposit` to `info` command output - [#1347](https://github.com/paritytech/cargo-contract/pull/1347)
+
+### Fixed
+- Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
 
 ## [4.0.0-alpha]
 

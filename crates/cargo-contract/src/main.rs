@@ -24,12 +24,14 @@ use self::cmd::{
     CheckCommand,
     DecodeCommand,
     ErrorVariant,
+    GenerateSchemaCommand,
     InfoCommand,
     InstantiateCommand,
     RemoveCommand,
     StorageCommand,
     UploadCommand,
     VerifyCommand,
+    VerifySchemaCommand,
 };
 use anyhow::{
     anyhow,
@@ -146,6 +148,12 @@ enum Command {
     /// workspace.
     #[clap(name = "verify")]
     Verify(VerifyCommand),
+    /// Generates schema from the current metadata specification.
+    #[clap(name = "generate-schema")]
+    GenerateSchema(GenerateSchemaCommand),
+    /// Verify schema from the current metadata specification.
+    #[clap(name = "verify-schema")]
+    VerifySchema(VerifySchemaCommand),
 }
 
 fn main() {
@@ -228,6 +236,21 @@ fn exec(cmd: Command) -> Result<()> {
             runtime.block_on(async { storage.run().await.map_err(format_err) })
         }
         Command::Verify(verify) => {
+            let result = verify.run().map_err(format_err)?;
+
+            if result.output_json {
+                println!("{}", result.serialize_json()?)
+            } else if result.verbosity.is_verbose() {
+                println!("{}", result.display())
+            }
+            Ok(())
+        }
+        Command::GenerateSchema(generate) => {
+            let result = generate.run().map_err(format_err)?;
+            println!("{}", result);
+            Ok(())
+        }
+        Command::VerifySchema(verify) => {
             let result = verify.run().map_err(format_err)?;
 
             if result.output_json {

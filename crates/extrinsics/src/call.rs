@@ -267,6 +267,23 @@ impl CallExec {
         &self,
         gas_limit: Option<Weight>,
     ) -> Result<DisplayEvents, ErrorVariant> {
+        if !self
+            .transcoder()
+            .metadata()
+            .spec()
+            .messages()
+            .iter()
+            .find(|msg| msg.label() == &self.message)
+            .expect("message exist after calling CallExec::done()")
+            .mutates()
+        {
+            let inner = anyhow!(
+                "Tried to execute a call on the immutable contract message '{}'. Please do a dry-run instead.",
+                &self.message
+            );
+            return Err(inner.into());
+        }
+
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,

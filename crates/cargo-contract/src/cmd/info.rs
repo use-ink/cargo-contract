@@ -92,11 +92,7 @@ impl InfoCommand {
                 .as_ref()
                 .expect("Contract argument was not provided");
 
-            let info_to_json =
-                rpc.fetch_contract_info(contract).await?.ok_or(anyhow!(
-                    "No contract information was found for account id {}",
-                    contract
-                ))?;
+            let info_to_json = fetch_contract_info(contract, &rpc, &client).await?;
 
             let wasm_code =
                 rpc.fetch_wasm_code(info_to_json.code_hash())
@@ -141,7 +137,8 @@ pub struct ExtendedContractInfo {
     pub trie_id: String,
     pub code_hash: CodeHash,
     pub storage_items: u32,
-    pub storage_item_deposit: Balance,
+    pub storage_items_deposit: Balance,
+    pub storage_total_deposit: Balance,
     pub source_language: String,
 }
 
@@ -155,7 +152,8 @@ impl ExtendedContractInfo {
             trie_id: contract_info.trie_id().to_string(),
             code_hash: *contract_info.code_hash(),
             storage_items: contract_info.storage_items(),
-            storage_item_deposit: contract_info.storage_item_deposit(),
+            storage_items_deposit: contract_info.storage_items_deposit(),
+            storage_total_deposit: contract_info.storage_total_deposit(),
             source_language: language,
         }
     }

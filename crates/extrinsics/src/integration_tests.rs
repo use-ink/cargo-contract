@@ -96,14 +96,14 @@ impl ContractsNodeProcess {
             );
             let result = OnlineClient::new().await;
             if let Ok(client) = result {
-                break Ok(client)
+                break Ok(client);
             }
             if attempts < MAX_ATTEMPTS {
                 attempts += 1;
-                continue
+                continue;
             }
             if let Err(err) = result {
-                break Err(err)
+                break Err(err);
             }
         };
         match client {
@@ -508,6 +508,13 @@ async fn api_build_upload_instantiate_call() {
         .unwrap()
         .to_string();
     assert!(value.contains("true"), "{:#?}", value);
+
+    // call the contract on the immutable "get" message trying to execute
+    // this should fail because "get" is immutable
+    match call.call(None).await {
+        Err(crate::ErrorVariant::Generic(_)) => {}
+        _ => panic!("immutable call was not prevented"),
+    }
 
     // call the contract
     // flip the value
