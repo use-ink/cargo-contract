@@ -22,6 +22,7 @@ use anyhow::{
 use contract_extrinsics::{
     ContractArtifacts,
     ContractStorageKey,
+    ContractStorageLayout,
     ContractStorageRpc,
     ErrorVariant,
 };
@@ -63,8 +64,7 @@ impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
         let rpc = ContractStorageRpc::new(&self.url).await?;
 
-        // todo: to be used for metadata of storage entries
-        let _contract_artifacts = ContractArtifacts::from_manifest_or_file(
+        let contract_artifacts = ContractArtifacts::from_manifest_or_file(
             self.manifest_path.as_ref(),
             self.file.as_ref(),
         )?;
@@ -72,7 +72,9 @@ impl StorageCommand {
         let contract_info = rpc.fetch_contract_info(&self.contract).await?;
 
         let trie_id = contract_info.trie_id();
-        let root_key = ContractStorageKey::new([0u8, 0, 0, 0]);
+        let storage_layout =
+            ContractStorageLayout::try_from(contract_artifacts.metadata())?;
+        let root_key = storage_layout.root_key();
 
         // todo: fetch all storage keys and map to metadata?
         let storage_keys = rpc

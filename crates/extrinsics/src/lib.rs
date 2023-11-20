@@ -74,6 +74,7 @@ pub use contract_info::{
 use contract_metadata::ContractMetadata;
 pub use contract_storage::{
     ContractStorageKey,
+    ContractStorageLayout,
     ContractStorageRpc,
 };
 pub use contract_transcode::ContractMessageTranscoder;

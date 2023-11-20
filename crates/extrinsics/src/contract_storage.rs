@@ -15,18 +15,14 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-
-use super::{
-    fetch_contract_info,
-    url_to_string,
-    Client,
-    ContractInfo,
-    DefaultConfig,
-    TrieId,
+use ink_metadata::{
+    layout::{
+        Layout,
+        LayoutKey,
+    },
+    InkProject,
 };
-
 use sp_core::storage::ChildInfo;
-use std::option::Option;
 use subxt::{
     backend::{
         legacy::{
@@ -42,6 +38,34 @@ use subxt::{
     Config,
     OnlineClient,
 };
+
+use super::{
+    fetch_contract_info,
+    url_to_string,
+    Client,
+    ContractInfo,
+    DefaultConfig,
+    TrieId,
+};
+
+pub struct ContractStorageLayout {
+    metadata: InkProject,
+    root_key: ContractStorageKey,
+}
+
+impl ContractStorageLayout {
+    pub fn new(metadata: InkProject) -> Result<Self> {
+        if let Layout::Root(root) = metadata.layout() {
+            let root_key = ContractStorageKey::from(root.root_key());
+            Ok(Self { metadata, root_key })
+        } else {
+            Err(anyhow::anyhow!("No root layout found in metadata"))
+        }
+    }
+    pub fn root_key(&self) -> &ContractStorageKey {
+        &self.root_key
+    }
+}
 
 /// Methods for querying contracts over RPC.
 pub struct ContractStorageRpc {
@@ -123,13 +147,23 @@ impl ContractStorageRpc {
 
 /// Represents a 32 bit storage key within a contract's storage.
 pub struct ContractStorageKey {
-    raw: [u8; 4],
+    raw: u32,
+}
+
+impl From<&LayoutKey> for ContractStorageKey {
+    fn from(key: &LayoutKey) -> Self {
+        Self { raw: *key.key() }
+    }
 }
 
 impl ContractStorageKey {
     /// Create a new instance of the ContractStorageKey.
-    pub fn new(raw: [u8; 4]) -> Self {
+    pub fn new(raw: u32) -> Self {
         Self { raw }
+    }
+
+    pub fn bytes(&self) -> [u8; 4] {
+        self.raw.to_be_bytes()
     }
 
     /// Returns the hex encoded hashed `blake2_128_concat` representation of the storage
@@ -141,13 +175,13 @@ impl ContractStorageKey {
         };
 
         let mut blake2_128 = blake2::Blake2b::<U16>::new();
-        blake2_128.update(&self.raw);
+        blake2_128.update(&self.bytes());
         let result = blake2_128.finalize();
 
         let concat = result
             .as_slice()
             .iter()
-            .chain(self.raw.iter())
+            .chain(self.bytes().iter())
             .cloned()
             .collect::<Vec<_>>();
 
