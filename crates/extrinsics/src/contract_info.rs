@@ -22,7 +22,6 @@ use anyhow::{
 use super::{
     get_best_block,
     runtime_api::api,
-    url_to_string,
     Balance,
     Client,
     CodeHash,
@@ -30,7 +29,6 @@ use super::{
 };
 
 use scale::Decode;
-use sp_core::storage::PrefixedStorageKey;
 use std::option::Option;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
@@ -41,31 +39,7 @@ use subxt::{
     },
     storage::dynamic,
     utils::AccountId32,
-    Config,
-    OnlineClient,
 };
-
-/// Methods for querying contracts over RPC.
-pub struct ContractInfoRpc {
-    rpc_client: RpcClient,
-    rpc_methods: LegacyRpcMethods<DefaultConfig>,
-    client: Client,
-}
-
-impl ContractInfoRpc {
-    /// Create a new instance of the ContractsRpc.
-    pub async fn new(url: &url::Url) -> Result<Self> {
-        let rpc_client = RpcClient::from_url(url_to_string(&url)).await?;
-        let client =
-            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_client.clone()).await?;
-        let rpc_methods = LegacyRpcMethods::<DefaultConfig>::new(rpc_client.clone());
-
-        Ok(Self {
-            rpc_client,
-            rpc_methods,
-            client,
-        })
-    }
 
 /// Return the account data for an account ID.
 async fn get_account_balance(
@@ -226,18 +200,29 @@ impl ContractInfo {
     pub fn storage_total_deposit(&self) -> Balance {
         self.storage_total_deposit
     }
+}
 
-    /// Get the prefixed storage key for the contract, used to access the contract's
-    /// storage
-    pub fn prefixed_storage_key(&self) -> PrefixedStorageKey {
-        let trie_id = hex::decode(&self.trie_id)
-            .expect("trie_id should be valid hex encoded bytes.");
-        sp_core::storage::ChildInfo::new_default(&trie_id).into_prefixed_storage_key()
-    }
+/// Fetch the contract wasm code from the storage using the provided client and code hash.
+pub async fn fetch_wasm_code(
+    client: &Client,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
+    hash: &CodeHash,
+) -> Result<Option<Vec<u8>>> {
+    let pristine_code_address = api::storage().contracts().pristine_code(hash);
+    let best_block = get_best_block(rpc).await?;
+
+    let pristine_bytes = client
+        .storage()
+        .at(best_block)
+        .fetch(&pristine_code_address)
+        .await?
+        .map(|v| v.0);
+
+    Ok(pristine_bytes)
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
-/// malformed.
+/// malformated.
 fn parse_contract_account_address(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
@@ -251,38 +236,32 @@ fn parse_contract_account_address(
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
-/// Represents a 32 bit storage key within a contract's storage.
-pub struct ContractStorageKey {
-    raw: [u8; 4],
-}
+/// Fetch all contract addresses from the storage using the provided client and count of
+/// requested elements starting from an optional address
+pub async fn fetch_all_contracts(
+    client: &Client,
+    rpc: &LegacyRpcMethods<DefaultConfig>,
+) -> Result<Vec<AccountId32>> {
+    let root_key = api::storage()
+        .contracts()
+        .contract_info_of_iter()
+        .to_root_bytes();
 
-impl ContractStorageKey {
-    /// Create a new instance of the ContractStorageKey.
-    pub fn new(raw: [u8; 4]) -> Self {
-        Self { raw }
+    let best_block = get_best_block(rpc).await?;
+    let mut keys = client
+        .storage()
+        .at(best_block)
+        .fetch_raw_keys(root_key.clone())
+        .await?;
+
+    let mut contract_accounts = Vec::new();
+    while let Some(result) = keys.next().await {
+        let key = result?;
+        let contract_account = parse_contract_account_address(&key, root_key.len())?;
+        contract_accounts.push(contract_account);
     }
 
-    /// Returns the hex encoded hashed `blake2_128_concat` representation of the storage
-    /// key.
-    pub fn hashed_to_hex(&self) -> String {
-        use blake2::digest::{
-            consts::U16,
-            Digest as _,
-        };
-
-        let mut blake2_128 = blake2::Blake2b::<U16>::new();
-        blake2_128.update(&self.raw);
-        let result = blake2_128.finalize();
-
-        let concat = result
-            .as_slice()
-            .iter()
-            .chain(self.raw.iter())
-            .cloned()
-            .collect::<Vec<_>>();
-
-        hex::encode(concat)
-    }
+    Ok(contract_accounts)
 }
 
 /// A struct used in the storage reads to access account info.
