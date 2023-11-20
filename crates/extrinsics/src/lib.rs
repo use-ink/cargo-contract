@@ -18,6 +18,7 @@ mod balance;
 mod call;
 mod contract_artifacts;
 mod contract_info;
+mod contract_storage;
 mod env_check;
 mod error;
 mod events;
@@ -64,11 +65,17 @@ pub use call::{
 };
 pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{
+    fetch_all_contracts,
+    fetch_contract_info,
+    fetch_wasm_code,
     ContractInfo,
-    ContractInfoRpc,
-    ContractStorageKey,
+    TrieId,
 };
 use contract_metadata::ContractMetadata;
+pub use contract_storage::{
+    ContractStorageKey,
+    ContractStorageRpc,
+};
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::{
     ErrorVariant,

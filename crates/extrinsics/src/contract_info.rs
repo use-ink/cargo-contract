@@ -14,11 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::{
-    anyhow,
-    Result,
-};
-
 use super::{
     get_best_block,
     runtime_api::api,
@@ -27,6 +22,11 @@ use super::{
     CodeHash,
     DefaultConfig,
 };
+use anyhow::{
+    anyhow,
+    Result,
+};
+use contract_metadata::byte_str::serialize_as_byte_str;
 
 use scale::Decode;
 use std::option::Option;
@@ -146,7 +146,7 @@ impl ContractInfoRaw {
         };
 
         ContractInfo {
-            trie_id: hex::encode(&self.contract_info.trie_id.0),
+            trie_id: self.contract_info.trie_id.0.into(),
             code_hash: self.contract_info.code_hash,
             storage_items: self.contract_info.storage_items,
             storage_items_deposit: self.contract_info.storage_item_deposit,
@@ -163,7 +163,7 @@ impl ContractInfoRaw {
 
 #[derive(Debug, PartialEq, serde::Serialize)]
 pub struct ContractInfo {
-    trie_id: String,
+    trie_id: TrieId,
     code_hash: CodeHash,
     storage_items: u32,
     storage_items_deposit: Balance,
@@ -177,7 +177,7 @@ impl ContractInfo {
     }
 
     /// Return the trie_id of the contract.
-    pub fn trie_id(&self) -> &str {
+    pub fn trie_id(&self) -> &TrieId {
         &self.trie_id
     }
 
@@ -199,6 +199,32 @@ impl ContractInfo {
     /// Return the storage item deposit of the contract.
     pub fn storage_total_deposit(&self) -> Balance {
         self.storage_total_deposit
+    }
+}
+
+/// A contract's child trie id.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct TrieId {
+    #[serde(serialize_with = "serialize_as_byte_str")]
+    raw: Vec<u8>,
+}
+
+impl From<Vec<u8>> for TrieId {
+    fn from(raw: Vec<u8>) -> Self {
+        Self { raw }
+    }
+}
+
+impl AsRef<[u8]> for TrieId {
+    fn as_ref(&self) -> &[u8] {
+        &self.raw
+    }
+}
+
+impl TrieId {
+    /// Encode the trie id as hex string.
+    pub fn to_hex(&self) -> String {
+        hex::encode(&self.raw)
     }
 }
 
@@ -393,7 +419,7 @@ mod tests {
         assert_eq!(
             contract_info,
             ContractInfo {
-                trie_id: hex::encode(contract_info_v11.trie_id.0),
+                trie_id: contract_info_v11.trie_id.0.into(),
                 code_hash: contract_info_v11.code_hash,
                 storage_items: contract_info_v11.storage_items,
                 storage_items_deposit: contract_info_v11.storage_item_deposit,
@@ -458,7 +484,7 @@ mod tests {
         assert_eq!(
             contract_info,
             ContractInfo {
-                trie_id: hex::encode(contract_info_v15.trie_id.0),
+                trie_id: contract_info_v15.trie_id.0.into(),
                 code_hash: contract_info_v15.code_hash,
                 storage_items: contract_info_v15.storage_items,
                 storage_items_deposit: contract_info_v15.storage_item_deposit,

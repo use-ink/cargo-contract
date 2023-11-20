@@ -33,6 +33,7 @@ use contract_extrinsics::{
     CodeHash,
     ContractInfo,
     ErrorVariant,
+    TrieId,
 };
 use std::{
     fmt::Debug,
@@ -146,7 +147,7 @@ impl InfoCommand {
 
 #[derive(serde::Serialize)]
 pub struct ExtendedContractInfo {
-    pub trie_id: String,
+    pub trie_id: TrieId,
     pub code_hash: CodeHash,
     pub storage_items: u32,
     pub storage_items_deposit: Balance,
@@ -161,7 +162,7 @@ impl ExtendedContractInfo {
             None => "Unknown".to_string(),
         };
         ExtendedContractInfo {
-            trie_id: contract_info.trie_id().to_string(),
+            trie_id: contract_info.trie_id().clone(),
             code_hash: *contract_info.code_hash(),
             storage_items: contract_info.storage_items(),
             storage_items_deposit: contract_info.storage_items_deposit(),

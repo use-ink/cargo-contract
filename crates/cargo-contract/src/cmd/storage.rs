@@ -21,8 +21,8 @@ use anyhow::{
 };
 use contract_extrinsics::{
     ContractArtifacts,
-    ContractInfoRpc,
     ContractStorageKey,
+    ContractStorageRpc,
     ErrorVariant,
 };
 use std::{
@@ -61,7 +61,7 @@ pub struct StorageCommand {
 
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractInfoRpc::new(&self.url).await?;
+        let rpc = ContractStorageRpc::new(&self.url).await?;
 
         // todo: to be used for metadata of storage entries
         let _contract_artifacts = ContractArtifacts::from_manifest_or_file(
@@ -69,20 +69,14 @@ impl StorageCommand {
             self.file.as_ref(),
         )?;
 
-        let contract_info =
-            rpc.fetch_contract_info(&self.contract)
-                .await?
-                .ok_or(anyhow!(
-                    "No contract information was found for account id {}",
-                    self.contract
-                ))?;
+        let contract_info = rpc.fetch_contract_info(&self.contract).await?;
 
-        let child_storage_key = contract_info.prefixed_storage_key();
+        let trie_id = contract_info.trie_id();
         let root_key = ContractStorageKey::new([0u8, 0, 0, 0]);
 
         // todo: fetch all storage keys and map to metadata?
         let storage_keys = rpc
-            .fetch_storage_keys_paged(&child_storage_key, None, 100, None, None)
+            .fetch_storage_keys_paged(trie_id, None, 100, None, None)
             .await?;
 
         for storage_key in storage_keys {
@@ -90,7 +84,7 @@ impl StorageCommand {
         }
 
         let root_storage = rpc
-            .fetch_contract_storage(&child_storage_key, &root_key, None)
+            .fetch_contract_storage(trie_id, &root_key, None)
             .await?
             .ok_or(anyhow!(
                 "No contract storage was found for account id {}",
