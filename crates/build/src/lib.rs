@@ -94,9 +94,7 @@ use parity_wasm::elements::{
 };
 use semver::Version;
 use std::{
-    collections::VecDeque,
     fs,
-    io,
     path::{
         Path,
         PathBuf,
@@ -344,10 +342,13 @@ fn exec_cargo_for_onchain_target(
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };
 
-        let cargo =
-            util::cargo_cmd(command, &args, manifest_path.directory(), *verbosity, env);
-
-        invoke_cargo_and_scan_for_error(cargo)
+        execute_cargo(util::cargo_cmd(
+            command,
+            &args,
+            manifest_path.directory(),
+            *verbosity,
+            env,
+        ))
     };
 
     if unstable_flags.original_manifest {
@@ -432,7 +433,7 @@ fn check_buffer_size_invoke_cargo_clean(
                     "Detected a change in the configured buffer size. Rebuilding the project."
                         .bold()
                 );
-                invoke_cargo_and_scan_for_error(cargo)?;
+                execute_cargo(cargo)?;
             }
             Err(_) => {
                 verbose_eprintln!(
@@ -442,7 +443,7 @@ fn check_buffer_size_invoke_cargo_clean(
                     "Cannot find the previous size of the static buffer. Rebuilding the project."
                         .bold()
                 );
-                invoke_cargo_and_scan_for_error(cargo)?;
+                execute_cargo(cargo)?;
             }
         }
     }
@@ -451,50 +452,19 @@ fn check_buffer_size_invoke_cargo_clean(
 
 /// Executes the supplied cargo command, reading the output and scanning for known errors.
 /// Writes the captured stderr back to stderr and maintains the cargo tty progress bar.
-fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
-    macro_rules! eprintln_red {
-        ($value:expr) => {{
-            use colored::Colorize as _;
-            ::std::eprintln!("{}", $value.bright_red().bold());
-        }};
+fn execute_cargo(cargo: duct::Expression) -> Result<()> {
+    match util::cargo_tty_output(cargo)
+        .unchecked()
+        .stderr_capture()
+        .run()
+    {
+        Ok(out) if out.status.success() => Ok(()),
+        Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),
+        Err(e) => {
+            dbg!(e);
+            anyhow::bail!("Cannot run `cargo` command")
+        }
     }
-
-    // unchecked: Even capture output on non exit return status
-    let cargo = util::cargo_tty_output(cargo).unchecked();
-
-    let missing_main_err = "error[E0601]".as_bytes();
-    let mut err_buf = VecDeque::with_capacity(missing_main_err.len());
-
-    let mut reader = cargo.stderr_to_stdout().reader()?;
-    let mut buffer = [0u8; 1];
-
-    loop {
-        let bytes_read = io::Read::read(&mut reader, &mut buffer)?;
-        for byte in buffer[0..bytes_read].iter() {
-            err_buf.push_back(*byte);
-            if err_buf.len() > missing_main_err.len() {
-                let byte = err_buf.pop_front().expect("buffer is not empty");
-                io::Write::write(&mut io::stderr(), &[byte])?;
-            }
-        }
-        if missing_main_err == err_buf.make_contiguous() {
-            eprintln_red!("\nExited with error: [E0601]");
-            eprintln_red!(
-                "Your contract must be annotated with the `no_main` attribute.\n"
-            );
-            eprintln_red!("Examples how to do this:");
-            eprintln_red!("   - `#![cfg_attr(not(feature = \"std\"), no_std, no_main)]`");
-            eprintln_red!("   - `#[no_main]`\n");
-            return Err(anyhow::anyhow!("missing `no_main` attribute"))
-        }
-        if bytes_read == 0 {
-            // flush the remaining buffered bytes
-            io::Write::write(&mut io::stderr(), err_buf.make_contiguous())?;
-            break
-        }
-        buffer = [0u8; 1];
-    }
-    Ok(())
 }
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
@@ -534,7 +504,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         "-Dclippy::arithmetic_side_effects",
     ];
     // we execute clippy with the plain manifest no temp dir required
-    invoke_cargo_and_scan_for_error(util::cargo_cmd(
+    execute_cargo(util::cargo_cmd(
         "clippy",
         args,
         crate_metadata.manifest_path.directory(),
