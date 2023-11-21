@@ -67,6 +67,18 @@ impl ContractStorageLayout {
     }
 }
 
+impl TryFrom<contract_metadata::ContractMetadata> for ContractStorageLayout {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        metadata: contract_metadata::ContractMetadata,
+    ) -> Result<Self, Self::Error> {
+        let ink_project =
+            serde_json::from_value(serde_json::Value::Object(metadata.abi))?;
+        Self::new(ink_project)
+    }
+}
+
 /// Methods for querying contracts over RPC.
 pub struct ContractStorageRpc {
     rpc_client: RpcClient,

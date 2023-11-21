@@ -73,7 +73,7 @@ impl StorageCommand {
 
         let trie_id = contract_info.trie_id();
         let storage_layout =
-            ContractStorageLayout::try_from(contract_artifacts.metadata())?;
+            ContractStorageLayout::try_from(contract_artifacts.metadata()?)?;
         let root_key = storage_layout.root_key();
 
         // todo: fetch all storage keys and map to metadata?
