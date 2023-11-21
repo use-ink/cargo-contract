@@ -34,6 +34,7 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::UploadCode,
     extrinsic_opts::ExtrinsicOpts,
 };
 use anyhow::Result;
@@ -46,10 +47,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::{
-        codec::Compact,
-        scale_encode,
-    },
+    ext::scale_encode,
     Config,
     OnlineClient,
 };
@@ -176,17 +174,14 @@ impl UploadExec {
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
         let storage_deposit_limit = self
             .opts
-            .compact_storage_deposit_limit(&self.token_metadata)?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
 
-        let call = subxt::tx::Payload::new(
-            "Contracts",
-            "upload_code",
-            UploadCode {
-                code: self.code.0.clone(),
-                storage_deposit_limit,
-                determinism: Determinism::Enforced,
-            },
-        );
+        let call = UploadCode::new(
+            self.code.clone(),
+            storage_deposit_limit,
+            Determinism::Enforced,
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -273,13 +268,4 @@ pub enum Determinism {
     ///
     /// **Never** use this mode for on-chain execution.
     Relaxed,
-}
-
-/// A raw call to `pallet-contracts`'s `upload_code`.
-#[derive(Debug, scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct UploadCode {
-    code: Vec<u8>,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    determinism: Determinism,
 }

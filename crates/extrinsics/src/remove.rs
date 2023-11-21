@@ -29,7 +29,11 @@ use super::{
     Missing,
     TokenMetadata,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    extrinsic_calls::RemoveCode,
+    extrinsic_opts::ExtrinsicOpts,
+};
+
 use anyhow::Result;
 use core::marker::PhantomData;
 use subxt::{
@@ -37,7 +41,6 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::scale_encode,
     Config,
     OnlineClient,
 };
@@ -167,8 +170,7 @@ impl RemoveExec {
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);
 
-        let call =
-            subxt::tx::Payload::new("Contracts", "remove_code", RemoveCode { code_hash });
+        let call = RemoveCode::new(code_hash).build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -219,11 +221,4 @@ impl RemoveExec {
 pub struct RemoveResult {
     pub code_removed: Option<CodeRemoved>,
     pub display_events: DisplayEvents,
-}
-
-/// A raw call to `pallet-contracts`'s `remove_code`.
-#[derive(scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct RemoveCode {
-    code_hash: CodeHash,
 }

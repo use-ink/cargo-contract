@@ -20,7 +20,6 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
-    ex_weight,
     state,
     state_call,
     submit_extrinsic,
@@ -37,6 +36,10 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::{
+        Instantiate,
+        InstantiateWithCode,
+    },
     extrinsic_opts::ExtrinsicOpts,
 };
 use anyhow::{
@@ -59,10 +62,6 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    ext::{
-        codec::Compact,
-        scale_encode,
-    },
     Config,
     OnlineClient,
 };
@@ -368,18 +367,16 @@ impl InstantiateExec {
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = subxt::tx::Payload::new(
-            "Contracts",
-            "instantiate_with_code",
-            InstantiateWithCode {
-                value: self.args.value,
-                gas_limit: gas_limit.into(),
-                storage_deposit_limit: self.args.storage_deposit_limit_compact(),
+        let call =
+            InstantiateWithCode::new(
+                self.args.value,
+                gas_limit,
+                self.args.storage_deposit_limit,
                 code,
-                data: self.args.data.clone(),
-                salt: self.args.salt.clone(),
-            },
-        );
+                self.args.data.clone(),
+                self.args.salt.clone(),
+            )
+            .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -407,18 +404,16 @@ impl InstantiateExec {
         code_hash: CodeHash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = subxt::tx::Payload::new(
-            "Contracts",
-            "instantiate_with_code",
-            Instantiate {
-                value: self.args.value,
-                gas_limit: gas_limit.into(),
-                storage_deposit_limit: self.args.storage_deposit_limit_compact(),
-                code: code_hash,
-                data: self.args.data.clone(),
-                salt: self.args.salt.clone(),
-            },
-        );
+        let call =
+            Instantiate::new(
+                self.args.value,
+                gas_limit,
+                self.args.storage_deposit_limit,
+                code_hash,
+                self.args.data.clone(),
+                self.args.salt.clone(),
+            )
+            .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -481,12 +476,13 @@ impl InstantiateExec {
                     Ok(_) => {
                         // use user specified values where provided, otherwise use the
                         // estimates
-                        let ref_time = self.args.gas_limit.unwrap_or_else(|| {
-                            instantiate_result.gas_required.ref_time()
-                        });
-                        let proof_size = self.args.proof_size.unwrap_or_else(|| {
-                            instantiate_result.gas_required.proof_size()
-                        });
+                        let ref_time =
+                            self.args.gas_limit.unwrap_or_else(
+                                || instantiate_result.gas_required.ref_time()
+                            );
+                        let proof_size = self.args.proof_size.unwrap_or_else(
+                            || instantiate_result.gas_required.proof_size()
+                        );
                         Ok(Weight::from_parts(ref_time, proof_size))
                     }
                     Err(ref err) => {
@@ -580,30 +576,4 @@ pub enum Code {
     Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
     Existing(<DefaultConfig as Config>::Hash),
-}
-
-/// A raw call to `pallet-contracts`'s `instantiate_with_code`.
-#[derive(Debug, scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct InstantiateWithCode {
-    #[codec(compact)]
-    value: Balance,
-    gas_limit: ex_weight::Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    code: Vec<u8>,
-    data: Vec<u8>,
-    salt: Vec<u8>,
-}
-
-/// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
-#[derive(Debug, scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct Instantiate {
-    #[codec(compact)]
-    value: Balance,
-    gas_limit: ex_weight::Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    code: CodeHash,
-    data: Vec<u8>,
-    salt: Vec<u8>,
 }

@@ -21,6 +21,7 @@ mod contract_info;
 mod env_check;
 mod error;
 mod events;
+mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 mod remove;
@@ -106,7 +107,7 @@ pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// The Wasm code of a contract.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WasmCode(Vec<u8>);
 
 impl WasmCode {
@@ -207,12 +208,13 @@ where
         .chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))?;
-    let account_nonce = client
-        .blocks()
-        .at(best_block)
-        .await?
-        .account_nonce(account_id)
-        .await?;
+    let account_nonce =
+        client
+            .blocks()
+            .at(best_block)
+            .await?
+            .account_nonce(account_id)
+            .await?;
     Ok(account_nonce)
 }
 

@@ -17,7 +17,6 @@
 use super::{
     account_id,
     events::DisplayEvents,
-    ex_weight,
     state,
     state_call,
     submit_extrinsic,
@@ -33,6 +32,7 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::Call,
     extrinsic_opts::ExtrinsicOpts,
 };
 
@@ -51,11 +51,6 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::{
-        codec::Compact,
-        scale_encode,
-    },
-    utils::MultiAddress,
     Config,
     OnlineClient,
 };
@@ -294,19 +289,17 @@ impl CallExec {
         tracing::debug!("calling contract {:?}", self.contract);
         let storage_deposit_limit = self
             .opts
-            .compact_storage_deposit_limit(&self.token_metadata)?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
 
-        let call = subxt::tx::Payload::new(
-            "Contracts",
-            "call",
-            Call {
-                dest: self.contract.clone().into(),
-                value: self.value.denominate_balance(&self.token_metadata)?,
-                gas_limit: gas_limit.into(),
+        let call =
+            Call::new(
+                self.contract.clone().into(),
+                self.value.denominate_balance(&self.token_metadata)?,
+                gas_limit,
                 storage_deposit_limit,
-                data: self.call_data.clone(),
-            },
-        );
+                self.call_data.clone(),
+            )
+            .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -431,16 +424,4 @@ pub struct CallRequest {
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,
     input_data: Vec<u8>,
-}
-
-/// A raw call to `pallet-contracts`'s `call`.
-#[derive(scale_encode::EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-struct Call {
-    dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
-    #[codec(compact)]
-    value: Balance,
-    gas_limit: ex_weight::Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    data: Vec<u8>,
 }
