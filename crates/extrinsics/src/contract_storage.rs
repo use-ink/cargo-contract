@@ -15,15 +15,17 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
+use async_recursion::async_recursion;
+use contract_metadata::byte_str;
 use ink_metadata::{
     layout::{
         Layout,
         LayoutKey,
-        RootLayout,
     },
     InkProject,
 };
 use scale_info::form::PortableForm;
+use serde::Serialize;
 use sp_core::storage::ChildInfo;
 use std::fmt::Display;
 use subxt::{
@@ -56,18 +58,6 @@ use super::{
     TrieId,
 };
 
-#[derive(serde::Serialize)]
-pub struct ContractStorage {
-    root: ContractStorageCell,
-}
-
-#[derive(serde::Serialize)]
-
-pub struct ContractStorageCell {
-    key: String,
-    value: String,
-}
-
 pub struct ContractStorageLayout<C: Config = DefaultConfig> {
     metadata: InkProject,
     rpc: ContractStorageRpc<C>,
@@ -87,30 +77,85 @@ where
         &self,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorage> {
-        let root_layout = if let Layout::Root(root_layout) = self.metadata.layout() {
-            Ok(root_layout)
-        } else {
-            Err(anyhow::anyhow!("No root layout found in metadata"))
-        }?;
-
-        let root_key = ContractStorageKey::from(root_layout.root_key());
         let contract_info = self.rpc.fetch_contract_info(&contract_account).await?;
         let trie_id = contract_info.trie_id();
 
-        let root_storage = self
-            .rpc
-            .fetch_contract_storage(trie_id, &root_key, None)
-            .await?
-            .ok_or(anyhow::anyhow!(
-                "No contract storage was found for account id {}",
-                contract_account
-            ))?;
-        let root_cell = ContractStorageCell {
-            key: root_key.hashed_to_hex(),
-            value: hex::encode(root_storage),
-        };
-        let contract_storage = ContractStorage { root: root_cell };
+        let cells = self.load_storage_cells(trie_id, self.metadata.layout()).await?;
+
+        let contract_storage = ContractStorage { cells };
         Ok(contract_storage)
+    }
+
+    #[async_recursion]
+    async fn load_storage_cells(&self, trie_id: &TrieId, layout: &Layout<PortableForm>) -> Result<Vec<ContractStorageCell>> {
+        match layout {
+            Layout::Leaf(leaf) => {
+                let key = ContractStorageKey::from(leaf.key());
+                let value = self
+                    .rpc
+                    .fetch_contract_storage(trie_id, &key, None)
+                    .await?;
+                Ok(vec![ContractStorageCell::new(key, value)])
+            },
+            Layout::Root(root) => {
+                let root_key = ContractStorageKey::from(root.root_key());
+                let root_storage = self
+                    .rpc
+                    .fetch_contract_storage(trie_id, &root_key, None)
+                    .await?;
+                let cell = ContractStorageCell::new(root_key, root_storage);
+                let mut cells = self.load_storage_cells(trie_id, root.layout()).await?;
+                vec![cell].append(&mut cells);
+                Ok(cells)
+            }
+            Layout::Hash(_) => { unimplemented!("Hash layout not currently constructed for ink! contracts") },
+            Layout::Array(_array) => {
+                todo!("struct")
+                // let key = ContractStorageKey::from(array.key());
+                // let value = self
+                //     .rpc
+                //     .fetch_contract_storage(trie_id, &key, None)
+                //     .await?;
+            },
+            Layout::Struct(_) => todo!("struct"),
+            Layout::Enum(_) => todo!("enum"),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ContractStorage {
+    cells: Vec<ContractStorageCell>,
+}
+
+#[derive(Serialize)]
+
+pub struct ContractStorageCell {
+    key: ContractStorageKey,
+    value: Option<ContractStorageValue>,
+}
+
+impl ContractStorageCell {
+    pub fn new(key: ContractStorageKey, value: Option<Vec<u8>>) -> Self {
+        Self { key, value: value.map(Into::into) }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ContractStorageValue {
+    #[serde(serialize_with = "byte_str::serialize_as_byte_str")]
+    bytes: Vec<u8>,
+}
+
+impl From<Vec<u8>> for ContractStorageValue {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+}
+
+impl AsRef<[u8]> for ContractStorageValue {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes
     }
 }
 
@@ -197,8 +242,15 @@ where
 }
 
 /// Represents a 32 bit storage key within a contract's storage.
+#[derive(Serialize)]
 pub struct ContractStorageKey {
     raw: u32,
+}
+
+impl Display for ContractStorageKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.raw)
+    }
 }
 
 impl From<&LayoutKey> for ContractStorageKey {
