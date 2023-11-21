@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn contract_info_v11_decode_works() {
         // This version of metadata includes the deposit_account field in ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_v11.scale")]
+        #[subxt::subxt(runtime_metadata_path = "src/test_runtime_api/metadata_v11.scale")]
         mod api_v11 {}
 
         use api_v11::runtime_types::{
@@ -354,7 +354,7 @@ mod tests {
             },
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_v11.scale")
+        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v11.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
@@ -408,7 +408,7 @@ mod tests {
     fn contract_info_v15_decode_works() {
         // This version of metadata does not include the deposit_account field in
         // ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_v15.scale")]
+        #[subxt::subxt(runtime_metadata_path = "src/test_runtime_api/metadata_v15.scale")]
         mod api_v15 {}
 
         use api_v15::runtime_types::{
@@ -419,7 +419,7 @@ mod tests {
             pallet_contracts::storage::ContractInfo as ContractInfoV15,
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_v15.scale")
+        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v15.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
