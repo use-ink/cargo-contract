@@ -25,6 +25,7 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
+use ink_metadata::InkProject;
 use std::path::{
     Path,
     PathBuf,
@@ -140,6 +141,20 @@ impl ContractArtifacts {
                 self.metadata_path.as_path().display()
             )
         })
+    }
+
+    /// Get the deserialized [`InkProject`] metadata.
+    ///
+    /// ## Errors
+    /// - No contract metadata could be found.
+    /// - Invalid contract metadata.
+    pub fn ink_project_metadata(&self) -> Result<InkProject> {
+        let metadata = self.metadata()?;
+        let ink_project = serde_json::from_value(serde_json::Value::Object(metadata.abi))
+            .context(
+                "Failed to deserialize ink project metadata from contract metadata",
+            )?;
+        Ok(ink_project)
     }
 
     /// Get the code hash from the contract metadata.

@@ -19,10 +19,13 @@ use ink_metadata::{
     layout::{
         Layout,
         LayoutKey,
+        RootLayout,
     },
     InkProject,
 };
+use scale_info::form::PortableForm;
 use sp_core::storage::ChildInfo;
+use std::fmt::Display;
 use subxt::{
     backend::{
         legacy::{
@@ -33,8 +36,13 @@ use subxt::{
             rpc_params,
             RpcClient,
         },
+        BlockRef,
     },
-    utils::AccountId32,
+    error::DecodeError,
+    ext::scale_decode::{
+        IntoVisitor,
+        Visitor,
+    },
     Config,
     OnlineClient,
 };
@@ -48,51 +56,82 @@ use super::{
     TrieId,
 };
 
-pub struct ContractStorageLayout {
-    metadata: InkProject,
-    root_key: ContractStorageKey,
+#[derive(serde::Serialize)]
+pub struct ContractStorage {
+    root: ContractStorageCell,
 }
 
-impl ContractStorageLayout {
-    pub fn new(metadata: InkProject) -> Result<Self> {
-        if let Layout::Root(root) = metadata.layout() {
-            let root_key = ContractStorageKey::from(root.root_key());
-            Ok(Self { metadata, root_key })
+#[derive(serde::Serialize)]
+
+pub struct ContractStorageCell {
+    key: String,
+    value: String,
+}
+
+pub struct ContractStorageLayout<C: Config = DefaultConfig> {
+    metadata: InkProject,
+    rpc: ContractStorageRpc<C>,
+}
+
+impl<C: Config> ContractStorageLayout<C>
+where
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    BlockRef<sp_core::H256>: From<C::Hash>,
+{
+    pub fn new(metadata: InkProject, rpc: ContractStorageRpc<C>) -> Self {
+        Self { metadata, rpc }
+    }
+
+    pub async fn load_contract_storage(
+        &self,
+        contract_account: &C::AccountId,
+    ) -> Result<ContractStorage> {
+        let root_layout = if let Layout::Root(root_layout) = self.metadata.layout() {
+            Ok(root_layout)
         } else {
             Err(anyhow::anyhow!("No root layout found in metadata"))
-        }
-    }
-    pub fn root_key(&self) -> &ContractStorageKey {
-        &self.root_key
-    }
-}
+        }?;
 
-impl TryFrom<contract_metadata::ContractMetadata> for ContractStorageLayout {
-    type Error = anyhow::Error;
+        let root_key = ContractStorageKey::from(root_layout.root_key());
+        let contract_info = self.rpc.fetch_contract_info(&contract_account).await?;
+        let trie_id = contract_info.trie_id();
 
-    fn try_from(
-        metadata: contract_metadata::ContractMetadata,
-    ) -> Result<Self, Self::Error> {
-        let ink_project =
-            serde_json::from_value(serde_json::Value::Object(metadata.abi))?;
-        Self::new(ink_project)
+        let root_storage = self
+            .rpc
+            .fetch_contract_storage(trie_id, &root_key, None)
+            .await?
+            .ok_or(anyhow::anyhow!(
+                "No contract storage was found for account id {}",
+                contract_account
+            ))?;
+        let root_cell = ContractStorageCell {
+            key: root_key.hashed_to_hex(),
+            value: hex::encode(root_storage),
+        };
+        let contract_storage = ContractStorage { root: root_cell };
+        Ok(contract_storage)
     }
 }
 
 /// Methods for querying contracts over RPC.
-pub struct ContractStorageRpc {
+pub struct ContractStorageRpc<C: Config> {
     rpc_client: RpcClient,
-    rpc_methods: LegacyRpcMethods<DefaultConfig>,
+    rpc_methods: LegacyRpcMethods<C>,
     client: Client,
 }
 
-impl ContractStorageRpc {
+impl<C: Config> ContractStorageRpc<C>
+where
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    BlockRef<sp_core::H256>: From<C::Hash>,
+{
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
         let rpc_client = RpcClient::from_url(url_to_string(&url)).await?;
-        let client =
-            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_client.clone()).await?;
-        let rpc_methods = LegacyRpcMethods::<DefaultConfig>::new(rpc_client.clone());
+        let client = OnlineClient::from_rpc_client(rpc_client.clone()).await?;
+        let rpc_methods = LegacyRpcMethods::new(rpc_client.clone());
 
         Ok(Self {
             rpc_client,
@@ -104,7 +143,7 @@ impl ContractStorageRpc {
     /// Fetch the contract info to access the trie id for querying storage.
     pub async fn fetch_contract_info(
         &self,
-        contract: &AccountId32,
+        contract: &C::AccountId,
     ) -> Result<ContractInfo> {
         fetch_contract_info(contract, &self.rpc_methods, &self.client).await
     }
@@ -116,7 +155,7 @@ impl ContractStorageRpc {
         &self,
         trie_id: &TrieId,
         key: &ContractStorageKey,
-        block_hash: Option<<DefaultConfig as Config>::Hash>,
+        block_hash: Option<C::Hash>,
     ) -> Result<Option<Vec<u8>>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
@@ -136,7 +175,7 @@ impl ContractStorageRpc {
         prefix: Option<&[u8]>,
         count: u32,
         start_key: Option<&[u8]>,
-        block_hash: Option<<DefaultConfig as Config>::Hash>,
+        block_hash: Option<C::Hash>,
     ) -> Result<Vec<Vec<u8>>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();

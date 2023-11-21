@@ -211,9 +211,9 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
 }
 
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
-async fn get_best_block(
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-) -> core::result::Result<<DefaultConfig as Config>::Hash, subxt::Error> {
+async fn get_best_block<C: Config>(
+    rpc: &LegacyRpcMethods<C>,
+) -> core::result::Result<C::Hash, subxt::Error> {
     rpc.chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))

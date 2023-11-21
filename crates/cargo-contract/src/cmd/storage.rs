@@ -15,13 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::DefaultConfig;
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::Result;
 use contract_extrinsics::{
     ContractArtifacts,
-    ContractStorageKey,
     ContractStorageLayout,
     ContractStorageRpc,
     ErrorVariant,
@@ -62,43 +58,28 @@ pub struct StorageCommand {
 
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::new(&self.url).await?;
+        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
 
         let contract_artifacts = ContractArtifacts::from_manifest_or_file(
             self.manifest_path.as_ref(),
             self.file.as_ref(),
         )?;
 
-        let contract_info = rpc.fetch_contract_info(&self.contract).await?;
-
-        let trie_id = contract_info.trie_id();
+        let ink_metadata = contract_artifacts.ink_project_metadata()?;
         let storage_layout =
-            ContractStorageLayout::try_from(contract_artifacts.metadata()?)?;
-        let root_key = storage_layout.root_key();
+            ContractStorageLayout::<DefaultConfig>::new(ink_metadata, rpc);
 
         // todo: fetch all storage keys and map to metadata?
-        let storage_keys = rpc
-            .fetch_storage_keys_paged(trie_id, None, 100, None, None)
-            .await?;
+        // let storage_keys = rpc
+        //     .fetch_storage_keys_paged(trie_id, None, 100, None, None)
+        //     .await?;
+        //
+        // for storage_key in storage_keys {
+        //     println!("storage key: {}", hex::encode(storage_key));
+        // }
 
-        for storage_key in storage_keys {
-            println!("storage key: {}", hex::encode(storage_key));
-        }
-
-        let root_storage = rpc
-            .fetch_contract_storage(trie_id, &root_key, None)
-            .await?
-            .ok_or(anyhow!(
-                "No contract storage was found for account id {}",
-                self.contract
-            ))?;
-
-        let root_cell = ContractStorageCell {
-            key: root_key.hashed_to_hex(),
-            value: hex::encode(root_storage),
-        };
-
-        let contract_storage = ContractStorage { root: root_cell };
+        let contract_storage =
+            storage_layout.load_contract_storage(&self.contract).await?;
 
         println!(
             "{json}",
@@ -107,16 +88,4 @@ impl StorageCommand {
 
         Ok(())
     }
-}
-
-#[derive(serde::Serialize)]
-struct ContractStorage {
-    root: ContractStorageCell,
-}
-
-#[derive(serde::Serialize)]
-
-struct ContractStorageCell {
-    key: String,
-    value: String,
 }
