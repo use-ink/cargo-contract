@@ -367,16 +367,15 @@ impl InstantiateExec {
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call =
-            InstantiateWithCode::new(
-                self.args.value,
-                gas_limit,
-                self.args.storage_deposit_limit,
-                code,
-                self.args.data.clone(),
-                self.args.salt.clone(),
-            )
-            .build();
+        let call = InstantiateWithCode::new(
+            self.args.value,
+            gas_limit,
+            self.args.storage_deposit_limit,
+            code,
+            self.args.data.clone(),
+            self.args.salt.clone(),
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -404,16 +403,15 @@ impl InstantiateExec {
         code_hash: CodeHash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call =
-            Instantiate::new(
-                self.args.value,
-                gas_limit,
-                self.args.storage_deposit_limit,
-                code_hash,
-                self.args.data.clone(),
-                self.args.salt.clone(),
-            )
-            .build();
+        let call = Instantiate::new(
+            self.args.value,
+            gas_limit,
+            self.args.storage_deposit_limit,
+            code_hash,
+            self.args.data.clone(),
+            self.args.salt.clone(),
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -476,13 +474,12 @@ impl InstantiateExec {
                     Ok(_) => {
                         // use user specified values where provided, otherwise use the
                         // estimates
-                        let ref_time =
-                            self.args.gas_limit.unwrap_or_else(
-                                || instantiate_result.gas_required.ref_time()
-                            );
-                        let proof_size = self.args.proof_size.unwrap_or_else(
-                            || instantiate_result.gas_required.proof_size()
-                        );
+                        let ref_time = self.args.gas_limit.unwrap_or_else(|| {
+                            instantiate_result.gas_required.ref_time()
+                        });
+                        let proof_size = self.args.proof_size.unwrap_or_else(|| {
+                            instantiate_result.gas_required.proof_size()
+                        });
                         Ok(Weight::from_parts(ref_time, proof_size))
                     }
                     Err(ref err) => {

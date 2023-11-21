@@ -208,13 +208,12 @@ where
         .chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))?;
-    let account_nonce =
-        client
-            .blocks()
-            .at(best_block)
-            .await?
-            .account_nonce(account_id)
-            .await?;
+    let account_nonce = client
+        .blocks()
+        .at(best_block)
+        .await?
+        .account_nonce(account_id)
+        .await?;
     Ok(account_nonce)
 }
 

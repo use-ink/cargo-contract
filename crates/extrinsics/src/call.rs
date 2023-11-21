@@ -278,7 +278,7 @@ impl CallExec {
                 "Tried to execute a call on the immutable contract message '{}'. Please do a dry-run instead.",
                 &self.message
             );
-            return Err(inner.into());
+            return Err(inner.into())
         }
 
         // use user specified values where provided, otherwise estimate
@@ -291,15 +291,14 @@ impl CallExec {
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
 
-        let call =
-            Call::new(
-                self.contract.clone().into(),
-                self.value.denominate_balance(&self.token_metadata)?,
-                gas_limit,
-                storage_deposit_limit,
-                self.call_data.clone(),
-            )
-            .build();
+        let call = Call::new(
+            self.contract.clone().into(),
+            self.value.denominate_balance(&self.token_metadata)?,
+            gas_limit,
+            storage_deposit_limit,
+            self.call_data.clone(),
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
