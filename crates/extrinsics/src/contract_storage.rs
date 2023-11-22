@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
+use contract_metadata::byte_str;
 use ink_metadata::{
     layout::Layout,
     InkProject,
@@ -123,55 +124,59 @@ pub struct ContractStorageLayout {
 
 impl ContractStorageLayout {
     pub fn new(data: ContractStorageData, layout: &Layout<PortableForm>) -> Self {
-        let mut cells = Vec::new();
-        Self::layout_cells("root".to_string(), &data, layout, &mut cells);
+        let mut root_keys = Vec::new();
+        Self::collect_roots("root".to_string(), layout, &mut root_keys);
+
+        let cells = data
+            .0
+            .iter()
+            .filter_map(|(k, v)| {
+                assert!(k.0.len() >= 20, "key must be at least 20 bytes");
+                let root_key = {
+                    let mut key = [0u8; 4];
+                    key.copy_from_slice(&k.0[16..20]);
+                };
+                let mapping_key = if k.0.len() > 20 {
+                    Some(Bytes::from(k.0[20..].to_vec()))
+                } else {
+                    None
+                };
+
+                let root = root_keys.iter().find(|(_, key)| key.0 == &root_key.to_string()).unwrap();
+
+                if root_key != *root.root_key().key() {
+                    None
+                } else {
+                    Some(ContractStorageCell {
+                        key: k.clone(),
+                        value: v.clone(),
+                        root_key,
+                        mapping_key,
+                        label: label.clone(),
+                    })
+                }
+            })
+            .collect();
+
         Self { cells }
     }
 
-    fn layout_cells(
+    fn collect_root_keys(
         label: String,
-        data: &ContractStorageData,
         layout: &Layout<PortableForm>,
-        cells_acc: &mut Vec<ContractStorageCell>,
+        root_keys: &mut Vec<(String, Bytes)>,
     ) {
         match layout {
             Layout::Root(root) => {
-                let mut cells = data
-                    .0
-                    .iter()
-                    .filter_map(|(k, v)| {
-                        assert!(k.0.len() >= 20, "key must be at least 20 bytes");
-                        let root_key = {
-                            let mut key = [0u8; 4];
-                            key.copy_from_slice(&k.0[16..20]);
-                            u32::from_be_bytes(key)
-                        };
-                        let mapping_key = if k.0.len() > 20 {
-                            Some(Bytes::from(k.0[20..].to_vec()))
-                        } else {
-                            None
-                        };
 
-                        if root_key != *root.root_key().key() {
-                            None
-                        } else {
-                            Some(ContractStorageCell {
-                                key: k.clone(),
-                                value: v.clone(),
-                                root_key,
-                                mapping_key,
-                                label: label.clone(),
-                            })
-                        }
-                    })
-                    .collect();
-
-                cells_acc.append(&mut cells);
+                root_keys.append(&mut cells);
+                Self::collect_roots(label, root.layout(), root_keys)
             }
             Layout::Struct(struct_layout) => {
                 for field in struct_layout.fields() {
                     let label = field.name().to_string();
-                    Self::layout_cells(label, data, field.layout(), cells_acc);
+                    println!("field: {}", label);
+                    Self::collect_roots(label, field.layout(), root_keys);
                 }
             }
             Layout::Enum(enum_layout) => {
@@ -179,7 +184,7 @@ impl ContractStorageLayout {
                     for field in struct_layout.fields() {
                         let label =
                             format!("{}::{}", enum_layout.name(), variant.value());
-                        Self::layout_cells(label, data, field.layout(), cells_acc);
+                        Self::collect_roots(label, field.layout(), root_keys);
                     }
                 }
             }
@@ -198,7 +203,8 @@ impl ContractStorageLayout {
 pub struct ContractStorageCell {
     key: Bytes,
     value: Bytes,
-    root_key: u32,
+    #[serde(serialize_with = "byte_str::serialize_as_byte_str")]
+    root_key: [u8; 4],
     mapping_key: Option<Bytes>,
     label: String,
 }

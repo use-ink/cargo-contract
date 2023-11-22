@@ -68,17 +68,8 @@ impl StorageCommand {
         let ink_metadata = contract_artifacts.ink_project_metadata()?;
         let storage_layout = ContractStorage::<DefaultConfig>::new(ink_metadata, rpc);
 
-        // todo: fetch all storage keys and map to metadata?
-        // let storage_keys = rpc
-        //     .fetch_storage_keys_paged(trie_id, None, 100, None, None)
-        //     .await?;
-        //
-        // for storage_key in storage_keys {
-        //     println!("storage key: {}", hex::encode(storage_key));
-        // }
-
         let contract_storage = storage_layout
-            .load_contract_storage_data(&self.contract)
+            .load_contract_storage_with_layout(&self.contract)
             .await?;
 
         println!(
