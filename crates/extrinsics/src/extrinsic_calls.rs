@@ -1,8 +1,3 @@
-use crate::{
-    upload::Determinism,
-    WasmCode,
-};
-
 // Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
@@ -18,12 +13,16 @@ use crate::{
 //
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
+
 use super::{
     Balance,
     CodeHash,
     DefaultConfig,
 };
-use scale::Encode;
+use crate::{
+    upload::Determinism,
+    WasmCode,
+};
 use subxt::{
     ext::{
         codec::Compact,
@@ -34,7 +33,7 @@ use subxt::{
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
-#[derive(Debug, Encode, EncodeAsType)]
+#[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub(crate) struct Weight {
     #[codec(compact)]

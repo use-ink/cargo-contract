@@ -206,16 +206,6 @@ impl ExtrinsicOpts {
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?)
     }
-
-    /// Get the storage deposit limit converted to compact for passing to extrinsics.
-    pub fn compact_storage_deposit_limit(
-        &self,
-        token_metadata: &TokenMetadata,
-    ) -> Result<Option<scale::Compact<Balance>>> {
-        Ok(self
-            .storage_deposit_limit_balance(token_metadata)?
-            .map(Into::into))
-    }
 }
 
 impl Default for ExtrinsicOpts {

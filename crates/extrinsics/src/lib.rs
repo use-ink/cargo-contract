@@ -60,7 +60,6 @@ pub use balance::{
 pub use call::{
     CallCommandBuilder,
     CallExec,
-    CallRequest,
 };
 pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{

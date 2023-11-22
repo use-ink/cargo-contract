@@ -416,7 +416,7 @@ impl CallExec {
 ///
 /// Copied from `pallet-contracts-rpc-runtime-api`.
 #[derive(Encode)]
-pub struct CallRequest {
+struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
     value: Balance,
