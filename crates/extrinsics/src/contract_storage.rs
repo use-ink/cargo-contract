@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use contract_metadata::byte_str;
 use ink_metadata::{
     layout::Layout,
     InkProject,
@@ -131,17 +130,8 @@ impl ContractStorageLayout {
             .0
             .iter()
             .filter_map(|(k, v)| {
-                assert!(k.0.len() >= 20, "key must be at least 20 bytes");
-                let mut root_key = [0u8; 4];
-                root_key.copy_from_slice(&k.0[16..20]);
-
-                let mapping_key = if k.0.len() > 20 {
-                    Some(Bytes::from(k.0[20..].to_vec()))
-                } else {
-                    None
-                };
-
-                let (label, _) = root_keys.iter().find(|(_, key)| key.to_be_bytes() == root_key)?;
+                let (root_key, mapping_key) = Self::key_parts(k);
+                let (label, _) = root_keys.iter().find(|(_, key)| *key == root_key)?;
 
                 Some(ContractStorageCell {
                     key: k.clone(),
@@ -190,16 +180,39 @@ impl ContractStorageLayout {
             Layout::Leaf(_) => {}
         }
     }
+
+    /// Split the key up
+    ///
+    /// 0x6a3fa479de3b1efe271333d8974501c8e7dc23266dd9bfa5543a94aad824cfb29396d200926d28223c57df8954cf0dc16812ea47
+    /// |--------------------------------|---------|-------------------------------------------------------------|
+    ///       blake2_128 of raw key        root key                         mapping key
+    fn key_parts(key: &Bytes) -> (u32, Option<Bytes>) {
+        assert!(key.0.len() >= 20, "key must be at least 20 bytes");
+        let mut root_key_bytes = [0u8; 4];
+        root_key_bytes.copy_from_slice(&key.0[16..20]);
+
+        // keys are SCALE encoded (little endian), so the root key
+        let root_key = <u32 as scale::Decode>::decode(&mut &root_key_bytes[..])
+            .expect("root key is 4 bytes, it always decodes successfully to a u32; qed");
+
+        let mapping_key = if key.0.len() > 20 {
+            Some(Bytes::from(key.0[20..].to_vec()))
+        } else {
+            None
+        };
+
+        (root_key, mapping_key)
+    }
 }
 
 #[derive(Serialize)]
 pub struct ContractStorageCell {
     key: Bytes,
     value: Bytes,
-    #[serde(serialize_with = "byte_str::serialize_as_byte_str")]
-    root_key: [u8; 4],
-    mapping_key: Option<Bytes>,
     label: String,
+    root_key: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mapping_key: Option<Bytes>,
 }
 
 /// Methods for querying contracts over RPC.
