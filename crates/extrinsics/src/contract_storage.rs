@@ -125,36 +125,31 @@ pub struct ContractStorageLayout {
 impl ContractStorageLayout {
     pub fn new(data: ContractStorageData, layout: &Layout<PortableForm>) -> Self {
         let mut root_keys = Vec::new();
-        Self::collect_roots("root".to_string(), layout, &mut root_keys);
+        Self::collect_root_keys("root".to_string(), layout, &mut root_keys);
 
         let cells = data
             .0
             .iter()
             .filter_map(|(k, v)| {
                 assert!(k.0.len() >= 20, "key must be at least 20 bytes");
-                let root_key = {
-                    let mut key = [0u8; 4];
-                    key.copy_from_slice(&k.0[16..20]);
-                };
+                let mut root_key = [0u8; 4];
+                root_key.copy_from_slice(&k.0[16..20]);
+
                 let mapping_key = if k.0.len() > 20 {
                     Some(Bytes::from(k.0[20..].to_vec()))
                 } else {
                     None
                 };
 
-                let root = root_keys.iter().find(|(_, key)| key.0 == &root_key.to_string()).unwrap();
+                let (label, _) = root_keys.iter().find(|(_, key)| key.to_be_bytes() == root_key)?;
 
-                if root_key != *root.root_key().key() {
-                    None
-                } else {
-                    Some(ContractStorageCell {
-                        key: k.clone(),
-                        value: v.clone(),
-                        root_key,
-                        mapping_key,
-                        label: label.clone(),
-                    })
-                }
+                Some(ContractStorageCell {
+                    key: k.clone(),
+                    value: v.clone(),
+                    root_key,
+                    mapping_key,
+                    label: label.clone(),
+                })
             })
             .collect();
 
@@ -164,19 +159,17 @@ impl ContractStorageLayout {
     fn collect_root_keys(
         label: String,
         layout: &Layout<PortableForm>,
-        root_keys: &mut Vec<(String, Bytes)>,
+        root_keys: &mut Vec<(String, u32)>,
     ) {
         match layout {
             Layout::Root(root) => {
-
-                root_keys.append(&mut cells);
-                Self::collect_roots(label, root.layout(), root_keys)
+                root_keys.push((label.clone(), *root.root_key().key()));
+                Self::collect_root_keys(label, root.layout(), root_keys)
             }
             Layout::Struct(struct_layout) => {
                 for field in struct_layout.fields() {
                     let label = field.name().to_string();
-                    println!("field: {}", label);
-                    Self::collect_roots(label, field.layout(), root_keys);
+                    Self::collect_root_keys(label, field.layout(), root_keys);
                 }
             }
             Layout::Enum(enum_layout) => {
@@ -184,7 +177,7 @@ impl ContractStorageLayout {
                     for field in struct_layout.fields() {
                         let label =
                             format!("{}::{}", enum_layout.name(), variant.value());
-                        Self::collect_roots(label, field.layout(), root_keys);
+                        Self::collect_root_keys(label, field.layout(), root_keys);
                     }
                 }
             }
