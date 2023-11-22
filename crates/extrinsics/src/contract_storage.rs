@@ -100,12 +100,10 @@ where
             Layout::Leaf(_leaf) => Ok(()),
             Layout::Root(root) => {
                 let root_key = ContractStorageKey::from(root.root_key());
-                let prefix = root_key.bytes();
-                println!("root key: {}, prefix {}", hex::encode(root_key.bytes()), hex::encode(&prefix));
+                println!("root_key: {}", root_key.hashed_to_hex());
                 let storage_keys = self
                     .rpc
-                    // .fetch_storage_keys_paged(trie_id, Some(prefix.as_slice()), 1000, None, None)
-                    .fetch_storage_keys_paged(trie_id, None, 1000, None, None)
+                    .fetch_storage_keys_paged(trie_id, Some(root_key), 1000, None, None)
                     .await?;
                 let storage_values = self
                     .rpc
@@ -246,14 +244,14 @@ where
     pub async fn fetch_storage_keys_paged(
         &self,
         trie_id: &TrieId,
-        prefix: Option<&[u8]>,
+        prefix: Option<ContractStorageKey>,
         count: u32,
         start_key: Option<&[u8]>,
         block_hash: Option<C::Hash>,
     ) -> Result<Vec<Vec<u8>>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
-        let prefix_hex = prefix.map(|p| format!("0x{}", hex::encode(p)));
+        let prefix_hex = prefix.map(|p| p.hashed_to_hex());
         let start_key_hex = start_key.map(|p| format!("0x{}", hex::encode(p)));
         let params = rpc_params![
             child_storage_key,
