@@ -16,16 +16,11 @@
 
 use anyhow::Result;
 use ink_metadata::{
-    layout::{
-        Layout,
-        LayoutKey,
-    },
+    layout::Layout,
     InkProject,
 };
 use scale_info::form::PortableForm;
-use serde::{
-    Serialize,
-};
+use serde::Serialize;
 use sp_core::storage::ChildInfo;
 use std::{
     collections::BTreeMap,
@@ -182,7 +177,8 @@ impl ContractStorageLayout {
             Layout::Enum(enum_layout) => {
                 for (variant, struct_layout) in enum_layout.variants() {
                     for field in struct_layout.fields() {
-                        let label = format!("{}::{}", enum_layout.name(), variant.value());
+                        let label =
+                            format!("{}::{}", enum_layout.name(), variant.value());
                         Self::layout_cells(label, data, field.layout(), cells_acc);
                     }
                 }
@@ -190,7 +186,9 @@ impl ContractStorageLayout {
             Layout::Array(_) => {
                 todo!("Figure out what to do with an array layout")
             }
-            Layout::Hash(_) => unimplemented!("Layout::Hash is not currently be constructed"),
+            Layout::Hash(_) => {
+                unimplemented!("Layout::Hash is not currently be constructed")
+            }
             Layout::Leaf(_) => {}
         }
     }
@@ -245,13 +243,12 @@ where
     pub async fn fetch_contract_storage(
         &self,
         trie_id: &TrieId,
-        key: &ContractStorageKey,
+        key: &Bytes,
         block_hash: Option<C::Hash>,
     ) -> Result<Option<Bytes>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
-        let key_hex = key.hashed_to_hex();
-        let params = rpc_params![child_storage_key, key_hex, block_hash];
+        let params = rpc_params![child_storage_key, key, block_hash];
         let data: Option<Bytes> = self
             .rpc_client
             .request("childstate_getStorage", params)
@@ -299,56 +296,5 @@ where
             .request("childstate_getStorageEntries", params)
             .await?;
         Ok(data)
-    }
-}
-
-/// Represents a 32 bit storage key within a contract's storage.
-#[derive(Serialize)]
-pub struct ContractStorageKey {
-    raw: u32,
-}
-
-impl Display for ContractStorageKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.raw)
-    }
-}
-
-impl From<&LayoutKey> for ContractStorageKey {
-    fn from(key: &LayoutKey) -> Self {
-        Self { raw: *key.key() }
-    }
-}
-
-impl ContractStorageKey {
-    /// Create a new instance of the ContractStorageKey.
-    pub fn new(raw: u32) -> Self {
-        Self { raw }
-    }
-
-    pub fn bytes(&self) -> [u8; 4] {
-        self.raw.to_be_bytes()
-    }
-
-    /// Returns the hex encoded hashed `blake2_128_concat` representation of the storage
-    /// key.
-    pub fn hashed_to_hex(&self) -> String {
-        use blake2::digest::{
-            consts::U16,
-            Digest as _,
-        };
-
-        let mut blake2_128 = blake2::Blake2b::<U16>::new();
-        blake2_128.update(&self.bytes());
-        let result = blake2_128.finalize();
-
-        let concat = result
-            .as_slice()
-            .iter()
-            .chain(self.bytes().iter())
-            .cloned()
-            .collect::<Vec<_>>();
-
-        hex::encode(concat)
     }
 }
