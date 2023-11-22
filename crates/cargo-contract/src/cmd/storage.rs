@@ -18,7 +18,7 @@ use super::DefaultConfig;
 use anyhow::Result;
 use contract_extrinsics::{
     ContractArtifacts,
-    ContractStorageLayout,
+    ContractStorage,
     ContractStorageRpc,
     ErrorVariant,
 };
@@ -66,8 +66,7 @@ impl StorageCommand {
         )?;
 
         let ink_metadata = contract_artifacts.ink_project_metadata()?;
-        let storage_layout =
-            ContractStorageLayout::<DefaultConfig>::new(ink_metadata, rpc);
+        let storage_layout = ContractStorage::<DefaultConfig>::new(ink_metadata, rpc);
 
         // todo: fetch all storage keys and map to metadata?
         // let storage_keys = rpc
@@ -78,8 +77,9 @@ impl StorageCommand {
         //     println!("storage key: {}", hex::encode(storage_key));
         // }
 
-        let contract_storage =
-            storage_layout.load_contract_storage(&self.contract).await?;
+        let contract_storage = storage_layout
+            .load_contract_storage_data(&self.contract)
+            .await?;
 
         println!(
             "{json}",

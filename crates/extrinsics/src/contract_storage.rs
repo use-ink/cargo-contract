@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
-use async_recursion::async_recursion;
 use ink_metadata::{
     layout::{
         Layout,
@@ -24,7 +23,9 @@ use ink_metadata::{
     InkProject,
 };
 use scale_info::form::PortableForm;
-use serde::Serialize;
+use serde::{
+    Serialize,
+};
 use sp_core::storage::ChildInfo;
 use std::{
     collections::BTreeMap,
@@ -60,12 +61,12 @@ use super::{
     TrieId,
 };
 
-pub struct ContractStorageLayout<C: Config = DefaultConfig> {
+pub struct ContractStorage<C: Config = DefaultConfig> {
     metadata: InkProject,
     rpc: ContractStorageRpc<C>,
 }
 
-impl<C: Config> ContractStorageLayout<C>
+impl<C: Config> ContractStorage<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
@@ -75,7 +76,8 @@ where
         Self { metadata, rpc }
     }
 
-    pub async fn load_contract_storage(
+    /// Load the raw key/value storage for a given contract.
+    pub async fn load_contract_storage_data(
         &self,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageData> {
@@ -105,49 +107,103 @@ where
         Ok(contract_storage)
     }
 
-    // #[async_recursion]
-    // async fn load_storage_cells(
-    //     &self,
-    //     trie_id: &TrieId,
-    //     layout: &Layout<PortableForm>,
-    //     cells_acc: &mut Vec<ContractStorageCell>,
-    // ) -> Result<()> {
-    //     match layout {
-    //         Layout::Leaf(_leaf) => Ok(()),
-    //         Layout::Root(root) => {
-    //             let root_key = ContractStorageKey::from(root.root_key());
-    //
-    //
-    //             cells_acc.append(&mut cells);
-    //
-    //             self.load_storage_cells(trie_id, root.layout(), cells_acc).await?;
-    //             Ok(())
-    //         }
-    //         Layout::Hash(_) => {
-    //             unimplemented!("Hash layout not currently constructed for ink!
-    // contracts")         }
-    //         Layout::Array(_array) => {
-    //             todo!("array")
-    //             // let key = ContractStorageKey::from(array.key());
-    //             // let value = self
-    //             //     .rpc
-    //             //     .fetch_contract_storage(trie_id, &key, None)
-    //             //     .await?;
-    //         }
-    //         Layout::Struct(struct_layout) => {
-    //             for field in struct_layout.fields() {
-    //                 self.load_storage_cells(trie_id, field.layout(), cells_acc).await?;
-    //             }
-    //             Ok(())
-    //         },
-    //         Layout::Enum(_) => todo!("enum"),
-    //     }
-    // }
+    pub async fn load_contract_storage_with_layout(
+        &self,
+        contract_account: &C::AccountId,
+    ) -> Result<ContractStorageLayout> {
+        let data = self.load_contract_storage_data(contract_account).await?;
+        let layout = ContractStorageLayout::new(data, self.metadata.layout());
+        Ok(layout)
+    }
 }
 
 /// Represents the raw key/value storage for the contract.
 #[derive(Serialize)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
+
+#[derive(Serialize)]
+pub struct ContractStorageLayout {
+    cells: Vec<ContractStorageCell>,
+}
+
+impl ContractStorageLayout {
+    pub fn new(data: ContractStorageData, layout: &Layout<PortableForm>) -> Self {
+        let mut cells = Vec::new();
+        Self::layout_cells("root".to_string(), &data, layout, &mut cells);
+        Self { cells }
+    }
+
+    fn layout_cells(
+        label: String,
+        data: &ContractStorageData,
+        layout: &Layout<PortableForm>,
+        cells_acc: &mut Vec<ContractStorageCell>,
+    ) {
+        match layout {
+            Layout::Root(root) => {
+                let mut cells = data
+                    .0
+                    .iter()
+                    .filter_map(|(k, v)| {
+                        assert!(k.0.len() >= 20, "key must be at least 20 bytes");
+                        let root_key = {
+                            let mut key = [0u8; 4];
+                            key.copy_from_slice(&k.0[16..20]);
+                            u32::from_be_bytes(key)
+                        };
+                        let mapping_key = if k.0.len() > 20 {
+                            Some(Bytes::from(k.0[20..].to_vec()))
+                        } else {
+                            None
+                        };
+
+                        if root_key != *root.root_key().key() {
+                            None
+                        } else {
+                            Some(ContractStorageCell {
+                                key: k.clone(),
+                                value: v.clone(),
+                                root_key,
+                                mapping_key,
+                                label: label.clone(),
+                            })
+                        }
+                    })
+                    .collect();
+
+                cells_acc.append(&mut cells);
+            }
+            Layout::Struct(struct_layout) => {
+                for field in struct_layout.fields() {
+                    let label = field.name().to_string();
+                    Self::layout_cells(label, data, field.layout(), cells_acc);
+                }
+            }
+            Layout::Enum(enum_layout) => {
+                for (variant, struct_layout) in enum_layout.variants() {
+                    for field in struct_layout.fields() {
+                        let label = format!("{}::{}", enum_layout.name(), variant.value());
+                        Self::layout_cells(label, data, field.layout(), cells_acc);
+                    }
+                }
+            }
+            Layout::Array(_) => {
+                todo!("Figure out what to do with an array layout")
+            }
+            Layout::Hash(_) => unimplemented!("Layout::Hash is not currently be constructed"),
+            Layout::Leaf(_) => {}
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ContractStorageCell {
+    key: Bytes,
+    value: Bytes,
+    root_key: u32,
+    mapping_key: Option<Bytes>,
+    label: String,
+}
 
 /// Methods for querying contracts over RPC.
 pub struct ContractStorageRpc<C: Config> {
@@ -195,7 +251,6 @@ where
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
         let key_hex = key.hashed_to_hex();
-        tracing::debug!("fetch_contract_storage: child_storage_key: {child_storage_key:?} for key: {key_hex:?}");
         let params = rpc_params![child_storage_key, key_hex, block_hash];
         let data: Option<Bytes> = self
             .rpc_client
@@ -207,15 +262,15 @@ where
     pub async fn fetch_storage_keys_paged(
         &self,
         trie_id: &TrieId,
-        prefix: Option<ContractStorageKey>,
+        prefix: Option<&[u8]>,
         count: u32,
         start_key: Option<&[u8]>,
         block_hash: Option<C::Hash>,
     ) -> Result<Vec<Bytes>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
-        let prefix_hex = prefix.map(|p| p.hashed_to_hex());
-        let start_key_hex = start_key.map(|p| format!("0x{}", hex::encode(p)));
+        let prefix_hex = prefix.map(|p| format!("0x{}", hex::encode(p)));
+        let start_key_hex = start_key.map(|k| format!("0x{}", hex::encode(k)));
         let params = rpc_params![
             child_storage_key,
             prefix_hex,
@@ -295,13 +350,5 @@ impl ContractStorageKey {
             .collect::<Vec<_>>();
 
         hex::encode(concat)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn storage_key_is_part_of_root() {
-        todo!("test deet")
     }
 }
