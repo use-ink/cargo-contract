@@ -26,7 +26,10 @@ use ink_metadata::{
 use scale_info::form::PortableForm;
 use serde::Serialize;
 use sp_core::storage::ChildInfo;
-use std::fmt::Display;
+use std::{
+    collections::BTreeMap,
+    fmt::Display,
+};
 use subxt::{
     backend::{
         legacy::{
@@ -75,7 +78,7 @@ where
     pub async fn load_contract_storage(
         &self,
         contract_account: &C::AccountId,
-    ) -> Result<ContractStorage> {
+    ) -> Result<ContractStorageData> {
         let contract_info = self.rpc.fetch_contract_info(&contract_account).await?;
         let trie_id = contract_info.trie_id();
 
@@ -92,13 +95,13 @@ where
             storage_values.len(),
             "storage keys and values must be the same length"
         );
-        let mut cells = storage_keys
+        let storage = storage_keys
             .into_iter()
             .zip(storage_values.into_iter())
-            .map(|(key, value)| ContractStorageCell::new(key, value))
+            .filter_map(|(key, value)| value.map(|v| (key, v)))
             .collect();
 
-        let contract_storage = ContractStorage { cells };
+        let contract_storage = ContractStorageData(storage);
         Ok(contract_storage)
     }
 
@@ -142,42 +145,9 @@ where
     // }
 }
 
+/// Represents the raw key/value storage for the contract.
 #[derive(Serialize)]
-pub struct ContractStorage {
-    cells: Vec<ContractStorageCell>,
-}
-
-#[derive(Serialize)]
-
-pub struct ContractStorageCell {
-    key: Bytes,
-    value: Option<Bytes>,
-}
-
-impl ContractStorageCell {
-    pub fn new(key: Bytes, value: Option<Bytes>) -> Self {
-        Self { key, value }
-    }
-}
-
-#[derive(Serialize)]
-pub struct ContractStorageValue {
-    bytes: Bytes,
-}
-
-impl From<Vec<u8>> for ContractStorageValue {
-    fn from(bytes: Vec<u8>) -> Self {
-        Self {
-            bytes: bytes.into(),
-        }
-    }
-}
-
-impl AsRef<[u8]> for ContractStorageValue {
-    fn as_ref(&self) -> &[u8] {
-        &self.bytes
-    }
-}
+pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
 /// Methods for querying contracts over RPC.
 pub struct ContractStorageRpc<C: Config> {
