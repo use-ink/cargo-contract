@@ -47,7 +47,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::scale_encode,
+    ext::scale_encode::EncodeAsType,
     Config,
     OnlineClient,
 };
@@ -228,7 +228,7 @@ impl UploadExec {
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-pub struct CodeUploadRequest {
+struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
@@ -240,19 +240,15 @@ pub struct UploadResult {
     pub display_events: DisplayEvents,
 }
 
+/// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.
+#[allow(dead_code)]
 #[derive(
     Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    serde::Serialize,
-    scale::Decode,
-    scale::Encode,
-    scale_encode::EncodeAsType,
+    Encode,
+    EncodeAsType,
 )]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub enum Determinism {
+pub(crate) enum Determinism {
     /// The execution should be deterministic and hence no indeterministic instructions
     /// are allowed.
     ///

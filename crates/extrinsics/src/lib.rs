@@ -95,7 +95,6 @@ pub use remove::{
 
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
-    CodeUploadRequest,
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
