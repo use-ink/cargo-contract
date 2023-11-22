@@ -242,11 +242,7 @@ pub struct UploadResult {
 
 /// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.
 #[allow(dead_code)]
-#[derive(
-    Debug,
-    Encode,
-    EncodeAsType,
-)]
+#[derive(Debug, Encode, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub(crate) enum Determinism {
     /// The execution should be deterministic and hence no indeterministic instructions

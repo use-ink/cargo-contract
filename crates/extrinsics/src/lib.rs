@@ -120,41 +120,6 @@ pub fn account_id(keypair: &Keypair) -> AccountId32 {
     subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
 }
 
-mod ex_weight {
-    use subxt::ext::scale_encode;
-
-    /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
-    #[derive(Debug, scale_encode::EncodeAsType)]
-    #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-    pub(crate) struct Weight {
-        #[codec(compact)]
-        /// The weight of computational time used based on some reference hardware.
-        ref_time: u64,
-        #[codec(compact)]
-        /// The weight of storage space used by proof of validity.
-        proof_size: u64,
-    }
-
-    impl From<sp_weights::Weight> for Weight {
-        fn from(weight: sp_weights::Weight) -> Self {
-            Self {
-                ref_time: weight.ref_time(),
-                proof_size: weight.proof_size(),
-            }
-        }
-    }
-
-    impl core::fmt::Display for Weight {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            write!(
-                f,
-                "Weight(ref_time: {}, proof_size: {})",
-                self.ref_time, self.proof_size
-            )
-        }
-    }
-}
-
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors
