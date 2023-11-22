@@ -76,7 +76,7 @@ where
         &self,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageData> {
-        let contract_info = self.rpc.fetch_contract_info(&contract_account).await?;
+        let contract_info = self.rpc.fetch_contract_info(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
         let storage_keys = self
@@ -230,7 +230,7 @@ where
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
-        let rpc_client = RpcClient::from_url(url_to_string(&url)).await?;
+        let rpc_client = RpcClient::from_url(url_to_string(url)).await?;
         let client = OnlineClient::from_rpc_client(rpc_client.clone()).await?;
         let rpc_methods = LegacyRpcMethods::new(rpc_client.clone());
 
