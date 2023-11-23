@@ -231,27 +231,24 @@ impl ContractInfo {
 
 /// A contract's child trie id.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
-pub struct TrieId {
-    #[serde(flatten, serialize_with = "serialize_as_byte_str")]
-    raw: Vec<u8>,
-}
+pub struct TrieId(#[serde(serialize_with = "serialize_as_byte_str")] Vec<u8>);
 
 impl TrieId {
     /// Encode the trie id as hex string.
     pub fn to_hex(&self) -> String {
-        format!("0x{}", hex::encode(&self.raw))
+        format!("0x{}", hex::encode(&self.0))
     }
 }
 
 impl From<Vec<u8>> for TrieId {
     fn from(raw: Vec<u8>) -> Self {
-        Self { raw }
+        Self(raw)
     }
 }
 
 impl AsRef<[u8]> for TrieId {
     fn as_ref(&self) -> &[u8] {
-        &self.raw
+        &self.0
     }
 }
 
