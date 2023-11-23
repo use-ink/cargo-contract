@@ -26,7 +26,10 @@ use anyhow::{
     Result,
 };
 use contract_metadata::byte_str::serialize_as_byte_str;
-use std::fmt::Display;
+use std::fmt::{
+    Display,
+    Formatter,
+};
 
 use scale::Decode;
 use std::option::Option;
@@ -229,8 +232,15 @@ impl ContractInfo {
 /// A contract's child trie id.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct TrieId {
-    #[serde(serialize_with = "serialize_as_byte_str")]
+    #[serde(flatten, serialize_with = "serialize_as_byte_str")]
     raw: Vec<u8>,
+}
+
+impl TrieId {
+    /// Encode the trie id as hex string.
+    pub fn to_hex(&self) -> String {
+        format!("0x{}", hex::encode(&self.raw))
+    }
 }
 
 impl From<Vec<u8>> for TrieId {
@@ -245,10 +255,9 @@ impl AsRef<[u8]> for TrieId {
     }
 }
 
-impl TrieId {
-    /// Encode the trie id as hex string.
-    pub fn to_hex(&self) -> String {
-        hex::encode(&self.raw)
+impl Display for TrieId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }
 
