@@ -94,9 +94,8 @@ impl StorageCommand {
             }
             Err(_) => {
                 eprintln!(
-                    "{} {}",
+                    "{} Displaying raw storage: no valid contract metadata artifacts found",
                     "Info:".cyan().bold(),
-                    "Displaying raw storage: no valid contract metadata artifacts found"
                 );
                 let storage_data = storage_layout
                     .load_contract_storage_data(&self.contract)
