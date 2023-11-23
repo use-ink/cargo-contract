@@ -16,7 +16,6 @@
 
 use super::{
     get_best_block,
-    runtime_api::api,
     Balance,
     Client,
     CodeHash,
@@ -258,18 +257,21 @@ pub async fn fetch_wasm_code(
     client: &Client,
     rpc: &LegacyRpcMethods<DefaultConfig>,
     hash: &CodeHash,
-) -> Result<Option<Vec<u8>>> {
-    let pristine_code_address = api::storage().contracts().pristine_code(hash);
+) -> Result<Vec<u8>> {
     let best_block = get_best_block(rpc).await?;
 
-    let pristine_bytes = client
+    let pristine_code_address =
+        dynamic("Contracts", "PristineCode", vec![Value::from_bytes(hash)]);
+    let pristine_code = client
         .storage()
         .at(best_block)
         .fetch(&pristine_code_address)
         .await?
-        .map(|v| v.0);
-
-    Ok(pristine_bytes)
+        .ok_or_else(|| anyhow!("No WASM code was found for code hash {}", hash))?;
+    let pristine_code = pristine_code
+        .as_type::<BoundedVec<u8>>()
+        .map_err(|e| anyhow!("Contract wasm code could not be parsed: {e}"));
+    pristine_code.map(|v| v.0)
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
@@ -287,18 +289,18 @@ fn parse_contract_account_address(
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
-/// Fetch all contract addresses from the storage using the provided client and count of
-/// requested elements starting from an optional address
+/// Fetch all contract addresses from the storage using the provided client.
 pub async fn fetch_all_contracts(
     client: &Client,
     rpc: &LegacyRpcMethods<DefaultConfig>,
 ) -> Result<Vec<AccountId32>> {
-    let root_key = api::storage()
-        .contracts()
-        .contract_info_of_iter()
-        .to_root_bytes();
-
     let best_block = get_best_block(rpc).await?;
+    let root_key = subxt::dynamic::storage(
+        "Contracts",
+        "ContractInfoOf",
+        vec![Value::from_bytes(AccountId32([0u8; 32]))],
+    )
+    .to_root_bytes();
     let mut keys = client
         .storage()
         .at(best_block)
@@ -392,7 +394,7 @@ mod tests {
     #[test]
     fn contract_info_v11_decode_works() {
         // This version of metadata includes the deposit_account field in ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata_v11.scale")]
+        #[subxt::subxt(runtime_metadata_path = "src/test_runtime_api/metadata_v11.scale")]
         mod api_v11 {}
 
         use api_v11::runtime_types::{
@@ -403,7 +405,7 @@ mod tests {
             },
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata_v11.scale")
+        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v11.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");
@@ -458,7 +460,7 @@ mod tests {
     fn contract_info_v15_decode_works() {
         // This version of metadata does not include the deposit_account field in
         // ContractInfo
-        #[subxt::subxt(runtime_metadata_path = "src/runtime_api/metadata.scale")]
+        #[subxt::subxt(runtime_metadata_path = "src/test_runtime_api/metadata_v15.scale")]
         mod api_v15 {}
 
         use api_v15::runtime_types::{
@@ -469,7 +471,7 @@ mod tests {
             pallet_contracts::storage::ContractInfo as ContractInfoV15,
         };
 
-        let metadata_bytes = std::fs::read("src/runtime_api/metadata.scale")
+        let metadata_bytes = std::fs::read("src/test_runtime_api/metadata_v15.scale")
             .expect("the metadata must be present");
         let metadata =
             Metadata::decode(&mut &*metadata_bytes).expect("the metadata must decode");

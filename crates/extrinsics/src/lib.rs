@@ -22,10 +22,10 @@ mod contract_storage;
 mod env_check;
 mod error;
 mod events;
+mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 mod remove;
-mod runtime_api;
 mod upload;
 
 #[cfg(test)]
@@ -61,7 +61,6 @@ pub use balance::{
 pub use call::{
     CallCommandBuilder,
     CallExec,
-    CallRequest,
 };
 pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{
@@ -102,7 +101,6 @@ pub use remove::{
 
 pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
-    CodeUploadRequest,
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
@@ -113,7 +111,7 @@ pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// The Wasm code of a contract.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WasmCode(Vec<u8>);
 
 impl WasmCode {

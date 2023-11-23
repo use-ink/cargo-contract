@@ -16,10 +16,9 @@
 
 use super::{
     account_id,
-    events::DisplayEvents,
-    runtime_api::api::{
-        contracts::events::CodeStored,
-        runtime_types::pallet_contracts::wasm::Determinism,
+    events::{
+        CodeStored,
+        DisplayEvents,
     },
     state,
     state_call,
@@ -35,6 +34,7 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::UploadCode,
     extrinsic_opts::ExtrinsicOpts,
 };
 use anyhow::Result;
@@ -47,6 +47,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    ext::scale_encode::EncodeAsType,
     Config,
     OnlineClient,
 };
@@ -154,10 +155,7 @@ impl UploadExec {
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CodeUploadRequest {
             origin: account_id(&self.signer),
             code: self.code.0.clone(),
@@ -176,12 +174,14 @@ impl UploadExec {
     pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
         let storage_deposit_limit = self
             .opts
-            .compact_storage_deposit_limit(&self.token_metadata)?;
-        let call = crate::runtime_api::api::tx().contracts().upload_code(
-            self.code.0.clone(),
+            .storage_deposit_limit_balance(&self.token_metadata)?;
+
+        let call = UploadCode::new(
+            self.code.clone(),
             storage_deposit_limit,
             Determinism::Enforced,
-        );
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -228,7 +228,7 @@ impl UploadExec {
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-pub struct CodeUploadRequest {
+struct CodeUploadRequest {
     origin: <DefaultConfig as Config>::AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
@@ -238,4 +238,26 @@ pub struct CodeUploadRequest {
 pub struct UploadResult {
     pub code_stored: Option<CodeStored>,
     pub display_events: DisplayEvents,
+}
+
+/// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.
+#[allow(dead_code)]
+#[derive(Debug, Encode, EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub(crate) enum Determinism {
+    /// The execution should be deterministic and hence no indeterministic instructions
+    /// are allowed.
+    ///
+    /// Dispatchables always use this mode in order to make on-chain execution
+    /// deterministic.
+    Enforced,
+    /// Allow calling or uploading an indeterministic code.
+    ///
+    /// This is only possible when calling into `pallet-contracts` directly via
+    /// [`crate::Pallet::bare_call`].
+    ///
+    /// # Note
+    ///
+    /// **Never** use this mode for on-chain execution.
+    Relaxed,
 }

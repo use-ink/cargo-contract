@@ -16,7 +16,10 @@
 
 use super::{
     account_id,
-    runtime_api::api,
+    events::{
+        CodeStored,
+        ContractInstantiated,
+    },
     state,
     state_call,
     submit_extrinsic,
@@ -33,6 +36,10 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::{
+        Instantiate,
+        InstantiateWithCode,
+    },
     extrinsic_opts::ExtrinsicOpts,
 };
 use anyhow::{
@@ -197,10 +204,7 @@ impl InstantiateCommandBuilder<state::ExtrinsicOptions> {
             storage_deposit_limit: self
                 .opts
                 .extrinsic_opts
-                .storage_deposit_limit()
-                .as_ref()
-                .map(|bv| bv.denominate_balance(&token_metadata))
-                .transpose()?,
+                .storage_deposit_limit_balance(&token_metadata)?,
             code,
             data,
             salt,
@@ -363,14 +367,15 @@ impl InstantiateExec {
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = api::tx().contracts().instantiate_with_code(
+        let call = InstantiateWithCode::new(
             self.args.value,
-            gas_limit.into(),
-            self.args.storage_deposit_limit_compact(),
-            code.to_vec(),
+            gas_limit,
+            self.args.storage_deposit_limit,
+            code,
             self.args.data.clone(),
             self.args.salt.clone(),
-        );
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -378,11 +383,11 @@ impl InstantiateExec {
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = result
-            .find_first::<api::contracts::events::CodeStored>()?
+            .find_first::<CodeStored>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = result
-            .find_last::<api::contracts::events::Instantiated>()?
+            .find_last::<ContractInstantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -398,20 +403,21 @@ impl InstantiateExec {
         code_hash: CodeHash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult, ErrorVariant> {
-        let call = api::tx().contracts().instantiate(
+        let call = Instantiate::new(
             self.args.value,
-            gas_limit.into(),
-            self.args.storage_deposit_limit_compact(),
+            gas_limit,
+            self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
             self.args.salt.clone(),
-        );
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let instantiated = result
-            .find_first::<api::contracts::events::Instantiated>()?
+            .find_first::<ContractInstantiated>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
