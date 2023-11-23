@@ -16,6 +16,7 @@
 
 use super::DefaultConfig;
 use anyhow::Result;
+use colored::Colorize;
 use contract_extrinsics::{
     ContractArtifacts,
     ContractStorage,
@@ -39,6 +40,9 @@ pub struct StorageCommand {
         required_unless_present = "all"
     )]
     contract: <DefaultConfig as Config>::AccountId,
+    /// Fetch the "raw" storage keys and values for the contract.
+    #[clap(long)]
+    raw: bool,
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
@@ -59,23 +63,51 @@ pub struct StorageCommand {
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
         let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
+        let storage_layout = ContractStorage::<DefaultConfig>::new(rpc);
+
+        if self.raw {
+            let storage_data = storage_layout
+                .load_contract_storage_data(&self.contract)
+                .await?;
+            println!(
+                "{json}",
+                json = serde_json::to_string_pretty(&storage_data)?
+            );
+            return Ok(())
+        }
 
         let contract_artifacts = ContractArtifacts::from_manifest_or_file(
             self.manifest_path.as_ref(),
             self.file.as_ref(),
-        )?;
-
-        let ink_metadata = contract_artifacts.ink_project_metadata()?;
-        let storage_layout = ContractStorage::<DefaultConfig>::new(ink_metadata, rpc);
-
-        let contract_storage = storage_layout
-            .load_contract_storage_with_layout(&self.contract)
-            .await?;
-
-        println!(
-            "{json}",
-            json = serde_json::to_string_pretty(&contract_storage)?
         );
+
+        match contract_artifacts {
+            Ok(contract_artifacts) => {
+                let ink_metadata = contract_artifacts.ink_project_metadata()?;
+                let contract_storage = storage_layout
+                    .load_contract_storage_with_layout(&ink_metadata, &self.contract)
+                    .await?;
+                println!(
+                    "{json}",
+                    json = serde_json::to_string_pretty(&contract_storage)?
+                );
+            }
+            Err(_) => {
+                eprintln!(
+                    "{} {}",
+                    "Info:".cyan().bold(),
+                    "Displaying raw storage: no valid contract metadata artifacts found"
+                );
+                let storage_data = storage_layout
+                    .load_contract_storage_data(&self.contract)
+                    .await?;
+                println!(
+                    "{json}",
+                    json = serde_json::to_string_pretty(&storage_data)?
+                );
+                return Ok(())
+            }
+        }
 
         Ok(())
     }

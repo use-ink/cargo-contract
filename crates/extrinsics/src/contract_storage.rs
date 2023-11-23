@@ -57,7 +57,6 @@ use super::{
 };
 
 pub struct ContractStorage<C: Config = DefaultConfig> {
-    metadata: InkProject,
     rpc: ContractStorageRpc<C>,
 }
 
@@ -67,8 +66,8 @@ where
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     BlockRef<sp_core::H256>: From<C::Hash>,
 {
-    pub fn new(metadata: InkProject, rpc: ContractStorageRpc<C>) -> Self {
-        Self { metadata, rpc }
+    pub fn new(rpc: ContractStorageRpc<C>) -> Self {
+        Self { rpc }
     }
 
     /// Load the raw key/value storage for a given contract.
@@ -104,10 +103,11 @@ where
 
     pub async fn load_contract_storage_with_layout(
         &self,
+        metadata: &InkProject,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageLayout> {
         let data = self.load_contract_storage_data(contract_account).await?;
-        let layout = ContractStorageLayout::new(data, self.metadata.layout());
+        let layout = ContractStorageLayout::new(data, metadata.layout());
         Ok(layout)
     }
 }
