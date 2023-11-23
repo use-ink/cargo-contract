@@ -96,14 +96,14 @@ impl ContractsNodeProcess {
             );
             let result = OnlineClient::new().await;
             if let Ok(client) = result {
-                break Ok(client);
+                break Ok(client)
             }
             if attempts < MAX_ATTEMPTS {
                 attempts += 1;
-                continue;
+                continue
             }
             if let Err(err) = result {
-                break Err(err);
+                break Err(err)
             }
         };
         match client {

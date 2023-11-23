@@ -19,10 +19,7 @@ use super::{
     display_all_contracts,
     DefaultConfig,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
     fetch_all_contracts,
@@ -107,12 +104,8 @@ impl InfoCommand {
 
             let info_to_json = fetch_contract_info(contract, &rpc, &client).await?;
 
-            let wasm_code = fetch_wasm_code(&client, &rpc, info_to_json.code_hash())
-                .await?
-                .ok_or(anyhow!(
-                    "Contract wasm code was not found for account id {}",
-                    contract
-                ))?;
+            let wasm_code =
+                fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
             // Binary flag applied
             if self.binary {
                 if self.output_json {

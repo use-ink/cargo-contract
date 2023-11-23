@@ -15,21 +15,25 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::DisplayEvents,
-    runtime_api::api::{
-        self,
-        contracts::events::CodeRemoved,
+    events::{
+        CodeRemoved,
+        DisplayEvents,
     },
     state,
     submit_extrinsic,
     Client,
+    CodeHash,
     ContractMessageTranscoder,
     DefaultConfig,
     ErrorVariant,
     Missing,
     TokenMetadata,
 };
-use crate::extrinsic_opts::ExtrinsicOpts;
+use crate::{
+    extrinsic_calls::RemoveCode,
+    extrinsic_opts::ExtrinsicOpts,
+};
+
 use anyhow::Result;
 use core::marker::PhantomData;
 use subxt::{
@@ -43,7 +47,7 @@ use subxt::{
 use subxt_signer::sr25519::Keypair;
 
 pub struct RemoveOpts {
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
+    code_hash: Option<CodeHash>,
     extrinsic_opts: ExtrinsicOpts,
 }
 
@@ -165,9 +169,8 @@ impl RemoveExec {
     /// code removal, or an error in case of failure.
     pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
         let code_hash = sp_core::H256(self.final_code_hash);
-        let call = api::tx()
-            .contracts()
-            .remove_code(sp_core::H256(code_hash.0));
+
+        let call = RemoveCode::new(code_hash).build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
