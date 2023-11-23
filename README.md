@@ -149,6 +149,14 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crat
 
 Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
+##### `cargo contract schema-generate`
+
+Generate schema and print it to STDOUT.
+
+##### `cargo contract verify-schema`
+
+Verify a metadata file or a contract bundle containing metadata against the schema file. 
+
 ## Publishing
 
 In order to publish a new version of `cargo-contract`:
