@@ -33,7 +33,7 @@ which = "5.0.0"
 colored = "2.0.4"
 serde_json = "1.0.108"
 serde = { version = "1.0.193", default-features = false, features = ["derive"] }
-url = { version = "2.4.1", features = ["serde"] }
+url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
 schemars = "0.8"
