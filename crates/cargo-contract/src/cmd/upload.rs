@@ -88,7 +88,7 @@ impl UploadCommand {
         } else {
             let upload_result = upload_exec.upload_code().await?;
             let display_events = upload_result.display_events;
-            let output = if self.output_json() {
+            let output_events = if self.output_json() {
                 display_events.to_json()?
             } else {
                 display_events.display_events(
@@ -96,15 +96,18 @@ impl UploadCommand {
                     upload_exec.token_metadata(),
                 )?
             };
-            println!("{output}");
             if let Some(code_stored) = upload_result.code_stored {
-                let upload_result = CodeHashResult {
-                    code_hash: format!("{:?}", code_stored.code_hash),
-                };
+                let code_hash = code_stored.code_hash;
                 if self.output_json() {
-                    println!("{}", upload_result.to_json()?);
+                    // Create a JSON object with the events and the code hash.
+                    let json_object = serde_json::json!({
+                        "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
+                        "code_hash": code_hash,
+                    });
+                    println!("{}", serde_json::to_string_pretty(&json_object)?);
                 } else {
-                    upload_result.print();
+                    println!("{}", output_events);
+                    name_value_println!("Code hash", format!("{:?}", code_hash));
                 }
             } else {
                 let code_hash = hex::encode(code_hash);
@@ -115,21 +118,6 @@ impl UploadCommand {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(serde::Serialize)]
-pub struct CodeHashResult {
-    pub code_hash: String,
-}
-
-impl CodeHashResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
     }
 }
 

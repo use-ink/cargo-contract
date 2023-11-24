@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
+- Improve JSON Output for Upload and Remove Commands - [#1389](https://github.com/paritytech/cargo-contract/pull/1389)
 
 ## [4.0.0-alpha]
 
