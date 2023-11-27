@@ -37,7 +37,6 @@ pub struct StorageCommand {
         name = "contract",
         long,
         env = "CONTRACT",
-        required_unless_present = "all"
     )]
     contract: <DefaultConfig as Config>::AccountId,
     /// Fetch the "raw" storage keys and values for the contract.
