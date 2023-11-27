@@ -34,10 +34,7 @@ use std::fmt::{
 use scale::Decode;
 use std::option::Option;
 use subxt::{
-    backend::{
-        legacy::LegacyRpcMethods,
-        BlockRef,
-    },
+    backend::legacy::LegacyRpcMethods,
     dynamic::DecodedValueThunk,
     error::DecodeError,
     ext::{
@@ -51,17 +48,17 @@ use subxt::{
     storage::dynamic,
     utils::AccountId32,
     Config,
+    OnlineClient,
 };
 
 /// Return the account data for an account ID.
 async fn get_account_balance<C: Config>(
     account: &C::AccountId,
     rpc: &LegacyRpcMethods<C>,
-    client: &Client,
+    client: &OnlineClient<C>,
 ) -> Result<AccountData>
 where
     C::AccountId: AsRef<[u8]>,
-    BlockRef<sp_core::H256>: From<C::Hash>,
 {
     let storage_query =
         subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
@@ -82,12 +79,11 @@ where
 pub async fn fetch_contract_info<C: Config>(
     contract: &C::AccountId,
     rpc: &LegacyRpcMethods<C>,
-    client: &Client,
+    client: &OnlineClient<C>,
 ) -> Result<ContractInfo>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
-    BlockRef<sp_core::H256>: From<C::Hash>,
 {
     let best_block = get_best_block(rpc).await?;
 

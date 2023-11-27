@@ -36,7 +36,6 @@ use subxt::{
             rpc_params,
             RpcClient,
         },
-        BlockRef,
     },
     error::DecodeError,
     ext::scale_decode::{
@@ -50,7 +49,6 @@ use subxt::{
 use super::{
     fetch_contract_info,
     url_to_string,
-    Client,
     ContractInfo,
     DefaultConfig,
     TrieId,
@@ -64,7 +62,7 @@ impl<C: Config> ContractStorage<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
-    BlockRef<sp_core::H256>: From<C::Hash>,
+    // BlockRef<sp_core::H256>: From<C::Hash>,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
         Self { rpc }
@@ -219,14 +217,14 @@ pub struct ContractStorageCell {
 pub struct ContractStorageRpc<C: Config> {
     rpc_client: RpcClient,
     rpc_methods: LegacyRpcMethods<C>,
-    client: Client,
+    client: OnlineClient<C>,
 }
 
 impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
-    BlockRef<sp_core::H256>: From<C::Hash>,
+    // BlockRef<sp_core::H256>: From<C::Hash>,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
