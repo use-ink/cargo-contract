@@ -149,6 +149,10 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crat
 
 Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
+##### `cargo contract storage`
+
+Fetch and display the storage of a contract on chain.
+
 ## Publishing
 
 In order to publish a new version of `cargo-contract`:
