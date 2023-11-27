@@ -1015,7 +1015,7 @@ fn local_build(
         }
         Target::RiscV => {
             let mut config = polkavm_linker::Config::default();
-            config.set_strip(true);
+            config.set_strip(!keep_debug_symbols);
             let orig = fs::read(&crate_metadata.original_code)?;
             let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
                 Ok(linked) => linked,
