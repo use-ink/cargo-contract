@@ -33,11 +33,7 @@ use subxt::Config;
 #[clap(name = "storage", about = "Inspect contract storage")]
 pub struct StorageCommand {
     /// The address of the contract to inspect storage of.
-    #[clap(
-        name = "contract",
-        long,
-        env = "CONTRACT",
-    )]
+    #[clap(name = "contract", long, env = "CONTRACT")]
     contract: <DefaultConfig as Config>::AccountId,
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
