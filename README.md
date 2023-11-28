@@ -103,7 +103,7 @@ e.g. `cargo contract new --help`.
 
 ##### `cargo contract new my_contract`
 
-Creates an initial smart contract with some scaffolding code into a new
+Create an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
 The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink-examples/blob/main/flipper/lib.rs)
@@ -112,13 +112,13 @@ from `true` to `false` through the `flip()` function.
 
 ##### `cargo contract build`
 
-Compiles the contract into optimized WebAssembly bytecode, generates metadata for it,
-and bundles both together in a `<name>.contract` file, which you can use for
+Compile the contract into optimized WebAssembly bytecode, generate metadata for it,
+and bundle both together in a `<name>.contract` file, which you can use for
 deploying the contract on-chain.
 
 ##### `cargo contract check`
 
-Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
+Check that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
 
 ##### `cargo contract upload`
@@ -133,9 +133,13 @@ Create an instance of a contract on chain. See [extrinsics](crates/extrinsics/RE
 
 Invoke a message on an existing contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
+##### `cargo contract encode`
+
+Encodes a contract's input calls and their arguments
+
 ##### `cargo contract decode`
 
-Decodes a contracts input or output data.
+Decode a contract's input or output data.
 
 This can be either an event, an invocation of a contract message, or an invocation of a contract constructor.
 
@@ -149,9 +153,22 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crat
 
 Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
+### `cargo contract verify`
+
+Verify that a given contract binary matches the build result of the specified workspace
+
+##### `cargo contract schema-generate`
+
+Generate schema and print it to STDOUT.
+
+##### `cargo contract verify-schema`
+
+Verify a metadata file or a contract bundle containing metadata against the schema file. 
+
 ##### `cargo contract storage`
 
 Fetch and display the storage of a contract on chain.
+
 
 ## Publishing
 
