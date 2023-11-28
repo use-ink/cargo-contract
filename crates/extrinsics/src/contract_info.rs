@@ -14,11 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::{
-    anyhow,
-    Result,
-};
-
 use super::{
     get_best_block,
     Balance,
@@ -26,26 +21,45 @@ use super::{
     CodeHash,
     DefaultConfig,
 };
+use anyhow::{
+    anyhow,
+    Result,
+};
+use contract_metadata::byte_str::serialize_as_byte_str;
+use std::fmt::{
+    Display,
+    Formatter,
+};
 
 use scale::Decode;
 use std::option::Option;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     dynamic::DecodedValueThunk,
+    error::DecodeError,
     ext::{
-        scale_decode::DecodeAsType,
+        scale_decode::{
+            DecodeAsType,
+            IntoVisitor,
+            Visitor,
+        },
         scale_value::Value,
     },
     storage::dynamic,
     utils::AccountId32,
+    Config,
+    OnlineClient,
 };
 
 /// Return the account data for an account ID.
-async fn get_account_balance(
-    account: &AccountId32,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-    client: &Client,
-) -> Result<AccountData> {
+async fn get_account_balance<C: Config>(
+    account: &C::AccountId,
+    rpc: &LegacyRpcMethods<C>,
+    client: &OnlineClient<C>,
+) -> Result<AccountData>
+where
+    C::AccountId: AsRef<[u8]>,
+{
     let storage_query =
         subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
     let best_block = get_best_block(rpc).await?;
@@ -62,11 +76,15 @@ async fn get_account_balance(
 }
 
 /// Fetch the contract info from the storage using the provided client.
-pub async fn fetch_contract_info(
-    contract: &AccountId32,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-    client: &Client,
-) -> Result<ContractInfo> {
+pub async fn fetch_contract_info<C: Config>(
+    contract: &C::AccountId,
+    rpc: &LegacyRpcMethods<C>,
+    client: &OnlineClient<C>,
+) -> Result<ContractInfo>
+where
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+{
     let best_block = get_best_block(rpc).await?;
 
     let contract_info_address = dynamic(
@@ -86,7 +104,8 @@ pub async fn fetch_contract_info(
             )
         })?;
 
-    let contract_info_raw = ContractInfoRaw::new(contract.clone(), contract_info_value)?;
+    let contract_info_raw =
+        ContractInfoRaw::<C>::new(contract.clone(), contract_info_value)?;
     let deposit_account = contract_info_raw.get_deposit_account();
 
     let deposit_account_data = get_account_balance(deposit_account, rpc, client).await?;
@@ -95,17 +114,22 @@ pub async fn fetch_contract_info(
 
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
-struct ContractInfoRaw {
-    deposit_account: AccountId32,
+struct ContractInfoRaw<C: Config> {
+    deposit_account: C::AccountId,
     contract_info: ContractInfoOf,
     deposit_on_main_account: bool,
 }
 
-impl ContractInfoRaw {
+impl<C> ContractInfoRaw<C>
+where
+    C: Config,
+    C::AccountId: IntoVisitor,
+    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+{
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
     /// contract info value. Determines whether it's a main or secondary account deposit.
     pub fn new(
-        contract_account: AccountId32,
+        contract_account: C::AccountId,
         contract_info_value: DecodedValueThunk,
     ) -> Result<Self> {
         let contract_info = contract_info_value.as_type::<ContractInfoOf>()?;
@@ -132,7 +156,7 @@ impl ContractInfoRaw {
         }
     }
 
-    pub fn get_deposit_account(&self) -> &AccountId32 {
+    pub fn get_deposit_account(&self) -> &C::AccountId {
         &self.deposit_account
     }
 
@@ -145,7 +169,7 @@ impl ContractInfoRaw {
         };
 
         ContractInfo {
-            trie_id: hex::encode(&self.contract_info.trie_id.0),
+            trie_id: self.contract_info.trie_id.0.into(),
             code_hash: self.contract_info.code_hash,
             storage_items: self.contract_info.storage_items,
             storage_items_deposit: self.contract_info.storage_item_deposit,
@@ -154,15 +178,15 @@ impl ContractInfoRaw {
     }
 
     /// Decode the deposit account from the contract info
-    fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<AccountId32> {
-        let account = contract_info.as_type::<DepositAccount>()?;
+    fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<C::AccountId> {
+        let account = contract_info.as_type::<DepositAccount<C::AccountId>>()?;
         Ok(account.deposit_account)
     }
 }
 
 #[derive(Debug, PartialEq, serde::Serialize)]
 pub struct ContractInfo {
-    trie_id: String,
+    trie_id: TrieId,
     code_hash: CodeHash,
     storage_items: u32,
     storage_items_deposit: Balance,
@@ -176,7 +200,7 @@ impl ContractInfo {
     }
 
     /// Return the trie_id of the contract.
-    pub fn trie_id(&self) -> &str {
+    pub fn trie_id(&self) -> &TrieId {
         &self.trie_id
     }
 
@@ -198,6 +222,35 @@ impl ContractInfo {
     /// Return the storage item deposit of the contract.
     pub fn storage_total_deposit(&self) -> Balance {
         self.storage_total_deposit
+    }
+}
+
+/// A contract's child trie id.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct TrieId(#[serde(serialize_with = "serialize_as_byte_str")] Vec<u8>);
+
+impl TrieId {
+    /// Encode the trie id as hex string.
+    pub fn to_hex(&self) -> String {
+        format!("0x{}", hex::encode(&self.0))
+    }
+}
+
+impl From<Vec<u8>> for TrieId {
+    fn from(raw: Vec<u8>) -> Self {
+        Self(raw)
+    }
+}
+
+impl AsRef<[u8]> for TrieId {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl Display for TrieId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }
 
@@ -299,8 +352,8 @@ struct ContractInfoOf {
 /// A struct used in storage reads to access the deposit account from contract info.
 #[derive(Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct DepositAccount {
-    deposit_account: AccountId32,
+struct DepositAccount<AccountId> {
+    deposit_account: AccountId,
 }
 
 #[cfg(test)]
@@ -384,8 +437,9 @@ mod tests {
         .expect("the contract info must be decoded");
 
         let contract = AccountId32([0u8; 32]);
-        let contract_info_raw = ContractInfoRaw::new(contract, contract_info_thunk)
-            .expect("the conatract info raw must be created");
+        let contract_info_raw =
+            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
+                .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,
@@ -395,7 +449,7 @@ mod tests {
         assert_eq!(
             contract_info,
             ContractInfo {
-                trie_id: hex::encode(contract_info_v11.trie_id.0),
+                trie_id: contract_info_v11.trie_id.0.into(),
                 code_hash: contract_info_v11.code_hash,
                 storage_items: contract_info_v11.storage_items,
                 storage_items_deposit: contract_info_v11.storage_item_deposit,
@@ -449,8 +503,9 @@ mod tests {
         .expect("the contract info must be decoded");
 
         let contract = AccountId32([0u8; 32]);
-        let contract_info_raw = ContractInfoRaw::new(contract, contract_info_thunk)
-            .expect("the conatract info raw must be created");
+        let contract_info_raw =
+            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
+                .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,
@@ -460,7 +515,7 @@ mod tests {
         assert_eq!(
             contract_info,
             ContractInfo {
-                trie_id: hex::encode(contract_info_v15.trie_id.0),
+                trie_id: contract_info_v15.trie_id.0.into(),
                 code_hash: contract_info_v15.code_hash,
                 storage_items: contract_info_v15.storage_items,
                 storage_items_deposit: contract_info_v15.storage_item_deposit,

@@ -22,9 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
 - Add `Storage Total Deposit` to `info` command output - [#1347](https://github.com/paritytech/cargo-contract/pull/1347)
 - Add dynamic types support - [#1399](https://github.com/paritytech/cargo-contract/pull/1399)
+- Basic storage inspection command - [#1395](https://github.com/paritytech/cargo-contract/pull/1395)
 
 ### Fixed
 - Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
+- Improve JSON Output for Upload and Remove Commands - [#1389](https://github.com/paritytech/cargo-contract/pull/1389)
 
 ## [4.0.0-alpha]
 

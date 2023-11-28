@@ -22,6 +22,7 @@ pub mod info;
 pub mod instantiate;
 pub mod remove;
 pub mod schema;
+pub mod storage;
 pub mod upload;
 pub mod verify;
 
@@ -42,6 +43,7 @@ pub(crate) use self::{
         GenerateSchemaCommand,
         VerifySchemaCommand,
     },
+    storage::StorageCommand,
     upload::UploadCommand,
     verify::VerifyCommand,
 };
@@ -223,7 +225,7 @@ pub fn print_gas_required_success(gas: Weight) {
 
 /// Display contract information in a formatted way
 pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) {
-    name_value_println!("TrieId", format!("{}", info.trie_id), MAX_KEY_COL_WIDTH);
+    name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
         "Code Hash",
         format!("{:?}", info.code_hash),

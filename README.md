@@ -165,6 +165,11 @@ Generate schema and print it to STDOUT.
 
 Verify a metadata file or a contract bundle containing metadata against the schema file. 
 
+##### `cargo contract storage`
+
+Fetch and display the storage of a contract on chain.
+
+
 ## Publishing
 
 In order to publish a new version of `cargo-contract`:

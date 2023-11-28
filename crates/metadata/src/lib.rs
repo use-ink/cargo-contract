@@ -66,7 +66,7 @@
 
 #![deny(unused_crate_dependencies)]
 
-mod byte_str;
+pub mod byte_str;
 pub mod compatibility;
 
 use anyhow::{

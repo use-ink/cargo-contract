@@ -18,6 +18,7 @@ mod balance;
 mod call;
 mod contract_artifacts;
 mod contract_info;
+mod contract_storage;
 mod env_check;
 mod error;
 mod events;
@@ -67,8 +68,13 @@ pub use contract_info::{
     fetch_contract_info,
     fetch_wasm_code,
     ContractInfo,
+    TrieId,
 };
 use contract_metadata::ContractMetadata;
+pub use contract_storage::{
+    ContractStorage,
+    ContractStorageRpc,
+};
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::{
     ErrorVariant,
@@ -202,9 +208,9 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
 }
 
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
-async fn get_best_block(
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-) -> core::result::Result<<DefaultConfig as Config>::Hash, subxt::Error> {
+async fn get_best_block<C: Config>(
+    rpc: &LegacyRpcMethods<C>,
+) -> core::result::Result<C::Hash, subxt::Error> {
     rpc.chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))
