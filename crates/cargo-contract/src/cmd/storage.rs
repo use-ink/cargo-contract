@@ -129,7 +129,7 @@ impl StorageCommand {
             "Value".bright_purple().bold()
         );
         for cell in storage.0.values() {
-            //TODO: Handle Mapping and Lazy types
+            // TODO: Handle Mapping and Lazy types
             let value =
                 transcoder.decode(cell.type_id, &mut cell.value.0.as_bytes_ref())?;
             println!(
