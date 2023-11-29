@@ -20,9 +20,12 @@ use colored::Colorize;
 use contract_extrinsics::{
     ContractArtifacts,
     ContractStorage,
+    ContractStorageLayout,
     ContractStorageRpc,
     ErrorVariant,
 };
+use contract_transcode::ContractMessageTranscoder;
+use sp_core::hexdisplay::AsBytesRef;
 use std::{
     fmt::Debug,
     path::PathBuf,
@@ -79,9 +82,12 @@ impl StorageCommand {
         match contract_artifacts {
             Ok(contract_artifacts) => {
                 let ink_metadata = contract_artifacts.ink_project_metadata()?;
+
                 let contract_storage = storage_layout
                     .load_contract_storage_with_layout(&ink_metadata, &self.contract)
                     .await?;
+                let transcoder = contract_artifacts.contract_transcoder()?;
+                Self::display_storage_table(&contract_storage, &transcoder)?;
                 println!(
                     "{json}",
                     json = serde_json::to_string_pretty(&contract_storage)?
@@ -103,6 +109,29 @@ impl StorageCommand {
             }
         }
 
+        Ok(())
+    }
+
+    fn display_storage_table(
+        storage: &ContractStorageLayout,
+        transcoder: &ContractMessageTranscoder,
+    ) -> Result<()> {
+        println!(
+            "{0: <10} | {1: <20.20} | {2: <10}",
+            "Root Key".bright_purple().bold(),
+            "Parent".bright_purple().bold(),
+            "Value".bright_purple().bold()
+        );
+        for cell in storage.0.values() {
+            let value =
+                transcoder.decode(cell.type_id, &mut cell.value.0.as_bytes_ref())?;
+            println!(
+                "{0: <10} | {1: <20.20} | {2: <10}",
+                hex::encode(cell.root_key.to_le_bytes()),
+                cell.name_path.last().unwrap_or(&"Undefined".to_string()),
+                value
+            );
+        }
         Ok(())
     }
 }
