@@ -118,7 +118,7 @@ pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
 #[derive(Serialize)]
 pub struct ContractStorageCell {
-    pub name_path: Vec<String>,
+    pub path: Vec<String>,
     pub value: Bytes,
     pub type_id: u32,
     pub root_key: u32,
@@ -140,13 +140,13 @@ impl ContractStorageLayout {
             .iter()
             .filter_map(|(k, v)| {
                 let (root_key, mapping_key) = Self::key_parts(k);
-                let (name_path, _, type_id) =
+                let (path, _, type_id) =
                     root_keys.iter().find(|(_, key, _)| *key == root_key)?;
 
                 Some((
                     k.clone(),
                     ContractStorageCell {
-                        name_path: name_path.clone(),
+                        path: path.clone(),
                         value: v.clone(),
                         type_id: *type_id,
                         root_key,

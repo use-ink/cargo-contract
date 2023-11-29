@@ -41,6 +41,9 @@ pub struct StorageCommand {
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
     raw: bool,
+    /// Export the instantiate output in JSON format.
+    #[clap(name = "output-json", long, conflicts_with = "raw")]
+    output_json: bool,
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
@@ -86,12 +89,15 @@ impl StorageCommand {
                 let contract_storage = storage_layout
                     .load_contract_storage_with_layout(&ink_metadata, &self.contract)
                     .await?;
-                let transcoder = contract_artifacts.contract_transcoder()?;
-                Self::display_storage_table(&contract_storage, &transcoder)?;
-                println!(
-                    "{json}",
-                    json = serde_json::to_string_pretty(&contract_storage)?
-                );
+                if self.output_json {
+                    println!(
+                        "{json}",
+                        json = serde_json::to_string_pretty(&contract_storage)?
+                    );
+                } else {
+                    let transcoder = contract_artifacts.contract_transcoder()?;
+                    Self::display_storage_table(&contract_storage, &transcoder)?;
+                }
             }
             Err(_) => {
                 eprintln!(
@@ -117,18 +123,19 @@ impl StorageCommand {
         transcoder: &ContractMessageTranscoder,
     ) -> Result<()> {
         println!(
-            "{0: <10} | {1: <20.20} | {2: <10}",
+            "{:<10} | {:<20.20} | {}",
             "Root Key".bright_purple().bold(),
             "Parent".bright_purple().bold(),
             "Value".bright_purple().bold()
         );
         for cell in storage.0.values() {
+            //TODO: Handle Mapping and Lazy types
             let value =
                 transcoder.decode(cell.type_id, &mut cell.value.0.as_bytes_ref())?;
             println!(
-                "{0: <10} | {1: <20.20} | {2: <10}",
+                "{:<10} | {:<20.20} | {}",
                 hex::encode(cell.root_key.to_le_bytes()),
-                cell.name_path.last().unwrap_or(&"Undefined".to_string()),
+                cell.path.last().unwrap_or(&"Undefined".to_string()),
                 value
             );
         }
