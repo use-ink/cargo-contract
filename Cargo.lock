@@ -2396,9 +2396,9 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 
 [[package]]
 name = "ink"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c208b4e7cd39a9d1ccbfc513bc8c8353a2c9c7b61453e5f3ab5493025d50115"
+checksum = "64f0047f1e70ddeae00d45c55bb069d94836ac74d895d2f24c3d6a65ba13b628"
 dependencies = [
  "derive_more",
  "ink_env",
@@ -2413,18 +2413,18 @@ dependencies = [
 
 [[package]]
 name = "ink_allocator"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "688a37ac26b6e101f6a263ab8e8b0ceac84b36cb805129a666cefed3ebf362e8"
+checksum = "7c1d2eddb445b3ef076dacaa9968a7ff5b80ad5b9b724966fab66a8f4e48bde4"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_codegen"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "640caaa107cdef532c3488bf8beb6cb84d99fc155af6d771dbf56d62e9c2f338"
+checksum = "31d7479eab1bb62f52a13fca02414a65cd4d9d116bbcae97eafd0808ee5f7ba4"
 dependencies = [
  "blake2",
  "derive_more",
@@ -2433,7 +2433,7 @@ dependencies = [
  "impl-serde",
  "ink_ir",
  "ink_primitives",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "parity-scale-codec",
  "proc-macro2",
  "quote",
@@ -2444,24 +2444,24 @@ dependencies = [
 
 [[package]]
 name = "ink_engine"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d34dd340d4a2c2d1bb81cf52c8bdef71698871bba13a065f500a69508f23a171"
+checksum = "b99aae25c6820d9e9dae12f79df79a10cba3c961fe1204a68fefaf72f9ae7b14"
 dependencies = [
  "blake2",
  "derive_more",
  "ink_primitives",
  "parity-scale-codec",
- "secp256k1 0.27.0",
+ "secp256k1 0.28.0",
  "sha2 0.10.8",
  "sha3",
 ]
 
 [[package]]
 name = "ink_env"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16a28d3afbae0b316a0a5e86cd81704d67c98244d8c299fe88eee13f5c4dac0e"
+checksum = "2c8f814ac18100f5ba3d265fbc29e1639325660571883184bedf31dcfecd2428"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -2480,7 +2480,7 @@ dependencies = [
  "scale-encode",
  "scale-info",
  "schnorrkel 0.11.3",
- "secp256k1 0.27.0",
+ "secp256k1 0.28.0",
  "sha2 0.10.8",
  "sha3",
  "static_assertions",
@@ -2488,14 +2488,14 @@ dependencies = [
 
 [[package]]
 name = "ink_ir"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d7eb70a17374b1dbda2b903a36c0da7bf917f261e9d04e4c9a839252be6ac1a"
+checksum = "06ff5a0f5d1a7cbced5e4f0e828cfebae7c94948b27de7b6075937f85f58f8a9"
 dependencies = [
  "blake2",
  "either",
  "ink_prelude",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "proc-macro2",
  "quote",
  "syn 2.0.39",
@@ -2503,9 +2503,9 @@ dependencies = [
 
 [[package]]
 name = "ink_macro"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73351daeaea90e9b08e320cc7f14cdb411aec321c5b0f13923108c42a75c1180"
+checksum = "a4347620c4ab436e3aa8b0b1ea7da4ea1d09a7281c8d917e01ba2649cabad541"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -2519,9 +2519,9 @@ dependencies = [
 
 [[package]]
 name = "ink_metadata"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ad9535f950e210bf584ba008df5bf4f013e634cf0a468c2cbc6342bbed32014"
+checksum = "75859c7142101f3ad30a763fd0e5468df164e3d424086df8de40531fb54940f3"
 dependencies = [
  "derive_more",
  "impl-serde",
@@ -2535,18 +2535,18 @@ dependencies = [
 
 [[package]]
 name = "ink_prelude"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74705c00d6993ccadb97675524b5b5d98e7292c49126c2daf87d1da63bed6aa7"
+checksum = "fc3fbd55e0cf78e456ad4a92558d55b577bf65944bb37bf7debb8f03ed66a47b"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "ink_primitives"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513e93039a85caf84637746e35d0ed0b71ac0ace7e5268650f3d90e413ba989b"
+checksum = "3c976554c1bd075c6722d0f30cc3a8337b7ebaf487b95a40c9e81097d995f921"
 dependencies = [
  "derive_more",
  "ink_prelude",
@@ -2559,9 +2559,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b15e73e6fdf15666b057b39515bd992088ba5fe19a708db778b1bca0d5b8830"
+checksum = "f4e3cf99814c37c9cf789a94479cc39fe86e8af0be43e5962080e01fa53ca0e5"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -2577,9 +2577,9 @@ dependencies = [
 
 [[package]]
 name = "ink_storage_traits"
-version = "5.0.0-alpha"
+version = "5.0.0-rc"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23206662b622a5b9053cb21b55bf7b7263b874836c98747717a62073797c5b3e"
+checksum = "4a469c01b48282a459130ca72a75e57feedbb69ab151639f532156d10d574353"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -4346,6 +4346,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "secp256k1"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acea373acb8c21ecb5a23741452acd2593ed44ee3d343e72baaa143bc89d0d5"
+dependencies = [
+ "secp256k1-sys 0.9.0",
+]
+
+[[package]]
 name = "secp256k1-sys"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4359,6 +4368,15 @@ name = "secp256k1-sys"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70a129b9e9efbfb223753b9163c4ab3b13cff7fd9c7f010fbac25ab4099fa07e"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e67c467c38fd24bd5499dc9a18183b31575c12ee549197e3e20d57aa4fe3b7"
 dependencies = [
  "cc",
 ]

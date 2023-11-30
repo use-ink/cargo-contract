@@ -400,22 +400,16 @@ impl ContractMessageTranscoder {
         let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
         })?;
-        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id, data)
-        } else {
-            Ok(Value::Unit)
-        }
+        let return_ty = ctor_spec.return_type().ret_type();
+        self.decode(return_ty.ty().id, data)
     }
 
     pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
-        if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id, data)
-        } else {
-            Ok(Value::Unit)
-        }
+        let return_ty = msg_spec.return_type().ret_type();
+        self.decode(return_ty.ty().id, data)
     }
 
     /// Checks if buffer empty, otherwise returns am error
