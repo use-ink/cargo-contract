@@ -287,7 +287,7 @@ mod tests {
                         vec!["i32"].into_iter().map(AsRef::as_ref),
                     ))
                     .done()])
-                .returns(ReturnTypeSpec::new(None))
+                .returns(ReturnTypeSpec::new(TypeSpec::default()))
                 .docs(Vec::new())
                 .done()])
             .messages(vec![MessageSpec::from_label("get")
