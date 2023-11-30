@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
-- Bump `ink` to `5.0.0-rc` - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
+- Bump `ink` to `5.0.0-rc` - [#1415](https://github.com/paritytech/cargo-contract/pull/1415)
 
 ### Fixed
 - Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
