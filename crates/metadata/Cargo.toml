@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "4.0.0-alpha"
+version = "4.0.0-rc"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "compatibility_list.json"]
 
 [dependencies]
 impl-serde = "0.4.0"
