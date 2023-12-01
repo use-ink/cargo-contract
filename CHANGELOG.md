@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-rc.1]
+
+### Changed
+- Run wasm-opt first, remove sign_ext feature - [#1416](https://github.com/paritytech/cargo-contract/pull/1416)
+
 ## [4.0.0-rc]
 
 ### Added
