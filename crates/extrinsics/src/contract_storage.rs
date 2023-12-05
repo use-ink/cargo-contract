@@ -116,7 +116,7 @@ where
 #[derive(Serialize)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ContractStorageCell {
     pub path: Vec<String>,
     pub value: Bytes,
@@ -127,55 +127,60 @@ pub struct ContractStorageCell {
 }
 
 #[derive(Serialize)]
-pub struct ContractStorageLayout(pub BTreeMap<Bytes, ContractStorageCell>);
+pub struct ContractStorageLayout {
+    pub cells: Vec<ContractStorageCell>,
+}
 
 impl ContractStorageLayout {
     pub fn new(data: ContractStorageData, layout: &Layout<PortableForm>) -> Self {
         let mut path_stack = vec!["root".to_string()];
-        let mut root_keys: std::vec::Vec<(_, _, _)> = Vec::new();
-        Self::collect_root_key_entries(layout, &mut path_stack, &mut root_keys);
+        let mut root_key_entries: Vec<RootKeyEntry> = Vec::new();
+        Self::collect_root_key_entries(layout, &mut path_stack, &mut root_key_entries);
 
-        let cells = data
+        let mut cells = data
             .0
             .iter()
             .filter_map(|(k, v)| {
                 let (root_key, mapping_key) = Self::key_parts(k);
-                let (path, _, type_id) =
-                    root_keys.iter().find(|(_, key, _)| *key == root_key)?;
+                let root_key_entry =
+                    root_key_entries.iter().find(|&e| e.root_key == root_key)?;
 
-                Some((
-                    k.clone(),
-                    ContractStorageCell {
-                        path: path.clone(),
-                        value: v.clone(),
-                        type_id: *type_id,
-                        root_key,
-                        mapping_key,
-                    },
-                ))
+                Some(ContractStorageCell {
+                    path: root_key_entry.path.clone(),
+                    value: v.clone(),
+                    type_id: root_key_entry.type_id,
+                    root_key,
+                    mapping_key,
+                })
             })
-            .collect();
-        Self(cells)
+            .collect::<Vec<_>>();
+        cells.sort_by(|a, b| a.path.cmp(&b.path));
+
+        Self { cells }
     }
 
     fn collect_root_key_entries(
         layout: &Layout<PortableForm>,
         path: &mut Vec<String>,
-        data: &mut Vec<(Vec<String>, u32, u32)>,
+        entries: &mut Vec<RootKeyEntry>,
     ) {
         match layout {
             Layout::Root(root) => {
-                data.push((path.clone(), *root.root_key().key(), root.ty().id));
-                Self::collect_root_key_entries(root.layout(), path, data);
+                entries.push(RootKeyEntry {
+                    path: path.clone(),
+                    root_key: *root.root_key().key(),
+                    type_id: root.ty().id,
+                });
+                Self::collect_root_key_entries(root.layout(), path, entries);
             }
             Layout::Struct(struct_layout) => {
-                Self::struct_entries(struct_layout, path, data)
+                Self::struct_entries(struct_layout, path, entries)
             }
             Layout::Enum(enum_layout) => {
                 path.push(enum_layout.name().to_string());
                 for (variant, struct_layout) in enum_layout.variants() {
                     path.push(variant.value().to_string());
-                    Self::struct_entries(struct_layout, path, data);
+                    Self::struct_entries(struct_layout, path, entries);
                     path.pop();
                 }
                 path.pop();
@@ -193,13 +198,13 @@ impl ContractStorageLayout {
     fn struct_entries(
         struct_layout: &StructLayout<PortableForm>,
         path: &mut Vec<String>,
-        data: &mut Vec<(Vec<String>, u32, u32)>,
+        entries: &mut Vec<RootKeyEntry>,
     ) {
         let struct_label = struct_layout.name().to_string();
         path.push(struct_label);
         for field in struct_layout.fields() {
             path.push(field.name().to_string());
-            Self::collect_root_key_entries(field.layout(), path, data);
+            Self::collect_root_key_entries(field.layout(), path, entries);
             path.pop();
         }
         path.pop();
@@ -229,6 +234,12 @@ impl ContractStorageLayout {
     }
 }
 
+struct RootKeyEntry {
+    path: Vec<String>,
+    root_key: u32,
+    type_id: u32,
+}
+
 /// Methods for querying contracts over RPC.
 pub struct ContractStorageRpc<C: Config> {
     rpc_client: RpcClient,
@@ -240,7 +251,6 @@ impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
-    // BlockRef<sp_core::H256>: From<C::Hash>,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {

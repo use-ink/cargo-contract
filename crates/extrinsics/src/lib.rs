@@ -73,6 +73,7 @@ pub use contract_info::{
 use contract_metadata::ContractMetadata;
 pub use contract_storage::{
     ContractStorage,
+    ContractStorageCell,
     ContractStorageLayout,
     ContractStorageRpc,
 };
