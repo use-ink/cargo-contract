@@ -204,3 +204,12 @@ impl CustomTypeDecoder for Hash {
         Ok(Value::Hex(Hex::from_str(&format!("{hash:?}"))?))
     }
 }
+
+/// Custom decoding for the `StorageVec` type so that its type is displayed as string.
+pub struct StorageVec;
+
+impl CustomTypeDecoder for StorageVec {
+    fn decode_value(&self, _: &mut &[u8]) -> Result<Value> {
+        Ok(Value::String("StorageVec".to_string()))
+    }
+}

@@ -28,7 +28,11 @@ use contract_extrinsics::{
 use contract_transcode::ContractMessageTranscoder;
 use sp_core::hexdisplay::AsBytesRef;
 use std::path::PathBuf;
-use subxt::Config;
+use subxt::{
+    backend::legacy::rpc_methods::Bytes,
+    ext::codec::Decode,
+    Config,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "storage", about = "Inspect contract storage")]
@@ -174,39 +178,76 @@ struct Iter<'a> {
 }
 
 impl<'a> Iter<'a> {
+    fn param_type_id(&self, type_id: u32, name: &str) -> Option<u32> {
+        let type_def = self.transcoder.metadata().registry().resolve(type_id)?;
+        Some(
+            type_def
+                .type_params
+                .iter()
+                .find(|&e| e.name == name)?
+                .ty?
+                .id,
+        )
+    }
+
+    fn decode_to_string(&self, type_id: u32, input: &Bytes) -> Option<String> {
+        Some(
+            self.transcoder
+                .decode(type_id, &mut input.as_bytes_ref())
+                .ok()?
+                .to_string(),
+        )
+    }
+
     fn storage_mapping_value(
         &mut self,
         map_first_item: &ContractStorageCell,
     ) -> Option<Vec<String>> {
         let mut item = map_first_item;
-        let type_def = self
-            .transcoder
-            .metadata()
-            .registry()
-            .resolve(item.type_id)?;
-        let key_type_id = type_def.type_params.iter().find(|&e| e.name == "K")?.ty?.id;
-        let value_type_id = type_def.type_params.iter().find(|&e| e.name == "V")?.ty?.id;
+
+        let key_type_id = self.param_type_id(item.type_id, "K")?;
+        let value_type_id = self.param_type_id(item.type_id, "V")?;
         let mut values = Vec::new();
-        loop {
-            let mapping_key = item.mapping_key.clone()?;
-
-            let key = self
-                .transcoder
-                .decode(key_type_id, &mut mapping_key.as_bytes_ref())
-                .ok()?;
-
-            let value = self
-                .transcoder
-                .decode(value_type_id, &mut item.value.as_bytes_ref())
-                .ok()?;
-
-            values.push(format!("Mapping {{ {} => {} }}", key, value));
+        while let Some(mapping_key) = &item.mapping_key {
+            values.push(format!(
+                "Mapping {{ {} => {} }}",
+                self.decode_to_string(key_type_id, mapping_key)?,
+                self.decode_to_string(value_type_id, &item.value)?
+            ));
             if self.inner.peek().map(|e| e.root_key == item.root_key) != Some(true) {
+                // Next storage cell is not a part of `Mapping`
                 break
-            } else {
-                item = self.inner.next()?;
             }
+            item = self.inner.next()?;
         }
+        Some(values)
+    }
+
+    fn storage_vec_value(
+        &mut self,
+        map_first_item: &ContractStorageCell,
+    ) -> Option<Vec<String>> {
+        let mut item = map_first_item;
+
+        let value_type_id = self.param_type_id(item.type_id, "V")?;
+        let mut values = Vec::new();
+        // Cells with mapping key contain 'StorageVec' data
+        while let Some(mapping_key) = &item.mapping_key {
+            // The key type for 'Mapping' in 'StorageVec' is u32
+            let key: u32 = Decode::decode(&mut mapping_key.as_bytes_ref()).ok()?;
+            values.push(format!(
+                "StorageVec {{ [{}] => {} }}",
+                key,
+                self.decode_to_string(value_type_id, &item.value)?
+            ));
+
+            if self.inner.peek().map(|e| e.root_key == item.root_key) != Some(true) {
+                // Next storage cell is not a part of `StorageVec`
+                break
+            }
+            item = self.inner.next()?;
+        }
+
         Some(values)
     }
 }
@@ -221,7 +262,6 @@ impl<'a> Iterator for Iter<'a> {
                 .metadata()
                 .registry()
                 .resolve(item.type_id)?;
-
             let value = match type_def.path.to_string().as_str() {
                 "ink_storage::lazy::mapping::Mapping" => {
                     self.storage_mapping_value(item)?
@@ -229,18 +269,12 @@ impl<'a> Iterator for Iter<'a> {
                 "ink_storage::lazy::Lazy" => {
                     let value_type_id =
                         type_def.type_params.iter().find(|&e| e.name == "V")?.ty?.id;
-                    vec![self
-                        .transcoder
-                        .decode(value_type_id, &mut item.value.as_bytes_ref())
-                        .map(|e| e.to_string())
-                        .ok()?]
+                    vec![self.decode_to_string(value_type_id, &item.value)?]
                 }
+                "ink_storage::lazy::vec::StorageVec" => self.storage_vec_value(item)?,
                 _ => {
                     vec![self
-                        .transcoder
-                        .decode(item.type_id, &mut item.value.as_bytes_ref())
-                        .map(|e| e.to_string())
-                        .ok()?]
+                        .decode_to_string(item.type_id, &item.value)?]
                 }
             };
             let parent = item.path.last().cloned()?;
