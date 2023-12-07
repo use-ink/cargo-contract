@@ -6,27 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-rc.1]
+
+### Changed
+- Run wasm-opt first, remove sign_ext feature - [#1416](https://github.com/paritytech/cargo-contract/pull/1416)
+
+## [4.0.0-rc]
+
 ### Added
 - Add schema generation and verification - [#1404](https://github.com/paritytech/cargo-contract/pull/1404)
 - Compare `Environment` types against the node - [#1377](https://github.com/paritytech/cargo-contract/pull/1377)
-- Adds workflow for publishing docker images for the verifiable builds - [#1267](https://github.com/paritytech/cargo-contract/pull/1267)
 - Detect `INK_STATIC_BUFFER_SIZE` env var - [#1310](https://github.com/paritytech/cargo-contract/pull/1310)
 - Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
 - Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
 - Add `--all` flag for `info` command - [#1319](https://github.com/paritytech/cargo-contract/pull/1319)
-- Fix for a Url to String conversion in `info` command - [#1330](https://github.com/paritytech/cargo-contract/pull/1330)
 - Add contract language detection feature for `info` command - [#1329](https://github.com/paritytech/cargo-contract/pull/1329)
 - Add warning message when using incompatible contract's ink! version - [#1334](https://github.com/paritytech/cargo-contract/pull/1334)
-- Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
-- Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
 - Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
 - Add `Storage Total Deposit` to `info` command output - [#1347](https://github.com/paritytech/cargo-contract/pull/1347)
 - Add dynamic types support - [#1399](https://github.com/paritytech/cargo-contract/pull/1399)
 - Basic storage inspection command - [#1395](https://github.com/paritytech/cargo-contract/pull/1395)
 
+### Changed
+- Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
+- Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
+- Bump `ink` to `5.0.0-rc` - [#1415](https://github.com/paritytech/cargo-contract/pull/1415)
+
 ### Fixed
 - Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
 - Improve JSON Output for Upload and Remove Commands - [#1389](https://github.com/paritytech/cargo-contract/pull/1389)
+- Fix for a Url to String conversion in `info` command - [#1330](https://github.com/paritytech/cargo-contract/pull/1330)
 
 ## [4.0.0-alpha]
 

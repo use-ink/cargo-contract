@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "4.0.0-alpha"
+version = "4.0.0-rc.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,14 +18,14 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "4.0.0-alpha", path = "../build" }
-contract-extrinsics = { version = "4.0.0-alpha", path = "../extrinsics" }
-contract-transcode = { version = "4.0.0-alpha", path = "../transcode" }
-contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
-contract-analyze = { version = "0.1.0", path = "../analyze" }
+contract-build = { version = "4.0.0-rc.1", path = "../build" }
+contract-extrinsics = { version = "4.0.0-rc.1", path = "../extrinsics" }
+contract-transcode = { version = "4.0.0-rc.1", path = "../transcode" }
+contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
+contract-analyze = { version = "4.0.0-rc.1", path = "../analyze" }
 
 anyhow = "1.0.75"
-clap = { version = "4.4.10", features = ["derive", "env"] }
+clap = { version = "4.4.11", features = ["derive", "env"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -37,7 +37,7 @@ url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
 schemars = "0.8"
-ink_metadata = "5.0.0-alpha"
+ink_metadata = "5.0.0-rc"
 
 
 # dependencies for extrinsics (deploying and calling a contract)
