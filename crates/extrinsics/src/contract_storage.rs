@@ -154,7 +154,11 @@ impl ContractStorageLayout {
                 })
             })
             .collect::<Vec<_>>();
-        cells.sort_by(|a, b| a.path.cmp(&b.path));
+        cells.sort_by(|a, b| {
+            a.path
+                .cmp(&b.path)
+                .then_with(|| a.mapping_key.cmp(&b.mapping_key))
+        });
 
         Self { cells }
     }

@@ -127,15 +127,21 @@ impl StorageCommand {
         let storage = DisplayStorageLayout::new(storage, transcoder);
 
         println!(
-            "{:<10} | {:<20.20} | {}",
+            "{:<4} | {:<10} | {:<20.20} | {}",
+            "Index".bright_purple().bold(),
             "Root Key".bright_purple().bold(),
             "Parent".bright_purple().bold(),
             "Value".bright_purple().bold()
         );
 
+        let mut index = 0u32;
         for cell in storage.iter() {
             for value in &cell.value {
-                println!("{:<10} | {:<20.20} | {}", cell.root_key, cell.parent, value);
+                println!(
+                    "{:<5} | {:<10} | {:<20.20} | {}",
+                    index, cell.root_key, cell.parent, value
+                );
+                index += 1;
             }
         }
         Ok(())
