@@ -273,8 +273,7 @@ impl<'a> Iterator for Iter<'a> {
                 }
                 "ink_storage::lazy::vec::StorageVec" => self.storage_vec_value(item)?,
                 _ => {
-                    vec![self
-                        .decode_to_string(item.type_id, &item.value)?]
+                    vec![self.decode_to_string(item.type_id, &item.value)?]
                 }
             };
             let parent = item.path.last().cloned()?;
