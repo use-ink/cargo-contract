@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
+use contract_transcode::ContractMessageTranscoder;
 use ink_metadata::{
     layout::{
         Layout,
@@ -22,9 +23,17 @@ use ink_metadata::{
     },
     InkProject,
 };
-use scale_info::form::PortableForm;
+use itertools::Itertools;
+use scale::Decode;
+use scale_info::{
+    form::PortableForm,
+    Type,
+};
 use serde::Serialize;
-use sp_core::storage::ChildInfo;
+use sp_core::{
+    hexdisplay::AsBytesRef,
+    storage::ChildInfo,
+};
 use std::{
     collections::BTreeMap,
     fmt::Display,
@@ -78,10 +87,25 @@ where
         let contract_info = self.rpc.fetch_contract_info(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
-        let storage_keys = self
-            .rpc
-            .fetch_storage_keys_paged(trie_id, None, 1000, None, None) // todo loop pages
-            .await?;
+        let mut storage_keys = Vec::new();
+        const KEYS_COUNT: u32 = 1000;
+        loop {
+            let mut keys = self
+                .rpc
+                .fetch_storage_keys_paged(
+                    trie_id,
+                    None,
+                    KEYS_COUNT,
+                    storage_keys.last().map(|k: &Bytes| k.as_bytes_ref()),
+                    None,
+                )
+                .await?;
+            let count = keys.len();
+            storage_keys.append(&mut keys);
+            if (count as u32) < KEYS_COUNT {
+                break
+            }
+        }
         let storage_values = self
             .rpc
             .fetch_storage_entries(trie_id, &storage_keys, None)
@@ -107,7 +131,7 @@ where
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageLayout> {
         let data = self.load_contract_storage_data(contract_account).await?;
-        let layout = ContractStorageLayout::new(data, metadata.layout());
+        let layout = ContractStorageLayout::new(data, metadata);
         Ok(layout)
     }
 }
@@ -117,13 +141,158 @@ where
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
 #[derive(Serialize, Debug)]
-pub struct ContractStorageCell {
-    pub path: Vec<String>,
-    pub value: Bytes,
-    pub type_id: u32,
+pub struct RootKeyEntry {
     pub root_key: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mapping_key: Option<Bytes>,
+    pub path: Vec<String>,
+    pub type_id: u32,
+}
+
+trait DecodePrettyString {
+    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String;
+}
+
+#[derive(Serialize, Debug)]
+pub struct Mapping {
+    #[serde(flatten)]
+    pub root: RootKeyEntry,
+    #[serde(rename = "Map")]
+    pub value: BTreeMap<Bytes, Bytes>,
+    #[serde(skip_serializing)]
+    param_value_type_id: u32,
+    #[serde(skip_serializing)]
+    param_key_type_id: u32,
+}
+
+impl DecodePrettyString for Mapping {
+    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+        self.value
+            .iter()
+            .filter_map(|(k, v)| {
+                let key = decoder
+                    .decode(self.param_key_type_id, &mut k.as_bytes_ref())
+                    .ok()?;
+                let value = decoder
+                    .decode(self.param_value_type_id, &mut v.as_bytes_ref())
+                    .ok()?;
+                Some(format!("Map {{ {} => {} }}\n", key, value))
+            })
+            .fold(String::new(), |s, e| {
+                let s = s + e.as_str();
+                s
+            })
+            .trim_end()
+            .to_string()
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct Lazy {
+    #[serde(flatten)]
+    pub root: RootKeyEntry,
+    pub value: Bytes,
+    #[serde(skip_serializing)]
+    param_value_type_id: u32,
+}
+
+impl DecodePrettyString for Lazy {
+    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+        if let Ok(value) =
+            decoder.decode(self.param_value_type_id, &mut self.value.as_bytes_ref())
+        {
+            return value.to_string()
+        }
+        "Not decoded".to_string()
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct StorageVec {
+    #[serde(flatten)]
+    pub root: RootKeyEntry,
+    #[serde(rename = "Vec")]
+    pub value: Vec<(Option<Bytes>, Bytes)>,
+    #[serde(skip_serializing)]
+    param_value_type_id: u32,
+}
+
+impl DecodePrettyString for StorageVec {
+    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+        self.value
+            .iter()
+            .filter_map(|e| {
+                if let Some(mapping_key) = &e.0 {
+                    let key = u32::decode(&mut mapping_key.as_bytes_ref()).ok()?;
+                    let value = decoder
+                        .decode(self.param_value_type_id, &mut e.1.as_bytes_ref())
+                        .ok()?;
+                    return Some(format!("StorageVec {{ [{}] => {} }}\n", key, value))
+                }
+                None
+            })
+            .fold(String::new(), |s, e| {
+                let s = s + e.as_str();
+                s
+            })
+            .trim_end()
+            .to_string()
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct Value {
+    #[serde(flatten)]
+    pub root: RootKeyEntry,
+    pub value: Bytes,
+}
+
+impl DecodePrettyString for Value {
+    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+        if let Ok(value) =
+            decoder.decode(self.root.type_id, &mut self.value.as_bytes_ref())
+        {
+            return value.to_string()
+        }
+        "Not decoded".to_string()
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub enum ContractStorageCell {
+    Mapping(Mapping),
+    Lazy(Lazy),
+    StorageVec(StorageVec),
+    Value(Value),
+}
+
+impl ContractStorageCell {
+    fn root(&self) -> &RootKeyEntry {
+        match self {
+            Self::Mapping(mapping) => &mapping.root,
+            Self::Lazy(lazy) => &lazy.root,
+            Self::StorageVec(storage_vec) => &storage_vec.root,
+            Self::Value(value) => &value.root,
+        }
+    }
+    pub fn path(&self) -> String {
+        self.root().path.join("::")
+    }
+
+    pub fn parent(&self) -> String {
+        self.root().path.last().cloned().unwrap_or_default()
+    }
+
+    pub fn root_key(&self) -> String {
+        hex::encode(self.root().root_key.to_le_bytes())
+    }
+
+    pub fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+        match self {
+            Self::Mapping(mapping) => mapping.decode_pretty_string(decoder),
+            Self::Lazy(lazy) => lazy.decode_pretty_string(decoder),
+            Self::StorageVec(storage_vec) => storage_vec.decode_pretty_string(decoder),
+            Self::Value(value) => value.decode_pretty_string(decoder),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -132,33 +301,75 @@ pub struct ContractStorageLayout {
 }
 
 impl ContractStorageLayout {
-    pub fn new(data: ContractStorageData, layout: &Layout<PortableForm>) -> Self {
+    pub fn new(data: ContractStorageData, metadata: &InkProject) -> Self {
+        let layout = metadata.layout();
+        let registry = metadata.registry();
         let mut path_stack = vec!["root".to_string()];
         let mut root_key_entries: Vec<RootKeyEntry> = Vec::new();
         Self::collect_root_key_entries(layout, &mut path_stack, &mut root_key_entries);
 
         let mut cells = data
             .0
-            .iter()
-            .filter_map(|(k, v)| {
-                let (root_key, mapping_key) = Self::key_parts(k);
+            .into_iter()
+            .map(|(key, value)| {
+                let (root_key, mapping_key) = Self::key_parts(&key);
+                (root_key, (mapping_key, value))
+            })
+            .into_group_map()
+            .into_iter()
+            .filter_map(|(root_key, mut data)| {
                 let root_key_entry =
-                    root_key_entries.iter().find(|&e| e.root_key == root_key)?;
-
-                Some(ContractStorageCell {
+                    root_key_entries.iter().find(|e| e.root_key == root_key)?;
+                let type_def = registry.resolve(root_key_entry.type_id)?;
+                let root = RootKeyEntry {
                     path: root_key_entry.path.clone(),
-                    value: v.clone(),
                     type_id: root_key_entry.type_id,
                     root_key,
-                    mapping_key,
-                })
+                };
+                match type_def.path.to_string().as_str() {
+                    "ink_storage::lazy::mapping::Mapping" => {
+                        let mapping_key_type_id = Self::param_type_id(type_def, "K")?;
+                        let value_type_id = Self::param_type_id(type_def, "V")?;
+                        let value = data
+                            .into_iter()
+                            .filter_map(|(k, v)| k.map(|key| (key, v)))
+                            .collect();
+                        Some(ContractStorageCell::Mapping(Mapping {
+                            root,
+                            value,
+                            param_value_type_id: value_type_id,
+                            param_key_type_id: mapping_key_type_id,
+                        }))
+                    }
+                    "ink_storage::lazy::vec::StorageVec" => {
+                        data.sort_by(|a, b| a.0.cmp(&b.0));
+                        let value_type_id = Self::param_type_id(type_def, "V")?;
+                        Some(ContractStorageCell::StorageVec(StorageVec {
+                            root,
+                            value: data,
+                            param_value_type_id: value_type_id,
+                        }))
+                    }
+                    "ink_storage::lazy::Lazy" => {
+                        let value_type_id = Self::param_type_id(type_def, "V")?;
+
+                        Some(ContractStorageCell::Lazy(Lazy {
+                            root,
+                            value: data.first()?.1.clone(),
+                            param_value_type_id: value_type_id,
+                        }))
+                    }
+                    _ => {
+                        Some(ContractStorageCell::Value(Value {
+                            root,
+                            value: data.first()?.1.clone(),
+                        }))
+                    }
+                }
             })
             .collect::<Vec<_>>();
-        cells.sort_by(|a, b| {
-            a.path
-                .cmp(&b.path)
-                .then_with(|| a.mapping_key.cmp(&b.mapping_key))
-        });
+
+        cells.sort_by_key(|k| k.path());
 
         Self { cells }
     }
@@ -171,8 +382,8 @@ impl ContractStorageLayout {
         match layout {
             Layout::Root(root) => {
                 entries.push(RootKeyEntry {
-                    path: path.clone(),
                     root_key: *root.root_key().key(),
+                    path: path.clone(),
                     type_id: root.ty().id,
                 });
                 Self::collect_root_key_entries(root.layout(), path, entries);
@@ -236,12 +447,17 @@ impl ContractStorageLayout {
 
         (root_key, mapping_key)
     }
-}
 
-struct RootKeyEntry {
-    path: Vec<String>,
-    root_key: u32,
-    type_id: u32,
+    fn param_type_id(type_def: &Type<PortableForm>, param_name: &str) -> Option<u32> {
+        Some(
+            type_def
+                .type_params
+                .iter()
+                .find(|&e| e.name == param_name)?
+                .ty?
+                .id,
+        )
+    }
 }
 
 /// Methods for querying contracts over RPC.
