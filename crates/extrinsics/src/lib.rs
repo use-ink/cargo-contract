@@ -155,15 +155,44 @@ where
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
 
-    client
+    let mut tx = client
         .tx()
         .create_signed_with_nonce(call, signer, account_nonce, Default::default())?
         .submit_and_watch()
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await
+        .await?;
+
+    // Below we use the low level API to replicate the `wait_for_in_block` behaviour which
+    // was removed in subxt 0.33.0. See https://github.com/paritytech/subxt/pull/1237.
+    //
+    // We require this because we use `substrate-contracts-node` as our development node,
+    // which does not currently support finality, so we just want to wait until it is
+    // included in a block.
+    use subxt::error::{
+        RpcError,
+        TransactionError,
+    };
+    use tx::TxStatus;
+
+    while let Some(status) = tx.next().await {
+        match status? {
+            TxStatus::InBestBlock(tx_in_block)
+            | TxStatus::InFinalizedBlock(tx_in_block) => {
+                let events = tx_in_block.wait_for_success().await?;
+                return Ok(events);
+            }
+            TxStatus::Error { message } => {
+                return Err(TransactionError::Error(message).into())
+            }
+            TxStatus::Invalid { message } => {
+                return Err(TransactionError::Invalid(message).into())
+            }
+            TxStatus::Dropped { message } => {
+                return Err(TransactionError::Dropped(message).into())
+            }
+            _ => continue,
+        }
+    }
+    Err(RpcError::SubscriptionDropped.into())
 }
 
 /// Return the account nonce at the *best* block for an account ID.
