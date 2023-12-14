@@ -177,7 +177,7 @@ impl<'a> Decoder<'a> {
         variant_type: &TypeDefVariant<PortableForm>,
         input: &mut &[u8],
     ) -> Result<Value> {
-        let discriminant = input.read_byte()?;
+        let discriminant = input.read_byte().unwrap_or(0);
         let variant = variant_type
             .variants
             .iter()

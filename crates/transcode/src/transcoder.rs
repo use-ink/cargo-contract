@@ -111,17 +111,16 @@ impl TranscoderBuilder {
             .register_custom_type_decoder::<T, U>(transcoder)
     }
 
-    pub fn register_custom_type_encoder_with_path_key<U>(
-        self,
-        path_key: PathKey,
-        encoder: U,
-    ) -> Self
+    pub fn register_custom_type_encoder<T, U>(self, encoder: U) -> Self
     where
+        T: TypeInfo + 'static,
         U: CustomTypeEncoder + 'static,
     {
-        let mut this: TranscoderBuilder = self;
+        let mut this = self;
 
+        let path_key = PathKey::from_type::<T>();
         let type_id = this.types_by_path.get(&path_key);
+
         match type_id {
             Some(type_id) => {
                 let existing = this.encoders.insert(*type_id, Box::new(encoder));
@@ -141,26 +140,16 @@ impl TranscoderBuilder {
         this
     }
 
-    pub fn register_custom_type_encoder<T, U>(self, encoder: U) -> Self
+    pub fn register_custom_type_decoder<T, U>(self, encoder: U) -> Self
     where
         T: TypeInfo + 'static,
-        U: CustomTypeEncoder + 'static,
-    {
-        let path_key = PathKey::from_type::<T>();
-        self.register_custom_type_encoder_with_path_key::<U>(path_key, encoder)
-    }
-
-    pub fn register_custom_type_decoder_with_path_key<U>(
-        self,
-        path_key: PathKey,
-        encoder: U,
-    ) -> Self
-    where
         U: CustomTypeDecoder + 'static,
     {
         let mut this = self;
 
+        let path_key = PathKey::from_type::<T>();
         let type_id = this.types_by_path.get(&path_key);
+
         match type_id {
             Some(type_id) => {
                 let existing = this.decoders.insert(*type_id, Box::new(encoder));
@@ -178,15 +167,6 @@ impl TranscoderBuilder {
             }
         }
         this
-    }
-
-    pub fn register_custom_type_decoder<T, U>(self, encoder: U) -> Self
-    where
-        T: TypeInfo + 'static,
-        U: CustomTypeDecoder + 'static,
-    {
-        let path_key: PathKey = PathKey::from_type::<T>();
-        self.register_custom_type_decoder_with_path_key::<U>(path_key, encoder)
     }
 
     pub fn done(self) -> Transcoder {

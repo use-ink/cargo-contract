@@ -1071,6 +1071,7 @@ dependencies = [
  "futures",
  "hex",
  "ink_metadata",
+ "itertools 0.12.0",
  "pallet-contracts-primitives",
  "parity-scale-codec",
  "predicates",

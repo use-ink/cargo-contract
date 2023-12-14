@@ -178,8 +178,6 @@ impl ContractMessageTranscoder {
         let transcoder = TranscoderBuilder::new(metadata.registry())
             .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
             .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
-            .register_custom_type_decoder_with_path_key::<_>((&scale_info::Path::<PortableForm>::from_segments_unchecked([ "ink_storage", "lazy", "vec", "StorageVec"]
-            .map(|s| s.to_string()))).into(),env_types::StorageVec)
             .done();
         Self {
             metadata,

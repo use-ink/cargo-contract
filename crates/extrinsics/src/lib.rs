@@ -178,7 +178,7 @@ where
             TxStatus::InBestBlock(tx_in_block)
             | TxStatus::InFinalizedBlock(tx_in_block) => {
                 let events = tx_in_block.wait_for_success().await?;
-                return Ok(events);
+                return Ok(events)
             }
             TxStatus::Error { message } => {
                 return Err(TransactionError::Error(message).into())
