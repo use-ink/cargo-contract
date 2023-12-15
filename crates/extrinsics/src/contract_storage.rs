@@ -29,7 +29,10 @@ use scale_info::{
     form::PortableForm,
     Type,
 };
-use serde::{Serialize, Serializer};
+use serde::{
+    Serialize,
+    Serializer,
+};
 use sp_core::{
     hexdisplay::AsBytesRef,
     storage::ChildInfo,
@@ -137,7 +140,8 @@ where
 }
 
 fn key_as_hex<S>(key: &u32, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer
+where
+    S: Serializer,
 {
     serializer.serialize_str(format!("0x{}", hex::encode(key.to_le_bytes())).as_str())
 }
@@ -161,7 +165,6 @@ trait DecodePrettyString {
     fn not_decoded_hex_bytes(value: &Bytes) -> String {
         format!("Not decoded (0x{})", hex::encode(value.as_bytes_ref()))
     }
-
 }
 
 #[derive(Serialize, Debug)]
@@ -183,10 +186,10 @@ impl DecodePrettyString for Mapping {
             .map(|(k, v)| {
                 let key = decoder
                     .decode(self.param_key_type_id, &mut k.as_bytes_ref())
-                    .map_or(Self::not_decoded_hex_bytes(k),  |e| e.to_string());
+                    .map_or(Self::not_decoded_hex_bytes(k), |e| e.to_string());
                 let value = decoder
                     .decode(self.param_value_type_id, &mut v.as_bytes_ref())
-                    .map_or(Self::not_decoded_hex_bytes(v),  |e| e.to_string());
+                    .map_or(Self::not_decoded_hex_bytes(v), |e| e.to_string());
                 format!("Map {{ {} => {} }}\n", key, value)
             })
             .fold(String::new(), |s, e| {
@@ -232,13 +235,15 @@ impl DecodePrettyString for StorageVec {
     fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
         self.value
             .iter()
-            .filter_map(|(k,v)| {
+            .filter_map(|(k, v)| {
                 if let Some(mapping_key) = k {
                     let key = u32::decode(&mut mapping_key.as_bytes_ref())
-                    .map_or(Self::not_decoded_hex_bytes(mapping_key),  |e| e.to_string());
+                        .map_or(Self::not_decoded_hex_bytes(mapping_key), |e| {
+                            e.to_string()
+                        });
                     let value = decoder
                         .decode(self.param_value_type_id, &mut v.as_bytes_ref())
-                        .map_or(Self::not_decoded_hex_bytes(v),  |e| e.to_string());
+                        .map_or(Self::not_decoded_hex_bytes(v), |e| e.to_string());
                     return Some(format!("StorageVec {{ [{}] => {} }}\n", key, value))
                 }
                 None
@@ -316,7 +321,8 @@ pub struct ContractStorageLayout {
 }
 
 impl ContractStorageLayout {
-    ///  Creates a representation of contract storage based on raw storage entries and metadata.
+    ///  Creates a representation of contract storage based on raw storage entries and
+    /// metadata.
     pub fn new(data: ContractStorageData, metadata: &InkProject) -> Self {
         let layout = metadata.layout();
         let registry = metadata.registry();
