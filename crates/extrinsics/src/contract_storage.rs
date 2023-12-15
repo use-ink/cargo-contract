@@ -29,7 +29,7 @@ use scale_info::{
     form::PortableForm,
     Type,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use sp_core::{
     hexdisplay::AsBytesRef,
     storage::ChildInfo,
@@ -136,19 +136,32 @@ where
     }
 }
 
+fn key_as_hex<S>(key: &u32, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer
+{
+    serializer.serialize_str(format!("0x{}", hex::encode(key.to_le_bytes())).as_str())
+}
+
 /// Represents the raw key/value storage for the contract.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
 #[derive(Serialize, Debug)]
 pub struct RootKeyEntry {
+    #[serde(serialize_with = "key_as_hex")]
     pub root_key: u32,
     pub path: Vec<String>,
     pub type_id: u32,
 }
 
 trait DecodePrettyString {
+    /// Decode the storage cell into a multiline string
     fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String;
+
+    fn not_decoded_hex_bytes(value: &Bytes) -> String {
+        format!("Not decoded (0x{})", hex::encode(value.as_bytes_ref()))
+    }
+
 }
 
 #[derive(Serialize, Debug)]
@@ -167,14 +180,14 @@ impl DecodePrettyString for Mapping {
     fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
         self.value
             .iter()
-            .filter_map(|(k, v)| {
+            .map(|(k, v)| {
                 let key = decoder
                     .decode(self.param_key_type_id, &mut k.as_bytes_ref())
-                    .ok()?;
+                    .map_or(Self::not_decoded_hex_bytes(k),  |e| e.to_string());
                 let value = decoder
                     .decode(self.param_value_type_id, &mut v.as_bytes_ref())
-                    .ok()?;
-                Some(format!("Map {{ {} => {} }}\n", key, value))
+                    .map_or(Self::not_decoded_hex_bytes(v),  |e| e.to_string());
+                format!("Map {{ {} => {} }}\n", key, value)
             })
             .fold(String::new(), |s, e| {
                 let s = s + e.as_str();
@@ -201,7 +214,7 @@ impl DecodePrettyString for Lazy {
         {
             return value.to_string()
         }
-        "Not decoded".to_string()
+        Self::not_decoded_hex_bytes(&self.value)
     }
 }
 
@@ -219,12 +232,13 @@ impl DecodePrettyString for StorageVec {
     fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
         self.value
             .iter()
-            .filter_map(|e| {
-                if let Some(mapping_key) = &e.0 {
-                    let key = u32::decode(&mut mapping_key.as_bytes_ref()).ok()?;
+            .filter_map(|(k,v)| {
+                if let Some(mapping_key) = k {
+                    let key = u32::decode(&mut mapping_key.as_bytes_ref())
+                    .map_or(Self::not_decoded_hex_bytes(mapping_key),  |e| e.to_string());
                     let value = decoder
-                        .decode(self.param_value_type_id, &mut e.1.as_bytes_ref())
-                        .ok()?;
+                        .decode(self.param_value_type_id, &mut v.as_bytes_ref())
+                        .map_or(Self::not_decoded_hex_bytes(v),  |e| e.to_string());
                     return Some(format!("StorageVec {{ [{}] => {} }}\n", key, value))
                 }
                 None
@@ -252,7 +266,7 @@ impl DecodePrettyString for Value {
         {
             return value.to_string()
         }
-        "Not decoded".to_string()
+        Self::not_decoded_hex_bytes(&self.value)
     }
 }
 
@@ -295,12 +309,14 @@ impl ContractStorageCell {
     }
 }
 
+/// Represents storage cells containing values and type information for the contract.
 #[derive(Serialize)]
 pub struct ContractStorageLayout {
     pub cells: Vec<ContractStorageCell>,
 }
 
 impl ContractStorageLayout {
+    ///  Creates a representation of contract storage based on raw storage entries and metadata.
     pub fn new(data: ContractStorageData, metadata: &InkProject) -> Self {
         let layout = metadata.layout();
         let registry = metadata.registry();
@@ -512,6 +528,7 @@ where
         Ok(data)
     }
 
+    /// Fetch the keys of the contract storage.
     pub async fn fetch_storage_keys_paged(
         &self,
         trie_id: &TrieId,
@@ -538,6 +555,7 @@ where
         Ok(data)
     }
 
+    /// Fetch the storage values for the given keys.
     pub async fn fetch_storage_entries(
         &self,
         trie_id: &TrieId,
