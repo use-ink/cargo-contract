@@ -24,7 +24,6 @@ use contract_extrinsics::{
     ContractStorageRpc,
     ErrorVariant,
 };
-use contract_transcode::ContractMessageTranscoder;
 use std::path::PathBuf;
 use subxt::Config;
 
@@ -80,10 +79,9 @@ impl StorageCommand {
 
         match contract_artifacts {
             Ok(contract_artifacts) => {
-                let ink_metadata = contract_artifacts.ink_project_metadata()?;
-
+                let transcoder = contract_artifacts.contract_transcoder()?;
                 let contract_storage = storage_layout
-                    .load_contract_storage_with_layout(&ink_metadata, &self.contract)
+                    .load_contract_storage_with_layout(&self.contract, &transcoder)
                     .await?;
                 if self.output_json {
                     println!(
@@ -91,8 +89,7 @@ impl StorageCommand {
                         json = serde_json::to_string_pretty(&contract_storage)?
                     );
                 } else {
-                    let transcoder = contract_artifacts.contract_transcoder()?;
-                    Self::display_storage_table(&contract_storage, &transcoder)?;
+                    Self::display_storage_table(&contract_storage)?;
                 }
             }
             Err(_) => {
@@ -114,24 +111,21 @@ impl StorageCommand {
         Ok(())
     }
 
-    fn display_storage_table(
-        storage: &ContractStorageLayout,
-        transcoder: &ContractMessageTranscoder,
-    ) -> Result<()> {
+    fn display_storage_table(storage: &ContractStorageLayout) -> Result<()> {
         println!(
-            "{:<4} | {:<10} | {:<20.20} | {}",
+            "{:<5} | {:<8} | {:<20.20} | {}",
             "Index".bright_purple().bold(),
             "Root Key".bright_purple().bold(),
             "Parent".bright_purple().bold(),
             "Value".bright_purple().bold()
         );
 
-        for (index, cell) in storage.cells.iter().enumerate() {
-            let decoded_cell = cell.decode_pretty_string(transcoder);
+        for (index, cell) in storage.iter().enumerate() {
+            let decoded_cell = cell.decode_pretty_string();
             let values = decoded_cell.split('\n');
             for (i, v) in values.enumerate() {
                 println!(
-                    "{:<5} | {:<10} | {:<20.20} | {}",
+                    "{:<5} | {:<8} | {:<20.20} | {}",
                     index + i,
                     cell.root_key(),
                     cell.parent(),

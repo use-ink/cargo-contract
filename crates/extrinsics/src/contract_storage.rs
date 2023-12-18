@@ -14,14 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
-use contract_transcode::ContractMessageTranscoder;
-use ink_metadata::{
-    layout::{
-        Layout,
-        StructLayout,
-    },
-    InkProject,
+use anyhow::{
+    anyhow,
+    Result,
+};
+use contract_transcode::{
+    ContractMessageTranscoder,
+    Value,
+};
+use ink_metadata::layout::{
+    Layout,
+    StructLayout,
 };
 use itertools::Itertools;
 use scale::Decode;
@@ -30,6 +33,7 @@ use scale_info::{
     Type,
 };
 use serde::{
+    ser::SerializeSeq,
     Serialize,
     Serializer,
 };
@@ -130,68 +134,87 @@ where
 
     pub async fn load_contract_storage_with_layout(
         &self,
-        metadata: &InkProject,
         contract_account: &C::AccountId,
+        decoder: &ContractMessageTranscoder,
     ) -> Result<ContractStorageLayout> {
         let data = self.load_contract_storage_data(contract_account).await?;
-        let layout = ContractStorageLayout::new(data, metadata);
-        Ok(layout)
+        ContractStorageLayout::new(data, decoder)
     }
-}
-
-fn key_as_hex<S>(key: &u32, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(format!("0x{}", hex::encode(key.to_le_bytes())).as_str())
 }
 
 /// Represents the raw key/value storage for the contract.
 #[derive(Serialize, Debug)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
+/// Represents the RootLayout storage entry for the contract.
 #[derive(Serialize, Debug)]
 pub struct RootKeyEntry {
-    #[serde(serialize_with = "key_as_hex")]
+    #[serde(serialize_with = "RootKeyEntry::key_as_hex")]
     pub root_key: u32,
     pub path: Vec<String>,
     pub type_id: u32,
 }
 
-trait DecodePrettyString {
-    /// Decode the storage cell into a multiline string
-    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String;
-
-    fn not_decoded_hex_bytes(value: &Bytes) -> String {
-        format!("Not decoded (0x{})", hex::encode(value.as_bytes_ref()))
+impl RootKeyEntry {
+    fn key_as_hex<S>(key: &u32, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(format!("0x{}", hex::encode(key.to_le_bytes())).as_str())
     }
+}
+
+trait DecodePrettyString {
+    /// Decode the storage cell into a multiline string.
+    fn decode_pretty_string(&self) -> String;
 }
 
 #[derive(Serialize, Debug)]
 pub struct Mapping {
     #[serde(flatten)]
-    pub root: RootKeyEntry,
-    #[serde(rename = "Map")]
-    pub value: BTreeMap<Bytes, Bytes>,
-    #[serde(skip_serializing)]
-    param_value_type_id: u32,
-    #[serde(skip_serializing)]
-    param_key_type_id: u32,
+    root: RootKeyEntry,
+    #[serde(serialize_with = "Mapping::map_as_vec")]
+    map: BTreeMap<Value, Value>,
+}
+
+impl Mapping {
+    // Create new `Mapping`.
+    pub fn new(root: RootKeyEntry, value: BTreeMap<Value, Value>) -> Mapping {
+        Mapping { root, map: value }
+    }
+
+    /// Return the root key entry of the `Mapping`.
+    pub fn root(&self) -> &RootKeyEntry {
+        &self.root
+    }
+
+    /// Iterate all key-value pairs.
+    pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + DoubleEndedIterator {
+        self.map.iter()
+    }
+
+    fn map_as_vec<S>(
+        map: &BTreeMap<Value, Value>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut vec = serializer.serialize_seq(Some(map.len()))?;
+        for (k, v) in map {
+            // we need to convert the map to a vec
+            // because serde_json disallows non-string keys
+            vec.serialize_element(&(k, v))?;
+        }
+        vec.end()
+    }
 }
 
 impl DecodePrettyString for Mapping {
-    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
-        self.value
+    fn decode_pretty_string(&self) -> String {
+        self.map
             .iter()
-            .map(|(k, v)| {
-                let key = decoder
-                    .decode(self.param_key_type_id, &mut k.as_bytes_ref())
-                    .map_or(Self::not_decoded_hex_bytes(k), |e| e.to_string());
-                let value = decoder
-                    .decode(self.param_value_type_id, &mut v.as_bytes_ref())
-                    .map_or(Self::not_decoded_hex_bytes(v), |e| e.to_string());
-                format!("Map {{ {} => {} }}\n", key, value)
-            })
+            .map(|(k, v)| format!("Mapping {{ {} => {} }}\n", k, v))
             .fold(String::new(), |s, e| {
                 let s = s + e.as_str();
                 s
@@ -204,50 +227,73 @@ impl DecodePrettyString for Mapping {
 #[derive(Serialize, Debug)]
 pub struct Lazy {
     #[serde(flatten)]
-    pub root: RootKeyEntry,
-    pub value: Bytes,
-    #[serde(skip_serializing)]
-    param_value_type_id: u32,
+    root: RootKeyEntry,
+    value: Value,
+}
+
+impl Lazy {
+    /// Create new `Lazy`
+    pub fn new(root: RootKeyEntry, value: Value) -> Lazy {
+        Lazy { root, value }
+    }
+
+    /// Return the root key entry of the `Lazy`.
+    pub fn root(&self) -> &RootKeyEntry {
+        &self.root
+    }
+
+    /// Return the Lazy value.
+    pub fn value(&self) -> &Value {
+        &self.value
+    }
 }
 
 impl DecodePrettyString for Lazy {
-    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
-        if let Ok(value) =
-            decoder.decode(self.param_value_type_id, &mut self.value.as_bytes_ref())
-        {
-            return value.to_string()
-        }
-        Self::not_decoded_hex_bytes(&self.value)
+    fn decode_pretty_string(&self) -> String {
+        format!("Lazy {{ {} }}", self.value)
     }
 }
 
 #[derive(Serialize, Debug)]
 pub struct StorageVec {
     #[serde(flatten)]
-    pub root: RootKeyEntry,
-    #[serde(rename = "Vec")]
-    pub value: Vec<(Option<Bytes>, Bytes)>,
-    #[serde(skip_serializing)]
-    param_value_type_id: u32,
+    root: RootKeyEntry,
+    len: u32,
+    vec: Vec<Value>,
+}
+
+impl StorageVec {
+    /// Create new `StorageVec`.
+    pub fn new(root: RootKeyEntry, len: u32, value: Vec<Value>) -> StorageVec {
+        StorageVec {
+            root,
+            len,
+            vec: value,
+        }
+    }
+
+    /// Return the root key entry of the `StorageVec`.
+    pub fn root(&self) -> &RootKeyEntry {
+        &self.root
+    }
+
+    // Return the len of the `StorageVec`.
+    pub fn len(&self) -> u32 {
+        self.len
+    }
+
+    /// Return the iterator over the `StorageVec` values.
+    pub fn values(&self) -> impl Iterator<Item = &Value> {
+        self.vec.iter()
+    }
 }
 
 impl DecodePrettyString for StorageVec {
-    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
-        self.value
+    fn decode_pretty_string(&self) -> String {
+        self.vec
             .iter()
-            .filter_map(|(k, v)| {
-                if let Some(mapping_key) = k {
-                    let key = u32::decode(&mut mapping_key.as_bytes_ref())
-                        .map_or(Self::not_decoded_hex_bytes(mapping_key), |e| {
-                            e.to_string()
-                        });
-                    let value = decoder
-                        .decode(self.param_value_type_id, &mut v.as_bytes_ref())
-                        .map_or(Self::not_decoded_hex_bytes(v), |e| e.to_string());
-                    return Some(format!("StorageVec {{ [{}] => {} }}\n", key, value))
-                }
-                None
-            })
+            .enumerate()
+            .map(|(k, v)| format!("StorageVec [{}] {{ [{}] => {} }}\n", self.len, k, v))
             .fold(String::new(), |s, e| {
                 let s = s + e.as_str();
                 s
@@ -258,74 +304,95 @@ impl DecodePrettyString for StorageVec {
 }
 
 #[derive(Serialize, Debug)]
-pub struct Value {
+pub struct Packed {
     #[serde(flatten)]
-    pub root: RootKeyEntry,
-    pub value: Bytes,
+    root: RootKeyEntry,
+    value: Value,
 }
 
-impl DecodePrettyString for Value {
-    fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
-        if let Ok(value) =
-            decoder.decode(self.root.type_id, &mut self.value.as_bytes_ref())
-        {
-            return value.to_string()
-        }
-        Self::not_decoded_hex_bytes(&self.value)
+impl Packed {
+    /// Create new `Packed`.
+    pub fn new(root: RootKeyEntry, value: Value) -> Packed {
+        Packed { root, value }
+    }
+
+    /// Return the root key entry of the `Packed`.
+    pub fn root(&self) -> &RootKeyEntry {
+        &self.root
+    }
+
+    /// Return the Packed value.
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 }
 
+impl DecodePrettyString for Packed {
+    fn decode_pretty_string(&self) -> String {
+        self.value.to_string()
+    }
+}
+
+/// Represents the storage cell value.
 #[derive(Serialize, Debug)]
 pub enum ContractStorageCell {
     Mapping(Mapping),
     Lazy(Lazy),
     StorageVec(StorageVec),
-    Value(Value),
+    Packed(Packed),
 }
 
 impl ContractStorageCell {
     fn root(&self) -> &RootKeyEntry {
         match self {
-            Self::Mapping(mapping) => &mapping.root,
-            Self::Lazy(lazy) => &lazy.root,
-            Self::StorageVec(storage_vec) => &storage_vec.root,
-            Self::Value(value) => &value.root,
+            Self::Mapping(mapping) => mapping.root(),
+            Self::Lazy(lazy) => lazy.root(),
+            Self::StorageVec(storage_vec) => storage_vec.root(),
+            Self::Packed(packed) => packed.root(),
         }
     }
+
+    /// Return the `RootKeyEntry` path as a string.
     pub fn path(&self) -> String {
         self.root().path.join("::")
     }
 
+    /// Return the parent.
     pub fn parent(&self) -> String {
         self.root().path.last().cloned().unwrap_or_default()
     }
 
+    /// Return the root_key as a hex-encoded string.
     pub fn root_key(&self) -> String {
         hex::encode(self.root().root_key.to_le_bytes())
     }
 
-    pub fn decode_pretty_string(&self, decoder: &ContractMessageTranscoder) -> String {
+    /// Return the storage cell as the multiline string.
+    pub fn decode_pretty_string(&self) -> String {
         match self {
-            Self::Mapping(mapping) => mapping.decode_pretty_string(decoder),
-            Self::Lazy(lazy) => lazy.decode_pretty_string(decoder),
-            Self::StorageVec(storage_vec) => storage_vec.decode_pretty_string(decoder),
-            Self::Value(value) => value.decode_pretty_string(decoder),
+            Self::Mapping(mapping) => mapping.decode_pretty_string(),
+            Self::Lazy(lazy) => lazy.decode_pretty_string(),
+            Self::StorageVec(storage_vec) => storage_vec.decode_pretty_string(),
+            Self::Packed(value) => value.decode_pretty_string(),
         }
     }
 }
 
 /// Represents storage cells containing values and type information for the contract.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ContractStorageLayout {
-    pub cells: Vec<ContractStorageCell>,
+    cells: Vec<ContractStorageCell>,
 }
 
 impl ContractStorageLayout {
-    ///  Creates a representation of contract storage based on raw storage entries and
+    /// Create a representation of contract storage based on raw storage entries and
     /// metadata.
-    pub fn new(data: ContractStorageData, metadata: &InkProject) -> Self {
-        let layout = metadata.layout();
-        let registry = metadata.registry();
+    pub fn new(
+        data: ContractStorageData,
+        decoder: &ContractMessageTranscoder,
+    ) -> Result<Self> {
+        let layout = decoder.metadata().layout();
+        let registry = decoder.metadata().registry();
         let mut path_stack = vec!["root".to_string()];
         let mut root_key_entries: Vec<RootKeyEntry> = Vec::new();
         Self::collect_root_key_entries(layout, &mut path_stack, &mut root_key_entries);
@@ -339,10 +406,17 @@ impl ContractStorageLayout {
             })
             .into_group_map()
             .into_iter()
-            .filter_map(|(root_key, mut data)| {
-                let root_key_entry =
-                    root_key_entries.iter().find(|e| e.root_key == root_key)?;
-                let type_def = registry.resolve(root_key_entry.type_id)?;
+            .map(|(root_key, mut data)| {
+                let root_key_entry = root_key_entries
+                    .iter()
+                    .find(|e| e.root_key == root_key)
+                    .ok_or(anyhow!(
+                        "Root key {} not found for the RootLayout",
+                        root_key
+                    ))?;
+                let type_def = registry.resolve(root_key_entry.type_id).ok_or(
+                    anyhow!("Type {} not found in the registry", root_key_entry.type_id),
+                )?;
                 let root = RootKeyEntry {
                     path: root_key_entry.path.clone(),
                     type_id: root_key_entry.type_id,
@@ -350,50 +424,93 @@ impl ContractStorageLayout {
                 };
                 match type_def.path.to_string().as_str() {
                     "ink_storage::lazy::mapping::Mapping" => {
-                        let mapping_key_type_id = Self::param_type_id(type_def, "K")?;
-                        let value_type_id = Self::param_type_id(type_def, "V")?;
-                        let value = data
-                            .into_iter()
-                            .filter_map(|(k, v)| k.map(|key| (key, v)))
-                            .collect();
-                        Some(ContractStorageCell::Mapping(Mapping {
-                            root,
-                            value,
-                            param_value_type_id: value_type_id,
-                            param_key_type_id: mapping_key_type_id,
-                        }))
+                        let key_type_id = Self::param_type_id(type_def, "K")
+                            .ok_or(anyhow!("Param `K` not found in type registry"))?;
+                        let value_type_id = Self::param_type_id(type_def, "V")
+                            .ok_or(anyhow!("Param `V` not found in type registry"))?;
+                        let value = Self::decode_to_map(
+                            data,
+                            key_type_id,
+                            value_type_id,
+                            decoder,
+                        )?;
+                        Ok(ContractStorageCell::Mapping(Mapping::new(root, value)))
                     }
                     "ink_storage::lazy::vec::StorageVec" => {
+                        // Sort by the key to get the Vec in the right order.
                         data.sort_by(|a, b| a.0.cmp(&b.0));
-                        let value_type_id = Self::param_type_id(type_def, "V")?;
-                        Some(ContractStorageCell::StorageVec(StorageVec {
-                            root,
-                            value: data,
-                            param_value_type_id: value_type_id,
-                        }))
+                        // First item is the `StorageVec` len.
+                        let raw_len = data
+                            .first()
+                            .ok_or(anyhow!("Length of the StorageVec not found"))?
+                            .1
+                            .clone();
+                        let len = u32::decode(&mut raw_len.as_bytes_ref())?;
+                        let value_type_id = Self::param_type_id(type_def, "V")
+                            .ok_or(anyhow!("Param `V` not found in type registry"))?;
+                        let value =
+                            Self::decode_to_vec(&data[1..], value_type_id, decoder)?;
+                        Ok(ContractStorageCell::StorageVec(StorageVec::new(
+                            root, len, value,
+                        )))
                     }
                     "ink_storage::lazy::Lazy" => {
-                        let value_type_id = Self::param_type_id(type_def, "V")?;
-
-                        Some(ContractStorageCell::Lazy(Lazy {
-                            root,
-                            value: data.first()?.1.clone(),
-                            param_value_type_id: value_type_id,
-                        }))
+                        let value_type_id = Self::param_type_id(type_def, "V")
+                            .ok_or(anyhow!("Param `V` not found in type registry"))?;
+                        let raw_value =
+                            data.first().ok_or(anyhow!("Empty storage cell"))?.1.clone();
+                        let value = decoder
+                            .decode(value_type_id, &mut raw_value.as_bytes_ref())?;
+                        Ok(ContractStorageCell::Lazy(Lazy::new(root, value)))
                     }
                     _ => {
-                        Some(ContractStorageCell::Value(Value {
-                            root,
-                            value: data.first()?.1.clone(),
-                        }))
+                        let raw_value =
+                            data.first().ok_or(anyhow!("Empty storage cell"))?.1.clone();
+                        let value = decoder
+                            .decode(root.type_id, &mut raw_value.as_bytes_ref())?;
+                        Ok(ContractStorageCell::Packed(Packed::new(root, value)))
                     }
                 }
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>>>()?;
 
         cells.sort_by_key(|k| k.path());
 
-        Self { cells }
+        Ok(Self { cells })
+    }
+
+    /// Return the iterator over the storage cells.
+    pub fn iter(&self) -> impl Iterator<Item = &ContractStorageCell> {
+        self.cells.iter()
+    }
+
+    fn decode_to_map(
+        data: Vec<(Option<Bytes>, Bytes)>,
+        key_type_id: u32,
+        value_type_id: u32,
+        decoder: &ContractMessageTranscoder,
+    ) -> Result<BTreeMap<Value, Value>> {
+        data.into_iter()
+            .map(|(k, v)| {
+                let k = k.ok_or(anyhow!("The Mapping key is missing in the map"))?;
+                let key = decoder.decode(key_type_id, &mut k.as_bytes_ref())?;
+                let value = decoder.decode(value_type_id, &mut v.as_bytes_ref())?;
+                Ok((key, value))
+            })
+            .collect()
+    }
+
+    fn decode_to_vec(
+        data: &[(Option<Bytes>, Bytes)],
+        value_type_id: u32,
+        decoder: &ContractMessageTranscoder,
+    ) -> Result<Vec<Value>> {
+        data.iter()
+            .map(|(_, v)| {
+                let value = decoder.decode(value_type_id, &mut v.as_bytes_ref())?;
+                Ok(value)
+            })
+            .collect()
     }
 
     fn collect_root_key_entries(
@@ -470,6 +587,7 @@ impl ContractStorageLayout {
         (root_key, mapping_key)
     }
 
+    /// Get the type id of the parameter name from the type.
     fn param_type_id(type_def: &Type<PortableForm>, param_name: &str) -> Option<u32> {
         Some(
             type_def
