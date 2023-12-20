@@ -43,7 +43,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
 bollard = "0.15"
 crossterm = "0.27.0"
-polkavm-linker = "0.2"
+polkavm-linker = { git = "https://github.com/koute/polkavm.git", rev = "3552524a248a025de8e608394fcf9eb7c528eb11" }
 
 contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
 
