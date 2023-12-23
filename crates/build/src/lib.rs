@@ -287,14 +287,8 @@ fn exec_cargo_for_onchain_target(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
-
-        let mut args = vec![
-            format!("--target={}", target.llvm_target()),
-            "-Zbuild-std=core,alloc".to_owned(),
-            "--no-default-features".to_owned(),
-            "--release".to_owned(),
-            target_dir,
-        ];
+        let mut args = vec![target_dir, "--release".to_owned()];
+        args.extend(onchain_cargo_options(target));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -469,6 +463,7 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
 fn lint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
+    target: &Target,
     verbosity: &Verbosity,
 ) -> Result<()> {
     verbose_eprintln!(
@@ -485,7 +480,7 @@ fn lint(
         "[==]".bold(),
         "Checking ink! linting rules".bright_green().bold()
     );
-    exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
+    exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
 
     Ok(())
 }
@@ -510,6 +505,15 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     ))
 }
 
+/// Returns a list of cargo options used for on-chain builds
+fn onchain_cargo_options(target: &Target) -> Vec<String> {
+    return vec![
+        format!("--target={}", target.llvm_target()),
+        "-Zbuild-std=core,alloc".to_owned(),
+        "--no-default-features".to_owned(),
+    ]
+}
+
 /// Inject our custom lints into the manifest and execute `cargo dylint` .
 ///
 /// We create a temporary folder, extract the linting driver there and run
@@ -517,6 +521,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 fn exec_cargo_dylint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
+    target: &Target,
     verbosity: Verbosity,
 ) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
@@ -527,11 +532,20 @@ fn exec_cargo_dylint(
         Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
     };
 
+    let mut args = if extra_lints {
+        vec![
+            "--lib=ink_linting_mandatory".to_owned(),
+            "--lib=ink_linting".to_owned(),
+        ]
+    } else {
+        vec!["--lib=ink_linting_mandatory".to_owned()]
+    };
+    args.push("--".to_owned());
+    // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
+    // macros, as it does for the release build.
+    args.extend(onchain_cargo_options(target));
+
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let mut args = vec!["--lib=ink_linting_mandatory"];
-    if extra_lints {
-        args.push("--lib=ink_linting");
-    }
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
@@ -809,7 +823,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*extra_lints, &crate_metadata, verbosity)?;
+            lint(*extra_lints, &crate_metadata, &target, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -892,7 +906,7 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*extra_lints, crate_metadata, verbosity)?;
+    lint(*extra_lints, crate_metadata, &target, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
