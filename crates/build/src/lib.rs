@@ -454,7 +454,7 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
     {
         Ok(out) if out.status.success() => Ok(()),
         Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),
-        Err(e) => anyhow::bail!("Cannot run `cargo` command")
+        Err(e) => anyhow::bail!("Cannot run `cargo` command"),
     }
 }
 
@@ -507,7 +507,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 
 /// Returns a list of cargo options used for on-chain builds
 fn onchain_cargo_options(target: &Target) -> Vec<String> {
-    return vec![
+    vec![
         format!("--target={}", target.llvm_target()),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
@@ -823,7 +823,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*extra_lints, &crate_metadata, &target, verbosity)?;
+            lint(*extra_lints, &crate_metadata, target, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -906,7 +906,7 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*extra_lints, crate_metadata, &target, verbosity)?;
+    lint(*extra_lints, crate_metadata, target, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
