@@ -141,6 +141,10 @@ jobs:
           target: wasm32-unknown-unknown
           components: rust-src, clippy
 
+      # Required to run mandatory lints in `cargo contract build` tests
+      - name: Install cargo-dylint and dylint-link
+        run: cargo install cargo-dylint dylint-link
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
