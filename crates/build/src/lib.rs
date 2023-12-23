@@ -450,7 +450,7 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
     match cargo.unchecked().run() {
         Ok(out) if out.status.success() => Ok(()),
         Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),
-        Err(e) => anyhow::bail!("Cannot run `cargo` command"),
+        Err(e) => anyhow::bail!("Cannot run `cargo` command: {:?}", e),
     }
 }
 
