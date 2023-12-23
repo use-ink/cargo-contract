@@ -515,7 +515,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
 fn exec_cargo_dylint(
-    _extra_lints: bool,
+    extra_lints: bool,
     crate_metadata: &CrateMetadata,
     verbosity: Verbosity,
 ) -> Result<()> {
@@ -528,7 +528,10 @@ fn exec_cargo_dylint(
     };
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting"];
+    let mut args = vec!["--lib=ink_linting_mandatory"];
+    if extra_lints {
+        args.push("--lib=ink_linting");
+    }
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
