@@ -360,6 +360,7 @@ fn exec_cargo_for_onchain_target(
                 manifest
                     .with_replaced_lib_to_bin()?
                     .with_profile_release_defaults(Profile::default_contract_release())?
+                    .with_merged_workspace_dependencies(crate_metadata)?
                     .with_empty_workspace();
                 Ok(())
             })?
@@ -712,14 +713,14 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
 
 /// Performs required post-processing steps on the Wasm artifact.
 fn post_process_wasm(
-    crate_metadata: &CrateMetadata,
+    optimized_code: &PathBuf,
     skip_wasm_validation: bool,
     verbosity: &Verbosity,
     max_memory_pages: u32,
 ) -> Result<()> {
     // Deserialize Wasm module from a file.
-    let mut module = load_module(&crate_metadata.original_code)
-        .context("Loading of original wasm failed")?;
+    let mut module =
+        load_module(optimized_code).context("Loading of optimized wasm failed")?;
 
     strip_exports(&mut module);
     ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
@@ -742,7 +743,7 @@ fn post_process_wasm(
         "resulting wasm size of post processing must be > 0"
     );
 
-    parity_wasm::serialize_to_file(&crate_metadata.dest_code, module)?;
+    parity_wasm::serialize_to_file(optimized_code, module)?;
     Ok(())
 }
 
@@ -988,16 +989,13 @@ fn local_build(
 
     match target {
         Target::Wasm => {
+            let handler = WasmOptHandler::new(*optimization_passes, *keep_debug_symbols)?;
+            handler.optimize(&crate_metadata.original_code, &crate_metadata.dest_code)?;
             post_process_wasm(
-                crate_metadata,
+                &crate_metadata.dest_code,
                 *skip_wasm_validation,
                 verbosity,
                 *max_memory_pages,
-            )?;
-            let handler = WasmOptHandler::new(*optimization_passes, *keep_debug_symbols)?;
-            handler.optimize(
-                &crate_metadata.dest_code,
-                &crate_metadata.contract_artifact_name,
             )?;
         }
         Target::RiscV => {

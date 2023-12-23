@@ -17,7 +17,6 @@
 use super::{
     account_id,
     events::DisplayEvents,
-    runtime_api::api,
     state,
     state_call,
     submit_extrinsic,
@@ -33,6 +32,7 @@ use super::{
 };
 use crate::{
     check_env_types,
+    extrinsic_calls::Call,
     extrinsic_opts::ExtrinsicOpts,
 };
 
@@ -240,10 +240,7 @@ impl CallExec {
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
         let storage_deposit_limit = self
             .opts
-            .storage_deposit_limit()
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&self.token_metadata))
-            .transpose()?;
+            .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CallRequest {
             origin: account_id(&self.signer),
             dest: self.contract.clone(),
@@ -267,21 +264,41 @@ impl CallExec {
         &self,
         gas_limit: Option<Weight>,
     ) -> Result<DisplayEvents, ErrorVariant> {
+        if !self
+            .transcoder()
+            .metadata()
+            .spec()
+            .messages()
+            .iter()
+            .find(|msg| msg.label() == &self.message)
+            .expect("message exist after calling CallExec::done()")
+            .mutates()
+        {
+            let inner = anyhow!(
+                "Tried to execute a call on the immutable contract message '{}'. Please do a dry-run instead.",
+                &self.message
+            );
+            return Err(inner.into())
+        }
+
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
             None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);
+        let storage_deposit_limit = self
+            .opts
+            .storage_deposit_limit_balance(&self.token_metadata)?;
 
-        let call = api::tx().contracts().call(
+        let call = Call::new(
             self.contract.clone().into(),
             self.value.denominate_balance(&self.token_metadata)?,
-            gas_limit.into(),
-            self.opts
-                .compact_storage_deposit_limit(&self.token_metadata)?,
+            gas_limit,
+            storage_deposit_limit,
             self.call_data.clone(),
-        );
+        )
+        .build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
@@ -399,7 +416,7 @@ impl CallExec {
 ///
 /// Copied from `pallet-contracts-rpc-runtime-api`.
 #[derive(Encode)]
-pub struct CallRequest {
+struct CallRequest {
     origin: <DefaultConfig as Config>::AccountId,
     dest: <DefaultConfig as Config>::AccountId,
     value: Balance,

@@ -19,10 +19,7 @@ use super::{
     display_all_contracts,
     DefaultConfig,
 };
-use anyhow::{
-    anyhow,
-    Result,
-};
+use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
     fetch_all_contracts,
@@ -33,6 +30,7 @@ use contract_extrinsics::{
     CodeHash,
     ContractInfo,
     ErrorVariant,
+    TrieId,
 };
 use std::{
     fmt::Debug,
@@ -105,19 +103,10 @@ impl InfoCommand {
                 .as_ref()
                 .expect("Contract argument was not provided");
 
-            let info_to_json = fetch_contract_info(contract, &rpc, &client)
-                .await?
-                .ok_or(anyhow!(
-                    "No contract information was found for account id {}",
-                    contract
-                ))?;
+            let info_to_json = fetch_contract_info(contract, &rpc, &client).await?;
 
-            let wasm_code = fetch_wasm_code(&client, &rpc, info_to_json.code_hash())
-                .await?
-                .ok_or(anyhow!(
-                    "Contract wasm code was not found for account id {}",
-                    contract
-                ))?;
+            let wasm_code =
+                fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
             // Binary flag applied
             if self.binary {
                 if self.output_json {
@@ -151,10 +140,11 @@ impl InfoCommand {
 
 #[derive(serde::Serialize)]
 pub struct ExtendedContractInfo {
-    pub trie_id: String,
+    pub trie_id: TrieId,
     pub code_hash: CodeHash,
     pub storage_items: u32,
-    pub storage_item_deposit: Balance,
+    pub storage_items_deposit: Balance,
+    pub storage_total_deposit: Balance,
     pub source_language: String,
 }
 
@@ -165,10 +155,11 @@ impl ExtendedContractInfo {
             None => "Unknown".to_string(),
         };
         ExtendedContractInfo {
-            trie_id: contract_info.trie_id().to_string(),
+            trie_id: contract_info.trie_id().clone(),
             code_hash: *contract_info.code_hash(),
             storage_items: contract_info.storage_items(),
-            storage_item_deposit: contract_info.storage_item_deposit(),
+            storage_items_deposit: contract_info.storage_items_deposit(),
+            storage_total_deposit: contract_info.storage_total_deposit(),
             source_language: language,
         }
     }

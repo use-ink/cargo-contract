@@ -509,6 +509,13 @@ async fn api_build_upload_instantiate_call() {
         .to_string();
     assert!(value.contains("true"), "{:#?}", value);
 
+    // call the contract on the immutable "get" message trying to execute
+    // this should fail because "get" is immutable
+    match call.call(None).await {
+        Err(crate::ErrorVariant::Generic(_)) => {}
+        _ => panic!("immutable call was not prevented"),
+    }
+
     // call the contract
     // flip the value
     let call = CallCommandBuilder::default()
