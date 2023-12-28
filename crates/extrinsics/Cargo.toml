@@ -45,7 +45,7 @@ ink_metadata = "5.0.0-rc"
 assert_cmd = "2.0.12"
 regex = "1.10.2"
 predicates = "3.0.4"
-tempfile = "3.8.1"
+tempfile = "3.9.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [features]
