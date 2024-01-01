@@ -153,7 +153,7 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crat
 
 Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
-### `cargo contract verify`
+#### `cargo contract verify`
 
 Verify that a given contract binary matches the build result of the specified workspace
 
