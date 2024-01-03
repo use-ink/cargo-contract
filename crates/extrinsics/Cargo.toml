@@ -19,15 +19,15 @@ contract-build = { version = "4.0.0-rc.1", path = "../build" }
 contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
 contract-transcode = { version = "4.0.0-rc.1", path = "../transcode" }
 
-anyhow = "1.0.76"
+anyhow = "1.0.79"
 blake2 = { version = "0.10.6", default-features = false }
-clap = { version = "4.4.11", features = ["derive", "env"] }
-futures = { version = "0.3.29", default-features = false, features = ["std"] }
+clap = { version = "4.4.12", features = ["derive", "env"] }
+futures = { version = "0.3.30", default-features = false, features = ["std"] }
 tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.1.0"
-serde = { version = "1.0.193", default-features = false, features = ["derive"] }
-serde_json = "1.0.108"
+serde = { version = "1.0.194", default-features = false, features = ["derive"] }
+serde_json = "1.0.110"
 url = { version = "2.5.0", features = ["serde"] }
 rust_decimal = "1.33"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -45,7 +45,7 @@ ink_metadata = "5.0.0-rc"
 assert_cmd = "2.0.12"
 regex = "1.10.2"
 predicates = "3.0.4"
-tempfile = "3.8.1"
+tempfile = "3.9.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [features]
