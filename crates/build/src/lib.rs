@@ -322,7 +322,7 @@ fn exec_cargo_for_onchain_target(
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
-            env.push(("RUSTUP_TOOLCHAIN", Some("rv32e-nightly-2023-04-05".to_string())));
+            env.push(("RUSTUP_TOOLCHAIN", Some("rve-nightly".to_string())));
             fs::create_dir_all(&crate_metadata.target_directory)?;
             let path = crate_metadata
                 .target_directory
