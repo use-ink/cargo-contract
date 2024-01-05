@@ -25,7 +25,7 @@ contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
 contract-analyze = { version = "4.0.0-rc.1", path = "../analyze" }
 
 anyhow = "1.0.79"
-clap = { version = "4.4.12", features = ["derive", "env"] }
+clap = { version = "4.4.13", features = ["derive", "env"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
