@@ -161,7 +161,7 @@ impl RootKeyEntry {
     where
         S: Serializer,
     {
-        serializer.serialize_str(format!("0x{}", hex::encode(key.to_le_bytes())).as_str())
+        serializer.serialize_str(format!("0x{}", hex::encode(key.encode())).as_str())
     }
 }
 
