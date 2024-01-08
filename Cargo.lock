@@ -787,6 +787,7 @@ dependencies = [
  "contract-extrinsics",
  "contract-metadata",
  "contract-transcode",
+ "crossterm",
  "current_platform",
  "hex",
  "ink_metadata",

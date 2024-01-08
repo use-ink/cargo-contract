@@ -95,6 +95,7 @@ where
         let trie_id = contract_info.trie_id();
 
         let mut storage_keys = Vec::new();
+        let mut storage_values = Vec::new();
         const KEYS_COUNT: u32 = 1000;
         loop {
             let mut keys = self
@@ -107,21 +108,21 @@ where
                     None,
                 )
                 .await?;
-            let count = keys.len();
+            let keys_count = keys.len();
+            let mut values = self.rpc.fetch_storage_entries(trie_id, &keys, None).await?;
+            assert_eq!(
+                keys_count,
+                values.len(),
+                "storage keys and values must be the same length"
+            );
             storage_keys.append(&mut keys);
-            if (count as u32) < KEYS_COUNT {
+            storage_values.append(&mut values);
+
+            if (keys_count as u32) < KEYS_COUNT {
                 break
             }
         }
-        let storage_values = self
-            .rpc
-            .fetch_storage_entries(trie_id, &storage_keys, None)
-            .await?;
-        assert_eq!(
-            storage_keys.len(),
-            storage_values.len(),
-            "storage keys and values must be the same length"
-        );
+
         let storage = storage_keys
             .into_iter()
             .zip(storage_values.into_iter())
