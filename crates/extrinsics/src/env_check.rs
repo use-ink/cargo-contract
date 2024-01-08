@@ -49,7 +49,7 @@ pub(crate) fn resolve_type_definition(
 
             let tt_id = comp
                 .fields
-                .get(0)
+                .first()
                 .context("Incorrect format of a field")?
                 .ty
                 .id;
@@ -59,7 +59,7 @@ pub(crate) fn resolve_type_definition(
     } else {
         let param_id = tt
             .type_params
-            .get(0)
+            .first()
             .context("type param is not present")?
             .ty
             .context("concrete type is not present")?
