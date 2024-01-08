@@ -214,8 +214,8 @@ impl<'a> StorageDisplayTable<'a> {
         );
 
         for (index, cell) in self.storage_layout.iter().enumerate() {
-            let decoded_cell = cell.decode_pretty_string();
-            let values = decoded_cell.split('\n');
+            let formatted_cell = format!("{cell}");
+            let values = formatted_cell.split('\n');
             for (i, v) in values.enumerate() {
                 self.table_row_println(
                     index + i,

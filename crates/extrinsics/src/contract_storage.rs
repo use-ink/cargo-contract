@@ -46,7 +46,11 @@ use sp_core::{
 };
 use std::{
     collections::BTreeMap,
-    fmt::Display,
+    fmt,
+    fmt::{
+        Display,
+        Formatter,
+    },
 };
 use subxt::{
     backend::{
@@ -168,11 +172,6 @@ impl RootKeyEntry {
     }
 }
 
-trait DecodePrettyString {
-    /// Decode the storage cell into a multiline string.
-    fn decode_pretty_string(&self) -> String;
-}
-
 #[derive(Serialize, Debug)]
 pub struct Mapping {
     #[serde(flatten)]
@@ -214,17 +213,16 @@ impl Mapping {
     }
 }
 
-impl DecodePrettyString for Mapping {
-    fn decode_pretty_string(&self) -> String {
-        self.map
-            .iter()
-            .map(|(k, v)| format!("Mapping {{ {} => {} }}\n", k, v))
-            .fold(String::new(), |s, e| {
-                let s = s + e.as_str();
-                s
-            })
-            .trim_end()
-            .to_string()
+impl Display for Mapping {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let len = self.map.len();
+        for (i, e) in self.map.iter().enumerate() {
+            write!(f, "Mapping {{ {} => {} }}", e.0, e.1)?;
+            if i + 1 < len {
+                writeln!(f)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -252,9 +250,9 @@ impl Lazy {
     }
 }
 
-impl DecodePrettyString for Lazy {
-    fn decode_pretty_string(&self) -> String {
-        format!("Lazy {{ {} }}", self.value)
+impl Display for Lazy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Lazy {{ {} }}", self.value)
     }
 }
 
@@ -292,18 +290,15 @@ impl StorageVec {
     }
 }
 
-impl DecodePrettyString for StorageVec {
-    fn decode_pretty_string(&self) -> String {
-        self.vec
-            .iter()
-            .enumerate()
-            .map(|(k, v)| format!("StorageVec [{}] {{ [{}] => {} }}\n", self.len, k, v))
-            .fold(String::new(), |s, e| {
-                let s = s + e.as_str();
-                s
-            })
-            .trim_end()
-            .to_string()
+impl Display for StorageVec {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for (i, v) in self.vec.iter().enumerate() {
+            write!(f, "StorageVec [{}] {{ [{}] => {} }}", self.len, i, v)?;
+            if i + 1 < self.len as usize {
+                writeln!(f)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -331,9 +326,9 @@ impl Packed {
     }
 }
 
-impl DecodePrettyString for Packed {
-    fn decode_pretty_string(&self) -> String {
-        self.value.to_string()
+impl Display for Packed {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
 
@@ -370,14 +365,15 @@ impl ContractStorageCell {
     pub fn root_key(&self) -> String {
         hex::encode(self.root().root_key.to_le_bytes())
     }
+}
 
-    /// Return the storage cell as the multiline string.
-    pub fn decode_pretty_string(&self) -> String {
+impl Display for ContractStorageCell {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Mapping(mapping) => mapping.decode_pretty_string(),
-            Self::Lazy(lazy) => lazy.decode_pretty_string(),
-            Self::StorageVec(storage_vec) => storage_vec.decode_pretty_string(),
-            Self::Packed(value) => value.decode_pretty_string(),
+            Self::Mapping(mapping) => mapping.fmt(f),
+            Self::Lazy(lazy) => lazy.fmt(f),
+            Self::StorageVec(storage_vec) => storage_vec.fmt(f),
+            Self::Packed(value) => value.fmt(f),
         }
     }
 }
