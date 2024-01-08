@@ -27,7 +27,10 @@ use ink_metadata::layout::{
     StructLayout,
 };
 use itertools::Itertools;
-use scale::Decode;
+use scale::{
+    Decode,
+    Encode,
+};
 use scale_info::{
     form::PortableForm,
     Type,
