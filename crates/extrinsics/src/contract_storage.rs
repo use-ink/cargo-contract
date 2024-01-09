@@ -521,13 +521,10 @@ impl ContractStorageLayout {
                 }
                 path.pop();
             }
-            Layout::Array(_) => {
-                todo!("Figure out what to do with an array layout")
-            }
             Layout::Hash(_) => {
                 unimplemented!("Layout::Hash is not currently be constructed")
             }
-            Layout::Leaf(_) => {}
+            Layout::Array(_) | Layout::Leaf(_) => {}
         }
     }
 
