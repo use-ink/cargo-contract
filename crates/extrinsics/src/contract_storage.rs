@@ -36,7 +36,6 @@ use scale_info::{
     Type,
 };
 use serde::{
-    ser::SerializeSeq,
     Serialize,
     Serializer,
 };
@@ -176,13 +175,12 @@ impl RootKeyEntry {
 pub struct Mapping {
     #[serde(flatten)]
     root: RootKeyEntry,
-    #[serde(serialize_with = "Mapping::map_as_vec")]
-    map: BTreeMap<Value, Value>,
+    map: Vec<(Value, Value)>,
 }
 
 impl Mapping {
     // Create new `Mapping`.
-    pub fn new(root: RootKeyEntry, value: BTreeMap<Value, Value>) -> Mapping {
+    pub fn new(root: RootKeyEntry, value: Vec<(Value, Value)>) -> Mapping {
         Mapping { root, map: value }
     }
 
@@ -192,24 +190,8 @@ impl Mapping {
     }
 
     /// Iterate all key-value pairs.
-    pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + DoubleEndedIterator {
+    pub fn iter(&self) -> impl Iterator<Item = &(Value, Value)> + DoubleEndedIterator {
         self.map.iter()
-    }
-
-    fn map_as_vec<S>(
-        map: &BTreeMap<Value, Value>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut vec = serializer.serialize_seq(Some(map.len()))?;
-        for (k, v) in map {
-            // we need to convert the map to a vec
-            // because serde_json disallows non-string keys
-            vec.serialize_element(&(k, v))?;
-        }
-        vec.end()
     }
 }
 
@@ -428,7 +410,7 @@ impl ContractStorageLayout {
                             .ok_or(anyhow!("Param `K` not found in type registry"))?;
                         let value_type_id = Self::param_type_id(type_def, "V")
                             .ok_or(anyhow!("Param `V` not found in type registry"))?;
-                        let value = Self::decode_to_map(
+                        let value = Self::decode_to_mapping(
                             data,
                             key_type_id,
                             value_type_id,
@@ -484,12 +466,12 @@ impl ContractStorageLayout {
         self.cells.iter()
     }
 
-    fn decode_to_map(
+    fn decode_to_mapping(
         data: Vec<(Option<Bytes>, Bytes)>,
         key_type_id: u32,
         value_type_id: u32,
         decoder: &ContractMessageTranscoder,
-    ) -> Result<BTreeMap<Value, Value>> {
+    ) -> Result<Vec<(Value, Value)>> {
         data.into_iter()
             .map(|(k, v)| {
                 let k = k.ok_or(anyhow!("The Mapping key is missing in the map"))?;
