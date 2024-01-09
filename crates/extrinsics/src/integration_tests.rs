@@ -618,3 +618,105 @@ async fn api_build_upload_remove() {
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
+
+/// Sanity test the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> storage
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn build_upload_instantiate_storage() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("instantiate")
+        .args(["--constructor", "new"])
+        .args(["--args", "true"])
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {stderr}");
+
+    let contract_account = extract_contract_address(stdout);
+    assert_eq!(48, contract_account.len(), "{stdout:?}");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .arg("--raw")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as raw format failed: {stderr}"
+    );
+
+    let contract_manifest = project_path.join("Cargo.toml");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .args(["--manifest-path", contract_manifest])
+        .arg("--output-json")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as JSON format failed: {stderr}"
+    );
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .args(["--manifest-path", contract_manifest])
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as table failed: {stderr}"
+    );
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
