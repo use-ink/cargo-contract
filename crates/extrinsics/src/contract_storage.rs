@@ -833,7 +833,10 @@ mod tests {
         let mut iter = layout.iter();
         let cell = iter.next().expect("One cell shall be in layout");
         assert_eq!(cell.to_string(), "Inc { a: 16 }".to_string());
+        assert_eq!(cell.root_key(),  hex::encode(root_key.encode()));
+
         let cell = iter.next().expect("One cell shall be in layout");
         assert_eq!(cell.to_string(), "8".to_string());
+        assert_eq!(cell.root_key(), hex::encode(LAZY_TYPE_ROOT_KEY.encode()));
     }
 }

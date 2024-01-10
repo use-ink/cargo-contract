@@ -691,6 +691,7 @@ async fn build_upload_instantiate_storage() {
     );
 
     let contract_manifest = project_path.join("Cargo.toml");
+    let contract_manifest = contract_manifest.to_str().unwrap();
 
     let output = cargo_contract(project_path.as_path())
         .arg("storage")
