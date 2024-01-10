@@ -346,6 +346,8 @@ impl ContractStorageCell {
     /// Return the root_key as a hex-encoded string.
     pub fn root_key(&self) -> String {
         hex::encode(self.root().root_key.to_le_bytes())
+        // TODO: check
+        // hex::encode(self.root().root_key.encode())
     }
 }
 
@@ -420,6 +422,7 @@ impl ContractStorageLayout {
                     }
                     "ink_storage::lazy::vec::StorageVec" => {
                         // Sort by the key to get the Vec in the right order.
+                        // TODO: check if it is correctly sorted
                         data.sort_by(|a, b| a.0.cmp(&b.0));
                         // First item is the `StorageVec` len.
                         let raw_len = data
@@ -673,5 +676,101 @@ where
             .request("childstate_getStorageEntries", params)
             .await?;
         Ok(data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ink::{
+        ConstructorResult,
+        MessageResult,
+    };
+    use ink_metadata::{
+        layout::{
+            FieldLayout,
+            LayoutKey,
+            LeafLayout,
+            RootLayout,
+        },
+        ConstructorSpec,
+        ContractSpec,
+        InkProject,
+        LangError,
+        MessageSpec,
+        ReturnTypeSpec,
+        TypeSpec,
+    };
+    use super::*;
+
+    fn contract_spec() -> ContractSpec {
+        ContractSpec::new()
+            .constructors(vec![ConstructorSpec::from_label("new")
+                .selector([94u8, 189u8, 136u8, 214u8])
+                .payable(true)
+                .args(vec![])
+                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
+                    ConstructorResult<()>,
+                >(
+                    "ink_primitives::ConstructorResult"
+                )))
+                .docs(Vec::new())
+                .done()])
+            .messages(vec![MessageSpec::from_label("inc")
+                .selector([231u8, 208u8, 89u8, 15u8])
+                .mutates(true)
+                .payable(true)
+                .args(vec![])
+                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
+                    MessageResult<()>,
+                >(
+                    "ink_primitives::MessageResult"
+                )))
+                .default(true)
+                .done()])
+            .events(Vec::new())
+            .lang_error(TypeSpec::with_name_segs::<LangError, _>(
+                ::core::iter::Iterator::map(
+                    ::core::iter::IntoIterator::into_iter(["ink", "LangError"]),
+                    ::core::convert::AsRef::as_ref,
+                ),
+            ))
+            .done()
+    }
+
+    #[test]
+    fn storage_decode_simple_type_works() {
+        #[derive(Encode, scale_info::TypeInfo)]
+        struct Inc {
+            a: i32,
+        }
+
+        let root_key = 0;
+        let storage_layout: Layout = RootLayout::new(
+            LayoutKey::from(root_key),
+            StructLayout::new(
+                "Inc",
+                vec![FieldLayout::new(
+                    "a",
+                    LeafLayout::from_key::<i32>(LayoutKey::from(root_key)),
+                )],
+            ),
+            scale_info::meta_type::<Inc>(),
+        )
+        .into();
+
+        let metadata = InkProject::new(storage_layout, contract_spec());
+        let decoder = ContractMessageTranscoder::new(metadata);
+        let mut key = [0u8; 16].to_vec();
+        key.append(&mut root_key.encode());
+        let value = Inc { a: 16 };
+        let mut map = BTreeMap::new();
+        map.insert(Bytes::from(key.encode()), Bytes::from(value.encode()));
+        let data = ContractStorageData(map);
+
+        let layout = ContractStorageLayout::new(data, &decoder).unwrap();
+
+        for cell in layout.iter() {
+            assert_eq!(cell.to_string(), "Inc { a: 16 }".to_string());
+        }
     }
 }

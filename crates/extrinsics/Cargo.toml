@@ -43,6 +43,7 @@ hex = "0.4.3"
 ink_metadata = "5.0.0-rc"
 
 [dev-dependencies]
+ink = "5.0.0-rc"
 assert_cmd = "2.0.12"
 regex = "1.10.2"
 predicates = "3.0.4"
