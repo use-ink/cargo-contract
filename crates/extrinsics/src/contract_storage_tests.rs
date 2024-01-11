@@ -64,7 +64,7 @@ fn contract_default_spec() -> ContractSpec {
         .constructors(vec![ConstructorSpec::from_label("new")
             .selector([94u8, 189u8, 136u8, 214u8])
             .payable(true)
-            .args(vec![])
+            .args(Vec::new())
             .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
                 ConstructorResult<()>,
             >(
@@ -76,7 +76,7 @@ fn contract_default_spec() -> ContractSpec {
             .selector([231u8, 208u8, 89u8, 15u8])
             .mutates(true)
             .payable(true)
-            .args(vec![])
+            .args(Vec::new())
             .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
                 MessageResult<()>,
             >(
