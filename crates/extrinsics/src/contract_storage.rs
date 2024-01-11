@@ -428,7 +428,6 @@ impl ContractStorageLayout {
                     "ink_storage::lazy::vec::StorageVec" => {
                         // Sort by the key to get the Vec in the right order.
                         data.sort_by(|a, b| a.0.cmp(&b.0));
-                        println!("{:?}", data);
                         // First item is the `StorageVec` len.
                         let raw_len = data
                             .first()
