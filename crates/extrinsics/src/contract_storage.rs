@@ -153,6 +153,13 @@ where
 #[derive(Serialize, Debug)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
+impl ContractStorageData {
+    /// Create a representation of raw contract storage
+    pub fn new(data: BTreeMap<Bytes, Bytes>) -> Self {
+        Self(data)
+    }
+}
+
 /// Represents the RootLayout storage entry for the contract.
 #[derive(Serialize, Debug)]
 pub struct RootKeyEntry {
@@ -674,165 +681,5 @@ where
             .request("childstate_getStorageEntries", params)
             .await?;
         Ok(data)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ink::{
-        metadata::{
-            layout::{
-                LayoutKey,
-                RootLayout,
-            },
-            ConstructorSpec,
-            ContractSpec,
-            InkProject,
-            LangError,
-            MessageSpec,
-            ReturnTypeSpec,
-            TypeSpec,
-        },
-        storage::{
-            traits::{
-                ManualKey,
-                Storable,
-                StorageLayout,
-            },
-            Lazy,
-        },
-        ConstructorResult,
-        MessageResult,
-    };
-    use ink_metadata::layout::Layout::Struct;
-
-    fn contract_default_spec() -> ContractSpec {
-        ContractSpec::new()
-            .constructors(vec![ConstructorSpec::from_label("new")
-                .selector([94u8, 189u8, 136u8, 214u8])
-                .payable(true)
-                .args(vec![])
-                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
-                    ConstructorResult<()>,
-                >(
-                    "ink_primitives::ConstructorResult"
-                )))
-                .docs(Vec::new())
-                .done()])
-            .messages(vec![MessageSpec::from_label("inc")
-                .selector([231u8, 208u8, 89u8, 15u8])
-                .mutates(true)
-                .payable(true)
-                .args(vec![])
-                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
-                    MessageResult<()>,
-                >(
-                    "ink_primitives::MessageResult"
-                )))
-                .default(true)
-                .done()])
-            .events(Vec::new())
-            .lang_error(TypeSpec::with_name_segs::<LangError, _>(
-                ::core::iter::Iterator::map(
-                    ::core::iter::IntoIterator::into_iter(["ink", "LangError"]),
-                    ::core::convert::AsRef::as_ref,
-                ),
-            ))
-            .done()
-    }
-
-    #[test]
-    fn storage_decode_simple_type_works() {
-        let root_key: u32 = 0;
-        let root_key_encoded = Encode::encode(&root_key);
-        #[derive(scale_info::TypeInfo, StorageLayout, Storable)]
-        struct Inc {
-            a: i32,
-        }
-
-        if let Struct(inc_layout) = <Inc as StorageLayout>::layout(&root_key) {
-            let storage_layout: Layout = RootLayout::new(
-                LayoutKey::from(root_key),
-                inc_layout,
-                scale_info::meta_type::<Inc>(),
-            )
-            .into();
-
-            let metadata = InkProject::new(storage_layout, contract_default_spec());
-            let decoder = ContractMessageTranscoder::new(metadata);
-            let mut key = [0u8; 16].to_vec();
-            key.append(&mut root_key_encoded.clone());
-            let value = Inc { a: 16 };
-            let mut map = BTreeMap::new();
-            let mut value_encoded = Vec::new();
-            Storable::encode(&value, &mut value_encoded);
-            map.insert(Bytes::from(key), Bytes::from(value_encoded));
-            let data = ContractStorageData(map);
-            let layout = ContractStorageLayout::new(data, &decoder)
-                .expect("Contract storage layout shall be created");
-
-            let cell = layout.iter().next().expect("Root cell shall be in layout");
-            assert_eq!(cell.to_string(), format!("Inc {{ a: {} }}", value.a));
-        } else {
-            panic!("Layout shall be created");
-        }
-    }
-
-    #[test]
-    fn storage_decode_lazy_type_works() {
-        let root_key: u32 = 0;
-        let root_key_encoded = Encode::encode(&root_key);
-
-        const LAZY_TYPE_ROOT_KEY: u32 = 1;
-        let lazy_typ_root_key_encoded = Encode::encode(&LAZY_TYPE_ROOT_KEY);
-
-        #[derive(scale_info::TypeInfo, StorageLayout, Storable)]
-        struct Inc {
-            a: Lazy<i32, ManualKey<LAZY_TYPE_ROOT_KEY>>,
-        }
-
-        if let Struct(inc_layout) = <Inc as StorageLayout>::layout(&root_key) {
-            let storage_layout: Layout = RootLayout::new(
-                LayoutKey::from(root_key),
-                inc_layout,
-                scale_info::meta_type::<Inc>(),
-            )
-            .into();
-
-            let metadata = InkProject::new(storage_layout, contract_default_spec());
-            let decoder = ContractMessageTranscoder::new(metadata);
-            let mut key = [0u8; 16].to_vec();
-            key.append(&mut root_key_encoded.clone());
-            let mut lazy_type_key = [0u8; 16].to_vec();
-            lazy_type_key.append(&mut lazy_typ_root_key_encoded.clone());
-
-            let value = Inc { a: Lazy::new() };
-            // Cannot be set on struct directly because it issues storage calls
-            let a = 8i32;
-
-            let mut map = BTreeMap::new();
-            let mut value_encoded = Vec::new();
-            Storable::encode(&value, &mut value_encoded);
-
-            let mut lazy_encoded = Vec::new();
-            Storable::encode(&a, &mut lazy_encoded);
-            map.insert(Bytes::from(key), Bytes::from(value_encoded));
-            map.insert(Bytes::from(lazy_type_key), Bytes::from(lazy_encoded));
-
-            let data = ContractStorageData(map);
-            let layout = ContractStorageLayout::new(data, &decoder)
-                .expect("Contract storage layout shall be created");
-            let mut iter = layout.iter();
-            let cell = iter.next().expect("Root cell shall be in layout");
-            assert_eq!(cell.to_string(), "Inc { a: Lazy }".to_string());
-            assert_eq!(cell.root_key(), hex::encode(root_key_encoded));
-
-            let cell = iter.next().expect("Lazy type cell shall be in layout");
-            assert_eq!(cell.to_string(), format!("Lazy {{ {a} }}"));
-            assert_eq!(cell.root_key(), hex::encode(lazy_typ_root_key_encoded));
-        } else {
-            panic!("Layout shall be created");
-        }
     }
 }
