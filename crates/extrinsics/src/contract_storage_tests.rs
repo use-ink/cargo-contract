@@ -19,9 +19,14 @@ use crate::contract_storage::{
     ContractStorageLayout,
 };
 use contract_transcode::ContractMessageTranscoder;
+
 use ink::{
     metadata::{
         layout::{
+            Layout::{
+                self,
+                Struct,
+            },
             LayoutKey,
             RootLayout,
         },
@@ -45,10 +50,7 @@ use ink::{
     ConstructorResult,
     MessageResult,
 };
-use ink_metadata::layout::Layout::{
-    self,
-    Struct,
-};
+
 use scale::Encode;
 use std::collections::BTreeMap;
 use subxt::backend::legacy::rpc_methods::Bytes;
