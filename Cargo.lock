@@ -1071,6 +1071,7 @@ dependencies = [
  "contract-transcode",
  "futures",
  "hex",
+ "ink",
  "ink_metadata",
  "itertools 0.12.0",
  "pallet-contracts-primitives",

@@ -29,6 +29,9 @@ mod remove;
 mod upload;
 
 #[cfg(test)]
+mod contract_storage_tests;
+
+#[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
