@@ -102,7 +102,7 @@ mod account_id;
 mod decode;
 mod encode;
 pub mod env_types;
-mod scon;
+pub mod scon;
 mod transcoder;
 mod util;
 

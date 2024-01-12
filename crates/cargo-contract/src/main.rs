@@ -28,6 +28,7 @@ use self::cmd::{
     InfoCommand,
     InstantiateCommand,
     RemoveCommand,
+    RpcCommand,
     StorageCommand,
     UploadCommand,
     VerifyCommand,
@@ -154,6 +155,9 @@ enum Command {
     /// Verify schema from the current metadata specification.
     #[clap(name = "verify-schema")]
     VerifySchema(VerifySchemaCommand),
+    /// Make a raw RPC call
+    #[clap(name = "rpc")]
+    Rpc(RpcCommand),
 }
 
 fn main() {
@@ -259,6 +263,9 @@ fn exec(cmd: Command) -> Result<()> {
                 println!("{}", result.display())
             }
             Ok(())
+        }
+        Command::Rpc(rpc) => {
+            runtime.block_on(async { rpc.run().await.map_err(format_err) })
         }
     }
 }

@@ -26,6 +26,7 @@ mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 mod remove;
+mod rpc;
 mod upload;
 
 #[cfg(test)]
@@ -106,6 +107,11 @@ pub use upload::{
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
+};
+
+pub use rpc::{
+    Rpc,
+    RpcRequest,
 };
 
 pub type Client = OnlineClient<DefaultConfig>;
