@@ -44,7 +44,7 @@ ink_metadata = "5.0.0-rc"
 
 [dev-dependencies]
 ink = "5.0.0-rc"
-assert_cmd = "2.0.12"
+assert_cmd = "2.0.13"
 regex = "1.10.2"
 predicates = "3.0.4"
 tempfile = "3.9.0"
