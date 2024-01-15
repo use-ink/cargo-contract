@@ -142,8 +142,8 @@ jobs:
           components: rust-src, clippy
 
       # Required to run mandatory lints in `cargo contract build` tests
-      - name: Install cargo-dylint and dylint-link
-        run: cargo install cargo-dylint dylint-link
+      - name: Install linting dependencies
+        run: cargo install cargo-dylint dylint-link ink_linting_mandatory ink_linting
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
