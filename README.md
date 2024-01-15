@@ -42,10 +42,10 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 -   Step 2: `cargo install --force --locked cargo-contract`.
 
--   Step 3: Install `dylint` for linting.
+-   Step 3: Install `dylint` libraries for linting.
 
     -   (MacOS) `brew install openssl`
-    -   `cargo install cargo-dylint dylint-link`.
+    -   `cargo install cargo-dylint dylint-link ink_linting_mandatory`.
 
 -   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
     to be able to produce verifiable builds.
@@ -163,7 +163,7 @@ Generate schema and print it to STDOUT.
 
 ##### `cargo contract verify-schema`
 
-Verify a metadata file or a contract bundle containing metadata against the schema file. 
+Verify a metadata file or a contract bundle containing metadata against the schema file.
 
 ##### `cargo contract storage`
 

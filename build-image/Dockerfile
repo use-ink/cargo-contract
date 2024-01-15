@@ -91,8 +91,8 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
-    && echo "Installing `cargo-dylint` and `dylint-link`" \
-    && cargo install cargo-dylint dylint-link \
+    && echo "Installing linting dependencies" \
+    && cargo install cargo-dylint dylint-link ink_linting_mandatory ink_linting \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
