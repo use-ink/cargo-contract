@@ -21,13 +21,14 @@ contract-transcode = { version = "4.0.0-rc.1", path = "../transcode" }
 
 anyhow = "1.0.79"
 blake2 = { version = "0.10.6", default-features = false }
-clap = { version = "4.4.12", features = ["derive", "env"] }
+clap = { version = "4.4.16", features = ["derive", "env"] }
 futures = { version = "0.3.30", default-features = false, features = ["std"] }
+itertools = { version = "0.12", default-features = false }
 tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.1.0"
-serde = { version = "1.0.194", default-features = false, features = ["derive"] }
-serde_json = "1.0.110"
+serde = { version = "1.0.195", default-features = false, features = ["derive"] }
+serde_json = "1.0.111"
 url = { version = "2.5.0", features = ["serde"] }
 rust_decimal = "1.33"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -42,7 +43,8 @@ hex = "0.4.3"
 ink_metadata = "5.0.0-rc"
 
 [dev-dependencies]
-assert_cmd = "2.0.12"
+ink = "5.0.0-rc"
+assert_cmd = "2.0.13"
 regex = "1.10.2"
 predicates = "3.0.4"
 tempfile = "3.9.0"
