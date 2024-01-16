@@ -19,8 +19,14 @@ use contract_extrinsics::{
     Rpc,
     RpcRequest,
 };
-use contract_transcode::scon::parse_value;
-use serde_json::value::RawValue;
+use scale_value::{
+    stringify::{
+        from_str_custom,
+        ParseError,
+    },
+    Value,
+};
+use subxt::backend::rpc::RpcParams;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "rpc", about = "Make a raw RPC call")]
@@ -51,27 +57,46 @@ impl RpcCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
         let rpc = Rpc::new(&self.url).await?;
         let request = RpcRequest::new(rpc);
+        let str_parser = from_str_custom();
+        let str_parser = str_parser.add_custom_parser(custom_parse_hex);
 
-        let mut params = None;
-        if !self.params.is_empty() {
-            let mut json = String::new();
-            for i in &self.params {
-                let p = parse_value(i).unwrap();
-                json = format!("{json}, {}", serde_json::to_string(&p)?);
+        let params = self
+            .params
+            .iter()
+            .map(|e| str_parser.parse(e).0)
+            .collect::<Result<Vec<_>, ParseError>>()
+            .map_err(|e| anyhow::anyhow!("Function arguments parsing failed: {e}"))?;
+
+        let params = match params.is_empty() {
+            true => None,
+            false => {
+                params
+                    .iter()
+                    .try_fold(RpcParams::new(), |mut v, e| {
+                        v.push(e)?;
+                        Ok(v)
+                    })
+                    .map_err(|e: subxt::Error| {
+                        anyhow::anyhow!("Method arguments parsing failed: {e}")
+                    })?
+                    .build()
             }
-            json = format!("[{json}]");
-            println!("{json}");
-            params = Some(
-                RawValue::from_string(json)
-                    .map_err(|e| anyhow::anyhow!("Raw Value creation failed: {e}"))?,
-            );
-        }
-        println!("{:?}", self.params);
+        };
+
+        // println!("params: {:?}", params);
         let res = request
-            .exec(&self.method, params)
+            .raw_call(&self.method, params)
             .await
-            .map_err(|e| anyhow::anyhow!("Err: {}", e))?;
-        println!("{res}");
+            .map_err(|e| anyhow::anyhow!("Method call failed: {}", e))?;
+        let json: serde_json::Value = serde_json::from_str(res.get())?;
+        println!("{}", serde_json::to_string_pretty(&json)?);
         Ok(())
     }
+}
+
+pub fn custom_parse_hex(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
+    if !s.starts_with("0x") {
+        return None
+    }
+    Some(Ok(Value::string(s.to_string())))
 }
