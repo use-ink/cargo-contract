@@ -20,7 +20,15 @@ use subxt::{
         rpc::{
             RawValue,
             RpcClient,
+            RpcParams,
         },
+    },
+    ext::scale_value::{
+        stringify::{
+            from_str_custom,
+            ParseError,
+        },
+        Value,
     },
     Config,
     OnlineClient,
@@ -46,7 +54,7 @@ impl RpcRequest {
     pub async fn raw_call<'a>(
         &'a self,
         method: &'a str,
-        params: Option<Box<RawValue>>,
+        params: &[String],
     ) -> Result<Box<RawValue>> {
         let methods = self.get_supported_methods().await?;
         if !methods.iter().any(|e| e == method) {
@@ -57,22 +65,22 @@ impl RpcRequest {
         }
         self.rpc
             .rpc_client
-            .request_raw(method, params)
+            .request_raw(method, Self::params_to_rawvalue(params)?)
             .await
             .map_err(|e| anyhow!("Raw RPC call failed: {e}"))
     }
 
     pub async fn get_supported_methods(&self) -> Result<Vec<String>> {
-        let raw_value = self
+        let result = self
             .rpc
             .rpc_client
             .request_raw("rpc_methods", None)
             .await
             .map_err(|e| anyhow!("Rpc method call failed: {e}"))?;
 
-        let value: serde_json::Value = serde_json::from_str(raw_value.get())?;
+        let result_value: serde_json::Value = serde_json::from_str(result.get())?;
 
-        let methods = value
+        let methods = result_value
             .get("methods")
             .and_then(|v| v.as_array())
             .ok_or_else(|| anyhow!("Methods parsing failed!"))?;
@@ -88,6 +96,50 @@ impl RpcRequest {
             .collect();
 
         Ok(filtered_methods)
+    }
+
+    fn params_to_rawvalue(params: &[String]) -> Result<Option<Box<RawValue>>> {
+        let mut str_parser = from_str_custom();
+        str_parser = str_parser.add_custom_parser(Self::custom_parse_hex);
+
+        let params = params
+            .iter()
+            .map(|e| str_parser.parse(e).0)
+            .collect::<Result<Vec<_>, ParseError>>()
+            .map_err(|e| anyhow::anyhow!("Function arguments parsing failed: {e}"))?;
+
+        let params = match params.is_empty() {
+            true => None,
+            false => {
+                params
+                    .iter()
+                    .try_fold(RpcParams::new(), |mut v, e| {
+                        v.push(e)?;
+                        Ok(v)
+                    })
+                    .map_err(|e: subxt::Error| {
+                        anyhow::anyhow!("Method arguments parsing failed: {e}")
+                    })?
+                    .build()
+            }
+        };
+
+        println!("params: {:?}", params);
+        Ok(params)
+    }
+
+    /// Parse hex to string
+    fn custom_parse_hex(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
+        if !s.starts_with("0x") {
+            return None
+        }
+
+        let end_idx = s
+            .find(|c: char| !c.is_ascii_alphanumeric())
+            .unwrap_or(s.len());
+        let hex = &s[0..end_idx];
+        *s = &s[end_idx..];
+        Some(Ok(Value::string(hex.to_string())))
     }
 }
 

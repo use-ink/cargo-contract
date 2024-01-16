@@ -796,7 +796,6 @@ dependencies = [
  "predicates",
  "primitive-types",
  "regex",
- "scale-value",
  "schemars",
  "semver",
  "serde",

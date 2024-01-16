@@ -39,7 +39,6 @@ jsonschema = "0.17"
 schemars = "0.8"
 ink_metadata = "5.0.0-rc"
 crossterm = "0.27.0"
-scale-value = "0.13.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
