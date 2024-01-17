@@ -191,17 +191,63 @@ fn custom_hex_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
     let end_idx = s
         .find(|c: char| !c.is_ascii_alphanumeric())
         .unwrap_or(s.len());
-    let hex = &s[0..end_idx];
+    let hex = &s[..end_idx];
     *s = &s[end_idx..];
-    Some(Ok(Value::string(hex.to_string())))
+    Some(Ok(Value::string(&hex.to_string()[2..])))
 }
 
 /// Parse ss58 address to string
 fn custom_ss58_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
-    let account = AccountId32::from_str(s).ok()?;
     let end_idx = s
         .find(|c: char| !c.is_ascii_alphanumeric())
         .unwrap_or(s.len());
+    let account = AccountId32::from_str(&s[..end_idx]).ok()?;
+
     *s = &s[end_idx..];
+    //*s = unsafe { core::str::from_utf8_unchecked(&bytes[end_idx..]) };
     Some(Ok(Value::string(hex::encode(account.0))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn assert_raw_params_value(input: &[&str], expected: &str) {
+        let input = input.iter().map(|e| e.to_string()).collect::<Vec<String>>();
+        let raw_params = RawParams::new(&input).expect("Raw param shall be created");
+        let expected = expected
+            .chars()
+            .filter(|&c| !c.is_whitespace())
+            .collect::<String>();
+        assert_eq!(raw_params.params.unwrap().get(), expected);
+    }
+
+    #[test]
+    fn parse_ss58_works() {
+        let expected = r#"["d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d","sr25"]"#;
+        let input = &[
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            "\"sr25\"",
+        ];
+        assert_raw_params_value(input, expected);
+    }
+
+    #[test]
+    fn parse_positional_parameters_works() {
+        let expected = r#"[[1,"1234",true]]"#;
+        let input = &["(1, 0x1234, true)"];
+        assert_raw_params_value(input, expected);
+    }
+
+    #[test]
+    fn parse_named_parameters_works() {
+        let expected = r#"[{
+            "hello": true,
+            "a": 4,
+            "b": "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+            "c": "test"
+        }]"#;
+        let input = &["{\"hello\": true, \"a\": 4, \"b\": \
+        5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, \"c\": \"test\"}"];
+        assert_raw_params_value(input, expected);
+    }
 }
