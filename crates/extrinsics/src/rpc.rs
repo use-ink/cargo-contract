@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::str::FromStr;
+
+use contract_transcode::AccountId32;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -46,15 +49,69 @@ pub struct RpcRequest {
     rpc: Rpc<PolkadotConfig>,
 }
 
+pub struct RawParams {
+    params: Option<Box<RawValue>>,
+}
+
+impl RawParams {
+    /// Creates a new `RawParams` instance from a slice of string parameters.
+    /// Returns a `Result` containing the parsed `RawParams` or an error if parsing fails.
+    pub fn new(params: &[String]) -> Result<Self> {
+        let mut str_parser = from_str_custom();
+        str_parser = str_parser.add_custom_parser(custom_hex_parse);
+        str_parser = str_parser.add_custom_parser(custom_ss58_parse);
+
+        let value_params = params
+            .iter()
+            .map(|e| str_parser.parse(e).0)
+            .collect::<Result<Vec<_>, ParseError>>()
+            .map_err(|e| anyhow::anyhow!("Method parameters parsing failed: {e}"))?;
+
+        let params = match value_params.is_empty() {
+            true => None,
+            false => {
+                value_params
+                    .iter()
+                    .try_fold(RpcParams::new(), |mut v, e| {
+                        v.push(e)?;
+                        Ok(v)
+                    })
+                    .map_err(|e: subxt::Error| {
+                        anyhow::anyhow!("Building method parameters failed: {e}")
+                    })?
+                    .build()
+            }
+        };
+        println!("params: {:?}", params);
+
+        Ok(Self { params })
+    }
+}
+
 impl RpcRequest {
+    /// Creates a new `RpcRequest` instance with the specified RPC client.
     pub fn new(rpc: Rpc<PolkadotConfig>) -> Self {
         Self { rpc }
     }
 
+    /// Performs a raw RPC call with the specified method and parameters.
+    /// Returns a `Result` containing the raw RPC call result or an error if the call
+    /// fails.
+    ///
+    /// Examples:
+    ///
+    /// method: "author_hasKey"
+    /// params: [5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, "\"sr25\""]
+    ///
+    /// account can be provided as ss58 address or in hex:
+    ///
+    /// method: "author_hasKey"
+    /// params: [0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d,
+    /// "\"sr25\""]
     pub async fn raw_call<'a>(
         &'a self,
         method: &'a str,
-        params: &[String],
+        params: RawParams,
     ) -> Result<Box<RawValue>> {
         let methods = self.get_supported_methods().await?;
         if !methods.iter().any(|e| e == method) {
@@ -65,25 +122,30 @@ impl RpcRequest {
         }
         self.rpc
             .rpc_client
-            .request_raw(method, Self::params_to_rawvalue(params)?)
+            .request_raw(method, params.params)
             .await
             .map_err(|e| anyhow!("Raw RPC call failed: {e}"))
     }
 
+    /// Retrieves the supported RPC methods.
+    /// Returns a `Result` containing a vector of supported RPC methods or an error if the
+    /// call fails.
     pub async fn get_supported_methods(&self) -> Result<Vec<String>> {
         let result = self
             .rpc
             .rpc_client
             .request_raw("rpc_methods", None)
             .await
-            .map_err(|e| anyhow!("Rpc method call failed: {e}"))?;
+            .map_err(|e| anyhow!("Rpc call 'rpc_methods' failed: {e}"))?;
 
         let result_value: serde_json::Value = serde_json::from_str(result.get())?;
 
         let methods = result_value
             .get("methods")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| anyhow!("Methods parsing failed!"))?;
+            .ok_or_else(|| anyhow!("Methods field parsing failed!"))?;
+
+        // Exclude unupported methods using pattern matching
         let patterns = ["watch", "unstable", "subscribe"];
         let filtered_methods: Vec<String> = methods
             .iter()
@@ -96,50 +158,6 @@ impl RpcRequest {
             .collect();
 
         Ok(filtered_methods)
-    }
-
-    fn params_to_rawvalue(params: &[String]) -> Result<Option<Box<RawValue>>> {
-        let mut str_parser = from_str_custom();
-        str_parser = str_parser.add_custom_parser(Self::custom_parse_hex);
-
-        let params = params
-            .iter()
-            .map(|e| str_parser.parse(e).0)
-            .collect::<Result<Vec<_>, ParseError>>()
-            .map_err(|e| anyhow::anyhow!("Function arguments parsing failed: {e}"))?;
-
-        let params = match params.is_empty() {
-            true => None,
-            false => {
-                params
-                    .iter()
-                    .try_fold(RpcParams::new(), |mut v, e| {
-                        v.push(e)?;
-                        Ok(v)
-                    })
-                    .map_err(|e: subxt::Error| {
-                        anyhow::anyhow!("Method arguments parsing failed: {e}")
-                    })?
-                    .build()
-            }
-        };
-
-        println!("params: {:?}", params);
-        Ok(params)
-    }
-
-    /// Parse hex to string
-    fn custom_parse_hex(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
-        if !s.starts_with("0x") {
-            return None
-        }
-
-        let end_idx = s
-            .find(|c: char| !c.is_ascii_alphanumeric())
-            .unwrap_or(s.len());
-        let hex = &s[0..end_idx];
-        *s = &s[end_idx..];
-        Some(Ok(Value::string(hex.to_string())))
     }
 }
 
@@ -162,4 +180,28 @@ impl<C: Config> Rpc<C> {
             _client,
         })
     }
+}
+
+/// Parse hex to string
+fn custom_hex_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
+    if !s.starts_with("0x") {
+        return None
+    }
+
+    let end_idx = s
+        .find(|c: char| !c.is_ascii_alphanumeric())
+        .unwrap_or(s.len());
+    let hex = &s[0..end_idx];
+    *s = &s[end_idx..];
+    Some(Ok(Value::string(hex.to_string())))
+}
+
+/// Parse ss58 address to string
+fn custom_ss58_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
+    let account = AccountId32::from_str(s).ok()?;
+    let end_idx = s
+        .find(|c: char| !c.is_ascii_alphanumeric())
+        .unwrap_or(s.len());
+    *s = &s[end_idx..];
+    Some(Ok(Value::string(hex::encode(account.0))))
 }

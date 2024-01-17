@@ -16,6 +16,7 @@
 
 use contract_extrinsics::{
     ErrorVariant,
+    RawParams,
     Rpc,
     RpcRequest,
 };
@@ -43,10 +44,13 @@ impl RpcCommand {
         let rpc = Rpc::new(&self.url).await?;
         let request = RpcRequest::new(rpc);
 
+        let params = RawParams::new(&self.params)?;
+
         let res = request
-            .raw_call(&self.method, &self.params)
+            .raw_call(&self.method, params)
             .await
             .map_err(|e| anyhow::anyhow!("Method call failed: {}", e))?;
+
         let json: serde_json::Value = serde_json::from_str(res.get())?;
         println!("{}", serde_json::to_string_pretty(&json)?);
         Ok(())
