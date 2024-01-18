@@ -14,11 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use contract_build::name_value_println;
 use contract_extrinsics::{
     ErrorVariant,
     RawParams,
     RpcRequest,
 };
+use subxt::ext::scale_value;
+
+use super::MAX_KEY_COL_WIDTH;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "rpc", about = "Make a raw RPC call")]
@@ -36,6 +40,9 @@ pub struct RpcCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// Export the call output in JSON format.
+    #[clap(long)]
+    output_json: bool,
 }
 
 impl RpcCommand {
@@ -43,13 +50,25 @@ impl RpcCommand {
         let request = RpcRequest::new(&self.url).await?;
         let params = RawParams::new(&self.params)?;
 
-        let result = request
-            .raw_call(&self.method, params)
-            .await
-            .map_err(|e| anyhow::anyhow!("Method call failed: {}", e))?;
+        let result = request.raw_call(&self.method, params).await;
 
-        let json: serde_json::Value = serde_json::from_str(result.get())?;
-        println!("{}", serde_json::to_string_pretty(&json)?);
-        Ok(())
+        match (result, self.output_json) {
+            (Err(err), false) => Err(anyhow::anyhow!("Method call failed: {}", err))?,
+            (Err(err), true) => {
+                Err(anyhow::anyhow!(serde_json::to_string_pretty(
+                    &ErrorVariant::from(err)
+                )?))?
+            }
+            (Ok(res), false) => {
+                let output: scale_value::Value = serde_json::from_str(res.get())?;
+                name_value_println!("Result", output, MAX_KEY_COL_WIDTH);
+                Ok(())
+            }
+            (Ok(res), true) => {
+                let json: serde_json::Value = serde_json::from_str(res.get())?;
+                println!("{}", serde_json::to_string_pretty(&json)?);
+                Ok(())
+            }
+        }
     }
 }
