@@ -39,9 +39,7 @@ use anyhow::{
     Result,
 };
 
-pub struct RawParams {
-    params: Option<Box<RawValue>>,
-}
+pub struct RawParams(Option<Box<RawValue>>);
 
 impl RawParams {
     /// Creates a new `RawParams` instance from a slice of string parameters.
@@ -73,19 +71,17 @@ impl RawParams {
             }
         };
 
-        Ok(Self { params })
+        Ok(Self(params))
     }
 }
 
-pub struct RpcRequest {
-    rpc: RpcClient,
-}
+pub struct RpcRequest(RpcClient);
 
 impl RpcRequest {
     /// Creates a new `RpcRequest` instance.
     pub async fn new(url: &url::Url) -> Result<Self> {
         let rpc = RpcClient::from_url(url_to_string(url)).await?;
-        Ok(Self { rpc })
+        Ok(Self(rpc))
     }
 
     /// Performs a raw RPC call with the specified method and parameters.
@@ -103,8 +99,8 @@ impl RpcRequest {
                 methods.join(", ")
             );
         }
-        self.rpc
-            .request_raw(method, params.params)
+        self.0
+            .request_raw(method, params.0)
             .await
             .map_err(|e| anyhow!("Raw RPC call failed: {e}"))
     }
@@ -114,7 +110,7 @@ impl RpcRequest {
     /// call fails.
     async fn get_supported_methods(&self) -> Result<Vec<String>> {
         let result = self
-            .rpc
+            .0
             .request_raw("rpc_methods", None)
             .await
             .map_err(|e| anyhow!("Rpc call 'rpc_methods' failed: {e}"))?;
