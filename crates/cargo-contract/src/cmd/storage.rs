@@ -141,8 +141,7 @@ impl<'a> StorageDisplayTable<'a> {
             .max()
             .unwrap_or_default();
         let parent_width = cmp::max(parent_len, Self::PARENT_LABEL.len());
-        let terminal_width =
-            terminal::size().expect("Failed to get terminal size").0 as usize;
+        let terminal_width = terminal::size().unwrap_or((80, 24)).0 as usize;
 
         // There are tree separators in the table ' | '
         let value_width = terminal_width

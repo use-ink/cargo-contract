@@ -153,6 +153,13 @@ where
 #[derive(Serialize, Debug)]
 pub struct ContractStorageData(BTreeMap<Bytes, Bytes>);
 
+impl ContractStorageData {
+    /// Create a representation of raw contract storage
+    pub fn new(data: BTreeMap<Bytes, Bytes>) -> Self {
+        Self(data)
+    }
+}
+
 /// Represents the RootLayout storage entry for the contract.
 #[derive(Serialize, Debug)]
 pub struct RootKeyEntry {
@@ -345,7 +352,7 @@ impl ContractStorageCell {
 
     /// Return the root_key as a hex-encoded string.
     pub fn root_key(&self) -> String {
-        hex::encode(self.root().root_key.to_le_bytes())
+        hex::encode(self.root().root_key.encode())
     }
 }
 
