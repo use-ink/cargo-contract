@@ -18,13 +18,10 @@ use std::str::FromStr;
 
 use contract_transcode::AccountId32;
 use subxt::{
-    backend::{
-        legacy::LegacyRpcMethods,
-        rpc::{
-            RawValue,
-            RpcClient,
-            RpcParams,
-        },
+    backend::rpc::{
+        RawValue,
+        RpcClient,
+        RpcParams,
     },
     ext::scale_value::{
         stringify::{
@@ -33,9 +30,6 @@ use subxt::{
         },
         Value,
     },
-    Config,
-    OnlineClient,
-    PolkadotConfig,
 };
 
 use crate::url_to_string;
@@ -44,10 +38,6 @@ use anyhow::{
     bail,
     Result,
 };
-
-pub struct RpcRequest {
-    rpc: Rpc<PolkadotConfig>,
-}
 
 pub struct RawParams {
     params: Option<Box<RawValue>>,
@@ -82,32 +72,25 @@ impl RawParams {
                     .build()
             }
         };
-        println!("params: {:?}", params);
 
         Ok(Self { params })
     }
 }
 
+pub struct RpcRequest {
+    rpc: RpcClient,
+}
+
 impl RpcRequest {
-    /// Creates a new `RpcRequest` instance with the specified RPC client.
-    pub fn new(rpc: Rpc<PolkadotConfig>) -> Self {
-        Self { rpc }
+    /// Creates a new `RpcRequest` instance.
+    pub async fn new(url: &url::Url) -> Result<Self> {
+        let rpc = RpcClient::from_url(url_to_string(url)).await?;
+        Ok(Self { rpc })
     }
 
     /// Performs a raw RPC call with the specified method and parameters.
     /// Returns a `Result` containing the raw RPC call result or an error if the call
     /// fails.
-    ///
-    /// Examples:
-    ///
-    /// method: "author_hasKey"
-    /// params: [5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, "\"sr25\""]
-    ///
-    /// account can be provided as ss58 address or in hex:
-    ///
-    /// method: "author_hasKey"
-    /// params: [0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d,
-    /// "\"sr25\""]
     pub async fn raw_call<'a>(
         &'a self,
         method: &'a str,
@@ -121,7 +104,6 @@ impl RpcRequest {
             );
         }
         self.rpc
-            .rpc_client
             .request_raw(method, params.params)
             .await
             .map_err(|e| anyhow!("Raw RPC call failed: {e}"))
@@ -130,10 +112,9 @@ impl RpcRequest {
     /// Retrieves the supported RPC methods.
     /// Returns a `Result` containing a vector of supported RPC methods or an error if the
     /// call fails.
-    pub async fn get_supported_methods(&self) -> Result<Vec<String>> {
+    async fn get_supported_methods(&self) -> Result<Vec<String>> {
         let result = self
             .rpc
-            .rpc_client
             .request_raw("rpc_methods", None)
             .await
             .map_err(|e| anyhow!("Rpc call 'rpc_methods' failed: {e}"))?;
@@ -161,27 +142,6 @@ impl RpcRequest {
     }
 }
 
-/// Methods for querying over RPC.
-pub struct Rpc<C: Config> {
-    rpc_client: RpcClient,
-    _rpc_methods: LegacyRpcMethods<C>,
-    _client: OnlineClient<C>,
-}
-
-impl<C: Config> Rpc<C> {
-    /// Create a new instance of the Rpc.
-    pub async fn new(url: &url::Url) -> Result<Self> {
-        let rpc_client = RpcClient::from_url(url_to_string(url)).await?;
-        let _client = OnlineClient::from_rpc_client(rpc_client.clone()).await?;
-        let _rpc_methods = LegacyRpcMethods::new(rpc_client.clone());
-        Ok(Self {
-            rpc_client,
-            _rpc_methods,
-            _client,
-        })
-    }
-}
-
 /// Parse hex to string
 fn custom_hex_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
     if !s.starts_with("0x") {
@@ -204,7 +164,6 @@ fn custom_ss58_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
     let account = AccountId32::from_str(&s[..end_idx]).ok()?;
 
     *s = &s[end_idx..];
-    //*s = unsafe { core::str::from_utf8_unchecked(&bytes[end_idx..]) };
     Some(Ok(Value::string(hex::encode(account.0))))
 }
 
@@ -232,22 +191,22 @@ mod tests {
     }
 
     #[test]
-    fn parse_positional_parameters_works() {
+    fn parse_seq_works() {
         let expected = r#"[[1,"1234",true]]"#;
         let input = &["(1, 0x1234, true)"];
         assert_raw_params_value(input, expected);
     }
 
     #[test]
-    fn parse_named_parameters_works() {
+    fn parse_map_works() {
         let expected = r#"[{
             "hello": true,
             "a": 4,
             "b": "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
             "c": "test"
         }]"#;
-        let input = &["{\"hello\": true, \"a\": 4, \"b\": \
-        5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, \"c\": \"test\"}"];
+        let input = &["{hello: true, a: 4, b: \
+        5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY, c: \"test\"}"];
         assert_raw_params_value(input, expected);
     }
 }

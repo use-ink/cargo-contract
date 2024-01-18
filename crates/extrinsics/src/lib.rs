@@ -111,7 +111,6 @@ pub use upload::{
 
 pub use rpc::{
     RawParams,
-    Rpc,
     RpcRequest,
 };
 

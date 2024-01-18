@@ -221,10 +221,6 @@ impl Seq {
     pub fn len(&self) -> usize {
         self.elems.len()
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.elems.is_empty()
-    }
 }
 
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
