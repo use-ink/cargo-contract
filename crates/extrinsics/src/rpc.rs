@@ -173,7 +173,7 @@ mod tests {
             .chars()
             .filter(|&c| !c.is_whitespace())
             .collect::<String>();
-        assert_eq!(raw_params.params.unwrap().get(), expected);
+        assert_eq!(raw_params.0.unwrap().get(), expected);
     }
 
     #[test]
