@@ -618,3 +618,48 @@ async fn api_build_upload_remove() {
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
+
+/// Sanity test the RPC API
+#[tokio::test]
+async fn api_rpc_call() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("rpc")
+        .arg("author_insertKey")
+        .arg("\"sr25\"")
+        .arg("\"//ALICE\"")
+        .arg("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+        .assert()
+        .success();
+
+    let output = cargo_contract(tmp_dir.path())
+        .arg("rpc")
+        .arg("author_hasKey")
+        .arg("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+        .arg("\"sr25\"")
+        .arg("--output-json")
+        .output()
+        .expect("failed to execute process");
+
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "rpc method execution failed: {stderr}"
+    );
+
+    assert_eq!(stdout.trim_end(), "true", "{stdout:?}");
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
