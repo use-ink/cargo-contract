@@ -42,10 +42,10 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 -   Step 2: `cargo install --force --locked cargo-contract`.
 
--   Step 3: Install `dylint` libraries for linting.
+-   Step 3: Install `dylint` for linting.
 
     -   (MacOS) `brew install openssl`
-    -   `cargo install cargo-dylint dylint-link ink_linting_mandatory`.
+    -   `cargo install cargo-dylint dylint-link`.
 
 -   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
     to be able to produce verifiable builds.

@@ -314,11 +314,15 @@ impl Manifest {
     }
 
     pub fn with_dylint(&mut self) -> Result<&mut Self> {
-        let ink_dylint = {
+        let ink_dylint = |lib_name: &str| {
             let mut map = value::Table::new();
             map.insert("git".into(), "https://github.com/paritytech/ink/".into());
-            map.insert("tag".into(), "v4.0.0-alpha.3".into());
-            map.insert("pattern".into(), "linting/".into());
+            // TODO: Add the latest release tag before merging
+            // map.insert("tag".into(), "master".into());
+            map.insert(
+                "pattern".into(),
+                value::Value::String(format!("linting/{}", lib_name)),
+            );
             value::Value::Table(map)
         };
 
@@ -339,7 +343,7 @@ impl Manifest {
             .or_insert(value::Value::Array(Default::default()))
             .as_array_mut()
             .context("workspace.metadata.dylint.libraries section should be an array")?
-            .push(ink_dylint);
+            .extend(vec![ink_dylint("mandatory"), ink_dylint("extra")]);
 
         Ok(self)
     }
