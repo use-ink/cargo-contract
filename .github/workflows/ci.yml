@@ -70,12 +70,14 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2023-12-28
+          toolchain: stable
           default: true
           components: clippy
 
