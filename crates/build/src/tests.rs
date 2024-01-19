@@ -307,7 +307,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     let path = manifest_path.directory().expect("dir must exist");
     let build_rs_path = path.join(Path::new("build.rs"));
 
-    fs::write(build_rs_path, "fn main() {}")?;
+    fs::write(build_rs_path, "#![cfg_attr(dylint_lib = \"ink_linting_mandatory\", allow(no_main))]\n\nfn main() {}")?;
 
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
