@@ -32,7 +32,7 @@ let args = contract_build::ExecuteArgs {
     unstable_flags: UnstableFlags::default(),
     optimization_passes: Some(OptimizationPasses::default()),
     keep_debug_symbols: false,
-    dylint: false,
+    extra_lints: false,
     output_type: OutputType::Json,
     skip_wasm_validation: false,
     target: Target::Wasm,
