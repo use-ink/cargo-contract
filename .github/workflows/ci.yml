@@ -186,7 +186,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly-2023-12-28
           default: true
           target: wasm32-unknown-unknown
           components: rust-src, clippy
