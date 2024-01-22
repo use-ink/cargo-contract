@@ -22,6 +22,7 @@ use contract_transcode::{
     ContractMessageTranscoder,
     Value,
 };
+use ink_env::Environment;
 use ink_metadata::layout::{
     Layout,
     StructLayout,
@@ -50,6 +51,7 @@ use std::{
         Display,
         Formatter,
     },
+    marker::PhantomData,
 };
 use subxt::{
     backend::{
@@ -75,21 +77,26 @@ use super::{
     fetch_contract_info,
     url_to_string,
     ContractInfo,
-    DefaultConfig,
     TrieId,
 };
 
-pub struct ContractStorage<C: Config = DefaultConfig> {
-    rpc: ContractStorageRpc<C>,
+pub struct ContractStorage<C: Config, E: Environment> {
+    rpc: ContractStorageRpc<C, E>,
+    _phantom: PhantomData<fn() -> (C, E)>,
 }
 
-impl<C: Config> ContractStorage<C>
+impl<C: Config, E: Environment> ContractStorage<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    E::Balance: IntoVisitor + Serialize,
 {
-    pub fn new(rpc: ContractStorageRpc<C>) -> Self {
-        Self { rpc }
+    pub fn new(rpc: ContractStorageRpc<C, E>) -> Self {
+        Self {
+            rpc,
+            _phantom: Default::default(),
+        }
     }
 
     /// Load the raw key/value storage for a given contract.
@@ -587,16 +594,19 @@ impl ContractStorageLayout {
 }
 
 /// Methods for querying contracts over RPC.
-pub struct ContractStorageRpc<C: Config> {
+pub struct ContractStorageRpc<C: Config, E: Environment> {
     rpc_client: RpcClient,
     rpc_methods: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
+    _phantom: PhantomData<fn() -> (C, E)>,
 }
 
-impl<C: Config> ContractStorageRpc<C>
+impl<C: Config, E: Environment> ContractStorageRpc<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    E::Balance: IntoVisitor,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
@@ -608,6 +618,7 @@ where
             rpc_client,
             rpc_methods,
             client,
+            _phantom: Default::default(),
         })
     }
 
@@ -615,8 +626,8 @@ where
     pub async fn fetch_contract_info(
         &self,
         contract: &C::AccountId,
-    ) -> Result<ContractInfo> {
-        fetch_contract_info(contract, &self.rpc_methods, &self.client).await
+    ) -> Result<ContractInfo<C::Hash, E::Balance>> {
+        fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await
     }
 
     /// Fetch the contract storage at the given key.

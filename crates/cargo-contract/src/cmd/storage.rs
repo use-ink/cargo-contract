@@ -28,6 +28,7 @@ use contract_extrinsics::{
     ErrorVariant,
 };
 use crossterm::terminal;
+use ink_env::DefaultEnvironment;
 use std::{
     cmp,
     path::PathBuf,
@@ -65,8 +66,10 @@ pub struct StorageCommand {
 
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
-        let storage_layout = ContractStorage::<DefaultConfig>::new(rpc);
+        let rpc = ContractStorageRpc::<DefaultConfig, DefaultEnvironment>::new(&self.url)
+            .await?;
+        let storage_layout =
+            ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
 
         if self.raw {
             let storage_data = storage_layout
