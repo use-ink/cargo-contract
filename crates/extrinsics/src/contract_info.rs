@@ -41,7 +41,6 @@ use subxt::{
         scale_value::Value,
     },
     storage::dynamic,
-    utils::AccountId32,
     Config,
     OnlineClient,
 };
@@ -289,16 +288,19 @@ where
 
 /// Parse a contract account address from a storage key. Returns error if a key is
 /// malformated.
-fn parse_contract_account_address(
+fn parse_contract_account_address<C: Config>(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
-) -> Result<AccountId32> {
+) -> Result<C::AccountId>
+where
+    C::AccountId: Decode,
+{
     // storage_contract_account_key is a concatenation of contract_info_of root key and
     // Twox64Concat(AccountId)
     let mut account = storage_contract_account_key
         .get(storage_contract_root_key_len + 8..)
         .ok_or(anyhow!("Unexpected storage key size"))?;
-    AccountId32::decode(&mut account)
+    Decode::decode(&mut account)
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
@@ -306,14 +308,14 @@ fn parse_contract_account_address(
 pub async fn fetch_all_contracts<C: Config>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
-) -> Result<Vec<AccountId32>> {
+) -> Result<Vec<C::AccountId>>
+where
+    C::AccountId: Decode,
+{
     let best_block = get_best_block(rpc).await?;
-    let root_key = subxt::dynamic::storage(
-        "Contracts",
-        "ContractInfoOf",
-        vec![Value::from_bytes(AccountId32([0u8; 32]))],
-    )
-    .to_root_bytes();
+    let root_key =
+        subxt::dynamic::storage("Contracts", "ContractInfoOf", Vec::<()>::new())
+            .to_root_bytes();
     let mut keys = client
         .storage()
         .at(best_block)
@@ -323,7 +325,7 @@ pub async fn fetch_all_contracts<C: Config>(
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
         let key = result?;
-        let contract_account = parse_contract_account_address(&key, root_key.len())?;
+        let contract_account = parse_contract_account_address::<C>(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }
 
@@ -381,6 +383,7 @@ mod tests {
             types::Metadata,
             DecodeWithMetadata,
         },
+        utils::AccountId32,
         PolkadotConfig as DefaultConfig,
     };
 
