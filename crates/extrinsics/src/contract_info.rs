@@ -370,6 +370,7 @@ struct DepositAccount<AccountId> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ink_env::DefaultEnvironment;
     use scale::Encode;
     use scale_info::{
         IntoPortable,
@@ -452,8 +453,11 @@ mod tests {
 
         let contract = AccountId32([0u8; 32]);
         let contract_info_raw =
-            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
-                .expect("the conatract info raw must be created");
+            ContractInfoRaw::<DefaultConfig, DefaultEnvironment>::new(
+                contract,
+                contract_info_thunk,
+            )
+            .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,
@@ -518,8 +522,11 @@ mod tests {
 
         let contract = AccountId32([0u8; 32]);
         let contract_info_raw =
-            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
-                .expect("the conatract info raw must be created");
+            ContractInfoRaw::<DefaultConfig, DefaultEnvironment>::new(
+                contract,
+                contract_info_thunk,
+            )
+            .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,
