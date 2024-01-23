@@ -102,6 +102,7 @@ pub use instantiate::{
 pub use remove::{
     RemoveCommandBuilder,
     RemoveExec,
+    RemoveResult,
 };
 
 pub use subxt::PolkadotConfig as DefaultConfig;
@@ -153,7 +154,9 @@ where
     T: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<T>,
+    T::Signature: From<subxt_signer::sr25519::Signature>,
     <T::ExtrinsicParams as config::ExtrinsicParams<T>>::OtherParams: Default,
+    T::AccountId: From<subxt_signer::sr25519::PublicKey>,
 {
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
@@ -220,8 +223,8 @@ where
     Ok(account_nonce)
 }
 
-async fn state_call<A: Encode, R: Decode>(
-    rpc: &LegacyRpcMethods<DefaultConfig>,
+async fn state_call<C: Config, A: Encode, R: Decode>(
+    rpc: &LegacyRpcMethods<C>,
     func: &str,
     args: A,
 ) -> Result<R> {

@@ -303,7 +303,7 @@ impl CallExec {
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
-        let display_events = DisplayEvents::from_events(
+        let display_events = DisplayEvents::from_events::<DefaultConfig>(
             &result,
             Some(&self.transcoder),
             &self.client.metadata(),

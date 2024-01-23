@@ -25,12 +25,12 @@ use rust_decimal::{
     Decimal,
 };
 use serde_json::json;
-use subxt::backend::legacy::LegacyRpcMethods;
-
-use super::{
-    Balance,
-    DefaultConfig,
+use subxt::{
+    backend::legacy::LegacyRpcMethods,
+    Config,
 };
+
+use super::Balance;
 
 use anyhow::{
     anyhow,
@@ -75,7 +75,7 @@ pub enum UnitPrefix {
 
 impl TokenMetadata {
     /// Query [TokenMetadata] through the node's RPC
-    pub async fn query(client: &LegacyRpcMethods<DefaultConfig>) -> Result<Self> {
+    pub async fn query<C: Config>(client: &LegacyRpcMethods<C>) -> Result<Self> {
         let sys_props = client.system_properties().await?;
 
         let default_decimals = json!(12);

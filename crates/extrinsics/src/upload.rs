@@ -24,7 +24,6 @@ use super::{
     state_call,
     submit_extrinsic,
     Balance,
-    Client,
     CodeHash,
     DefaultConfig,
     ErrorVariant,
@@ -47,7 +46,11 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    ext::scale_encode::EncodeAsType,
+    config,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
     Config,
     OnlineClient,
 };
@@ -102,7 +105,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done(self) -> Result<UploadExec> {
+    pub async fn done(self) -> Result<UploadExec<DefaultConfig>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
@@ -135,17 +138,24 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     }
 }
 
-pub struct UploadExec {
+pub struct UploadExec<C: Config> {
     opts: ExtrinsicOpts,
-    rpc: LegacyRpcMethods<DefaultConfig>,
-    client: Client,
+    rpc: LegacyRpcMethods<C>,
+    client: OnlineClient<C>,
     code: WasmCode,
     signer: Keypair,
     token_metadata: TokenMetadata,
     transcoder: ContractMessageTranscoder,
 }
 
-impl UploadExec {
+impl<C: Config> UploadExec<C>
+where
+    C::Hash: IntoVisitor,
+    C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
+    C::Address: From<subxt_signer::sr25519::PublicKey>,
+    C::Signature: From<subxt_signer::sr25519::Signature>,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+{
     /// Uploads contract code to a specified URL using a JSON-RPC call.
     ///
     /// This function performs a JSON-RPC call to upload contract code to the given URL.
@@ -171,7 +181,7 @@ impl UploadExec {
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult, ErrorVariant> {
+    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
@@ -188,8 +198,8 @@ impl UploadExec {
         let display_events =
             DisplayEvents::from_events(&result, None, &self.client.metadata())?;
 
-        let code_stored = result.find_first::<CodeStored>()?;
-        Ok(UploadResult {
+        let code_stored = result.find_first::<CodeStored<C::Hash>>()?;
+        Ok(UploadResult::<C> {
             code_stored,
             display_events,
         })
@@ -201,7 +211,7 @@ impl UploadExec {
     }
 
     /// Returns the client.
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> &OnlineClient<C> {
         &self.client
     }
 
@@ -235,8 +245,8 @@ struct CodeUploadRequest {
     determinism: Determinism,
 }
 
-pub struct UploadResult {
-    pub code_stored: Option<CodeStored>,
+pub struct UploadResult<C: Config> {
+    pub code_stored: Option<CodeStored<C::Hash>>,
     pub display_events: DisplayEvents,
 }
 

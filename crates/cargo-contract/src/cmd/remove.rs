@@ -25,7 +25,10 @@ use contract_extrinsics::{
     DefaultConfig,
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
+    RemoveExec,
+    RemoveResult,
 };
+use ink_env::DefaultEnvironment;
 use subxt::Config;
 
 #[derive(Debug, clap::Args)]
@@ -55,12 +58,13 @@ impl RemoveCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let remove_exec = RemoveCommandBuilder::default()
-            .code_hash(self.code_hash)
-            .extrinsic_opts(extrinsic_opts)
-            .done()
-            .await?;
-        let remove_result = remove_exec.remove_code().await?;
+        let remove_exec: RemoveExec<DefaultConfig, DefaultEnvironment> =
+            RemoveCommandBuilder::default()
+                .code_hash(self.code_hash)
+                .extrinsic_opts(extrinsic_opts)
+                .done()
+                .await?;
+        let remove_result: RemoveResult<_, _> = remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
         let output_events = if self.output_json() {
             display_events.to_json()?
@@ -71,7 +75,7 @@ impl RemoveCommand {
             )?
         };
         if let Some(code_removed) = remove_result.code_removed {
-            let remove_result = code_removed.code_hash;
+            let remove_result: <DefaultConfig as Config>::Hash = code_removed.code_hash;
 
             if self.output_json() {
                 // Create a JSON object with the events and the removed code hash.

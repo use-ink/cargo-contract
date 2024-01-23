@@ -15,10 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    Balance,
     BalanceVariant,
-    CodeHash,
-    DefaultConfig,
     TokenMetadata,
 };
 use crate::DEFAULT_KEY_COL_WIDTH;
@@ -42,7 +39,10 @@ use subxt::{
     blocks::ExtrinsicEvents,
     events::StaticEvent,
     ext::{
-        scale_decode,
+        scale_decode::{
+            self,
+            IntoVisitor,
+        },
         scale_encode,
     },
     Config,
@@ -58,12 +58,15 @@ use subxt::{
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct ContractEmitted {
-    pub contract: <DefaultConfig as Config>::AccountId,
+pub struct ContractEmitted<AccountId> {
+    pub contract: AccountId,
     pub data: Vec<u8>,
 }
 
-impl StaticEvent for ContractEmitted {
+impl<AccountId> StaticEvent for ContractEmitted<AccountId>
+where
+    AccountId: IntoVisitor,
+{
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "ContractEmitted";
 }
@@ -78,14 +81,17 @@ impl StaticEvent for ContractEmitted {
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct ContractInstantiated {
+pub struct ContractInstantiated<AccountId> {
     /// Account id of the deployer.
-    pub deployer: <DefaultConfig as Config>::AccountId,
+    pub deployer: AccountId,
     /// Account id where the contract was instantiated to.
-    pub contract: <DefaultConfig as Config>::AccountId,
+    pub contract: AccountId,
 }
 
-impl StaticEvent for ContractInstantiated {
+impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
+where
+    AccountId: IntoVisitor,
+{
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "Instantiated";
 }
@@ -100,12 +106,15 @@ impl StaticEvent for ContractInstantiated {
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored {
+pub struct CodeStored<Hash> {
     /// Hash under which the contract code was stored.
-    pub code_hash: CodeHash,
+    pub code_hash: Hash,
 }
 
-impl StaticEvent for CodeStored {
+impl<Hash> StaticEvent for CodeStored<Hash>
+where
+    Hash: IntoVisitor,
+{
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "CodeStored";
 }
@@ -120,13 +129,18 @@ impl StaticEvent for CodeStored {
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeRemoved {
-    pub code_hash: CodeHash,
+pub struct CodeRemoved<Hash, Balance, AccountId> {
+    pub code_hash: Hash,
     pub deposit_released: Balance,
-    pub remover: <DefaultConfig as Config>::AccountId,
+    pub remover: AccountId,
 }
 
-impl StaticEvent for CodeRemoved {
+impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, Balance, AccountId>
+where
+    Hash: IntoVisitor,
+    Balance: IntoVisitor,
+    AccountId: IntoVisitor,
+{
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "CodeRemoved";
 }
@@ -170,11 +184,14 @@ pub struct DisplayEvents(Vec<Event>);
 
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
-    pub fn from_events(
-        result: &ExtrinsicEvents<DefaultConfig>,
+    pub fn from_events<C: Config>(
+        result: &ExtrinsicEvents<C>,
         transcoder: Option<&ContractMessageTranscoder>,
         subxt_metadata: &subxt::Metadata,
-    ) -> Result<DisplayEvents> {
+    ) -> Result<DisplayEvents>
+    where
+        C::AccountId: IntoVisitor,
+    {
         let mut events: Vec<Event> = vec![];
 
         let events_transcoder = TranscoderBuilder::new(subxt_metadata.types())
@@ -202,13 +219,13 @@ impl DisplayEvents {
             let event_sig_topic = event.topics().iter().next();
             let mut unnamed_field_name = 0;
             for field_metadata in event_fields {
-                if <ContractEmitted as StaticEvent>::is_event(
+                if <ContractEmitted<C::AccountId> as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
                 ) && field_metadata.name == Some("data".to_string())
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    let field = contract_event_data_field(
+                    let field = contract_event_data_field::<C>(
                         transcoder,
                         field_metadata,
                         event_sig_topic,
@@ -300,10 +317,10 @@ impl DisplayEvents {
 
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
-fn contract_event_data_field(
+fn contract_event_data_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
-    event_sig_topic: Option<&sp_core::H256>,
+    event_sig_topic: Option<&C::Hash>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {

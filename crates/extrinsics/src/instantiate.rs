@@ -383,11 +383,11 @@ impl InstantiateExec {
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = result
-            .find_first::<CodeStored>()?
+            .find_first::<CodeStored<<DefaultConfig as Config>::Hash>>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = result
-            .find_last::<ContractInstantiated>()?
+            .find_last::<ContractInstantiated<<DefaultConfig as Config>::AccountId>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -417,7 +417,7 @@ impl InstantiateExec {
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         let instantiated = result
-            .find_first::<ContractInstantiated>()?
+            .find_first::<ContractInstantiated<<DefaultConfig as Config>::AccountId>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
