@@ -110,6 +110,19 @@ pub const DEFAULT_MAX_MEMORY_PAGES: u32 = 16;
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Configuration of the linting module.
+///
+/// Ensure it is kept up-to-date when updating `cargo-contract`.
+pub(crate) mod linting {
+    /// Toolchain used to build ink_linting:
+    /// https://github.com/paritytech/ink/blob/master/linting/rust-toolchain.toml
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2023-12-28";
+    /// Git repository with ink_linting libraries
+    pub const GIT_URL: &str = "https://github.com/paritytech/ink/";
+    /// Git revision number of the linting crate
+    pub const GIT_REV: &str = "1c029a153ead15cd0bd76631613967c9e679e0c1";
+}
+
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Clone)]
 pub struct ExecuteArgs {
@@ -586,7 +599,8 @@ fn exec_cargo_dylint(
 /// Checks if all requirements for `dylint` are installed.
 ///
 /// We require both `cargo-dylint` and `dylint-link` because the driver is being
-/// built at runtime on demand.
+/// built at runtime on demand. These must be built using a custom version of the
+/// toolchain, as the linter utilizes the unstable rustc API.
 ///
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
@@ -607,6 +621,29 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             false
         })
     };
+
+    // Check if the required toolchain is present and is installed with `rustup`.
+    if let Ok(output) = Command::new("rustup").arg("toolchain").arg("list").output() {
+        anyhow::ensure!(
+            String::from_utf8_lossy(&output.stdout).contains(linting::TOOLCHAIN_VERSION),
+            format!(
+                "Toolchain `{0}` was not found!\n\
+                This specific version is required to provide additional source code analysis.\n\n
+                You can install it by executing `rustup install {0}`.",
+                linting::TOOLCHAIN_VERSION,
+            )
+            .to_string()
+            .bright_yellow());
+    } else {
+        anyhow::bail!(format!(
+            "Toolchain `{0}` was not found!\n\
+            This specific version is required to provide additional source code analysis.\n\n
+            Install `rustup` according to https://rustup.rs/ and then run: `rustup install {0}`.",
+            linting::TOOLCHAIN_VERSION,
+        )
+        .to_string()
+        .bright_yellow());
+    }
 
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.
