@@ -471,13 +471,18 @@ fn lint(
     );
     exec_cargo_clippy(crate_metadata, *verbosity)?;
 
-    verbose_eprintln!(
-        verbosity,
-        " {} {}",
-        "[==]".bold(),
-        "Checking ink! linting rules".bright_green().bold()
-    );
-    exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
+    // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
+    // it's required only for RiscV target. We're working on the toolchain integration
+    // and will make this step mandatory for all targets in future releases.
+    if extra_lints || matches!(target, Target::RiscV) {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Checking ink! linting rules".bright_green().bold()
+        );
+        exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
+    }
 
     Ok(())
 }
