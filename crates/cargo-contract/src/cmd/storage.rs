@@ -66,8 +66,7 @@ pub struct StorageCommand {
 
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::<DefaultConfig, DefaultEnvironment>::new(&self.url)
-            .await?;
+        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
         let storage_layout =
             ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
 
