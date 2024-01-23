@@ -395,8 +395,8 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
-        extra_lints: true,
-        target: Target::RiscV,
+        extra_lints: false,
+        target: Target::Wasm,
         ..Default::default()
     };
     let res = super::execute(args).map(|_| ()).unwrap_err();
