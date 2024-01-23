@@ -17,7 +17,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2023-12-28
+          toolchain: nightly
           default: true
           components: rustfmt
 
@@ -53,7 +53,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2023-12-28
+          toolchain: stable
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -70,8 +70,6 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-    env:
-      RUSTUP_TOOLCHAIN: stable
     steps:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -138,7 +136,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2023-12-28
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
           components: rust-src, clippy
