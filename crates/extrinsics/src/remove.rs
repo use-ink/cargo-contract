@@ -40,7 +40,10 @@ use subxt::{
         rpc::RpcClient,
     },
     config,
-    ext::scale_decode::IntoVisitor,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
     Config,
     OnlineClient,
 };
@@ -105,7 +108,7 @@ impl<C: Config, E: Environment, T> RemoveCommandBuilder<C, E, T> {
 
 impl<C: Config, E: Environment> RemoveCommandBuilder<C, E, state::ExtrinsicOptions>
 where
-    [u8; 32]: From<C::Hash>,
+    C::Hash: From<[u8; 32]>,
 {
     /// Preprocesses contract artifacts and options for subsequent removal of contract
     /// code.
@@ -125,8 +128,8 @@ where
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
         let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
-            (Some(code_h), _) => Ok((*code_h).into()),
-            (None, Some(_)) => artifacts.code_hash(),
+            (Some(code_h), _) => Ok(*code_h),
+            (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
             (None, None) => Err(anyhow::anyhow!(
                 "No code_hash was provided or contract code was not found from artifact \
                 file {}. Please provide a code hash with --code-hash argument or specify the \
@@ -156,7 +159,7 @@ where
 }
 
 pub struct RemoveExec<C: Config, E: Environment> {
-    final_code_hash: [u8; 32],
+    final_code_hash: C::Hash,
     opts: ExtrinsicOpts,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
@@ -174,6 +177,7 @@ where
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    C::Hash: EncodeAsType,
 {
     /// Removes a contract code from the blockchain.
     ///
@@ -185,7 +189,7 @@ where
     /// Returns the `RemoveResult` containing the events generated from the contract
     /// code removal, or an error in case of failure.
     pub async fn remove_code(&self) -> Result<RemoveResult<C, E>, ErrorVariant> {
-        let code_hash = sp_core::H256(self.final_code_hash);
+        let code_hash = self.final_code_hash;
 
         let call = RemoveCode::new(code_hash).build();
 
@@ -206,7 +210,7 @@ where
     }
 
     /// Returns the final code hash.
-    pub fn final_code_hash(&self) -> [u8; 32] {
+    pub fn final_code_hash(&self) -> C::Hash {
         self.final_code_hash
     }
 

@@ -66,12 +66,12 @@ impl core::fmt::Display for Weight {
 /// A raw call to `pallet-contracts`'s `remove_code`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct RemoveCode {
-    code_hash: CodeHash,
+pub(crate) struct RemoveCode<Hash> {
+    code_hash: Hash,
 }
 
-impl RemoveCode {
-    pub fn new(code_hash: CodeHash) -> Self {
+impl<Hash> RemoveCode<Hash> {
+    pub fn new(code_hash: Hash) -> Self {
         Self { code_hash }
     }
 

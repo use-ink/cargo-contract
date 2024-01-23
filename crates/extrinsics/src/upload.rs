@@ -24,8 +24,6 @@ use super::{
     state_call,
     submit_extrinsic,
     Balance,
-    CodeHash,
-    DefaultConfig,
     ErrorVariant,
     Missing,
     TokenMetadata,
@@ -61,14 +59,14 @@ struct UploadOpts {
 }
 
 /// A builder for the upload command.
-pub struct UploadCommandBuilder<ExtrinsicOptions> {
+pub struct UploadCommandBuilder<C: Config, ExtrinsicOptions> {
     opts: UploadOpts,
-    marker: PhantomData<fn() -> ExtrinsicOptions>,
+    marker: PhantomData<fn() -> (C, ExtrinsicOptions)>,
 }
 
-impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<C: Config> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     /// Returns a clean builder for [`UploadExec`].
-    pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: UploadOpts {
                 extrinsic_opts: ExtrinsicOpts::default(),
@@ -81,7 +79,7 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
-    ) -> UploadCommandBuilder<state::ExtrinsicOptions> {
+    ) -> UploadCommandBuilder<C, state::ExtrinsicOptions> {
         UploadCommandBuilder {
             opts: UploadOpts { extrinsic_opts },
             marker: PhantomData,
@@ -89,13 +87,13 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl Default for UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<C: Config> Default for UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl UploadCommandBuilder<state::ExtrinsicOptions> {
+impl<C: Config> UploadCommandBuilder<C, state::ExtrinsicOptions> {
     /// Preprocesses contract artifacts and options for subsequent upload.
     ///
     /// This function prepares the necessary data for uploading a contract
@@ -105,7 +103,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done(self) -> Result<UploadExec<DefaultConfig>> {
+    pub async fn done(self) -> Result<UploadExec<C>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
@@ -162,7 +160,7 @@ where
     /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
-    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<CodeHash, Balance>> {
+    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, Balance>> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
@@ -238,8 +236,8 @@ where
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-struct CodeUploadRequest {
-    origin: <DefaultConfig as Config>::AccountId,
+struct CodeUploadRequest<AccountId> {
+    origin: AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
     determinism: Determinism,

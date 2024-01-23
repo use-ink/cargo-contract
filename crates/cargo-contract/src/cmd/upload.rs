@@ -27,6 +27,12 @@ use contract_extrinsics::{
     Balance,
     ExtrinsicOptsBuilder,
     UploadCommandBuilder,
+    UploadExec,
+    UploadResult,
+};
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
 };
 
 #[derive(Debug, clap::Args)]
@@ -53,7 +59,7 @@ impl UploadCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let upload_exec = UploadCommandBuilder::default()
+        let upload_exec: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
             .extrinsic_opts(extrinsic_opts)
             .done()
             .await?;
@@ -86,7 +92,8 @@ impl UploadCommand {
                 }
             }
         } else {
-            let upload_result = upload_exec.upload_code().await?;
+            let upload_result: UploadResult<DefaultConfig> =
+                upload_exec.upload_code().await?;
             let display_events = upload_result.display_events;
             let output_events = if self.output_json() {
                 display_events.to_json()?
@@ -97,7 +104,7 @@ impl UploadCommand {
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
-                let code_hash = code_stored.code_hash;
+                let code_hash: <DefaultConfig as Config>::Hash = code_stored.code_hash;
                 if self.output_json() {
                     // Create a JSON object with the events and the code hash.
                     let json_object = serde_json::json!({
