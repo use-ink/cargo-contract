@@ -30,6 +30,7 @@ use contract_extrinsics::{
     UploadExec,
     UploadResult,
 };
+use ink_env::DefaultEnvironment;
 use subxt::{
     Config,
     PolkadotConfig as DefaultConfig,
@@ -67,7 +68,7 @@ impl UploadCommand {
         let code_hash = upload_exec.code().code_hash();
 
         if !self.extrinsic_cli_opts.execute {
-            match upload_exec.upload_code_rpc().await? {
+            match upload_exec.upload_code_rpc::<DefaultEnvironment>().await? {
                 Ok(result) => {
                     let upload_result = UploadDryRunResult {
                         result: String::from("Success!"),

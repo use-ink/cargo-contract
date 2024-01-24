@@ -23,7 +23,6 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
-    Balance,
     ErrorVariant,
     Missing,
     TokenMetadata,
@@ -37,6 +36,7 @@ use crate::{
 use anyhow::Result;
 use contract_transcode::ContractMessageTranscoder;
 use core::marker::PhantomData;
+use ink_env::Environment;
 use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
@@ -160,7 +160,9 @@ where
     /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
-    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, Balance>> {
+    pub async fn upload_code_rpc<E: Environment>(
+        &self,
+    ) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
@@ -236,7 +238,7 @@ where
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-struct CodeUploadRequest<AccountId> {
+struct CodeUploadRequest<AccountId, Balance> {
     origin: AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
