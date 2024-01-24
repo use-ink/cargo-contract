@@ -81,8 +81,8 @@ use super::{
 };
 
 pub struct ContractStorage<C: Config, E: Environment> {
-    rpc: ContractStorageRpc<C, E>,
-    _phantom: PhantomData<fn() -> (C, E)>,
+    rpc: ContractStorageRpc<C>,
+    _phantom: PhantomData<fn() -> E>,
 }
 
 impl<C: Config, E: Environment> ContractStorage<C, E>
@@ -92,7 +92,7 @@ where
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     E::Balance: IntoVisitor + Serialize,
 {
-    pub fn new(rpc: ContractStorageRpc<C, E>) -> Self {
+    pub fn new(rpc: ContractStorageRpc<C>) -> Self {
         Self {
             rpc,
             _phantom: Default::default(),
@@ -104,7 +104,7 @@ where
         &self,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageData> {
-        let contract_info = self.rpc.fetch_contract_info(contract_account).await?;
+        let contract_info = self.rpc.fetch_contract_info::<E>(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
         let mut storage_keys = Vec::new();
@@ -594,19 +594,17 @@ impl ContractStorageLayout {
 }
 
 /// Methods for querying contracts over RPC.
-pub struct ContractStorageRpc<C: Config, E: Environment> {
+pub struct ContractStorageRpc<C: Config> {
     rpc_client: RpcClient,
     rpc_methods: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
-    _phantom: PhantomData<fn() -> (C, E)>,
 }
 
-impl<C: Config, E: Environment> ContractStorageRpc<C, E>
+impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
-    E::Balance: IntoVisitor,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
@@ -618,15 +616,17 @@ where
             rpc_client,
             rpc_methods,
             client,
-            _phantom: Default::default(),
         })
     }
 
     /// Fetch the contract info to access the trie id for querying storage.
-    pub async fn fetch_contract_info(
+    pub async fn fetch_contract_info<E: Environment>(
         &self,
         contract: &C::AccountId,
-    ) -> Result<ContractInfo<C::Hash, E::Balance>> {
+    ) -> Result<ContractInfo<C::Hash, E::Balance>>
+    where
+        E::Balance: IntoVisitor,
+    {
         fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await
     }
 
