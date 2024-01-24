@@ -19,10 +19,13 @@ use crate::{
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
     RemoveCommandBuilder,
+    RemoveExec,
     UploadCommandBuilder,
+    UploadExec,
 };
 use anyhow::Result;
 use contract_build::code_hash;
+use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -466,7 +469,7 @@ async fn api_build_upload_instantiate_call() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommandBuilder::default()
+    let upload: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
         .await
@@ -592,7 +595,7 @@ async fn api_build_upload_remove() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommandBuilder::default()
+    let upload: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .done()
         .await
@@ -605,13 +608,13 @@ async fn api_build_upload_remove() {
     assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
-    let remove = RemoveCommandBuilder::default()
+    let remove: RemoveExec<DefaultConfig> = RemoveCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .code_hash(Some(code_hash_h256))
         .done()
         .await
         .unwrap();
-    let remove_result = remove.remove_code().await;
+    let remove_result = remove.remove_code::<DefaultEnvironment>().await;
     assert!(remove_result.is_ok(), "remove code failed");
     remove_result.unwrap();
 

@@ -55,16 +55,14 @@ pub struct RemoveOpts<Hash> {
 }
 
 /// A builder for the remove command.
-pub struct RemoveCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
+pub struct RemoveCommandBuilder<C: Config, ExtrinsicOptions> {
     opts: RemoveOpts<C::Hash>,
-    marker: PhantomData<fn() -> (E, ExtrinsicOptions)>,
+    marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
-impl<C: Config, E: Environment>
-    RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-{
+impl<C: Config> RemoveCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     /// Returns a clean builder for [`RemoveExec`].
-    pub fn new() -> RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> RemoveCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
         RemoveCommandBuilder {
             opts: RemoveOpts {
                 code_hash: None,
@@ -78,7 +76,7 @@ impl<C: Config, E: Environment>
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
-    ) -> RemoveCommandBuilder<C, E, state::ExtrinsicOptions> {
+    ) -> RemoveCommandBuilder<C, state::ExtrinsicOptions> {
         RemoveCommandBuilder {
             opts: RemoveOpts {
                 extrinsic_opts,
@@ -89,15 +87,13 @@ impl<C: Config, E: Environment>
     }
 }
 
-impl<C: Config, E: Environment> Default
-    for RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-{
+impl<C: Config> Default for RemoveCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<C: Config, E: Environment, T> RemoveCommandBuilder<C, E, T> {
+impl<C: Config, T> RemoveCommandBuilder<C, T> {
     /// Sets the hash of the smart contract code already uploaded to the chain.
     pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
         let mut this = self;
@@ -106,7 +102,7 @@ impl<C: Config, E: Environment, T> RemoveCommandBuilder<C, E, T> {
     }
 }
 
-impl<C: Config, E: Environment> RemoveCommandBuilder<C, E, state::ExtrinsicOptions>
+impl<C: Config> RemoveCommandBuilder<C, state::ExtrinsicOptions>
 where
     C::Hash: From<[u8; 32]>,
 {
@@ -120,7 +116,7 @@ where
     ///
     /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
-    pub async fn done(self) -> Result<RemoveExec<C, E>> {
+    pub async fn done(self) -> Result<RemoveExec<C>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
@@ -153,12 +149,11 @@ where
             transcoder,
             signer,
             token_metadata,
-            _marker: Default::default(),
         })
     }
 }
 
-pub struct RemoveExec<C: Config, E: Environment> {
+pub struct RemoveExec<C: Config> {
     final_code_hash: C::Hash,
     opts: ExtrinsicOpts,
     rpc: LegacyRpcMethods<C>,
@@ -166,18 +161,15 @@ pub struct RemoveExec<C: Config, E: Environment> {
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
     token_metadata: TokenMetadata,
-    _marker: PhantomData<fn() -> E>,
 }
 
-impl<C: Config, E: Environment> RemoveExec<C, E>
+impl<C: Config> RemoveExec<C>
 where
-    C::Hash: IntoVisitor,
-    E::Balance: IntoVisitor,
+    C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    C::Hash: EncodeAsType,
 {
     /// Removes a contract code from the blockchain.
     ///
@@ -188,7 +180,12 @@ where
     ///
     /// Returns the `RemoveResult` containing the events generated from the contract
     /// code removal, or an error in case of failure.
-    pub async fn remove_code(&self) -> Result<RemoveResult<C, E>, ErrorVariant> {
+    pub async fn remove_code<E: Environment>(
+        &self,
+    ) -> Result<RemoveResult<C, E>, ErrorVariant>
+    where
+        E::Balance: IntoVisitor,
+    {
         let code_hash = self.final_code_hash;
 
         let call = RemoveCode::new(code_hash).build();

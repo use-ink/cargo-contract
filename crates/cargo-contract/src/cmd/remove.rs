@@ -58,13 +58,13 @@ impl RemoveCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let remove_exec: RemoveExec<DefaultConfig, DefaultEnvironment> =
-            RemoveCommandBuilder::default()
-                .code_hash(self.code_hash)
-                .extrinsic_opts(extrinsic_opts)
-                .done()
-                .await?;
-        let remove_result: RemoveResult<_, _> = remove_exec.remove_code().await?;
+        let remove_exec: RemoveExec<DefaultConfig> = RemoveCommandBuilder::default()
+            .code_hash(self.code_hash)
+            .extrinsic_opts(extrinsic_opts)
+            .done()
+            .await?;
+        let remove_result: RemoveResult<_, DefaultEnvironment> =
+            remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
         let output_events = if self.output_json() {
             display_events.to_json()?

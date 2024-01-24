@@ -59,14 +59,14 @@ struct UploadOpts {
 }
 
 /// A builder for the upload command.
-pub struct UploadCommandBuilder<C: Config, ExtrinsicOptions> {
+pub struct UploadCommandBuilder<ExtrinsicOptions> {
     opts: UploadOpts,
-    marker: PhantomData<fn() -> (C, ExtrinsicOptions)>,
+    marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
-impl<C: Config> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
+impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     /// Returns a clean builder for [`UploadExec`].
-    pub fn new() -> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: UploadOpts {
                 extrinsic_opts: ExtrinsicOpts::default(),
@@ -79,7 +79,7 @@ impl<C: Config> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     pub fn extrinsic_opts(
         self,
         extrinsic_opts: ExtrinsicOpts,
-    ) -> UploadCommandBuilder<C, state::ExtrinsicOptions> {
+    ) -> UploadCommandBuilder<state::ExtrinsicOptions> {
         UploadCommandBuilder {
             opts: UploadOpts { extrinsic_opts },
             marker: PhantomData,
@@ -87,13 +87,13 @@ impl<C: Config> UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl<C: Config> Default for UploadCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
+impl Default for UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<C: Config> UploadCommandBuilder<C, state::ExtrinsicOptions> {
+impl UploadCommandBuilder<state::ExtrinsicOptions> {
     /// Preprocesses contract artifacts and options for subsequent upload.
     ///
     /// This function prepares the necessary data for uploading a contract
@@ -103,7 +103,7 @@ impl<C: Config> UploadCommandBuilder<C, state::ExtrinsicOptions> {
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done(self) -> Result<UploadExec<C>> {
+    pub async fn done<C: Config>(self) -> Result<UploadExec<C>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
