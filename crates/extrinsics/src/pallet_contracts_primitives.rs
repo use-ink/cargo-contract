@@ -27,6 +27,8 @@ use sp_runtime::{
 };
 use sp_weights::Weight;
 
+// A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
+
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
 /// `ContractsApi::call` and `ContractsApi::instantiate`.
 ///
@@ -168,6 +170,7 @@ pub enum Code<Hash> {
     MaxEncodedLen,
     RuntimeDebug,
     TypeInfo,
+    serde::Serialize,
 )]
 pub enum StorageDeposit<Balance> {
     /// The transaction reduced storage consumption.

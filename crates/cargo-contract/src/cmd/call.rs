@@ -26,6 +26,7 @@ use super::{
     print_dry_running_status,
     print_gas_required_success,
     prompt_confirm_tx,
+    Balance,
     CLIExtrinsicOpts,
     MAX_KEY_COL_WIDTH,
 };
@@ -36,12 +37,12 @@ use anyhow::{
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
+    pallet_contracts_primitives::StorageDeposit,
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
     DefaultConfig,
     ExtrinsicOptsBuilder,
-    StorageDeposit,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
@@ -123,7 +124,7 @@ impl CallCommand {
                         data: value,
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                        storage_deposit: result.storage_deposit.clone(),
                     };
                     if self.output_json() {
                         println!("{}", dry_run_result.to_json()?);
@@ -245,7 +246,7 @@ pub struct CallDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 
 impl CallDryRunResult {
