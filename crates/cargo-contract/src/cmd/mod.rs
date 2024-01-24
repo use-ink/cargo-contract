@@ -66,10 +66,10 @@ use contract_build::{
 };
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
+    pallet_contracts_primitives::ContractResult,
     Balance,
     BalanceVariant,
 };
-use pallet_contracts_primitives::ContractResult;
 use std::io::{
     self,
     Write,

@@ -20,6 +20,7 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
+    pallet_contracts_primitives::ContractInstantiateResult,
     state,
     state_call,
     submit_extrinsic,
@@ -49,8 +50,6 @@ use anyhow::{
 };
 use contract_transcode::Value;
 use subxt_signer::sr25519::Keypair;
-
-use pallet_contracts_primitives::ContractInstantiateResult;
 
 use core::marker::PhantomData;
 use scale::Encode;

@@ -25,6 +25,7 @@ mod events;
 mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
+pub mod pallet_contracts_primitives;
 mod remove;
 mod upload;
 
