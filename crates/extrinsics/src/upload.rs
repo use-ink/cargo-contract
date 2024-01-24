@@ -167,7 +167,7 @@ where
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CodeUploadRequest {
-            origin: account_id(&self.signer),
+            origin: account_id::<C>(&self.signer),
             code: self.code.0.clone(),
             storage_deposit_limit,
             determinism: Determinism::Enforced,
@@ -181,7 +181,7 @@ where
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
+    pub async fn upload_code(&self) -> Result<UploadResult<C::Hash>, ErrorVariant> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
@@ -199,7 +199,7 @@ where
             DisplayEvents::from_events(&result, None, &self.client.metadata())?;
 
         let code_stored = result.find_first::<CodeStored<C::Hash>>()?;
-        Ok(UploadResult::<C> {
+        Ok(UploadResult::<C::Hash> {
             code_stored,
             display_events,
         })
@@ -245,8 +245,8 @@ struct CodeUploadRequest<AccountId, Balance> {
     determinism: Determinism,
 }
 
-pub struct UploadResult<C: Config> {
-    pub code_stored: Option<CodeStored<C::Hash>>,
+pub struct UploadResult<Hash> {
+    pub code_stored: Option<CodeStored<Hash>>,
     pub display_events: DisplayEvents,
 }
 

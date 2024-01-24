@@ -50,6 +50,7 @@ use contract_extrinsics::{
 };
 use sp_core::Bytes;
 use std::fmt::Debug;
+use subxt::PolkadotConfig as DefaultConfig;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -102,16 +103,17 @@ impl InstantiateCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let instantiate_exec = InstantiateCommandBuilder::default()
-            .constructor(self.constructor.clone())
-            .args(self.args.clone())
-            .extrinsic_opts(extrinsic_opts)
-            .value(self.value.clone())
-            .gas_limit(self.gas_limit)
-            .proof_size(self.proof_size)
-            .salt(self.salt.clone())
-            .done()
-            .await?;
+        let instantiate_exec: InstantiateExec<DefaultConfig> =
+            InstantiateCommandBuilder::default()
+                .constructor(self.constructor.clone())
+                .args(self.args.clone())
+                .extrinsic_opts(extrinsic_opts)
+                .value(self.value.clone())
+                .gas_limit(self.gas_limit)
+                .proof_size(self.proof_size)
+                .salt(self.salt.clone())
+                .done()
+                .await?;
 
         if !self.extrinsic_cli_opts.execute {
             let result = instantiate_exec.instantiate_dry_run().await?;
@@ -176,7 +178,7 @@ impl InstantiateCommand {
 
 /// A helper function to estimate the gas required for a contract instantiation.
 async fn pre_submit_dry_run_gas_estimate_instantiate(
-    instantiate_exec: &InstantiateExec,
+    instantiate_exec: &InstantiateExec<DefaultConfig>,
     output_json: bool,
     skip_dry_run: bool,
 ) -> Result<Weight> {
@@ -232,8 +234,8 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
 /// Displays the results of contract instantiation, including contract address,
 /// events, and optional code hash.
 pub async fn display_result(
-    instantiate_exec: &InstantiateExec,
-    instantiate_exec_result: InstantiateExecResult,
+    instantiate_exec: &InstantiateExec<DefaultConfig>,
+    instantiate_exec_result: InstantiateExecResult<DefaultConfig>,
     output_json: bool,
     verbosity: Verbosity,
 ) -> Result<(), ErrorVariant> {
@@ -266,7 +268,7 @@ pub async fn display_result(
 }
 
 pub fn print_default_instantiate_preview(
-    instantiate_exec: &InstantiateExec,
+    instantiate_exec: &InstantiateExec<DefaultConfig>,
     gas_limit: Weight,
 ) {
     name_value_println!(

@@ -18,6 +18,7 @@ use crate::{
     CallCommandBuilder,
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
+    InstantiateExecResult,
     RemoveCommandBuilder,
     RemoveExec,
     UploadCommandBuilder,
@@ -488,7 +489,8 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result = instantiate_result.unwrap();
+    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+        instantiate_result.unwrap();
     let contract_account = instantiate_result.contract_address.to_string();
     assert_eq!(48, contract_account.len(), "{contract_account:?}");
 

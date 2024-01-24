@@ -128,8 +128,14 @@ impl WasmCode {
 }
 
 /// Get the account id from the Keypair
-pub fn account_id(keypair: &Keypair) -> AccountId32 {
-    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
+pub fn account_id<T>(keypair: &Keypair) -> T::AccountId
+where
+    T: Config,
+    T::AccountId: From<subxt_signer::sr25519::PublicKey>,
+    T::Address: From<subxt_signer::sr25519::PublicKey>,
+    T::Signature: From<subxt_signer::sr25519::Signature>,
+{
+    subxt::tx::Signer::<T>::account_id(keypair)
 }
 
 /// Wait for the transaction to be included successfully into a block.

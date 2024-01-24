@@ -242,7 +242,7 @@ impl CallExec {
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CallRequest {
-            origin: account_id(&self.signer),
+            origin: account_id::<DefaultConfig>(&self.signer),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&self.token_metadata)?,
             gas_limit: None,

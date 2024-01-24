@@ -182,7 +182,7 @@ where
     /// code removal, or an error in case of failure.
     pub async fn remove_code<E: Environment>(
         &self,
-    ) -> Result<RemoveResult<C, E>, ErrorVariant>
+    ) -> Result<RemoveResult<C::Hash, C::AccountId, E::Balance>, ErrorVariant>
     where
         E::Balance: IntoVisitor,
     {
@@ -199,7 +199,7 @@ where
         )?;
 
         let code_removed =
-            result.find_first::<CodeRemoved<C::Hash, E::Balance, C::AccountId>>()?;
+            result.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
         Ok(RemoveResult {
             code_removed,
             display_events,
@@ -237,7 +237,7 @@ where
     }
 }
 
-pub struct RemoveResult<C: Config, E: Environment> {
-    pub code_removed: Option<CodeRemoved<C::Hash, E::Balance, C::AccountId>>,
+pub struct RemoveResult<Hash, AccountId, Balance> {
+    pub code_removed: Option<CodeRemoved<Hash, AccountId, Balance>>,
     pub display_events: DisplayEvents,
 }

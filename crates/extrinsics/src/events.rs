@@ -129,13 +129,13 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeRemoved<Hash, Balance, AccountId> {
+pub struct CodeRemoved<Hash, AccountId, Balance> {
     pub code_hash: Hash,
     pub deposit_released: Balance,
     pub remover: AccountId,
 }
 
-impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, Balance, AccountId>
+impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, AccountId, Balance>
 where
     Hash: IntoVisitor,
     Balance: IntoVisitor,

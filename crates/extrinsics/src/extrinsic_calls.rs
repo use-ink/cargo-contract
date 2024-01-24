@@ -16,7 +16,6 @@
 
 use super::{
     Balance,
-    CodeHash,
     DefaultConfig,
 };
 use crate::{
@@ -146,23 +145,29 @@ impl InstantiateWithCode {
 
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate {
+#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
+pub(crate) struct Instantiate<C: Config>
+where
+    C::Hash: EncodeAsType,
+{
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
-    code_hash: CodeHash,
+    code_hash: C::Hash,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
 
-impl Instantiate {
+impl<C: Config> Instantiate<C>
+where
+    C::Hash: EncodeAsType,
+{
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
         storage_deposit_limit: Option<Balance>,
-        code_hash: CodeHash,
+        code_hash: C::Hash,
         data: Vec<u8>,
         salt: Vec<u8>,
     ) -> Self {

@@ -28,7 +28,6 @@ use contract_extrinsics::{
     ExtrinsicOptsBuilder,
     UploadCommandBuilder,
     UploadExec,
-    UploadResult,
 };
 use ink_env::DefaultEnvironment;
 use subxt::{
@@ -93,8 +92,7 @@ impl UploadCommand {
                 }
             }
         } else {
-            let upload_result: UploadResult<DefaultConfig> =
-                upload_exec.upload_code().await?;
+            let upload_result = upload_exec.upload_code().await?;
             let display_events = upload_result.display_events;
             let output_events = if self.output_json() {
                 display_events.to_json()?

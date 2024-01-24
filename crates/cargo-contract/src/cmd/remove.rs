@@ -26,7 +26,6 @@ use contract_extrinsics::{
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
     RemoveExec,
-    RemoveResult,
 };
 use ink_env::DefaultEnvironment;
 use subxt::Config;
@@ -63,8 +62,7 @@ impl RemoveCommand {
             .extrinsic_opts(extrinsic_opts)
             .done()
             .await?;
-        let remove_result: RemoveResult<_, DefaultEnvironment> =
-            remove_exec.remove_code().await?;
+        let remove_result = remove_exec.remove_code::<DefaultEnvironment>().await?;
         let display_events = remove_result.display_events;
         let output_events = if self.output_json() {
             display_events.to_json()?
