@@ -79,9 +79,6 @@ docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux \
   cargo contract new --target-dir /sources my_contract
 ```
 
-If you want to reproduce other steps of CI process you can use the following
-[guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
-
 ### Verifiable builds
 
 Some block explorers require the Wasm binary to be compiled in the deterministic environment.
@@ -91,7 +88,7 @@ To achieve it, you should build your contract using Docker image we provide:
 cargo contract build --verifiable
 ```
 
-You can find more detailed documentation how to use the image [here](/build-image/README.md)
+You can find more detailed documentation how to use the image [here](/build-image/README.md).
 
 ## Usage
 
