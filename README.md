@@ -88,7 +88,7 @@ To achieve it, you should build your contract using Docker image we provide:
 cargo contract build --verifiable
 ```
 
-You can find more detailed documentation how to use the image [here](/build-image/README.md)
+You can find more detailed documentation how to use the image [here](/build-image/README.md).
 
 ## Usage
 
