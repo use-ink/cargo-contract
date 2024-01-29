@@ -155,7 +155,7 @@ enum Command {
     /// Verify schema from the current metadata specification.
     #[clap(name = "verify-schema")]
     VerifySchema(VerifySchemaCommand),
-    /// Make a raw RPC call
+    /// Make a raw RPC call.
     #[clap(name = "rpc")]
     Rpc(RpcCommand),
 }
