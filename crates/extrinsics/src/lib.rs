@@ -42,6 +42,7 @@ use env_check::compare_node_env_with_contract;
 use anyhow::Result;
 use contract_build::{
     CrateMetadata,
+    Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
 use scale::{
@@ -260,11 +261,16 @@ async fn get_best_block<C: Config>(
 fn check_env_types<T>(
     client: &OnlineClient<T>,
     transcoder: &ContractMessageTranscoder,
+    verbosity: &Verbosity,
 ) -> Result<()>
 where
     T: Config,
 {
-    compare_node_env_with_contract(client.metadata().types(), transcoder.metadata())
+    compare_node_env_with_contract(
+        client.metadata().types(),
+        transcoder.metadata(),
+        verbosity,
+    )
 }
 
 // Converts a Url into a String representation without excluding the default port.
