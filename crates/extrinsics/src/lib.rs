@@ -27,6 +27,7 @@ mod extrinsic_opts;
 mod instantiate;
 pub mod pallet_contracts_primitives;
 mod remove;
+mod rpc;
 mod upload;
 
 #[cfg(test)]
@@ -110,6 +111,11 @@ pub use upload::{
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
+};
+
+pub use rpc::{
+    RawParams,
+    RpcRequest,
 };
 
 pub type Client = OnlineClient<DefaultConfig>;

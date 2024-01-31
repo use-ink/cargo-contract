@@ -166,6 +166,10 @@ Verify a metadata file or a contract bundle containing metadata against the sche
 
 Fetch and display the storage of a contract on chain.
 
+##### `cargo contract rpc`
+
+Invoke an RPC call to the node. See [rpc](docs/rpc.md).
+
 
 ## Publishing
 
