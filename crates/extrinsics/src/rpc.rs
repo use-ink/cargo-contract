@@ -149,7 +149,7 @@ fn custom_hex_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
         .unwrap_or(s.len());
     let hex = &s[..end_idx];
     *s = &s[end_idx..];
-    Some(Ok(Value::string(&hex.to_string()[2..])))
+    Some(Ok(Value::string(hex.to_string())))
 }
 
 /// Parse ss58 address to string
@@ -160,7 +160,7 @@ fn custom_ss58_parse(s: &mut &str) -> Option<Result<Value<()>, ParseError>> {
     let account = AccountId32::from_str(&s[..end_idx]).ok()?;
 
     *s = &s[end_idx..];
-    Some(Ok(Value::string(hex::encode(account.0))))
+    Some(Ok(Value::string(format!("0x{}", hex::encode(account.0)))))
 }
 
 #[cfg(test)]
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn parse_ss58_works() {
-        let expected = r#"["d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d","sr25"]"#;
+        let expected = r#"["0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d","sr25"]"#;
         let input = &[
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
             "\"sr25\"",
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn parse_seq_works() {
-        let expected = r#"[[1,"1234",true]]"#;
+        let expected = r#"[[1,"0x1234",true]]"#;
         let input = &["(1, 0x1234, true)"];
         assert_raw_params_value(input, expected);
     }
@@ -198,7 +198,7 @@ mod tests {
         let expected = r#"[{
             "hello": true,
             "a": 4,
-            "b": "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+            "b": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
             "c": "test"
         }]"#;
         let input = &["{hello: true, a: 4, b: \
