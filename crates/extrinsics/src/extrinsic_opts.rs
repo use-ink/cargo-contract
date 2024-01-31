@@ -217,7 +217,7 @@ impl ExtrinsicOpts {
             .transpose()?)
     }
 
-    /// Verbosity for error reporting.s
+    /// Verbosity for message reporting.
     pub fn verbosity(&self) -> &Verbosity {
         &self.verbosity
     }
