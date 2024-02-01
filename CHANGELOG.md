@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `rpc` command - [#1458](https://github.com/paritytech/cargo-contract/pull/1458)
 
 ### Changed
+- Print type comparison warning only on `--verbose` - [#1483](https://github.com/paritytech/cargo-contract/pull/1483)
 - Mandatory dylint-based lints - [#1412](https://github.com/paritytech/cargo-contract/pull/1412)
 - Add a new tabular layout for the contract storage data - [#1485](https://github.com/paritytech/cargo-contract/pull/1485)
 

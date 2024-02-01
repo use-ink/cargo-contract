@@ -118,7 +118,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
         let url = self.opts.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        check_env_types(&client, &transcoder)?;
+        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;

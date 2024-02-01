@@ -93,6 +93,7 @@ impl CallCommand {
             .url(self.extrinsic_cli_opts.url.clone())
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
         let call_exec = CallCommandBuilder::default()
             .contract(self.contract.clone())
