@@ -21,6 +21,7 @@ pub mod encode;
 pub mod info;
 pub mod instantiate;
 pub mod remove;
+pub mod rpc;
 pub mod schema;
 pub mod storage;
 pub mod upload;
@@ -39,6 +40,7 @@ pub(crate) use self::{
     },
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
+    rpc::RpcCommand,
     schema::{
         GenerateSchemaCommand,
         VerifySchemaCommand,
@@ -66,11 +68,11 @@ use contract_build::{
 };
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
+    pallet_contracts_primitives::ContractResult,
     Balance,
     BalanceVariant,
 };
 use core::fmt;
-use pallet_contracts_primitives::ContractResult;
 use std::io::{
     self,
     Write,

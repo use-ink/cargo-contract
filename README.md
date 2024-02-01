@@ -42,7 +42,7 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 -   Step 2: `cargo install --force --locked cargo-contract`.
 
--   Step 3: (**Optional**) Install `dylint` for linting.
+-   Step 3: Install `dylint` for linting.
 
     -   (MacOS) `brew install openssl`
     -   `cargo install cargo-dylint dylint-link`.
@@ -79,9 +79,6 @@ docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux \
   cargo contract new --target-dir /sources my_contract
 ```
 
-If you want to reproduce other steps of CI process you can use the following
-[guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
-
 ### Verifiable builds
 
 Some block explorers require the Wasm binary to be compiled in the deterministic environment.
@@ -91,7 +88,7 @@ To achieve it, you should build your contract using Docker image we provide:
 cargo contract build --verifiable
 ```
 
-You can find more detailed documentation how to use the image [here](/build-image/README.md)
+You can find more detailed documentation how to use the image [here](/build-image/README.md).
 
 ## Usage
 
@@ -163,11 +160,15 @@ Generate schema and print it to STDOUT.
 
 ##### `cargo contract verify-schema`
 
-Verify a metadata file or a contract bundle containing metadata against the schema file. 
+Verify a metadata file or a contract bundle containing metadata against the schema file.
 
 ##### `cargo contract storage`
 
 Fetch and display the storage of a contract on chain.
+
+##### `cargo contract rpc`
+
+Invoke an RPC call to the node. See [rpc](docs/rpc.md).
 
 
 ## Publishing

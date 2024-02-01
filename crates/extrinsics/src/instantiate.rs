@@ -20,6 +20,10 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
+    pallet_contracts_primitives::{
+        ContractInstantiateResult,
+        StorageDeposit,
+    },
     state,
     state_call,
     submit_extrinsic,
@@ -31,7 +35,6 @@ use super::{
     DefaultConfig,
     ErrorVariant,
     Missing,
-    StorageDeposit,
     TokenMetadata,
 };
 use crate::{
@@ -49,8 +52,6 @@ use anyhow::{
 };
 use contract_transcode::Value;
 use subxt_signer::sr25519::Keypair;
-
-use pallet_contracts_primitives::ContractInstantiateResult;
 
 use core::marker::PhantomData;
 use scale::Encode;
@@ -325,7 +326,7 @@ impl InstantiateExec {
                     reverted: ret_val.result.did_revert(),
                     gas_consumed: result.gas_consumed,
                     gas_required: result.gas_required,
-                    storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                    storage_deposit: result.storage_deposit.clone(),
                 };
                 Ok(dry_run_result)
             }
@@ -544,7 +545,7 @@ pub struct InstantiateDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 
 impl InstantiateDryRunResult {

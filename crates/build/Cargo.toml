@@ -31,14 +31,14 @@ tracing = "0.1.40"
 parity-wasm = { version = "0.45.0"}
 semver = { version = "1.0.21", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.111"
+serde_json = "1.0.113"
 tempfile = "3.9.0"
 term_size = "0.3.2"
 url = { version = "2.5.0", features = ["serde"] }
 wasm-opt = { version = "=0.116.0", default-features = false }
 which = "6.0.0"
 zip = { version = "0.6.6", default-features = false }
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
 bollard = "0.15"
@@ -47,7 +47,7 @@ crossterm = "0.27.0"
 contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
 
 [target.'cfg(unix)'.dependencies]
-users = "0.11"
+uzers = "0.11"
 
 [build-dependencies]
 anyhow = "1.0.79"

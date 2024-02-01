@@ -20,6 +20,7 @@ use super::{
         CodeStored,
         DisplayEvents,
     },
+    pallet_contracts_primitives::CodeUploadResult,
     state,
     state_call,
     submit_extrinsic,
@@ -40,7 +41,6 @@ use crate::{
 use anyhow::Result;
 use contract_transcode::ContractMessageTranscoder;
 use core::marker::PhantomData;
-use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
     backend::{

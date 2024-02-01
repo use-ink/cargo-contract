@@ -25,7 +25,9 @@ mod events;
 mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
+pub mod pallet_contracts_primitives;
 mod remove;
+mod rpc;
 mod upload;
 
 #[cfg(test)]
@@ -109,6 +111,11 @@ pub use upload::{
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
+};
+
+pub use rpc::{
+    RawParams,
+    RpcRequest,
 };
 
 pub type Client = OnlineClient<DefaultConfig>;
@@ -272,35 +279,6 @@ pub fn url_to_string(url: &url::Url) -> String {
             .to_string()
         }
         _ => url.to_string(),
-    }
-}
-
-/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
-/// required for json output.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
-pub enum StorageDeposit {
-    /// The transaction reduced storage consumption.
-    ///
-    /// This means that the specified amount of balance was transferred from the involved
-    /// contracts to the call origin.
-    Refund(Balance),
-    /// The transaction increased overall storage usage.
-    ///
-    /// This means that the specified amount of balance was transferred from the call
-    /// origin to the contracts involved.
-    Charge(Balance),
-}
-
-impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
-    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
-        match deposit {
-            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
-                Self::Refund(*balance)
-            }
-            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
-                Self::Charge(*balance)
-            }
-        }
     }
 }
 

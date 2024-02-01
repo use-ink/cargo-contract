@@ -17,6 +17,7 @@
 use super::{
     account_id,
     events::DisplayEvents,
+    pallet_contracts_primitives::ContractExecResult,
     state,
     state_call,
     submit_extrinsic,
@@ -40,7 +41,6 @@ use anyhow::{
     anyhow,
     Result,
 };
-use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
