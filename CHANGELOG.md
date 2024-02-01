@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Mandatory dylint-based lints - [#1412](https://github.com/paritytech/cargo-contract/pull/1412)
+- Add a new tabular layout for the contract storage data - [#1485](https://github.com/paritytech/cargo-contract/pull/1485)
 
 ## [4.0.0-rc.1]
 
