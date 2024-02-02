@@ -29,9 +29,13 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
+use ink_env::Environment;
 use scale_info::form::PortableForm;
 use std::{
-    fmt::Write,
+    fmt::{
+        Display,
+        Write,
+    },
     str::FromStr,
 };
 use subxt::{
@@ -184,13 +188,14 @@ pub struct DisplayEvents(Vec<Event>);
 
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
-    pub fn from_events<C: Config>(
+    pub fn from_events<C: Config, E: Environment>(
         result: &ExtrinsicEvents<C>,
         transcoder: Option<&ContractMessageTranscoder>,
         subxt_metadata: &subxt::Metadata,
     ) -> Result<DisplayEvents>
     where
         C::AccountId: IntoVisitor,
+        // E::Balance: /*From<u128> +*/,
     {
         let mut events: Vec<Event> = vec![];
 
@@ -263,11 +268,14 @@ impl DisplayEvents {
     }
 
     /// Displays events in a human readable format
-    pub fn display_events(
+    pub fn display_events<E: Environment>(
         &self,
         verbosity: Verbosity,
         token_metadata: &TokenMetadata,
-    ) -> Result<String> {
+    ) -> Result<String>
+    where
+        E::Balance: Display + From<u128>,
+    {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
@@ -291,8 +299,11 @@ impl DisplayEvents {
                         || field.type_name == Some("BalanceOf<T>".to_string())
                     {
                         if let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::from(balance, Some(token_metadata))?
-                                .to_string();
+                            value = BalanceVariant::<E::Balance>::from(
+                                balance,
+                                Some(token_metadata),
+                            )?
+                            .to_string();
                         }
                     }
                     let _ = writeln!(

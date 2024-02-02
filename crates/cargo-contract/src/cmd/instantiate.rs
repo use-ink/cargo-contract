@@ -48,6 +48,10 @@ use contract_extrinsics::{
     InstantiateDryRunResult,
     InstantiateExecResult,
 };
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
 use sp_core::Bytes;
 use std::fmt::Debug;
 use subxt::PolkadotConfig as DefaultConfig;
@@ -64,7 +68,7 @@ pub struct InstantiateCommand {
     extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0")]
-    value: BalanceVariant,
+    value: BalanceVariant<<DefaultEnvironment as Environment>::Balance>,
     /// Maximum amount of gas to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the
     /// instantiation.
@@ -103,7 +107,7 @@ impl InstantiateCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let instantiate_exec: InstantiateExec<DefaultConfig> =
+        let instantiate_exec: InstantiateExec<DefaultConfig, DefaultEnvironment> =
             InstantiateCommandBuilder::default()
                 .constructor(self.constructor.clone())
                 .args(self.args.clone())
@@ -178,7 +182,7 @@ impl InstantiateCommand {
 
 /// A helper function to estimate the gas required for a contract instantiation.
 async fn pre_submit_dry_run_gas_estimate_instantiate(
-    instantiate_exec: &InstantiateExec<DefaultConfig>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
     output_json: bool,
     skip_dry_run: bool,
 ) -> Result<Weight> {
@@ -234,12 +238,12 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
 /// Displays the results of contract instantiation, including contract address,
 /// events, and optional code hash.
 pub async fn display_result(
-    instantiate_exec: &InstantiateExec<DefaultConfig>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
     instantiate_exec_result: InstantiateExecResult<DefaultConfig>,
     output_json: bool,
     verbosity: Verbosity,
 ) -> Result<(), ErrorVariant> {
-    let events = DisplayEvents::from_events(
+    let events = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
         &instantiate_exec_result.result,
         Some(instantiate_exec.transcoder()),
         &instantiate_exec.client().metadata(),
@@ -257,7 +261,10 @@ pub async fn display_result(
     } else {
         println!(
             "{}",
-            events.display_events(verbosity, &instantiate_exec_result.token_metadata)?
+            events.display_events::<DefaultEnvironment>(
+                verbosity,
+                &instantiate_exec_result.token_metadata
+            )?
         );
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
@@ -268,7 +275,7 @@ pub async fn display_result(
 }
 
 pub fn print_default_instantiate_preview(
-    instantiate_exec: &InstantiateExec<DefaultConfig>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
     gas_limit: Weight,
 ) {
     name_value_println!(
@@ -303,7 +310,9 @@ impl InstantiateResult {
     }
 }
 
-pub fn print_instantiate_dry_run_result(result: &InstantiateDryRunResult) {
+pub fn print_instantiate_dry_run_result(
+    result: &InstantiateDryRunResult<<DefaultEnvironment as Environment>::Balance>,
+) {
     name_value_println!(
         "Result",
         format!("{}", result.result),

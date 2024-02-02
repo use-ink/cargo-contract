@@ -51,7 +51,6 @@ use subxt::{
     blocks,
     config,
     tx,
-    utils::AccountId32,
     Config,
     OnlineClient,
 };
@@ -113,7 +112,6 @@ pub use upload::{
 };
 
 pub type Client = OnlineClient<DefaultConfig>;
-pub type Balance = u128;
 pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// The Wasm code of a contract.
@@ -162,6 +160,7 @@ where
     Signer: tx::Signer<T>,
     T::Signature: From<subxt_signer::sr25519::Signature>,
     <T::ExtrinsicParams as config::ExtrinsicParams<T>>::OtherParams: Default,
+    T::Address: From<subxt_signer::sr25519::PublicKey>,
     T::AccountId: From<subxt_signer::sr25519::PublicKey>,
 {
     let account_id = Signer::account_id(signer);
@@ -287,7 +286,7 @@ pub fn url_to_string(url: &url::Url) -> String {
 /// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
 /// required for json output.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
-pub enum StorageDeposit {
+pub enum StorageDeposit<Balance> {
     /// The transaction reduced storage consumption.
     ///
     /// This means that the specified amount of balance was transferred from the involved
@@ -300,14 +299,16 @@ pub enum StorageDeposit {
     Charge(Balance),
 }
 
-impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
+impl<Balance: Clone> From<&pallet_contracts_primitives::StorageDeposit<Balance>>
+    for StorageDeposit<Balance>
+{
     fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
         match deposit {
             pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
-                Self::Refund(*balance)
+                Self::Refund(balance.clone())
             }
             pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
-                Self::Charge(*balance)
+                Self::Charge(balance.clone())
             }
         }
     }

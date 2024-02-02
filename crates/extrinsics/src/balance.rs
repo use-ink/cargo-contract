@@ -30,8 +30,6 @@ use subxt::{
     Config,
 };
 
-use super::Balance;
-
 use anyhow::{
     anyhow,
     Context,
@@ -40,7 +38,7 @@ use anyhow::{
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BalanceVariant {
+pub enum BalanceVariant<Balance: Clone> {
     /// Default format: no symbol, no token_decimals
     Default(Balance),
     /// Denominated format: symbol and token_decimals are present
@@ -98,7 +96,10 @@ impl TokenMetadata {
     }
 }
 
-impl FromStr for BalanceVariant {
+impl<Balance> FromStr for BalanceVariant<Balance>
+where
+    Balance: FromStr + Clone,
+{
     type Err = anyhow::Error;
 
     /// Attempts to parse the balance either in plain or denominated formats
@@ -157,7 +158,10 @@ impl FromStr for DenominatedBalance {
     }
 }
 
-impl BalanceVariant {
+impl<Balance> BalanceVariant<Balance>
+where
+    Balance: From<u128> + Clone,
+{
     /// Converts BalanceVariant into Balance.
     ///
     /// It is a reverse process of `from<T: Into<u128>>()`
@@ -197,7 +201,7 @@ impl BalanceVariant {
     /// ```
     pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
         match self {
-            BalanceVariant::Default(balance) => Ok(*balance),
+            BalanceVariant::Default(balance) => Ok(balance.clone()),
             BalanceVariant::Denominated(den_balance) => {
                 let zeros: usize = (token_metadata.token_decimals as isize
                     + match den_balance.unit {
@@ -219,12 +223,12 @@ impl BalanceVariant {
                         "Given precision of a Balance value is higher than allowed"
                     ))
                 }
-                let balance: Balance = den_balance
+                let balance: u128 = den_balance
                     .value
                     .checked_mul(multiple)
                     .context("error while converting balance to raw format. Overflow during multiplication!")?
                     .try_into()?;
-                Ok(balance)
+                Ok(balance.into())
             }
         }
     }
@@ -345,12 +349,15 @@ impl BalanceVariant {
 
             Ok(BalanceVariant::Denominated(den_balance))
         } else {
-            Ok(BalanceVariant::Default(n))
+            Ok(BalanceVariant::Default(n.into()))
         }
     }
 }
 
-impl Display for BalanceVariant {
+impl<Balance> Display for BalanceVariant<Balance>
+where
+    Balance: Display + Clone,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BalanceVariant::Default(balance) => f.write_str(&balance.to_string()),

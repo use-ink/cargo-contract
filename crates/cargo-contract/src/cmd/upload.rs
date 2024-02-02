@@ -24,12 +24,14 @@ use super::{
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    Balance,
     ExtrinsicOptsBuilder,
     UploadCommandBuilder,
     UploadExec,
 };
-use ink_env::DefaultEnvironment;
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
 use subxt::{
     Config,
     PolkadotConfig as DefaultConfig,
@@ -59,15 +61,16 @@ impl UploadCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let upload_exec: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
-            .extrinsic_opts(extrinsic_opts)
-            .done()
-            .await?;
+        let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment> =
+            UploadCommandBuilder::default()
+                .extrinsic_opts(extrinsic_opts)
+                .done()
+                .await?;
 
         let code_hash = upload_exec.code().code_hash();
 
         if !self.extrinsic_cli_opts.execute {
-            match upload_exec.upload_code_rpc::<DefaultEnvironment>().await? {
+            match upload_exec.upload_code_rpc().await? {
                 Ok(result) => {
                     let upload_result = UploadDryRunResult {
                         result: String::from("Success!"),
@@ -97,7 +100,7 @@ impl UploadCommand {
             let output_events = if self.output_json() {
                 display_events.to_json()?
             } else {
-                display_events.display_events(
+                display_events.display_events::<DefaultEnvironment>(
                     self.extrinsic_cli_opts.verbosity()?,
                     upload_exec.token_metadata(),
                 )?
@@ -131,7 +134,7 @@ impl UploadCommand {
 pub struct UploadDryRunResult {
     pub result: String,
     pub code_hash: String,
-    pub deposit: Balance,
+    pub deposit: <DefaultEnvironment as Environment>::Balance,
 }
 
 impl UploadDryRunResult {

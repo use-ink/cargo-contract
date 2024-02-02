@@ -23,7 +23,6 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
-    Balance,
     BalanceVariant,
     ContractMessageTranscoder,
     ErrorVariant,
@@ -45,6 +44,8 @@ use anyhow::{
     Result,
 };
 use contract_transcode::Value;
+use ink_env::Environment;
+use serde::Serialize;
 use subxt_signer::sr25519::Keypair;
 
 use pallet_contracts_primitives::ContractInstantiateResult;
@@ -56,7 +57,10 @@ use scale::{
 };
 use sp_core::Bytes;
 use sp_weights::Weight;
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    str::FromStr,
+};
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -72,25 +76,29 @@ use subxt::{
     OnlineClient,
 };
 
-struct InstantiateOpts {
+struct InstantiateOpts<E: Environment> {
     constructor: String,
     args: Vec<String>,
-    extrinsic_opts: ExtrinsicOpts,
-    value: BalanceVariant,
+    extrinsic_opts: ExtrinsicOpts<E>,
+    value: BalanceVariant<E::Balance>,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     salt: Option<Bytes>,
 }
 
 /// A builder for the instantiate command.
-pub struct InstantiateCommandBuilder<C: Config, ExtrinsicOptions> {
-    opts: InstantiateOpts,
+pub struct InstantiateCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
+    opts: InstantiateOpts<E>,
     _marker: PhantomData<fn() -> (C, ExtrinsicOptions)>,
 }
 
-impl<C: Config> InstantiateCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
+impl<C: Config, E: Environment>
+    InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128> + FromStr,
+{
     /// Returns a clean builder for [`InstantiateExec`].
-    pub fn new() -> InstantiateCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
         InstantiateCommandBuilder {
             opts: InstantiateOpts {
                 constructor: String::from("new"),
@@ -108,8 +116,8 @@ impl<C: Config> InstantiateCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
-        extrinsic_opts: ExtrinsicOpts,
-    ) -> InstantiateCommandBuilder<C, state::ExtrinsicOptions> {
+        extrinsic_opts: ExtrinsicOpts<E>,
+    ) -> InstantiateCommandBuilder<C, E, state::ExtrinsicOptions> {
         InstantiateCommandBuilder {
             opts: InstantiateOpts {
                 extrinsic_opts,
@@ -120,15 +128,17 @@ impl<C: Config> InstantiateCommandBuilder<C, Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl<C: Config> Default
-    for InstantiateCommandBuilder<C, Missing<state::ExtrinsicOptions>>
+impl<C: Config, E: Environment> Default
+    for InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128> + FromStr,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<C: Config, E> InstantiateCommandBuilder<C, E> {
+impl<C: Config, E: Environment, S> InstantiateCommandBuilder<C, E, S> {
     /// Sets the name of the contract constructor to call.
     pub fn constructor<T: Into<String>>(self, constructor: T) -> Self {
         let mut this = self;
@@ -144,7 +154,7 @@ impl<C: Config, E> InstantiateCommandBuilder<C, E> {
     }
 
     /// Sets the initial balance to transfer to the instantiated contract.
-    pub fn value(self, value: BalanceVariant) -> Self {
+    pub fn value(self, value: BalanceVariant<E::Balance>) -> Self {
         let mut this = self;
         this.opts.value = value;
         this
@@ -172,9 +182,10 @@ impl<C: Config, E> InstantiateCommandBuilder<C, E> {
     }
 }
 
-impl<C: Config> InstantiateCommandBuilder<C, state::ExtrinsicOptions>
+impl<C: Config, E: Environment> InstantiateCommandBuilder<C, E, state::ExtrinsicOptions>
 where
     C::Hash: From<[u8; 32]>,
+    E::Balance: From<u128>,
 {
     /// Preprocesses contract artifacts and options for instantiation.
     ///
@@ -185,7 +196,7 @@ where
     ///
     /// Returns the [`InstantiateExec`] containing the preprocessed data for the
     /// instantiation, or an error in case of failure.
-    pub async fn done(self) -> Result<InstantiateExec<C>> {
+    pub async fn done(self) -> Result<InstantiateExec<C, E>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.opts.constructor, &self.opts.args)?;
@@ -234,19 +245,19 @@ where
     }
 }
 
-pub struct InstantiateArgs<C: Config> {
+pub struct InstantiateArgs<C: Config, E: Environment> {
     constructor: String,
     raw_args: Vec<String>,
-    value: Balance,
+    value: E::Balance,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<E::Balance>,
     code: Code<C::Hash>,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
 
-impl<C: Config> InstantiateArgs<C> {
+impl<C: Config, E: Environment> InstantiateArgs<C, E> {
     /// Returns the constructor name.
     pub fn constructor(&self) -> &str {
         &self.constructor
@@ -258,7 +269,7 @@ impl<C: Config> InstantiateArgs<C> {
     }
 
     /// Returns the value to transfer to the instantiated contract.
-    pub fn value(&self) -> Balance {
+    pub fn value(&self) -> E::Balance {
         self.value
     }
 
@@ -273,7 +284,7 @@ impl<C: Config> InstantiateArgs<C> {
     }
 
     /// Returns the storage deposit limit for this instantiation.
-    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<Balance>> {
+    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<E::Balance>> {
         self.storage_deposit_limit.map(Into::into)
     }
 
@@ -292,9 +303,9 @@ impl<C: Config> InstantiateArgs<C> {
     }
 }
 
-pub struct InstantiateExec<C: Config> {
-    opts: ExtrinsicOpts,
-    args: InstantiateArgs<C>,
+pub struct InstantiateExec<C: Config, E: Environment> {
+    opts: ExtrinsicOpts<E>,
+    args: InstantiateArgs<C, E>,
     url: String,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
@@ -303,7 +314,7 @@ pub struct InstantiateExec<C: Config> {
     token_metadata: TokenMetadata,
 }
 
-impl<C: Config> InstantiateExec<C>
+impl<C: Config, E: Environment> InstantiateExec<C, E>
 where
     C::AccountId: Decode,
     C::Signature: From<subxt_signer::sr25519::Signature>,
@@ -311,6 +322,7 @@ where
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: From<subxt_signer::sr25519::PublicKey> + IntoVisitor + Display,
+    E::Balance: Serialize,
 {
     /// Decodes the result of a simulated contract instantiation.
     ///
@@ -322,8 +334,8 @@ where
     /// Returns the decoded dry run result, or an error in case of failure.
     pub async fn decode_instantiate_dry_run(
         &self,
-        result: &ContractInstantiateResult<C::AccountId, Balance, ()>,
-    ) -> Result<InstantiateDryRunResult, ErrorVariant> {
+        result: &ContractInstantiateResult<C::AccountId, E::Balance, ()>,
+    ) -> Result<InstantiateDryRunResult<E::Balance>, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         match result.result {
             Ok(ref ret_val) => {
@@ -361,9 +373,9 @@ where
     /// Returns the dry run simulation result, or an error in case of failure.
     pub async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<C::AccountId, Balance, ()>> {
+    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance, ()>> {
         let storage_deposit_limit = self.args.storage_deposit_limit;
-        let call_request = InstantiateRequest::<C> {
+        let call_request = InstantiateRequest::<C, E> {
             origin: account_id::<C>(&self.signer),
             value: self.args.value,
             gas_limit: None,
@@ -416,7 +428,7 @@ where
         code_hash: C::Hash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        let call = Instantiate::<C>::new(
+        let call = Instantiate::<C, E>::new(
             self.args.value,
             gas_limit,
             self.args.storage_deposit_limit,
@@ -508,12 +520,12 @@ where
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts {
+    pub fn opts(&self) -> &ExtrinsicOpts<E> {
         &self.opts
     }
 
     /// Returns the instantiate arguments.
-    pub fn args(&self) -> &InstantiateArgs<C> {
+    pub fn args(&self) -> &InstantiateArgs<C, E> {
         &self.args
     }
 
@@ -547,7 +559,7 @@ pub struct InstantiateExecResult<C: Config> {
 
 /// Result of the contract call
 #[derive(serde::Serialize)]
-pub struct InstantiateDryRunResult {
+pub struct InstantiateDryRunResult<Balance: Serialize> {
     /// The decoded result returned from the constructor
     pub result: Value,
     /// contract address
@@ -557,10 +569,10 @@ pub struct InstantiateDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 
-impl InstantiateDryRunResult {
+impl<Balance: Serialize> InstantiateDryRunResult<Balance> {
     /// Returns a result in json format
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
@@ -569,11 +581,11 @@ impl InstantiateDryRunResult {
 
 /// A struct that encodes RPC parameters required to instantiate a new smart contract.
 #[derive(Encode)]
-struct InstantiateRequest<C: Config> {
+struct InstantiateRequest<C: Config, E: Environment> {
     origin: C::AccountId,
-    value: Balance,
+    value: E::Balance,
     gas_limit: Option<Weight>,
-    storage_deposit_limit: Option<Balance>,
+    storage_deposit_limit: Option<E::Balance>,
     code: Code<C::Hash>,
     data: Vec<u8>,
     salt: Vec<u8>,

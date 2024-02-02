@@ -20,12 +20,8 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
-    AccountId32,
-    Balance,
     BalanceVariant,
-    Client,
     ContractMessageTranscoder,
-    DefaultConfig,
     ErrorVariant,
     Missing,
     TokenMetadata,
@@ -40,53 +36,69 @@ use anyhow::{
     anyhow,
     Result,
 };
+use ink_env::Environment;
 use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
+use std::str::FromStr;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
     Config,
     OnlineClient,
 };
 
-pub struct CallOpts {
-    contract: <DefaultConfig as Config>::AccountId,
+pub struct CallOpts<C: Config, E: Environment> {
+    contract: Option<C::AccountId>,
     message: String,
     args: Vec<String>,
-    extrinsic_opts: ExtrinsicOpts,
+    extrinsic_opts: ExtrinsicOpts<E>,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
-    value: BalanceVariant,
+    value: BalanceVariant<E::Balance>,
 }
 
 /// A builder for the call command.
-pub struct CallCommandBuilder<Message, ExtrinsicOptions> {
-    opts: CallOpts,
+pub struct CallCommandBuilder<C: Config, E: Environment, Message, ExtrinsicOptions> {
+    opts: CallOpts<C, E>,
     marker: PhantomData<fn() -> (Message, ExtrinsicOptions)>,
 }
 
-impl Default
-    for CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
+impl<C: Config, E: Environment> Default
+    for CallCommandBuilder<
+        C,
+        E,
+        Missing<state::Message>,
+        Missing<state::ExtrinsicOptions>,
+    >
+where
+    E::Balance: FromStr + From<u128>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E> CallCommandBuilder<Missing<state::Message>, E> {
+impl<C: Config, E: Environment, T> CallCommandBuilder<C, E, Missing<state::Message>, T>
+where
+    E::Balance: FromStr + From<u128>,
+{
     /// Returns a clean builder for [`CallExec`].
     pub fn new(
-    ) -> CallCommandBuilder<Missing<state::Message>, Missing<state::ExtrinsicOptions>>
+    ) -> CallCommandBuilder<C, E, Missing<state::Message>, Missing<state::ExtrinsicOptions>>
     {
         CallCommandBuilder {
             opts: CallOpts {
-                contract: AccountId32([0; 32]),
+                contract: None,
                 message: String::new(),
                 args: Vec::new(),
                 extrinsic_opts: ExtrinsicOpts::default(),
@@ -99,10 +111,10 @@ impl<E> CallCommandBuilder<Missing<state::Message>, E> {
     }
 
     /// Sets the name of the contract message to call.
-    pub fn message<T: Into<String>>(
+    pub fn message<M: Into<String>>(
         self,
-        message: T,
-    ) -> CallCommandBuilder<state::Message, E> {
+        message: M,
+    ) -> CallCommandBuilder<C, E, state::Message, T> {
         CallCommandBuilder {
             opts: CallOpts {
                 message: message.into(),
@@ -113,12 +125,14 @@ impl<E> CallCommandBuilder<Missing<state::Message>, E> {
     }
 }
 
-impl<M> CallCommandBuilder<M, Missing<state::ExtrinsicOptions>> {
+impl<C: Config, E: Environment, M>
+    CallCommandBuilder<C, E, M, Missing<state::ExtrinsicOptions>>
+{
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
-        extrinsic_opts: ExtrinsicOpts,
-    ) -> CallCommandBuilder<M, state::ExtrinsicOptions> {
+        extrinsic_opts: ExtrinsicOpts<E>,
+    ) -> CallCommandBuilder<C, E, M, state::ExtrinsicOptions> {
         CallCommandBuilder {
             opts: CallOpts {
                 extrinsic_opts,
@@ -129,11 +143,11 @@ impl<M> CallCommandBuilder<M, Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl<M, E> CallCommandBuilder<M, E> {
+impl<C: Config, E: Environment, M, X> CallCommandBuilder<C, E, M, X> {
     /// Sets the the address of the the contract to call.
-    pub fn contract(self, contract: <DefaultConfig as Config>::AccountId) -> Self {
+    pub fn contract(self, contract: C::AccountId) -> Self {
         let mut this = self;
-        this.opts.contract = contract;
+        this.opts.contract = Some(contract);
         this
     }
 
@@ -159,14 +173,19 @@ impl<M, E> CallCommandBuilder<M, E> {
     }
 
     /// Sets the value to be transferred as part of the call.
-    pub fn value(self, value: BalanceVariant) -> Self {
+    pub fn value(self, value: BalanceVariant<E::Balance>) -> Self {
         let mut this = self;
         this.opts.value = value;
         this
     }
 }
 
-impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
+impl<C: Config, E: Environment>
+    CallCommandBuilder<C, E, state::Message, state::ExtrinsicOptions>
+where
+    C::AccountId: IntoVisitor,
+    E::Balance: From<u128>,
+{
     /// Preprocesses contract artifacts and options for subsequent contract calls.
     ///
     /// This function prepares the necessary data for making a contract call based on the
@@ -176,7 +195,7 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
     ///
     /// Returns the `CallExec` containing the preprocessed data for the contract call,
     /// or an error in case of failure.
-    pub async fn done(self) -> Result<CallExec> {
+    pub async fn done(self) -> Result<CallExec<C, E>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
 
@@ -192,9 +211,13 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
         check_env_types(&client, &transcoder)?;
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
+        let contract = self
+            .opts
+            .contract
+            .ok_or(anyhow!("Contract address not set"))?;
 
         Ok(CallExec {
-            contract: self.opts.contract.clone(),
+            contract,
             message: self.opts.message.clone(),
             args: self.opts.args.clone(),
             opts: self.opts.extrinsic_opts.clone(),
@@ -211,23 +234,33 @@ impl CallCommandBuilder<state::Message, state::ExtrinsicOptions> {
     }
 }
 
-pub struct CallExec {
-    contract: <DefaultConfig as Config>::AccountId,
+pub struct CallExec<C: Config, E: Environment>
+where
+    E::Balance: From<u128>,
+{
+    contract: C::AccountId,
     message: String,
     args: Vec<String>,
-    opts: ExtrinsicOpts,
+    opts: ExtrinsicOpts<E>,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
-    value: BalanceVariant,
-    rpc: LegacyRpcMethods<DefaultConfig>,
-    client: Client,
+    value: BalanceVariant<E::Balance>,
+    rpc: LegacyRpcMethods<C>,
+    client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
     signer: Keypair,
     token_metadata: TokenMetadata,
 }
 
-impl CallExec {
+impl<C: Config, E: Environment> CallExec<C, E>
+where
+    C::Signature: From<subxt_signer::sr25519::Signature>,
+    <C::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
+    C::Address: From<subxt_signer::sr25519::PublicKey>,
+    C::AccountId: From<subxt_signer::sr25519::PublicKey> + EncodeAsType + IntoVisitor,
+    E::Balance: From<u128>,
+{
     /// Simulates a contract call without modifying the blockchain.
     ///
     /// This function performs a dry run simulation of a contract call, capturing
@@ -237,12 +270,12 @@ impl CallExec {
     ///
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
-    pub async fn call_dry_run(&self) -> Result<ContractExecResult<Balance, ()>> {
+    pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance, ()>> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
         let call_request = CallRequest {
-            origin: account_id::<DefaultConfig>(&self.signer),
+            origin: account_id::<C>(&self.signer),
             dest: self.contract.clone(),
             value: self.value.denominate_balance(&self.token_metadata)?,
             gas_limit: None,
@@ -303,7 +336,7 @@ impl CallExec {
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
-        let display_events = DisplayEvents::from_events::<DefaultConfig>(
+        let display_events = DisplayEvents::from_events::<C, E>(
             &result,
             Some(&self.transcoder),
             &self.client.metadata(),
@@ -352,7 +385,7 @@ impl CallExec {
     }
 
     /// Returns the address of the the contract to call.
-    pub fn contract(&self) -> &<DefaultConfig as Config>::AccountId {
+    pub fn contract(&self) -> &C::AccountId {
         &self.contract
     }
 
@@ -367,7 +400,7 @@ impl CallExec {
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts {
+    pub fn opts(&self) -> &ExtrinsicOpts<E> {
         &self.opts
     }
 
@@ -382,12 +415,12 @@ impl CallExec {
     }
 
     /// Returns the value to be transferred as part of the call.
-    pub fn value(&self) -> &BalanceVariant {
+    pub fn value(&self) -> &BalanceVariant<E::Balance> {
         &self.value
     }
 
     /// Returns the client.
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> &OnlineClient<C> {
         &self.client
     }
 
@@ -416,9 +449,9 @@ impl CallExec {
 ///
 /// Copied from `pallet-contracts-rpc-runtime-api`.
 #[derive(Encode)]
-struct CallRequest {
-    origin: <DefaultConfig as Config>::AccountId,
-    dest: <DefaultConfig as Config>::AccountId,
+struct CallRequest<AccountId, Balance> {
+    origin: AccountId,
+    dest: AccountId,
     value: Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,

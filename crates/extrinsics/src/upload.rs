@@ -54,19 +54,22 @@ use subxt::{
 };
 use subxt_signer::sr25519::Keypair;
 
-struct UploadOpts {
-    extrinsic_opts: ExtrinsicOpts,
+struct UploadOpts<E: Environment> {
+    extrinsic_opts: ExtrinsicOpts<E>,
 }
 
 /// A builder for the upload command.
-pub struct UploadCommandBuilder<ExtrinsicOptions> {
-    opts: UploadOpts,
+pub struct UploadCommandBuilder<E: Environment, ExtrinsicOptions> {
+    opts: UploadOpts<E>,
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
-impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<E: Environment> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128>,
+{
     /// Returns a clean builder for [`UploadExec`].
-    pub fn new() -> UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
             opts: UploadOpts {
                 extrinsic_opts: ExtrinsicOpts::default(),
@@ -78,8 +81,8 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
-        extrinsic_opts: ExtrinsicOpts,
-    ) -> UploadCommandBuilder<state::ExtrinsicOptions> {
+        extrinsic_opts: ExtrinsicOpts<E>,
+    ) -> UploadCommandBuilder<E, state::ExtrinsicOptions> {
         UploadCommandBuilder {
             opts: UploadOpts { extrinsic_opts },
             marker: PhantomData,
@@ -87,13 +90,19 @@ impl UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl Default for UploadCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<E: Environment> Default for UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128>,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl UploadCommandBuilder<state::ExtrinsicOptions> {
+impl<E: Environment> UploadCommandBuilder<E, state::ExtrinsicOptions>
+where
+    E::Balance: From<u128>,
+{
     /// Preprocesses contract artifacts and options for subsequent upload.
     ///
     /// This function prepares the necessary data for uploading a contract
@@ -103,7 +112,7 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done<C: Config>(self) -> Result<UploadExec<C>> {
+    pub async fn done<C: Config>(self) -> Result<UploadExec<C, E>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
@@ -136,8 +145,8 @@ impl UploadCommandBuilder<state::ExtrinsicOptions> {
     }
 }
 
-pub struct UploadExec<C: Config> {
-    opts: ExtrinsicOpts,
+pub struct UploadExec<C: Config, E: Environment> {
+    opts: ExtrinsicOpts<E>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     code: WasmCode,
@@ -146,13 +155,14 @@ pub struct UploadExec<C: Config> {
     transcoder: ContractMessageTranscoder,
 }
 
-impl<C: Config> UploadExec<C>
+impl<C: Config, E: Environment> UploadExec<C, E>
 where
     C::Hash: IntoVisitor,
     C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    E::Balance: From<u128>,
 {
     /// Uploads contract code to a specified URL using a JSON-RPC call.
     ///
@@ -160,9 +170,7 @@ where
     /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
-    pub async fn upload_code_rpc<E: Environment>(
-        &self,
-    ) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
+    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
         let storage_deposit_limit = self
             .opts
             .storage_deposit_limit_balance(&self.token_metadata)?;
@@ -196,7 +204,7 @@ where
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
         let display_events =
-            DisplayEvents::from_events(&result, None, &self.client.metadata())?;
+            DisplayEvents::from_events::<C, E>(&result, None, &self.client.metadata())?;
 
         let code_stored = result.find_first::<CodeStored<C::Hash>>()?;
         Ok(UploadResult::<C::Hash> {
@@ -206,7 +214,7 @@ where
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts {
+    pub fn opts(&self) -> &ExtrinsicOpts<E> {
         &self.opts
     }
 
