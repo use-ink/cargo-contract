@@ -383,24 +383,41 @@ impl Display for DenominatedBalance {
 
 #[cfg(test)]
 mod tests {
+    use ink_env::{
+        DefaultEnvironment,
+        Environment,
+    };
+
     use super::*;
 
     #[test]
     fn correct_balances_parses_success() {
         assert!(
-            BalanceVariant::from_str("500DOT").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500DOT"
+            )
+            .is_ok(),
             "<500DOT> was not parsed correctly"
         );
         assert!(
-            BalanceVariant::from_str("500").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500"
+            )
+            .is_ok(),
             "<500> was not parsed correctly"
         );
         assert!(
-            BalanceVariant::from_str("1.0").is_err(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "1.0"
+            )
+            .is_err(),
             "<1.0> was not parsed correctly. Units must be provided"
         );
         assert!(
-            BalanceVariant::from_str("1.0DOT").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "1.0DOT"
+            )
+            .is_ok(),
             "<1.0DOt> was not parsed correctly"
         );
     }
@@ -408,7 +425,10 @@ mod tests {
     #[test]
     fn incorrect_balances() {
         assert!(
-            BalanceVariant::from_str("500%").is_err(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500%"
+            )
+            .is_err(),
             "expected to fail parsing incorrect balance"
         );
     }
@@ -419,7 +439,11 @@ mod tests {
             token_decimals: 10,
             symbol: String::from("DOT"),
         };
-        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500MDOT",
+            )
+            .expect("successful parsing. qed");
         assert!(
             bv.denominate_balance(&tm).is_ok(),
             "balances could not be denominated correctly"
@@ -433,8 +457,13 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 500 * 1_000_000 * 10_000_000_000;
-        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            500 * 1_000_000 * 10_000_000_000;
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500MDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -446,7 +475,8 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            5_005_000_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -459,7 +489,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000;
         let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -471,7 +501,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 1;
+        let balance: <DefaultEnvironment as Environment>::Balance = 1;
         let bv = BalanceVariant::from_str("0.1nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -487,7 +517,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let bv =
-            BalanceVariant::from_str("0.01546nDOT").expect("successful parsing. qed");
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "0.01546nDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -499,7 +532,8 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            5_005_000_000_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5GDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -512,7 +546,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -525,7 +559,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000_000;
         let bv = BalanceVariant::from_str("500.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -538,7 +572,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000;
         let bv = BalanceVariant::from_str("500.5mDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -550,7 +584,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000;
         let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -562,7 +596,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005;
         let bv = BalanceVariant::from_str("500.5nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -575,7 +609,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_235_456_210_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_235_456_210_000_000;
         let bv =
             BalanceVariant::from_str("523.545621kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
@@ -589,7 +623,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 50_015_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 50_015_000_000_000;
         let bv = BalanceVariant::from_str("5001.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -602,7 +636,11 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let bv = BalanceVariant::from_str("0.4μDOT").expect("successful parsing. qed");
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "0.4μDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -611,7 +649,8 @@ mod tests {
     fn big_input_to_denominate() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336DOT";
-        let bv = BalanceVariant::from_str(s);
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(s);
         assert!(bv.is_err())
     }
 
@@ -619,7 +658,8 @@ mod tests {
     fn big_input_to_raw() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336";
-        let bv = BalanceVariant::from_str(s);
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(s);
         assert!(bv.is_ok())
     }
 
@@ -631,8 +671,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 1),
             unit: UnitPrefix::Kilo,
@@ -649,8 +691,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 2),
             unit: UnitPrefix::One,
@@ -671,8 +715,10 @@ mod tests {
         // 10_000 - Micro
         // 532_500 - 52.25 Micro
         let balance = 532_500_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 2),
             unit: UnitPrefix::Micro,

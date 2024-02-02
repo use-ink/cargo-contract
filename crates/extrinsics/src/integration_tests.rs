@@ -470,11 +470,12 @@ async fn api_build_upload_instantiate_call() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .done()
-        .await
-        .unwrap();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
+        UploadCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .done()
+            .await
+            .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     upload_result.unwrap();
@@ -496,7 +497,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // the value should be true
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -523,7 +524,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // flip the value
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("flip")
         .contract(instantiate_result.contract_address.clone())
@@ -538,7 +539,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // make sure the value has been flipped
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -597,11 +598,12 @@ async fn api_build_upload_remove() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload: UploadExec<DefaultConfig> = UploadCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .done()
-        .await
-        .unwrap();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
+        UploadCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .done()
+            .await
+            .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     let upload_result = upload_result.unwrap();
@@ -610,13 +612,14 @@ async fn api_build_upload_remove() {
     assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
-    let remove: RemoveExec<DefaultConfig> = RemoveCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .code_hash(Some(code_hash_h256))
-        .done()
-        .await
-        .unwrap();
-    let remove_result = remove.remove_code::<DefaultEnvironment>().await;
+    let remove: RemoveExec<DefaultConfig, DefaultEnvironment> =
+        RemoveCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .code_hash(Some(code_hash_h256))
+            .done()
+            .await
+            .unwrap();
+    let remove_result = remove.remove_code().await;
     assert!(remove_result.is_ok(), "remove code failed");
     remove_result.unwrap();
 
