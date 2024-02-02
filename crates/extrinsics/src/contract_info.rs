@@ -14,13 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    get_best_block,
-    Balance,
-    Client,
-    CodeHash,
-    DefaultConfig,
-};
+use super::get_best_block;
 use anyhow::{
     anyhow,
     Result,
@@ -31,6 +25,7 @@ use std::fmt::{
     Formatter,
 };
 
+use ink_env::Environment;
 use scale::Decode;
 use std::option::Option;
 use subxt::{
@@ -46,19 +41,19 @@ use subxt::{
         scale_value::Value,
     },
     storage::dynamic,
-    utils::AccountId32,
     Config,
     OnlineClient,
 };
 
 /// Return the account data for an account ID.
-async fn get_account_balance<C: Config>(
+async fn get_account_balance<C: Config, E: Environment>(
     account: &C::AccountId,
     rpc: &LegacyRpcMethods<C>,
     client: &OnlineClient<C>,
-) -> Result<AccountData>
+) -> Result<AccountData<E::Balance>>
 where
     C::AccountId: AsRef<[u8]>,
+    E::Balance: IntoVisitor,
 {
     let storage_query =
         subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
@@ -71,19 +66,21 @@ where
         .await?
         .ok_or_else(|| anyhow::anyhow!("Failed to fetch account data"))?;
 
-    let data = account.as_type::<AccountInfo>()?.data;
+    let data = account.as_type::<AccountInfo<E::Balance>>()?.data;
     Ok(data)
 }
 
 /// Fetch the contract info from the storage using the provided client.
-pub async fn fetch_contract_info<C: Config>(
+pub async fn fetch_contract_info<C: Config, E: Environment>(
     contract: &C::AccountId,
     rpc: &LegacyRpcMethods<C>,
     client: &OnlineClient<C>,
-) -> Result<ContractInfo>
+) -> Result<ContractInfo<C::Hash, E::Balance>>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    E::Balance: IntoVisitor,
 {
     let best_block = get_best_block(rpc).await?;
 
@@ -105,26 +102,28 @@ where
         })?;
 
     let contract_info_raw =
-        ContractInfoRaw::<C>::new(contract.clone(), contract_info_value)?;
+        ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
     let deposit_account = contract_info_raw.get_deposit_account();
 
-    let deposit_account_data = get_account_balance(deposit_account, rpc, client).await?;
+    let deposit_account_data =
+        get_account_balance::<C, E>(deposit_account, rpc, client).await?;
     Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
-struct ContractInfoRaw<C: Config> {
+struct ContractInfoRaw<C: Config, E: Environment> {
     deposit_account: C::AccountId,
-    contract_info: ContractInfoOf,
+    contract_info: ContractInfoOf<C::Hash, E::Balance>,
     deposit_on_main_account: bool,
 }
 
-impl<C> ContractInfoRaw<C>
+impl<C: Config, E: Environment> ContractInfoRaw<C, E>
 where
-    C: Config,
     C::AccountId: IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    E::Balance: IntoVisitor,
 {
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
     /// contract info value. Determines whether it's a main or secondary account deposit.
@@ -132,7 +131,8 @@ where
         contract_account: C::AccountId,
         contract_info_value: DecodedValueThunk,
     ) -> Result<Self> {
-        let contract_info = contract_info_value.as_type::<ContractInfoOf>()?;
+        let contract_info =
+            contract_info_value.as_type::<ContractInfoOf<C::Hash, E::Balance>>()?;
         // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
         // in a secondary account (deposit account). Other versions store it as
         // reserved balance on the main contract's account. If the
@@ -161,7 +161,10 @@ where
     }
 
     /// Convert `ContractInfoRaw` to `ContractInfo`
-    pub fn into_contract_info(self, deposit: AccountData) -> ContractInfo {
+    pub fn into_contract_info(
+        self,
+        deposit: AccountData<E::Balance>,
+    ) -> ContractInfo<C::Hash, E::Balance> {
         let total_deposit = if self.deposit_on_main_account {
             deposit.reserved
         } else {
@@ -185,15 +188,19 @@ where
 }
 
 #[derive(Debug, PartialEq, serde::Serialize)]
-pub struct ContractInfo {
+pub struct ContractInfo<Hash, Balance> {
     trie_id: TrieId,
-    code_hash: CodeHash,
+    code_hash: Hash,
     storage_items: u32,
     storage_items_deposit: Balance,
     storage_total_deposit: Balance,
 }
 
-impl ContractInfo {
+impl<Hash, Balance> ContractInfo<Hash, Balance>
+where
+    Hash: serde::Serialize,
+    Balance: serde::Serialize + Copy,
+{
     /// Convert and return contract info in JSON format.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
@@ -205,7 +212,7 @@ impl ContractInfo {
     }
 
     /// Return the code_hash of the contract.
-    pub fn code_hash(&self) -> &CodeHash {
+    pub fn code_hash(&self) -> &Hash {
         &self.code_hash
     }
 
@@ -255,11 +262,14 @@ impl Display for TrieId {
 }
 
 /// Fetch the contract wasm code from the storage using the provided client and code hash.
-pub async fn fetch_wasm_code(
-    client: &Client,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-    hash: &CodeHash,
-) -> Result<Vec<u8>> {
+pub async fn fetch_wasm_code<C: Config>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    hash: &C::Hash,
+) -> Result<Vec<u8>>
+where
+    C::Hash: AsRef<[u8]> + Display + IntoVisitor,
+{
     let best_block = get_best_block(rpc).await?;
 
     let pristine_code_address =
@@ -278,31 +288,34 @@ pub async fn fetch_wasm_code(
 
 /// Parse a contract account address from a storage key. Returns error if a key is
 /// malformated.
-fn parse_contract_account_address(
+fn parse_contract_account_address<C: Config>(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
-) -> Result<AccountId32> {
+) -> Result<C::AccountId>
+where
+    C::AccountId: Decode,
+{
     // storage_contract_account_key is a concatenation of contract_info_of root key and
     // Twox64Concat(AccountId)
     let mut account = storage_contract_account_key
         .get(storage_contract_root_key_len + 8..)
         .ok_or(anyhow!("Unexpected storage key size"))?;
-    AccountId32::decode(&mut account)
+    Decode::decode(&mut account)
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
 /// Fetch all contract addresses from the storage using the provided client.
-pub async fn fetch_all_contracts(
-    client: &Client,
-    rpc: &LegacyRpcMethods<DefaultConfig>,
-) -> Result<Vec<AccountId32>> {
+pub async fn fetch_all_contracts<C: Config>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+) -> Result<Vec<C::AccountId>>
+where
+    C::AccountId: Decode,
+{
     let best_block = get_best_block(rpc).await?;
-    let root_key = subxt::dynamic::storage(
-        "Contracts",
-        "ContractInfoOf",
-        vec![Value::from_bytes(AccountId32([0u8; 32]))],
-    )
-    .to_root_bytes();
+    let root_key =
+        subxt::dynamic::storage("Contracts", "ContractInfoOf", Vec::<()>::new())
+            .to_root_bytes();
     let mut keys = client
         .storage()
         .at(best_block)
@@ -312,7 +325,7 @@ pub async fn fetch_all_contracts(
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
         let key = result?;
-        let contract_account = parse_contract_account_address(&key, root_key.len())?;
+        let contract_account = parse_contract_account_address::<C>(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }
 
@@ -322,14 +335,14 @@ pub async fn fetch_all_contracts(
 /// A struct used in the storage reads to access account info.
 #[derive(DecodeAsType, Debug)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct AccountInfo {
-    data: AccountData,
+struct AccountInfo<Balance> {
+    data: AccountData<Balance>,
 }
 
 /// A struct used in the storage reads to access account data.
 #[derive(Clone, Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct AccountData {
+struct AccountData<Balance> {
     free: Balance,
     reserved: Balance,
 }
@@ -342,9 +355,9 @@ struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 /// A struct used in the storage reads to access contract info.
 #[derive(Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct ContractInfoOf {
+struct ContractInfoOf<Hash, Balance> {
     trie_id: BoundedVec<u8>,
-    code_hash: CodeHash,
+    code_hash: Hash,
     storage_items: u32,
     storage_item_deposit: Balance,
 }
@@ -359,14 +372,19 @@ struct DepositAccount<AccountId> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ink_env::DefaultEnvironment;
     use scale::Encode;
     use scale_info::{
         IntoPortable,
         Path,
     };
-    use subxt::metadata::{
-        types::Metadata,
-        DecodeWithMetadata,
+    use subxt::{
+        metadata::{
+            types::Metadata,
+            DecodeWithMetadata,
+        },
+        utils::AccountId32,
+        PolkadotConfig as DefaultConfig,
     };
 
     // Find the type index in the metadata.
@@ -438,8 +456,11 @@ mod tests {
 
         let contract = AccountId32([0u8; 32]);
         let contract_info_raw =
-            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
-                .expect("the conatract info raw must be created");
+            ContractInfoRaw::<DefaultConfig, DefaultEnvironment>::new(
+                contract,
+                contract_info_thunk,
+            )
+            .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,
@@ -504,8 +525,11 @@ mod tests {
 
         let contract = AccountId32([0u8; 32]);
         let contract_info_raw =
-            ContractInfoRaw::<DefaultConfig>::new(contract, contract_info_thunk)
-                .expect("the conatract info raw must be created");
+            ContractInfoRaw::<DefaultConfig, DefaultEnvironment>::new(
+                contract,
+                contract_info_thunk,
+            )
+            .expect("the conatract info raw must be created");
         let account_data = AccountData {
             free: 1,
             reserved: 10,

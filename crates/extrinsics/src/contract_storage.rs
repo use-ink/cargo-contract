@@ -22,6 +22,7 @@ use contract_transcode::{
     ContractMessageTranscoder,
     Value,
 };
+use ink_env::Environment;
 use ink_metadata::layout::{
     Layout,
     StructLayout,
@@ -50,6 +51,7 @@ use std::{
         Display,
         Formatter,
     },
+    marker::PhantomData,
 };
 use subxt::{
     backend::{
@@ -75,21 +77,26 @@ use super::{
     fetch_contract_info,
     url_to_string,
     ContractInfo,
-    DefaultConfig,
     TrieId,
 };
 
-pub struct ContractStorage<C: Config = DefaultConfig> {
+pub struct ContractStorage<C: Config, E: Environment> {
     rpc: ContractStorageRpc<C>,
+    _phantom: PhantomData<fn() -> E>,
 }
 
-impl<C: Config> ContractStorage<C>
+impl<C: Config, E: Environment> ContractStorage<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
+    E::Balance: IntoVisitor + Serialize,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
-        Self { rpc }
+        Self {
+            rpc,
+            _phantom: Default::default(),
+        }
     }
 
     /// Load the raw key/value storage for a given contract.
@@ -97,7 +104,7 @@ where
         &self,
         contract_account: &C::AccountId,
     ) -> Result<ContractStorageData> {
-        let contract_info = self.rpc.fetch_contract_info(contract_account).await?;
+        let contract_info = self.rpc.fetch_contract_info::<E>(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
         let mut storage_keys = Vec::new();
@@ -596,6 +603,7 @@ pub struct ContractStorageRpc<C: Config> {
 impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::Hash: IntoVisitor,
     DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
 {
     /// Create a new instance of the ContractsRpc.
@@ -612,11 +620,14 @@ where
     }
 
     /// Fetch the contract info to access the trie id for querying storage.
-    pub async fn fetch_contract_info(
+    pub async fn fetch_contract_info<E: Environment>(
         &self,
         contract: &C::AccountId,
-    ) -> Result<ContractInfo> {
-        fetch_contract_info(contract, &self.rpc_methods, &self.client).await
+    ) -> Result<ContractInfo<C::Hash, E::Balance>>
+    where
+        E::Balance: IntoVisitor,
+    {
+        fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await
     }
 
     /// Fetch the contract storage at the given key.

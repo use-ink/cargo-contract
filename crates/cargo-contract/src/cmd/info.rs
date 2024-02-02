@@ -26,11 +26,13 @@ use contract_extrinsics::{
     fetch_contract_info,
     fetch_wasm_code,
     url_to_string,
-    Balance,
-    CodeHash,
     ContractInfo,
     ErrorVariant,
     TrieId,
+};
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
 };
 use std::{
     fmt::Debug,
@@ -103,7 +105,10 @@ impl InfoCommand {
                 .as_ref()
                 .expect("Contract argument was not provided");
 
-            let info_to_json = fetch_contract_info(contract, &rpc, &client).await?;
+            let info_to_json = fetch_contract_info::<DefaultConfig, DefaultEnvironment>(
+                contract, &rpc, &client,
+            )
+            .await?;
 
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
@@ -122,15 +127,19 @@ impl InfoCommand {
             } else if self.output_json {
                 println!(
                     "{}",
-                    serde_json::to_string_pretty(&ExtendedContractInfo::new(
-                        info_to_json,
-                        &wasm_code
+                    serde_json::to_string_pretty(&ExtendedContractInfo::<
+                        <DefaultConfig as Config>::Hash,
+                        <DefaultEnvironment as Environment>::Balance,
+                    >::new(
+                        info_to_json, &wasm_code
                     ))?
                 )
             } else {
-                basic_display_format_extended_contract_info(&ExtendedContractInfo::new(
-                    info_to_json,
-                    &wasm_code,
+                basic_display_format_extended_contract_info(&ExtendedContractInfo::<
+                    <DefaultConfig as Config>::Hash,
+                    <DefaultEnvironment as Environment>::Balance,
+                >::new(
+                    info_to_json, &wasm_code
                 ))
             }
             Ok(())
@@ -139,17 +148,21 @@ impl InfoCommand {
 }
 
 #[derive(serde::Serialize)]
-pub struct ExtendedContractInfo {
+pub struct ExtendedContractInfo<Hash, Balance> {
     pub trie_id: TrieId,
-    pub code_hash: CodeHash,
+    pub code_hash: Hash,
     pub storage_items: u32,
     pub storage_items_deposit: Balance,
     pub storage_total_deposit: Balance,
     pub source_language: String,
 }
 
-impl ExtendedContractInfo {
-    pub fn new(contract_info: ContractInfo, code: &[u8]) -> Self {
+impl<Hash, Balance> ExtendedContractInfo<Hash, Balance>
+where
+    Hash: serde::Serialize + Copy,
+    Balance: serde::Serialize + Copy,
+{
+    pub fn new(contract_info: ContractInfo<Hash, Balance>, code: &[u8]) -> Self {
         let language = match determine_language(code).ok() {
             Some(lang) => lang.to_string(),
             None => "Unknown".to_string(),

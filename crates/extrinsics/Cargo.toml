@@ -41,6 +41,7 @@ subxt = "0.34.0"
 subxt-signer = { version = "0.34.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
 ink_metadata = "5.0.0-rc"
+ink_env = "5.0.0-rc"
 
 [dev-dependencies]
 ink = "5.0.0-rc"

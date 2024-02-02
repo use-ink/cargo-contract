@@ -72,6 +72,7 @@ use contract_extrinsics::{
     Balance,
     BalanceVariant,
 };
+use core::fmt;
 use std::io::{
     self,
     Write,
@@ -226,7 +227,11 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info(info: &ExtendedContractInfo) {
+pub fn basic_display_format_extended_contract_info<Hash>(
+    info: &ExtendedContractInfo<Hash, Balance>,
+) where
+    Hash: fmt::Debug,
+{
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
         "Code Hash",

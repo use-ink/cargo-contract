@@ -28,6 +28,7 @@ use contract_extrinsics::{
     ContractStorageRpc,
     ErrorVariant,
 };
+use ink_env::DefaultEnvironment;
 use std::path::PathBuf;
 use subxt::Config;
 
@@ -63,7 +64,8 @@ pub struct StorageCommand {
 impl StorageCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
         let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
-        let storage_layout = ContractStorage::<DefaultConfig>::new(rpc);
+        let storage_layout =
+            ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
 
         if self.raw {
             let storage_data = storage_layout
