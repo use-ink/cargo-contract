@@ -16,8 +16,8 @@
 
 use core::marker::PhantomData;
 
-use ink_env::Environment;
 use contract_build::Verbosity;
+use ink_env::Environment;
 use subxt_signer::{
     sr25519::Keypair,
     SecretUri,

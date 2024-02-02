@@ -29,9 +29,7 @@ use contract_extrinsics::{
     ErrorVariant,
 };
 use ink_env::DefaultEnvironment;
-use std::{
-    path::PathBuf,
-};
+use std::path::PathBuf;
 use subxt::Config;
 
 #[derive(Debug, clap::Args)]

@@ -66,8 +66,11 @@ use contract_build::{
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use contract_extrinsics::{pallet_contracts_primitives::ContractResult, BalanceVariant};
 pub(crate) use contract_extrinsics::ErrorVariant;
+use contract_extrinsics::{
+    pallet_contracts_primitives::ContractResult,
+    BalanceVariant,
+};
 use core::fmt;
 use ink_env::{
     DefaultEnvironment,
