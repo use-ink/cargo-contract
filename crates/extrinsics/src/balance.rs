@@ -178,7 +178,7 @@ where
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance: BalanceVariant = "0.4\u{3bc}DOT".parse().unwrap();
+    /// let sample_den_balance: BalanceVariant<u128> = "0.4\u{3bc}DOT".parse().unwrap();
     /// let result = sample_den_balance.denominate_balance(&tm);
     /// assert!(result.is_err());
     /// ```
@@ -194,7 +194,7 @@ where
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance: BalanceVariant = "4123\u{3bc}DOT".parse().unwrap();
+    /// let sample_den_balance: BalanceVariant<u128> = "4123\u{3bc}DOT".parse().unwrap();
     /// let balance = 4123;
     /// let result = sample_den_balance.denominate_balance(&tm).unwrap();
     /// assert_eq!(balance, result);
@@ -250,7 +250,6 @@ where
     /// # Examples
     /// ```rust
     /// use contract_extrinsics::{
-    ///     Balance,
     ///     BalanceVariant,
     ///     TokenMetadata,
     /// };
@@ -259,8 +258,8 @@ where
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance: BalanceVariant = "500.5MDOT".parse().unwrap();
-    /// let balance: Balance = 5_005_000_000_000_000_000;
+    /// let sample_den_balance: BalanceVariant<u128> = "500.5MDOT".parse().unwrap();
+    /// let balance: u128 = 5_005_000_000_000_000_000;
     /// let den_balance = BalanceVariant::from(balance, Some(&tm)).unwrap();
     /// assert_eq!(sample_den_balance, den_balance);
     /// ```
