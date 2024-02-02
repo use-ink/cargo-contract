@@ -17,6 +17,7 @@
 use super::{
     account_id,
     events::DisplayEvents,
+    pallet_contracts_primitives::ContractExecResult,
     state,
     state_call,
     submit_extrinsic,
@@ -37,7 +38,6 @@ use anyhow::{
     Result,
 };
 use ink_env::Environment;
-use pallet_contracts_primitives::ContractExecResult;
 use scale::Encode;
 use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
@@ -208,7 +208,7 @@ where
         let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
         let rpc = LegacyRpcMethods::new(rpc);
-        check_env_types(&client, &transcoder)?;
+        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
         let contract = self

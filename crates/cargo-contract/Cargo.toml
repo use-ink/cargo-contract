@@ -31,33 +31,32 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 which = "6.0.0"
 colored = "2.1.0"
-serde_json = "1.0.111"
-serde = { version = "1.0.195", default-features = false, features = ["derive"] }
+serde_json = "1.0.113"
+serde = { version = "1.0.196", default-features = false, features = ["derive"] }
 url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
 schemars = "0.8"
 ink_metadata = "5.0.0-rc"
 ink_env = "5.0.0-rc"
-crossterm = "0.27.0"
+comfy-table = "7.1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = "0.33.0"
-sp-core = "22.0.0"
-sp-weights = "21.0.0"
-pallet-contracts-primitives = "25.0.0"
+subxt = "0.34.0"
+sp-core = "28.0.0"
+sp-weights = "27.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
 anyhow = "1.0.79"
-substrate-build-script-utils = "10.0.0"
+substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
 which = "6.0.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.13"
-regex = "1.10.2"
+regex = "1.10.3"
 predicates = "3.1.0"
 tempfile = "3.9.0"
 

@@ -27,18 +27,18 @@ itertools = { version = "0.12", default-features = false }
 tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.1.0"
-serde = { version = "1.0.195", default-features = false, features = ["derive"] }
-serde_json = "1.0.111"
+serde = { version = "1.0.196", default-features = false, features = ["derive"] }
+serde_json = "1.0.113"
 url = { version = "2.5.0", features = ["serde"] }
-rust_decimal = "1.33"
+rust_decimal = "1.34"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = "22.0.0"
-sp-runtime = "25.0.0"
-sp-weights = "21.0.0"
-pallet-contracts-primitives = "25.0.0"
+sp-core = "28.0.0"
+sp-runtime = "31.0.0"
+sp-weights = "27.0.0"
+pallet-contracts-uapi = "5.0.0"
 scale-info = "2.10.0"
-subxt = "0.33.0"
-subxt-signer = { version = "0.33.0", features = ["subxt", "sr25519"] }
+subxt = "0.34.0"
+subxt-signer = { version = "0.34.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
 ink_metadata = "5.0.0-rc"
 ink_env = "5.0.0-rc"
@@ -46,7 +46,7 @@ ink_env = "5.0.0-rc"
 [dev-dependencies]
 ink = "5.0.0-rc"
 assert_cmd = "2.0.13"
-regex = "1.10.2"
+regex = "1.10.3"
 predicates = "3.1.0"
 tempfile = "3.9.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

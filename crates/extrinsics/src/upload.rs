@@ -20,6 +20,7 @@ use super::{
         CodeStored,
         DisplayEvents,
     },
+    pallet_contracts_primitives::CodeUploadResult,
     state,
     state_call,
     submit_extrinsic,
@@ -37,7 +38,6 @@ use anyhow::Result;
 use contract_transcode::ContractMessageTranscoder;
 use core::marker::PhantomData;
 use ink_env::Environment;
-use pallet_contracts_primitives::CodeUploadResult;
 use scale::Encode;
 use subxt::{
     backend::{
@@ -128,7 +128,7 @@ where
         let url = self.opts.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        check_env_types(&client, &transcoder)?;
+        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;

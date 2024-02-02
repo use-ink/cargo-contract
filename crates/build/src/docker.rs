@@ -329,8 +329,8 @@ async fn create_container(
     {
         user = Some(format!(
             "{}:{}",
-            users::get_current_uid(),
-            users::get_current_gid()
+            uzers::get_current_uid(),
+            uzers::get_current_gid()
         ));
     };
     #[cfg(windows)]

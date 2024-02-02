@@ -20,6 +20,10 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
+    pallet_contracts_primitives::{
+        ContractInstantiateResult,
+        StorageDeposit,
+    },
     state,
     state_call,
     submit_extrinsic,
@@ -27,7 +31,6 @@ use super::{
     ContractMessageTranscoder,
     ErrorVariant,
     Missing,
-    StorageDeposit,
     TokenMetadata,
 };
 use crate::{
@@ -47,8 +50,6 @@ use contract_transcode::Value;
 use ink_env::Environment;
 use serde::Serialize;
 use subxt_signer::sr25519::Keypair;
-
-use pallet_contracts_primitives::ContractInstantiateResult;
 
 use core::marker::PhantomData;
 use scale::{
@@ -212,7 +213,7 @@ where
 
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        check_env_types(&client, &transcoder)?;
+        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
@@ -352,7 +353,7 @@ where
                     reverted: ret_val.result.did_revert(),
                     gas_consumed: result.gas_consumed,
                     gas_required: result.gas_required,
-                    storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                    storage_deposit: result.storage_deposit.clone(),
                 };
                 Ok(dry_run_result)
             }

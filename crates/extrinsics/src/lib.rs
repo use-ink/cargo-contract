@@ -25,7 +25,9 @@ mod events;
 mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
+pub mod pallet_contracts_primitives;
 mod remove;
+mod rpc;
 mod upload;
 
 #[cfg(test)]
@@ -40,6 +42,7 @@ use env_check::compare_node_env_with_contract;
 use anyhow::Result;
 use contract_build::{
     CrateMetadata,
+    Verbosity,
     DEFAULT_KEY_COL_WIDTH,
 };
 use scale::{
@@ -109,6 +112,11 @@ pub use upload::{
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
+};
+
+pub use rpc::{
+    RawParams,
+    RpcRequest,
 };
 
 pub type Client = OnlineClient<DefaultConfig>;
@@ -261,11 +269,16 @@ async fn get_best_block<C: Config>(
 fn check_env_types<T>(
     client: &OnlineClient<T>,
     transcoder: &ContractMessageTranscoder,
+    verbosity: &Verbosity,
 ) -> Result<()>
 where
     T: Config,
 {
-    compare_node_env_with_contract(client.metadata().types(), transcoder.metadata())
+    compare_node_env_with_contract(
+        client.metadata().types(),
+        transcoder.metadata(),
+        verbosity,
+    )
 }
 
 // Converts a Url into a String representation without excluding the default port.
@@ -280,37 +293,6 @@ pub fn url_to_string(url: &url::Url) -> String {
             .to_string()
         }
         _ => url.to_string(),
-    }
-}
-
-/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
-/// required for json output.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
-pub enum StorageDeposit<Balance> {
-    /// The transaction reduced storage consumption.
-    ///
-    /// This means that the specified amount of balance was transferred from the involved
-    /// contracts to the call origin.
-    Refund(Balance),
-    /// The transaction increased overall storage usage.
-    ///
-    /// This means that the specified amount of balance was transferred from the call
-    /// origin to the contracts involved.
-    Charge(Balance),
-}
-
-impl<Balance: Clone> From<&pallet_contracts_primitives::StorageDeposit<Balance>>
-    for StorageDeposit<Balance>
-{
-    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
-        match deposit {
-            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
-                Self::Refund(balance.clone())
-            }
-            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
-                Self::Charge(balance.clone())
-            }
-        }
     }
 }
 

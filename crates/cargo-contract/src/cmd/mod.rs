@@ -21,6 +21,7 @@ pub mod encode;
 pub mod info;
 pub mod instantiate;
 pub mod remove;
+pub mod rpc;
 pub mod schema;
 pub mod storage;
 pub mod upload;
@@ -39,6 +40,7 @@ pub(crate) use self::{
     },
     instantiate::InstantiateCommand,
     remove::RemoveCommand,
+    rpc::RpcCommand,
     schema::{
         GenerateSchemaCommand,
         VerifySchemaCommand,
@@ -64,14 +66,13 @@ use contract_build::{
     VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use contract_extrinsics::BalanceVariant;
+use contract_extrinsics::{pallet_contracts_primitives::ContractResult, BalanceVariant};
 pub(crate) use contract_extrinsics::ErrorVariant;
 use core::fmt;
 use ink_env::{
     DefaultEnvironment,
     Environment,
 };
-use pallet_contracts_primitives::ContractResult;
 use std::io::{
     self,
     Write,

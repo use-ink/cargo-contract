@@ -94,9 +94,7 @@ use parity_wasm::elements::{
 };
 use semver::Version;
 use std::{
-    collections::VecDeque,
     fs,
-    io,
     path::{
         Path,
         PathBuf,
@@ -112,6 +110,19 @@ pub const DEFAULT_MAX_MEMORY_PAGES: u32 = 16;
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Configuration of the linting module.
+///
+/// Ensure it is kept up-to-date when updating `cargo-contract`.
+pub(crate) mod linting {
+    /// Toolchain used to build ink_linting:
+    /// https://github.com/paritytech/ink/blob/master/linting/rust-toolchain.toml
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2023-12-28";
+    /// Git repository with ink_linting libraries
+    pub const GIT_URL: &str = "https://github.com/paritytech/ink/";
+    /// Git revision number of the linting crate
+    pub const GIT_REV: &str = "1c029a153ead15cd0bd76631613967c9e679e0c1";
+}
+
 /// Arguments to use when executing `build` or `check` commands.
 #[derive(Clone)]
 pub struct ExecuteArgs {
@@ -125,7 +136,7 @@ pub struct ExecuteArgs {
     pub unstable_flags: UnstableFlags,
     pub optimization_passes: Option<OptimizationPasses>,
     pub keep_debug_symbols: bool,
-    pub dylint: bool,
+    pub extra_lints: bool,
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
@@ -145,7 +156,7 @@ impl Default for ExecuteArgs {
             unstable_flags: Default::default(),
             optimization_passes: Default::default(),
             keep_debug_symbols: Default::default(),
-            dylint: Default::default(),
+            extra_lints: Default::default(),
             output_type: Default::default(),
             skip_wasm_validation: Default::default(),
             target: Default::default(),
@@ -289,14 +300,8 @@ fn exec_cargo_for_onchain_target(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
-
-        let mut args = vec![
-            format!("--target={}", target.llvm_target()),
-            "-Zbuild-std=core,alloc".to_owned(),
-            "--no-default-features".to_owned(),
-            "--release".to_owned(),
-            target_dir,
-        ];
+        let mut args = vec![target_dir, "--release".to_owned()];
+        args.extend(onchain_cargo_options(target));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -344,10 +349,13 @@ fn exec_cargo_for_onchain_target(
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };
 
-        let cargo =
-            util::cargo_cmd(command, &args, manifest_path.directory(), *verbosity, env);
-
-        invoke_cargo_and_scan_for_error(cargo)
+        execute_cargo(util::cargo_cmd(
+            command,
+            &args,
+            manifest_path.directory(),
+            *verbosity,
+            env,
+        ))
     };
 
     if unstable_flags.original_manifest {
@@ -433,7 +441,7 @@ fn check_buffer_size_invoke_cargo_clean(
                     "Detected a change in the configured buffer size. Rebuilding the project."
                         .bold()
                 );
-                invoke_cargo_and_scan_for_error(cargo)?;
+                execute_cargo(cargo)?;
             }
             Err(_) => {
                 verbose_eprintln!(
@@ -443,7 +451,7 @@ fn check_buffer_size_invoke_cargo_clean(
                     "Cannot find the previous size of the static buffer. Rebuilding the project."
                         .bold()
                 );
-                invoke_cargo_and_scan_for_error(cargo)?;
+                execute_cargo(cargo)?;
             }
         }
     }
@@ -452,59 +460,22 @@ fn check_buffer_size_invoke_cargo_clean(
 
 /// Executes the supplied cargo command, reading the output and scanning for known errors.
 /// Writes the captured stderr back to stderr and maintains the cargo tty progress bar.
-fn invoke_cargo_and_scan_for_error(cargo: duct::Expression) -> Result<()> {
-    macro_rules! eprintln_red {
-        ($value:expr) => {{
-            use colored::Colorize as _;
-            ::std::eprintln!("{}", $value.bright_red().bold());
-        }};
+fn execute_cargo(cargo: duct::Expression) -> Result<()> {
+    match cargo.unchecked().run() {
+        Ok(out) if out.status.success() => Ok(()),
+        Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),
+        Err(e) => anyhow::bail!("Cannot run `cargo` command: {:?}", e),
     }
-
-    // unchecked: Even capture output on non exit return status
-    let cargo = util::cargo_tty_output(cargo).unchecked();
-
-    let missing_main_err = "error[E0601]".as_bytes();
-    let mut err_buf = VecDeque::with_capacity(missing_main_err.len());
-
-    let mut reader = cargo.stderr_to_stdout().reader()?;
-    let mut buffer = [0u8; 1];
-
-    loop {
-        let bytes_read = io::Read::read(&mut reader, &mut buffer)?;
-        for byte in buffer[0..bytes_read].iter() {
-            err_buf.push_back(*byte);
-            if err_buf.len() > missing_main_err.len() {
-                let byte = err_buf.pop_front().expect("buffer is not empty");
-                io::Write::write(&mut io::stderr(), &[byte])?;
-            }
-        }
-        if missing_main_err == err_buf.make_contiguous() {
-            eprintln_red!("\nExited with error: [E0601]");
-            eprintln_red!(
-                "Your contract must be annotated with the `no_main` attribute.\n"
-            );
-            eprintln_red!("Examples how to do this:");
-            eprintln_red!("   - `#![cfg_attr(not(feature = \"std\"), no_std, no_main)]`");
-            eprintln_red!("   - `#[no_main]`\n");
-            return Err(anyhow::anyhow!("missing `no_main` attribute"))
-        }
-        if bytes_read == 0 {
-            // flush the remaining buffered bytes
-            io::Write::write(&mut io::stderr(), err_buf.make_contiguous())?;
-            break
-        }
-        buffer = [0u8; 1];
-    }
-    Ok(())
 }
 
-/// Run linting steps which include `clippy` (mandatory) + `dylint` (optional).
+/// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
+/// they're part of the compilation process and implement security-critical features.
 fn lint(
-    dylint: bool,
+    extra_lints: bool,
     crate_metadata: &CrateMetadata,
+    target: &Target,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    // mandatory: Always run clippy.
     verbose_eprintln!(
         verbosity,
         " {} {}",
@@ -513,16 +484,19 @@ fn lint(
     );
     exec_cargo_clippy(crate_metadata, *verbosity)?;
 
-    // optional: Dylint only on demand (for now).
-    if dylint {
+    // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
+    // it's required only for RiscV target. We're working on the toolchain integration
+    // and will make this step mandatory for all targets in future releases.
+    if extra_lints || matches!(target, Target::RiscV) {
         verbose_eprintln!(
             verbosity,
             " {} {}",
             "[==]".bold(),
             "Checking ink! linting rules".bright_green().bold()
         );
-        exec_cargo_dylint(crate_metadata, *verbosity)?;
+        exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
     }
+
     Ok(())
 }
 
@@ -537,7 +511,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         "-Dclippy::arithmetic_side_effects",
     ];
     // we execute clippy with the plain manifest no temp dir required
-    invoke_cargo_and_scan_for_error(util::cargo_cmd(
+    execute_cargo(util::cargo_cmd(
         "clippy",
         args,
         crate_metadata.manifest_path.directory(),
@@ -546,11 +520,25 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     ))
 }
 
+/// Returns a list of cargo options used for on-chain builds
+fn onchain_cargo_options(target: &Target) -> Vec<String> {
+    vec![
+        format!("--target={}", target.llvm_target()),
+        "-Zbuild-std=core,alloc".to_owned(),
+        "--no-default-features".to_owned(),
+    ]
+}
+
 /// Inject our custom lints into the manifest and execute `cargo dylint` .
 ///
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
-fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Result<()> {
+fn exec_cargo_dylint(
+    extra_lints: bool,
+    crate_metadata: &CrateMetadata,
+    target: &Target,
+    verbosity: Verbosity,
+) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
 
     // `dylint` is verbose by default, it doesn't have a `--verbose` argument,
@@ -559,8 +547,20 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
     };
 
+    let mut args = if extra_lints {
+        vec![
+            "--lib=ink_linting_mandatory".to_owned(),
+            "--lib=ink_linting".to_owned(),
+        ]
+    } else {
+        vec!["--lib=ink_linting_mandatory".to_owned()]
+    };
+    args.push("--".to_owned());
+    // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
+    // macros, as it does for the release build.
+    args.extend(onchain_cargo_options(target));
+
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let args = vec!["--lib=ink_linting"];
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
@@ -578,7 +578,7 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {
-            manifest.with_dylint()?.with_empty_workspace();
+            manifest.with_dylint()?;
             Ok(())
         })?
         .using_temp(|manifest_path| {
@@ -599,7 +599,8 @@ fn exec_cargo_dylint(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 /// Checks if all requirements for `dylint` are installed.
 ///
 /// We require both `cargo-dylint` and `dylint-link` because the driver is being
-/// built at runtime on demand.
+/// built at runtime on demand. These must be built using a custom version of the
+/// toolchain, as the linter utilizes the unstable rustc API.
 ///
 /// This function takes a `_working_dir` which is only used for unit tests.
 fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
@@ -620,6 +621,29 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             false
         })
     };
+
+    // Check if the required toolchain is present and is installed with `rustup`.
+    if let Ok(output) = Command::new("rustup").arg("toolchain").arg("list").output() {
+        anyhow::ensure!(
+            String::from_utf8_lossy(&output.stdout).contains(linting::TOOLCHAIN_VERSION),
+            format!(
+                "Toolchain `{0}` was not found!\n\
+                This specific version is required to provide additional source code analysis.\n\n
+                You can install it by executing `rustup install {0}`.",
+                linting::TOOLCHAIN_VERSION,
+            )
+            .to_string()
+            .bright_yellow());
+    } else {
+        anyhow::bail!(format!(
+            "Toolchain `{0}` was not found!\n\
+            This specific version is required to provide additional source code analysis.\n\n
+            Install `rustup` according to https://rustup.rs/ and then run: `rustup install {0}`.",
+            linting::TOOLCHAIN_VERSION,
+        )
+        .to_string()
+        .bright_yellow());
+    }
 
     // when testing this function we should never fall back to a `cargo` specified
     // in the env variable, as this would mess with the mocked binaries.
@@ -793,7 +817,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         build_artifact,
         unstable_flags,
         optimization_passes,
-        dylint,
+        extra_lints,
         output_type,
         target,
         ..
@@ -838,7 +862,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*dylint, &crate_metadata, verbosity)?;
+            lint(*extra_lints, &crate_metadata, target, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -912,7 +936,7 @@ fn local_build(
         network,
         unstable_flags,
         keep_debug_symbols,
-        dylint,
+        extra_lints,
         skip_wasm_validation,
         target,
         max_memory_pages,
@@ -921,7 +945,7 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*dylint, crate_metadata, verbosity)?;
+    lint(*extra_lints, crate_metadata, target, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 

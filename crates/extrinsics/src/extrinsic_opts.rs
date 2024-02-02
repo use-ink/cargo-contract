@@ -17,6 +17,7 @@
 use core::marker::PhantomData;
 
 use ink_env::Environment;
+use contract_build::Verbosity;
 use subxt_signer::{
     sr25519::Keypair,
     SecretUri,
@@ -47,6 +48,7 @@ pub struct ExtrinsicOpts<E: Environment> {
     url: url::Url,
     suri: String,
     storage_deposit_limit: Option<BalanceVariant<E::Balance>>,
+    verbosity: Verbosity,
 }
 
 /// Type state for the extrinsics' commands to tell that some mandatory state has not yet
@@ -136,6 +138,13 @@ impl<E: Environment, S> ExtrinsicOptsBuilder<E, S> {
         this.opts.storage_deposit_limit = storage_deposit_limit;
         this
     }
+
+    /// Set the verbosity level.
+    pub fn verbosity(self, verbosity: Verbosity) -> Self {
+        let mut this = self;
+        this.opts.verbosity = verbosity;
+        this
+    }
 }
 
 impl<E: Environment> ExtrinsicOptsBuilder<E, state::Suri>
@@ -162,6 +171,7 @@ where
                 url: url::Url::parse("ws://localhost:9944").unwrap(),
                 suri: String::new(),
                 storage_deposit_limit: None,
+                verbosity: Verbosity::Default,
             },
             marker: PhantomData,
         }
@@ -217,6 +227,11 @@ where
             .as_ref()
             .map(|bv| bv.denominate_balance(token_metadata))
             .transpose()?)
+    }
+
+    /// Verbosity for message reporting.
+    pub fn verbosity(&self) -> &Verbosity {
+        &self.verbosity
     }
 }
 

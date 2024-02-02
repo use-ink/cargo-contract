@@ -1,3 +1,8 @@
+use colored::Colorize;
+use contract_build::{
+    verbose_eprintln,
+    Verbosity,
+};
 use ink_metadata::InkProject;
 use scale_info::{
     form::PortableForm,
@@ -13,6 +18,7 @@ use anyhow::{
 
 fn get_node_env_fields(
     registry: &PortableRegistry,
+    verbosity: &Verbosity,
 ) -> Result<Option<Vec<Field<PortableForm>>>> {
     let Some(env_type) = registry.types.iter().find(|t| {
         let len = t.ty.path.segments.len();
@@ -20,9 +26,12 @@ fn get_node_env_fields(
         t.ty.path.segments[bound..] == ["pallet_contracts", "Environment"]
     }) else {
         // if we can't find the type, then we use the old contract version.
-        eprintln!(
-            "The targeted version of `pallet-contracts` does not contain the `Environment` type. \
-            Therefore the check for compatible types cannot be performed, and your types may not match those of the target node"
+        verbose_eprintln!(
+            verbosity,
+            "{} {}",
+            "Warning:".yellow().bold(),
+            "This chain does not yet support checking for compatibility of your contract types (https://use.ink/faq#type-comparison)."
+            .yellow()
         );
         return Ok(None)
     };
@@ -76,8 +85,9 @@ pub(crate) fn resolve_type_definition(
 pub fn compare_node_env_with_contract(
     node_registry: &PortableRegistry,
     contract_metadata: &InkProject,
+    verbosity: &Verbosity,
 ) -> Result<()> {
-    let Some(env_fields) = get_node_env_fields(node_registry)? else {
+    let Some(env_fields) = get_node_env_fields(node_registry, verbosity)? else {
         return Ok(())
     };
     for field in env_fields {
@@ -136,6 +146,7 @@ fn compare_type(
 
 #[cfg(test)]
 mod tests {
+    use contract_build::Verbosity;
     use ink_metadata::{
         layout::{
             Layout,
@@ -362,7 +373,8 @@ mod tests {
             Timestamp,
         >();
 
-        let valid = compare_node_env_with_contract(&portable, &ink_project);
+        let valid =
+            compare_node_env_with_contract(&portable, &ink_project, &Verbosity::Default);
         assert!(valid.is_ok(), "{}", valid.err().unwrap())
     }
 
@@ -376,7 +388,8 @@ mod tests {
         let ink_project =
             generate_contract_ink_project::<AccountId, Balance, BlockNumber, Hash, u8>();
 
-        let result = compare_node_env_with_contract(&portable, &ink_project);
+        let result =
+            compare_node_env_with_contract(&portable, &ink_project, &Verbosity::Default);
         assert_eq!(
             result.err().unwrap().to_string(),
             "Failed to validate the field: timestamp"

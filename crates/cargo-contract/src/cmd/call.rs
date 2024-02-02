@@ -40,12 +40,12 @@ use anyhow::{
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
+    pallet_contracts_primitives::StorageDeposit,
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
     DefaultConfig,
     ExtrinsicOptsBuilder,
-    StorageDeposit,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
@@ -96,6 +96,7 @@ impl CallCommand {
             .url(self.extrinsic_cli_opts.url.clone())
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
         let call_exec = CallCommandBuilder::default()
             .contract(self.contract.clone())
@@ -127,7 +128,7 @@ impl CallCommand {
                         data: value,
                         gas_consumed: result.gas_consumed,
                         gas_required: result.gas_required,
-                        storage_deposit: StorageDeposit::from(&result.storage_deposit),
+                        storage_deposit: result.storage_deposit.clone(),
                     };
                     if self.output_json() {
                         println!("{}", dry_run_result.to_json()?);
