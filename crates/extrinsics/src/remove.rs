@@ -179,7 +179,6 @@ where
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    //  E::Balance: From<u128>
 {
     /// Removes a contract code from the blockchain.
     ///

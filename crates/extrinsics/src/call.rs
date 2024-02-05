@@ -234,10 +234,7 @@ where
     }
 }
 
-pub struct CallExec<C: Config, E: Environment>
-where
-    E::Balance: From<u128>,
-{
+pub struct CallExec<C: Config, E: Environment> {
     contract: C::AccountId,
     message: String,
     args: Vec<String>,

@@ -139,7 +139,7 @@ where
     }
 }
 
-impl<C: Config, E: Environment, S> InstantiateCommandBuilder<C, E, S> {
+impl<C: Config, E: Environment, X> InstantiateCommandBuilder<C, E, X> {
     /// Sets the name of the contract constructor to call.
     pub fn constructor<T: Into<String>>(self, constructor: T) -> Self {
         let mut this = self;
