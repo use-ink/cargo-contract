@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<C: Config, E: Environment, T> RemoveCommandBuilder<C, E, T> {
+impl<C: Config, E: Environment, X> RemoveCommandBuilder<C, E, X> {
     /// Sets the hash of the smart contract code already uploaded to the chain.
     pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
         let mut this = self;

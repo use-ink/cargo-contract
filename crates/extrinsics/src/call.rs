@@ -88,7 +88,7 @@ where
     }
 }
 
-impl<C: Config, E: Environment, T> CallCommandBuilder<C, E, Missing<state::Message>, T>
+impl<C: Config, E: Environment, X> CallCommandBuilder<C, E, Missing<state::Message>, X>
 where
     E::Balance: FromStr + From<u128>,
 {
@@ -111,10 +111,10 @@ where
     }
 
     /// Sets the name of the contract message to call.
-    pub fn message<M: Into<String>>(
+    pub fn message<T: Into<String>>(
         self,
-        message: M,
-    ) -> CallCommandBuilder<C, E, state::Message, T> {
+        message: T,
+    ) -> CallCommandBuilder<C, E, state::Message, X> {
         CallCommandBuilder {
             opts: CallOpts {
                 message: message.into(),
@@ -293,7 +293,10 @@ where
     ///
     /// Returns the events generated from the contract call, or an error in case of
     /// failure.
-    pub async fn call(&self, gas_limit: Option<Weight>) -> Result<DisplayEvents, ErrorVariant> {
+    pub async fn call(
+        &self,
+        gas_limit: Option<Weight>,
+    ) -> Result<DisplayEvents, ErrorVariant> {
         if !self
             .transcoder()
             .metadata()
