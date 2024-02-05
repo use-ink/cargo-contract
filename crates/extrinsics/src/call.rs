@@ -293,7 +293,7 @@ where
     ///
     /// Returns the events generated from the contract call, or an error in case of
     /// failure.
-    pub async fn call(&self, gas_limit: Option<Weight>) -> Result<DisplayEvents> {
+    pub async fn call(&self, gas_limit: Option<Weight>) -> Result<DisplayEvents, ErrorVariant> {
         if !self
             .transcoder()
             .metadata()
