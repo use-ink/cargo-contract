@@ -270,3 +270,33 @@ pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId])
         .iter()
         .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
 }
+
+/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
+pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+    let bytes = contract_build::util::decode_hex(input)?;
+    if bytes.len() != 32 {
+        anyhow::bail!("Code hash should be 32 bytes in length")
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(arr.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_code_hash_works() {
+        // with 0x prefix
+        assert!(parse_code_hash(
+            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok());
+        // without 0x prefix
+        assert!(parse_code_hash(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok())
+    }
+}

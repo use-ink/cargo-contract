@@ -429,7 +429,7 @@ where
         code_hash: C::Hash,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        let call = Instantiate::<C, E>::new(
+        let call = Instantiate::<C::Hash, E::Balance>::new(
             self.args.value,
             gas_limit,
             self.args.storage_deposit_limit,

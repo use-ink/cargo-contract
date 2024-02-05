@@ -18,14 +18,12 @@ use crate::{
     upload::Determinism,
     WasmCode,
 };
-use ink_env::Environment;
 use subxt::{
     ext::{
         codec::Compact,
         scale_encode::EncodeAsType,
     },
     utils::MultiAddress,
-    Config,
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
@@ -142,29 +140,29 @@ impl<Balance> InstantiateWithCode<Balance> {
 
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
-#[encode_as_type(trait_bounds = "", crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate<C: Config, E: Environment>
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub(crate) struct Instantiate<Hash, Balance>
 where
-    C::Hash: EncodeAsType,
+    Hash: EncodeAsType,
 {
     #[codec(compact)]
-    value: E::Balance,
+    value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<E::Balance>>,
-    code_hash: C::Hash,
+    storage_deposit_limit: Option<Compact<Balance>>,
+    code_hash: Hash,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
 
-impl<C: Config, E: Environment> Instantiate<C, E>
+impl<Hash, Balance> Instantiate<Hash, Balance>
 where
-    C::Hash: EncodeAsType,
+    Hash: EncodeAsType,
 {
     pub fn new(
-        value: E::Balance,
+        value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<E::Balance>,
-        code_hash: C::Hash,
+        storage_deposit_limit: Option<Balance>,
+        code_hash: Hash,
         data: Vec<u8>,
         salt: Vec<u8>,
     ) -> Self {

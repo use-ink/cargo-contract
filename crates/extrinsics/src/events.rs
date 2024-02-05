@@ -195,7 +195,6 @@ impl DisplayEvents {
     ) -> Result<DisplayEvents>
     where
         C::AccountId: IntoVisitor,
-        // E::Balance: /*From<u128> +*/,
     {
         let mut events: Vec<Event> = vec![];
 

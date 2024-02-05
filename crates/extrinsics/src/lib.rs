@@ -107,7 +107,6 @@ pub use remove::{
     RemoveResult,
 };
 
-pub use subxt::PolkadotConfig as DefaultConfig;
 pub use upload::{
     UploadCommandBuilder,
     UploadExec,
@@ -118,9 +117,6 @@ pub use rpc::{
     RawParams,
     RpcRequest,
 };
-
-pub type Client = OnlineClient<DefaultConfig>;
-pub type CodeHash = <DefaultConfig as Config>::Hash;
 
 /// The Wasm code of a contract.
 #[derive(Debug, Clone)]
@@ -156,20 +152,20 @@ where
 ///
 /// Currently this will report success once the transaction is included in a block. In the
 /// future there could be a flag to wait for finality before reporting success.
-async fn submit_extrinsic<T, Call, Signer>(
-    client: &OnlineClient<T>,
-    rpc: &LegacyRpcMethods<T>,
+async fn submit_extrinsic<C, Call, Signer>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
     call: &Call,
     signer: &Signer,
-) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
+) -> core::result::Result<blocks::ExtrinsicEvents<C>, subxt::Error>
 where
-    T: Config,
+    C: Config,
     Call: tx::TxPayload,
-    Signer: tx::Signer<T>,
-    T::Signature: From<subxt_signer::sr25519::Signature>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T>>::OtherParams: Default,
-    T::Address: From<subxt_signer::sr25519::PublicKey>,
-    T::AccountId: From<subxt_signer::sr25519::PublicKey>,
+    Signer: tx::Signer<C>,
+    C::Signature: From<subxt_signer::sr25519::Signature>,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    C::Address: From<subxt_signer::sr25519::PublicKey>,
+    C::AccountId: From<subxt_signer::sr25519::PublicKey>,
 {
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
@@ -215,13 +211,13 @@ where
 }
 
 /// Return the account nonce at the *best* block for an account ID.
-async fn get_account_nonce<T>(
-    client: &OnlineClient<T>,
-    rpc: &LegacyRpcMethods<T>,
-    account_id: &T::AccountId,
+async fn get_account_nonce<C>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    account_id: &C::AccountId,
 ) -> core::result::Result<u64, subxt::Error>
 where
-    T: Config,
+    C: Config,
 {
     let best_block = rpc
         .chain_get_block_hash(None)
@@ -236,43 +232,38 @@ where
     Ok(account_nonce)
 }
 
-async fn state_call<C: Config, A: Encode, R: Decode>(
+async fn state_call<C, A: Encode, R: Decode>(
     rpc: &LegacyRpcMethods<C>,
     func: &str,
     args: A,
-) -> Result<R> {
+) -> Result<R>
+where
+    C: Config,
+{
     let params = args.encode();
     let bytes = rpc.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
-    let bytes = contract_build::util::decode_hex(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(arr.into())
-}
-
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
-async fn get_best_block<C: Config>(
+async fn get_best_block<C>(
     rpc: &LegacyRpcMethods<C>,
-) -> core::result::Result<C::Hash, subxt::Error> {
+) -> core::result::Result<C::Hash, subxt::Error>
+where
+    C: Config,
+{
     rpc.chain_get_block_hash(None)
         .await?
         .ok_or(subxt::Error::Other("Best block not found".into()))
 }
 
-fn check_env_types<T>(
-    client: &OnlineClient<T>,
+fn check_env_types<C>(
+    client: &OnlineClient<C>,
     transcoder: &ContractMessageTranscoder,
     verbosity: &Verbosity,
 ) -> Result<()>
 where
-    T: Config,
+    C: Config,
 {
     compare_node_env_with_contract(
         client.metadata().types(),
@@ -299,20 +290,6 @@ pub fn url_to_string(url: &url::Url) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parse_code_hash_works() {
-        // with 0x prefix
-        assert!(parse_code_hash(
-            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok());
-        // without 0x prefix
-        assert!(parse_code_hash(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok())
-    }
 
     #[test]
     fn url_to_string_works() {

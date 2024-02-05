@@ -17,18 +17,22 @@
 use crate::ErrorVariant;
 use std::fmt::Debug;
 
-use super::CLIExtrinsicOpts;
+use super::{
+    parse_code_hash,
+    CLIExtrinsicOpts,
+};
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    parse_code_hash,
-    DefaultConfig,
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
     RemoveExec,
 };
 use ink_env::DefaultEnvironment;
-use subxt::Config;
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]

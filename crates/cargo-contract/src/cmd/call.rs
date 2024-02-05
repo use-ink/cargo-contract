@@ -44,12 +44,14 @@ use contract_extrinsics::{
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
-    DefaultConfig,
     ExtrinsicOptsBuilder,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
-use subxt::Config;
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
