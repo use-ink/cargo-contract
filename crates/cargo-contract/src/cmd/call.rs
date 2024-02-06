@@ -95,8 +95,7 @@ impl CallCommand {
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
         let token_metadata =
-            TokenMetadata::query_url::<DefaultConfig>(&self.extrinsic_cli_opts.url)
-                .await?;
+            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
 
         let extrinsic_opts = ExtrinsicOptsBuilder::default()
             .file(self.extrinsic_cli_opts.file.clone())

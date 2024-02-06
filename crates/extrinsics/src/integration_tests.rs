@@ -16,6 +16,7 @@
 
 use crate::{
     CallCommandBuilder,
+    DisplayEvents,
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
     InstantiateExecResult,
@@ -534,7 +535,14 @@ async fn api_build_upload_instantiate_call() {
     let call_result = call.call(None).await;
     assert!(call_result.is_ok(), "call failed");
     let call_result = call_result.unwrap();
-    let output = call_result.to_json().unwrap();
+    let output = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
+        &call_result,
+        None,
+        &call.client().metadata(),
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
     assert!(output.contains("ExtrinsicSuccess"), "{:#?}", output);
 
     // call the contract
