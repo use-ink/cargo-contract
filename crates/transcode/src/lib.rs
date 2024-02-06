@@ -290,11 +290,14 @@ impl ContractMessageTranscoder {
             .find(|msg| msg.label() == &name.to_string())
     }
 
-    pub fn decode_contract_event(
+    pub fn decode_contract_event<Hash>(
         &self,
-        event_sig_topic: &primitive_types::H256,
+        event_sig_topic: &Hash,
         data: &mut &[u8],
-    ) -> Result<Value> {
+    ) -> Result<Value>
+    where
+        Hash: AsRef<[u8]>,
+    {
         // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
         // which we ignore because the structure of the event data is known for
         // decoding.
@@ -306,7 +309,7 @@ impl ContractMessageTranscoder {
             .iter()
             .find(|event| {
                 if let Some(sig_topic) = event.signature_topic() {
-                    sig_topic.as_bytes() == event_sig_topic.as_bytes()
+                    sig_topic.as_bytes() == event_sig_topic.as_ref()
                 } else {
                     false
                 }
@@ -498,6 +501,10 @@ impl CompositeTypeFields {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ink_env::{
+        DefaultEnvironment,
+        Environment,
+    };
     use primitive_types::H256;
     use scale::Encode;
     use scon::Value;
@@ -776,7 +783,7 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        let signature_topic: H256 =
+        let signature_topic: <DefaultEnvironment as Environment>::Hash =
             <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC
                 .unwrap()
                 .into();
@@ -799,7 +806,7 @@ mod tests {
             52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
             83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
         ];
-        let signature_topic: H256 =
+        let signature_topic: <DefaultEnvironment as Environment>::Hash =
             <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC
                 .unwrap()
                 .into();

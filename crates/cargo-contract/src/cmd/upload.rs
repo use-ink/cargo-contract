@@ -24,9 +24,17 @@ use super::{
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    Balance,
     ExtrinsicOptsBuilder,
     UploadCommandBuilder,
+    UploadExec,
+};
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
 };
 
 #[derive(Debug, clap::Args)]
@@ -53,10 +61,11 @@ impl UploadCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let upload_exec = UploadCommandBuilder::default()
-            .extrinsic_opts(extrinsic_opts)
-            .done()
-            .await?;
+        let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment> =
+            UploadCommandBuilder::default()
+                .extrinsic_opts(extrinsic_opts)
+                .done()
+                .await?;
 
         let code_hash = upload_exec.code().code_hash();
 
@@ -91,13 +100,13 @@ impl UploadCommand {
             let output_events = if self.output_json() {
                 display_events.to_json()?
             } else {
-                display_events.display_events(
+                display_events.display_events::<DefaultEnvironment>(
                     self.extrinsic_cli_opts.verbosity()?,
                     upload_exec.token_metadata(),
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
-                let code_hash = code_stored.code_hash;
+                let code_hash: <DefaultConfig as Config>::Hash = code_stored.code_hash;
                 if self.output_json() {
                     // Create a JSON object with the events and the code hash.
                     let json_object = serde_json::json!({
@@ -125,7 +134,7 @@ impl UploadCommand {
 pub struct UploadDryRunResult {
     pub result: String,
     pub code_hash: String,
-    pub deposit: Balance,
+    pub deposit: <DefaultEnvironment as Environment>::Balance,
 }
 
 impl UploadDryRunResult {

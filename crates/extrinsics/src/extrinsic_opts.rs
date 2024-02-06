@@ -17,6 +17,7 @@
 use core::marker::PhantomData;
 
 use contract_build::Verbosity;
+use ink_env::Environment;
 use subxt_signer::{
     sr25519::Keypair,
     SecretUri,
@@ -30,7 +31,6 @@ use anyhow::{
 
 use crate::{
     url_to_string,
-    Balance,
     BalanceVariant,
     ContractArtifacts,
     TokenMetadata,
@@ -42,12 +42,12 @@ use std::{
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug)]
-pub struct ExtrinsicOpts {
+pub struct ExtrinsicOpts<E: Environment> {
     file: Option<PathBuf>,
     manifest_path: Option<PathBuf>,
     url: url::Url,
     suri: String,
-    storage_deposit_limit: Option<BalanceVariant>,
+    storage_deposit_limit: Option<BalanceVariant<E::Balance>>,
     verbosity: Verbosity,
 }
 
@@ -68,14 +68,17 @@ pub mod state {
 }
 
 /// A builder for extrinsic options.
-pub struct ExtrinsicOptsBuilder<Suri> {
-    opts: ExtrinsicOpts,
+pub struct ExtrinsicOptsBuilder<E: Environment, Suri> {
+    opts: ExtrinsicOpts<E>,
     marker: PhantomData<fn() -> Suri>,
 }
 
-impl ExtrinsicOptsBuilder<Missing<state::Suri>> {
+impl<E: Environment> ExtrinsicOptsBuilder<E, Missing<state::Suri>>
+where
+    E::Balance: From<u128>,
+{
     /// Returns a clean builder for `ExtrinsicOpts`.
-    pub fn new() -> ExtrinsicOptsBuilder<Missing<state::Suri>> {
+    pub fn new() -> ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
         ExtrinsicOptsBuilder {
             opts: ExtrinsicOpts::default(),
             marker: PhantomData,
@@ -83,7 +86,7 @@ impl ExtrinsicOptsBuilder<Missing<state::Suri>> {
     }
 
     /// Sets the secret key URI for the account deploying the contract.
-    pub fn suri<T: Into<String>>(self, suri: T) -> ExtrinsicOptsBuilder<state::Suri> {
+    pub fn suri<T: Into<String>>(self, suri: T) -> ExtrinsicOptsBuilder<E, state::Suri> {
         ExtrinsicOptsBuilder {
             opts: ExtrinsicOpts {
                 suri: suri.into(),
@@ -94,13 +97,16 @@ impl ExtrinsicOptsBuilder<Missing<state::Suri>> {
     }
 }
 
-impl Default for ExtrinsicOptsBuilder<Missing<state::Suri>> {
+impl<E: Environment> Default for ExtrinsicOptsBuilder<E, Missing<state::Suri>>
+where
+    E::Balance: From<u128>,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S> ExtrinsicOptsBuilder<S> {
+impl<E: Environment, S> ExtrinsicOptsBuilder<E, S> {
     /// Sets the path to the contract build artifact file.
     pub fn file<T: Into<PathBuf>>(self, file: Option<T>) -> Self {
         let mut this = self;
@@ -126,7 +132,7 @@ impl<S> ExtrinsicOptsBuilder<S> {
     /// storage.
     pub fn storage_deposit_limit(
         self,
-        storage_deposit_limit: Option<BalanceVariant>,
+        storage_deposit_limit: Option<BalanceVariant<E::Balance>>,
     ) -> Self {
         let mut this = self;
         this.opts.storage_deposit_limit = storage_deposit_limit;
@@ -141,17 +147,23 @@ impl<S> ExtrinsicOptsBuilder<S> {
     }
 }
 
-impl ExtrinsicOptsBuilder<state::Suri> {
+impl<E: Environment> ExtrinsicOptsBuilder<E, state::Suri>
+where
+    E::Balance: From<u128>,
+{
     /// Finishes construction of the extrinsic options.
-    pub fn done(self) -> ExtrinsicOpts {
+    pub fn done(self) -> ExtrinsicOpts<E> {
         self.opts
     }
 }
 
 #[allow(clippy::new_ret_no_self)]
-impl ExtrinsicOpts {
+impl<E: Environment> ExtrinsicOpts<E>
+where
+    E::Balance: From<u128>,
+{
     /// Returns a clean builder for [`ExtrinsicOpts`].
-    pub fn new() -> ExtrinsicOptsBuilder<Missing<state::Suri>> {
+    pub fn new() -> ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
         ExtrinsicOptsBuilder {
             opts: Self {
                 file: None,
@@ -201,7 +213,7 @@ impl ExtrinsicOpts {
     }
 
     /// Return the storage deposit limit.
-    pub fn storage_deposit_limit(&self) -> Option<&BalanceVariant> {
+    pub fn storage_deposit_limit(&self) -> Option<&BalanceVariant<E::Balance>> {
         self.storage_deposit_limit.as_ref()
     }
 
@@ -209,7 +221,7 @@ impl ExtrinsicOpts {
     pub fn storage_deposit_limit_balance(
         &self,
         token_metadata: &TokenMetadata,
-    ) -> Result<Option<Balance>> {
+    ) -> Result<Option<E::Balance>> {
         Ok(self
             .storage_deposit_limit
             .as_ref()
@@ -223,7 +235,10 @@ impl ExtrinsicOpts {
     }
 }
 
-impl Default for ExtrinsicOpts {
+impl<E: Environment> Default for ExtrinsicOpts<E>
+where
+    E::Balance: From<u128>,
+{
     fn default() -> Self {
         ExtrinsicOpts::new().suri("Alice".to_string()).done()
     }

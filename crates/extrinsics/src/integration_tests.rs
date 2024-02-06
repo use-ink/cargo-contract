@@ -18,11 +18,15 @@ use crate::{
     CallCommandBuilder,
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
+    InstantiateExecResult,
     RemoveCommandBuilder,
+    RemoveExec,
     UploadCommandBuilder,
+    UploadExec,
 };
 use anyhow::Result;
 use contract_build::code_hash;
+use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -466,11 +470,12 @@ async fn api_build_upload_instantiate_call() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .done()
-        .await
-        .unwrap();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
+        UploadCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .done()
+            .await
+            .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     upload_result.unwrap();
@@ -485,13 +490,14 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result = instantiate_result.unwrap();
+    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+        instantiate_result.unwrap();
     let contract_account = instantiate_result.contract_address.to_string();
     assert_eq!(48, contract_account.len(), "{contract_account:?}");
 
     // call the contract
     // the value should be true
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -518,7 +524,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // flip the value
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("flip")
         .contract(instantiate_result.contract_address.clone())
@@ -533,7 +539,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // make sure the value has been flipped
-    let call = CallCommandBuilder::default()
+    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -592,11 +598,12 @@ async fn api_build_upload_remove() {
         .file(Some(contract_file))
         .suri("//Alice")
         .done();
-    let upload = UploadCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .done()
-        .await
-        .unwrap();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
+        UploadCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .done()
+            .await
+            .unwrap();
     let upload_result = upload.upload_code().await;
     assert!(upload_result.is_ok(), "upload code failed");
     let upload_result = upload_result.unwrap();
@@ -605,12 +612,13 @@ async fn api_build_upload_remove() {
     assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
-    let remove = RemoveCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .code_hash(Some(code_hash_h256))
-        .done()
-        .await
-        .unwrap();
+    let remove: RemoveExec<DefaultConfig, DefaultEnvironment> =
+        RemoveCommandBuilder::default()
+            .extrinsic_opts(opts.clone())
+            .code_hash(Some(code_hash_h256))
+            .done()
+            .await
+            .unwrap();
     let remove_result = remove.remove_code().await;
     assert!(remove_result.is_ok(), "remove code failed");
     remove_result.unwrap();

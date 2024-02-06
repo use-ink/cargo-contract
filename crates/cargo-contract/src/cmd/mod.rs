@@ -69,10 +69,13 @@ use contract_build::{
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
-    Balance,
     BalanceVariant,
 };
 use core::fmt;
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
 use std::io::{
     self,
     Write,
@@ -115,7 +118,8 @@ pub struct CLIExtrinsicOpts {
     /// The maximum amount of balance that can be charged from the caller to pay for the
     /// storage. consumed.
     #[clap(long)]
-    storage_deposit_limit: Option<BalanceVariant>,
+    storage_deposit_limit:
+        Option<BalanceVariant<<DefaultEnvironment as Environment>::Balance>>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -136,7 +140,7 @@ pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -161,7 +165,7 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
 }
 
 pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -228,7 +232,7 @@ pub fn print_gas_required_success(gas: Weight) {
 
 /// Display contract information in a formatted way
 pub fn basic_display_format_extended_contract_info<Hash>(
-    info: &ExtendedContractInfo<Hash, Balance>,
+    info: &ExtendedContractInfo<Hash, <DefaultEnvironment as Environment>::Balance>,
 ) where
     Hash: fmt::Debug,
 {
@@ -265,4 +269,34 @@ pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId])
     contracts
         .iter()
         .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
+}
+
+/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
+pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+    let bytes = contract_build::util::decode_hex(input)?;
+    if bytes.len() != 32 {
+        anyhow::bail!("Code hash should be 32 bytes in length")
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(arr.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_code_hash_works() {
+        // with 0x prefix
+        assert!(parse_code_hash(
+            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok());
+        // without 0x prefix
+        assert!(parse_code_hash(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_ok())
+    }
 }
