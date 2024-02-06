@@ -134,7 +134,7 @@ where
 
         let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
             (Some(code_h), _) => Ok(*code_h),
-            (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
+            (None, Some(_)) => artifacts.code_hash().map(Into::into),
             (None, None) => Err(anyhow::anyhow!(
                 "No code_hash was provided or contract code was not found from artifact \
                 file {}. Please provide a code hash with --code-hash argument or specify the \
