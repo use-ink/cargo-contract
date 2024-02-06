@@ -26,7 +26,10 @@ use rust_decimal::{
 };
 use serde_json::json;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
 };
 
@@ -35,6 +38,9 @@ use anyhow::{
     Context,
     Result,
 };
+use url::Url;
+
+use crate::url_to_string;
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,6 +78,12 @@ pub enum UnitPrefix {
 }
 
 impl TokenMetadata {
+    pub async fn query_url<C: Config>(url: &Url) -> Result<Self> {
+        let rpc_cli = RpcClient::from_url(url_to_string(url)).await?;
+        let rpc = LegacyRpcMethods::new(rpc_cli.clone());
+        Self::query::<C>(&rpc).await
+    }
+
     /// Query [TokenMetadata] through the node's RPC
     pub async fn query<C: Config>(client: &LegacyRpcMethods<C>) -> Result<Self> {
         let sys_props = client.system_properties().await?;

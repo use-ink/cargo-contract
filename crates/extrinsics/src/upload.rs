@@ -16,17 +16,13 @@
 
 use super::{
     account_id,
-    events::{
-        CodeStored,
-        DisplayEvents,
-    },
+    events::CodeStored,
     pallet_contracts_primitives::CodeUploadResult,
     state,
     state_call,
     submit_extrinsic,
     ErrorVariant,
     Missing,
-    TokenMetadata,
     WasmCode,
 };
 use crate::{
@@ -44,6 +40,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    blocks::ExtrinsicEvents,
     config,
     ext::{
         scale_decode::IntoVisitor,
@@ -64,10 +61,7 @@ pub struct UploadCommandBuilder<E: Environment, ExtrinsicOptions> {
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
-impl<E: Environment> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: From<u128>,
-{
+impl<E: Environment> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>> {
     /// Returns a clean builder for [`UploadExec`].
     pub fn new() -> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>> {
         UploadCommandBuilder {
@@ -90,19 +84,15 @@ where
     }
 }
 
-impl<E: Environment> Default for UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: From<u128>,
+impl<E: Environment> Default
+    for UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E: Environment> UploadCommandBuilder<E, state::ExtrinsicOptions>
-where
-    E::Balance: From<u128>,
-{
+impl<E: Environment> UploadCommandBuilder<E, state::ExtrinsicOptions> {
     /// Preprocesses contract artifacts and options for subsequent upload.
     ///
     /// This function prepares the necessary data for uploading a contract
@@ -131,15 +121,12 @@ where
         check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(&rpc).await?;
-
         Ok(UploadExec {
             opts: self.opts.extrinsic_opts.clone(),
             rpc,
             client,
             code,
             signer,
-            token_metadata,
             transcoder,
         })
     }
@@ -151,7 +138,6 @@ pub struct UploadExec<C: Config, E: Environment> {
     client: OnlineClient<C>,
     code: WasmCode,
     signer: Keypair,
-    token_metadata: TokenMetadata,
     transcoder: ContractMessageTranscoder,
 }
 
@@ -162,7 +148,6 @@ where
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    E::Balance: From<u128>,
 {
     /// Uploads contract code to a specified URL using a JSON-RPC call.
     ///
@@ -171,9 +156,7 @@ where
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CodeUploadRequest {
             origin: account_id::<C>(&self.signer),
             code: self.code.0.clone(),
@@ -189,10 +172,8 @@ where
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult<C::Hash>, ErrorVariant> {
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = UploadCode::new(
             self.code.clone(),
@@ -201,15 +182,13 @@ where
         )
         .build();
 
-        let result =
+        let events =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
-        let display_events =
-            DisplayEvents::from_events::<C, E>(&result, None, &self.client.metadata())?;
 
-        let code_stored = result.find_first::<CodeStored<C::Hash>>()?;
-        Ok(UploadResult::<C::Hash> {
+        let code_stored = events.find_first::<CodeStored<C::Hash>>()?;
+        Ok(UploadResult {
             code_stored,
-            display_events,
+            events,
         })
     }
 
@@ -233,11 +212,6 @@ where
         &self.signer
     }
 
-    /// Returns the token metadata.
-    pub fn token_metadata(&self) -> &TokenMetadata {
-        &self.token_metadata
-    }
-
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
@@ -253,9 +227,9 @@ struct CodeUploadRequest<AccountId, Balance> {
     determinism: Determinism,
 }
 
-pub struct UploadResult<Hash> {
-    pub code_stored: Option<CodeStored<Hash>>,
-    pub display_events: DisplayEvents,
+pub struct UploadResult<C: Config> {
+    pub code_stored: Option<CodeStored<C::Hash>>,
+    pub events: ExtrinsicEvents<C>,
 }
 
 /// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.

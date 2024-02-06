@@ -27,11 +27,9 @@ use super::{
     state,
     state_call,
     submit_extrinsic,
-    BalanceVariant,
     ContractMessageTranscoder,
     ErrorVariant,
     Missing,
-    TokenMetadata,
 };
 use crate::{
     check_env_types,
@@ -58,10 +56,7 @@ use scale::{
 };
 use sp_core::Bytes;
 use sp_weights::Weight;
-use std::{
-    fmt::Display,
-    str::FromStr,
-};
+use std::fmt::Display;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -81,7 +76,7 @@ struct InstantiateOpts<E: Environment> {
     constructor: String,
     args: Vec<String>,
     extrinsic_opts: ExtrinsicOpts<E>,
-    value: BalanceVariant<E::Balance>,
+    value: E::Balance,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     salt: Option<Bytes>,
@@ -96,7 +91,7 @@ pub struct InstantiateCommandBuilder<C: Config, E: Environment, ExtrinsicOptions
 impl<C: Config, E: Environment>
     InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
 where
-    E::Balance: From<u128> + FromStr,
+    E::Balance: Default,
 {
     /// Returns a clean builder for [`InstantiateExec`].
     pub fn new() -> InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
@@ -105,7 +100,7 @@ where
                 constructor: String::from("new"),
                 args: Vec::new(),
                 extrinsic_opts: ExtrinsicOpts::default(),
-                value: "0".parse().unwrap(),
+                value: Default::default(),
                 gas_limit: None,
                 proof_size: None,
                 salt: None,
@@ -132,7 +127,7 @@ where
 impl<C: Config, E: Environment> Default
     for InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
 where
-    E::Balance: From<u128> + FromStr,
+    E::Balance: Default,
 {
     fn default() -> Self {
         Self::new()
@@ -155,7 +150,7 @@ impl<C: Config, E: Environment, X> InstantiateCommandBuilder<C, E, X> {
     }
 
     /// Sets the initial balance to transfer to the instantiated contract.
-    pub fn value(self, value: BalanceVariant<E::Balance>) -> Self {
+    pub fn value(self, value: E::Balance) -> Self {
         let mut this = self;
         this.opts.value = value;
         this
@@ -186,7 +181,6 @@ impl<C: Config, E: Environment, X> InstantiateCommandBuilder<C, E, X> {
 impl<C: Config, E: Environment> InstantiateCommandBuilder<C, E, state::ExtrinsicOptions>
 where
     C::Hash: From<[u8; 32]>,
-    E::Balance: From<u128>,
 {
     /// Preprocesses contract artifacts and options for instantiation.
     ///
@@ -216,18 +210,13 @@ where
         check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(&rpc).await?;
-
         let args = InstantiateArgs {
             constructor: self.opts.constructor.clone(),
             raw_args: self.opts.args.clone(),
-            value: self.opts.value.denominate_balance(&token_metadata)?,
+            value: self.opts.value,
             gas_limit: self.opts.gas_limit,
             proof_size: self.opts.proof_size,
-            storage_deposit_limit: self
-                .opts
-                .extrinsic_opts
-                .storage_deposit_limit_balance(&token_metadata)?,
+            storage_deposit_limit: self.opts.extrinsic_opts.storage_deposit_limit(),
             code,
             data,
             salt,
@@ -241,7 +230,6 @@ where
             client,
             signer,
             transcoder,
-            token_metadata,
         })
     }
 }
@@ -312,7 +300,6 @@ pub struct InstantiateExec<C: Config, E: Environment> {
     client: OnlineClient<C>,
     signer: Keypair,
     transcoder: ContractMessageTranscoder,
-    token_metadata: TokenMetadata,
 }
 
 impl<C: Config, E: Environment> InstantiateExec<C, E>
@@ -403,24 +390,23 @@ where
         )
         .build();
 
-        let result =
+        let events =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
-        let code_hash = result
+        let code_hash = events
             .find_first::<CodeStored<C::Hash>>()?
             .map(|code_stored| code_stored.code_hash);
 
-        let instantiated = result
+        let instantiated = events
             .find_last::<ContractInstantiated<C::AccountId>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
-            result,
+            events,
             code_hash,
             contract_address: instantiated.contract,
-            token_metadata: self.token_metadata.clone(),
         })
     }
 
@@ -439,18 +425,17 @@ where
         )
         .build();
 
-        let result =
+        let events =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
-        let instantiated = result
+        let instantiated = events
             .find_first::<ContractInstantiated<C::AccountId>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
-            result,
+            events,
             code_hash: None,
             contract_address: instantiated.contract,
-            token_metadata: self.token_metadata.clone(),
         })
     }
 
@@ -552,10 +537,9 @@ where
 }
 
 pub struct InstantiateExecResult<C: Config> {
-    pub result: ExtrinsicEvents<C>,
+    pub events: ExtrinsicEvents<C>,
     pub code_hash: Option<C::Hash>,
     pub contract_address: C::AccountId,
-    pub token_metadata: TokenMetadata,
 }
 
 /// Result of the contract call

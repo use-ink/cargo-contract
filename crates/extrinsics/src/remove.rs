@@ -15,16 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::{
-        CodeRemoved,
-        DisplayEvents,
-    },
+    events::CodeRemoved,
     state,
     submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,
     Missing,
-    TokenMetadata,
 };
 use crate::{
     extrinsic_calls::RemoveCode,
@@ -39,6 +35,7 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    blocks::ExtrinsicEvents,
     config,
     ext::{
         scale_decode::IntoVisitor,
@@ -62,8 +59,6 @@ pub struct RemoveCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
 
 impl<C: Config, E: Environment>
     RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: From<u128>,
 {
     /// Returns a clean builder for [`RemoveExec`].
     pub fn new() -> RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
@@ -93,8 +88,6 @@ where
 
 impl<C: Config, E: Environment> Default
     for RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: From<u128>,
 {
     fn default() -> Self {
         Self::new()
@@ -113,7 +106,6 @@ impl<C: Config, E: Environment, X> RemoveCommandBuilder<C, E, X> {
 impl<C: Config, E: Environment> RemoveCommandBuilder<C, E, state::ExtrinsicOptions>
 where
     C::Hash: From<[u8; 32]>,
-    E::Balance: From<u128>,
 {
     /// Preprocesses contract artifacts and options for subsequent removal of contract
     /// code.
@@ -134,7 +126,7 @@ where
 
         let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
             (Some(code_h), _) => Ok(*code_h),
-            (None, Some(_)) => artifacts.code_hash().map(Into::into),
+            (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
             (None, None) => Err(anyhow::anyhow!(
                 "No code_hash was provided or contract code was not found from artifact \
                 file {}. Please provide a code hash with --code-hash argument or specify the \
@@ -148,8 +140,6 @@ where
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(&rpc).await?;
-
         Ok(RemoveExec {
             final_code_hash,
             opts: self.opts.extrinsic_opts.clone(),
@@ -157,7 +147,6 @@ where
             client,
             transcoder,
             signer,
-            token_metadata,
         })
     }
 }
@@ -169,7 +158,6 @@ pub struct RemoveExec<C: Config, E: Environment> {
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
-    token_metadata: TokenMetadata,
 }
 
 impl<C: Config, E: Environment> RemoveExec<C, E>
@@ -189,9 +177,7 @@ where
     ///
     /// Returns the `RemoveResult` containing the events generated from the contract
     /// code removal, or an error in case of failure.
-    pub async fn remove_code(
-        &self,
-    ) -> Result<RemoveResult<C::Hash, C::AccountId, E::Balance>, ErrorVariant>
+    pub async fn remove_code(&self) -> Result<RemoveResult<C, E>, ErrorVariant>
     where
         E::Balance: IntoVisitor + Into<u128>,
     {
@@ -199,19 +185,14 @@ where
 
         let call = RemoveCode::new(code_hash).build();
 
-        let result =
+        let events =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
-        let display_events = DisplayEvents::from_events::<C, E>(
-            &result,
-            Some(&self.transcoder),
-            &self.client.metadata(),
-        )?;
 
         let code_removed =
-            result.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
+            events.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
         Ok(RemoveResult {
             code_removed,
-            display_events,
+            events,
         })
     }
 
@@ -239,14 +220,9 @@ where
     pub fn signer(&self) -> &Keypair {
         &self.signer
     }
-
-    /// Returns the token metadata.
-    pub fn token_metadata(&self) -> &TokenMetadata {
-        &self.token_metadata
-    }
 }
 
-pub struct RemoveResult<Hash, AccountId, Balance> {
-    pub code_removed: Option<CodeRemoved<Hash, AccountId, Balance>>,
-    pub display_events: DisplayEvents,
+pub struct RemoveResult<C: Config, E: Environment> {
+    pub code_removed: Option<CodeRemoved<C::Hash, C::AccountId, E::Balance>>,
+    pub events: ExtrinsicEvents<C>,
 }

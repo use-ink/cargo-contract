@@ -16,16 +16,13 @@
 
 use super::{
     account_id,
-    events::DisplayEvents,
     pallet_contracts_primitives::ContractExecResult,
     state,
     state_call,
     submit_extrinsic,
-    BalanceVariant,
     ContractMessageTranscoder,
     ErrorVariant,
     Missing,
-    TokenMetadata,
 };
 use crate::{
     check_env_types,
@@ -43,12 +40,12 @@ use sp_weights::Weight;
 use subxt_signer::sr25519::Keypair;
 
 use core::marker::PhantomData;
-use std::str::FromStr;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    blocks::ExtrinsicEvents,
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -64,7 +61,7 @@ pub struct CallOpts<C: Config, E: Environment> {
     extrinsic_opts: ExtrinsicOpts<E>,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
-    value: BalanceVariant<E::Balance>,
+    value: E::Balance,
 }
 
 /// A builder for the call command.
@@ -81,7 +78,7 @@ impl<C: Config, E: Environment> Default
         Missing<state::ExtrinsicOptions>,
     >
 where
-    E::Balance: FromStr + From<u128>,
+    E::Balance: Default,
 {
     fn default() -> Self {
         Self::new()
@@ -90,7 +87,7 @@ where
 
 impl<C: Config, E: Environment, X> CallCommandBuilder<C, E, Missing<state::Message>, X>
 where
-    E::Balance: FromStr + From<u128>,
+    E::Balance: Default,
 {
     /// Returns a clean builder for [`CallExec`].
     pub fn new(
@@ -104,7 +101,7 @@ where
                 extrinsic_opts: ExtrinsicOpts::default(),
                 gas_limit: None,
                 proof_size: None,
-                value: "0".parse().unwrap(),
+                value: Default::default(),
             },
             marker: PhantomData,
         }
@@ -173,7 +170,7 @@ impl<C: Config, E: Environment, M, X> CallCommandBuilder<C, E, M, X> {
     }
 
     /// Sets the value to be transferred as part of the call.
-    pub fn value(self, value: BalanceVariant<E::Balance>) -> Self {
+    pub fn value(self, value: E::Balance) -> Self {
         let mut this = self;
         this.opts.value = value;
         this
@@ -184,7 +181,6 @@ impl<C: Config, E: Environment>
     CallCommandBuilder<C, E, state::Message, state::ExtrinsicOptions>
 where
     C::AccountId: IntoVisitor,
-    E::Balance: From<u128>,
 {
     /// Preprocesses contract artifacts and options for subsequent contract calls.
     ///
@@ -210,7 +206,6 @@ where
         let rpc = LegacyRpcMethods::new(rpc);
         check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
 
-        let token_metadata = TokenMetadata::query(&rpc).await?;
         let contract = self
             .opts
             .contract
@@ -223,13 +218,12 @@ where
             opts: self.opts.extrinsic_opts.clone(),
             gas_limit: self.opts.gas_limit,
             proof_size: self.opts.proof_size,
-            value: self.opts.value.clone(),
+            value: self.opts.value,
             rpc,
             client,
             transcoder,
             call_data,
             signer,
-            token_metadata,
         })
     }
 }
@@ -241,13 +235,12 @@ pub struct CallExec<C: Config, E: Environment> {
     opts: ExtrinsicOpts<E>,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
-    value: BalanceVariant<E::Balance>,
+    value: E::Balance,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
     call_data: Vec<u8>,
     signer: Keypair,
-    token_metadata: TokenMetadata,
 }
 
 impl<C: Config, E: Environment> CallExec<C, E>
@@ -256,7 +249,6 @@ where
     <C::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
     C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::AccountId: From<subxt_signer::sr25519::PublicKey> + EncodeAsType + IntoVisitor,
-    E::Balance: From<u128>,
 {
     /// Simulates a contract call without modifying the blockchain.
     ///
@@ -268,13 +260,11 @@ where
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance, ()>> {
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: account_id::<C>(&self.signer),
             dest: self.contract.clone(),
-            value: self.value.denominate_balance(&self.token_metadata)?,
+            value: self.value,
             gas_limit: None,
             storage_deposit_limit,
             input_data: self.call_data.clone(),
@@ -293,7 +283,7 @@ where
     pub async fn call(
         &self,
         gas_limit: Option<Weight>,
-    ) -> Result<DisplayEvents, ErrorVariant> {
+    ) -> Result<ExtrinsicEvents<C>, ErrorVariant> {
         if !self
             .transcoder()
             .metadata()
@@ -317,13 +307,11 @@ where
             None => self.estimate_gas().await?,
         };
         tracing::debug!("calling contract {:?}", self.contract);
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = Call::new(
             self.contract.clone().into(),
-            self.value.denominate_balance(&self.token_metadata)?,
+            self.value,
             gas_limit,
             storage_deposit_limit,
             self.call_data.clone(),
@@ -333,13 +321,7 @@ where
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
 
-        let display_events = DisplayEvents::from_events::<C, E>(
-            &result,
-            Some(&self.transcoder),
-            &self.client.metadata(),
-        )?;
-
-        Ok(display_events)
+        Ok(result)
     }
 
     /// Estimates the gas required for a contract call without modifying the blockchain.
@@ -412,7 +394,7 @@ where
     }
 
     /// Returns the value to be transferred as part of the call.
-    pub fn value(&self) -> &BalanceVariant<E::Balance> {
+    pub fn value(&self) -> &E::Balance {
         &self.value
     }
 
@@ -434,11 +416,6 @@ where
     /// Returns the signer.
     pub fn signer(&self) -> &Keypair {
         &self.signer
-    }
-
-    /// Returns the token metadata.
-    pub fn token_metadata(&self) -> &TokenMetadata {
-        &self.token_metadata
     }
 }
 

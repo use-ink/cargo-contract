@@ -44,7 +44,9 @@ use contract_extrinsics::{
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
+    DisplayEvents,
     ExtrinsicOptsBuilder,
+    TokenMetadata,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
@@ -92,12 +94,22 @@ impl CallCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        let token_metadata =
+            TokenMetadata::query_url::<DefaultConfig>(&self.extrinsic_cli_opts.url)
+                .await?;
+
         let extrinsic_opts = ExtrinsicOptsBuilder::default()
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .suri(self.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .storage_deposit_limit(
+                self.extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+            )
             .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
         let call_exec = CallCommandBuilder::default()
@@ -107,9 +119,10 @@ impl CallCommand {
             .extrinsic_opts(extrinsic_opts)
             .gas_limit(self.gas_limit)
             .proof_size(self.proof_size)
-            .value(self.value.clone())
+            .value(self.value.denominate_balance(&token_metadata)?)
             .done()
             .await?;
+        let metadata = call_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {
             let result = call_exec.call_dry_run().await?;
@@ -143,7 +156,6 @@ impl CallCommand {
                     };
                 }
                 Err(ref err) => {
-                    let metadata = call_exec.client().metadata();
                     let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                     if self.output_json() {
                         return Err(object)
@@ -179,13 +191,18 @@ impl CallCommand {
                     );
                 })?;
             }
-            let display_events = call_exec.call(Some(gas_limit)).await?;
+            let events = call_exec.call(Some(gas_limit)).await?;
+            let display_events = DisplayEvents::from_events::<
+                DefaultConfig,
+                DefaultEnvironment,
+            >(&events, None, &metadata)?;
+
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {
                 display_events.display_events::<DefaultEnvironment>(
                     self.extrinsic_cli_opts.verbosity().unwrap(),
-                    call_exec.token_metadata(),
+                    &token_metadata,
                 )?
             };
             println!("{output}");

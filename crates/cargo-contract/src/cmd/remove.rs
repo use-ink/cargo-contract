@@ -24,9 +24,11 @@ use super::{
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
+    DisplayEvents,
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
     RemoveExec,
+    TokenMetadata,
 };
 use ink_env::DefaultEnvironment;
 use subxt::{
@@ -54,12 +56,22 @@ impl RemoveCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        let token_metadata =
+            TokenMetadata::query_url::<DefaultConfig>(&self.extrinsic_cli_opts.url)
+                .await?;
+
         let extrinsic_opts = ExtrinsicOptsBuilder::default()
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .suri(self.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .storage_deposit_limit(
+                self.extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+            )
             .done();
         let remove_exec: RemoveExec<DefaultConfig, DefaultEnvironment> =
             RemoveCommandBuilder::default()
@@ -68,13 +80,18 @@ impl RemoveCommand {
                 .done()
                 .await?;
         let remove_result = remove_exec.remove_code().await?;
-        let display_events = remove_result.display_events;
+        let display_events =
+            DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
+                &remove_result.events,
+                Some(remove_exec.transcoder()),
+                &remove_exec.client().metadata(),
+            )?;
         let output_events = if self.output_json() {
             display_events.to_json()?
         } else {
             display_events.display_events::<DefaultEnvironment>(
                 self.extrinsic_cli_opts.verbosity().unwrap(),
-                remove_exec.token_metadata(),
+                &token_metadata,
             )?
         };
         if let Some(code_removed) = remove_result.code_removed {

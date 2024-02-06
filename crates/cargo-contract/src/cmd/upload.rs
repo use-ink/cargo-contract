@@ -24,7 +24,9 @@ use super::{
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
+    DisplayEvents,
     ExtrinsicOptsBuilder,
+    TokenMetadata,
     UploadCommandBuilder,
     UploadExec,
 };
@@ -54,12 +56,22 @@ impl UploadCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        let token_metadata =
+            TokenMetadata::query_url::<DefaultConfig>(&self.extrinsic_cli_opts.url)
+                .await?;
+
         let extrinsic_opts = ExtrinsicOptsBuilder::default()
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .suri(self.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .storage_deposit_limit(
+                self.extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+            )
             .done();
         let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment> =
             UploadCommandBuilder::default()
@@ -68,6 +80,7 @@ impl UploadCommand {
                 .await?;
 
         let code_hash = upload_exec.code().code_hash();
+        let metadata = upload_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {
             match upload_exec.upload_code_rpc().await? {
@@ -85,7 +98,6 @@ impl UploadCommand {
                     }
                 }
                 Err(err) => {
-                    let metadata = upload_exec.client().metadata();
                     let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                     if self.output_json() {
                         return Err(err)
@@ -96,13 +108,16 @@ impl UploadCommand {
             }
         } else {
             let upload_result = upload_exec.upload_code().await?;
-            let display_events = upload_result.display_events;
+            let display_events = DisplayEvents::from_events::<
+                DefaultConfig,
+                DefaultEnvironment,
+            >(&upload_result.events, None, &metadata)?;
             let output_events = if self.output_json() {
                 display_events.to_json()?
             } else {
                 display_events.display_events::<DefaultEnvironment>(
                     self.extrinsic_cli_opts.verbosity()?,
-                    upload_exec.token_metadata(),
+                    &token_metadata,
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
