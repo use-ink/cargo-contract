@@ -180,7 +180,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2024-02-07
+          toolchain: nightly-2023-12-28
           components: cargo-dylint, dylint-link
 
       - name: Install stable toolchain
@@ -199,6 +199,8 @@ jobs:
           cargo -vV &&
           cargo run --profile debug-ci -- contract --version &&
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
-          cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          # Disable linting due to issue with stdismd
+          #cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
