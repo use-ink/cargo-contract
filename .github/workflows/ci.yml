@@ -181,7 +181,6 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly-2023-12-28
-          components: cargo-dylint, dylint-link
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -189,7 +188,7 @@ jobs:
           profile: minimal
           toolchain: stable
           default: true
-          components: rust-src
+          components: rust-src, cargo-dylint, dylint-link
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
