@@ -227,6 +227,7 @@ struct CodeUploadRequest<AccountId, Balance> {
     determinism: Determinism,
 }
 
+/// A struct representing the result of an upload command execution.
 pub struct UploadResult<C: Config> {
     pub code_stored: Option<CodeStored<C::Hash>>,
     pub events: ExtrinsicEvents<C>,

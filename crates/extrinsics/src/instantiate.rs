@@ -536,6 +536,7 @@ where
     }
 }
 
+/// A struct representing the result of an instantiate command execution.
 pub struct InstantiateExecResult<C: Config> {
     pub events: ExtrinsicEvents<C>,
     pub code_hash: Option<C::Hash>,

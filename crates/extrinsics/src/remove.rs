@@ -222,6 +222,7 @@ where
     }
 }
 
+/// A struct representing the result of an remove command execution.
 pub struct RemoveResult<C: Config, E: Environment> {
     pub code_removed: Option<CodeRemoved<C::Hash, C::AccountId, E::Balance>>,
     pub events: ExtrinsicEvents<C>,
