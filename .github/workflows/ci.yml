@@ -188,6 +188,7 @@ jobs:
           profile: minimal
           toolchain: stable
           default: true
+          components: rust-src
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
