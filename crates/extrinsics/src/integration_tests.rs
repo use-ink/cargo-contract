@@ -16,6 +16,7 @@
 
 use crate::{
     CallCommandBuilder,
+    CallExec,
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
     InstantiateExecResult,
@@ -497,7 +498,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // the value should be true
-    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
+    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
@@ -524,7 +525,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // flip the value
-    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
+    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("flip")
         .contract(instantiate_result.contract_address.clone())
@@ -539,7 +540,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // make sure the value has been flipped
-    let call = CallCommandBuilder::<DefaultConfig, DefaultEnvironment, _, _>::default()
+    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
         .extrinsic_opts(opts.clone())
         .message("get")
         .contract(instantiate_result.contract_address.clone())
