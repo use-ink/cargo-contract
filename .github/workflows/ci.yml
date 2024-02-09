@@ -176,14 +176,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install stable toolchain
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly-2023-12-28
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
           default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+          components: rust-src
 
       - name: Cache
         uses: Swatinem/rust-cache@v2

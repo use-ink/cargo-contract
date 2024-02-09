@@ -120,7 +120,7 @@ pub(crate) mod linting {
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/paritytech/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "1c029a153ead15cd0bd76631613967c9e679e0c1";
+    pub const GIT_REV: &str = "b6880dd9384e09ec4e7ad65453cd844113e8a316";
 }
 
 /// Arguments to use when executing `build` or `check` commands.

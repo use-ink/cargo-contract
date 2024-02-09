@@ -204,7 +204,7 @@ impl Mapping {
     }
 
     /// Iterate all key-value pairs.
-    pub fn iter(&self) -> impl Iterator<Item = &(Value, Value)> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &(Value, Value)> {
         self.map.iter()
     }
 }
