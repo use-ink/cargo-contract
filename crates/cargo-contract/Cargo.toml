@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "4.0.0-rc.1"
+version = "4.0.0-rc.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,11 +18,11 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "4.0.0-rc.1", path = "../build" }
-contract-extrinsics = { version = "4.0.0-rc.1", path = "../extrinsics" }
-contract-transcode = { version = "4.0.0-rc.1", path = "../transcode" }
-contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
-contract-analyze = { version = "4.0.0-rc.1", path = "../analyze" }
+contract-build = { version = "4.0.0-rc.2", path = "../build" }
+contract-extrinsics = { version = "4.0.0-rc.2", path = "../extrinsics" }
+contract-transcode = { version = "4.0.0-rc.2", path = "../transcode" }
+contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
+contract-analyze = { version = "4.0.0-rc.2", path = "../analyze" }
 
 anyhow = "1.0.79"
 clap = { version = "4.4.18", features = ["derive", "env"] }
@@ -37,8 +37,8 @@ url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
 schemars = "0.8"
-ink_metadata = "5.0.0-rc"
-ink_env = "5.0.0-rc"
+ink_metadata = "5.0.0-rc.1"
+ink_env = "5.0.0-rc.1"
 comfy-table = "7.1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
@@ -58,7 +58,7 @@ which = "6.0.0"
 assert_cmd = "2.0.13"
 regex = "1.10.3"
 predicates = "3.1.0"
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
