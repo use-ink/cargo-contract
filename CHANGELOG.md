@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-rc.2]
+
 ### Added
 - Improved error message for Strings as CLI arguments - [#1492](https://github.com/paritytech/cargo-contract/pull/1492)
 - Add a user-friendly view of contract storage data in the form of a table - [#1414](https://github.com/paritytech/cargo-contract/pull/1414)

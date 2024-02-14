@@ -176,23 +176,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2023-12-28
+
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2024-01-23
+          toolchain: stable
           default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+          components: rust-src
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
       - name: Check Template
         run: >-
+          # The linter requires two crates
+          cargo install cargo-dylint dylint-link
           cargo -vV &&
           cargo run --profile debug-ci -- contract --version &&
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          # Build with linting
+          cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release

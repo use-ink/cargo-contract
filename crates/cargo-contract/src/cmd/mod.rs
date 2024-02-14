@@ -299,4 +299,22 @@ mod tests {
         )
         .is_ok())
     }
+
+    #[test]
+    fn parse_incorrect_len_code_hash_fails() {
+        // with len not equal to 32
+        assert!(parse_code_hash(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
+        )
+        .is_err())
+    }
+
+    #[test]
+    fn parse_bad_format_code_hash_fails() {
+        // with bad format
+        assert!(parse_code_hash(
+            "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        )
+        .is_err())
+    }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "4.0.0-rc.1"
+version = "4.0.0-rc.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -26,13 +26,13 @@ hex = "0.4.3"
 impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-toml = "0.8.9"
+toml = "0.8.10"
 tracing = "0.1.40"
 parity-wasm = { version = "0.45.0"}
 semver = { version = "1.0.21", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1.0.113"
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 term_size = "0.3.2"
 url = { version = "2.5.0", features = ["serde"] }
 wasm-opt = { version = "=0.116.0", default-features = false }
@@ -44,7 +44,7 @@ tokio-stream = "0.1"
 bollard = "0.15"
 crossterm = "0.27.0"
 
-contract-metadata = { version = "4.0.0-rc.1", path = "../metadata" }
+contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
 
 [target.'cfg(unix)'.dependencies]
 uzers = "0.11"
