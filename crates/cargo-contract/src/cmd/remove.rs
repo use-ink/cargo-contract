@@ -17,16 +17,22 @@
 use crate::ErrorVariant;
 use std::fmt::Debug;
 
-use super::CLIExtrinsicOpts;
+use super::{
+    parse_code_hash,
+    CLIExtrinsicOpts,
+};
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    parse_code_hash,
-    DefaultConfig,
     ExtrinsicOptsBuilder,
     RemoveCommandBuilder,
+    RemoveExec,
 };
-use subxt::Config;
+use ink_env::DefaultEnvironment;
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
@@ -55,23 +61,24 @@ impl RemoveCommand {
             .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
             .done();
-        let remove_exec = RemoveCommandBuilder::default()
-            .code_hash(self.code_hash)
-            .extrinsic_opts(extrinsic_opts)
-            .done()
-            .await?;
+        let remove_exec: RemoveExec<DefaultConfig, DefaultEnvironment> =
+            RemoveCommandBuilder::default()
+                .code_hash(self.code_hash)
+                .extrinsic_opts(extrinsic_opts)
+                .done()
+                .await?;
         let remove_result = remove_exec.remove_code().await?;
         let display_events = remove_result.display_events;
         let output_events = if self.output_json() {
             display_events.to_json()?
         } else {
-            display_events.display_events(
+            display_events.display_events::<DefaultEnvironment>(
                 self.extrinsic_cli_opts.verbosity().unwrap(),
                 remove_exec.token_metadata(),
             )?
         };
         if let Some(code_removed) = remove_result.code_removed {
-            let remove_result = code_removed.code_hash;
+            let remove_result: <DefaultConfig as Config>::Hash = code_removed.code_hash;
 
             if self.output_json() {
                 // Create a JSON object with the events and the removed code hash.

@@ -17,6 +17,10 @@
 use crate::ErrorVariant;
 
 use contract_build::util::DEFAULT_KEY_COL_WIDTH;
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
 use std::fmt::Debug;
 
 use super::{
@@ -26,7 +30,6 @@ use super::{
     print_dry_running_status,
     print_gas_required_success,
     prompt_confirm_tx,
-    Balance,
     CLIExtrinsicOpts,
     MAX_KEY_COL_WIDTH,
 };
@@ -41,12 +44,14 @@ use contract_extrinsics::{
     BalanceVariant,
     CallCommandBuilder,
     CallExec,
-    DefaultConfig,
     ExtrinsicOptsBuilder,
 };
 use contract_transcode::Value;
 use sp_weights::Weight;
-use subxt::Config;
+use subxt::{
+    Config,
+    PolkadotConfig as DefaultConfig,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
@@ -74,7 +79,7 @@ pub struct CallCommand {
     proof_size: Option<u64>,
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, default_value = "0")]
-    value: BalanceVariant,
+    value: BalanceVariant<<DefaultEnvironment as Environment>::Balance>,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
@@ -178,7 +183,7 @@ impl CallCommand {
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {
-                display_events.display_events(
+                display_events.display_events::<DefaultEnvironment>(
                     self.extrinsic_cli_opts.verbosity().unwrap(),
                     call_exec.token_metadata(),
                 )?
@@ -191,7 +196,7 @@ impl CallCommand {
 
 /// A helper function to estimate the gas required for a contract call.
 async fn pre_submit_dry_run_gas_estimate_call(
-    call_exec: &CallExec,
+    call_exec: &CallExec<DefaultConfig, DefaultEnvironment>,
     output_json: bool,
     skip_dry_run: bool,
 ) -> Result<Weight> {
@@ -247,7 +252,7 @@ pub struct CallDryRunResult {
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<Balance>,
+    pub storage_deposit: StorageDeposit<<DefaultEnvironment as Environment>::Balance>,
 }
 
 impl CallDryRunResult {

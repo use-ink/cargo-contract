@@ -14,11 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    Balance,
-    CodeHash,
-    DefaultConfig,
-};
 use crate::{
     upload::Determinism,
     WasmCode,
@@ -29,7 +24,6 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     utils::MultiAddress,
-    Config,
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
@@ -66,12 +60,12 @@ impl core::fmt::Display for Weight {
 /// A raw call to `pallet-contracts`'s `remove_code`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct RemoveCode {
-    code_hash: CodeHash,
+pub(crate) struct RemoveCode<Hash> {
+    code_hash: Hash,
 }
 
-impl RemoveCode {
-    pub fn new(code_hash: CodeHash) -> Self {
+impl<Hash> RemoveCode<Hash> {
+    pub fn new(code_hash: Hash) -> Self {
         Self { code_hash }
     }
 
@@ -83,13 +77,13 @@ impl RemoveCode {
 /// A raw call to `pallet-contracts`'s `upload_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct UploadCode {
+pub(crate) struct UploadCode<Balance> {
     code: Vec<u8>,
     storage_deposit_limit: Option<Compact<Balance>>,
     determinism: Determinism,
 }
 
-impl UploadCode {
+impl<Balance> UploadCode<Balance> {
     pub fn new(
         code: WasmCode,
         storage_deposit_limit: Option<Balance>,
@@ -110,7 +104,7 @@ impl UploadCode {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct InstantiateWithCode {
+pub(crate) struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
@@ -120,7 +114,7 @@ pub(crate) struct InstantiateWithCode {
     salt: Vec<u8>,
 }
 
-impl InstantiateWithCode {
+impl<Balance> InstantiateWithCode<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
@@ -147,22 +141,28 @@ impl InstantiateWithCode {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate {
+pub(crate) struct Instantiate<Hash, Balance>
+where
+    Hash: EncodeAsType,
+{
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
-    code_hash: CodeHash,
+    code_hash: Hash,
     data: Vec<u8>,
     salt: Vec<u8>,
 }
 
-impl Instantiate {
+impl<Hash, Balance> Instantiate<Hash, Balance>
+where
+    Hash: EncodeAsType,
+{
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
         storage_deposit_limit: Option<Balance>,
-        code_hash: CodeHash,
+        code_hash: Hash,
         data: Vec<u8>,
         salt: Vec<u8>,
     ) -> Self {
@@ -184,8 +184,8 @@ impl Instantiate {
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Call {
-    dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
+pub(crate) struct Call<AccountId, Balance> {
+    dest: MultiAddress<AccountId, ()>,
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
@@ -193,9 +193,9 @@ pub(crate) struct Call {
     data: Vec<u8>,
 }
 
-impl Call {
+impl<AccountId, Balance> Call<AccountId, Balance> {
     pub fn new(
-        dest: MultiAddress<<DefaultConfig as Config>::AccountId, ()>,
+        dest: MultiAddress<AccountId, ()>,
         value: Balance,
         gas_limit: sp_weights::Weight,
         storage_deposit_limit: Option<Balance>,

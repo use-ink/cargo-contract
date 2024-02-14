@@ -21,10 +21,7 @@ use super::{
     },
     state,
     submit_extrinsic,
-    Client,
-    CodeHash,
     ContractMessageTranscoder,
-    DefaultConfig,
     ErrorVariant,
     Missing,
     TokenMetadata,
@@ -36,30 +33,40 @@ use crate::{
 
 use anyhow::Result;
 use core::marker::PhantomData;
+use ink_env::Environment;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
+    },
+    config,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
     },
     Config,
     OnlineClient,
 };
 use subxt_signer::sr25519::Keypair;
 
-pub struct RemoveOpts {
-    code_hash: Option<CodeHash>,
-    extrinsic_opts: ExtrinsicOpts,
+pub struct RemoveOpts<Hash, E: Environment> {
+    code_hash: Option<Hash>,
+    extrinsic_opts: ExtrinsicOpts<E>,
 }
 
 /// A builder for the remove command.
-pub struct RemoveCommandBuilder<ExtrinsicOptions> {
-    opts: RemoveOpts,
+pub struct RemoveCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
+    opts: RemoveOpts<C::Hash, E>,
     marker: PhantomData<fn() -> ExtrinsicOptions>,
 }
 
-impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<C: Config, E: Environment>
+    RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128>,
+{
     /// Returns a clean builder for [`RemoveExec`].
-    pub fn new() -> RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+    pub fn new() -> RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
         RemoveCommandBuilder {
             opts: RemoveOpts {
                 code_hash: None,
@@ -72,8 +79,8 @@ impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
     /// Sets the extrinsic operation.
     pub fn extrinsic_opts(
         self,
-        extrinsic_opts: ExtrinsicOpts,
-    ) -> RemoveCommandBuilder<state::ExtrinsicOptions> {
+        extrinsic_opts: ExtrinsicOpts<E>,
+    ) -> RemoveCommandBuilder<C, E, state::ExtrinsicOptions> {
         RemoveCommandBuilder {
             opts: RemoveOpts {
                 extrinsic_opts,
@@ -84,22 +91,30 @@ impl RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
     }
 }
 
-impl Default for RemoveCommandBuilder<Missing<state::ExtrinsicOptions>> {
+impl<C: Config, E: Environment> Default
+    for RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+where
+    E::Balance: From<u128>,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E> RemoveCommandBuilder<E> {
+impl<C: Config, E: Environment, X> RemoveCommandBuilder<C, E, X> {
     /// Sets the hash of the smart contract code already uploaded to the chain.
-    pub fn code_hash(self, code_hash: Option<<DefaultConfig as Config>::Hash>) -> Self {
+    pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
         let mut this = self;
         this.opts.code_hash = code_hash;
         this
     }
 }
 
-impl RemoveCommandBuilder<state::ExtrinsicOptions> {
+impl<C: Config, E: Environment> RemoveCommandBuilder<C, E, state::ExtrinsicOptions>
+where
+    C::Hash: From<[u8; 32]>,
+    E::Balance: From<u128>,
+{
     /// Preprocesses contract artifacts and options for subsequent removal of contract
     /// code.
     ///
@@ -110,7 +125,7 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
     ///
     /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
-    pub async fn done(self) -> Result<RemoveExec> {
+    pub async fn done(self) -> Result<RemoveExec<C, E>> {
         let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let signer = self.opts.extrinsic_opts.signer()?;
@@ -118,8 +133,8 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
         let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
-            (Some(code_h), _) => Ok(code_h.0),
-            (None, Some(_)) => artifacts.code_hash(),
+            (Some(code_h), _) => Ok(*code_h),
+            (None, Some(_)) => artifacts.code_hash().map(Into::into),
             (None, None) => Err(anyhow::anyhow!(
                 "No code_hash was provided or contract code was not found from artifact \
                 file {}. Please provide a code hash with --code-hash argument or specify the \
@@ -130,8 +145,8 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
 
         let url = self.opts.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
-        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        let rpc = LegacyRpcMethods::new(rpc_cli);
+        let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::<C>::new(rpc_cli);
 
         let token_metadata = TokenMetadata::query(&rpc).await?;
 
@@ -147,17 +162,24 @@ impl RemoveCommandBuilder<state::ExtrinsicOptions> {
     }
 }
 
-pub struct RemoveExec {
-    final_code_hash: [u8; 32],
-    opts: ExtrinsicOpts,
-    rpc: LegacyRpcMethods<DefaultConfig>,
-    client: Client,
+pub struct RemoveExec<C: Config, E: Environment> {
+    final_code_hash: C::Hash,
+    opts: ExtrinsicOpts<E>,
+    rpc: LegacyRpcMethods<C>,
+    client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
     signer: Keypair,
     token_metadata: TokenMetadata,
 }
 
-impl RemoveExec {
+impl<C: Config, E: Environment> RemoveExec<C, E>
+where
+    C::Hash: IntoVisitor + EncodeAsType,
+    C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
+    C::Address: From<subxt_signer::sr25519::PublicKey>,
+    C::Signature: From<subxt_signer::sr25519::Signature>,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+{
     /// Removes a contract code from the blockchain.
     ///
     /// This function removes a contract code with the specified code hash from the
@@ -167,20 +189,26 @@ impl RemoveExec {
     ///
     /// Returns the `RemoveResult` containing the events generated from the contract
     /// code removal, or an error in case of failure.
-    pub async fn remove_code(&self) -> Result<RemoveResult, ErrorVariant> {
-        let code_hash = sp_core::H256(self.final_code_hash);
+    pub async fn remove_code(
+        &self,
+    ) -> Result<RemoveResult<C::Hash, C::AccountId, E::Balance>, ErrorVariant>
+    where
+        E::Balance: IntoVisitor + Into<u128>,
+    {
+        let code_hash = self.final_code_hash;
 
         let call = RemoveCode::new(code_hash).build();
 
         let result =
             submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
-        let display_events = DisplayEvents::from_events(
+        let display_events = DisplayEvents::from_events::<C, E>(
             &result,
             Some(&self.transcoder),
             &self.client.metadata(),
         )?;
 
-        let code_removed = result.find_first::<CodeRemoved>()?;
+        let code_removed =
+            result.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
         Ok(RemoveResult {
             code_removed,
             display_events,
@@ -188,17 +216,17 @@ impl RemoveExec {
     }
 
     /// Returns the final code hash.
-    pub fn final_code_hash(&self) -> [u8; 32] {
+    pub fn final_code_hash(&self) -> C::Hash {
         self.final_code_hash
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts {
+    pub fn opts(&self) -> &ExtrinsicOpts<E> {
         &self.opts
     }
 
     /// Returns the client.
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> &OnlineClient<C> {
         &self.client
     }
 
@@ -218,7 +246,7 @@ impl RemoveExec {
     }
 }
 
-pub struct RemoveResult {
-    pub code_removed: Option<CodeRemoved>,
+pub struct RemoveResult<Hash, AccountId, Balance> {
+    pub code_removed: Option<CodeRemoved<Hash, AccountId, Balance>>,
     pub display_events: DisplayEvents,
 }
