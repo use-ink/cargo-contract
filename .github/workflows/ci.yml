@@ -195,9 +195,12 @@ jobs:
 
       - name: Check Template
         run: >-
+          # The linter requires two crates
+          cargo install cargo-dylint dylint-link
           cargo -vV &&
           cargo run --profile debug-ci -- contract --version &&
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          # Build with linting
+          cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
