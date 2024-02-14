@@ -16,6 +16,7 @@
 
 use crate::{
     CallCommandBuilder,
+    CallExec,
     DisplayEvents,
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
