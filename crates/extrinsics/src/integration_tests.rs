@@ -42,6 +42,10 @@ use subxt::{
     OnlineClient,
     PolkadotConfig as DefaultConfig,
 };
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
+};
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
 
@@ -468,13 +472,13 @@ async fn api_build_upload_instantiate_call() {
     let contract_file = project_path.join("target/ink/flipper.contract");
 
     // upload the contract
-    let opts = ExtrinsicOptsBuilder::default()
+    let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
+    let signer = Keypair::from_uri(&uri).unwrap();
+    let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
-        .suri("//Alice")
         .done();
-    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
-        UploadCommandBuilder::default()
-            .extrinsic_opts(opts.clone())
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        UploadCommandBuilder::new(opts.clone())
             .done()
             .await
             .unwrap();
@@ -483,8 +487,7 @@ async fn api_build_upload_instantiate_call() {
     upload_result.unwrap();
 
     // instantiate the contract
-    let instantiate = InstantiateCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
+    let instantiate = InstantiateCommandBuilder::new(opts.clone())
         .constructor("new")
         .args(["true"].to_vec())
         .done()
@@ -499,10 +502,12 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // the value should be true
-    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .message("get")
-        .contract(instantiate_result.contract_address.clone())
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "get",
+            opts.clone(),
+        )
         .done()
         .await
         .unwrap();
@@ -526,10 +531,12 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // flip the value
-    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .message("flip")
-        .contract(instantiate_result.contract_address.clone())
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "flip",
+            opts.clone(),
+        )
         .done()
         .await
         .unwrap();
@@ -548,10 +555,12 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract
     // make sure the value has been flipped
-    let call: CallExec<DefaultConfig, DefaultEnvironment> = CallCommandBuilder::default()
-        .extrinsic_opts(opts.clone())
-        .message("get")
-        .contract(instantiate_result.contract_address.clone())
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "get",
+            opts.clone(),
+        )
         .done()
         .await
         .unwrap();
@@ -603,13 +612,13 @@ async fn api_build_upload_remove() {
     let contract_file = project_path.join("target/ink/incrementer.contract");
 
     // upload the contract
-    let opts = ExtrinsicOptsBuilder::default()
+    let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
+    let signer = Keypair::from_uri(&uri).unwrap();
+    let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
-        .suri("//Alice")
         .done();
-    let upload: UploadExec<DefaultConfig, DefaultEnvironment> =
-        UploadCommandBuilder::default()
-            .extrinsic_opts(opts.clone())
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        UploadCommandBuilder::new(opts.clone())
             .done()
             .await
             .unwrap();
@@ -621,9 +630,8 @@ async fn api_build_upload_remove() {
     assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
-    let remove: RemoveExec<DefaultConfig, DefaultEnvironment> =
-        RemoveCommandBuilder::default()
-            .extrinsic_opts(opts.clone())
+    let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        RemoveCommandBuilder::new(opts.clone())
             .code_hash(Some(code_hash_h256))
             .done()
             .await

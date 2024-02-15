@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    account_id,
     events::{
         CodeStored,
         ContractInstantiated,
@@ -24,12 +23,10 @@ use super::{
         ContractInstantiateResult,
         StorageDeposit,
     },
-    state,
     state_call,
     submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,
-    Missing,
 };
 use crate::{
     check_env_types,
@@ -47,9 +44,7 @@ use anyhow::{
 use contract_transcode::Value;
 use ink_env::Environment;
 use serde::Serialize;
-use subxt_signer::sr25519::Keypair;
 
-use core::marker::PhantomData;
 use scale::{
     Decode,
     Encode,
@@ -68,120 +63,85 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
+    tx,
     Config,
     OnlineClient,
 };
 
-struct InstantiateOpts<E: Environment> {
+/// A builder for the instantiate command.
+pub struct InstantiateCommandBuilder<C: Config, E: Environment, Signer: Clone> {
     constructor: String,
     args: Vec<String>,
-    extrinsic_opts: ExtrinsicOpts<E>,
+    extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
     value: E::Balance,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     salt: Option<Bytes>,
 }
 
-/// A builder for the instantiate command.
-pub struct InstantiateCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
-    opts: InstantiateOpts<E>,
-    _marker: PhantomData<fn() -> (C, ExtrinsicOptions)>,
-}
-
-impl<C: Config, E: Environment>
-    InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+impl<C: Config, E: Environment, Signer> InstantiateCommandBuilder<C, E, Signer>
 where
     E::Balance: Default,
+    Signer: tx::Signer<C> + Clone,
+    C::Hash: From<[u8; 32]>,
 {
     /// Returns a clean builder for [`InstantiateExec`].
-    pub fn new() -> InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
+    pub fn new(
+        extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
+    ) -> InstantiateCommandBuilder<C, E, Signer> {
         InstantiateCommandBuilder {
-            opts: InstantiateOpts {
-                constructor: String::from("new"),
-                args: Vec::new(),
-                extrinsic_opts: ExtrinsicOpts::default(),
-                value: Default::default(),
-                gas_limit: None,
-                proof_size: None,
-                salt: None,
-            },
-            _marker: PhantomData,
+            constructor: String::from("new"),
+            args: Vec::new(),
+            extrinsic_opts,
+            value: Default::default(),
+            gas_limit: None,
+            proof_size: None,
+            salt: None,
         }
     }
 
-    /// Sets the extrinsic operation.
-    pub fn extrinsic_opts(
-        self,
-        extrinsic_opts: ExtrinsicOpts<E>,
-    ) -> InstantiateCommandBuilder<C, E, state::ExtrinsicOptions> {
-        InstantiateCommandBuilder {
-            opts: InstantiateOpts {
-                extrinsic_opts,
-                ..self.opts
-            },
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<C: Config, E: Environment> Default
-    for InstantiateCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: Default,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<C: Config, E: Environment, X> InstantiateCommandBuilder<C, E, X> {
     /// Sets the name of the contract constructor to call.
     pub fn constructor<T: Into<String>>(self, constructor: T) -> Self {
         let mut this = self;
-        this.opts.constructor = constructor.into();
+        this.constructor = constructor.into();
         this
     }
 
     /// Sets the constructor arguments.
     pub fn args<T: ToString>(self, args: Vec<T>) -> Self {
         let mut this = self;
-        this.opts.args = args.into_iter().map(|arg| arg.to_string()).collect();
+        this.args = args.into_iter().map(|arg| arg.to_string()).collect();
         this
     }
 
     /// Sets the initial balance to transfer to the instantiated contract.
     pub fn value(self, value: E::Balance) -> Self {
         let mut this = self;
-        this.opts.value = value;
+        this.value = value;
         this
     }
 
     /// Sets the maximum amount of gas to be used for this command.
     pub fn gas_limit(self, gas_limit: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.gas_limit = gas_limit;
+        this.gas_limit = gas_limit;
         this
     }
 
     /// Sets the maximum proof size for this instantiation.
     pub fn proof_size(self, proof_size: Option<u64>) -> Self {
         let mut this = self;
-        this.opts.proof_size = proof_size;
+        this.proof_size = proof_size;
         this
     }
 
     /// Sets the salt used in the address derivation of the new contract.
     pub fn salt(self, salt: Option<Bytes>) -> Self {
         let mut this = self;
-        this.opts.salt = salt;
+        this.salt = salt;
         this
     }
-}
 
-impl<C: Config, E: Environment> InstantiateCommandBuilder<C, E, state::ExtrinsicOptions>
-where
-    C::Hash: From<[u8; 32]>,
-{
     /// Preprocesses contract artifacts and options for instantiation.
     ///
     /// This function prepares the required data for instantiating a contract based on the
@@ -191,32 +151,31 @@ where
     ///
     /// Returns the [`InstantiateExec`] containing the preprocessed data for the
     /// instantiation, or an error in case of failure.
-    pub async fn done(self) -> Result<InstantiateExec<C, E>> {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+    pub async fn done(self) -> Result<InstantiateExec<C, E, Signer>> {
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
-        let data = transcoder.encode(&self.opts.constructor, &self.opts.args)?;
-        let signer = self.opts.extrinsic_opts.signer()?;
-        let url = self.opts.extrinsic_opts.url();
+        let data = transcoder.encode(&self.constructor, &self.args)?;
+        let url = self.extrinsic_opts.url();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
             let code_hash = artifacts.code_hash()?;
             Code::Existing(code_hash.into())
         };
-        let salt = self.opts.salt.clone().map(|s| s.0).unwrap_or_default();
+        let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
 
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
+        check_env_types(&client, &transcoder, self.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
         let args = InstantiateArgs {
-            constructor: self.opts.constructor.clone(),
-            raw_args: self.opts.args.clone(),
-            value: self.opts.value,
-            gas_limit: self.opts.gas_limit,
-            proof_size: self.opts.proof_size,
-            storage_deposit_limit: self.opts.extrinsic_opts.storage_deposit_limit(),
+            constructor: self.constructor.clone(),
+            raw_args: self.args.clone(),
+            value: self.value,
+            gas_limit: self.gas_limit,
+            proof_size: self.proof_size,
+            storage_deposit_limit: self.extrinsic_opts.storage_deposit_limit(),
             code,
             data,
             salt,
@@ -224,11 +183,10 @@ where
 
         Ok(InstantiateExec {
             args,
-            opts: self.opts.extrinsic_opts.clone(),
+            opts: self.extrinsic_opts,
             url,
             rpc,
             client,
-            signer,
             transcoder,
         })
     }
@@ -292,25 +250,23 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
     }
 }
 
-pub struct InstantiateExec<C: Config, E: Environment> {
-    opts: ExtrinsicOpts<E>,
+pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
+    opts: ExtrinsicOpts<C, E, Signer>,
     args: InstantiateArgs<C, E>,
     url: String,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
-    signer: Keypair,
     transcoder: ContractMessageTranscoder,
 }
 
-impl<C: Config, E: Environment> InstantiateExec<C, E>
+impl<C: Config, E: Environment, Signer> InstantiateExec<C, E, Signer>
 where
     C::AccountId: Decode,
-    C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    C::Address: From<subxt_signer::sr25519::PublicKey>,
     C::Hash: IntoVisitor + EncodeAsType,
-    C::AccountId: From<subxt_signer::sr25519::PublicKey> + IntoVisitor + Display,
+    C::AccountId: IntoVisitor + Display,
     E::Balance: Serialize,
+    Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.
     ///
@@ -364,7 +320,7 @@ where
     ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance, ()>> {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest::<C, E> {
-            origin: account_id::<C>(&self.signer),
+            origin: self.opts.signer().account_id(),
             value: self.args.value,
             gas_limit: None,
             storage_deposit_limit,
@@ -391,7 +347,7 @@ where
         .build();
 
         let events =
-            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
@@ -426,7 +382,7 @@ where
         .build();
 
         let events =
-            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
         let instantiated = events
             .find_first::<ContractInstantiated<C::AccountId>>()?
@@ -506,7 +462,7 @@ where
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts<E> {
+    pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
         &self.opts
     }
 
@@ -523,11 +479,6 @@ where
     /// Returns the client.
     pub fn client(&self) -> &OnlineClient<C> {
         &self.client
-    }
-
-    /// Returns the signer.
-    pub fn signer(&self) -> &Keypair {
-        &self.signer
     }
 
     /// Returns the contract message transcoder.

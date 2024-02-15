@@ -18,6 +18,7 @@ use crate::ErrorVariant;
 use std::fmt::Debug;
 
 use super::{
+    create_signer,
     display_dry_run_result_warning,
     CLIExtrinsicOpts,
 };
@@ -38,6 +39,7 @@ use subxt::{
     Config,
     PolkadotConfig as DefaultConfig,
 };
+use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -59,11 +61,11 @@ impl UploadCommand {
         let token_metadata =
             TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
 
-        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+        let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
+        let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
-            .suri(self.extrinsic_cli_opts.suri.clone())
             .storage_deposit_limit(
                 self.extrinsic_cli_opts
                     .storage_deposit_limit
@@ -72,11 +74,8 @@ impl UploadCommand {
                     .transpose()?,
             )
             .done();
-        let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment> =
-            UploadCommandBuilder::default()
-                .extrinsic_opts(extrinsic_opts)
-                .done()
-                .await?;
+        let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
+            UploadCommandBuilder::new(extrinsic_opts).done().await?;
 
         let code_hash = upload_exec.code().code_hash();
         let metadata = upload_exec.client().metadata();

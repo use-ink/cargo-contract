@@ -14,91 +14,63 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::marker::PhantomData;
-
+use anyhow::Result;
 use contract_build::Verbosity;
+use derivative::Derivative;
 use ink_env::Environment;
-use subxt_signer::{
-    sr25519::Keypair,
-    SecretUri,
+use subxt::{
+    tx,
+    Config,
 };
 use url::Url;
-
-use anyhow::{
-    Ok,
-    Result,
-};
 
 use crate::{
     url_to_string,
     ContractArtifacts,
 };
 use std::{
+    marker::PhantomData,
     option::Option,
     path::PathBuf,
 };
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug)]
-pub struct ExtrinsicOpts<E: Environment> {
+#[derive(Derivative)]
+#[derivative(Clone(bound = "E::Balance: Clone"))]
+pub struct ExtrinsicOpts<C: Config, E: Environment, Signer: Clone> {
     file: Option<PathBuf>,
     manifest_path: Option<PathBuf>,
     url: url::Url,
-    suri: String,
+    signer: Signer,
     storage_deposit_limit: Option<E::Balance>,
     verbosity: Verbosity,
-}
-
-/// Type state for the extrinsics' commands to tell that some mandatory state has not yet
-/// been set yet or to fail upon setting the same state multiple times.
-pub struct Missing<S>(PhantomData<fn() -> S>);
-
-pub mod state {
-    //! Type states that tell what state of the commands has not
-    //! yet been set properly for a valid construction.
-
-    /// Type state for the Secret key URI.
-    pub struct Suri;
-    /// Type state for extrinsic options.
-    pub struct ExtrinsicOptions;
-    /// Type state for the name of the contract message to call.
-    pub struct Message;
+    _marker: PhantomData<C>,
 }
 
 /// A builder for extrinsic options.
-pub struct ExtrinsicOptsBuilder<E: Environment, Suri> {
-    opts: ExtrinsicOpts<E>,
-    marker: PhantomData<fn() -> Suri>,
+pub struct ExtrinsicOptsBuilder<C: Config, E: Environment, Signer: Clone> {
+    opts: ExtrinsicOpts<C, E, Signer>,
 }
 
-impl<E: Environment> ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
-    /// Returns a clean builder for `ExtrinsicOpts`.
-    pub fn new() -> ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
-        ExtrinsicOptsBuilder {
-            opts: ExtrinsicOpts::default(),
-            marker: PhantomData,
-        }
-    }
-
-    /// Sets the secret key URI for the account deploying the contract.
-    pub fn suri<T: Into<String>>(self, suri: T) -> ExtrinsicOptsBuilder<E, state::Suri> {
+impl<C: Config, E: Environment, Signer> ExtrinsicOptsBuilder<C, E, Signer>
+where
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Returns a clean builder for [`ExtrinsicOpts`].
+    pub fn new(signer: Signer) -> ExtrinsicOptsBuilder<C, E, Signer> {
         ExtrinsicOptsBuilder {
             opts: ExtrinsicOpts {
-                suri: suri.into(),
-                ..self.opts
+                file: None,
+                manifest_path: None,
+                url: url::Url::parse("ws://localhost:9944").unwrap(),
+                signer,
+                storage_deposit_limit: None,
+                verbosity: Verbosity::Default,
+                _marker: PhantomData,
             },
-            marker: PhantomData,
         }
     }
-}
 
-impl<E: Environment> Default for ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<E: Environment, S> ExtrinsicOptsBuilder<E, S> {
     /// Sets the path to the contract build artifact file.
     pub fn file<T: Into<PathBuf>>(self, file: Option<T>) -> Self {
         let mut this = self;
@@ -137,45 +109,22 @@ impl<E: Environment, S> ExtrinsicOptsBuilder<E, S> {
         this.opts.verbosity = verbosity;
         this
     }
-}
 
-impl<E: Environment> ExtrinsicOptsBuilder<E, state::Suri> {
-    /// Finishes construction of the extrinsic options.
-    pub fn done(self) -> ExtrinsicOpts<E> {
+    pub fn done(self) -> ExtrinsicOpts<C, E, Signer> {
         self.opts
     }
 }
 
-#[allow(clippy::new_ret_no_self)]
-impl<E: Environment> ExtrinsicOpts<E> {
-    /// Returns a clean builder for [`ExtrinsicOpts`].
-    pub fn new() -> ExtrinsicOptsBuilder<E, Missing<state::Suri>> {
-        ExtrinsicOptsBuilder {
-            opts: Self {
-                file: None,
-                manifest_path: None,
-                url: url::Url::parse("ws://localhost:9944").unwrap(),
-                suri: String::new(),
-                storage_deposit_limit: None,
-                verbosity: Verbosity::Default,
-            },
-            marker: PhantomData,
-        }
-    }
-
+impl<C: Config, E: Environment, Signer> ExtrinsicOpts<C, E, Signer>
+where
+    Signer: tx::Signer<C> + Clone,
+{
     /// Load contract artifacts.
     pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
         ContractArtifacts::from_manifest_or_file(
             self.manifest_path.as_ref(),
             self.file.as_ref(),
         )
-    }
-
-    /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<Keypair> {
-        let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
-        let keypair = Keypair::from_uri(&uri)?;
-        Ok(keypair)
     }
 
     /// Return the file path of the contract artifact.
@@ -194,8 +143,8 @@ impl<E: Environment> ExtrinsicOpts<E> {
     }
 
     /// Return the secret URI of the signer.
-    pub fn suri(&self) -> &str {
-        &self.suri
+    pub fn signer(&self) -> &Signer {
+        &self.signer
     }
 
     /// Return the storage deposit limit.
@@ -206,11 +155,5 @@ impl<E: Environment> ExtrinsicOpts<E> {
     /// Verbosity for message reporting.
     pub fn verbosity(&self) -> &Verbosity {
         &self.verbosity
-    }
-}
-
-impl<E: Environment> Default for ExtrinsicOpts<E> {
-    fn default() -> Self {
-        ExtrinsicOpts::new().suri("Alice".to_string()).done()
     }
 }

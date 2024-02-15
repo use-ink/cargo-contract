@@ -57,7 +57,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
 
 pub use balance::{
     BalanceVariant,
@@ -88,11 +87,7 @@ pub use error::{
     GenericError,
 };
 pub use events::DisplayEvents;
-pub use extrinsic_opts::{
-    state,
-    ExtrinsicOptsBuilder,
-    Missing,
-};
+pub use extrinsic_opts::ExtrinsicOptsBuilder;
 pub use instantiate::{
     Code,
     InstantiateArgs,
@@ -129,17 +124,6 @@ impl WasmCode {
     }
 }
 
-/// Get the account id from the Keypair
-pub fn account_id<T>(keypair: &Keypair) -> T::AccountId
-where
-    T: Config,
-    T::AccountId: From<subxt_signer::sr25519::PublicKey>,
-    T::Address: From<subxt_signer::sr25519::PublicKey>,
-    T::Signature: From<subxt_signer::sr25519::Signature>,
-{
-    subxt::tx::Signer::<T>::account_id(keypair)
-}
-
 /// Wait for the transaction to be included successfully into a block.
 ///
 /// # Errors
@@ -162,10 +146,7 @@ where
     C: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<C>,
-    C::Signature: From<subxt_signer::sr25519::Signature>,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    C::Address: From<subxt_signer::sr25519::PublicKey>,
-    C::AccountId: From<subxt_signer::sr25519::PublicKey>,
 {
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;

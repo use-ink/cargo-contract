@@ -16,11 +16,9 @@
 
 use super::{
     events::CodeRemoved,
-    state,
     submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,
-    Missing,
 };
 use crate::{
     extrinsic_calls::RemoveCode,
@@ -28,7 +26,6 @@ use crate::{
 };
 
 use anyhow::Result;
-use core::marker::PhantomData;
 use ink_env::Environment;
 use subxt::{
     backend::{
@@ -41,71 +38,43 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
+    tx,
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
-
-pub struct RemoveOpts<Hash, E: Environment> {
-    code_hash: Option<Hash>,
-    extrinsic_opts: ExtrinsicOpts<E>,
-}
 
 /// A builder for the remove command.
-pub struct RemoveCommandBuilder<C: Config, E: Environment, ExtrinsicOptions> {
-    opts: RemoveOpts<C::Hash, E>,
-    marker: PhantomData<fn() -> ExtrinsicOptions>,
+pub struct RemoveCommandBuilder<C: Config, E: Environment, Signer: Clone> {
+    code_hash: Option<C::Hash>,
+    extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
 }
 
-impl<C: Config, E: Environment>
-    RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
+impl<C: Config, E: Environment, Signer> RemoveCommandBuilder<C, E, Signer>
+where
+    Signer: tx::Signer<C> + Clone,
 {
     /// Returns a clean builder for [`RemoveExec`].
-    pub fn new() -> RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>> {
+    pub fn new(
+        extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
+    ) -> RemoveCommandBuilder<C, E, Signer> {
         RemoveCommandBuilder {
-            opts: RemoveOpts {
-                code_hash: None,
-                extrinsic_opts: ExtrinsicOpts::default(),
-            },
-            marker: PhantomData,
+            code_hash: None,
+            extrinsic_opts,
         }
     }
 
-    /// Sets the extrinsic operation.
-    pub fn extrinsic_opts(
-        self,
-        extrinsic_opts: ExtrinsicOpts<E>,
-    ) -> RemoveCommandBuilder<C, E, state::ExtrinsicOptions> {
-        RemoveCommandBuilder {
-            opts: RemoveOpts {
-                extrinsic_opts,
-                ..self.opts
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<C: Config, E: Environment> Default
-    for RemoveCommandBuilder<C, E, Missing<state::ExtrinsicOptions>>
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<C: Config, E: Environment, X> RemoveCommandBuilder<C, E, X> {
     /// Sets the hash of the smart contract code already uploaded to the chain.
     pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
         let mut this = self;
-        this.opts.code_hash = code_hash;
+        this.code_hash = code_hash;
         this
     }
 }
 
-impl<C: Config, E: Environment> RemoveCommandBuilder<C, E, state::ExtrinsicOptions>
+impl<C: Config, E: Environment, Signer> RemoveCommandBuilder<C, E, Signer>
 where
     C::Hash: From<[u8; 32]>,
+    Signer: tx::Signer<C> + Clone,
 {
     /// Preprocesses contract artifacts and options for subsequent removal of contract
     /// code.
@@ -117,14 +86,13 @@ where
     ///
     /// Returns the `RemoveExec` containing the preprocessed data for the contract code
     /// removal, or an error in case of failure.
-    pub async fn done(self) -> Result<RemoveExec<C, E>> {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+    pub async fn done(self) -> Result<RemoveExec<C, E, Signer>> {
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
-        let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let final_code_hash = match (self.opts.code_hash.as_ref(), artifacts.code.as_ref()) {
+        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
             (Some(code_h), _) => Ok(*code_h),
             (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
             (None, None) => Err(anyhow::anyhow!(
@@ -135,38 +103,35 @@ where
             )),
         }?;
 
-        let url = self.opts.extrinsic_opts.url();
+        let url = self.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli);
 
         Ok(RemoveExec {
             final_code_hash,
-            opts: self.opts.extrinsic_opts.clone(),
+            opts: self.extrinsic_opts,
             rpc,
             client,
             transcoder,
-            signer,
         })
     }
 }
 
-pub struct RemoveExec<C: Config, E: Environment> {
+pub struct RemoveExec<C: Config, E: Environment, Signer: Clone> {
     final_code_hash: C::Hash,
-    opts: ExtrinsicOpts<E>,
+    opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
-    signer: Keypair,
 }
 
-impl<C: Config, E: Environment> RemoveExec<C, E>
+impl<C: Config, E: Environment, Signer> RemoveExec<C, E, Signer>
 where
     C::Hash: IntoVisitor + EncodeAsType,
-    C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
-    C::Address: From<subxt_signer::sr25519::PublicKey>,
-    C::Signature: From<subxt_signer::sr25519::Signature>,
+    C::AccountId: IntoVisitor,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    Signer: tx::Signer<C> + Clone,
 {
     /// Removes a contract code from the blockchain.
     ///
@@ -186,7 +151,7 @@ where
         let call = RemoveCode::new(code_hash).build();
 
         let events =
-            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
         let code_removed =
             events.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
@@ -202,7 +167,7 @@ where
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts<E> {
+    pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
         &self.opts
     }
 
@@ -214,11 +179,6 @@ where
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
-    }
-
-    /// Returns the signer.
-    pub fn signer(&self) -> &Keypair {
-        &self.signer
     }
 }
 

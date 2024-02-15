@@ -84,6 +84,10 @@ pub use subxt::{
     Config,
     PolkadotConfig as DefaultConfig,
 };
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
+};
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -269,6 +273,12 @@ pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId])
     contracts
         .iter()
         .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
+}
+
+pub fn create_signer(suri: &str) -> Result<Keypair> {
+    let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
+    let keypair = Keypair::from_uri(&uri)?;
+    Ok(keypair)
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.

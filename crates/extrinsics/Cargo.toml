@@ -38,8 +38,8 @@ sp-weights = "27.0.0"
 pallet-contracts-uapi = "5.0.0"
 scale-info = "2.10.0"
 subxt = "0.34.0"
-subxt-signer = { version = "0.34.0", features = ["subxt", "sr25519"] }
 hex = "0.4.3"
+derivative = "2.2.0"
 ink_metadata = "5.0.0-rc.1"
 ink_env = "5.0.0-rc.1"
 
@@ -50,6 +50,7 @@ regex = "1.10.3"
 predicates = "3.1.0"
 tempfile = "3.10.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+subxt-signer = { version = "0.34.0", features = ["subxt", "sr25519"] }
 
 [features]
 integration-tests = []
