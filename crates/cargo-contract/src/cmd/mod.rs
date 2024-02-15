@@ -275,6 +275,7 @@ pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId])
         .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
 }
 
+/// Create a Signer from a secret URI.
 pub fn create_signer(suri: &str) -> Result<Keypair> {
     let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
     let keypair = Keypair::from_uri(&uri)?;

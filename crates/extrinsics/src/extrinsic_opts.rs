@@ -142,7 +142,7 @@ where
         url_to_string(&self.url)
     }
 
-    /// Return the secret URI of the signer.
+    /// Return the signer.
     pub fn signer(&self) -> &Signer {
         &self.signer
     }
