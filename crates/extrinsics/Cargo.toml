@@ -53,5 +53,6 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 subxt-signer = { version = "0.34.0", features = ["subxt", "sr25519"] }
 
 [features]
+default = ["integration-tests"]
 integration-tests = []
 test-ci-only = []

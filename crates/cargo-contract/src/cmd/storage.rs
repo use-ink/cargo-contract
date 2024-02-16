@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::DefaultConfig;
 use anyhow::Result;
 use colored::Colorize;
 use comfy_table::{
@@ -28,16 +27,29 @@ use contract_extrinsics::{
     ContractStorageRpc,
     ErrorVariant,
 };
-use ink_env::DefaultEnvironment;
-use std::path::PathBuf;
-use subxt::Config;
+use ink_env::Environment;
+use serde::Serialize;
+use std::{
+    fmt::Display,
+    path::PathBuf,
+    str::FromStr,
+};
+use subxt::{
+    ext::scale_decode::IntoVisitor,
+    Config,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "storage", about = "Inspect contract storage")]
-pub struct StorageCommand {
+pub struct StorageCommand<C: Config>
+where
+    <C as Config>::AccountId: Sync + Send + FromStr,
+    <<C as Config>::AccountId as FromStr>::Err:
+        Into<Box<(dyn std::error::Error + Send + Sync)>>,
+{
     /// The address of the contract to inspect storage of.
     #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    contract: <C as Config>::AccountId,
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
     raw: bool,
@@ -61,11 +73,17 @@ pub struct StorageCommand {
     url: url::Url,
 }
 
-impl StorageCommand {
+impl<C: Config + Environment> StorageCommand<C>
+where
+    <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + Send + Sync + FromStr,
+    <<C as Config>::AccountId as FromStr>::Err:
+        Into<Box<(dyn std::error::Error + Send + Sync)>>,
+    <C as Environment>::Balance: Serialize + IntoVisitor,
+    <C as Config>::Hash: IntoVisitor,
+{
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
-        let storage_layout =
-            ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
+        let rpc = ContractStorageRpc::<C>::new(&self.url).await?;
+        let storage_layout = ContractStorage::<C, C>::new(rpc);
 
         if self.raw {
             let storage_data = storage_layout

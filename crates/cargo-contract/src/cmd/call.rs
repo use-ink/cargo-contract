@@ -14,25 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ErrorVariant;
+use crate::{config::SignerConfig, ErrorVariant};
 
 use contract_build::util::DEFAULT_KEY_COL_WIDTH;
 use ink_env::{
     DefaultEnvironment,
     Environment,
 };
-use std::fmt::Debug;
+use subxt::{tx::PairSigner, PolkadotConfig};
+use serde::Serialize;
+use subxt_signer::{sr25519::{Keypair, PublicKey}, SecretUri};
+use std::{fmt::{Debug, Display}, str::FromStr};
 
 use super::{
-    create_signer,
-    display_contract_exec_result,
-    display_contract_exec_result_debug,
-    display_dry_run_result_warning,
-    print_dry_running_status,
-    print_gas_required_success,
-    prompt_confirm_tx,
-    CLIExtrinsicOpts,
-    MAX_KEY_COL_WIDTH,
+    create_signer, create_signer2, display_contract_exec_result, display_contract_exec_result_debug, display_dry_run_result_warning, print_dry_running_status, print_gas_required_success, prompt_confirm_tx, CLIExtrinsicOpts, MAX_KEY_COL_WIDTH
 };
 use anyhow::{
     anyhow,
@@ -52,16 +47,22 @@ use contract_extrinsics::{
 use contract_transcode::Value;
 use sp_weights::Weight;
 use subxt::{
-    Config,
-    PolkadotConfig as DefaultConfig,
+    ext::{scale_decode::IntoVisitor, scale_encode::EncodeAsType}, tx::Signer, Config
 };
-use subxt_signer::sr25519::Keypair;
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
-pub struct CallCommand {
+pub struct CallCommand<C: Config + Environment> 
+where
+<C as Config>::AccountId: Sync + Send + FromStr,
+<<C as Config>::AccountId as FromStr>::Err:
+    Into<Box<(dyn std::error::Error + Send + Sync)>>,
+<C as Environment>::Balance: Sync + Send +From<u128> + Debug + FromStr,
+    <<C as Environment>::Balance as FromStr>::Err:
+        Into<Box<(dyn std::error::Error + Send + Sync)>>,
+{
     /// The address of the the contract to call.
     #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    contract: <C as Config>::AccountId,
     /// The name of the contract message to call.
     #[clap(long, short)]
     message: String,
@@ -69,7 +70,7 @@ pub struct CallCommand {
     #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
-    extrinsic_cli_opts: CLIExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts<C>,
     /// Maximum amount of gas (execution time) to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the
     /// call.
@@ -82,23 +83,39 @@ pub struct CallCommand {
     proof_size: Option<u64>,
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, default_value = "0")]
-    value: BalanceVariant<<DefaultEnvironment as Environment>::Balance>,
+    value: BalanceVariant<<C as Environment>::Balance>,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
 }
 
-impl CallCommand {
+impl <C: Config + Environment + SignerConfig<C>>CallCommand <C> 
+where
+<C as Config>::AccountId: Sync + Send + FromStr + IntoVisitor + EncodeAsType,
+<<C as Config>::AccountId as FromStr>::Err:
+    Into<Box<(dyn std::error::Error + Send + Sync)>>,
+<C as Environment>::Balance: Sync + Send + From<u128> + Display + Default + Debug  + FromStr,
+<<C as Environment>::Balance as FromStr>::Err:
+    Into<Box<(dyn std::error::Error + Send + Sync)>>,
+<<C as Config>::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
+{
     /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        let token_metadata =
-            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
 
-        let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
+// let keypair = sp_core::sr25519::Pair::from_string("vessel ladder alter error federal sibling chat ability sun glass valve picture/0/1///Password", None).unwrap();
+// let signer = PairSigner::<C, sp_core::sr25519::Pair>::new(keypair);
+
+        let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
+        let signer =  Keypair::from_uri(&uri).unwrap();
+
+        let token_metadata =
+            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+
+        let signer = create_signer2::<C, _>(signer/*&self.extrinsic_cli_opts.suri*/)?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
@@ -191,14 +208,14 @@ impl CallCommand {
             }
             let events = call_exec.call(Some(gas_limit)).await?;
             let display_events = DisplayEvents::from_events::<
-                DefaultConfig,
-                DefaultEnvironment,
+                C,
+                C,
             >(&events, None, &metadata)?;
 
             let output = if self.output_json() {
                 display_events.to_json()?
             } else {
-                display_events.display_events::<DefaultEnvironment>(
+                display_events.display_events::<C>(
                     self.extrinsic_cli_opts.verbosity().unwrap(),
                     &token_metadata,
                 )?
@@ -210,8 +227,8 @@ impl CallCommand {
 }
 
 /// A helper function to estimate the gas required for a contract call.
-async fn pre_submit_dry_run_gas_estimate_call(
-    call_exec: &CallExec<DefaultConfig, DefaultEnvironment, Keypair>,
+async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment + SignerConfig<C>>(
+    call_exec: &CallExec<C, C, <C as SignerConfig<C>>::Signer>,
     output_json: bool,
     skip_dry_run: bool,
 ) -> Result<Weight> {
@@ -260,17 +277,19 @@ async fn pre_submit_dry_run_gas_estimate_call(
 
 /// Result of the contract call
 #[derive(serde::Serialize)]
-pub struct CallDryRunResult {
+pub struct CallDryRunResult<Balance: Serialize> 
+{
     /// Was the operation reverted
     pub reverted: bool,
     pub data: Value,
     pub gas_consumed: Weight,
     pub gas_required: Weight,
     /// Storage deposit after the operation
-    pub storage_deposit: StorageDeposit<<DefaultEnvironment as Environment>::Balance>,
+    pub storage_deposit: StorageDeposit<Balance>,
 }
 
-impl CallDryRunResult {
+impl <Balance: Serialize> CallDryRunResult <Balance>
+{
     /// Returns a result in json format
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)

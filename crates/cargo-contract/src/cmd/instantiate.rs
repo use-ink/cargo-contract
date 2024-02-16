@@ -26,10 +26,7 @@ use super::{
     MAX_KEY_COL_WIDTH,
 };
 use crate::{
-    anyhow,
-    ErrorVariant,
-    InstantiateExec,
-    Weight,
+    anyhow, config::PolkadotBaseConfig, ErrorVariant, InstantiateExec, Weight
 };
 use anyhow::Result;
 use contract_build::{
@@ -68,7 +65,7 @@ pub struct InstantiateCommand {
     #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
-    extrinsic_cli_opts: CLIExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts<PolkadotBaseConfig>,
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0")]
     value: BalanceVariant<<DefaultEnvironment as Environment>::Balance>,

@@ -99,6 +99,7 @@
 //! ```
 
 mod account_id;
+mod account_id20;
 mod decode;
 mod encode;
 pub mod env_types;
@@ -108,6 +109,11 @@ mod util;
 
 pub use self::{
     account_id::AccountId32,
+    account_id20::{
+        AccountId20,
+        EthereumSignature,
+        EthereumSigner,
+    },
     scon::{
         Hex,
         Map,

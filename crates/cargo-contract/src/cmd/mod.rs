@@ -26,7 +26,8 @@ pub mod schema;
 pub mod storage;
 pub mod upload;
 pub mod verify;
-
+use subxt::tx::PairSigner;
+use sp_core::Pair;
 pub(crate) use self::{
     build::{
         BuildCommand,
@@ -71,18 +72,18 @@ use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
 };
+use subxt::{tx, Config};
 use core::fmt;
 use ink_env::{
     DefaultEnvironment,
     Environment,
 };
-use std::io::{
-    self,
-    Write,
-};
-pub use subxt::{
-    Config,
-    PolkadotConfig as DefaultConfig,
+use std::{
+    fmt::{Debug, Display},
+    io::{
+        self,
+        Write,
+    }, str::FromStr,
 };
 use subxt_signer::{
     sr25519::Keypair,
@@ -91,7 +92,11 @@ use subxt_signer::{
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
-pub struct CLIExtrinsicOpts {
+pub struct CLIExtrinsicOpts<C: Config + Environment> 
+where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
+<<C as Environment>::Balance as FromStr>::Err:
+    Into<Box<(dyn std::error::Error + Send + Sync)>>,
+{
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
@@ -123,7 +128,7 @@ pub struct CLIExtrinsicOpts {
     /// storage. consumed.
     #[clap(long)]
     storage_deposit_limit:
-        Option<BalanceVariant<<DefaultEnvironment as Environment>::Balance>>,
+        Option<BalanceVariant<<C as Environment>::Balance>>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -132,7 +137,11 @@ pub struct CLIExtrinsicOpts {
     skip_confirm: bool,
 }
 
-impl CLIExtrinsicOpts {
+impl <C: Config + Environment> CLIExtrinsicOpts<C> 
+where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
+<<C as Environment>::Balance as FromStr>::Err:
+    Into<Box<(dyn std::error::Error + Send + Sync)>>,
+{
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
@@ -235,10 +244,11 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Hash>(
-    info: &ExtendedContractInfo<Hash, <DefaultEnvironment as Environment>::Balance>,
+pub fn basic_display_format_extended_contract_info<Hash, Balance>(
+    info: &ExtendedContractInfo<Hash, Balance>,
 ) where
     Hash: fmt::Debug,
+    Balance: fmt::Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
@@ -269,21 +279,40 @@ pub fn basic_display_format_extended_contract_info<Hash>(
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId]) {
-    contracts
-        .iter()
-        .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
+pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
+where
+    AccountId: Display,
+{
+    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
 }
 
 /// Create a Signer from a secret URI.
-pub fn create_signer(suri: &str) -> Result<Keypair> {
+pub fn create_signer2<C: Config, Signer>(signer: Signer/*suri: &str*/) -> Result<Signer> 
+where Signer: tx::Signer<C>,//  C::AccountId: From<PublicKey>,
+//<C as subxt::Config>::AccountId: std::convert::From<sp_core::crypto::AccountId32>,
+//C::Address: From<PublicKey>,
+//Pair: sp_core::Pair
+{
+    // let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
+    // let keypair = Keypair::from_uri(&uri)?;
+    //let keypair = sp_core::sr25519::Pair::from_string("vessel ladder alter error federal sibling chat ability sun glass valve picture/0/1///Password", None).unwrap();
+    //let keypair = PairSigner::<C, sp_core::sr25519::Pair>::new(keypair);
+    Ok(signer)
+}
+
+/// Create a Signer from a secret URI.
+pub fn create_signer(suri: &str) -> Result<Keypair> 
+{
     let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
-    let keypair = Keypair::from_uri(&uri)?;
-    Ok(keypair)
+    let signer = Keypair::from_uri(&uri)?;
+    Ok(signer)
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
+where
+    Hash: std::convert::From<[u8; 32]>,
+{
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")

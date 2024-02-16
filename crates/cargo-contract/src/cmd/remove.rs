@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ErrorVariant;
+use crate::{config::PolkadotBaseConfig, ErrorVariant};
 use std::fmt::Debug;
 
 use super::{
@@ -42,10 +42,10 @@ use subxt_signer::sr25519::Keypair;
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
     /// The hash of the smart contract code already uploaded to the chain.
-    #[clap(long, value_parser = parse_code_hash)]
+    #[clap(long, value_parser = parse_code_hash::<<DefaultConfig as Config>::Hash>)]
     code_hash: Option<<DefaultConfig as Config>::Hash>,
     #[clap(flatten)]
-    extrinsic_cli_opts: CLIExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts<PolkadotBaseConfig>,
     /// Export the call output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,

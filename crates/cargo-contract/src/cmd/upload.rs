@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ErrorVariant;
+use crate::{config::PolkadotBaseConfig, ErrorVariant};
 use std::fmt::Debug;
 
 use super::{
@@ -45,7 +45,7 @@ use subxt_signer::sr25519::Keypair;
 #[clap(name = "upload", about = "Upload a contract's code")]
 pub struct UploadCommand {
     #[clap(flatten)]
-    extrinsic_cli_opts: CLIExtrinsicOpts,
+    extrinsic_cli_opts: CLIExtrinsicOpts<PolkadotBaseConfig>,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
