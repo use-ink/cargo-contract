@@ -45,7 +45,7 @@ ink_env = "5.0.0-rc.1"
 
 [dev-dependencies]
 ink = "5.0.0-rc.1"
-assert_cmd = "2.0.13"
+assert_cmd = "2.0.14"
 regex = "1.10.3"
 predicates = "3.1.0"
 tempfile = "3.10.0"
