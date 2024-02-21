@@ -15,18 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    account_id,
-    events::{
-        CodeStored,
-        DisplayEvents,
-    },
+    events::CodeStored,
     pallet_contracts_primitives::CodeUploadResult,
-    state,
     state_call,
     submit_extrinsic,
     ErrorVariant,
-    Missing,
-    TokenMetadata,
     WasmCode,
 };
 use crate::{
@@ -36,7 +29,6 @@ use crate::{
 };
 use anyhow::Result;
 use contract_transcode::ContractMessageTranscoder;
-use core::marker::PhantomData;
 use ink_env::Environment;
 use scale::Encode;
 use subxt::{
@@ -44,65 +36,33 @@ use subxt::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
+    blocks::ExtrinsicEvents,
     config,
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
+    tx,
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
-
-struct UploadOpts<E: Environment> {
-    extrinsic_opts: ExtrinsicOpts<E>,
-}
 
 /// A builder for the upload command.
-pub struct UploadCommandBuilder<E: Environment, ExtrinsicOptions> {
-    opts: UploadOpts<E>,
-    marker: PhantomData<fn() -> ExtrinsicOptions>,
+pub struct UploadCommandBuilder<C: Config, E: Environment, Signer: Clone> {
+    extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
 }
 
-impl<E: Environment> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
+impl<C: Config, E: Environment, Signer> UploadCommandBuilder<C, E, Signer>
 where
-    E::Balance: From<u128>,
+    Signer: tx::Signer<C> + Clone,
 {
     /// Returns a clean builder for [`UploadExec`].
-    pub fn new() -> UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>> {
-        UploadCommandBuilder {
-            opts: UploadOpts {
-                extrinsic_opts: ExtrinsicOpts::default(),
-            },
-            marker: PhantomData,
-        }
+    pub fn new(
+        extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
+    ) -> UploadCommandBuilder<C, E, Signer> {
+        UploadCommandBuilder { extrinsic_opts }
     }
 
-    /// Sets the extrinsic operation.
-    pub fn extrinsic_opts(
-        self,
-        extrinsic_opts: ExtrinsicOpts<E>,
-    ) -> UploadCommandBuilder<E, state::ExtrinsicOptions> {
-        UploadCommandBuilder {
-            opts: UploadOpts { extrinsic_opts },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<E: Environment> Default for UploadCommandBuilder<E, Missing<state::ExtrinsicOptions>>
-where
-    E::Balance: From<u128>,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<E: Environment> UploadCommandBuilder<E, state::ExtrinsicOptions>
-where
-    E::Balance: From<u128>,
-{
     /// Preprocesses contract artifacts and options for subsequent upload.
     ///
     /// This function prepares the necessary data for uploading a contract
@@ -112,10 +72,9 @@ where
     ///
     /// Returns the `UploadExec` containing the preprocessed data for the upload or
     /// execution.
-    pub async fn done<C: Config>(self) -> Result<UploadExec<C, E>> {
-        let artifacts = self.opts.extrinsic_opts.contract_artifacts()?;
+    pub async fn done(self) -> Result<UploadExec<C, E, Signer>> {
+        let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
-        let signer = self.opts.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
@@ -125,44 +84,36 @@ where
             )
         })?;
 
-        let url = self.opts.extrinsic_opts.url();
+        let url = self.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
-        check_env_types(&client, &transcoder, self.opts.extrinsic_opts.verbosity())?;
+        check_env_types(&client, &transcoder, self.extrinsic_opts.verbosity())?;
         let rpc = LegacyRpcMethods::new(rpc_cli);
 
-        let token_metadata = TokenMetadata::query(&rpc).await?;
-
         Ok(UploadExec {
-            opts: self.opts.extrinsic_opts.clone(),
+            opts: self.extrinsic_opts,
             rpc,
             client,
             code,
-            signer,
-            token_metadata,
             transcoder,
         })
     }
 }
 
-pub struct UploadExec<C: Config, E: Environment> {
-    opts: ExtrinsicOpts<E>,
+pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
+    opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     code: WasmCode,
-    signer: Keypair,
-    token_metadata: TokenMetadata,
     transcoder: ContractMessageTranscoder,
 }
 
-impl<C: Config, E: Environment> UploadExec<C, E>
+impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
     C::Hash: IntoVisitor,
-    C::AccountId: IntoVisitor + From<subxt_signer::sr25519::PublicKey>,
-    C::Address: From<subxt_signer::sr25519::PublicKey>,
-    C::Signature: From<subxt_signer::sr25519::Signature>,
+    C::AccountId: IntoVisitor,
     <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
-    E::Balance: From<u128>,
+    Signer: tx::Signer<C> + Clone,
 {
     /// Uploads contract code to a specified URL using a JSON-RPC call.
     ///
@@ -171,11 +122,9 @@ where
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
     pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CodeUploadRequest {
-            origin: account_id::<C>(&self.signer),
+            origin: self.opts.signer().account_id(),
             code: self.code.0.clone(),
             storage_deposit_limit,
             determinism: Determinism::Enforced,
@@ -189,10 +138,8 @@ where
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult<C::Hash>, ErrorVariant> {
-        let storage_deposit_limit = self
-            .opts
-            .storage_deposit_limit_balance(&self.token_metadata)?;
+    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = UploadCode::new(
             self.code.clone(),
@@ -201,20 +148,18 @@ where
         )
         .build();
 
-        let result =
-            submit_extrinsic(&self.client, &self.rpc, &call, &self.signer).await?;
-        let display_events =
-            DisplayEvents::from_events::<C, E>(&result, None, &self.client.metadata())?;
+        let events =
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
-        let code_stored = result.find_first::<CodeStored<C::Hash>>()?;
-        Ok(UploadResult::<C::Hash> {
+        let code_stored = events.find_first::<CodeStored<C::Hash>>()?;
+        Ok(UploadResult {
             code_stored,
-            display_events,
+            events,
         })
     }
 
     /// Returns the extrinsic options.
-    pub fn opts(&self) -> &ExtrinsicOpts<E> {
+    pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
         &self.opts
     }
 
@@ -226,16 +171,6 @@ where
     /// Returns the code.
     pub fn code(&self) -> &WasmCode {
         &self.code
-    }
-
-    /// Returns the signer.
-    pub fn signer(&self) -> &Keypair {
-        &self.signer
-    }
-
-    /// Returns the token metadata.
-    pub fn token_metadata(&self) -> &TokenMetadata {
-        &self.token_metadata
     }
 
     /// Returns the contract message transcoder.
@@ -253,9 +188,10 @@ struct CodeUploadRequest<AccountId, Balance> {
     determinism: Determinism,
 }
 
-pub struct UploadResult<Hash> {
-    pub code_stored: Option<CodeStored<Hash>>,
-    pub display_events: DisplayEvents,
+/// A struct representing the result of an upload command execution.
+pub struct UploadResult<C: Config> {
+    pub code_stored: Option<CodeStored<C::Hash>>,
+    pub events: ExtrinsicEvents<C>,
 }
 
 /// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.

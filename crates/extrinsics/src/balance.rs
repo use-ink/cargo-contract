@@ -26,7 +26,10 @@ use rust_decimal::{
 };
 use serde_json::json;
 use subxt::{
-    backend::legacy::LegacyRpcMethods,
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
 };
 
@@ -35,10 +38,13 @@ use anyhow::{
     Context,
     Result,
 };
+use url::Url;
+
+use crate::url_to_string;
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BalanceVariant<Balance: Clone> {
+pub enum BalanceVariant<Balance> {
     /// Default format: no symbol, no token_decimals
     Default(Balance),
     /// Denominated format: symbol and token_decimals are present
@@ -73,8 +79,10 @@ pub enum UnitPrefix {
 
 impl TokenMetadata {
     /// Query [TokenMetadata] through the node's RPC
-    pub async fn query<C: Config>(client: &LegacyRpcMethods<C>) -> Result<Self> {
-        let sys_props = client.system_properties().await?;
+    pub async fn query<C: Config>(url: &Url) -> Result<Self> {
+        let rpc_cli = RpcClient::from_url(url_to_string(url)).await?;
+        let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
+        let sys_props = rpc.system_properties().await?;
 
         let default_decimals = json!(12);
         let default_units = json!("UNIT");
@@ -98,7 +106,7 @@ impl TokenMetadata {
 
 impl<Balance> FromStr for BalanceVariant<Balance>
 where
-    Balance: FromStr + Clone,
+    Balance: FromStr,
 {
     type Err = anyhow::Error;
 

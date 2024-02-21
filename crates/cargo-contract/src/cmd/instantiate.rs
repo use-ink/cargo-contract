@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    create_signer,
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
@@ -47,6 +48,7 @@ use contract_extrinsics::{
     InstantiateCommandBuilder,
     InstantiateDryRunResult,
     InstantiateExecResult,
+    TokenMetadata,
 };
 use ink_env::{
     DefaultEnvironment,
@@ -55,6 +57,7 @@ use ink_env::{
 use sp_core::Bytes;
 use std::fmt::Debug;
 use subxt::PolkadotConfig as DefaultConfig;
+use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -100,24 +103,35 @@ impl InstantiateCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        let extrinsic_opts = ExtrinsicOptsBuilder::default()
+        let token_metadata =
+            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
+
+        let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
+        let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
-            .suri(self.extrinsic_cli_opts.suri.clone())
-            .storage_deposit_limit(self.extrinsic_cli_opts.storage_deposit_limit.clone())
+            .storage_deposit_limit(
+                self.extrinsic_cli_opts
+                    .storage_deposit_limit
+                    .clone()
+                    .map(|bv| bv.denominate_balance(&token_metadata))
+                    .transpose()?,
+            )
             .done();
-        let instantiate_exec: InstantiateExec<DefaultConfig, DefaultEnvironment> =
-            InstantiateCommandBuilder::default()
-                .constructor(self.constructor.clone())
-                .args(self.args.clone())
-                .extrinsic_opts(extrinsic_opts)
-                .value(self.value.clone())
-                .gas_limit(self.gas_limit)
-                .proof_size(self.proof_size)
-                .salt(self.salt.clone())
-                .done()
-                .await?;
+        let instantiate_exec: InstantiateExec<
+            DefaultConfig,
+            DefaultEnvironment,
+            Keypair,
+        > = InstantiateCommandBuilder::new(extrinsic_opts)
+            .constructor(self.constructor.clone())
+            .args(self.args.clone())
+            .value(self.value.denominate_balance(&token_metadata)?)
+            .gas_limit(self.gas_limit)
+            .proof_size(self.proof_size)
+            .salt(self.salt.clone())
+            .done()
+            .await?;
 
         if !self.extrinsic_cli_opts.execute {
             let result = instantiate_exec.instantiate_dry_run().await?;
@@ -171,6 +185,7 @@ impl InstantiateCommand {
             display_result(
                 &instantiate_exec,
                 instantiate_result,
+                &token_metadata,
                 self.output_json(),
                 self.extrinsic_cli_opts.verbosity().unwrap(),
             )
@@ -182,7 +197,7 @@ impl InstantiateCommand {
 
 /// A helper function to estimate the gas required for a contract instantiation.
 async fn pre_submit_dry_run_gas_estimate_instantiate(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
     output_json: bool,
     skip_dry_run: bool,
 ) -> Result<Weight> {
@@ -238,13 +253,14 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
 /// Displays the results of contract instantiation, including contract address,
 /// events, and optional code hash.
 pub async fn display_result(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
     instantiate_exec_result: InstantiateExecResult<DefaultConfig>,
+    token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,
 ) -> Result<(), ErrorVariant> {
     let events = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
-        &instantiate_exec_result.result,
+        &instantiate_exec_result.events,
         Some(instantiate_exec.transcoder()),
         &instantiate_exec.client().metadata(),
     )?;
@@ -261,10 +277,7 @@ pub async fn display_result(
     } else {
         println!(
             "{}",
-            events.display_events::<DefaultEnvironment>(
-                verbosity,
-                &instantiate_exec_result.token_metadata
-            )?
+            events.display_events::<DefaultEnvironment>(verbosity, token_metadata)?
         );
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
@@ -275,7 +288,7 @@ pub async fn display_result(
 }
 
 pub fn print_default_instantiate_preview(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment>,
+    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
     gas_limit: Weight,
 ) {
     name_value_println!(

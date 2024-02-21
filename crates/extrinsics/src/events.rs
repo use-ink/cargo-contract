@@ -182,6 +182,10 @@ pub struct Event {
     pub fields: Vec<Field>,
 }
 
+/// Events produced from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct Events(Vec<Event>);
+
 /// Displays events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct DisplayEvents(Vec<Event>);
