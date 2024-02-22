@@ -280,9 +280,9 @@ pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
     balance: &str,
     token_metadata: &TokenMetadata,
 ) -> Result<Balance> {
-    BalanceVariant::from_str(&balance)
+    BalanceVariant::from_str(balance)
         .map_err(|e| anyhow!("Balance parsing failed: {e}"))
-        .and_then(|bv| bv.denominate_balance(&token_metadata))
+        .and_then(|bv| bv.denominate_balance(token_metadata))
 }
 
 /// Parse a account from string format
