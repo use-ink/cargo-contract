@@ -26,8 +26,7 @@ pub mod schema;
 pub mod storage;
 pub mod upload;
 pub mod verify;
-use subxt::tx::PairSigner;
-use sp_core::Pair;
+
 pub(crate) use self::{
     build::{
         BuildCommand,
@@ -71,32 +70,24 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
+    TokenMetadata,
 };
-use subxt::{tx, Config};
-use core::fmt;
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
+
 use std::{
-    fmt::{Debug, Display},
+    fmt::{
+        Debug,
+        Display,
+    },
     io::{
         self,
         Write,
-    }, str::FromStr,
-};
-use subxt_signer::{
-    sr25519::Keypair,
-    SecretUri,
+    },
+    str::FromStr,
 };
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Clone, Debug, clap::Args)]
-pub struct CLIExtrinsicOpts<C: Config + Environment> 
-where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
-<<C as Environment>::Balance as FromStr>::Err:
-    Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+pub struct CLIExtrinsicOpts {
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
     /// or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
@@ -127,8 +118,7 @@ where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
     /// The maximum amount of balance that can be charged from the caller to pay for the
     /// storage. consumed.
     #[clap(long)]
-    storage_deposit_limit:
-        Option<BalanceVariant<<C as Environment>::Balance>>,
+    storage_deposit_limit: Option<String>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -137,11 +127,7 @@ where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
     skip_confirm: bool,
 }
 
-impl <C: Config + Environment> CLIExtrinsicOpts<C> 
-where <C as Environment>::Balance: Send + Sync + Debug  + FromStr,
-<<C as Environment>::Balance as FromStr>::Err:
-    Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+impl CLIExtrinsicOpts {
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
@@ -152,9 +138,12 @@ const STORAGE_DEPOSIT_KEY: &str = "Storage Total Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
-) -> Result<()> {
+pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance, ()>,
+) -> Result<()>
+where
+    Balance: Debug,
+{
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
@@ -177,8 +166,8 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     Ok(())
 }
 
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
+pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -247,8 +236,8 @@ pub fn print_gas_required_success(gas: Weight) {
 pub fn basic_display_format_extended_contract_info<Hash, Balance>(
     info: &ExtendedContractInfo<Hash, Balance>,
 ) where
-    Hash: fmt::Debug,
-    Balance: fmt::Debug,
+    Hash: Debug,
+    Balance: Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
@@ -286,32 +275,29 @@ where
     contracts.iter().for_each(|e: &AccountId| println!("{}", e))
 }
 
-/// Create a Signer from a secret URI.
-pub fn create_signer2<C: Config, Signer>(signer: Signer/*suri: &str*/) -> Result<Signer> 
-where Signer: tx::Signer<C>,//  C::AccountId: From<PublicKey>,
-//<C as subxt::Config>::AccountId: std::convert::From<sp_core::crypto::AccountId32>,
-//C::Address: From<PublicKey>,
-//Pair: sp_core::Pair
-{
-    // let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
-    // let keypair = Keypair::from_uri(&uri)?;
-    //let keypair = sp_core::sr25519::Pair::from_string("vessel ladder alter error federal sibling chat ability sun glass valve picture/0/1///Password", None).unwrap();
-    //let keypair = PairSigner::<C, sp_core::sr25519::Pair>::new(keypair);
-    Ok(signer)
+/// Parse a balance from string format
+pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
+    balance: &str,
+    token_metadata: &TokenMetadata,
+) -> Result<Balance> {
+    BalanceVariant::from_str(&balance)
+        .map_err(|e| anyhow!("Balance parsing failed: {e}"))
+        .and_then(|bv| bv.denominate_balance(&token_metadata))
 }
 
-/// Create a Signer from a secret URI.
-pub fn create_signer(suri: &str) -> Result<Keypair> 
+/// Parse a account from string format
+pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
+where
+    <AccountId as FromStr>::Err: Display,
 {
-    let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
-    let signer = Keypair::from_uri(&uri)?;
-    Ok(signer)
+    AccountId::from_str(account)
+        .map_err(|e| anyhow::anyhow!("Account address parsing failed: {e}"))
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
 pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
 where
-    Hash: std::convert::From<[u8; 32]>,
+    Hash: From<[u8; 32]>,
 {
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
@@ -324,17 +310,22 @@ where
 
 #[cfg(test)]
 mod tests {
+    use subxt::{
+        Config,
+        SubstrateConfig,
+    };
+
     use super::*;
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok());
         // without 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok())
@@ -343,7 +334,7 @@ mod tests {
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
         )
         .is_err())
@@ -352,7 +343,7 @@ mod tests {
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_err())

@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::call_with_config;
+
 use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
+    parse_account,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
@@ -54,20 +57,10 @@ use subxt::{
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
-pub struct InfoCommand<C: Config + Environment>
-where
-    <C as Config>::AccountId: Sync + Send + FromStr,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+pub struct InfoCommand {
     /// The address of the contract to display info of.
-    #[clap(
-        name = "contract",
-        long,
-        env = "CONTRACT",
-        required_unless_present = "all"
-    )]
-    contract: Option<<C as Config>::AccountId>,
+    #[clap(name = "contract", long, env = "CONTRACT", conflicts_with = "all")]
+    contract: String,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
@@ -85,21 +78,30 @@ where
     /// Display all contracts addresses
     #[clap(name = "all", long)]
     all: bool,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
 }
 
-impl<C: Config + Environment> InfoCommand<C>
-where
-    <C as Config>::AccountId:
-        Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + Send + Sync + FromStr,
-    <C as Config>::Hash: IntoVisitor + Display,
-    <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
-    pub async fn run(&self) -> Result<(), ErrorVariant> {
+impl InfoCommand {
+    pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        call_with_config!(self, run, self.config.as_str())
+    }
+
+    pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId:
+            Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + FromStr,
+        <C as Config>::Hash: IntoVisitor + Display,
+        <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
+        <<C as Config>::AccountId as FromStr>::Err:
+            Into<Box<(dyn std::error::Error)>> + Display,
+    {
         let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
+        let contract = parse_account(&self.contract)
+            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
 
         // All flag applied
         if self.all {
@@ -117,13 +119,8 @@ where
         } else {
             // Contract arg shall be always present in this case, it is enforced by
             // clap configuration
-            let contract = self
-                .contract
-                .as_ref()
-                .expect("Contract argument was not provided");
-
             let info_to_json =
-                fetch_contract_info::<C, C>(contract, &rpc, &client).await?;
+                fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;

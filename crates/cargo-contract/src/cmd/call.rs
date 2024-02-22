@@ -14,20 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{config::SignerConfig, ErrorVariant};
+use crate::{
+    call_with_config,
+    config::SignerConfig,
+    ErrorVariant,
+};
 
 use contract_build::util::DEFAULT_KEY_COL_WIDTH;
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
-use subxt::{tx::PairSigner, PolkadotConfig};
+use ink_env::Environment;
 use serde::Serialize;
-use subxt_signer::{sr25519::{Keypair, PublicKey}, SecretUri};
-use std::{fmt::{Debug, Display}, str::FromStr};
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    str::FromStr,
+};
 
 use super::{
-    create_signer, create_signer2, display_contract_exec_result, display_contract_exec_result_debug, display_dry_run_result_warning, print_dry_running_status, print_gas_required_success, prompt_confirm_tx, CLIExtrinsicOpts, MAX_KEY_COL_WIDTH
+    display_contract_exec_result,
+    display_contract_exec_result_debug,
+    display_dry_run_result_warning,
+    parse_account,
+    parse_balance,
+    print_dry_running_status,
+    print_gas_required_success,
+    prompt_confirm_tx,
+    CLIExtrinsicOpts,
+    MAX_KEY_COL_WIDTH,
 };
 use anyhow::{
     anyhow,
@@ -37,7 +51,6 @@ use anyhow::{
 use contract_build::name_value_println;
 use contract_extrinsics::{
     pallet_contracts_primitives::StorageDeposit,
-    BalanceVariant,
     CallCommandBuilder,
     CallExec,
     DisplayEvents,
@@ -47,22 +60,19 @@ use contract_extrinsics::{
 use contract_transcode::Value;
 use sp_weights::Weight;
 use subxt::{
-    ext::{scale_decode::IntoVisitor, scale_encode::EncodeAsType}, tx::Signer, Config
+    config::ExtrinsicParams,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
+    Config,
 };
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
-pub struct CallCommand<C: Config + Environment> 
-where
-<C as Config>::AccountId: Sync + Send + FromStr,
-<<C as Config>::AccountId as FromStr>::Err:
-    Into<Box<(dyn std::error::Error + Send + Sync)>>,
-<C as Environment>::Balance: Sync + Send +From<u128> + Debug + FromStr,
-    <<C as Environment>::Balance as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+pub struct CallCommand {
     /// The address of the the contract to call.
     #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <C as Config>::AccountId,
+    contract: String,
     /// The name of the contract message to call.
     #[clap(long, short)]
     message: String,
@@ -70,7 +80,7 @@ where
     #[clap(long, num_args = 0..)]
     args: Vec<String>,
     #[clap(flatten)]
-    extrinsic_cli_opts: CLIExtrinsicOpts<C>,
+    extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Maximum amount of gas (execution time) to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the
     /// call.
@@ -83,60 +93,70 @@ where
     proof_size: Option<u64>,
     /// The value to be transferred as part of the call.
     #[clap(name = "value", long, default_value = "0")]
-    value: BalanceVariant<<C as Environment>::Balance>,
+    value: String,
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
 }
 
-impl <C: Config + Environment + SignerConfig<C>>CallCommand <C> 
-where
-<C as Config>::AccountId: Sync + Send + FromStr + IntoVisitor + EncodeAsType,
-<<C as Config>::AccountId as FromStr>::Err:
-    Into<Box<(dyn std::error::Error + Send + Sync)>>,
-<C as Environment>::Balance: Sync + Send + From<u128> + Display + Default + Debug  + FromStr,
-<<C as Environment>::Balance as FromStr>::Err:
-    Into<Box<(dyn std::error::Error + Send + Sync)>>,
-<<C as Config>::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
-{
+impl CallCommand {
     /// Returns whether to export the call output in JSON format.
     pub fn output_json(&self) -> bool {
         self.output_json
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        call_with_config!(self, run, self.config.as_str())
+    }
 
-// let keypair = sp_core::sr25519::Pair::from_string("vessel ladder alter error federal sibling chat ability sun glass valve picture/0/1///Password", None).unwrap();
-// let signer = PairSigner::<C, sp_core::sr25519::Pair>::new(keypair);
-
-        let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
-        let signer =  Keypair::from_uri(&uri).unwrap();
-
+    async fn run<C: Config + Environment + SignerConfig<C>>(
+        &self,
+    ) -> Result<(), ErrorVariant>
+    where
+        <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
+        <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
+        <<C as Config>::AccountId as FromStr>::Err: Display,
+        C::Balance: From<u128> + Display + Default + FromStr + Serialize + Debug,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    {
+        let contract = parse_account(&self.contract)
+            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
+        let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
+            .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let token_metadata =
             TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
 
-        let signer = create_signer2::<C, _>(signer/*&self.extrinsic_cli_opts.suri*/)?;
+        let storage_deposit_limit = self
+            .extrinsic_cli_opts
+            .storage_deposit_limit
+            .clone()
+            .map(|b| parse_balance(&b, &token_metadata))
+            .transpose()
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+            })?;
+
+        let value = parse_balance(&self.value, &token_metadata)
+            .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
+
+        // let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
-            .storage_deposit_limit(
-                self.extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone()
-                    .map(|bv| bv.denominate_balance(&token_metadata))
-                    .transpose()?,
-            )
+            .storage_deposit_limit(storage_deposit_limit)
             .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
-        let call_exec =
-            CallCommandBuilder::new(self.contract.clone(), &self.message, extrinsic_opts)
-                .args(self.args.clone())
-                .gas_limit(self.gas_limit)
-                .proof_size(self.proof_size)
-                .value(self.value.denominate_balance(&token_metadata)?)
-                .done()
-                .await?;
+        let call_exec = CallCommandBuilder::new(contract, &self.message, extrinsic_opts)
+            .args(self.args.clone())
+            .gas_limit(self.gas_limit)
+            .proof_size(self.proof_size)
+            .value(value)
+            .done()
+            .await?;
         let metadata = call_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {
@@ -164,7 +184,7 @@ where
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
+                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH, _>(
                             &result,
                         )?;
                         display_dry_run_result_warning("message");
@@ -176,7 +196,7 @@ where
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
                     }
                 }
             }
@@ -207,10 +227,8 @@ where
                 })?;
             }
             let events = call_exec.call(Some(gas_limit)).await?;
-            let display_events = DisplayEvents::from_events::<
-                C,
-                C,
-            >(&events, None, &metadata)?;
+            let display_events =
+                DisplayEvents::from_events::<C, C>(&events, None, &metadata)?;
 
             let output = if self.output_json() {
                 display_events.to_json()?
@@ -227,11 +245,17 @@ where
 }
 
 /// A helper function to estimate the gas required for a contract call.
-async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment + SignerConfig<C>>(
-    call_exec: &CallExec<C, C, <C as SignerConfig<C>>::Signer>,
+async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment, Signer>(
+    call_exec: &CallExec<C, C, Signer>,
     output_json: bool,
     skip_dry_run: bool,
-) -> Result<Weight> {
+) -> Result<Weight>
+where
+    Signer: subxt::tx::Signer<C> + Clone,
+    <C as Config>::AccountId: IntoVisitor + EncodeAsType,
+    C::Balance: Debug,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+{
     if skip_dry_run {
         return match (call_exec.gas_limit(), call_exec.proof_size()) {
             (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -267,7 +291,7 @@ async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment + SignerCo
                 Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
             } else {
                 name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&call_result)?;
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&call_result)?;
 
                 Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
             }
@@ -277,8 +301,7 @@ async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment + SignerCo
 
 /// Result of the contract call
 #[derive(serde::Serialize)]
-pub struct CallDryRunResult<Balance: Serialize> 
-{
+pub struct CallDryRunResult<Balance> {
     /// Was the operation reverted
     pub reverted: bool,
     pub data: Value,
@@ -288,8 +311,7 @@ pub struct CallDryRunResult<Balance: Serialize>
     pub storage_deposit: StorageDeposit<Balance>,
 }
 
-impl <Balance: Serialize> CallDryRunResult <Balance>
-{
+impl<Balance: Serialize> CallDryRunResult<Balance> {
     /// Returns a result in json format
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)

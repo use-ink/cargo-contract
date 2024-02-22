@@ -47,31 +47,16 @@ use clap::{
 };
 use cmd::encode::EncodeCommand;
 use colored::Colorize;
-use config::{
-    PolkadotBaseConfig, SignerConfig,
-};
 use contract_build::{
     util::DEFAULT_KEY_COL_WIDTH,
     OutputType,
 };
 use contract_extrinsics::InstantiateExec;
-use ink_env::Environment;
-use serde::Serialize;
 use sp_weights::Weight;
 use std::{
-    fmt::{
-        Debug,
-        Display,
-    },
+    fmt::Debug,
     path::PathBuf,
     str::FromStr,
-};
-use subxt::{
-    ext::{
-        codec::Decode,
-        scale_decode::IntoVisitor, scale_encode::EncodeAsType,
-    },
-    Config,
 };
 use tokio::runtime::Runtime;
 // These crates are only used when we run integration tests `--features
@@ -93,35 +78,18 @@ use which as _;
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]
 #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
-pub(crate) enum Opts<C: Config + Environment  + SignerConfig<C>>
-where
-    <C as Config>::AccountId: Sync + Send + FromStr,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-    <C as Environment>::Balance: Sync + Send + From<u128> + Debug + FromStr,
-    <<C as Environment>::Balance as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+pub(crate) enum Opts {
     /// Utilities to develop Wasm smart contracts.
     #[clap(name = "contract")]
     #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
     #[clap(action = ArgAction::DeriveDisplayOrder)]
-    Contract(ContractArgs<C>),
+    Contract(ContractArgs),
 }
 
 #[derive(Debug, Args)]
-pub(crate) struct ContractArgs<C: Config + Environment  + SignerConfig<C>>
-where
-    <C as Config>::AccountId: Sync + Send + FromStr,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-    <C as Environment>::Balance: Sync + Send + From<u128> + Debug + FromStr,
-    <<C as Environment>::Balance as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-
-{
+pub(crate) struct ContractArgs {
     #[clap(subcommand)]
-    cmd: Command<C>,
+    cmd: Command,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -136,15 +104,7 @@ impl FromStr for HexData {
 }
 
 #[derive(Debug, Subcommand)]
-enum Command<C: Config + Environment + SignerConfig<C>>
-where
-    <C as Config>::AccountId: Sync + Send + FromStr,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-    <C as Environment>::Balance: Sync + Send + From<u128> + Debug + FromStr,
-    <<C as Environment>::Balance as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-{
+enum Command {
     /// Setup and create a new smart contract project
     #[clap(name = "new")]
     New {
@@ -170,7 +130,7 @@ where
     Instantiate(InstantiateCommand),
     /// Call a contract
     #[clap(name = "call")]
-    Call(CallCommand<C>),
+    Call(CallCommand),
     /// Encodes a contracts input calls and their arguments
     #[clap(name = "encode")]
     Encode(EncodeCommand),
@@ -182,10 +142,10 @@ where
     Remove(RemoveCommand),
     /// Display information about a contract
     #[clap(name = "info")]
-    Info(InfoCommand<C>),
+    Info(InfoCommand),
     /// Inspect the on-chain storage of a contract.
     #[clap(name = "storage")]
-    Storage(StorageCommand<C>),
+    Storage(StorageCommand),
     /// Verifies that a given contract binary matches the build result of the specified
     /// workspace.
     #[clap(name = "verify")]
@@ -203,14 +163,8 @@ where
 
 fn main() {
     tracing_subscriber::fmt::init();
-    let config = config::select_config("eth");
 
-    // let Opts::Contract(args) = match config {
-    //     ChainConfig::EthereumBaseConfig =>  Opts::<EthereumBaseConfig>::parse(),
-    //     ChainConfig::PolkadotBaseConfig =>  Opts::<PolkadotBaseConfig>::parse(),
-    // };
-
-    let Opts::Contract(args) = Opts::<PolkadotBaseConfig>::parse();
+    let Opts::Contract(args) = Opts::parse();
 
     match exec(args.cmd) {
         Ok(()) => {}
@@ -221,19 +175,7 @@ fn main() {
     }
 }
 
-fn exec<C: Config + Environment  + SignerConfig<C>>(cmd: Command<C>) -> Result<()>
-where
-    <C as Config>::AccountId:
-        Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + Send + Sync + FromStr + EncodeAsType,
-    <<C as Config>::AccountId as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-    <C as Config>::Hash: IntoVisitor + Display,
-    <C as Environment>::Balance: Serialize + Decode + Debug + IntoVisitor + Sync + Send + From<u128> + Default + Display  + FromStr,
-    <<C as Environment>::Balance as FromStr>::Err:
-        Into<Box<(dyn std::error::Error + Send + Sync)>>,
-    <<C as Config>::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
-
-{
+fn exec(cmd: Command) -> Result<()> {
     let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
         Command::New { name, target_dir } => {
@@ -293,10 +235,10 @@ where
             })
         }
         Command::Info(info) => {
-            runtime.block_on(async { info.run().await.map_err(format_err) })
+            runtime.block_on(async { info.handle().await.map_err(format_err) })
         }
         Command::Storage(storage) => {
-            runtime.block_on(async { storage.run().await.map_err(format_err) })
+            runtime.block_on(async { storage.handle().await.map_err(format_err) })
         }
         Command::Verify(verify) => {
             let result = verify.run().map_err(format_err)?;
