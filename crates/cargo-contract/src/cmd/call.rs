@@ -67,6 +67,7 @@ use subxt::{
     },
     Config,
 };
+
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
 pub struct CallCommand {
@@ -142,7 +143,6 @@ impl CallCommand {
         let value = parse_balance(&self.value, &token_metadata)
             .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
 
-        // let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())

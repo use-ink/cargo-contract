@@ -51,6 +51,7 @@ use subxt::{
     },
     Config,
 };
+
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
@@ -127,6 +128,7 @@ impl RemoveCommand {
             Some(remove_exec.transcoder()),
             &remove_exec.client().metadata(),
         )?;
+
         let output_events = if self.output_json() {
             display_events.to_json()?
         } else {

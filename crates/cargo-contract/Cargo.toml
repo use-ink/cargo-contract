@@ -24,15 +24,15 @@ contract-transcode = { version = "4.0.0-rc.2", path = "../transcode" }
 contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
 contract-analyze = { version = "4.0.0-rc.2", path = "../analyze" }
 
-anyhow = "1.0.79"
-clap = { version = "4.4.18", features = ["derive", "env"] }
+anyhow = "1.0.80"
+clap = { version = "4.5.1", features = ["derive", "env"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 which = "6.0.0"
 colored = "2.1.0"
-serde_json = "1.0.113"
-serde = { version = "1.0.196", default-features = false, features = ["derive"] }
+serde_json = "1.0.114"
+serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
@@ -49,13 +49,13 @@ sp-weights = "27.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
-anyhow = "1.0.79"
+anyhow = "1.0.80"
 substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
 which = "6.0.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.13"
+assert_cmd = "2.0.14"
 regex = "1.10.3"
 predicates = "3.1.0"
 tempfile = "3.10.0"
