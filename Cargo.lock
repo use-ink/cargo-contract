@@ -1204,7 +1204,6 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "blake2",
- "clap",
  "colored",
  "contract-build",
  "contract-metadata",

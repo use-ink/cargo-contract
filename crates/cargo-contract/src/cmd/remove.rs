@@ -94,7 +94,6 @@ impl RemoveCommand {
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let token_metadata =
             TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
-
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -104,20 +103,19 @@ impl RemoveCommand {
             .map_err(|e| {
                 anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
             })?;
-
         let code_hash = self
             .code_hash
             .clone()
             .map(|h| parse_code_hash(&h))
             .transpose()
             .map_err(|e| anyhow::anyhow!("Failed to parse code_hash option: {}", e))?;
-
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
+
         let remove_exec: RemoveExec<C, C, _> = RemoveCommandBuilder::new(extrinsic_opts)
             .code_hash(code_hash)
             .done()

@@ -136,7 +136,6 @@ impl InstantiateCommand {
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let token_metadata =
             TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
-
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -146,16 +145,15 @@ impl InstantiateCommand {
             .map_err(|e| {
                 anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
             })?;
-
         let value = parse_balance(&self.value, &token_metadata)
             .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
-
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
+
         let instantiate_exec: InstantiateExec<C, C, _> =
             InstantiateCommandBuilder::new(extrinsic_opts)
                 .constructor(self.constructor.clone())

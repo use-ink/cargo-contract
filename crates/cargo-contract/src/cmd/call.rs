@@ -129,7 +129,6 @@ impl CallCommand {
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let token_metadata =
             TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
-
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -139,10 +138,8 @@ impl CallCommand {
             .map_err(|e| {
                 anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
             })?;
-
         let value = parse_balance(&self.value, &token_metadata)
             .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
-
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
@@ -150,6 +147,7 @@ impl CallCommand {
             .storage_deposit_limit(storage_deposit_limit)
             .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
+
         let call_exec = CallCommandBuilder::new(contract, &self.message, extrinsic_opts)
             .args(self.args.clone())
             .gas_limit(self.gas_limit)

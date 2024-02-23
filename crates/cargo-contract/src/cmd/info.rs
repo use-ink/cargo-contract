@@ -59,8 +59,13 @@ use subxt::{
 #[clap(name = "info", about = "Get infos from a contract")]
 pub struct InfoCommand {
     /// The address of the contract to display info of.
-    #[clap(name = "contract", long, env = "CONTRACT", conflicts_with = "all")]
-    contract: String,
+    #[clap(
+        name = "contract",
+        long,
+        env = "CONTRACT",
+        required_unless_present = "all"
+    )]
+    contract: Option<String>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
@@ -100,8 +105,6 @@ impl InfoCommand {
         let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
-        let contract = parse_account(&self.contract)
-            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
 
         // All flag applied
         if self.all {
@@ -119,6 +122,13 @@ impl InfoCommand {
         } else {
             // Contract arg shall be always present in this case, it is enforced by
             // clap configuration
+            let contract = self
+                .contract
+                .as_ref()
+                .map(|c| parse_account(c))
+                .transpose()?
+                .expect("Contract argument shall be present");
+
             let info_to_json =
                 fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
