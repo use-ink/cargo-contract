@@ -33,7 +33,7 @@ use subxt::{
 };
 
 /// A runtime configuration for the ecdsa test chain.
-// /// This thing is not meant to be instantiated; it is just a collection of types.
+/// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ecdsachain {}
 
@@ -66,7 +66,7 @@ where
 }
 
 /// A runtime configuration for the Polkadot based chain.
-// /// This thing is not meant to be instantiated; it is just a collection of types.
+/// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Polkadot {}
 
