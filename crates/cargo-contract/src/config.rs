@@ -32,7 +32,7 @@ use subxt::{
     SubstrateConfig,
 };
 
-/// A runtime configuration for the Polkadot based chain.
+/// A runtime configuration for the ecdsa test chain.
 // /// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ecdsachain {}
@@ -134,13 +134,13 @@ where
     }
 }
 
-/// Struct representing the implementation of the sr25519 signer
+/// Struct representing the implementation of the ecdsa signer
 #[derive(Clone)]
 pub struct SignerEcdsa<C: Config>(pub PairSigner<C, sp_core::ecdsa::Pair>);
 
 impl<C: Config> FromStr for SignerEcdsa<C>
 where
-    // Requirements of `PairSigner where:
+    // Requirements of the `PairSigner where:
     // T::AccountId: From<SpAccountId32>`
     <C as Config>::AccountId: From<sp_core::crypto::AccountId32>,
 {
