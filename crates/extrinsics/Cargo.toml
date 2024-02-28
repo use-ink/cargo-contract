@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "4.0.0-rc.2"
+version = "4.0.0-rc.3"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 rust-version = "1.70"
@@ -15,9 +15,9 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]
-contract-build = { version = "4.0.0-rc.2", path = "../build" }
-contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
-contract-transcode = { version = "4.0.0-rc.2", path = "../transcode" }
+contract-build = { version = "4.0.0-rc.3", path = "../build" }
+contract-metadata = { version = "4.0.0-rc.3", path = "../metadata" }
+contract-transcode = { version = "4.0.0-rc.3", path = "../transcode" }
 
 anyhow = "1.0.80"
 blake2 = { version = "0.10.6", default-features = false }
@@ -40,11 +40,11 @@ scale-info = "2.10.0"
 subxt = "0.34.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = "5.0.0-rc.1"
-ink_env = "5.0.0-rc.1"
+ink_metadata = "5.0.0-rc.2"
+ink_env = "5.0.0-rc.2"
 
 [dev-dependencies]
-ink = "5.0.0-rc.1"
+ink = "5.0.0-rc.2"
 assert_cmd = "2.0.14"
 regex = "1.10.3"
 predicates = "3.1.0"
