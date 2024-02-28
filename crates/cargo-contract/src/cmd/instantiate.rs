@@ -28,7 +28,7 @@ use super::{
 use crate::{
     anyhow,
     call_with_config,
-    config::SignerConfig,
+    cmd::config::SignerConfig,
     ErrorVariant,
     InstantiateExec,
     Weight,
@@ -301,7 +301,6 @@ pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
     verbosity: Verbosity,
 ) -> Result<(), ErrorVariant>
 where
-    C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
     C::Balance: Serialize + From<u128> + Display,

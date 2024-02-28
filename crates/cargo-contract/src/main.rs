@@ -17,7 +17,6 @@
 #![deny(unused_crate_dependencies)]
 
 mod cmd;
-mod config;
 
 use self::cmd::{
     BuildCommand,

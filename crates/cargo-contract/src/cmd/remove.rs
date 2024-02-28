@@ -16,7 +16,7 @@
 
 use crate::{
     call_with_config,
-    config::SignerConfig,
+    cmd::config::SignerConfig,
     ErrorVariant,
 };
 use std::{
@@ -82,7 +82,6 @@ impl RemoveCommand {
         &self,
     ) -> Result<(), ErrorVariant>
     where
-        <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
         <<C as Config>::AccountId as FromStr>::Err: Display,
         C::Balance:

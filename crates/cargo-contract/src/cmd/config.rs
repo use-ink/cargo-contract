@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::str::FromStr;
-
 use ink_env::{
     DefaultEnvironment,
     Environment,
 };
 use sp_core::Pair;
+use std::{
+    fmt::Debug,
+    str::FromStr,
+};
 use subxt::{
     config::PolkadotExtrinsicParams,
     tx::{
@@ -31,6 +33,11 @@ use subxt::{
     Config,
     SubstrateConfig,
 };
+
+/// Configuration for signer
+pub trait SignerConfig<C: Config + Environment> {
+    type Signer: SignerT<C> + FromStr + Clone;
+}
 
 /// A runtime configuration for the ecdsa test chain.
 /// This thing is not meant to be instantiated; it is just a collection of types.
@@ -89,10 +96,6 @@ impl Environment for Polkadot {
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
     type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
-}
-
-pub trait SignerConfig<C: Config> {
-    type Signer: SignerT<C> + FromStr;
 }
 
 impl SignerConfig<Self> for Polkadot {
@@ -181,7 +184,7 @@ macro_rules! call_with_config_internal {
             _ => {
 
                 let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.trim_start_matches("crate::config::"))
+                .map(|s| s.trim_start_matches("crate::cmd::config::"))
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
@@ -203,8 +206,8 @@ macro_rules! call_with_config {
             $function,
             config_name.as_str(),
             // All available chain configs need to be specified here
-            $crate::config::Polkadot,
-            $crate::config::Ecdsachain
+            $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Ecdsachain
         )
     }};
 }
