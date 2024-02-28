@@ -16,7 +16,6 @@
 
 use crate::{
     call_with_config,
-    cmd::config::SignerConfig,
     ErrorVariant,
 };
 use std::{
@@ -28,6 +27,7 @@ use std::{
 };
 
 use super::{
+    config::SignerConfig,
     parse_balance,
     parse_code_hash,
     CLIExtrinsicOpts,

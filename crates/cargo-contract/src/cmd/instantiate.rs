@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    config::SignerConfig,
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
@@ -28,7 +29,6 @@ use super::{
 use crate::{
     anyhow,
     call_with_config,
-    cmd::config::SignerConfig,
     ErrorVariant,
     InstantiateExec,
     Weight,
