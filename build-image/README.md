@@ -56,14 +56,14 @@ _Settings_ -> _Features in development_ tab in Docker Desktop App.
 Build docker image:
 
 ```bash
-docker buildx build -t paritytech/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=4.0.0-rc.2 .
+docker buildx build -t paritytech/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=3.2.0 .
 ```
 
 Run docker container:
 
 ```bash
 docker container run \
-    -it --entrypoint /bin/bash \
+    -it --rm --entrypoint /bin/bash \
     --mount type=bind,source="$(pwd)",target="/contract" \
     paritytech/contracts-verifiable:0.0.1-local
 ```

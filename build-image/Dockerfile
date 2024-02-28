@@ -53,6 +53,9 @@ RUN set -eux \
     && chmod +x rustup-init \
     && ./rustup-init -y --no-modify-path --profile minimal --component rust-src rustfmt clippy --default-toolchain $RUST_VERSION  \
     && rm rustup-init \
+    # Install nightly toolchain required by `cargo contract build --verifiable --lint` command
+    && rustup install ${RUST_LINTER_VERSION} --profile minimal \
+    && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
     && chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
     && rustup --version \
     && cargo --version \
@@ -94,9 +97,7 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
-    # Install nightly toolchain, cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
-    && rustup install ${RUST_LINTER_VERSION} --profile minimal \
-    && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
+    # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
     && cargo install cargo-dylint dylint-link \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
@@ -109,6 +110,8 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
 FROM slimmed-rust as ink-dev
 
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract
+COPY --from=cc-builder /usr/local/cargo/bin/cargo-dylint /usr/local/cargo/bin/cargo-dylint
+COPY --from=cc-builder /usr/local/cargo/bin/dylint-link /usr/local/cargo/bin/dylint-link
 
 WORKDIR /contract
 
