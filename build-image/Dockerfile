@@ -19,6 +19,8 @@ ARG WGET_VERSION=1.21-1+deb11u1
 # g++ package version
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
+# The rust version used by linter
+ARG RUST_LINTER_VERSION=nightly-2023-12-28
 
 # metadata
 LABEL io.parity.image.vendor="Parity Technologies" \
@@ -73,7 +75,8 @@ ARG CARGO_CONTRACT_GIT
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
 # Install required packages for `cargo-contract`
-RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-dev=${MUSL_V} \
+# libssl-dev and pkg-config is required by cargo-dylint
+RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} musl-dev=${MUSL_V} libssl-dev pkg-config \
     # Install cargo contract from git if the arg is set
     && if [ -n "$CARGO_CONTRACT_GIT" ]; then \
     COMMAND="cargo install --git ${CARGO_CONTRACT_GIT}" ; \
@@ -91,10 +94,14 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
+    # Install nightly toolchain, cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
+    && rustup install ${RUST_LINTER_VERSION} --profile minimal \
+    && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
+    && cargo install cargo-dylint dylint-link \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
-    && apt-get remove -y gnupg \
+    && apt-get remove -y gnupg libssl-dev pkg-config \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
