@@ -26,7 +26,7 @@ and work directory is set to `/contract`. You need to mount the folder with the 
 docker run -d \
     --name ink-container \
     --mount type=bind,source="$(pwd)",target="/contract" \
-    paritytech/contracts-verified
+    paritytech/contracts-verifiable
 ```
 
 For multi-contract projects, like in the example below:
@@ -50,3 +50,20 @@ to the root contract:
 It is a known issue that running AMD64 image on the ARM host architecture significantly impacts the performance
 and build times. To solve this issues, enable _Use Rosetta for x86/amd64 emulation on Apple Silicon_ in
 _Settings_ -> _Features in development_ tab in Docker Desktop App.
+
+**How to debug**
+
+Build docker image:
+
+```bash
+docker buildx build -t paritytech/contracts-verifiable:0.0.1 .
+```
+
+Run docker container:
+
+```bash
+docker container run \
+    -it --entrypoint /bin/bash \
+    --mount type=bind,source="$(pwd)",target="/contract" \
+    paritytech/contracts-verifiable:0.0.1
+```
