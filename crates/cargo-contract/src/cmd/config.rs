@@ -240,6 +240,7 @@ macro_rules! call_with_config {
             config_name.as_str(),
             // All available chain configs need to be specified here
             $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
         )
     }};
