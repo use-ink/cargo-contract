@@ -24,13 +24,16 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    config::PolkadotExtrinsicParams,
+    config::{
+        PolkadotExtrinsicParams,
+        SubstrateExtrinsicParams,
+    },
     tx::{
         PairSigner,
         Signer as SignerT,
     },
-    utils::MultiAddress,
     Config,
+    PolkadotConfig,
     SubstrateConfig,
 };
 
@@ -47,11 +50,11 @@ pub enum Ecdsachain {}
 impl Config for Ecdsachain {
     type Hash = <SubstrateConfig as Config>::Hash;
     type AccountId = <SubstrateConfig as Config>::AccountId;
-    type Address = MultiAddress<Self::AccountId, ()>;
+    type Address = <SubstrateConfig as Config>::Address;
     type Signature = <SubstrateConfig as Config>::Signature;
     type Hasher = <SubstrateConfig as Config>::Hasher;
     type Header = <SubstrateConfig as Config>::Header;
-    type ExtrinsicParams = PolkadotExtrinsicParams<Self>;
+    type ExtrinsicParams = SubstrateExtrinsicParams<Self>;
     type AssetId = <SubstrateConfig as Config>::AssetId;
 }
 
@@ -72,20 +75,50 @@ where
     type Signer = SignerEcdsa<Self>;
 }
 
+/// A runtime configuration for the Substrate based chain.
+/// This thing is not meant to be instantiated; it is just a collection of types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Substrate {}
+
+impl Config for Substrate {
+    type Hash = <SubstrateConfig as Config>::Hash;
+    type AccountId = <SubstrateConfig as Config>::AccountId;
+    type Address = <SubstrateConfig as Config>::Address;
+    type Signature = <SubstrateConfig as Config>::Signature;
+    type Hasher = <SubstrateConfig as Config>::Hasher;
+    type Header = <SubstrateConfig as Config>::Header;
+    type ExtrinsicParams = SubstrateExtrinsicParams<Self>;
+    type AssetId = <SubstrateConfig as Config>::AssetId;
+}
+
+impl Environment for Substrate {
+    const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
+    type AccountId = <DefaultEnvironment as Environment>::AccountId;
+    type Balance = <DefaultEnvironment as Environment>::Balance;
+    type Hash = <DefaultEnvironment as Environment>::Hash;
+    type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
+    type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
+    type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
+}
+
+impl SignerConfig<Self> for Substrate {
+    type Signer = SignerSR25519<Self>;
+}
+
 /// A runtime configuration for the Polkadot based chain.
 /// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Polkadot {}
 
 impl Config for Polkadot {
-    type Hash = <SubstrateConfig as Config>::Hash;
-    type AccountId = <SubstrateConfig as Config>::AccountId;
-    type Address = MultiAddress<Self::AccountId, ()>;
-    type Signature = <SubstrateConfig as Config>::Signature;
-    type Hasher = <SubstrateConfig as Config>::Hasher;
-    type Header = <SubstrateConfig as Config>::Header;
+    type Hash = <PolkadotConfig as Config>::Hash;
+    type AccountId = <PolkadotConfig as Config>::AccountId;
+    type Address = <PolkadotConfig as Config>::Address;
+    type Signature = <PolkadotConfig as Config>::Signature;
+    type Hasher = <PolkadotConfig as Config>::Hasher;
+    type Header = <PolkadotConfig as Config>::Header;
     type ExtrinsicParams = PolkadotExtrinsicParams<Self>;
-    type AssetId = <SubstrateConfig as Config>::AssetId;
+    type AssetId = <PolkadotConfig as Config>::AssetId;
 }
 
 impl Environment for Polkadot {
