@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-rc.3]
+
+### Fixed
+- Fix build `--verifiable` command [#1511](https://github.com/paritytech/cargo-contract/pull/1511)
+
 ## [4.0.0-rc.2]
 
 ### Added
