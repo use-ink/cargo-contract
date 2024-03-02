@@ -85,7 +85,7 @@ pub fn check_contract_ink_compatibility(
             ink_required_versions
         );
         let contract_not_compatible_message = "The cargo-contract is not compatible \
-                                                    with the contract's ink! version. Please";
+                                                    with the contract's ink! version.";
 
         // Find best cargo-contract version
         let best_cargo_contract_version = compatibility
@@ -97,7 +97,7 @@ pub fn check_contract_ink_compatibility(
                     .iter()
                     .any(|req| req.matches(ink_version))
                 {
-                    return Some(ver)
+                    return Some(ver);
                 }
                 None
             })
@@ -115,7 +115,7 @@ pub fn check_contract_ink_compatibility(
             ))?;
 
         bail!(
-            "{} update the cargo-contract to version \
+            "{} Please use cargo-contract in version \
             '{}' or {}",
             contract_not_compatible_message,
             best_cargo_contract_version,
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
-            Please update the cargo-contract to version '1.5.0' or update \
+            Please use cargo-contract in version '1.5.0' or update \
             the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
         );
 
@@ -155,7 +155,7 @@ mod tests {
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
-            Please update the cargo-contract to version '1.5.0' or update \
+            Please use cargo-contract in version '1.5.0' or update \
             the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
         );
     }
