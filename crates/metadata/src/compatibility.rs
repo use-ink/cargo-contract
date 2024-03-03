@@ -81,7 +81,7 @@ pub fn check_contract_ink_compatibility(
             .join(", ");
 
         let ink_update_message = format!(
-            "update the contract ink! to a version of {}",
+            "change the ink! version of your contract to {}",
             ink_required_versions
         );
         let contract_not_compatible_message = "The cargo-contract is not compatible \
@@ -143,8 +143,8 @@ mod tests {
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
-            Please use cargo-contract in version '1.5.0' or update \
-            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
+            Please use cargo-contract in version '1.5.0' or change \
+            the ink! version of your contract to '^4.0.0-alpha.3', '^4.0.0'"
         );
 
         let ink_version =
@@ -155,8 +155,8 @@ mod tests {
         assert_eq!(
             res.to_string(),
             "The cargo-contract is not compatible with the contract's ink! version. \
-            Please use cargo-contract in version '1.5.0' or update \
-            the contract ink! to a version of '^4.0.0-alpha.3', '^4.0.0'"
+            Please use cargo-contract in version '1.5.0' or change \
+            the ink! version of your contract to '^4.0.0-alpha.3', '^4.0.0'"
         );
     }
 
