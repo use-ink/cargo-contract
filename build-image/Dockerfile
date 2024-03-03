@@ -39,7 +39,8 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.version.gcc=${GCC_VERSION} \
     io.parity.version.wget=${WGET_VERSION} \
     io.parity.version.g_plus_plus=${G_VERSION} \
-    io.parity.version.musl=${MUSL_V}
+    io.parity.version.musl=${MUSL_V} \
+    io.parity.version.rust_linter=${RUST_LINTER_VERSION}
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -73,6 +74,7 @@ ARG CARGO_CONTRACT_BRANCH
 ARG CARGO_CONTRACT_TAG
 ARG CARGO_CONTRACT_REV
 ARG CARGO_CONTRACT_GIT
+ARG RUST_LINTER_VERSION
 
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
 ENV RUSTFLAGS="-C target-feature=-crt-static"
@@ -98,7 +100,7 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
     # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
-    && cargo install cargo-dylint dylint-link \
+    && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
