@@ -124,10 +124,26 @@ use anyhow::{
     Context,
     Result,
 };
-use ink_metadata::{
-    ConstructorSpec,
+pub use ink_metadata::{
     InkProject,
+    ConstructorSpec,
+    ConstructorSpecBuilder,
+    ContractSpec,
+    ContractSpecBuilder,
+    DisplayName,
+    EnvironmentSpec,
+    EnvironmentSpecBuilder,
+    EventParamSpec,
+    EventParamSpecBuilder,
+    EventSpec,
+    EventSpecBuilder,
+    MessageParamSpec,
+    MessageParamSpecBuilder,
     MessageSpec,
+    MessageSpecBuilder,
+    ReturnTypeSpec,
+    Selector,
+    TypeSpec,
 };
 use itertools::Itertools;
 use scale::{
