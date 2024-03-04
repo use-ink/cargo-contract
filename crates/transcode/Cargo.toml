@@ -23,7 +23,7 @@ blake2 = { version = "0.10.6", default-features = false }
 contract-metadata = { version = "4.0.0-rc.3", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
-indexmap = "2.2.4"
+indexmap = "2.2.5"
 ink_env = "5.0.0-rc.2"
 ink_metadata = "5.0.0-rc.2"
 itertools = "0.12.1"
