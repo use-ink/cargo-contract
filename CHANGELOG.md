@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Export ink_metadata types
+
 ## [4.0.0-rc.3]
 
 ### Fixed
