@@ -124,26 +124,11 @@ use anyhow::{
     Context,
     Result,
 };
-pub use ink_metadata::{
-    InkProject,
+pub use ink_metadata;
+use ink_metadata::{
     ConstructorSpec,
-    ConstructorSpecBuilder,
-    ContractSpec,
-    ContractSpecBuilder,
-    DisplayName,
-    EnvironmentSpec,
-    EnvironmentSpecBuilder,
-    EventParamSpec,
-    EventParamSpecBuilder,
-    EventSpec,
-    EventSpecBuilder,
-    MessageParamSpec,
-    MessageParamSpecBuilder,
+    InkProject,
     MessageSpec,
-    MessageSpecBuilder,
-    ReturnTypeSpec,
-    Selector,
-    TypeSpec,
 };
 use itertools::Itertools;
 use scale::{
@@ -251,7 +236,7 @@ impl ContractMessageTranscoder {
 
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{name}' found.\n{help_txt}",
-                ))
+                ));
             }
         };
 
