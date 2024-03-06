@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::AccountId20;
+
 use super::{
     decode::Decoder,
     encode::Encoder,
@@ -98,7 +100,12 @@ impl TranscoderBuilder {
     }
 
     pub fn with_default_custom_type_transcoders(self) -> Self {
-        self.register_custom_type_transcoder::<AccountId32, _>(env_types::AccountId)
+        self.register_custom_type_transcoder::<AccountId32, _>(env_types::AccountId::<
+            AccountId32,
+        >::default())
+            .register_custom_type_transcoder::<AccountId20, _>(env_types::AccountId::<
+                AccountId20,
+            >::default())
             .register_custom_type_decoder::<primitive_types::H256, _>(env_types::Hash)
     }
 

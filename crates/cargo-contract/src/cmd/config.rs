@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use contract_transcode::AccountId20;
 use ink_env::{
     DefaultEnvironment,
     Environment,
@@ -32,6 +33,7 @@ use subxt::{
         PairSigner,
         Signer as SignerT,
     },
+    utils::MultiAddress,
     Config,
     PolkadotConfig,
     SubstrateConfig,
@@ -49,8 +51,8 @@ pub enum Ecdsachain {}
 
 impl Config for Ecdsachain {
     type Hash = <SubstrateConfig as Config>::Hash;
-    type AccountId = <SubstrateConfig as Config>::AccountId;
-    type Address = <SubstrateConfig as Config>::Address;
+    type AccountId = AccountId20;
+    type Address = MultiAddress<Self::AccountId, ()>;
     type Signature = <SubstrateConfig as Config>::Signature;
     type Hasher = <SubstrateConfig as Config>::Hasher;
     type Header = <SubstrateConfig as Config>::Header;
@@ -60,7 +62,7 @@ impl Config for Ecdsachain {
 
 impl Environment for Ecdsachain {
     const MAX_EVENT_TOPICS: usize = <DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
-    type AccountId = <DefaultEnvironment as Environment>::AccountId;
+    type AccountId = AccountId20;
     type Balance = <DefaultEnvironment as Environment>::Balance;
     type Hash = <DefaultEnvironment as Environment>::Hash;
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;

@@ -98,7 +98,8 @@
 //! println!("Encoded constructor data {:?}", data);
 //! ```
 
-mod account_id;
+mod account_id20;
+mod account_id32;
 mod decode;
 mod encode;
 pub mod env_types;
@@ -107,7 +108,8 @@ mod transcoder;
 mod util;
 
 pub use self::{
-    account_id::AccountId32,
+    account_id20::AccountId20,
+    account_id32::AccountId32,
     scon::{
         Hex,
         Map,
@@ -176,7 +178,8 @@ where
 impl ContractMessageTranscoder {
     pub fn new(metadata: InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
-            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId::<AccountId32>::default())
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId::<AccountId20>::default())
             .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
             .done();
         Self {
