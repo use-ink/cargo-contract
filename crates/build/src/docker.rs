@@ -414,11 +414,11 @@ async fn run_build(
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
     let mut build_result = None;
-    let mut build_str = String::new();
+    let mut build_bytes: Vec<u8> = vec![];
     while let Some(Ok(output)) = output.next().await {
         match output {
             LogOutput::StdOut { message } => {
-                build_str += std::str::from_utf8(&message).unwrap();
+                build_bytes.extend(&message);
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -431,10 +431,14 @@ async fn run_build(
         };
     }
 
-    if !build_str.is_empty() {
+    if !build_bytes.is_empty() {
         build_result = Some(
-            serde_json::from_str(&build_str)
-                .context(format!("Error decoding BuildResult:\n {}", build_str)),
+            serde_json::from_reader(BufReader::new(build_bytes.as_slice())).context(
+                format!(
+                    "Error decoding BuildResult:\n {}",
+                    std::str::from_utf8(&build_bytes).unwrap()
+                ),
+            ),
         )
     };
 
