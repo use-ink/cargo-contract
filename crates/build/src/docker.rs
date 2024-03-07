@@ -305,7 +305,7 @@ async fn create_container(
     let container_option = containers.first();
 
     if container_option.is_some() {
-        return Ok(container_name)
+        return Ok(container_name);
     }
 
     let mount = Mount {
@@ -414,17 +414,11 @@ async fn run_build(
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
     let mut build_result = None;
+    let mut message_bytes: Vec<u8> = vec![];
     while let Some(Ok(output)) = output.next().await {
         match output {
             LogOutput::StdOut { message } => {
-                build_result = Some(
-                    serde_json::from_reader(BufReader::new(message.as_ref())).context(
-                        format!(
-                            "Error decoding BuildResult:\n {}",
-                            std::str::from_utf8(&message).unwrap()
-                        ),
-                    ),
-                );
+                message_bytes.extend(&message);
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -434,8 +428,19 @@ async fn run_build(
                 panic!("LogOutput::Console")
             }
             LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
-        }
+        };
     }
+
+    if !message_bytes.is_empty() {
+        build_result = Some(
+            serde_json::from_reader(BufReader::new(message_bytes.as_slice())).context(
+                format!(
+                    "Error decoding BuildResult:\n {}",
+                    std::str::from_utf8(&message_bytes).unwrap()
+                ),
+            ),
+        )
+    };
 
     if let Some(build_result) = build_result {
         build_result
@@ -525,7 +530,7 @@ async fn show_pull_progress(
         let status = info.status.unwrap_or_default();
         if status.starts_with("Digest:") || status.starts_with("Status:") {
             eprintln!("{}", status);
-            continue
+            continue;
         }
 
         if let Some(id) = info.id {
