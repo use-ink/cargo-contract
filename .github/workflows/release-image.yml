@@ -2,7 +2,7 @@ name: release-verifiable-image
 on:
   push:
     branches:
-      - 'master'
+      - "master"
   release:
     types:
       - edited
@@ -15,6 +15,7 @@ jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    environment: master_and_tags
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -58,4 +59,3 @@ jobs:
             CARGO_CONTRACT_GIT=https://github.com/paritytech/cargo-contract
             CARGO_CONTRACT_TAG=${{ github.event.release.tag_name }}
           tags: ${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
-
