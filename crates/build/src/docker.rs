@@ -63,6 +63,7 @@ use bollard::{
         CreateContainerOptions,
         ListContainersOptions,
         LogOutput,
+        RemoveContainerOptions,
     },
     errors::Error,
     image::{
@@ -162,11 +163,27 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            let mut build_result = run_build(&client, &container, &verbosity).await?;
+            let build_result = async {
+                let mut build_result = run_build(&client, &container, &verbosity).await?;
+                update_build_result(&host_folder, &mut build_result)?;
+                update_metadata(&build_result, &verbosity, &image, &client).await?;
+                Ok::<BuildResult, anyhow::Error>(build_result)
+            }
+            .await;
 
-            update_build_result(&host_folder, &mut build_result)?;
-
-            update_metadata(&build_result, &verbosity, &image, &client).await?;
+            let build_result = match build_result {
+                Ok(build_result) => build_result,
+                Err(e) => {
+                    // Remove container to avoid leaving it in an incorrect state for
+                    // subsequent calls
+                    let options = Some(RemoveContainerOptions {
+                        force: true,
+                        ..Default::default()
+                    });
+                    let _ = client.remove_container(&container, options).await;
+                    return Err(e)
+                }
+            };
 
             verbose_eprintln!(
                 verbosity,
@@ -305,7 +322,7 @@ async fn create_container(
     let container_option = containers.first();
 
     if container_option.is_some() {
-        return Ok(container_name);
+        return Ok(container_name)
     }
 
     let mount = Mount {
@@ -530,7 +547,7 @@ async fn show_pull_progress(
         let status = info.status.unwrap_or_default();
         if status.starts_with("Digest:") || status.starts_with("Status:") {
             eprintln!("{}", status);
-            continue;
+            continue
         }
 
         if let Some(id) = info.id {
