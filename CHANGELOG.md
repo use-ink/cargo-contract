@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Added
+- Export `ink_metadata` types in `transcode` crate - [#1522](https://github.com/paritytech/cargo-contract/pull/1522)
+
 ## [4.0.0-rc.3]
 
 ### Fixed

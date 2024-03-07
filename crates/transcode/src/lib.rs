@@ -124,6 +124,7 @@ use anyhow::{
     Context,
     Result,
 };
+pub use ink_metadata;
 use ink_metadata::{
     ConstructorSpec,
     InkProject,
@@ -235,7 +236,7 @@ impl ContractMessageTranscoder {
 
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{name}' found.\n{help_txt}",
-                ))
+                ));
             }
         };
 
