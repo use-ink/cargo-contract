@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
+- Remove docker container on build failure - [#1531](https://github.com/paritytech/cargo-contract/pull/1531)
 
 ## [4.0.0-rc.3]
 
