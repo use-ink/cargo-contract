@@ -23,7 +23,7 @@ blake2 = { version = "0.10.6", default-features = false }
 contract-metadata = { version = "4.0.0", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
-indexmap = "2.2.4"
+indexmap = "2.2.5"
 ink_env = "5.0.0"
 ink_metadata = "5.0.0"
 itertools = "0.12.1"
@@ -41,8 +41,8 @@ strsim = "0.11.0"
 [dev-dependencies]
 assert_matches = "1.5.0"
 ink = "5.0.0"
-sp-core = "28.0.0"
-sp-keyring = "31.0.0"
+sp-core = "30.0.0"
+sp-keyring = "33.0.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

@@ -19,7 +19,7 @@ anyhow = "1.0.80"
 blake2 = "0.10.6"
 cargo_metadata = "0.18.1"
 colored = "2.1.0"
-clap = { version = "4.5.1", features = ["derive", "env"] }
+clap = { version = "4.5.2", features = ["derive", "env"] }
 duct = "0.13.7"
 heck = "0.4.0"
 hex = "0.4.3"
@@ -41,7 +41,7 @@ zip = { version = "0.6.6", default-features = false }
 strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
-bollard = "0.15"
+bollard = "0.16"
 crossterm = "0.27.0"
 
 contract-metadata = { version = "4.0.0", path = "../metadata" }
@@ -51,7 +51,7 @@ uzers = "0.11"
 
 [build-dependencies]
 anyhow = "1.0.80"
-walkdir = "2.4.0"
+walkdir = "2.5.0"
 zip = { version = "0.6.6", default-features = false }
 
 [dev-dependencies]

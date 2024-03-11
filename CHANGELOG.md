@@ -17,6 +17,7 @@ This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! 
 - Support for multiple versions of `pallet-contracts` - [#1399](https://github.com/paritytech/cargo-contract/pull/1399)
 
 ### Added
+- Export `ink_metadata` types in `transcode` crate - [#1522](https://github.com/paritytech/cargo-contract/pull/1522)
 - Improved error message for Strings as CLI arguments - [#1492](https://github.com/paritytech/cargo-contract/pull/1492)
 - Add a user-friendly view of contract storage data in the form of a table - [#1414](https://github.com/paritytech/cargo-contract/pull/1414)
 - Add `rpc` command - [#1458](https://github.com/paritytech/cargo-contract/pull/1458)
@@ -58,6 +59,8 @@ This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! 
 - `[extrinsics]` update metadata to `substrate-contracts-node 0.29` - [#1242](https://github.com/paritytech/cargo-contract/pull/1242)
 
 ### Fixed
+- Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
+- Remove docker container on build failure - [#1531](https://github.com/paritytech/cargo-contract/pull/1531)
 - Fix build `--verifiable` command [#1511](https://github.com/paritytech/cargo-contract/pull/1511)
 - Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
 - Improve JSON Output for Upload and Remove Commands - [#1389](https://github.com/paritytech/cargo-contract/pull/1389)
@@ -67,6 +70,15 @@ This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! 
 - fix(build): An error when running with `--lint` - [#1174](https://github.com/paritytech/cargo-contract/pull/1174)
 - Dry-run result output improvements - [#1123](https://github.com/paritytech/cargo-contract/pull/1123)
 - feat: use `CARGO_ENCODED_RUSTFLAGS` instead of `RUSTFLAGS` - [#1124](https://github.com/paritytech/cargo-contract/pull/1124)
+
+## [4.0.0-rc.4]
+
+### Added
+- Export `ink_metadata` types in `transcode` crate - [#1522](https://github.com/paritytech/cargo-contract/pull/1522)
+
+### Fixed
+- Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
+- Remove docker container on build failure - [#1531](https://github.com/paritytech/cargo-contract/pull/1531)
 
 ## [4.0.0-rc.3]
 
