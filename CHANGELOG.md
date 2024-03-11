@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.0]
 
-This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! versions `>=5.0.0-rc.2, 5.0.0`
+This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! versions `>=5.0.0`
 
 **Notable changes:**
 - Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
@@ -48,15 +48,12 @@ This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! 
 - Run wasm-opt first, remove sign_ext feature - [#1416](https://github.com/paritytech/cargo-contract/pull/1416)
 - Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
 - Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
-- Bump `ink` to `5.0.0-rc` - [#1415](https://github.com/paritytech/cargo-contract/pull/1415)
 - Dry-run result output improvements - [1123](https://github.com/paritytech/cargo-contract/pull/1123)
 - Display build progress with --output-json, print to stderr - [1211](https://github.com/paritytech/cargo-contract/pull/1211)
-- Update `subxt` to `0.30.1` with new `subxt-signer` crate - [#1236](https://github.com/paritytech/cargo-contract/pull/1236)
 - Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
 - Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
 - Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
 - set minimum supported `rust-version` to `1.70` - [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
-- `[extrinsics]` update metadata to `substrate-contracts-node 0.29` - [#1242](https://github.com/paritytech/cargo-contract/pull/1242)
 
 ### Fixed
 - Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
