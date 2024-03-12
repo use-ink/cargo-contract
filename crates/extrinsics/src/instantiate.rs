@@ -49,6 +49,7 @@ use scale::{
     Decode,
     Encode,
 };
+use sp_core::Bytes;
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -61,7 +62,6 @@ use subxt::{
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
-        sp_core::Bytes,
     },
     tx,
     Config,

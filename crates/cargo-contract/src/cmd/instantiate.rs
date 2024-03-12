@@ -53,6 +53,7 @@ use contract_extrinsics::{
 };
 use ink_env::Environment;
 use serde::Serialize;
+use sp_core::Bytes;
 use std::{
     fmt::{
         Debug,
@@ -66,7 +67,6 @@ use subxt::{
         codec::Decode,
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
-        sp_core::Bytes,
     },
     Config,
 };

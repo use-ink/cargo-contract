@@ -40,6 +40,10 @@ use serde::{
     Serialize,
     Serializer,
 };
+use sp_core::{
+    hexdisplay::AsBytesRef,
+    storage::ChildInfo,
+};
 use std::{
     collections::BTreeMap,
     fmt,
@@ -61,15 +65,9 @@ use subxt::{
         },
     },
     error::DecodeError,
-    ext::{
-        scale_decode::{
-            IntoVisitor,
-            Visitor,
-        },
-        sp_core::{
-            hexdisplay::AsBytesRef,
-            storage::ChildInfo,
-        },
+    ext::scale_decode::{
+        IntoVisitor,
+        Visitor,
     },
     Config,
     OnlineClient,

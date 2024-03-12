@@ -21,11 +21,11 @@ use scale::{
     MaxEncodedLen,
 };
 use scale_info::TypeInfo;
-use sp_weights::Weight;
-use subxt::ext::sp_runtime::{
+use sp_runtime::{
     DispatchError,
     RuntimeDebug,
 };
+use sp_weights::Weight;
 
 // A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
 
