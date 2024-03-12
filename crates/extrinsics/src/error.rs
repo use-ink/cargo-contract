@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use sp_runtime::DispatchError;
 use std::fmt::{
     self,
     Debug,
     Display,
 };
+use subxt::ext::sp_runtime::DispatchError;
 
 #[derive(serde::Serialize)]
 pub enum ErrorVariant {

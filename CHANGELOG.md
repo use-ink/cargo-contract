@@ -6,6 +6,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0]
+
+This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! versions `>=5.0.0`
+
+_ℹ️ We have created a migration guide from ink! 4 to ink! 5. It also contains an
+overview over newly added features in this release of `cargo-contract` and explains
+e.g. the newly added contract verification in more detail.
+
+You can view it [here](https://use.ink/faq/migrating-from-ink-4-to-5)._
+
+**Notable changes:**
+- Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Extrinsics extracted to separate crate - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Fix building contracts with Rust >= 1.70: enable `sign_ext` Wasm opcode - [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+- Support for multiple versions of `pallet-contracts` - [#1399](https://github.com/paritytech/cargo-contract/pull/1399)
+
+### Added
+- Export `ink_metadata` types in `transcode` crate - [#1522](https://github.com/paritytech/cargo-contract/pull/1522)
+- Improved error message for Strings as CLI arguments - [#1492](https://github.com/paritytech/cargo-contract/pull/1492)
+- Add a user-friendly view of contract storage data in the form of a table - [#1414](https://github.com/paritytech/cargo-contract/pull/1414)
+- Add `rpc` command - [#1458](https://github.com/paritytech/cargo-contract/pull/1458)
+- Add schema generation and verification - [#1404](https://github.com/paritytech/cargo-contract/pull/1404)
+- Compare `Environment` types against the node - [#1377](https://github.com/paritytech/cargo-contract/pull/1377)
+- Detect `INK_STATIC_BUFFER_SIZE` env var - [#1310](https://github.com/paritytech/cargo-contract/pull/1310)
+- Add `verify` command - [#1306](https://github.com/paritytech/cargo-contract/pull/1306)
+- Add `--binary` flag for `info` command - [#1311](https://github.com/paritytech/cargo-contract/pull/1311/)
+- Add `--all` flag for `info` command - [#1319](https://github.com/paritytech/cargo-contract/pull/1319)
+- Add contract language detection feature for `info` command - [#1329](https://github.com/paritytech/cargo-contract/pull/1329)
+- Add warning message when using incompatible contract's ink! version - [#1334](https://github.com/paritytech/cargo-contract/pull/1334)
+- Add workspace support -[#1358](https://github.com/paritytech/cargo-contract/pull/1358)
+- Add `Storage Total Deposit` to `info` command output - [#1347](https://github.com/paritytech/cargo-contract/pull/1347)
+- Add dynamic types support - [#1399](https://github.com/paritytech/cargo-contract/pull/1399)
+- Basic storage inspection command - [#1395](https://github.com/paritytech/cargo-contract/pull/1395)
+- Standardised verifiable builds - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
+- Enable Wasm sign_ext [#1189](https://github.com/paritytech/cargo-contract/pull/1189)
+- Expose extrinsics operations as a library - [#1181](https://github.com/paritytech/cargo-contract/pull/1181)
+- Suggest valid message or constructor name, when misspelled - [#1162](https://github.com/paritytech/cargo-contract/pull/1162)
+- Add flag -y as a shortcut for --skip-confirm - [#1127](https://github.com/paritytech/cargo-contract/pull/1127)
+- Add command line argument --max-memory-pages - [#1128](https://github.com/paritytech/cargo-contract/pull/1128)
+- Show Gas consumption by default for dry-runs - [#1121](https://github.com/paritytech/cargo-contract/pull/1121)
+
+### Changed
+- Print type comparison warning only on `--verbose` - [#1483](https://github.com/paritytech/cargo-contract/pull/1483)
+- Mandatory dylint-based lints - [#1412](https://github.com/paritytech/cargo-contract/pull/1412)
+- Add a new tabular layout for the contract storage data - [#1485](https://github.com/paritytech/cargo-contract/pull/1485)
+- Run wasm-opt first, remove sign_ext feature - [#1416](https://github.com/paritytech/cargo-contract/pull/1416)
+- Bump `subxt` to `0.32.0` - [#1352](https://github.com/paritytech/cargo-contract/pull/1352)
+- Remove check for compatible `scale` and `scale-info` versions - [#1370](https://github.com/paritytech/cargo-contract/pull/1370)
+- Dry-run result output improvements - [1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- Display build progress with --output-json, print to stderr - [1211](https://github.com/paritytech/cargo-contract/pull/1211)
+- Upgrade wasm-opt to 0.113 - [#1188](https://github.com/paritytech/cargo-contract/pull/1188)
+- Update substrate dependencies - [#1149](https://github.com/paritytech/cargo-contract/pull/1149)
+- Make output format of cargo contract info consistent with other subcommands - [#1120](https://github.com/paritytech/cargo-contract/pull/1120)
+- set minimum supported `rust-version` to `1.70` - [#1241](https://github.com/paritytech/cargo-contract/pull/1241)
+
+### Fixed
+- Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
+- Remove docker container on build failure - [#1531](https://github.com/paritytech/cargo-contract/pull/1531)
+- Fix build `--verifiable` command [#1511](https://github.com/paritytech/cargo-contract/pull/1511)
+- Do not allow to execute calls on immutable contract messages - [#1397](https://github.com/paritytech/cargo-contract/pull/1397)
+- Improve JSON Output for Upload and Remove Commands - [#1389](https://github.com/paritytech/cargo-contract/pull/1389)
+- Fix for a Url to String conversion in `info` command - [#1330](https://github.com/paritytech/cargo-contract/pull/1330)
+- Configure tty output correctly - [#1209](https://github.com/paritytech/cargo-contract/pull/1209)
+- Set `lto = "thin"` for metadata build to fix `linkme` on macOS - [#1200](https://github.com/paritytech/cargo-contract/pull/1200)
+- fix(build): An error when running with `--lint` - [#1174](https://github.com/paritytech/cargo-contract/pull/1174)
+- Dry-run result output improvements - [#1123](https://github.com/paritytech/cargo-contract/pull/1123)
+- feat: use `CARGO_ENCODED_RUSTFLAGS` instead of `RUSTFLAGS` - [#1124](https://github.com/paritytech/cargo-contract/pull/1124)
+
+## [4.0.0-rc.4]
+
+### Added
+- Export `ink_metadata` types in `transcode` crate - [#1522](https://github.com/paritytech/cargo-contract/pull/1522)
+
+### Fixed
+- Fix parsing of docker STDOUT - [#1526](https://github.com/paritytech/cargo-contract/pull/1526)
+- Remove docker container on build failure - [#1531](https://github.com/paritytech/cargo-contract/pull/1531)
+
+## [4.0.0-rc.3]
+
+### Fixed
+- Fix build `--verifiable` command [#1511](https://github.com/paritytech/cargo-contract/pull/1511)
+
 ## [4.0.0-rc.2]
 
 ### Added

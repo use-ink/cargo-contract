@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "4.0.0-rc.2"
+version = "4.0.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,14 +18,14 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "4.0.0-rc.2", path = "../build" }
-contract-extrinsics = { version = "4.0.0-rc.2", path = "../extrinsics" }
-contract-transcode = { version = "4.0.0-rc.2", path = "../transcode" }
-contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
-contract-analyze = { version = "4.0.0-rc.2", path = "../analyze" }
+contract-build = { version = "4.0.0", path = "../build" }
+contract-extrinsics = { version = "4.0.0", path = "../extrinsics" }
+contract-transcode = { version = "4.0.0", path = "../transcode" }
+contract-metadata = { version = "4.0.0", path = "../metadata" }
+contract-analyze = { version = "4.0.0", path = "../analyze" }
 
 anyhow = "1.0.80"
-clap = { version = "4.5.1", features = ["derive", "env"] }
+clap = { version = "4.5.2", features = ["derive", "env"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -37,15 +37,14 @@ url = { version = "2.5.0", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.17"
 schemars = "0.8"
-ink_metadata = "5.0.0-rc.1"
-ink_env = "5.0.0-rc.1"
+ink_metadata = "5.0.0"
+ink_env = "5.0.0"
 comfy-table = "7.1.0"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.34.0", features = ["substrate-compat"] }
-sp-core = "28.0.0"
-sp-weights = "27.0.0"
+sp-weights = "29.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
@@ -58,7 +57,7 @@ which = "6.0.0"
 assert_cmd = "2.0.14"
 regex = "1.10.3"
 predicates = "3.1.0"
-tempfile = "3.10.0"
+tempfile = "3.10.1"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

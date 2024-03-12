@@ -4,9 +4,16 @@ on:
 jobs:
   merge:
     runs-on: ubuntu-latest
+    # run action only on dependabot branches
+    if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v4
-      - uses: ahmadnassri/action-dependabot-auto-merge@v2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/create-github-app-token@f2acddfb5195534d487896a656232b016a682f3c # v1.9.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_KEY }}
+      - uses: ahmadnassri/action-dependabot-auto-merge@45fc124d949b19b6b8bf6645b6c9d55f4f9ac61a # v2.6.0
         with:
           target: patch
-          github-token: ${{ secrets.DEPENDABOT_AUTO_MERGE_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}

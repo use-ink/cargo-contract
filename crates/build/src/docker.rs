@@ -63,6 +63,7 @@ use bollard::{
         CreateContainerOptions,
         ListContainersOptions,
         LogOutput,
+        RemoveContainerOptions,
     },
     errors::Error,
     image::{
@@ -162,11 +163,27 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            let mut build_result = run_build(&client, &container, &verbosity).await?;
+            let build_result = async {
+                let mut build_result = run_build(&client, &container, &verbosity).await?;
+                update_build_result(&host_folder, &mut build_result)?;
+                update_metadata(&build_result, &verbosity, &image, &client).await?;
+                Ok::<BuildResult, anyhow::Error>(build_result)
+            }
+            .await;
 
-            update_build_result(&host_folder, &mut build_result)?;
-
-            update_metadata(&build_result, &verbosity, &image, &client).await?;
+            let build_result = match build_result {
+                Ok(build_result) => build_result,
+                Err(e) => {
+                    // Remove container to avoid leaving it in an incorrect state for
+                    // subsequent calls
+                    let options = Some(RemoveContainerOptions {
+                        force: true,
+                        ..Default::default()
+                    });
+                    let _ = client.remove_container(&container, options).await;
+                    return Err(e)
+                }
+            };
 
             verbose_eprintln!(
                 verbosity,
@@ -414,17 +431,11 @@ async fn run_build(
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
     let mut build_result = None;
+    let mut message_bytes: Vec<u8> = vec![];
     while let Some(Ok(output)) = output.next().await {
         match output {
             LogOutput::StdOut { message } => {
-                build_result = Some(
-                    serde_json::from_reader(BufReader::new(message.as_ref())).context(
-                        format!(
-                            "Error decoding BuildResult:\n {}",
-                            std::str::from_utf8(&message).unwrap()
-                        ),
-                    ),
-                );
+                message_bytes.extend(&message);
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -434,8 +445,19 @@ async fn run_build(
                 panic!("LogOutput::Console")
             }
             LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
-        }
+        };
     }
+
+    if !message_bytes.is_empty() {
+        build_result = Some(
+            serde_json::from_reader(BufReader::new(message_bytes.as_slice())).context(
+                format!(
+                    "Error decoding BuildResult:\n {}",
+                    std::str::from_utf8(&message_bytes).unwrap()
+                ),
+            ),
+        )
+    };
 
     if let Some(build_result) = build_result {
         build_result
