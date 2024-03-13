@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.0.1]
 
 ### Fixed
-Fix e2e tests in the contract template - [#1537](https://github.com/paritytech/cargo-contract/pull/1537)
+- Fix e2e tests in the contract template - [#1537](https://github.com/paritytech/cargo-contract/pull/1537)
 
 ## [4.0.0]
 
