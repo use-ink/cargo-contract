@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix installation instructions for `ink_linting` - [#1546](https://github.com/paritytech/cargo-contract/pull/1546)
+
 ## [4.0.1]
 
 ### Fixed
