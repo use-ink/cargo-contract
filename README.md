@@ -181,9 +181,10 @@ Invoke an RPC call to the node. See [rpc](docs/rpc.md).
 In order to publish a new version of `cargo-contract`:
 
 -   Bump all crate versions, we move them in lockstep.
+-   Execute `cargo update` to update `Cargo.lock`.
 -   Make sure your PR is approved by one or more core developers.
 -   Publish `metadata` ➜ `analyze` ➜ `transcode` ➜ `build` ➜ `extrinsics` ➜ `cargo-contract`.
--   Merge you PR and push a tag `vX.X` with your version number.
+-   Merge you PR and push a tag `vX.X` with your version number: `git tag -s vX.X.X && git push origin vX.X.X`.
 -   Create a GitHub release with the changelog entries.
 
 ## License
