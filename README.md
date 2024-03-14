@@ -42,10 +42,15 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 -   Step 2: `cargo install --force --locked cargo-contract`.
 
--   Step 3: Install `dylint` for linting.
+-   Step 3: Install dependencies for linting.
 
     -   (MacOS) `brew install openssl`
-    -   `cargo install cargo-dylint dylint-link`.
+    -   ```
+        export TOOLCHAIN_VERSION=nightly-2023-12-28
+        rustup install $TOOLCHAIN_VERSION
+        rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
+        rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
+        ```
 
 -   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
     to be able to produce verifiable builds.
