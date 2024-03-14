@@ -857,7 +857,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1121,7 +1121,7 @@ checksum = "cd7e35aee659887cbfb97aaf227ac12cad1a9d7c71e55ff3376839ed4e282d08"
 
 [[package]]
 name = "contract-analyze"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "contract-metadata",
@@ -1131,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "blake2",
@@ -1171,7 +1171,7 @@ dependencies = [
 
 [[package]]
 name = "contract-extrinsics"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1210,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -1223,7 +1223,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5309,9 +5309,9 @@ dependencies = [
 
 [[package]]
 name = "ss58-registry"
-version = "1.46.0"
+version = "1.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1114ee5900b8569bbc8b1a014a942f937b752af4b44f4607430b5f86cedaac0"
+checksum = "4743ce898933fbff7bbf414f497c459a782d496269644b3d650a398ae6a487ba"
 dependencies = [
  "Inflector",
  "num-format",
