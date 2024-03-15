@@ -203,4 +203,6 @@ jobs:
           # Build with linting
           cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
+          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release &&
+          # Run tests
+          cargo test --profile debug-ci --all-features -- --test-threads=1

@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "4.0.0"
+version = "4.0.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -18,14 +18,14 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "4.0.0", path = "../build" }
-contract-extrinsics = { version = "4.0.0", path = "../extrinsics" }
-contract-transcode = { version = "4.0.0", path = "../transcode" }
-contract-metadata = { version = "4.0.0", path = "../metadata" }
-contract-analyze = { version = "4.0.0", path = "../analyze" }
+contract-build = { version = "4.0.2", path = "../build" }
+contract-extrinsics = { version = "4.0.2", path = "../extrinsics" }
+contract-transcode = { version = "4.0.2", path = "../transcode" }
+contract-metadata = { version = "4.0.2", path = "../metadata" }
+contract-analyze = { version = "4.0.2", path = "../analyze" }
 
-anyhow = "1.0.80"
-clap = { version = "4.5.2", features = ["derive", "env"] }
+anyhow = "1.0.81"
+clap = { version = "4.5.3", features = ["derive", "env"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -49,7 +49,7 @@ sp-weights = "29.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
 which = "6.0.0"

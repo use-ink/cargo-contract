@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "4.0.0"
+version = "4.0.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 rust-version = "1.70"
@@ -15,11 +15,11 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]
-contract-build = { version = "4.0.0", path = "../build" }
-contract-metadata = { version = "4.0.0", path = "../metadata" }
-contract-transcode = { version = "4.0.0", path = "../transcode" }
+contract-build = { version = "4.0.2", path = "../build" }
+contract-metadata = { version = "4.0.2", path = "../metadata" }
+contract-transcode = { version = "4.0.2", path = "../transcode" }
 
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.30", default-features = false, features = ["std"] }
 itertools = { version = "0.12", default-features = false }
@@ -35,7 +35,7 @@ sp-core = "30.0.0"
 sp-runtime = "33.0.0"
 sp-weights = "29.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
-scale-info = "2.10.0"
+scale-info = "2.11.0"
 subxt = "0.34.0"
 hex = "0.4.3"
 derivative = "2.2.0"

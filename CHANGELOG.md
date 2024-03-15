@@ -6,15 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.2]
+
+### Fixed
+- Fix installation instructions for `ink_linting` - [#1546](https://github.com/paritytech/cargo-contract/pull/1546)
+
+## [4.0.1]
+
+### Fixed
+- Fix e2e tests in the contract template - [#1537](https://github.com/paritytech/cargo-contract/pull/1537)
+
 ## [4.0.0]
 
 This `cargo-contract` release is compatible with Rust versions `>=1.70`and ink! versions `>=5.0.0`
 
-_ℹ️ We have created a migration guide from ink! 4 to ink! 5. It also contains an
+ℹ️ _We've created a migration guide from ink! 4 to ink! 5. It also contains an
 overview over newly added features in this release of `cargo-contract` and explains
-e.g. the newly added contract verification in more detail.
+e.g. the newly added contract verification in more detail._
 
-You can view it [here](https://use.ink/faq/migrating-from-ink-4-to-5)._
+👉 _You can view it [here](https://use.ink/faq/migrating-from-ink-4-to-5)._
 
 **Notable changes:**
 - Verifiable builds inside a docker container - [#1148](https://github.com/paritytech/cargo-contract/pull/1148)
