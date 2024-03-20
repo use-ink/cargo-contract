@@ -25,13 +25,19 @@ use contract_build::{
     BuildArtifacts,
     BuildInfo,
     BuildMode,
+    BuildResult,
     ExecuteArgs,
     ImageVariant,
     ManifestPath,
+    MetadataArtifacts,
+    MetadataResult,
     Verbosity,
     VerbosityFlags,
 };
-use contract_metadata::ContractMetadata;
+use contract_metadata::{
+    CodeHash,
+    ContractMetadata,
+};
 
 use std::{
     fs::File,
@@ -49,7 +55,11 @@ pub struct VerifyCommand {
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked
     /// against.
-    contract: PathBuf,
+    contract: Option<PathBuf>,
+    /// The reference Wasm contract binary (`*.wasm`) that the workspace will be checked
+    /// against.
+    #[clap(long, conflicts_with = "contract")]
+    wasm: Option<PathBuf>,
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
@@ -62,9 +72,88 @@ impl VerifyCommand {
     pub fn run(&self) -> Result<VerificationResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        if let Some(path) = &self.contract {
+            self.verify_contract(manifest_path, verbosity, path)
+        } else if let Some(path) = &self.wasm {
+            self.verify_wasm(manifest_path, verbosity, path)
+        } else {
+            anyhow::bail!("Either --wasm or --contract must be specified")
+        }
+    }
 
+    /// Verify `.wasm` binary.
+    fn verify_wasm(
+        &self,
+        manifest_path: ManifestPath,
+        verbosity: Verbosity,
+        path: &PathBuf,
+    ) -> Result<VerificationResult> {
+        // 1. Read code hash binary from the path.
+        let file = File::open(path)
+            .context(format!("Failed to open contract binary {}", path.display()))?;
+
+        let reference_code_hash: CodeHash = serde_json::from_reader(&file).context(
+            format!("Failed to deserialize contract binary {}", path.display()),
+        )?;
+
+        // 2. Call `cargo contract build` in the release mode.
+        let args = ExecuteArgs {
+            manifest_path: manifest_path.clone(),
+            verbosity,
+            build_mode: BuildMode::Release,
+            build_artifact: BuildArtifacts::All,
+            extra_lints: false,
+            ..Default::default()
+        };
+
+        let build_result = execute(args)?;
+
+        // 4. Grab the code hash from the built contract and compare it with the reference
+        //    one.
+        let built_contract_path = if let Some(m) = build_result.metadata_result {
+            m
+        } else {
+            // Since we're building the contract ourselves this should always be
+            // populated, but we'll bail out here just in case.
+            anyhow::bail!(
+                "\nThe metadata for the workspace contract does not contain a Wasm binary,\n\
+                therefore we are unable to verify the contract."
+                .to_string()
+                .bright_yellow()
+            )
+        };
+        let target_bundle = &built_contract_path.dest_bundle;
+
+        if self
+            .compare_code(&reference_code_hash, &verbosity, &built_contract_path)
+            .is_err()
+        {
+            anyhow::bail!(format!(
+                "\nFailed to verify the authenticity of wasm binary at {} against the workspace \n\
+                found at {}.",
+                format!("`{}`", path.display()).bright_white(),
+                format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
+            );
+        }
+
+        Ok(VerificationResult {
+            is_verified: true,
+            image: None,
+            contract: target_bundle.display().to_string(),
+            reference_contract: path.display().to_string(),
+            output_json: self.output_json,
+            verbosity,
+        })
+    }
+
+    /// Verify the `.contract` bundle.
+    fn verify_contract(
+        &self,
+        manifest_path: ManifestPath,
+        verbosity: Verbosity,
+        path: &PathBuf,
+    ) -> Result<VerificationResult> {
         // 1. Read the given metadata, and pull out the `BuildInfo`
-        let path = &self.contract;
         let file = File::open(path)
             .context(format!("Failed to open contract bundle {}", path.display()))?;
 
@@ -166,28 +255,12 @@ impl VerifyCommand {
             )
         };
 
-        let target_bundle = built_contract_path.dest_bundle;
+        let target_bundle = &built_contract_path.dest_bundle;
 
-        let file = File::open(target_bundle.clone()).context(format!(
-            "Failed to open contract bundle {}",
-            target_bundle.display()
-        ))?;
-        let built_contract: ContractMetadata =
-            serde_json::from_reader(file).context(format!(
-                "Failed to deserialize contract bundle {}",
-                target_bundle.display()
-            ))?;
-
-        let target_code_hash = built_contract.source.hash;
-
-        if reference_code_hash != target_code_hash {
-            verbose_eprintln!(
-                verbosity,
-                "Expected Code Hash: '{}'\n\nGot Code Hash: `{}`",
-                &reference_code_hash,
-                &target_code_hash
-            );
-
+        if self
+            .compare_code(&reference_code_hash, &verbosity, &built_contract_path)
+            .is_err()
+        {
             anyhow::bail!(format!(
                 "\nFailed to verify the authenticity of {} contract against the workspace \n\
                 found at {}.",
@@ -204,6 +277,41 @@ impl VerifyCommand {
             output_json: self.output_json,
             verbosity,
         })
+    }
+
+    /// Compares the reference code hash with the extracted code from built contract's
+    /// metadata.
+    fn compare_code(
+        &self,
+        reference_code_hash: &CodeHash,
+        verbosity: &Verbosity,
+        built_contract_path: &MetadataArtifacts,
+    ) -> Result<()> {
+        let target_bundle = &built_contract_path.dest_bundle;
+
+        let file = File::open(target_bundle.clone()).context(format!(
+            "Failed to open contract bundle {}",
+            target_bundle.display()
+        ))?;
+        let built_contract: ContractMetadata =
+            serde_json::from_reader(file).context(format!(
+                "Failed to deserialize contract bundle {}",
+                target_bundle.display()
+            ))?;
+
+        let target_code_hash = built_contract.source.hash;
+
+        if reference_code_hash != &target_code_hash {
+            verbose_eprintln!(
+                verbosity,
+                "Expected Code Hash: '{}'\n\nGot Code Hash: `{}`",
+                &reference_code_hash,
+                &target_code_hash
+            );
+            anyhow::bail!("Verification failed.")
+        }
+
+        Ok(())
     }
 }
 
