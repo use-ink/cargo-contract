@@ -20,6 +20,7 @@ use anyhow::{
 };
 use colored::Colorize;
 use contract_build::{
+    code_hash,
     execute,
     verbose_eprintln,
     BuildArtifacts,
@@ -31,10 +32,7 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use contract_metadata::{
-    CodeHash,
-    ContractMetadata,
-};
+use contract_metadata::ContractMetadata;
 
 use std::{
     fs::File,
@@ -56,6 +54,7 @@ pub struct VerifyCommand {
     manifest_path: Option<PathBuf>,
     /// The reference Wasm contract (`*.contract`) that the workspace will be checked
     /// against.
+    #[clap(long)]
     contract: Option<PathBuf>,
     /// The reference Wasm contract binary (`*.wasm`) that the workspace will be checked
     /// against.
@@ -93,13 +92,13 @@ impl VerifyCommand {
         let file = File::open(path)
             .context(format!("Failed to open contract binary {}", path.display()))?;
 
-        let mut reader = BufReader::new(file);
-        let mut buffer: [u8; 32] = [0; 32];
-        reader
-            .read_exact(&mut buffer)
+        let mut ref_reader = BufReader::new(file);
+        let mut ref_buffer = Vec::new();
+        ref_reader
+            .read_to_end(&mut ref_buffer)
             .context(format!("Failed to read contract binary {}", path.display()))?;
 
-        let reference_code_hash = CodeHash(buffer);
+        let reference_code_hash = code_hash(&ref_buffer);
 
         // 2. Call `cargo contract build` in the release mode.
         let args = ExecuteArgs {
@@ -132,13 +131,13 @@ impl VerifyCommand {
             &built_wasm_path.display()
         ))?;
 
-        let mut reader = BufReader::new(file);
-        let mut buffer: [u8; 32] = [0; 32];
-        reader
-            .read_exact(&mut buffer)
+        let mut target_reader = BufReader::new(file);
+        let mut target_buffer = Vec::new();
+        target_reader
+            .read_to_end(&mut target_buffer)
             .context(format!("Failed to read contract binary {}", path.display()))?;
 
-        let output_code_hash = CodeHash(buffer);
+        let output_code_hash = code_hash(&target_buffer);
 
         if output_code_hash != reference_code_hash {
             anyhow::bail!(format!(
