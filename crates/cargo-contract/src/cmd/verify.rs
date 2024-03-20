@@ -25,12 +25,10 @@ use contract_build::{
     BuildArtifacts,
     BuildInfo,
     BuildMode,
-    BuildResult,
     ExecuteArgs,
     ImageVariant,
     ManifestPath,
     MetadataArtifacts,
-    MetadataResult,
     Verbosity,
     VerbosityFlags,
 };
