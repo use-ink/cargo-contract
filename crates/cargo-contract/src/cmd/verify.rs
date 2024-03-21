@@ -89,13 +89,7 @@ impl VerifyCommand {
         path: &PathBuf,
     ) -> Result<VerificationResult> {
         // 1. Read code hash binary from the path.
-        let file = File::open(path)
-            .context(format!("Failed to open contract binary {}", path.display()))?;
-
-        let mut ref_reader = BufReader::new(file);
-        let mut ref_buffer = Vec::new();
-        ref_reader
-            .read_to_end(&mut ref_buffer)
+       let ref_buffer = std::fs::read(path)
             .context(format!("Failed to read contract binary {}", path.display()))?;
 
         let reference_code_hash = code_hash(&ref_buffer);
@@ -126,16 +120,8 @@ impl VerifyCommand {
                 .bright_yellow())
         };
 
-        let file = File::open(&built_wasm_path).context(format!(
-            "Failed to open contract binary {}",
-            &built_wasm_path.display()
-        ))?;
-
-        let mut target_reader = BufReader::new(file);
-        let mut target_buffer = Vec::new();
-        target_reader
-            .read_to_end(&mut target_buffer)
-            .context(format!("Failed to read contract binary {}", path.display()))?;
+       let target_buffer = std::fs::read(&built_wasm_path)
+            .context(format!("Failed to read contract binary {}", built_wasm_path.display()))?;
 
         let output_code_hash = code_hash(&target_buffer);
 
