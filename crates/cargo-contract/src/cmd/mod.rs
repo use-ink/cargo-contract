@@ -325,12 +325,12 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
         chain
     )
     .bold()
-    .red();
+    .yellow();
     print!("{}", warning);
     println!(
-        "{} ({}/n): ",
-        "Continue?".bright_white().bold(),
-        "Y".bright_white().bold()
+        "{} ({}): ",
+        "\nContinue?".bright_white().bold(),
+        "Y/n".bright_white().bold()
     );
 
     let mut buf = String::new();

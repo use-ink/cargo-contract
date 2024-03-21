@@ -53,6 +53,7 @@ use subxt::{
     },
     Config,
 };
+use url::Url;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -90,8 +91,11 @@ impl UploadCommand {
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let token_metadata = if let Some(chain) = &self.extrinsic_cli_opts.chain {
+            TokenMetadata::query::<C>(&Url::parse(chain.end_point()).unwrap()).await?
+        } else {
+            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?
+        };
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
