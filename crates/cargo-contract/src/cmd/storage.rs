@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::DefaultConfig;
 use anyhow::Result;
 use colored::Colorize;
 use comfy_table::{
@@ -28,16 +27,28 @@ use contract_extrinsics::{
     ContractStorageRpc,
     ErrorVariant,
 };
-use ink_env::DefaultEnvironment;
-use std::path::PathBuf;
-use subxt::Config;
+use ink_env::Environment;
+use serde::Serialize;
+use std::{
+    fmt::Display,
+    path::PathBuf,
+    str::FromStr,
+};
+use subxt::{
+    ext::scale_decode::IntoVisitor,
+    Config,
+};
+
+use crate::call_with_config;
+
+use super::parse_account;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "storage", about = "Inspect contract storage")]
 pub struct StorageCommand {
     /// The address of the contract to inspect storage of.
     #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    contract: String,
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
     raw: bool,
@@ -59,18 +70,32 @@ pub struct StorageCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
 }
 
 impl StorageCommand {
-    pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
-        let storage_layout =
-            ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
+    pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        call_with_config!(self, run, self.config.as_str())
+    }
+
+    pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr,
+        <<C as Config>::AccountId as FromStr>::Err:
+            Into<Box<(dyn std::error::Error)>> + Display,
+        C::Balance: Serialize + IntoVisitor,
+        <C as Config>::Hash: IntoVisitor,
+    {
+        let rpc = ContractStorageRpc::<C>::new(&self.url).await?;
+        let storage_layout = ContractStorage::<C, C>::new(rpc);
+        let contract = parse_account(&self.contract)
+            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
 
         if self.raw {
-            let storage_data = storage_layout
-                .load_contract_storage_data(&self.contract)
-                .await?;
+            let storage_data =
+                storage_layout.load_contract_storage_data(&contract).await?;
             println!(
                 "{json}",
                 json = serde_json::to_string_pretty(&storage_data)?
@@ -87,7 +112,7 @@ impl StorageCommand {
             Ok(contract_artifacts) => {
                 let transcoder = contract_artifacts.contract_transcoder()?;
                 let contract_storage = storage_layout
-                    .load_contract_storage_with_layout(&self.contract, &transcoder)
+                    .load_contract_storage_with_layout(&contract, &transcoder)
                     .await?;
                 if self.output_json {
                     println!(
@@ -104,14 +129,12 @@ impl StorageCommand {
                     "{} Displaying raw storage: no valid contract metadata artifacts found",
                     "Info:".cyan().bold(),
                 );
-                let storage_data = storage_layout
-                    .load_contract_storage_data(&self.contract)
-                    .await?;
+                let storage_data =
+                    storage_layout.load_contract_storage_data(&contract).await?;
                 println!(
                     "{json}",
                     json = serde_json::to_string_pretty(&storage_data)?
                 );
-                return Ok(())
             }
         }
 
