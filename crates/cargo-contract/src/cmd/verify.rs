@@ -32,14 +32,13 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use contract_metadata::ContractMetadata;
+use contract_metadata::{
+    CodeHash,
+    ContractMetadata,
+};
 
 use std::{
     fs::File,
-    io::{
-        BufReader,
-        Read,
-    },
     path::PathBuf,
 };
 
@@ -89,10 +88,10 @@ impl VerifyCommand {
         path: &PathBuf,
     ) -> Result<VerificationResult> {
         // 1. Read code hash binary from the path.
-       let ref_buffer = std::fs::read(path)
+        let ref_buffer = std::fs::read(path)
             .context(format!("Failed to read contract binary {}", path.display()))?;
 
-        let reference_code_hash = code_hash(&ref_buffer);
+        let reference_code_hash = CodeHash(code_hash(&ref_buffer));
 
         // 2. Call `cargo contract build` in the release mode.
         let args = ExecuteArgs {
@@ -120,17 +119,21 @@ impl VerifyCommand {
                 .bright_yellow())
         };
 
-       let target_buffer = std::fs::read(&built_wasm_path)
-            .context(format!("Failed to read contract binary {}", built_wasm_path.display()))?;
+        let target_buffer = std::fs::read(&built_wasm_path).context(format!(
+            "Failed to read contract binary {}",
+            built_wasm_path.display()
+        ))?;
 
-        let output_code_hash = code_hash(&target_buffer);
+        let output_code_hash = CodeHash(code_hash(&target_buffer));
 
         if output_code_hash != reference_code_hash {
             anyhow::bail!(format!(
                 "\nFailed to verify the authenticity of wasm binary at {} against the workspace \n\
-                found at {}.",
+                found at {}.\n Expected {}, found {}",
+                format!("`{}`", built_wasm_path.display()).bright_white(),
                 format!("`{}`", path.display()).bright_white(),
-                format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
+                format!("{}", reference_code_hash).bright_white(),
+                format!("{}", output_code_hash).bright_white())
             );
         }
 
