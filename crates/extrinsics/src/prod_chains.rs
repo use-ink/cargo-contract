@@ -80,6 +80,7 @@ define_chains! {
     pub enum ProductionChain {
         AlephZero = "wss://ws.azero.dev:443",
         Astar = "wss://rpc.astar.network:443",
-        Shiden = "wss://rpc.shiden.astar.network:443"
+        Shiden = "wss://rpc.shiden.astar.network:443",
+        Krest = "wss://wss-krest.peaq.network"
     }
 }
