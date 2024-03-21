@@ -14,11 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ErrorVariant;
-use std::fmt::Debug;
+use crate::{
+    call_with_config,
+    ErrorVariant,
+};
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    str::FromStr,
+};
 
 use super::{
-    create_signer,
+    config::SignerConfig,
+    parse_balance,
     parse_code_hash,
     CLIExtrinsicOpts,
 };
@@ -31,24 +41,31 @@ use contract_extrinsics::{
     RemoveExec,
     TokenMetadata,
 };
-use ink_env::DefaultEnvironment;
+use ink_env::Environment;
+use serde::Serialize;
 use subxt::{
+    config::ExtrinsicParams,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
     Config,
-    PolkadotConfig as DefaultConfig,
 };
-use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "remove", about = "Remove a contract's code")]
 pub struct RemoveCommand {
     /// The hash of the smart contract code already uploaded to the chain.
-    #[clap(long, value_parser = parse_code_hash)]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
+    #[clap(long)]
+    code_hash: Option<String>,
     #[clap(flatten)]
     extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Export the call output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
 }
 
 impl RemoveCommand {
@@ -58,44 +75,67 @@ impl RemoveCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        let token_metadata =
-            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
+        call_with_config!(self, run, self.config.as_str())
+    }
 
-        let signer: Keypair = create_signer(&self.extrinsic_cli_opts.suri)?;
+    async fn run<C: Config + Environment + SignerConfig<C>>(
+        &self,
+    ) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
+        <<C as Config>::AccountId as FromStr>::Err: Display,
+        C::Balance:
+            Into<u128> + From<u128> + Display + Default + FromStr + Serialize + Debug,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        <C as Config>::Hash: IntoVisitor + EncodeAsType + From<[u8; 32]>,
+    {
+        let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
+            .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
+        let token_metadata =
+            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let storage_deposit_limit = self
+            .extrinsic_cli_opts
+            .storage_deposit_limit
+            .clone()
+            .map(|b| parse_balance(&b, &token_metadata))
+            .transpose()
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+            })?;
+        let code_hash = self
+            .code_hash
+            .clone()
+            .map(|h| parse_code_hash(&h))
+            .transpose()
+            .map_err(|e| anyhow::anyhow!("Failed to parse code_hash option: {}", e))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
-            .storage_deposit_limit(
-                self.extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone()
-                    .map(|bv| bv.denominate_balance(&token_metadata))
-                    .transpose()?,
-            )
+            .storage_deposit_limit(storage_deposit_limit)
             .done();
-        let remove_exec: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
-            RemoveCommandBuilder::new(extrinsic_opts)
-                .code_hash(self.code_hash)
-                .done()
-                .await?;
+
+        let remove_exec: RemoveExec<C, C, _> = RemoveCommandBuilder::new(extrinsic_opts)
+            .code_hash(code_hash)
+            .done()
+            .await?;
         let remove_result = remove_exec.remove_code().await?;
-        let display_events =
-            DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
-                &remove_result.events,
-                Some(remove_exec.transcoder()),
-                &remove_exec.client().metadata(),
-            )?;
+        let display_events = DisplayEvents::from_events::<C, C>(
+            &remove_result.events,
+            Some(remove_exec.transcoder()),
+            &remove_exec.client().metadata(),
+        )?;
+
         let output_events = if self.output_json() {
             display_events.to_json()?
         } else {
-            display_events.display_events::<DefaultEnvironment>(
+            display_events.display_events::<C>(
                 self.extrinsic_cli_opts.verbosity().unwrap(),
                 &token_metadata,
             )?
         };
         if let Some(code_removed) = remove_result.code_removed {
-            let remove_result: <DefaultConfig as Config>::Hash = code_removed.code_hash;
+            let remove_result: <C as Config>::Hash = code_removed.code_hash;
 
             if self.output_json() {
                 // Create a JSON object with the events and the removed code hash.

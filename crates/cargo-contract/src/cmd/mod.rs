@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod config;
+
 pub mod build;
 pub mod call;
 pub mod decode;
@@ -71,23 +73,19 @@ use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
     ProductionChain,
+    TokenMetadata,
 };
-use core::fmt;
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
-use std::io::{
-    self,
-    Write,
-};
-pub use subxt::{
-    Config,
-    PolkadotConfig as DefaultConfig,
-};
-use subxt_signer::{
-    sr25519::Keypair,
-    SecretUri,
+
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    io::{
+        self,
+        Write,
+    },
+    str::FromStr,
 };
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -123,8 +121,7 @@ pub struct CLIExtrinsicOpts {
     /// The maximum amount of balance that can be charged from the caller to pay for the
     /// storage. consumed.
     #[clap(long)]
-    storage_deposit_limit:
-        Option<BalanceVariant<<DefaultEnvironment as Environment>::Balance>>,
+    storage_deposit_limit: Option<String>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
@@ -147,9 +144,12 @@ const STORAGE_DEPOSIT_KEY: &str = "Storage Total Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
-) -> Result<()> {
+pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance, ()>,
+) -> Result<()>
+where
+    Balance: Debug,
+{
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
@@ -172,8 +172,8 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     Ok(())
 }
 
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
+pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance, ()>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -239,10 +239,11 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Hash>(
-    info: &ExtendedContractInfo<Hash, <DefaultEnvironment as Environment>::Balance>,
+pub fn basic_display_format_extended_contract_info<Hash, Balance>(
+    info: &ExtendedContractInfo<Hash, Balance>,
 ) where
-    Hash: fmt::Debug,
+    Hash: Debug,
+    Balance: Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
@@ -273,21 +274,37 @@ pub fn basic_display_format_extended_contract_info<Hash>(
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId]) {
-    contracts
-        .iter()
-        .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
+pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
+where
+    AccountId: Display,
+{
+    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
 }
 
-/// Create a Signer from a secret URI.
-pub fn create_signer(suri: &str) -> Result<Keypair> {
-    let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
-    let keypair = Keypair::from_uri(&uri)?;
-    Ok(keypair)
+/// Parse a balance from string format
+pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
+    balance: &str,
+    token_metadata: &TokenMetadata,
+) -> Result<Balance> {
+    BalanceVariant::from_str(balance)
+        .map_err(|e| anyhow!("Balance parsing failed: {e}"))
+        .and_then(|bv| bv.denominate_balance(token_metadata))
+}
+
+/// Parse a account from string format
+pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
+where
+    <AccountId as FromStr>::Err: Display,
+{
+    AccountId::from_str(account)
+        .map_err(|e| anyhow::anyhow!("Account address parsing failed: {e}"))
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
+where
+    Hash: From<[u8; 32]>,
+{
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")
@@ -329,17 +346,22 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use subxt::{
+        Config,
+        SubstrateConfig,
+    };
+
     use super::*;
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok());
         // without 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok())
@@ -348,7 +370,7 @@ mod tests {
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
         )
         .is_err())
@@ -357,7 +379,7 @@ mod tests {
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_err())

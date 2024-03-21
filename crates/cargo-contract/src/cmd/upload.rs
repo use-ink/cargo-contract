@@ -14,12 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ErrorVariant;
-use std::fmt::Debug;
+use crate::{
+    call_with_config,
+    ErrorVariant,
+};
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    str::FromStr,
+};
 
 use super::{
-    create_signer,
+    config::SignerConfig,
     display_dry_run_result_warning,
+    parse_balance,
     prompt_confirm_unverifiable_upload,
     CLIExtrinsicOpts,
 };
@@ -33,15 +43,16 @@ use contract_extrinsics::{
     UploadCommandBuilder,
     UploadExec,
 };
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
+use ink_env::Environment;
+use serde::Serialize;
 use subxt::{
+    config::ExtrinsicParams,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
     Config,
-    PolkadotConfig as DefaultConfig,
 };
-use subxt_signer::sr25519::Keypair;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -51,6 +62,9 @@ pub struct UploadCommand {
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
 }
 
 impl UploadCommand {
@@ -60,26 +74,43 @@ impl UploadCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        let token_metadata =
-            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
+        call_with_config!(self, run, self.config.as_str())
+    }
 
-        let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
+    async fn run<C: Config + Environment + SignerConfig<C>>(
+        &self,
+    ) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
+        <<C as Config>::AccountId as FromStr>::Err: Display,
+        C::Balance:
+            Into<u128> + From<u128> + Display + Default + FromStr + Serialize + Debug,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        <C as Config>::Hash: IntoVisitor + EncodeAsType + From<[u8; 32]>,
+    {
+        let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
+            .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
+        let token_metadata =
+            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let storage_deposit_limit = self
+            .extrinsic_cli_opts
+            .storage_deposit_limit
+            .clone()
+            .map(|b| parse_balance(&b, &token_metadata))
+            .transpose()
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+            })?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
             .chain(self.extrinsic_cli_opts.chain.clone())
-            .storage_deposit_limit(
-                self.extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone()
-                    .map(|bv| bv.denominate_balance(&token_metadata))
-                    .transpose()?,
-            )
+            .storage_deposit_limit(storage_deposit_limit)
             .done();
-        let upload_exec: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
-            UploadCommandBuilder::new(extrinsic_opts).done().await?;
 
+        let upload_exec: UploadExec<C, C, _> =
+            UploadCommandBuilder::new(extrinsic_opts).done().await?;
         let code_hash = upload_exec.code().code_hash();
         let metadata = upload_exec.client().metadata();
 
@@ -114,20 +145,21 @@ impl UploadCommand {
                 }
             }
             let upload_result = upload_exec.upload_code().await?;
-            let display_events = DisplayEvents::from_events::<
-                DefaultConfig,
-                DefaultEnvironment,
-            >(&upload_result.events, None, &metadata)?;
+            let display_events = DisplayEvents::from_events::<C, C>(
+                &upload_result.events,
+                None,
+                &metadata,
+            )?;
             let output_events = if self.output_json() {
                 display_events.to_json()?
             } else {
-                display_events.display_events::<DefaultEnvironment>(
+                display_events.display_events::<C>(
                     self.extrinsic_cli_opts.verbosity()?,
                     &token_metadata,
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
-                let code_hash: <DefaultConfig as Config>::Hash = code_stored.code_hash;
+                let code_hash: <C as Config>::Hash = code_stored.code_hash;
                 if self.output_json() {
                     // Create a JSON object with the events and the code hash.
                     let json_object = serde_json::json!({
@@ -152,13 +184,16 @@ impl UploadCommand {
 }
 
 #[derive(serde::Serialize)]
-pub struct UploadDryRunResult {
+pub struct UploadDryRunResult<Balance> {
     pub result: String,
     pub code_hash: String,
-    pub deposit: <DefaultEnvironment as Environment>::Balance,
+    pub deposit: Balance,
 }
 
-impl UploadDryRunResult {
+impl<Balance> UploadDryRunResult<Balance>
+where
+    Balance: Debug + Serialize,
+{
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }

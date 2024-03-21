@@ -234,10 +234,10 @@ fn exec(cmd: Command) -> Result<()> {
             })
         }
         Command::Info(info) => {
-            runtime.block_on(async { info.run().await.map_err(format_err) })
+            runtime.block_on(async { info.handle().await.map_err(format_err) })
         }
         Command::Storage(storage) => {
-            runtime.block_on(async { storage.run().await.map_err(format_err) })
+            runtime.block_on(async { storage.handle().await.map_err(format_err) })
         }
         Command::Verify(verify) => {
             let result = verify.run().map_err(format_err)?;
