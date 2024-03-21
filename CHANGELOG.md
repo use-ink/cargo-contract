@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Verify raw Wasm in cargo contract verify - [#1551](https://github.com/paritytech/cargo-contract/pull/1551)
+
 ## [4.0.2]
 
 ### Fixed
