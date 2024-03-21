@@ -130,8 +130,8 @@ impl VerifyCommand {
             anyhow::bail!(format!(
                 "\nFailed to verify the authenticity of wasm binary at {} against the workspace \n\
                 found at {}.\n Expected {}, found {}",
-                format!("`{}`", built_wasm_path.display()).bright_white(),
                 format!("`{}`", path.display()).bright_white(),
+                format!("`{}`", built_wasm_path.display()).bright_white(),
                 format!("{}", reference_code_hash).bright_white(),
                 format!("{}", output_code_hash).bright_white())
             );
