@@ -22,7 +22,7 @@ jobs:
           components: rustfmt
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check Formatting
         uses: actions-rs/cargo@v1
@@ -59,7 +59,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check each crate
         run: |
@@ -83,7 +83,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
         # Check permissions of GITHUB_TOKEN, workaround for permission issues
         # with @dependabot PRs. See https://github.com/actions-rs/clippy-check/issues/2#issuecomment-807878478
@@ -130,7 +130,7 @@ jobs:
       RUST_BACKTRACE: full
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -163,7 +163,7 @@ jobs:
         shell: bash
 
       - name: Run tests
-        run: cargo test --profile debug-ci --all-features -- --test-threads=1
+        run: cargo test --profile debug-ci --workspace --all-features -- --test-threads=1
 
   template:
     strategy:
@@ -174,7 +174,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2023-12-28
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -182,17 +188,21 @@ jobs:
           profile: minimal
           toolchain: stable
           default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
+          components: rust-src
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
       - name: Check Template
         run: >-
+          # The linter requires two crates
+          cargo install cargo-dylint dylint-link
           cargo -vV &&
           cargo run --profile debug-ci -- contract --version &&
           cargo run --profile debug-ci -- contract new --target-dir ${{ runner.temp }} foobar &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          # Build with linting
+          cargo run --profile debug-ci -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run --profile debug-ci -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
-          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release
+          cargo run --profile debug-ci -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release &&
+          # Run tests
+          cargo test --profile debug-ci --all-features -- --test-threads=1

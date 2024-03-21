@@ -63,6 +63,7 @@ use bollard::{
         CreateContainerOptions,
         ListContainersOptions,
         LogOutput,
+        RemoveContainerOptions,
     },
     errors::Error,
     image::{
@@ -110,6 +111,16 @@ pub enum ImageVariant {
     Custom(String),
 }
 
+impl From<Option<String>> for ImageVariant {
+    fn from(value: Option<String>) -> Self {
+        if let Some(image) = value {
+            ImageVariant::Custom(image)
+        } else {
+            ImageVariant::Default
+        }
+    }
+}
+
 /// Launches the docker container to execute verifiable build.
 pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
@@ -152,11 +163,27 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
             )
             .await?;
 
-            let mut build_result = run_build(&client, &container, &verbosity).await?;
+            let build_result = async {
+                let mut build_result = run_build(&client, &container, &verbosity).await?;
+                update_build_result(&host_folder, &mut build_result)?;
+                update_metadata(&build_result, &verbosity, &image, &client).await?;
+                Ok::<BuildResult, anyhow::Error>(build_result)
+            }
+            .await;
 
-            update_build_result(&host_folder, &mut build_result)?;
-
-            update_metadata(&build_result, &verbosity, &image, &client).await?;
+            let build_result = match build_result {
+                Ok(build_result) => build_result,
+                Err(e) => {
+                    // Remove container to avoid leaving it in an incorrect state for
+                    // subsequent calls
+                    let options = Some(RemoveContainerOptions {
+                        force: true,
+                        ..Default::default()
+                    });
+                    let _ = client.remove_container(&container, options).await;
+                    return Err(e)
+                }
+            };
 
             verbose_eprintln!(
                 verbosity,
@@ -319,8 +346,8 @@ async fn create_container(
     {
         user = Some(format!(
             "{}:{}",
-            users::get_current_uid(),
-            users::get_current_gid()
+            uzers::get_current_uid(),
+            uzers::get_current_gid()
         ));
     };
     #[cfg(windows)]
@@ -404,13 +431,11 @@ async fn run_build(
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
     let mut build_result = None;
+    let mut message_bytes: Vec<u8> = vec![];
     while let Some(Ok(output)) = output.next().await {
         match output {
             LogOutput::StdOut { message } => {
-                build_result = Some(
-                    serde_json::from_reader(BufReader::new(message.as_ref()))
-                        .context("Error decoding BuildResult"),
-                );
+                message_bytes.extend(&message);
             }
             LogOutput::StdErr { message } => {
                 stderr.write_all(message.as_ref())?;
@@ -420,8 +445,19 @@ async fn run_build(
                 panic!("LogOutput::Console")
             }
             LogOutput::StdIn { message: _ } => panic!("LogOutput::StdIn"),
-        }
+        };
     }
+
+    if !message_bytes.is_empty() {
+        build_result = Some(
+            serde_json::from_reader(BufReader::new(message_bytes.as_slice())).context(
+                format!(
+                    "Error decoding BuildResult:\n {}",
+                    std::str::from_utf8(&message_bytes).unwrap()
+                ),
+            ),
+        )
+    };
 
     if let Some(build_result) = build_result {
         build_result
@@ -436,8 +472,8 @@ async fn run_build(
 fn compose_build_args() -> Result<Vec<String>> {
     use regex::Regex;
     let mut args: Vec<String> = Vec::new();
-    // match --image with arg with 1 or more white spaces surrounded
-    let rex = Regex::new(r#"--image[ ]*[^ ]*[ ]*"#)?;
+    // match `--image` or `verify` with arg with 1 or more white spaces surrounded
+    let rex = Regex::new(r#"(--image|verify)[ ]*[^ ]*[ ]*"#)?;
     // we join the args together, so we can remove `--image <arg>`
     let args_string: String = std::env::args().collect::<Vec<String>>().join(" ");
     let args_string = rex.replace_all(&args_string, "").to_string();

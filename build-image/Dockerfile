@@ -3,7 +3,7 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 # The rust version to use
 ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=3.1.0
+ARG CARGO_CONTRACT_VERSION=3.2.0
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
 # Branch to use in git repository
@@ -49,7 +49,7 @@ RUN set -eux \
     && url="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init" \
     && wget "$url" \
     && chmod +x rustup-init \
-    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src rustfmt --default-toolchain $RUST_VERSION  \
+    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src rustfmt clippy --default-toolchain $RUST_VERSION  \
     && rm rustup-init \
     && chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
     && rustup --version \

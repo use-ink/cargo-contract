@@ -16,344 +16,108 @@
 
 mod balance;
 mod call;
+mod contract_artifacts;
+mod contract_info;
+mod contract_storage;
+mod env_check;
 mod error;
 mod events;
+mod extrinsic_calls;
+mod extrinsic_opts;
 mod instantiate;
+pub mod pallet_contracts_primitives;
 mod prod_chains;
 mod remove;
-mod runtime_api;
+mod rpc;
 mod upload;
+
+#[cfg(test)]
+mod contract_storage_tests;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod integration_tests;
 
-use prod_chains::ProductionChain;
-use subxt::utils::AccountId32;
+use env_check::compare_node_env_with_contract;
+pub use extrinsic_opts::Chain;
+pub use prod_chains::ProductionChain;
 
-use anyhow::{
-    anyhow,
-    Context,
-    Result,
-};
-use colored::Colorize;
-use jsonrpsee::{
-    core::client::ClientT,
-    rpc_params,
-    ws_client::WsClientBuilder,
-};
-use std::{
-    io::{
-        self,
-        Write,
-    },
-    path::PathBuf,
-};
-
-use crate::runtime_api::api::{self,};
+use anyhow::Result;
 use contract_build::{
-    name_value_println,
     CrateMetadata,
     Verbosity,
-    VerbosityFlags,
     DEFAULT_KEY_COL_WIDTH,
 };
-use pallet_contracts_primitives::ContractResult;
 use scale::{
     Decode,
     Encode,
 };
-use sp_core::Bytes;
-use sp_weights::Weight;
 use subxt::{
+    backend::legacy::LegacyRpcMethods,
     blocks,
     config,
     tx,
     Config,
     OnlineClient,
 };
-use subxt_signer::{
-    sr25519::Keypair,
-    SecretUri,
-};
-
-use std::{
-    option::Option,
-    path::Path,
-};
 
 pub use balance::{
     BalanceVariant,
     TokenMetadata,
 };
-pub use call::CallCommand;
+pub use call::{
+    CallCommandBuilder,
+    CallExec,
+};
+pub use contract_artifacts::ContractArtifacts;
+pub use contract_info::{
+    fetch_all_contracts,
+    fetch_contract_info,
+    fetch_wasm_code,
+    ContractInfo,
+    TrieId,
+};
 use contract_metadata::ContractMetadata;
+pub use contract_storage::{
+    ContractStorage,
+    ContractStorageCell,
+    ContractStorageLayout,
+    ContractStorageRpc,
+};
 pub use contract_transcode::ContractMessageTranscoder;
 pub use error::{
     ErrorVariant,
     GenericError,
 };
-pub use instantiate::InstantiateCommand;
-pub use remove::RemoveCommand;
-pub use subxt::PolkadotConfig as DefaultConfig;
-pub use upload::UploadCommand;
+pub use events::DisplayEvents;
+pub use extrinsic_opts::ExtrinsicOptsBuilder;
+pub use instantiate::{
+    Code,
+    InstantiateArgs,
+    InstantiateCommandBuilder,
+    InstantiateDryRunResult,
+    InstantiateExec,
+    InstantiateExecResult,
+};
+pub use remove::{
+    RemoveCommandBuilder,
+    RemoveExec,
+    RemoveResult,
+};
 
-pub type Client = OnlineClient<DefaultConfig>;
-pub type Balance = u128;
-pub type CodeHash = <DefaultConfig as Config>::Hash;
+pub use upload::{
+    UploadCommandBuilder,
+    UploadExec,
+    UploadResult,
+};
 
-/// Arguments required for creating and sending an extrinsic to a substrate node.
-#[derive(Clone, Debug, clap::Args)]
-pub struct ExtrinsicOpts {
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
-    #[clap(value_parser, conflicts_with = "manifest_path")]
-    file: Option<PathBuf>,
-    /// Path to the `Cargo.toml` of the contract.
-    #[clap(long, value_parser)]
-    manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
-    /// A name of a production chain to upload or instantiate the contract on.
-    #[clap(name = "chain", long, conflicts_with = "url")]
-    chain: Option<ProductionChain>,
-    /// Secret key URI for the account deploying the contract.
-    ///
-    /// e.g.
-    /// - for a dev account "//Alice"
-    /// - with a password "//Alice///SECRET_PASSWORD"
-    #[clap(name = "suri", long, short)]
-    suri: String,
-    #[clap(flatten)]
-    verbosity: VerbosityFlags,
-    /// Submit the extrinsic for on-chain execution.
-    #[clap(short('x'), long)]
-    execute: bool,
-    /// The maximum amount of balance that can be charged from the caller to pay for the
-    /// storage. consumed.
-    #[clap(long)]
-    storage_deposit_limit: Option<BalanceVariant>,
-    /// Before submitting a transaction, do not dry-run it via RPC first.
-    #[clap(long)]
-    skip_dry_run: bool,
-    /// Before submitting a transaction, do not ask the user for confirmation.
-    #[clap(short('y'), long)]
-    skip_confirm: bool,
-}
-
-impl ExtrinsicOpts {
-    /// Load contract artifacts.
-    pub fn contract_artifacts(&self) -> Result<ContractArtifacts> {
-        ContractArtifacts::from_manifest_or_file(
-            self.manifest_path.as_ref(),
-            self.file.as_ref(),
-        )
-    }
-
-    /// Returns the signer for contract extrinsics.
-    pub fn signer(&self) -> Result<Keypair> {
-        let uri = <SecretUri as std::str::FromStr>::from_str(&self.suri)?;
-        let keypair = Keypair::from_uri(&uri)?;
-        Ok(keypair)
-    }
-
-    /// Returns the verbosity
-    pub fn verbosity(&self) -> Result<Verbosity> {
-        TryFrom::try_from(&self.verbosity)
-    }
-
-    /// Convert URL to String without omitting the default port
-    fn url_to_string(&self) -> String {
-        let mut res = self.url.to_string();
-        match (self.url.port(), self.url.port_or_known_default()) {
-            (None, Some(port)) => {
-                res.insert_str(res.len() - 1, &format!(":{port}"));
-                res
-            }
-            _ => res,
-        }
-    }
-
-    /// Get the chain name and its URL endpoint.
-    /// If the user specify the endpoint manually,
-    /// but it still appears to be the production chain,
-    /// we still convert it.
-    pub fn chain_and_endpoint(&self) -> (Chain, String) {
-        if let Some(chain) = &self.chain {
-            (
-                Chain::Production(chain.to_string()),
-                chain.end_point().to_string(),
-            )
-        } else {
-            let url = self.url_to_string();
-            if let Some(chain) = ProductionChain::chain_by_endpoint(&url) {
-                (
-                    Chain::Production(chain.to_string()),
-                    chain.end_point().to_string(),
-                )
-            } else {
-                (Chain::Custom, url)
-            }
-        }
-    }
-
-    /// Get the storage deposit limit converted to compact for passing to extrinsics.
-    pub fn storage_deposit_limit(
-        &self,
-        token_metadata: &TokenMetadata,
-    ) -> Result<Option<scale::Compact<Balance>>> {
-        Ok(self
-            .storage_deposit_limit
-            .as_ref()
-            .map(|bv| bv.denominate_balance(token_metadata))
-            .transpose()?
-            .map(Into::into))
-    }
-}
-
-#[derive(Debug)]
-pub enum Chain {
-    Production(String),
-    Custom,
-}
-
-/// Contract artifacts for use with extrinsic commands.
-#[derive(Debug)]
-pub struct ContractArtifacts {
-    /// The original artifact path
-    artifacts_path: PathBuf,
-    /// The expected path of the file containing the contract metadata.
-    metadata_path: PathBuf,
-    /// The deserialized contract metadata if the expected metadata file exists.
-    metadata: Option<ContractMetadata>,
-    /// The Wasm code of the contract if available.
-    pub code: Option<WasmCode>,
-}
-
-impl ContractArtifacts {
-    /// Load contract artifacts.
-    pub fn from_manifest_or_file(
-        manifest_path: Option<&PathBuf>,
-        file: Option<&PathBuf>,
-    ) -> Result<ContractArtifacts> {
-        let artifact_path = match (manifest_path, file) {
-            (manifest_path, None) => {
-                let crate_metadata = CrateMetadata::from_manifest_path(
-                    manifest_path,
-                    contract_build::Target::Wasm,
-                )?;
-
-                if crate_metadata.contract_bundle_path().exists() {
-                    crate_metadata.contract_bundle_path()
-                } else if crate_metadata.metadata_path().exists() {
-                    crate_metadata.metadata_path()
-                } else {
-                    anyhow::bail!(
-                        "Failed to find any contract artifacts in target directory. \n\
-                        Run `cargo contract build --release` to generate the artifacts."
-                    )
-                }
-            }
-            (None, Some(artifact_file)) => artifact_file.clone(),
-            (Some(_), Some(_)) => {
-                anyhow::bail!("conflicting options: --manifest-path and --file")
-            }
-        };
-        Self::from_artifact_path(artifact_path.as_path())
-    }
-    /// Given a contract artifact path, load the contract code and metadata where
-    /// possible.
-    fn from_artifact_path(path: &Path) -> Result<Self> {
-        tracing::debug!("Loading contracts artifacts from `{}`", path.display());
-        let (metadata_path, metadata, code) =
-            match path.extension().and_then(|ext| ext.to_str()) {
-                Some("contract") | Some("json") => {
-                    let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
-                    (PathBuf::from(path), Some(metadata), code)
-                }
-                Some("wasm") => {
-                    let file_name = path.file_stem()
-                        .context("WASM bundle file has unreadable name")?
-                        .to_str()
-                        .context("Error parsing filename string")?;
-                    let code = Some(WasmCode(std::fs::read(path)?));
-                    let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
-                    let metadata_path = dir.join(format!("{file_name}.json"));
-                    if !metadata_path.exists() {
-                        (metadata_path, None, code)
-                    } else {
-                        let metadata = ContractMetadata::load(&metadata_path)?;
-                        (metadata_path, Some(metadata), code)
-                    }
-                }
-                Some(ext) => anyhow::bail!(
-                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.wasm`"
-                ),
-                None => {
-                    anyhow::bail!(
-                        "Artifact path has no extension, expected `.contract`, `.json`, or `.wasm`"
-                    )
-                }
-            };
-        Ok(Self {
-            artifacts_path: path.into(),
-            metadata_path,
-            metadata,
-            code,
-        })
-    }
-
-    /// Get the path of the artifact file used to load the artifacts.
-    pub fn artifact_path(&self) -> &Path {
-        self.artifacts_path.as_path()
-    }
-
-    /// Get contract metadata, if available.
-    ///
-    /// ## Errors
-    /// - No contract metadata could be found.
-    /// - Invalid contract metadata.
-    pub fn metadata(&self) -> Result<ContractMetadata> {
-        self.metadata.clone().ok_or_else(|| {
-            anyhow!(
-                "No contract metadata found. Expected file {}",
-                self.metadata_path.as_path().display()
-            )
-        })
-    }
-
-    /// Get the code hash from the contract metadata.
-    pub fn code_hash(&self) -> Result<[u8; 32]> {
-        let metadata = self.metadata()?;
-        Ok(metadata.source.hash.0)
-    }
-
-    /// Construct a [`ContractMessageTranscoder`] from contract metadata.
-    pub fn contract_transcoder(&self) -> Result<ContractMessageTranscoder> {
-        let metadata = self.metadata()?;
-        ContractMessageTranscoder::try_from(metadata)
-            .context("Failed to deserialize ink project metadata from contract metadata")
-    }
-
-    /// Return true if the image is verifiable.
-    /// If the metadata can not be extracted then we assume that it can't be verified.
-    pub fn is_verifiable(&self) -> bool {
-        match self.metadata() {
-            Ok(m) => m.image.is_some(),
-            Err(_) => false,
-        }
-    }
-}
+pub use rpc::{
+    RawParams,
+    RpcRequest,
+};
 
 /// The Wasm code of a contract.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WasmCode(Vec<u8>);
 
 impl WasmCode {
@@ -361,64 +125,6 @@ impl WasmCode {
     pub fn code_hash(&self) -> [u8; 32] {
         contract_build::code_hash(&self.0)
     }
-}
-
-/// Get the account id from the Keypair
-pub fn account_id(keypair: &Keypair) -> AccountId32 {
-    subxt::tx::Signer::<DefaultConfig>::account_id(keypair)
-}
-
-const STORAGE_DEPOSIT_KEY: &str = "Storage Deposit";
-pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
-
-/// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), WIDTH);
-    name_value_println!("Gas Required", format!("{:?}", result.gas_required), WIDTH);
-    name_value_println!(
-        STORAGE_DEPOSIT_KEY,
-        format!("{:?}", result.storage_deposit),
-        WIDTH
-    );
-
-    // print debug messages aligned, only first line has key
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, Balance, ()>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_dry_run_result_warning(command: &str) {
-    println!("Your {} call {} been executed.", command, "has not".bold());
-    println!(
-            "To submit the transaction and execute the call on chain, add {} flag to the command.",
-            "-x/--execute".bold()
-        );
 }
 
 /// Wait for the transaction to be included successfully into a block.
@@ -433,206 +139,135 @@ pub fn display_dry_run_result_warning(command: &str) {
 ///
 /// Currently this will report success once the transaction is included in a block. In the
 /// future there could be a flag to wait for finality before reporting success.
-async fn submit_extrinsic<T, Call, Signer>(
-    client: &OnlineClient<T>,
+async fn submit_extrinsic<C, Call, Signer>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
     call: &Call,
     signer: &Signer,
-) -> core::result::Result<blocks::ExtrinsicEvents<T>, subxt::Error>
+) -> core::result::Result<blocks::ExtrinsicEvents<C>, subxt::Error>
 where
-    T: Config,
+    C: Config,
     Call: tx::TxPayload,
-    Signer: tx::Signer<T>,
-    <T::ExtrinsicParams as config::ExtrinsicParams<T::Hash>>::OtherParams: Default,
+    Signer: tx::Signer<C>,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
 {
-    client
+    let account_id = Signer::account_id(signer);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
+    let mut tx = client
         .tx()
-        .sign_and_submit_then_watch_default(call, signer)
-        .await?
-        .wait_for_in_block()
-        .await?
-        .wait_for_success()
-        .await
+        .create_signed_with_nonce(call, signer, account_nonce, Default::default())?
+        .submit_and_watch()
+        .await?;
+
+    // Below we use the low level API to replicate the `wait_for_in_block` behaviour which
+    // was removed in subxt 0.33.0. See https://github.com/paritytech/subxt/pull/1237.
+    //
+    // We require this because we use `substrate-contracts-node` as our development node,
+    // which does not currently support finality, so we just want to wait until it is
+    // included in a block.
+    use subxt::error::{
+        RpcError,
+        TransactionError,
+    };
+    use tx::TxStatus;
+
+    while let Some(status) = tx.next().await {
+        match status? {
+            TxStatus::InBestBlock(tx_in_block)
+            | TxStatus::InFinalizedBlock(tx_in_block) => {
+                let events = tx_in_block.wait_for_success().await?;
+                return Ok(events)
+            }
+            TxStatus::Error { message } => {
+                return Err(TransactionError::Error(message).into())
+            }
+            TxStatus::Invalid { message } => {
+                return Err(TransactionError::Invalid(message).into())
+            }
+            TxStatus::Dropped { message } => {
+                return Err(TransactionError::Dropped(message).into())
+            }
+            _ => continue,
+        }
+    }
+    Err(RpcError::SubscriptionDropped.into())
 }
 
-async fn state_call<A: Encode, R: Decode>(url: &str, func: &str, args: A) -> Result<R> {
-    let cli = WsClientBuilder::default().build(&url).await?;
-    let params = rpc_params![func, Bytes(args.encode())];
-    let bytes: Bytes = cli.request("state_call", params).await?;
+/// Return the account nonce at the *best* block for an account ID.
+async fn get_account_nonce<C>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    account_id: &C::AccountId,
+) -> core::result::Result<u64, subxt::Error>
+where
+    C: Config,
+{
+    let best_block = rpc
+        .chain_get_block_hash(None)
+        .await?
+        .ok_or(subxt::Error::Other("Best block not found".into()))?;
+    let account_nonce = client
+        .blocks()
+        .at(best_block)
+        .await?
+        .account_nonce(account_id)
+        .await?;
+    Ok(account_nonce)
+}
+
+async fn state_call<C, A: Encode, R: Decode>(
+    rpc: &LegacyRpcMethods<C>,
+    func: &str,
+    args: A,
+) -> Result<R>
+where
+    C: Config,
+{
+    let params = args.encode();
+    let bytes = rpc.state_call(func, Some(&params), None).await?;
     Ok(R::decode(&mut bytes.as_ref())?)
 }
 
-/// Prompt the user to confirm transaction submission.
-fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
-    println!(
-        "{} (skip with --skip-confirm or -y)",
-        "Confirm transaction details:".bright_white().bold()
-    );
-    show_details();
-    print!(
-        "{} ({}/n): ",
-        "Submit?".bright_white().bold(),
-        "Y".bright_white().bold()
-    );
-
-    let mut buf = String::new();
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut buf)?;
-    match buf.trim().to_lowercase().as_str() {
-        // default is 'y'
-        "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Transaction not submitted")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
-    }
-}
-
-/// Prompt the user to confirm the upload of unverifiable code to the production chain.
-fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
-    println!(
-        "{} (skip with --skip-validate)",
-        "Confirm upload:".bright_white().bold()
-    );
-    let warning = format!(
-        "You are trying to upload unverifiable code to {} mainnet",
-        chain
-    )
-    .bold()
-    .red();
-    print!("{}", warning);
-    println!(
-        "{} ({}/n): ",
-        "Continue?".bright_white().bold(),
-        "Y".bright_white().bold()
-    );
-
-    let mut buf = String::new();
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut buf)?;
-    match buf.trim().to_lowercase().as_str() {
-        // default is 'y'
-        "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Upload canceled!")),
-        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
-    }
-}
-
-fn print_dry_running_status(msg: &str) {
-    println!(
-        "{:>width$} {} (skip with --skip-dry-run)",
-        "Dry-running".green().bold(),
-        msg.bright_white().bold(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
-}
-
-fn print_gas_required_success(gas: Weight) {
-    println!(
-        "{:>width$} Gas required estimated at {}",
-        "Success!".green().bold(),
-        gas.to_string().bright_white(),
-        width = DEFAULT_KEY_COL_WIDTH
-    );
-}
-
-/// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
-    let bytes = contract_build::util::decode_hex(input)?;
-    if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
-    }
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&bytes);
-    Ok(arr.into())
-}
-
-/// Fetch the contract info from the storage using the provided client.
-pub async fn fetch_contract_info(
-    contract: &AccountId32,
-    client: &Client,
-) -> Result<Option<ContractInfo>> {
-    let info_contract_call = api::storage().contracts().contract_info_of(contract);
-
-    let contract_info_of = client
-        .storage()
-        .at_latest()
+/// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
+async fn get_best_block<C>(
+    rpc: &LegacyRpcMethods<C>,
+) -> core::result::Result<C::Hash, subxt::Error>
+where
+    C: Config,
+{
+    rpc.chain_get_block_hash(None)
         .await?
-        .fetch(&info_contract_call)
-        .await?;
+        .ok_or(subxt::Error::Other("Best block not found".into()))
+}
 
-    match contract_info_of {
-        Some(info_result) => {
-            let convert_trie_id = hex::encode(info_result.trie_id.0);
-            Ok(Some(ContractInfo {
-                trie_id: convert_trie_id,
-                code_hash: info_result.code_hash,
-                storage_items: info_result.storage_items,
-                storage_item_deposit: info_result.storage_item_deposit,
-            }))
+fn check_env_types<C>(
+    client: &OnlineClient<C>,
+    transcoder: &ContractMessageTranscoder,
+    verbosity: &Verbosity,
+) -> Result<()>
+where
+    C: Config,
+{
+    compare_node_env_with_contract(
+        client.metadata().types(),
+        transcoder.metadata(),
+        verbosity,
+    )
+}
+
+// Converts a Url into a String representation without excluding the default port.
+pub fn url_to_string(url: &url::Url) -> String {
+    match (url.port(), url.port_or_known_default()) {
+        (None, Some(port)) => {
+            format!(
+                "{}:{port}{}",
+                &url[..url::Position::AfterHost],
+                &url[url::Position::BeforePath..]
+            )
+            .to_string()
         }
-        None => Ok(None),
-    }
-}
-
-#[derive(serde::Serialize)]
-pub struct ContractInfo {
-    trie_id: String,
-    code_hash: CodeHash,
-    storage_items: u32,
-    storage_item_deposit: Balance,
-}
-
-impl ContractInfo {
-    /// Convert and return contract info in JSON format.
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    /// Display contract information in a formatted way
-    pub fn basic_display_format_contract_info(&self) {
-        name_value_println!("TrieId", format!("{}", self.trie_id), MAX_KEY_COL_WIDTH);
-        name_value_println!(
-            "Code Hash",
-            format!("{:?}", self.code_hash),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Items",
-            format!("{:?}", self.storage_items),
-            MAX_KEY_COL_WIDTH
-        );
-        name_value_println!(
-            "Storage Deposit",
-            format!("{:?}", self.storage_item_deposit),
-            MAX_KEY_COL_WIDTH
-        );
-    }
-}
-
-/// Copy of `pallet_contracts_primitives::StorageDeposit` which implements `Serialize`,
-/// required for json output.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, serde::Serialize)]
-pub enum StorageDeposit {
-    /// The transaction reduced storage consumption.
-    ///
-    /// This means that the specified amount of balance was transferred from the involved
-    /// contracts to the call origin.
-    Refund(Balance),
-    /// The transaction increased overall storage usage.
-    ///
-    /// This means that the specified amount of balance was transferred from the call
-    /// origin to the contracts involved.
-    Charge(Balance),
-}
-
-impl From<&pallet_contracts_primitives::StorageDeposit<Balance>> for StorageDeposit {
-    fn from(deposit: &pallet_contracts_primitives::StorageDeposit<Balance>) -> Self {
-        match deposit {
-            pallet_contracts_primitives::StorageDeposit::Refund(balance) => {
-                Self::Refund(*balance)
-            }
-            pallet_contracts_primitives::StorageDeposit::Charge(balance) => {
-                Self::Charge(*balance)
-            }
-        }
+        _ => url.to_string(),
     }
 }
 
@@ -641,16 +276,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_code_hash_works() {
-        // with 0x prefix
-        assert!(parse_code_hash(
-            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok());
-        // without 0x prefix
-        assert!(parse_code_hash(
-            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-        )
-        .is_ok())
+    fn url_to_string_works() {
+        // with custom port
+        let url = url::Url::parse("ws://127.0.0.1:9944").unwrap();
+        assert_eq!(url_to_string(&url), "ws://127.0.0.1:9944/");
+
+        // with default port
+        let url = url::Url::parse("wss://127.0.0.1:443").unwrap();
+        assert_eq!(url_to_string(&url), "wss://127.0.0.1:443/");
+
+        // with default port and path
+        let url = url::Url::parse("wss://127.0.0.1:443/test/1").unwrap();
+        assert_eq!(url_to_string(&url), "wss://127.0.0.1:443/test/1");
+
+        // with default port and domain
+        let url = url::Url::parse("wss://test.io:443").unwrap();
+        assert_eq!(url_to_string(&url), "wss://test.io:443/");
+
+        // with default port, domain and path
+        let url = url::Url::parse("wss://test.io/test/1").unwrap();
+        assert_eq!(url_to_string(&url), "wss://test.io:443/test/1");
     }
 }

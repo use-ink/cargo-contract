@@ -53,16 +53,7 @@ impl WasmOptHandler {
     /// Attempts to perform optional Wasm optimization using Binaryen's `wasm-opt` tool.
     ///
     /// If successful, the optimized Wasm binary is written to `dest_wasm`.
-    pub fn optimize(
-        &self,
-        dest_wasm: &PathBuf,
-        contract_artifact_name: &String,
-    ) -> Result<()> {
-        // We'll create a temporary file for our optimized Wasm binary. Note that we'll
-        // later overwrite this with the original path of the Wasm binary.
-        let mut dest_optimized = dest_wasm.clone();
-        dest_optimized.set_file_name(format!("{contract_artifact_name}-opt.wasm"));
-
+    pub fn optimize(&self, original_wasm: &PathBuf, dest_wasm: &PathBuf) -> Result<()> {
         tracing::debug!(
             "Optimization level passed to wasm-opt: {}",
             self.optimization_level
@@ -82,17 +73,15 @@ impl WasmOptHandler {
             // memory-packing pre-pass.
             .zero_filled_memory(true)
             .debug_info(self.keep_debug_symbols)
-            .run(dest_wasm, &dest_optimized)?;
+            .run(original_wasm, dest_wasm)?;
 
-        if !dest_optimized.exists() {
+        if !dest_wasm.exists() {
             return Err(anyhow::anyhow!(
                 "Optimization failed, optimized wasm output file `{}` not found.",
-                dest_optimized.display()
+                dest_wasm.display()
             ))
         }
 
-        // Overwrite existing destination wasm file with the optimised version
-        std::fs::rename(&dest_optimized, dest_wasm)?;
         Ok(())
     }
 }

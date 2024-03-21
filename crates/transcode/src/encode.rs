@@ -284,7 +284,9 @@ impl<'a> Encoder<'a> {
                     s.encode_to(output);
                     Ok(())
                 } else {
-                    Err(anyhow::anyhow!("Expected a String value"))
+                    Err(anyhow::anyhow!("Expected a String value\n\
+                    On the command-line, String values need to be wrapped in escaped quotes: \
+                    \\\"…\\\"."))
                 }
             }
             TypeDefPrimitive::U8 => encode_uint::<u8, O>(value, "u8", output),

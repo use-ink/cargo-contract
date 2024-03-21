@@ -66,7 +66,8 @@
 
 #![deny(unused_crate_dependencies)]
 
-mod byte_str;
+pub mod byte_str;
+pub mod compatibility;
 
 use anyhow::{
     Context,
@@ -148,6 +149,18 @@ impl ContractMetadata {
             path.display()
         ))
     }
+
+    /// Checks whether the contract's ink! version is compatible with the cargo-contract
+    /// binary
+    pub fn check_ink_compatibility(&self) -> Result<()> {
+        if let Language::Ink = self.source.language.language {
+            compatibility::check_contract_ink_compatibility(
+                &self.source.language.version,
+                None,
+            )?;
+        }
+        Ok(())
+    }
 }
 
 /// Representation of the Wasm code hash.
@@ -164,6 +177,18 @@ pub struct CodeHash(
 impl From<[u8; 32]> for CodeHash {
     fn from(value: [u8; 32]) -> Self {
         CodeHash(value)
+    }
+}
+
+impl Display for CodeHash {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+        let raw_string = self
+            .0
+            .iter()
+            .map(|b| format!("{:x?}", b))
+            .collect::<Vec<String>>()
+            .join("");
+        f.write_fmt(format_args!("0x{}", raw_string))
     }
 }
 
@@ -207,7 +232,7 @@ impl Source {
 }
 
 /// The bytes of the compiled Wasm smart contract.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SourceWasm(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",

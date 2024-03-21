@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "4.0.0-alpha"
+version = "4.0.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -15,43 +15,43 @@ include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "tem
 
 [dependencies]
 regex = "1"
-anyhow = "1.0.75"
+anyhow = "1.0.81"
 blake2 = "0.10.6"
-cargo_metadata = "0.17.0"
-colored = "2.0.4"
-clap = { version = "4.3.23", features = ["derive", "env"] }
-duct = "0.13.6"
-heck = "0.4.0"
+cargo_metadata = "0.18.1"
+colored = "2.1.0"
+clap = { version = "4.5.3", features = ["derive", "env"] }
+duct = "0.13.7"
+heck = "0.5.0"
 hex = "0.4.3"
 impl-serde = "0.4.0"
 rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-toml = "0.7.6"
-tracing = "0.1.37"
-parity-wasm = { version = "0.45.0", features = ["sign_ext"] }
-semver = { version = "1.0.18", features = ["serde"] }
+toml = "0.8.12"
+tracing = "0.1.40"
+parity-wasm = { version = "0.45.0"}
+semver = { version = "1.0.22", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.105"
-tempfile = "3.7.1"
+serde_json = "1.0.114"
+tempfile = "3.10.1"
 term_size = "0.3.2"
-url = { version = "2.4.0", features = ["serde"] }
-wasm-opt = "0.114.1"
-which = "4.4.0"
+url = { version = "2.5.0", features = ["serde"] }
+wasm-opt = { version = "=0.116.0", default-features = false }
+which = "6.0.0"
 zip = { version = "0.6.6", default-features = false }
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
-bollard = "0.14"
+bollard = "0.16"
 crossterm = "0.27.0"
 
-contract-metadata = { version = "4.0.0-alpha", path = "../metadata" }
+contract-metadata = { version = "4.0.2", path = "../metadata" }
 
 [target.'cfg(unix)'.dependencies]
-users = "0.11"
+uzers = "0.11"
 
 [build-dependencies]
-anyhow = "1.0.75"
-walkdir = "2.3.3"
+anyhow = "1.0.81"
+walkdir = "2.5.0"
 zip = { version = "0.6.6", default-features = false }
 
 [dev-dependencies]

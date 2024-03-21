@@ -14,62 +14,67 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    prompt_confirm_unverifiable_upload,
-    Chain,
-    GenericError,
-};
-
 use super::{
-    account_id,
-    display_dry_run_result_warning,
-    events::DisplayEvents,
-    name_value_println,
-    runtime_api::api::{
-        self,
-        runtime_types::pallet_contracts::wasm::Determinism,
-    },
+    events::CodeStored,
+    pallet_contracts_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
-    Balance,
-    Client,
-    CodeHash,
-    DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
-    TokenMetadata,
     WasmCode,
 };
+use crate::{
+    check_env_types,
+    extrinsic_calls::UploadCode,
+    extrinsic_opts::ExtrinsicOpts,
+};
 use anyhow::Result;
-use pallet_contracts_primitives::CodeUploadResult;
+use contract_transcode::ContractMessageTranscoder;
+use ink_env::Environment;
 use scale::Encode;
-use std::fmt::Debug;
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
+    blocks::ExtrinsicEvents,
+    config,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
+    tx,
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
-use tokio::runtime::Runtime;
 
-#[derive(Debug, clap::Args)]
-#[clap(name = "upload", about = "Upload a contract's code")]
-pub struct UploadCommand {
-    #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
-    /// Export the call output in JSON format.
-    #[clap(long, conflicts_with = "verbose")]
-    output_json: bool,
+/// A builder for the upload command.
+pub struct UploadCommandBuilder<C: Config, E: Environment, Signer: Clone> {
+    extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
 }
 
-impl UploadCommand {
-    pub fn is_json(&self) -> bool {
-        self.output_json
+impl<C: Config, E: Environment, Signer> UploadCommandBuilder<C, E, Signer>
+where
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Returns a clean builder for [`UploadExec`].
+    pub fn new(
+        extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
+    ) -> UploadCommandBuilder<C, E, Signer> {
+        UploadCommandBuilder { extrinsic_opts }
     }
 
-    pub fn run(&self) -> Result<(), ErrorVariant> {
+    /// Preprocesses contract artifacts and options for subsequent upload.
+    ///
+    /// This function prepares the necessary data for uploading a contract
+    /// based on the provided contract artifacts and options. It ensures that the
+    /// required contract code is available and sets up the client and signer for the
+    /// operation.
+    ///
+    /// Returns the `UploadExec` containing the preprocessed data for the upload or
+    /// execution.
+    pub async fn done(self) -> Result<UploadExec<C, E, Signer>> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
-        let signer = self.extrinsic_opts.signer()?;
-        let is_verifiable = artifacts.is_verifiable();
+        let transcoder = artifacts.contract_transcoder()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
         let code = artifacts.code.ok_or_else(|| {
@@ -78,164 +83,135 @@ impl UploadCommand {
                 artifacts_path.display()
             )
         })?;
-        let code_hash = code.code_hash();
 
-        Runtime::new()?
-            .block_on(async {
-                let (chain, url) = self.extrinsic_opts.chain_and_endpoint();
-                let client = OnlineClient::from_url(url.clone()).await?;
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
+        check_env_types(&client, &transcoder, self.extrinsic_opts.verbosity())?;
+        let rpc = LegacyRpcMethods::new(rpc_cli);
 
-                if !self.extrinsic_opts.execute {
-                    match self.upload_code_rpc(code, &client, &signer).await? {
-                        Ok(result) => {
-                            let upload_result = UploadDryRunResult {
-                                result: String::from("Success!"),
-                                code_hash: format!("{:?}", result.code_hash),
-                                deposit: result.deposit,
-                            };
-                            if self.output_json {
-                                println!("{}", upload_result.to_json()?);
-                            } else {
-                                upload_result.print();
-                                display_dry_run_result_warning("upload");
-                            }
-                        }
-                        Err(err) => {
-                            let metadata = client.metadata();
-                            let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
-                            if self.output_json {
-                                return Err(err)
-                            } else {
-                                name_value_println!("Result", err);
-                            }
-                        }
-                    }
-                } else if let Some(code_stored) =
-                    self.upload_code(&client, code, &signer, chain, is_verifiable).await?
-                {
-                    let upload_result = UploadResult {
-                        code_hash: format!("{:?}", code_stored.code_hash),
-                    };
-                    if self.output_json {
-                        println!("{}", upload_result.to_json()?);
-                    } else {
-                        upload_result.print();
-                    }
-                } else {
-                    let code_hash = hex::encode(code_hash);
-                    return Err(anyhow::anyhow!(
-                        "This contract has already been uploaded with code hash: 0x{code_hash}"
-                    )
-                    .into())
-                }
-                Ok(())
+        Ok(UploadExec {
+            opts: self.extrinsic_opts,
+            rpc,
+            client,
+            code,
+            transcoder,
         })
     }
+}
 
-    async fn upload_code_rpc(
-        &self,
-        code: WasmCode,
-        client: &Client,
-        signer: &Keypair,
-    ) -> Result<CodeUploadResult<CodeHash, Balance>> {
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
-        let token_metadata = TokenMetadata::query(client).await?;
-        let storage_deposit_limit = self
-            .extrinsic_opts
-            .storage_deposit_limit
-            .as_ref()
-            .map(|bv| bv.denominate_balance(&token_metadata))
-            .transpose()?;
+pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
+    opts: ExtrinsicOpts<C, E, Signer>,
+    rpc: LegacyRpcMethods<C>,
+    client: OnlineClient<C>,
+    code: WasmCode,
+    transcoder: ContractMessageTranscoder,
+}
+
+impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
+where
+    C::Hash: IntoVisitor,
+    C::AccountId: IntoVisitor,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Uploads contract code to a specified URL using a JSON-RPC call.
+    ///
+    /// This function performs a JSON-RPC call to upload contract code to the given URL.
+    /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
+    /// then sends the request using the provided URL. This operation does not modify
+    /// the state of the blockchain.
+    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CodeUploadRequest {
-            origin: account_id(signer),
-            code: code.0,
+            origin: self.opts.signer().account_id(),
+            code: self.code.0.clone(),
             storage_deposit_limit,
             determinism: Determinism::Enforced,
         };
-        state_call(&url, "ContractsApi_upload_code", call_request).await
+        state_call(&self.rpc, "ContractsApi_upload_code", call_request).await
     }
 
-    async fn upload_code(
-        &self,
-        client: &Client,
-        code: WasmCode,
-        signer: &Keypair,
-        chain: Chain,
-        is_verifiable: bool,
-    ) -> Result<Option<api::contracts::events::CodeStored>, ErrorVariant> {
-        if let Chain::Production(name) = chain {
-            if !is_verifiable {
-                prompt_confirm_unverifiable_upload(&name).map_err(|e| {
-                    ErrorVariant::Generic(GenericError::from_message(e.to_string()))
-                })?;
-            }
-        }
+    /// Uploads contract code to the blockchain with specified options.
+    ///
+    /// This function facilitates the process of uploading contract code to the
+    /// blockchain, utilizing the provided options.
+    /// The function handles the necessary interactions with the blockchain's runtime
+    /// API to ensure the successful upload of the code.
+    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
+        let storage_deposit_limit = self.opts.storage_deposit_limit();
 
-        let token_metadata = TokenMetadata::query(client).await?;
-        let storage_deposit_limit =
-            self.extrinsic_opts.storage_deposit_limit(&token_metadata)?;
-        let call = crate::runtime_api::api::tx().contracts().upload_code(
-            code.0,
+        let call = UploadCode::new(
+            self.code.clone(),
             storage_deposit_limit,
             Determinism::Enforced,
-        );
+        )
+        .build();
 
-        let result = submit_extrinsic(client, &call, signer).await?;
-        let display_events =
-            DisplayEvents::from_events(&result, None, &client.metadata())?;
+        let events =
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
-        let output = if self.output_json {
-            display_events.to_json()?
-        } else {
-            let token_metadata = TokenMetadata::query(client).await?;
-            display_events
-                .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
-        };
-        println!("{output}");
-        let code_stored = result.find_first::<api::contracts::events::CodeStored>()?;
-        Ok(code_stored)
+        let code_stored = events.find_first::<CodeStored<C::Hash>>()?;
+        Ok(UploadResult {
+            code_stored,
+            events,
+        })
+    }
+
+    /// Returns the extrinsic options.
+    pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
+        &self.opts
+    }
+
+    /// Returns the client.
+    pub fn client(&self) -> &OnlineClient<C> {
+        &self.client
+    }
+
+    /// Returns the code.
+    pub fn code(&self) -> &WasmCode {
+        &self.code
+    }
+
+    /// Returns the contract message transcoder.
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
     }
 }
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.
 #[derive(Encode)]
-pub struct CodeUploadRequest {
-    origin: <DefaultConfig as Config>::AccountId,
+struct CodeUploadRequest<AccountId, Balance> {
+    origin: AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
     determinism: Determinism,
 }
 
-#[derive(serde::Serialize)]
-pub struct UploadResult {
-    code_hash: String,
+/// A struct representing the result of an upload command execution.
+pub struct UploadResult<C: Config> {
+    pub code_stored: Option<CodeStored<C::Hash>>,
+    pub events: ExtrinsicEvents<C>,
 }
 
-#[derive(serde::Serialize)]
-pub struct UploadDryRunResult {
-    result: String,
-    code_hash: String,
-    deposit: Balance,
-}
-
-impl UploadResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
-    }
-}
-
-impl UploadDryRunResult {
-    pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string_pretty(self)?)
-    }
-
-    pub fn print(&self) {
-        name_value_println!("Result", self.result);
-        name_value_println!("Code hash", format!("{:?}", self.code_hash));
-        name_value_println!("Deposit", format!("{:?}", self.deposit));
-    }
+/// Copied from `pallet-contracts` to additionally implement `scale_encode::EncodeAsType`.
+#[allow(dead_code)]
+#[derive(Debug, Encode, EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub(crate) enum Determinism {
+    /// The execution should be deterministic and hence no indeterministic instructions
+    /// are allowed.
+    ///
+    /// Dispatchables always use this mode in order to make on-chain execution
+    /// deterministic.
+    Enforced,
+    /// Allow calling or uploading an indeterministic code.
+    ///
+    /// This is only possible when calling into `pallet-contracts` directly via
+    /// [`crate::Pallet::bare_call`].
+    ///
+    /// # Note
+    ///
+    /// **Never** use this mode for on-chain execution.
+    Relaxed,
 }

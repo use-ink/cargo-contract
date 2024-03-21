@@ -15,128 +15,175 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::DisplayEvents,
-    name_value_println,
-    parse_code_hash,
-    runtime_api::api::{
-        self,
-        contracts::events::CodeRemoved,
-    },
+    events::CodeRemoved,
     submit_extrinsic,
-    Client,
-    CodeHash,
     ContractMessageTranscoder,
-    DefaultConfig,
     ErrorVariant,
-    ExtrinsicOpts,
-    TokenMetadata,
 };
+use crate::{
+    extrinsic_calls::RemoveCode,
+    extrinsic_opts::ExtrinsicOpts,
+};
+
 use anyhow::Result;
-use std::fmt::Debug;
+use ink_env::Environment;
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
+    blocks::ExtrinsicEvents,
+    config,
+    ext::{
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
+    tx,
     Config,
     OnlineClient,
 };
-use subxt_signer::sr25519::Keypair;
-use tokio::runtime::Runtime;
 
-#[derive(Debug, clap::Args)]
-#[clap(name = "remove", about = "Remove a contract's code")]
-pub struct RemoveCommand {
-    /// The hash of the smart contract code already uploaded to the chain.
-    #[clap(long, value_parser = parse_code_hash)]
-    code_hash: Option<<DefaultConfig as Config>::Hash>,
-    #[clap(flatten)]
-    extrinsic_opts: ExtrinsicOpts,
-    /// Export the call output as JSON.
-    #[clap(long, conflicts_with = "verbose")]
-    output_json: bool,
+/// A builder for the remove command.
+pub struct RemoveCommandBuilder<C: Config, E: Environment, Signer: Clone> {
+    code_hash: Option<C::Hash>,
+    extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
 }
 
-impl RemoveCommand {
-    pub fn is_json(&self) -> bool {
-        self.output_json
+impl<C: Config, E: Environment, Signer> RemoveCommandBuilder<C, E, Signer>
+where
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Returns a clean builder for [`RemoveExec`].
+    pub fn new(
+        extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
+    ) -> RemoveCommandBuilder<C, E, Signer> {
+        RemoveCommandBuilder {
+            code_hash: None,
+            extrinsic_opts,
+        }
     }
 
-    pub fn run(&self) -> Result<(), ErrorVariant> {
+    /// Sets the hash of the smart contract code already uploaded to the chain.
+    pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
+        let mut this = self;
+        this.code_hash = code_hash;
+        this
+    }
+}
+
+impl<C: Config, E: Environment, Signer> RemoveCommandBuilder<C, E, Signer>
+where
+    C::Hash: From<[u8; 32]>,
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Preprocesses contract artifacts and options for subsequent removal of contract
+    /// code.
+    ///
+    /// This function prepares the necessary data for removing contract code based on the
+    /// provided contract artifacts and options. It ensures that the required code hash is
+    /// available and sets up the client, signer, and other relevant parameters for the
+    /// contract code removal operation.
+    ///
+    /// Returns the `RemoveExec` containing the preprocessed data for the contract code
+    /// removal, or an error in case of failure.
+    pub async fn done(self) -> Result<RemoveExec<C, E, Signer>> {
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
-        let signer = self.extrinsic_opts.signer()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
         let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
-            (Some(code_h), _) => {
-                Ok(code_h.0)
-            }
-            (None, Some(_)) => {
-                artifacts.code_hash()
-            }
-            (None, None) => {
-                Err(anyhow::anyhow!(
-                    "No code_hash was provided or contract code was not found from artifact \
-                     file {}. Please provide a code hash with --code-hash argument or specify the \
-                     path for artifacts files with --manifest-path",
-                    artifacts_path.display()
-                ))
-            }
+            (Some(code_h), _) => Ok(*code_h),
+            (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
+            (None, None) => Err(anyhow::anyhow!(
+                "No code_hash was provided or contract code was not found from artifact \
+                file {}. Please provide a code hash with --code-hash argument or specify the \
+                path for artifacts files with --manifest-path",
+                artifacts_path.display()
+            )),
         }?;
 
-        Runtime::new()?.block_on(async {
-            let (_, url) = self.extrinsic_opts.chain_and_endpoint();
-            let client = OnlineClient::from_url(url.clone()).await?;
-            if let Some(code_removed) = self
-                .remove_code(
-                    &client,
-                    sp_core::H256(final_code_hash),
-                    &signer,
-                    &transcoder,
-                )
-                .await?
-            {
-                let remove_result = code_removed.code_hash;
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let rpc_cli = RpcClient::from_url(&url).await?;
+        let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::<C>::new(rpc_cli);
 
-                if self.output_json {
-                    println!("{}", &remove_result);
-                } else {
-                    name_value_println!("Code hash", format!("{remove_result:?}"));
-                }
-                Result::<(), ErrorVariant>::Ok(())
-            } else {
-                let error_code_hash = hex::encode(final_code_hash);
-                Err(anyhow::anyhow!(
-                    "Error removing the code for the supplied code hash: {}",
-                    error_code_hash
-                )
-                .into())
-            }
+        Ok(RemoveExec {
+            final_code_hash,
+            opts: self.extrinsic_opts,
+            rpc,
+            client,
+            transcoder,
+        })
+    }
+}
+
+pub struct RemoveExec<C: Config, E: Environment, Signer: Clone> {
+    final_code_hash: C::Hash,
+    opts: ExtrinsicOpts<C, E, Signer>,
+    rpc: LegacyRpcMethods<C>,
+    client: OnlineClient<C>,
+    transcoder: ContractMessageTranscoder,
+}
+
+impl<C: Config, E: Environment, Signer> RemoveExec<C, E, Signer>
+where
+    C::Hash: IntoVisitor + EncodeAsType,
+    C::AccountId: IntoVisitor,
+    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    Signer: tx::Signer<C> + Clone,
+{
+    /// Removes a contract code from the blockchain.
+    ///
+    /// This function removes a contract code with the specified code hash from the
+    /// blockchain, ensuring that it's no longer available for instantiation or
+    /// execution. It interacts with the blockchain's runtime API to execute the
+    /// removal operation and provides the resulting events from the removal.
+    ///
+    /// Returns the `RemoveResult` containing the events generated from the contract
+    /// code removal, or an error in case of failure.
+    pub async fn remove_code(&self) -> Result<RemoveResult<C, E>, ErrorVariant>
+    where
+        E::Balance: IntoVisitor + Into<u128>,
+    {
+        let code_hash = self.final_code_hash;
+
+        let call = RemoveCode::new(code_hash).build();
+
+        let events =
+            submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
+
+        let code_removed =
+            events.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
+        Ok(RemoveResult {
+            code_removed,
+            events,
         })
     }
 
-    async fn remove_code(
-        &self,
-        client: &Client,
-        code_hash: CodeHash,
-        signer: &Keypair,
-        transcoder: &ContractMessageTranscoder,
-    ) -> Result<Option<CodeRemoved>, ErrorVariant> {
-        let call = api::tx()
-            .contracts()
-            .remove_code(sp_core::H256(code_hash.0));
-
-        let result = submit_extrinsic(client, &call, signer).await?;
-        let display_events =
-            DisplayEvents::from_events(&result, Some(transcoder), &client.metadata())?;
-
-        let output = if self.output_json {
-            display_events.to_json()?
-        } else {
-            let token_metadata = TokenMetadata::query(client).await?;
-            display_events
-                .display_events(self.extrinsic_opts.verbosity()?, &token_metadata)?
-        };
-        println!("{output}");
-        let code_removed = result.find_first::<CodeRemoved>()?;
-        Ok(code_removed)
+    /// Returns the final code hash.
+    pub fn final_code_hash(&self) -> C::Hash {
+        self.final_code_hash
     }
+
+    /// Returns the extrinsic options.
+    pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
+        &self.opts
+    }
+
+    /// Returns the client.
+    pub fn client(&self) -> &OnlineClient<C> {
+        &self.client
+    }
+
+    /// Returns the contract message transcoder.
+    pub fn transcoder(&self) -> &ContractMessageTranscoder {
+        &self.transcoder
+    }
+}
+
+/// A struct representing the result of an remove command execution.
+pub struct RemoveResult<C: Config, E: Environment> {
+    pub code_removed: Option<CodeRemoved<C::Hash, C::AccountId, E::Balance>>,
+    pub events: ExtrinsicEvents<C>,
 }

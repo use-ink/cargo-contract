@@ -42,10 +42,15 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
 -   Step 2: `cargo install --force --locked cargo-contract`.
 
--   Step 3: (**Optional**) Install `dylint` for linting.
+-   Step 3: Install dependencies for linting.
 
     -   (MacOS) `brew install openssl`
-    -   `cargo install cargo-dylint dylint-link`.
+    -   ```
+        export TOOLCHAIN_VERSION=nightly-2023-12-28
+        rustup install $TOOLCHAIN_VERSION
+        rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
+        rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
+        ```
 
 -   Step 4: (**Optional**) Install [Docker Engine](https://docs.docker.com/engine/install)
     to be able to produce verifiable builds.
@@ -79,9 +84,6 @@ docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux \
   cargo contract new --target-dir /sources my_contract
 ```
 
-If you want to reproduce other steps of CI process you can use the following
-[guide](https://github.com/paritytech/scripts#reproduce-ci-locally).
-
 ### Verifiable builds
 
 Some block explorers require the Wasm binary to be compiled in the deterministic environment.
@@ -91,7 +93,7 @@ To achieve it, you should build your contract using Docker image we provide:
 cargo contract build --verifiable
 ```
 
-You can find more detailed documentation how to use the image [here](/build-image/README.md)
+You can find more detailed documentation how to use the image [here](/build-image/README.md).
 
 ## Usage
 
@@ -103,7 +105,7 @@ e.g. `cargo contract new --help`.
 
 ##### `cargo contract new my_contract`
 
-Creates an initial smart contract with some scaffolding code into a new
+Create an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
 The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink-examples/blob/main/flipper/lib.rs)
@@ -112,13 +114,13 @@ from `true` to `false` through the `flip()` function.
 
 ##### `cargo contract build`
 
-Compiles the contract into optimized WebAssembly bytecode, generates metadata for it,
-and bundles both together in a `<name>.contract` file, which you can use for
+Compile the contract into optimized WebAssembly bytecode, generate metadata for it,
+and bundle both together in a `<name>.contract` file, which you can use for
 deploying the contract on-chain.
 
 ##### `cargo contract check`
 
-Checks that the code builds as WebAssembly. This command does not output any `<name>.contract`
+Check that the code builds as WebAssembly. This command does not output any `<name>.contract`
 artifact to the `target/` directory.
 
 ##### `cargo contract upload`
@@ -133,9 +135,13 @@ Create an instance of a contract on chain. See [extrinsics](crates/extrinsics/RE
 
 Invoke a message on an existing contract on chain. See [extrinsics](crates/extrinsics/README.md).
 
+##### `cargo contract encode`
+
+Encodes a contract's input calls and their arguments
+
 ##### `cargo contract decode`
 
-Decodes a contracts input or output data.
+Decode a contract's input or output data.
 
 This can be either an event, an invocation of a contract message, or an invocation of a contract constructor.
 
@@ -149,14 +155,36 @@ Remove a contract from a `pallet-contracts` enabled chain. See [extrinsics](crat
 
 Fetch and display contract information of a contract on chain. See [info](docs/info.md).
 
+##### `cargo contract verify`
+
+Verify that a given contract binary matches the build result of the specified workspace
+
+##### `cargo contract schema-generate`
+
+Generate schema and print it to STDOUT.
+
+##### `cargo contract verify-schema`
+
+Verify a metadata file or a contract bundle containing metadata against the schema file.
+
+##### `cargo contract storage`
+
+Fetch and display the storage of a contract on chain.
+
+##### `cargo contract rpc`
+
+Invoke an RPC call to the node. See [rpc](docs/rpc.md).
+
+
 ## Publishing
 
 In order to publish a new version of `cargo-contract`:
 
 -   Bump all crate versions, we move them in lockstep.
+-   Execute `cargo update` to update `Cargo.lock`.
 -   Make sure your PR is approved by one or more core developers.
--   Publish `metadata` ➜ `transcode` ➜ `build` ➜ `extrinsics` ➜ `cargo-contract`.
--   Merge you PR and push a tag `vX.X` with your version number.
+-   Publish `metadata` ➜ `analyze` ➜ `transcode` ➜ `build` ➜ `extrinsics` ➜ `cargo-contract`.
+-   Merge you PR and push a tag `vX.X` with your version number: `git tag -s vX.X.X && git push origin vX.X.X`.
 -   Create a GitHub release with the changelog entries.
 
 ## License

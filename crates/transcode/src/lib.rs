@@ -124,6 +124,7 @@ use anyhow::{
     Context,
     Result,
 };
+pub use ink_metadata;
 use ink_metadata::{
     ConstructorSpec,
     InkProject,
@@ -235,7 +236,7 @@ impl ContractMessageTranscoder {
 
                 return Err(anyhow::anyhow!(
                     "No constructor or message with the name '{name}' found.\n{help_txt}",
-                ))
+                ));
             }
         };
 
@@ -266,6 +267,10 @@ impl ContractMessageTranscoder {
             .decode(self.metadata.registry(), type_id, input)
     }
 
+    pub fn metadata(&self) -> &InkProject {
+        &self.metadata
+    }
+
     fn constructors(&self) -> impl Iterator<Item = &ConstructorSpec<PortableForm>> {
         self.metadata.spec().constructors().iter()
     }
@@ -286,21 +291,34 @@ impl ContractMessageTranscoder {
             .find(|msg| msg.label() == &name.to_string())
     }
 
-    pub fn decode_contract_event(&self, data: &mut &[u8]) -> Result<Value> {
+    pub fn decode_contract_event<Hash>(
+        &self,
+        event_sig_topic: &Hash,
+        data: &mut &[u8],
+    ) -> Result<Value>
+    where
+        Hash: AsRef<[u8]>,
+    {
         // data is an encoded `Vec<u8>` so is prepended with its length `Compact<u32>`,
         // which we ignore because the structure of the event data is known for
         // decoding.
         let _len = <Compact<u32>>::decode(data)?;
-        let variant_index = data.read_byte()?;
         let event_spec = self
             .metadata
             .spec()
             .events()
-            .get(variant_index as usize)
+            .iter()
+            .find(|event| {
+                if let Some(sig_topic) = event.signature_topic() {
+                    sig_topic.as_bytes() == event_sig_topic.as_ref()
+                } else {
+                    false
+                }
+            })
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Event variant {} not found in contract metadata",
-                    variant_index
+                    "Event with signature topic {} not found in contract metadata",
+                    hex::encode(event_sig_topic)
                 )
             })?;
         tracing::debug!("Decoding contract event '{}'", event_spec.label());
@@ -386,22 +404,16 @@ impl ContractMessageTranscoder {
         let ctor_spec = self.find_constructor_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find constructor spec with name '{}'", name)
         })?;
-        if let Some(return_ty) = ctor_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id, data)
-        } else {
-            Ok(Value::Unit)
-        }
+        let return_ty = ctor_spec.return_type().ret_type();
+        self.decode(return_ty.ty().id, data)
     }
 
     pub fn decode_message_return(&self, name: &str, data: &mut &[u8]) -> Result<Value> {
         let msg_spec = self.find_message_spec(name).ok_or_else(|| {
             anyhow::anyhow!("Failed to find message spec with name '{}'", name)
         })?;
-        if let Some(return_ty) = msg_spec.return_type().opt_type() {
-            self.decode(return_ty.ty().id, data)
-        } else {
-            Ok(Value::Unit)
-        }
+        let return_ty = msg_spec.return_type().ret_type();
+        self.decode(return_ty.ty().id, data)
     }
 
     /// Checks if buffer empty, otherwise returns am error
@@ -490,6 +502,11 @@ impl CompositeTypeFields {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ink_env::{
+        DefaultEnvironment,
+        Environment,
+    };
+    use primitive_types::H256;
     use scale::Encode;
     use scon::Value;
     use std::str::FromStr;
@@ -767,11 +784,16 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
-        // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 8], [1u32; 8]).encode();
+        let signature_topic: <DefaultEnvironment as Environment>::Hash =
+            <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC
+                .unwrap()
+                .into();
+        // raw encoded event
+        let encoded = ([0u32; 8], [1u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
-        let _ = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+        let _ = transcoder
+            .decode_contract_event(&signature_topic, &mut &encoded_bytes[..])?;
 
         Ok(())
     }
@@ -785,11 +807,16 @@ mod tests {
             52u8, 40, 235, 225, 70, 245, 184, 36, 21, 218, 130, 114, 75, 207, 117, 240,
             83, 118, 135, 56, 220, 172, 95, 131, 171, 125, 130, 167, 10, 15, 242, 222,
         ];
+        let signature_topic: <DefaultEnvironment as Environment>::Hash =
+            <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC
+                .unwrap()
+                .into();
         // raw encoded event with event index prefix
-        let encoded = (0u8, hash, [0u32; 8]).encode();
+        let encoded = (hash, [0u32; 8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
-        let decoded = transcoder.decode_contract_event(&mut &encoded_bytes[..])?;
+        let decoded = transcoder
+            .decode_contract_event(&signature_topic, &mut &encoded_bytes[..])?;
 
         if let Value::Map(ref map) = decoded {
             let name_field = &map[&Value::String("name".into())];
@@ -842,12 +869,16 @@ mod tests {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
 
+        let signature_topic: H256 =
+            <transcode::Event1 as ink::env::Event>::SIGNATURE_TOPIC
+                .unwrap()
+                .into();
         // raw encoded event with event index prefix
-        let encoded = (0u8, [0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
+        let encoded = ([0u32; 8], [1u32; 8], [12u8, 16u8]).encode();
         // encode again as a Vec<u8> which has a len prefix.
         let encoded_bytes = encoded.encode();
         let _ = transcoder
-            .decode_contract_event(&mut &encoded_bytes[..])
+            .decode_contract_event(&signature_topic, &mut &encoded_bytes[..])
             .unwrap();
     }
 }

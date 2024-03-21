@@ -79,7 +79,7 @@ mod {{name}} {
         use super::*;
 
         /// A helper function used for calling contract messages.
-        use ink_e2e::build_message;
+        use ink_e2e::ContractsBackend;
 
         /// The End-to-End test `Result` type.
         type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -88,19 +88,19 @@ mod {{name}} {
         #[ink_e2e::test]
         async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
             // Given
-            let constructor = {{camel_name}}Ref::default();
+            let mut constructor = {{camel_name}}Ref::default();
 
             // When
-            let contract_account_id = client
-                .instantiate("{{name}}", &ink_e2e::alice(), constructor, 0, None)
+            let contract = client
+                .instantiate("{{name}}", &ink_e2e::alice(), &mut constructor)
+                .submit()
                 .await
-                .expect("instantiate failed")
-                .account_id;
+                .expect("instantiate failed");
+            let call_builder = contract.call_builder::<{{camel_name}}>();
 
             // Then
-            let get = build_message::<{{camel_name}}Ref>(contract_account_id.clone())
-                .call(|{{name}}| {{name}}.get());
-            let get_result = client.call_dry_run(&ink_e2e::alice(), &get, 0, None).await;
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::alice(), &get).dry_run().await?;
             assert!(matches!(get_result.return_value(), false));
 
             Ok(())
@@ -110,30 +110,29 @@ mod {{name}} {
         #[ink_e2e::test]
         async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
             // Given
-            let constructor = {{camel_name}}Ref::new(false);
-            let contract_account_id = client
-                .instantiate("{{name}}", &ink_e2e::bob(), constructor, 0, None)
+            let mut constructor = {{camel_name}}Ref::new(false);
+            let contract = client
+                .instantiate("{{name}}", &ink_e2e::bob(), &mut constructor)
+                .submit()
                 .await
-                .expect("instantiate failed")
-                .account_id;
+                .expect("instantiate failed");
+            let mut call_builder = contract.call_builder::<{{camel_name}}>();
 
-            let get = build_message::<{{camel_name}}Ref>(contract_account_id.clone())
-                .call(|{{name}}| {{name}}.get());
-            let get_result = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
             assert!(matches!(get_result.return_value(), false));
 
             // When
-            let flip = build_message::<{{camel_name}}Ref>(contract_account_id.clone())
-                .call(|{{name}}| {{name}}.flip());
+            let flip = call_builder.flip();
             let _flip_result = client
-                .call(&ink_e2e::bob(), flip, 0, None)
+                .call(&ink_e2e::bob(), &flip)
+                .submit()
                 .await
                 .expect("flip failed");
 
             // Then
-            let get = build_message::<{{camel_name}}Ref>(contract_account_id.clone())
-                .call(|{{name}}| {{name}}.get());
-            let get_result = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            let get = call_builder.get();
+            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
             assert!(matches!(get_result.return_value(), true));
 
             Ok(())

@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "4.0.0-alpha"
+version = "4.0.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -11,15 +11,15 @@ documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE"]
+include = ["Cargo.toml", "*.rs", "LICENSE", "compatibility_list.json"]
 
 [dependencies]
 impl-serde = "0.4.0"
-semver = { version = "1.0.18", features = ["serde"] }
+semver = { version = "1.0.22", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.105"
-url = { version = "2.4.0", features = ["serde"] }
-anyhow = "1.0.75"
+serde_json = "1.0.114"
+url = { version = "2.5.0", features = ["serde"] }
+anyhow = "1.0.81"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

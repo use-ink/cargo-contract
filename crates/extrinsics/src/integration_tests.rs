@@ -14,7 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+    CallCommandBuilder,
+    CallExec,
+    DisplayEvents,
+    ExtrinsicOptsBuilder,
+    InstantiateCommandBuilder,
+    InstantiateExecResult,
+    RemoveCommandBuilder,
+    RemoveExec,
+    UploadCommandBuilder,
+    UploadExec,
+};
 use anyhow::Result;
+use contract_build::code_hash;
+use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
@@ -27,6 +41,10 @@ use std::{
 use subxt::{
     OnlineClient,
     PolkadotConfig as DefaultConfig,
+};
+use subxt_signer::{
+    sr25519::Keypair,
+    SecretUri,
 };
 
 const CONTRACTS_NODE: &str = "substrate-contracts-node";
@@ -351,7 +369,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .output()
@@ -359,7 +377,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
 
-    cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_path.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -369,6 +387,405 @@ async fn build_upload_instantiate_info() {
     assert!(
         output.status.success(),
         "getting info as JSON format failed: {stderr}"
+    );
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--binary")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting Wasm code failed: {stderr}"
+    );
+
+    // construct the contract file path
+    let contract_wasm = project_path.join("target/ink/flipper.wasm");
+
+    let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
+    assert_eq!(code_hash(&code), code_hash(&output.stdout));
+
+    cargo_contract(project_path.as_path())
+        .arg("info")
+        .args(["--contract", contract_account])
+        .arg("--output-json")
+        .arg("--binary")
+        .assert()
+        .stdout(predicate::str::contains(r#""wasm": "0x"#));
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("info")
+        .arg("--all")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting all contracts failed: {stderr}"
+    );
+
+    assert_eq!(stdout.trim_end(), contract_account, "{stdout:?}");
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// This test uses contract extrinsics API to test the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> call
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn api_build_upload_instantiate_call() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    // construct the contract file path
+    let contract_file = project_path.join("target/ink/flipper.contract");
+
+    // upload the contract
+    let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
+    let signer = Keypair::from_uri(&uri).unwrap();
+    let opts = ExtrinsicOptsBuilder::new(signer)
+        .file(Some(contract_file))
+        .done();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        UploadCommandBuilder::new(opts.clone())
+            .done()
+            .await
+            .unwrap();
+    let upload_result = upload.upload_code().await;
+    assert!(upload_result.is_ok(), "upload code failed");
+    upload_result.unwrap();
+
+    // instantiate the contract
+    let instantiate = InstantiateCommandBuilder::new(opts.clone())
+        .constructor("new")
+        .args(["true"].to_vec())
+        .done()
+        .await
+        .unwrap();
+    let instantiate_result = instantiate.instantiate(None).await;
+    assert!(instantiate_result.is_ok(), "instantiate code failed");
+    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+        instantiate_result.unwrap();
+    let contract_account = instantiate_result.contract_address.to_string();
+    assert_eq!(48, contract_account.len(), "{contract_account:?}");
+
+    // call the contract
+    // the value should be true
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "get",
+            opts.clone(),
+        )
+        .done()
+        .await
+        .unwrap();
+    let result = call.call_dry_run().await;
+    assert!(result.is_ok(), "call failed");
+    let result = result.unwrap();
+    let ret_val = result.result.unwrap();
+    let value = call
+        .transcoder()
+        .decode_message_return(call.message(), &mut &ret_val.data[..])
+        .unwrap()
+        .to_string();
+    assert!(value.contains("true"), "{:#?}", value);
+
+    // call the contract on the immutable "get" message trying to execute
+    // this should fail because "get" is immutable
+    match call.call(None).await {
+        Err(crate::ErrorVariant::Generic(_)) => {}
+        _ => panic!("immutable call was not prevented"),
+    }
+
+    // call the contract
+    // flip the value
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "flip",
+            opts.clone(),
+        )
+        .done()
+        .await
+        .unwrap();
+    let call_result = call.call(None).await;
+    assert!(call_result.is_ok(), "call failed");
+    let call_result = call_result.unwrap();
+    let output = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
+        &call_result,
+        None,
+        &call.client().metadata(),
+    )
+    .unwrap()
+    .to_json()
+    .unwrap();
+    assert!(output.contains("ExtrinsicSuccess"), "{:#?}", output);
+
+    // call the contract
+    // make sure the value has been flipped
+    let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        CallCommandBuilder::new(
+            instantiate_result.contract_address.clone(),
+            "get",
+            opts.clone(),
+        )
+        .done()
+        .await
+        .unwrap();
+    let result = call.call_dry_run().await;
+    assert!(result.is_ok(), "call failed");
+    let result = result.unwrap();
+    let ret_val = result.result.unwrap();
+    let value = call
+        .transcoder()
+        .decode_message_return(call.message(), &mut &ret_val.data[..])
+        .unwrap()
+        .to_string();
+    assert!(value.contains("false"), "{:#?}", value);
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// Sanity test the whole lifecycle of:
+/// build -> upload -> remove
+#[tokio::test]
+async fn api_build_upload_remove() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("incrementer")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("incrementer");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    // construct the contract file path
+    let contract_file = project_path.join("target/ink/incrementer.contract");
+
+    // upload the contract
+    let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
+    let signer = Keypair::from_uri(&uri).unwrap();
+    let opts = ExtrinsicOptsBuilder::new(signer)
+        .file(Some(contract_file))
+        .done();
+    let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        UploadCommandBuilder::new(opts.clone())
+            .done()
+            .await
+            .unwrap();
+    let upload_result = upload.upload_code().await;
+    assert!(upload_result.is_ok(), "upload code failed");
+    let upload_result = upload_result.unwrap();
+    let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
+    let code_hash = hex::encode(code_hash_h256);
+    assert_eq!(64, code_hash.len(), "{code_hash:?}");
+
+    // remove the contract
+    let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
+        RemoveCommandBuilder::new(opts.clone())
+            .code_hash(Some(code_hash_h256))
+            .done()
+            .await
+            .unwrap();
+    let remove_result = remove.remove_code().await;
+    assert!(remove_result.is_ok(), "remove code failed");
+    remove_result.unwrap();
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// Sanity test the RPC API
+#[tokio::test]
+async fn api_rpc_call() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("rpc")
+        .arg("author_insertKey")
+        .arg("\"sr25\"")
+        .arg("\"//ALICE\"")
+        .arg("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+        .assert()
+        .success();
+
+    let output = cargo_contract(tmp_dir.path())
+        .arg("rpc")
+        .arg("author_hasKey")
+        .arg("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+        .arg("\"sr25\"")
+        .arg("--output-json")
+        .output()
+        .expect("failed to execute process");
+
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "rpc method execution failed: {stderr}"
+    );
+
+    assert_eq!(stdout.trim_end(), "true", "{stdout:?}");
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+/// Sanity test the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> storage
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn build_upload_instantiate_storage() {
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+
+    cargo_contract(project_path.as_path())
+        .arg("build")
+        .assert()
+        .success();
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("instantiate")
+        .args(["--constructor", "new"])
+        .args(["--args", "true"])
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {stderr}");
+
+    let contract_account = extract_contract_address(stdout);
+    assert_eq!(48, contract_account.len(), "{stdout:?}");
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .arg("--raw")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as raw format failed: {stderr}"
+    );
+
+    let contract_manifest = project_path.join("Cargo.toml");
+    let contract_manifest = contract_manifest.to_str().unwrap();
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .args(["--manifest-path", contract_manifest])
+        .arg("--output-json")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as JSON format failed: {stderr}"
+    );
+
+    let output = cargo_contract(project_path.as_path())
+        .arg("storage")
+        .args(["--contract", contract_account])
+        .args(["--manifest-path", contract_manifest])
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(
+        output.status.success(),
+        "getting storage as table failed: {stderr}"
     );
 
     // prevent the node_process from being dropped and killed

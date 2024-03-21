@@ -14,28 +14,50 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::DefaultConfig;
-use anyhow::{
-    anyhow,
-    Result,
+use super::{
+    basic_display_format_extended_contract_info,
+    display_all_contracts,
+    DefaultConfig,
 };
+use anyhow::Result;
+use contract_analyze::determine_language;
 use contract_extrinsics::{
+    fetch_all_contracts,
     fetch_contract_info,
+    fetch_wasm_code,
+    url_to_string,
+    ContractInfo,
     ErrorVariant,
+    TrieId,
 };
-use std::fmt::Debug;
+use ink_env::{
+    DefaultEnvironment,
+    Environment,
+};
+use std::{
+    fmt::Debug,
+    io::Write,
+};
 use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
     Config,
     OnlineClient,
 };
-use tokio::runtime::Runtime;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
 pub struct InfoCommand {
     /// The address of the contract to display info of.
-    #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    #[clap(
+        name = "contract",
+        long,
+        env = "CONTRACT",
+        required_unless_present = "all"
+    )]
+    contract: Option<<DefaultConfig as Config>::AccountId>,
     /// Websockets url of a substrate node.
     #[clap(
         name = "url",
@@ -47,38 +69,111 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
+    /// Display the contract's Wasm bytecode.
+    #[clap(name = "binary", long, conflicts_with = "all")]
+    binary: bool,
+    /// Display all contracts addresses
+    #[clap(name = "all", long)]
+    all: bool,
 }
 
 impl InfoCommand {
-    pub fn run(&self) -> Result<(), ErrorVariant> {
-        tracing::debug!(
-            "Getting contract information for AccountId {:?}",
-            self.contract
-        );
+    pub async fn run(&self) -> Result<(), ErrorVariant> {
+        let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
+        let client =
+            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc_cli.clone());
 
-        Runtime::new()?.block_on(async {
-            let url = self.url.clone();
-            let client = OnlineClient::<DefaultConfig>::from_url(url).await?;
+        // All flag applied
+        if self.all {
+            let contracts = fetch_all_contracts(&client, &rpc).await?;
 
-            let info_result = fetch_contract_info(&self.contract, &client).await?;
-
-            match info_result {
-                Some(info_to_json) => {
-                    if self.output_json {
-                        println!("{}", info_to_json.to_json()?);
-                    } else {
-                        info_to_json.basic_display_format_contract_info();
-                    }
-                    Ok(())
-                }
-                None => {
-                    Err(anyhow!(
-                        "No contract information was found for account id {}",
-                        self.contract
-                    )
-                    .into())
-                }
+            if self.output_json {
+                let contracts_json = serde_json::json!({
+                    "contracts": contracts
+                });
+                println!("{}", serde_json::to_string_pretty(&contracts_json)?);
+            } else {
+                display_all_contracts(&contracts)
             }
-        })
+            Ok(())
+        } else {
+            // Contract arg shall be always present in this case, it is enforced by
+            // clap configuration
+            let contract = self
+                .contract
+                .as_ref()
+                .expect("Contract argument was not provided");
+
+            let info_to_json = fetch_contract_info::<DefaultConfig, DefaultEnvironment>(
+                contract, &rpc, &client,
+            )
+            .await?;
+
+            let wasm_code =
+                fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
+            // Binary flag applied
+            if self.binary {
+                if self.output_json {
+                    let wasm = serde_json::json!({
+                        "wasm": format!("0x{}", hex::encode(wasm_code))
+                    });
+                    println!("{}", serde_json::to_string_pretty(&wasm)?);
+                } else {
+                    std::io::stdout()
+                        .write_all(&wasm_code)
+                        .expect("Writing to stdout failed")
+                }
+            } else if self.output_json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&ExtendedContractInfo::<
+                        <DefaultConfig as Config>::Hash,
+                        <DefaultEnvironment as Environment>::Balance,
+                    >::new(
+                        info_to_json, &wasm_code
+                    ))?
+                )
+            } else {
+                basic_display_format_extended_contract_info(&ExtendedContractInfo::<
+                    <DefaultConfig as Config>::Hash,
+                    <DefaultEnvironment as Environment>::Balance,
+                >::new(
+                    info_to_json, &wasm_code
+                ))
+            }
+            Ok(())
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ExtendedContractInfo<Hash, Balance> {
+    pub trie_id: TrieId,
+    pub code_hash: Hash,
+    pub storage_items: u32,
+    pub storage_items_deposit: Balance,
+    pub storage_total_deposit: Balance,
+    pub source_language: String,
+}
+
+impl<Hash, Balance> ExtendedContractInfo<Hash, Balance>
+where
+    Hash: serde::Serialize + Copy,
+    Balance: serde::Serialize + Copy,
+{
+    pub fn new(contract_info: ContractInfo<Hash, Balance>, code: &[u8]) -> Self {
+        let language = match determine_language(code).ok() {
+            Some(lang) => lang.to_string(),
+            None => "Unknown".to_string(),
+        };
+        ExtendedContractInfo {
+            trie_id: contract_info.trie_id().clone(),
+            code_hash: *contract_info.code_hash(),
+            storage_items: contract_info.storage_items(),
+            storage_items_deposit: contract_info.storage_items_deposit(),
+            storage_total_deposit: contract_info.storage_total_deposit(),
+            source_language: language,
+        }
     }
 }

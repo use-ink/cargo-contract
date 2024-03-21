@@ -24,22 +24,16 @@ use self::cmd::{
     CheckCommand,
     DecodeCommand,
     ErrorVariant,
+    GenerateSchemaCommand,
     InfoCommand,
     InstantiateCommand,
     RemoveCommand,
+    RpcCommand,
+    StorageCommand,
     UploadCommand,
+    VerifyCommand,
+    VerifySchemaCommand,
 };
-use cmd::encode::EncodeCommand;
-use contract_build::{
-    util::DEFAULT_KEY_COL_WIDTH,
-    OutputType,
-};
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-    str::FromStr,
-};
-
 use anyhow::{
     anyhow,
     Error,
@@ -50,8 +44,20 @@ use clap::{
     Parser,
     Subcommand,
 };
+use cmd::encode::EncodeCommand;
 use colored::Colorize;
-
+use contract_build::{
+    util::DEFAULT_KEY_COL_WIDTH,
+    OutputType,
+};
+use contract_extrinsics::InstantiateExec;
+use sp_weights::Weight;
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+    str::FromStr,
+};
+use tokio::runtime::Runtime;
 // These crates are only used when we run integration tests `--features
 // integration-tests`. However since we can't have optional `dev-dependencies` we pretend
 // to use them during normal test runs in order to satisfy the `unused_crate_dependencies`
@@ -136,6 +142,22 @@ enum Command {
     /// Display information about a contract
     #[clap(name = "info")]
     Info(InfoCommand),
+    /// Inspect the on-chain storage of a contract.
+    #[clap(name = "storage")]
+    Storage(StorageCommand),
+    /// Verifies that a given contract binary matches the build result of the specified
+    /// workspace.
+    #[clap(name = "verify")]
+    Verify(VerifyCommand),
+    /// Generates schema from the current metadata specification.
+    #[clap(name = "generate-schema")]
+    GenerateSchema(GenerateSchemaCommand),
+    /// Verify schema from the current metadata specification.
+    #[clap(name = "verify-schema")]
+    VerifySchema(VerifySchemaCommand),
+    /// Make a raw RPC call.
+    #[clap(name = "rpc")]
+    Rpc(RpcCommand),
 }
 
 fn main() {
@@ -153,6 +175,7 @@ fn main() {
 }
 
 fn exec(cmd: Command) -> Result<()> {
+    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
         Command::New { name, target_dir } => {
             contract_build::new_contract_project(name, target_dir.as_ref())?;
@@ -178,27 +201,72 @@ fn exec(cmd: Command) -> Result<()> {
             Ok(())
         }
         Command::Upload(upload) => {
-            upload
-                .run()
-                .map_err(|err| map_extrinsic_err(err, upload.is_json()))
+            runtime.block_on(async {
+                upload
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, upload.output_json()))
+            })
         }
         Command::Instantiate(instantiate) => {
-            instantiate
-                .run()
-                .map_err(|err| map_extrinsic_err(err, instantiate.is_json()))
+            runtime.block_on(async {
+                instantiate
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, instantiate.output_json()))
+            })
         }
         Command::Call(call) => {
-            call.run()
-                .map_err(|err| map_extrinsic_err(err, call.is_json()))
+            runtime.block_on(async {
+                call.handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, call.output_json()))
+            })
         }
         Command::Encode(encode) => encode.run().map_err(format_err),
         Command::Decode(decode) => decode.run().map_err(format_err),
         Command::Remove(remove) => {
-            remove
-                .run()
-                .map_err(|err| map_extrinsic_err(err, remove.is_json()))
+            runtime.block_on(async {
+                remove
+                    .handle()
+                    .await
+                    .map_err(|err| map_extrinsic_err(err, remove.output_json()))
+            })
         }
-        Command::Info(info) => info.run().map_err(format_err),
+        Command::Info(info) => {
+            runtime.block_on(async { info.run().await.map_err(format_err) })
+        }
+        Command::Storage(storage) => {
+            runtime.block_on(async { storage.run().await.map_err(format_err) })
+        }
+        Command::Verify(verify) => {
+            let result = verify.run().map_err(format_err)?;
+
+            if result.output_json {
+                println!("{}", result.serialize_json()?)
+            } else if result.verbosity.is_verbose() {
+                println!("{}", result.display())
+            }
+            Ok(())
+        }
+        Command::GenerateSchema(generate) => {
+            let result = generate.run().map_err(format_err)?;
+            println!("{}", result);
+            Ok(())
+        }
+        Command::VerifySchema(verify) => {
+            let result = verify.run().map_err(format_err)?;
+
+            if result.output_json {
+                println!("{}", result.serialize_json()?)
+            } else if result.verbosity.is_verbose() {
+                println!("{}", result.display())
+            }
+            Ok(())
+        }
+        Command::Rpc(rpc) => {
+            runtime.block_on(async { rpc.run().await.map_err(format_err) })
+        }
     }
 }
 

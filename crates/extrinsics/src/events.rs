@@ -15,9 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    runtime_api::api::contracts::events::ContractEmitted,
     BalanceVariant,
-    DefaultConfig,
     TokenMetadata,
 };
 use crate::DEFAULT_KEY_COL_WIDTH;
@@ -31,16 +29,125 @@ use contract_transcode::{
 };
 
 use anyhow::Result;
+use ink_env::Environment;
 use scale_info::form::PortableForm;
 use std::{
-    fmt::Write,
+    fmt::{
+        Display,
+        Write,
+    },
     str::FromStr,
 };
 use subxt::{
     self,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
+    ext::{
+        scale_decode::{
+            self,
+            IntoVisitor,
+        },
+        scale_encode,
+    },
+    Config,
 };
+
+/// A custom event emitted by the contract.
+#[derive(
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+    Debug,
+)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct ContractEmitted<AccountId> {
+    pub contract: AccountId,
+    pub data: Vec<u8>,
+}
+
+impl<AccountId> StaticEvent for ContractEmitted<AccountId>
+where
+    AccountId: IntoVisitor,
+{
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "ContractEmitted";
+}
+
+/// A contract was successfully instantiated.
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct ContractInstantiated<AccountId> {
+    /// Account id of the deployer.
+    pub deployer: AccountId,
+    /// Account id where the contract was instantiated to.
+    pub contract: AccountId,
+}
+
+impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
+where
+    AccountId: IntoVisitor,
+{
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "Instantiated";
+}
+
+/// An event triggered by either the `instantiate_with_code` or the `upload_code` call.
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct CodeStored<Hash> {
+    /// Hash under which the contract code was stored.
+    pub code_hash: Hash,
+}
+
+impl<Hash> StaticEvent for CodeStored<Hash>
+where
+    Hash: IntoVisitor,
+{
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "CodeStored";
+}
+
+/// An event triggered by the `remove_code` call.
+#[derive(
+    Debug,
+    scale::Decode,
+    scale::Encode,
+    scale_decode::DecodeAsType,
+    scale_encode::EncodeAsType,
+)]
+#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub struct CodeRemoved<Hash, AccountId, Balance> {
+    pub code_hash: Hash,
+    pub deposit_released: Balance,
+    pub remover: AccountId,
+}
+
+impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, AccountId, Balance>
+where
+    Hash: IntoVisitor,
+    Balance: IntoVisitor,
+    AccountId: IntoVisitor,
+{
+    const PALLET: &'static str = "Contracts";
+    const EVENT: &'static str = "CodeRemoved";
+}
 
 /// Field that represent data of an event from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
@@ -64,7 +171,7 @@ impl Field {
     }
 }
 
-/// An event produced from from invoking a contract extrinsic.
+/// An event produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct Event {
     /// name of a pallet
@@ -75,17 +182,24 @@ pub struct Event {
     pub fields: Vec<Field>,
 }
 
+/// Events produced from invoking a contract extrinsic.
+#[derive(serde::Serialize)]
+pub struct Events(Vec<Event>);
+
 /// Displays events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct DisplayEvents(Vec<Event>);
 
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
-    pub fn from_events(
-        result: &ExtrinsicEvents<DefaultConfig>,
+    pub fn from_events<C: Config, E: Environment>(
+        result: &ExtrinsicEvents<C>,
         transcoder: Option<&ContractMessageTranscoder>,
         subxt_metadata: &subxt::Metadata,
-    ) -> Result<DisplayEvents> {
+    ) -> Result<DisplayEvents>
+    where
+        C::AccountId: IntoVisitor,
+    {
         let mut events: Vec<Event> = vec![];
 
         let events_transcoder = TranscoderBuilder::new(subxt_metadata.types())
@@ -110,17 +224,19 @@ impl DisplayEvents {
             };
 
             let event_data = &mut event.field_bytes();
+            let event_sig_topic = event.topics().iter().next();
             let mut unnamed_field_name = 0;
             for field_metadata in event_fields {
-                if <ContractEmitted as StaticEvent>::is_event(
+                if <ContractEmitted<C::AccountId> as StaticEvent>::is_event(
                     event.pallet_name(),
                     event.variant_name(),
                 ) && field_metadata.name == Some("data".to_string())
                 {
                     tracing::debug!("event data: {:?}", hex::encode(&event_data));
-                    let field = contract_event_data_field(
+                    let field = contract_event_data_field::<C>(
                         transcoder,
                         field_metadata,
+                        event_sig_topic,
                         event_data,
                     )?;
                     event_entry.fields.push(field);
@@ -155,11 +271,14 @@ impl DisplayEvents {
     }
 
     /// Displays events in a human readable format
-    pub fn display_events(
+    pub fn display_events<E: Environment>(
         &self,
         verbosity: Verbosity,
         token_metadata: &TokenMetadata,
-    ) -> Result<String> {
+    ) -> Result<String>
+    where
+        E::Balance: Display + From<u128>,
+    {
         let event_field_indent: usize = DEFAULT_KEY_COL_WIDTH - 3;
         let mut out = format!(
             "{:>width$}\n",
@@ -183,8 +302,11 @@ impl DisplayEvents {
                         || field.type_name == Some("BalanceOf<T>".to_string())
                     {
                         if let Value::UInt(balance) = field.value {
-                            value = BalanceVariant::from(balance, Some(token_metadata))?
-                                .to_string();
+                            value = BalanceVariant::<E::Balance>::from(
+                                balance,
+                                Some(token_metadata),
+                            )?
+                            .to_string();
                         }
                     }
                     let _ = writeln!(
@@ -209,21 +331,27 @@ impl DisplayEvents {
 
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
-fn contract_event_data_field(
+fn contract_event_data_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
+    event_sig_topic: Option<&C::Hash>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
-        match transcoder.decode_contract_event(event_data) {
-            Ok(contract_event) => contract_event,
-            Err(err) => {
-                tracing::warn!(
-                    "Decoding contract event failed: {:?}. It might have come from another contract.",
-                    err
-                );
-                Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+        if let Some(event_sig_topic) = event_sig_topic {
+            match transcoder.decode_contract_event(event_sig_topic, event_data) {
+                Ok(contract_event) => contract_event,
+                Err(err) => {
+                    tracing::warn!(
+                        "Decoding contract event failed: {:?}. It might have come from another contract.",
+                        err
+                    );
+                    Value::Hex(Hex::from_str(&hex::encode(&event_data))?)
+                }
             }
+        } else {
+            tracing::info!("Anonymous event not decoded. Data displayed as raw hex.");
+            Value::Hex(Hex::from_str(&hex::encode(event_data))?)
         }
     } else {
         Value::Hex(Hex::from_str(&hex::encode(event_data))?)
