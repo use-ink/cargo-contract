@@ -338,9 +338,9 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     io::stdin().read_line(&mut buf)?;
     match buf.trim().to_lowercase().as_str() {
         // default is 'n'
-        "Y" => Ok(()),
+        "y" => Ok(()),
         "n" | "" => Err(anyhow!("Upload cancelled!")),
-        c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }
 
