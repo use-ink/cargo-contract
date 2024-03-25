@@ -169,4 +169,13 @@ impl ContractArtifacts {
         ContractMessageTranscoder::try_from(metadata)
             .context("Failed to deserialize ink project metadata from contract metadata")
     }
+
+    /// Return true if the image is verifiable.
+    /// If the metadata can not be extracted then we assume that it can't be verified.
+    pub fn is_verifiable(&self) -> bool {
+        match self.metadata() {
+            Ok(m) => m.image.is_some(),
+            Err(_) => false,
+        }
+    }
 }

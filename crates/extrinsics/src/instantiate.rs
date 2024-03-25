@@ -155,7 +155,7 @@ where
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
-        let url = self.extrinsic_opts.url();
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
@@ -184,7 +184,6 @@ where
         Ok(InstantiateExec {
             args,
             opts: self.extrinsic_opts,
-            url,
             rpc,
             client,
             transcoder,
@@ -253,7 +252,6 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
 pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
     args: InstantiateArgs<C, E>,
-    url: String,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
@@ -469,11 +467,6 @@ where
     /// Returns the instantiate arguments.
     pub fn args(&self) -> &InstantiateArgs<C, E> {
         &self.args
-    }
-
-    /// Returns the url.
-    pub fn url(&self) -> &String {
-        &self.url
     }
 
     /// Returns the client.

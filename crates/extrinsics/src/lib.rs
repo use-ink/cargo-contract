@@ -26,6 +26,7 @@ mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 pub mod pallet_contracts_primitives;
+mod prod_chains;
 mod remove;
 mod rpc;
 mod upload;
@@ -38,6 +39,8 @@ mod contract_storage_tests;
 mod integration_tests;
 
 use env_check::compare_node_env_with_contract;
+pub use extrinsic_opts::Chain;
+pub use prod_chains::ProductionChain;
 
 use anyhow::Result;
 use contract_build::{

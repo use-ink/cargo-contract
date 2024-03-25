@@ -84,7 +84,7 @@ where
             )
         })?;
 
-        let url = self.extrinsic_opts.url();
+        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
         check_env_types(&client, &transcoder, self.extrinsic_opts.verbosity())?;

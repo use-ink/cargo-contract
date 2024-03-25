@@ -29,6 +29,7 @@ use super::{
 use crate::{
     anyhow,
     call_with_config,
+    cmd::prompt_confirm_unverifiable_upload,
     ErrorVariant,
     InstantiateExec,
     Weight,
@@ -43,6 +44,7 @@ use contract_build::{
     Verbosity,
 };
 use contract_extrinsics::{
+    Chain,
     Code,
     DisplayEvents,
     ExtrinsicOptsBuilder,
@@ -70,6 +72,7 @@ use subxt::{
     },
     Config,
 };
+use url::Url;
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -134,8 +137,12 @@ impl InstantiateCommand {
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let token_metadata = if let Some(chain) = &self.extrinsic_cli_opts.chain {
+            TokenMetadata::query::<C>(&Url::parse(chain.end_point()).unwrap()).await?
+        } else {
+            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?
+        };
+
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -151,6 +158,7 @@ impl InstantiateCommand {
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(self.extrinsic_cli_opts.url.clone())
+            .chain(self.extrinsic_cli_opts.chain.clone())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -182,7 +190,7 @@ impl InstantiateCommand {
                 }
                 Err(object) => {
                     if self.output_json() {
-                        return Err(object)
+                        return Err(object);
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
@@ -191,6 +199,13 @@ impl InstantiateCommand {
                 }
             }
         } else {
+            if let Chain::Production(name) =
+                instantiate_exec.opts().chain_and_endpoint().0
+            {
+                if !instantiate_exec.opts().is_verifiable()? {
+                    prompt_confirm_unverifiable_upload(&name)?
+                }
+            }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
                 &instantiate_exec,

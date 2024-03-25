@@ -72,6 +72,7 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
+    ProductionChain,
     TokenMetadata,
 };
 
@@ -127,6 +128,9 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
+    /// A name of a production chain to upload or instantiate the contract on.
+    #[clap(name = "chain", long, conflicts_with = "url")]
+    chain: Option<ProductionChain>,
 }
 
 impl CLIExtrinsicOpts {
@@ -308,6 +312,36 @@ where
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     Ok(arr.into())
+}
+
+/// Prompt the user to confirm the upload of unverifiable code to the production chain.
+pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
+    println!(
+        "{} (skip with --skip-validate)",
+        "Confirm upload:".bright_white().bold()
+    );
+    let warning = format!(
+        "You are trying to upload unverifiable code to {} mainnet",
+        chain
+    )
+    .bold()
+    .yellow();
+    print!("{}", warning);
+    println!(
+        "{} ({}): ",
+        "\nContinue?".bright_white().bold(),
+        "Y/n".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'y'
+        "y" | "" => Ok(()),
+        "n" => Err(anyhow!("Upload canceled!")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
 }
 
 #[cfg(test)]

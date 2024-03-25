@@ -30,6 +30,7 @@ use contract_extrinsics::{
     url_to_string,
     ContractInfo,
     ErrorVariant,
+    ProductionChain,
     TrieId,
 };
 use ink_env::Environment;
@@ -74,6 +75,9 @@ pub struct InfoCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// A name of a production chain to upload or instantiate the contract on.
+    #[clap(name = "chain", long, conflicts_with = "url")]
+    chain: Option<ProductionChain>,
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
@@ -102,7 +106,11 @@ impl InfoCommand {
         <<C as Config>::AccountId as FromStr>::Err:
             Into<Box<(dyn std::error::Error)>> + Display,
     {
-        let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
+        let rpc_cli = if let Some(chain) = &self.chain {
+            RpcClient::from_url(chain.end_point()).await?
+        } else {
+            RpcClient::from_url(url_to_string(&self.url)).await?
+        };
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
 

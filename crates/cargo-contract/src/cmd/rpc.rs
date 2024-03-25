@@ -17,6 +17,7 @@
 use contract_build::name_value_println;
 use contract_extrinsics::{
     ErrorVariant,
+    ProductionChain,
     RawParams,
     RpcRequest,
 };
@@ -40,6 +41,9 @@ pub struct RpcCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    /// A name of a production chain to upload or instantiate the contract on.
+    #[clap(name = "chain", long, conflicts_with = "url")]
+    chain: Option<ProductionChain>,
     /// Export the call output in JSON format.
     #[clap(long)]
     output_json: bool,
@@ -47,7 +51,11 @@ pub struct RpcCommand {
 
 impl RpcCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let request = RpcRequest::new(&self.url).await?;
+        let request = if let Some(chain) = &self.chain {
+            RpcRequest::new(&url::Url::parse(chain.end_point()).unwrap()).await?
+        } else {
+            RpcRequest::new(&self.url).await?
+        };
         let params = RawParams::new(&self.params)?;
 
         let result = request.raw_call(&self.method, params).await;
