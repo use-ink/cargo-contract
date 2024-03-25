@@ -158,10 +158,10 @@ where
         url_to_string(&self.url)
     }
 
-    /// Get the chain name and its URL endpoint.
-    /// If the user specify the endpoint manually,
-    /// but it still appears to be the production chain,
-    /// we still convert it.
+    /// Returns the chain name and its URL endpoint.
+    ///
+    /// If the user specified the endpoint URL manually we'll attempt to
+    /// convert it into one of the pre-defined production chains.
     pub fn chain_and_endpoint(&self) -> (Chain, String) {
         if let Some(chain) = &self.chain {
             (
@@ -181,6 +181,9 @@ where
         }
     }
 
+    /// Returns `true` if the image is verifiable.
+    ///
+    /// If the metadata cannot be extracted we assume that it can't be verified.
     pub fn is_verifiable(&self) -> Result<bool> {
         Ok(self.contract_artifacts()?.is_verifiable())
     }
