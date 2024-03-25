@@ -128,7 +128,7 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
-    /// A name of a production chain to upload or instantiate the contract on.
+    /// Name of a production chain to upload or instantiate the contract on.
     #[clap(name = "chain", long, conflicts_with = "url")]
     chain: Option<ProductionChain>,
 }
@@ -330,16 +330,16 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!(
         "{} ({}): ",
         "\nContinue?".bright_white().bold(),
-        "Y/n".bright_white().bold()
+        "y/N".bright_white().bold()
     );
 
     let mut buf = String::new();
     io::stdout().flush()?;
     io::stdin().read_line(&mut buf)?;
     match buf.trim().to_lowercase().as_str() {
-        // default is 'y'
-        "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Upload canceled!")),
+        // default is 'n'
+        "y" => Ok(()),
+        "n" | "" => Err(anyhow!("Upload cancelled!")),
         c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }

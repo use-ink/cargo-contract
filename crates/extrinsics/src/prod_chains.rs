@@ -19,8 +19,10 @@
 
 use std::str::FromStr;
 
-/// Macro to generate enums with production chains and their respective endpoints
-/// and generate required trait implementation
+/// This macro generates enums with the pre-defined production chains and their respective
+/// endpoints.
+///
+/// It also generates the required trait implementations.
 macro_rules! define_chains {
     (
         $(#[$($attrs:tt)*])*
@@ -76,7 +78,7 @@ macro_rules! define_chains {
 }
 
 define_chains! {
-    /// A list of all production chains where the contract can be deployed to.
+    /// List of production chains where the contract can be deployed to.
     pub enum ProductionChain {
         AlephZero = "wss://ws.azero.dev:443",
         Astar = "wss://rpc.astar.network:443",
