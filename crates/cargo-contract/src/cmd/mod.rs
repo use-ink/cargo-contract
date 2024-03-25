@@ -128,7 +128,7 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
-    /// A name of a production chain to upload or instantiate the contract on.
+    /// Name of a production chain to upload or instantiate the contract on.
     #[clap(name = "chain", long, conflicts_with = "url")]
     chain: Option<ProductionChain>,
 }
