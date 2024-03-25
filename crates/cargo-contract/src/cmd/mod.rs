@@ -330,7 +330,7 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!(
         "{} ({}): ",
         "\nContinue?".bright_white().bold(),
-        "Y/n".bright_white().bold()
+        "y/N".bright_white().bold()
     );
 
     let mut buf = String::new();
