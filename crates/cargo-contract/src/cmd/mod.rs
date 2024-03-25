@@ -339,7 +339,7 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     match buf.trim().to_lowercase().as_str() {
         // default is 'n'
         "Y" => Ok(()),
-        "n" | "" => Err(anyhow!("Upload canceled!")),
+        "n" | "" => Err(anyhow!("Upload cancelled!")),
         c => Err(anyhow!("Expected either 'Y' or 'n', got '{}'", c)),
     }
 }
