@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix the `instantiate` command for Substrate `0.9.42` based chains - [#1546](https://github.com/paritytech/cargo-contract/pull/1564)
+
 ### Added
 - Verify raw Wasm in cargo contract verify - [#1551](https://github.com/paritytech/cargo-contract/pull/1551)
 - Specify prod chain URL with names and check for the verifiable build upon upload - [#1290](https://github.com/paritytech/cargo-contract/pull/1290)
