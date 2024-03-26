@@ -105,11 +105,14 @@ where
             .client
             .storage()
             .at_latest()
-            .await
-            .unwrap()
+            .await?
             .storage_version("Contracts")
             .await;
-        storage_version.map_err(|e| anyhow::anyhow!("{e}"))
+        storage_version.map_err(|e| {
+            anyhow!(
+            "The storage version for the contract pallet could not be determined: {e}"
+        )
+        })
     }
 
     /// Load the raw key/value storage for a given contract.

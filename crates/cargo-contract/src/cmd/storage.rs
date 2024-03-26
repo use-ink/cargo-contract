@@ -47,8 +47,13 @@ use super::parse_account;
 #[clap(name = "storage", about = "Inspect contract storage")]
 pub struct StorageCommand {
     /// The address of the contract to inspect storage of.
-    #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: String,
+    #[clap(
+        name = "contract",
+        long,
+        env = "CONTRACT",
+        required_unless_present = "version"
+    )]
+    contract: Option<String>,
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
     raw: bool,
@@ -70,7 +75,8 @@ pub struct StorageCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    #[clap(long)]
+    /// Fetch the storage version of the pallet contracts (PalletVersion).
+    #[clap(long, short)]
     version: bool,
     /// The chain config to be used as part of the call.
     #[clap(name = "config", long, default_value = "Polkadot")]
@@ -92,61 +98,66 @@ impl StorageCommand {
     {
         let rpc = ContractStorageRpc::<C>::new(&self.url).await?;
         let storage_layout = ContractStorage::<C, C>::new(rpc);
-        let contract = parse_account(&self.contract)
-            .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
         if self.version {
-            println!(
-                "Storage version: {}",
-                storage_layout.version().await.unwrap()
-            );
-        }
+            println!("{}", storage_layout.version().await?);
+            Ok(())
+        } else {
+            // Contract arg shall be always present in this case, it is enforced by
+            // clap configuration
+            let contract = self
+                .contract
+                .as_ref()
+                .map(|c| parse_account(c))
+                .transpose()?
+                .expect("Contract argument shall be present");
 
-        if self.raw {
-            let storage_data =
-                storage_layout.load_contract_storage_data(&contract).await?;
-            println!(
-                "{json}",
-                json = serde_json::to_string_pretty(&storage_data)?
-            );
-            return Ok(())
-        }
-
-        let contract_artifacts = ContractArtifacts::from_manifest_or_file(
-            self.manifest_path.as_ref(),
-            self.file.as_ref(),
-        );
-
-        match contract_artifacts {
-            Ok(contract_artifacts) => {
-                let transcoder = contract_artifacts.contract_transcoder()?;
-                let contract_storage = storage_layout
-                    .load_contract_storage_with_layout(&contract, &transcoder)
-                    .await?;
-                if self.output_json {
-                    println!(
-                        "{json}",
-                        json = serde_json::to_string_pretty(&contract_storage)?
-                    );
-                } else {
-                    let table = StorageDisplayTable::new(&contract_storage);
-                    table.display();
-                }
-            }
-            Err(_) => {
-                eprintln!(
-                    "{} Displaying raw storage: no valid contract metadata artifacts found",
-                    "Info:".cyan().bold(),
-                );
+            if self.raw {
                 let storage_data =
                     storage_layout.load_contract_storage_data(&contract).await?;
                 println!(
                     "{json}",
                     json = serde_json::to_string_pretty(&storage_data)?
                 );
+                return Ok(())
             }
-        }
 
-        Ok(())
+            let contract_artifacts = ContractArtifacts::from_manifest_or_file(
+                self.manifest_path.as_ref(),
+                self.file.as_ref(),
+            );
+
+            match contract_artifacts {
+                Ok(contract_artifacts) => {
+                    let transcoder = contract_artifacts.contract_transcoder()?;
+                    let contract_storage = storage_layout
+                        .load_contract_storage_with_layout(&contract, &transcoder)
+                        .await?;
+                    if self.output_json {
+                        println!(
+                            "{json}",
+                            json = serde_json::to_string_pretty(&contract_storage)?
+                        );
+                    } else {
+                        let table = StorageDisplayTable::new(&contract_storage);
+                        table.display();
+                    }
+                }
+                Err(_) => {
+                    eprintln!(
+                    "{} Displaying raw storage: no valid contract metadata artifacts found",
+                    "Info:".cyan().bold(),
+                );
+                    let storage_data =
+                        storage_layout.load_contract_storage_data(&contract).await?;
+                    println!(
+                        "{json}",
+                        json = serde_json::to_string_pretty(&storage_data)?
+                    );
+                }
+            }
+
+            Ok(())
+        }
     }
 }
 
