@@ -109,7 +109,7 @@ where
             .storage_version("Contracts")
             .await
             .map_err(|e| {
-                anyhow!("The storage version for the contract pallet could not be determined: {e}")
+                anyhow!("The storage version for the contracts pallet could not be determined: {e}")
             })
     }
 
