@@ -100,19 +100,16 @@ where
     }
 
     pub async fn version(&self) -> Result<u16> {
-        let storage_version = self
-            .rpc
+        self.rpc
             .client
             .storage()
             .at_latest()
             .await?
             .storage_version("Contracts")
-            .await;
-        storage_version.map_err(|e| {
-            anyhow!(
-            "The storage version for the contract pallet could not be determined: {e}"
-        )
-        })
+            .await
+            .map_err(|e| {
+                anyhow!("The storage version for the contract pallet could not be determined: {e}")
+            })
     }
 
     /// Load the raw key/value storage for a given contract.
