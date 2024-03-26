@@ -70,6 +70,8 @@ pub struct StorageCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
+    #[clap(long)]
+    version: bool,
     /// The chain config to be used as part of the call.
     #[clap(name = "config", long, default_value = "Polkadot")]
     config: String,
@@ -92,6 +94,12 @@ impl StorageCommand {
         let storage_layout = ContractStorage::<C, C>::new(rpc);
         let contract = parse_account(&self.contract)
             .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
+        if self.version {
+            println!(
+                "Storage version: {}",
+                storage_layout.version().await.unwrap()
+            );
+        }
 
         if self.raw {
             let storage_data =

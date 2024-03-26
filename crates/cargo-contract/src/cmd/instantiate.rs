@@ -190,7 +190,7 @@ impl InstantiateCommand {
                 }
                 Err(object) => {
                     if self.output_json() {
-                        return Err(object);
+                        return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;

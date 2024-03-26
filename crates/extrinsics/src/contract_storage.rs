@@ -46,8 +46,8 @@ use sp_core::{
 };
 use std::{
     collections::BTreeMap,
-    fmt,
     fmt::{
+        self,
         Display,
         Formatter,
     },
@@ -97,6 +97,19 @@ where
             rpc,
             _phantom: Default::default(),
         }
+    }
+
+    pub async fn version(&self) -> Result<u16> {
+        let storage_version = self
+            .rpc
+            .client
+            .storage()
+            .at_latest()
+            .await
+            .unwrap()
+            .storage_version("Contracts")
+            .await;
+        storage_version.map_err(|e| anyhow::anyhow!("{e}"))
     }
 
     /// Load the raw key/value storage for a given contract.

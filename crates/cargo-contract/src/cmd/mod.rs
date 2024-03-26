@@ -145,7 +145,7 @@ pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, Balance>,
 ) -> Result<()>
 where
     Balance: Debug,
@@ -173,7 +173,7 @@ where
 }
 
 pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, Balance>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
