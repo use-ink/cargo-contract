@@ -99,6 +99,7 @@ where
         }
     }
 
+    /// Fetch the storage version of the pallet contracts (pallet version)
     pub async fn version(&self) -> Result<u16> {
         self.rpc
             .client

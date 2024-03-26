@@ -75,7 +75,7 @@ pub struct StorageCommand {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// Fetch the storage version of the pallet contracts (PalletVersion).
+    /// Fetch the storage version of the pallet contracts (pallet version).
     #[clap(long, short)]
     version: bool,
     /// The chain config to be used as part of the call.
