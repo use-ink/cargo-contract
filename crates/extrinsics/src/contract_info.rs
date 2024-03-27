@@ -77,7 +77,6 @@ pub async fn fetch_contract_info<C: Config, E: Environment>(
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
-    // DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     E::Balance: IntoVisitor,
 {
     let best_block = get_best_block(rpc).await?;
@@ -120,7 +119,6 @@ impl<C: Config, E: Environment> ContractInfoRaw<C, E>
 where
     C::AccountId: IntoVisitor,
     C::Hash: IntoVisitor,
-    // DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     E::Balance: IntoVisitor,
 {
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
@@ -321,7 +319,7 @@ where
 
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
-        let key: Vec<u8> = result?;
+        let key = result?;
         let contract_account = parse_contract_account_address::<C>(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }
