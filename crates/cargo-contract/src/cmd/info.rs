@@ -20,6 +20,7 @@ use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
     parse_account,
+    ProductionChain,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
@@ -30,7 +31,6 @@ use contract_extrinsics::{
     url_to_string,
     ContractInfo,
     ErrorVariant,
-    ProductionChain,
     TrieId,
 };
 use ink_env::Environment;

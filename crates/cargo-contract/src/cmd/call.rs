@@ -141,13 +141,13 @@ impl CallCommand {
             .map_err(|e| {
                 anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
             })?;
+
         let value = parse_balance(&self.value, &token_metadata)
             .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
-            .chain(self.extrinsic_cli_opts.chain.clone())
+            .url(self.extrinsic_cli_opts.url())
             .storage_deposit_limit(storage_deposit_limit)
             .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();

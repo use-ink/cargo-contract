@@ -17,13 +17,15 @@
 use contract_build::name_value_println;
 use contract_extrinsics::{
     ErrorVariant,
-    ProductionChain,
     RawParams,
     RpcRequest,
 };
 use subxt::ext::scale_value;
 
-use super::MAX_KEY_COL_WIDTH;
+use super::{
+    ProductionChain,
+    MAX_KEY_COL_WIDTH,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "rpc", about = "Make a raw RPC call")]

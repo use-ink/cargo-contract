@@ -36,7 +36,6 @@ use super::{
 use anyhow::Result;
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    Chain,
     DisplayEvents,
     ExtrinsicOptsBuilder,
     TokenMetadata,
@@ -108,8 +107,7 @@ impl UploadCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
-            .chain(self.extrinsic_cli_opts.chain.clone())
+            .url(self.extrinsic_cli_opts.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -143,9 +141,9 @@ impl UploadCommand {
                 }
             }
         } else {
-            if let Chain::Production(name) = upload_exec.opts().chain_and_endpoint().0 {
+            if let Some(chain) = self.extrinsic_cli_opts.check_production_chain() {
                 if !upload_exec.opts().is_verifiable()? {
-                    prompt_confirm_unverifiable_upload(&name)?
+                    prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
             let upload_result = upload_exec.upload_code().await?;

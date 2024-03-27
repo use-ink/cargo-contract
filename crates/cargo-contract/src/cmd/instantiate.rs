@@ -44,7 +44,6 @@ use contract_build::{
     Verbosity,
 };
 use contract_extrinsics::{
-    Chain,
     Code,
     DisplayEvents,
     ExtrinsicOptsBuilder,
@@ -157,8 +156,7 @@ impl InstantiateCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
-            .chain(self.extrinsic_cli_opts.chain.clone())
+            .url(self.extrinsic_cli_opts.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -190,7 +188,7 @@ impl InstantiateCommand {
                 }
                 Err(object) => {
                     if self.output_json() {
-                        return Err(object);
+                        return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
@@ -199,11 +197,9 @@ impl InstantiateCommand {
                 }
             }
         } else {
-            if let Chain::Production(name) =
-                instantiate_exec.opts().chain_and_endpoint().0
-            {
+            if let Some(chain) = self.extrinsic_cli_opts.check_production_chain() {
                 if !instantiate_exec.opts().is_verifiable()? {
-                    prompt_confirm_unverifiable_upload(&name)?
+                    prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());

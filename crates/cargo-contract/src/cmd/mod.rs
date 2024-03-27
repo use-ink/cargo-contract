@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod config;
+mod prod_chains;
 
 pub mod build;
 pub mod call;
@@ -41,6 +42,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,
     schema::{
@@ -71,8 +73,8 @@ use contract_build::{
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
+    url_to_string,
     BalanceVariant,
-    ProductionChain,
     TokenMetadata,
 };
 
@@ -137,6 +139,18 @@ impl CLIExtrinsicOpts {
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
+    }
+
+    pub fn url(&self) -> url::Url {
+        if let Some(chain) = self.chain.as_ref() {
+            url::Url::parse(chain.end_point()).expect("Wrong chain Url defintion")
+        } else {
+            self.url.clone()
+        }
+    }
+
+    pub fn check_production_chain(&self) -> Option<ProductionChain> {
+        ProductionChain::chain_by_endpoint(&url_to_string(&self.url()))
     }
 }
 

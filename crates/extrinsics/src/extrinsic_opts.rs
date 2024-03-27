@@ -25,7 +25,6 @@ use subxt::{
 use url::Url;
 
 use crate::{
-    prod_chains::ProductionChain,
     url_to_string,
     ContractArtifacts,
 };
@@ -34,12 +33,6 @@ use std::{
     option::Option,
     path::PathBuf,
 };
-
-#[derive(Debug)]
-pub enum Chain {
-    Production(String),
-    Custom,
-}
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
 #[derive(Derivative)]
@@ -51,7 +44,6 @@ pub struct ExtrinsicOpts<C: Config, E: Environment, Signer: Clone> {
     signer: Signer,
     storage_deposit_limit: Option<E::Balance>,
     verbosity: Verbosity,
-    chain: Option<ProductionChain>,
     _marker: PhantomData<C>,
 }
 
@@ -74,7 +66,6 @@ where
                 signer,
                 storage_deposit_limit: None,
                 verbosity: Verbosity::Default,
-                chain: None,
                 _marker: PhantomData,
             },
         }
@@ -119,13 +110,6 @@ where
         this
     }
 
-    /// Set the production chain.
-    pub fn chain(self, chain: Option<ProductionChain>) -> Self {
-        let mut this = self;
-        this.opts.chain = chain;
-        this
-    }
-
     pub fn done(self) -> ExtrinsicOpts<C, E, Signer> {
         self.opts
     }
@@ -158,32 +142,6 @@ where
         url_to_string(&self.url)
     }
 
-    /// Returns the chain name and its URL endpoint.
-    ///
-    /// If the user specified the endpoint URL manually we'll attempt to
-    /// convert it into one of the pre-defined production chains.
-    pub fn chain_and_endpoint(&self) -> (Chain, String) {
-        if let Some(chain) = &self.chain {
-            (
-                Chain::Production(chain.to_string()),
-                chain.end_point().to_string(),
-            )
-        } else {
-            let url = self.url();
-            if let Some(chain) = ProductionChain::chain_by_endpoint(&url) {
-                (
-                    Chain::Production(chain.to_string()),
-                    chain.end_point().to_string(),
-                )
-            } else {
-                (Chain::Custom, url)
-            }
-        }
-    }
-
-    /// Returns `true` if the image is verifiable.
-    ///
-    /// If the metadata cannot be extracted we assume that it can't be verified.
     pub fn is_verifiable(&self) -> Result<bool> {
         Ok(self.contract_artifacts()?.is_verifiable())
     }
