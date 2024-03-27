@@ -46,7 +46,10 @@ use contract_extrinsics::{
 use ink_env::Environment;
 use serde::Serialize;
 use subxt::{
-    config::ExtrinsicParams,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -84,9 +87,16 @@ impl UploadCommand {
     where
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance:
-            Into<u128> + From<u128> + Display + Default + FromStr + Serialize + Debug,
-        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        C::Balance: Into<u128>
+            + From<u128>
+            + Display
+            + Default
+            + FromStr
+            + Serialize
+            + Debug
+            + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
         <C as Config>::Hash: IntoVisitor + EncodeAsType + From<[u8; 32]>,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
