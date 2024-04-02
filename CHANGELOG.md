@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fix the `instantiate` command for Substrate `0.9.42` based chains - [#1546](https://github.com/paritytech/cargo-contract/pull/1564)
+- Fix the `instantiate` command for Substrate `0.9.42` based chains - [#1564](https://github.com/paritytech/cargo-contract/pull/1564)
 
 ### Added
 - Add `cargo contract storage --version` command - [#1546](https://github.com/paritytech/cargo-contract/pull/1564)

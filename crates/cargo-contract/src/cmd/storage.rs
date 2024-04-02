@@ -100,64 +100,64 @@ impl StorageCommand {
         let storage_layout = ContractStorage::<C, C>::new(rpc);
         if self.version {
             println!("{}", storage_layout.version().await?);
-            Ok(())
-        } else {
-            // Contract arg shall be always present in this case, it is enforced by
-            // clap configuration
-            let contract = self
-                .contract
-                .as_ref()
-                .map(|c| parse_account(c))
-                .transpose()?
-                .expect("Contract argument shall be present");
+            return Ok(())
+        }
 
-            if self.raw {
+        // Contract arg shall be always present in this case, it is enforced by
+        // clap configuration
+        let contract = self
+            .contract
+            .as_ref()
+            .map(|c| parse_account(c))
+            .transpose()?
+            .expect("Contract argument shall be present");
+
+        if self.raw {
+            let storage_data =
+                storage_layout.load_contract_storage_data(&contract).await?;
+            println!(
+                "{json}",
+                json = serde_json::to_string_pretty(&storage_data)?
+            );
+            return Ok(())
+        }
+
+        let contract_artifacts = ContractArtifacts::from_manifest_or_file(
+            self.manifest_path.as_ref(),
+            self.file.as_ref(),
+        );
+
+        match contract_artifacts {
+            Ok(contract_artifacts) => {
+                let transcoder = contract_artifacts.contract_transcoder()?;
+                let contract_storage = storage_layout
+                    .load_contract_storage_with_layout(&contract, &transcoder)
+                    .await?;
+                if self.output_json {
+                    println!(
+                        "{json}",
+                        json = serde_json::to_string_pretty(&contract_storage)?
+                    );
+                } else {
+                    let table = StorageDisplayTable::new(&contract_storage);
+                    table.display();
+                }
+            }
+            Err(_) => {
+                eprintln!(
+                    "{} Displaying raw storage: no valid contract metadata artifacts found",
+                    "Info:".cyan().bold(),
+                );
                 let storage_data =
                     storage_layout.load_contract_storage_data(&contract).await?;
                 println!(
                     "{json}",
                     json = serde_json::to_string_pretty(&storage_data)?
                 );
-                return Ok(())
             }
-
-            let contract_artifacts = ContractArtifacts::from_manifest_or_file(
-                self.manifest_path.as_ref(),
-                self.file.as_ref(),
-            );
-
-            match contract_artifacts {
-                Ok(contract_artifacts) => {
-                    let transcoder = contract_artifacts.contract_transcoder()?;
-                    let contract_storage = storage_layout
-                        .load_contract_storage_with_layout(&contract, &transcoder)
-                        .await?;
-                    if self.output_json {
-                        println!(
-                            "{json}",
-                            json = serde_json::to_string_pretty(&contract_storage)?
-                        );
-                    } else {
-                        let table = StorageDisplayTable::new(&contract_storage);
-                        table.display();
-                    }
-                }
-                Err(_) => {
-                    eprintln!(
-                    "{} Displaying raw storage: no valid contract metadata artifacts found",
-                    "Info:".cyan().bold(),
-                );
-                    let storage_data =
-                        storage_layout.load_contract_storage_data(&contract).await?;
-                    println!(
-                        "{json}",
-                        json = serde_json::to_string_pretty(&storage_data)?
-                    );
-                }
-            }
-
-            Ok(())
         }
+
+        Ok(())
     }
 }
 
