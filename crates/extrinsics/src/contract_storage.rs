@@ -64,11 +64,7 @@ use subxt::{
             RpcClient,
         },
     },
-    error::DecodeError,
-    ext::scale_decode::{
-        IntoVisitor,
-        Visitor,
-    },
+    ext::scale_decode::IntoVisitor,
     Config,
     OnlineClient,
 };
@@ -89,7 +85,6 @@ impl<C: Config, E: Environment> ContractStorage<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
-    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     E::Balance: IntoVisitor + Serialize,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
@@ -604,7 +599,6 @@ impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
-    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {

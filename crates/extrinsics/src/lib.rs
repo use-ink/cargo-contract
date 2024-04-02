@@ -55,7 +55,11 @@ use scale::{
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        DefaultExtrinsicParamsBuilder,
+        ExtrinsicParams,
+    },
     tx,
     Config,
     OnlineClient,
@@ -149,14 +153,18 @@ where
     C: Config,
     Call: tx::TxPayload,
     Signer: tx::Signer<C>,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
 
+    let params = DefaultExtrinsicParamsBuilder::new()
+        .nonce(account_nonce)
+        .build();
     let mut tx = client
         .tx()
-        .create_signed_with_nonce(call, signer, account_nonce, Default::default())?
+        .create_signed_offline(call, signer, params.into())?
         .submit_and_watch()
         .await?;
 

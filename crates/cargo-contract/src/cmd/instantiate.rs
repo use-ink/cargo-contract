@@ -64,7 +64,10 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    config::ExtrinsicParams,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
@@ -131,8 +134,10 @@ impl InstantiateCommand {
         <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType + Decode + Display,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance: From<u128> + Display + Default + FromStr + Serialize + Debug,
-        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        C::Balance:
+            From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
         <C as Config>::Hash: From<[u8; 32]> + IntoVisitor + EncodeAsType,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
@@ -190,7 +195,7 @@ impl InstantiateCommand {
                 }
                 Err(object) => {
                     if self.output_json() {
-                        return Err(object);
+                        return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
                         display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
@@ -254,8 +259,9 @@ where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + Debug,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + Debug + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     if skip_dry_run {
         return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
@@ -318,8 +324,9 @@ pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
 where
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + From<u128> + Display,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + From<u128> + Display + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     let events = DisplayEvents::from_events::<C, C>(
         &instantiate_exec_result.events,
@@ -353,8 +360,9 @@ pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     name_value_println!(
         "Constructor",
