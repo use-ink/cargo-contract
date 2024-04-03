@@ -100,10 +100,8 @@ impl UploadCommand {
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata = TokenMetadata::query::<C>(
-            &self.extrinsic_cli_opts.chain_cli_opts.chain().url(),
-        )
-        .await?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -116,7 +114,7 @@ impl UploadCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.chain_cli_opts.chain().url())
+            .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -150,9 +148,7 @@ impl UploadCommand {
                 }
             }
         } else {
-            if let Some(chain) =
-                self.extrinsic_cli_opts.chain_cli_opts.chain().production()
-            {
+            if let Some(chain) = chain.production() {
                 if !upload_exec.opts().is_verifiable()? {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
