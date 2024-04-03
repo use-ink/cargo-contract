@@ -17,6 +17,7 @@
 //! This file simply contains the end points of the production chains
 //! We hard-code these values to ensure that a user uploads a verifiable bundle
 
+use contract_extrinsics::url_to_string;
 use std::str::FromStr;
 use url::Url;
 
@@ -47,6 +48,16 @@ macro_rules! define_chains {
                     $(
                         $root::$c => $config
                     ),*
+                }
+            }
+
+            /// Returns the chain type from the endpoint URL
+            pub fn from_parts(ep: &Url, config: &str) -> Option<Self> {
+                match (url_to_string(ep).as_str(), config) {
+                    $(
+                        ($ep, $config) => Some($root::$c),
+                    )*
+                    _ => None
                 }
             }
         }

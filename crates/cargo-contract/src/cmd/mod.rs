@@ -154,9 +154,10 @@ pub struct CLIChainOpts {
 
 impl CLIChainOpts {
     pub fn chain(&self) -> Chain {
-        // TODO match url to set production
         if let Some(chain) = &self.chain {
             Chain::Production(chain.clone())
+        } else if let Some(prod) = ProductionChain::from_parts(&self.url, &self.config) {
+            Chain::Production(prod)
         } else {
             Chain::Custom(self.url.clone(), self.config.clone())
         }
