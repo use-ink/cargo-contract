@@ -37,7 +37,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -112,7 +115,9 @@ impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
     C::Hash: IntoVisitor,
     C::AccountId: IntoVisitor,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    E::Balance: EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     Signer: tx::Signer<C> + Clone,
 {
     /// Uploads contract code to a specified URL using a JSON-RPC call.
