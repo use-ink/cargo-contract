@@ -73,7 +73,6 @@ use contract_build::{
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
-    url_to_string,
     BalanceVariant,
     TokenMetadata,
 };
@@ -100,14 +99,6 @@ pub struct CLIExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
     /// Secret key URI for the account deploying the contract.
     ///
     /// e.g.
@@ -130,9 +121,9 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
-    /// Name of a production chain to upload or instantiate the contract on.
-    #[clap(name = "chain", long, conflicts_with = "url")]
-    chain: Option<ProductionChain>,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl CLIExtrinsicOpts {
@@ -140,17 +131,64 @@ impl CLIExtrinsicOpts {
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
     }
+}
 
-    pub fn url(&self) -> url::Url {
-        if let Some(chain) = self.chain.as_ref() {
-            url::Url::parse(chain.end_point()).expect("Wrong chain Url defintion")
+/// Arguments required for communtacting with a substrate node.
+#[derive(Clone, Debug, clap::Args)]
+pub struct CLIChainOpts {
+    /// Websockets url of a substrate node.
+    #[clap(
+        name = "url",
+        long,
+        value_parser,
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// The chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
+    /// Name of a production chain to upload or instantiate the contract on.
+    #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
+    chain: Option<ProductionChain>,
+}
+
+impl CLIChainOpts {
+    pub fn chain(&self) -> Chain {
+        // TODO match url to set production
+        if let Some(chain) = &self.chain {
+            Chain::Production(chain.clone())
         } else {
-            self.url.clone()
+            Chain::Custom(self.url.clone(), self.config.clone())
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Chain {
+    Production(ProductionChain),
+    Custom(url::Url, String),
+}
+
+impl Chain {
+    pub fn url(&self) -> url::Url {
+        match self {
+            Chain::Production(prod) => prod.url(),
+            Chain::Custom(url, _) => url.clone(),
         }
     }
 
-    pub fn check_production_chain(&self) -> Option<ProductionChain> {
-        ProductionChain::chain_by_endpoint(&url_to_string(&self.url()))
+    pub fn config(&self) -> &str {
+        match self {
+            Chain::Production(prod) => prod.config(),
+            Chain::Custom(_, config) => config,
+        }
+    }
+
+    pub fn production(&self) -> Option<&ProductionChain> {
+        if let Chain::Production(prod) = self {
+            return Some(prod)
+        }
+        None
     }
 }
 

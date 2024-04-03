@@ -34,10 +34,10 @@ macro_rules! define_chains {
 
         impl $root {
             /// Returns the endpoint URL of a chain.
-            pub fn end_point(&self) -> &str {
+            pub fn url(&self) -> Url::url {
                 match self {
                     $(
-                        $root::$c => $ep
+                        $root::$c => Url::url($ep).expect("Incorrect chain Url format")
                     ),*
                 }
             }

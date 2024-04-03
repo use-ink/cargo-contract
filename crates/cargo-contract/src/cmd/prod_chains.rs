@@ -18,13 +18,14 @@
 //! We hard-code these values to ensure that a user uploads a verifiable bundle
 
 use std::str::FromStr;
+use url::Url;
 
 /// Macro to generate enums with production chains and their respective endpoints
 /// and generate required trait implementation
 macro_rules! define_chains {
     (
         $(#[$($attrs:tt)*])*
-        pub enum $root:ident { $( $c:ident = $ep:tt ),* $(,)? }
+        pub enum $root:ident { $( $c:ident = ($ep:tt, $config:tt) ),* $(,)? }
     ) => {
         $(#[$($attrs)*])*
         #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,21 +33,20 @@ macro_rules! define_chains {
 
         impl $root {
             /// Returns the endpoint URL of a chain.
-            pub fn end_point(&self) -> &str {
+            pub fn url(&self) -> url::Url {
                 match self {
                     $(
-                        $root::$c => $ep
+                        $root::$c => Url::parse($ep).expect("Incorrect Url format")
                     ),*
                 }
             }
 
-            /// Returns the chain type from the endpoint URL
-            pub fn chain_by_endpoint(ep: &str) -> Option<Self> {
-                match ep {
+            /// Returns the config of a chain.
+            pub fn config(&self) -> &str {
+                match self {
                     $(
-                        $ep => Some($root::$c),
-                    )*
-                    _ => None
+                        $root::$c => $config
+                    ),*
                 }
             }
         }
@@ -78,8 +78,8 @@ macro_rules! define_chains {
 define_chains! {
     /// A list of all production chains where the contract can be deployed to.
     pub enum ProductionChain {
-        AlephZero = "wss://ws.azero.dev:443",
-        Astar = "wss://rpc.astar.network:443",
-        Shiden = "wss://rpc.shiden.astar.network:443"
+        AlephZero = ("wss://ws.azero.dev:443", "Substrate"),
+        Astar = ("wss://rpc.astar.network:443", "Polkadot"),
+        Shiden = ("wss://rpc.shiden.astar.network:443", "Polkadot")
     }
 }

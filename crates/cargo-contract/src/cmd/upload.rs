@@ -55,7 +55,6 @@ use subxt::{
     },
     Config,
 };
-use url::Url;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "upload", about = "Upload a contract's code")]
@@ -65,9 +64,6 @@ pub struct UploadCommand {
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-    /// The chain config to be used as part of the call.
-    #[clap(name = "config", long, default_value = "Polkadot")]
-    config: String,
 }
 
 impl UploadCommand {
@@ -77,7 +73,11 @@ impl UploadCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
     }
 
     async fn run<C: Config + Environment + SignerConfig<C>>(
@@ -100,11 +100,10 @@ impl UploadCommand {
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata = if let Some(chain) = &self.extrinsic_cli_opts.chain {
-            TokenMetadata::query::<C>(&Url::parse(chain.end_point()).unwrap()).await?
-        } else {
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?
-        };
+        let token_metadata = TokenMetadata::query::<C>(
+            &self.extrinsic_cli_opts.chain_cli_opts.chain().url(),
+        )
+        .await?;
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -117,7 +116,7 @@ impl UploadCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url())
+            .url(self.extrinsic_cli_opts.chain_cli_opts.chain().url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -151,7 +150,9 @@ impl UploadCommand {
                 }
             }
         } else {
-            if let Some(chain) = self.extrinsic_cli_opts.check_production_chain() {
+            if let Some(chain) =
+                self.extrinsic_cli_opts.chain_cli_opts.chain().production()
+            {
                 if !upload_exec.opts().is_verifiable()? {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }

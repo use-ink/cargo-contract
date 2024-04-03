@@ -23,7 +23,7 @@ use contract_extrinsics::{
 use subxt::ext::scale_value;
 
 use super::{
-    ProductionChain,
+    CLIChainOpts,
     MAX_KEY_COL_WIDTH,
 };
 
@@ -35,29 +35,17 @@ pub struct RpcCommand {
     /// The arguments of the method to call.
     #[clap(num_args = 0..)]
     params: Vec<String>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
-    /// Name of a production chain to upload or instantiate the contract on.
-    #[clap(name = "chain", long, conflicts_with = "url")]
-    chain: Option<ProductionChain>,
     /// Export the call output in JSON format.
     #[clap(long)]
     output_json: bool,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl RpcCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let request = if let Some(chain) = &self.chain {
-            RpcRequest::new(&url::Url::parse(chain.end_point()).unwrap()).await?
-        } else {
-            RpcRequest::new(&self.url).await?
-        };
+        let request = RpcRequest::new(&self.chain_cli_opts.chain().url()).await?;
         let params = RawParams::new(&self.params)?;
 
         let result = request.raw_call(&self.method, params).await;
