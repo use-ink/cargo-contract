@@ -145,7 +145,6 @@ impl CallCommand {
             .map_err(|e| {
                 anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
             })?;
-
         let value = parse_balance(&self.value, &token_metadata)
             .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)

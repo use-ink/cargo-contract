@@ -51,7 +51,7 @@ macro_rules! define_chains {
                 }
             }
 
-            /// Returns the chain type from the endpoint URL
+            /// Returns the chain from the Url and config if it matches.
             pub fn from_parts(ep: &Url, config: &str) -> Option<Self> {
                 match (url_to_string(ep).as_str(), config) {
                     $(
@@ -89,8 +89,8 @@ macro_rules! define_chains {
 define_chains! {
     /// A list of all production chains where the contract can be deployed to.
     pub enum ProductionChain {
-        AlephZero = ("wss://ws.azero.dev:443", "Substrate"),
-        Astar = ("wss://rpc.astar.network:443", "Polkadot"),
-        Shiden = ("wss://rpc.shiden.astar.network:443", "Polkadot")
+        AlephZero = ("wss://ws.azero.dev:443/", "Substrate"),
+        Astar = ("wss://rpc.astar.network:443/", "Polkadot"),
+        Shiden = ("wss://rpc.shiden.astar.network:443/", "Polkadot")
     }
 }
