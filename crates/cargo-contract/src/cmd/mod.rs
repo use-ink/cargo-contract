@@ -144,10 +144,10 @@ pub struct CLIChainOpts {
         default_value = "ws://localhost:9944"
     )]
     url: url::Url,
-    /// The chain config to be used as part of the call.
+    /// Chain config to be used as part of the call.
     #[clap(name = "config", long, default_value = "Polkadot")]
     config: String,
-    /// The name of a production chain to be communicated with.
+    /// Name of a production chain to be communicated with.
     #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
     chain: Option<ProductionChain>,
 }

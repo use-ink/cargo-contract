@@ -21,8 +21,10 @@ use contract_extrinsics::url_to_string;
 use std::str::FromStr;
 use url::Url;
 
-/// Macro to generate enums with production chains and their respective endpoints
-/// and generate required trait implementation
+/// This macro generates enums with the pre-defined production chains and their respective
+/// endpoints.
+///
+/// It also generates the required trait implementations.
 macro_rules! define_chains {
     (
         $(#[$($attrs:tt)*])*
@@ -51,7 +53,10 @@ macro_rules! define_chains {
                 }
             }
 
-            /// Returns the chain from the Url and config if it matches.
+            /// Returns the production chain.
+            ///
+            /// If the user specified the endpoint URL and config manually we'll attempt to
+            /// convert it into one of the pre-defined production chains.
             pub fn from_parts(ep: &Url, config: &str) -> Option<Self> {
                 match (url_to_string(ep).as_str(), config) {
                     $(
@@ -87,7 +92,7 @@ macro_rules! define_chains {
 }
 
 define_chains! {
-    /// A list of all production chains where the contract can be deployed to.
+    /// List of production chains where the contract can be deployed to.
     pub enum ProductionChain {
         AlephZero = ("wss://ws.azero.dev:443/", "Substrate"),
         Astar = ("wss://rpc.astar.network:443/", "Polkadot"),
