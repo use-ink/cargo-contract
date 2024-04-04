@@ -158,7 +158,7 @@ where
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let url = self.extrinsic_opts.url();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {

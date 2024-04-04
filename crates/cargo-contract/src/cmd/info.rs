@@ -20,6 +20,7 @@ use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
     parse_account,
+    CLIChainOpts,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
@@ -30,7 +31,6 @@ use contract_extrinsics::{
     url_to_string,
     ContractInfo,
     ErrorVariant,
-    ProductionChain,
     TrieId,
 };
 use ink_env::Environment;
@@ -67,17 +67,6 @@ pub struct InfoCommand {
         required_unless_present = "all"
     )]
     contract: Option<String>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
-    /// Name of a production chain to upload or instantiate the contract on.
-    #[clap(name = "chain", long, conflicts_with = "url")]
-    chain: Option<ProductionChain>,
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
@@ -87,14 +76,14 @@ pub struct InfoCommand {
     /// Display all contracts addresses
     #[clap(name = "all", long)]
     all: bool,
-    /// The chain config to be used as part of the call.
-    #[clap(name = "config", long, default_value = "Polkadot")]
-    config: String,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl InfoCommand {
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(self, run, self.chain_cli_opts.chain().config())
     }
 
     pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
@@ -106,11 +95,9 @@ impl InfoCommand {
         <<C as Config>::AccountId as FromStr>::Err:
             Into<Box<(dyn std::error::Error)>> + Display,
     {
-        let rpc_cli = if let Some(chain) = &self.chain {
-            RpcClient::from_url(chain.end_point()).await?
-        } else {
-            RpcClient::from_url(url_to_string(&self.url)).await?
-        };
+        let rpc_cli =
+            RpcClient::from_url(url_to_string(&self.chain_cli_opts.chain().url()))
+                .await?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
 
