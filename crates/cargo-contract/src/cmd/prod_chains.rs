@@ -96,6 +96,7 @@ define_chains! {
     pub enum ProductionChain {
         AlephZero = ("wss://ws.azero.dev:443/", "Substrate"),
         Astar = ("wss://rpc.astar.network:443/", "Polkadot"),
-        Shiden = ("wss://rpc.shiden.astar.network:443/", "Polkadot")
+        Shiden = ("wss://rpc.shiden.astar.network:443/", "Polkadot"),
+        Krest = ("wss://wss-krest.peaq.network:443/", "Polkadot")
     }
 }
