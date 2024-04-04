@@ -200,7 +200,11 @@ impl InstantiateCommand {
             }
         } else {
             if let Some(chain) = chain.production() {
-                if !instantiate_exec.opts().is_verifiable()? {
+                if !instantiate_exec
+                    .opts()
+                    .contract_artifacts()?
+                    .is_verifiable()
+                {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }

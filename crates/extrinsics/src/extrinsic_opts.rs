@@ -142,10 +142,6 @@ where
         url_to_string(&self.url)
     }
 
-    pub fn is_verifiable(&self) -> Result<bool> {
-        Ok(self.contract_artifacts()?.is_verifiable())
-    }
-
     /// Return the signer.
     pub fn signer(&self) -> &Signer {
         &self.signer

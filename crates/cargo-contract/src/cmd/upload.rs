@@ -149,7 +149,7 @@ impl UploadCommand {
             }
         } else {
             if let Some(chain) = chain.production() {
-                if !upload_exec.opts().is_verifiable()? {
+                if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
