@@ -147,7 +147,7 @@ pub struct CLIChainOpts {
     /// The chain config to be used as part of the call.
     #[clap(name = "config", long, default_value = "Polkadot")]
     config: String,
-    /// Name of a production chain to upload or instantiate the contract on.
+    /// The name of a production chain to be communicated with.
     #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
     chain: Option<ProductionChain>,
 }
