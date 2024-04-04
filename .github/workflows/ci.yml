@@ -156,6 +156,7 @@ jobs:
           path: nextest-archive-${{ matrix.os }}.tar.zst
 
   test:
+    needs: build-test
     strategy:
       fail-fast: false
       matrix:
