@@ -33,7 +33,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -103,7 +106,7 @@ where
             )),
         }?;
 
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let url = self.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
         let rpc = LegacyRpcMethods::<C>::new(rpc_cli);
@@ -130,7 +133,8 @@ impl<C: Config, E: Environment, Signer> RemoveExec<C, E, Signer>
 where
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     Signer: tx::Signer<C> + Clone,
 {
     /// Removes a contract code from the blockchain.

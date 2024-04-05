@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod config;
+mod prod_chains;
 
 pub mod build;
 pub mod call;
@@ -41,6 +42,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,
     schema::{
@@ -72,7 +74,6 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
-    ProductionChain,
     TokenMetadata,
 };
 
@@ -98,14 +99,6 @@ pub struct CLIExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
     /// Secret key URI for the account deploying the contract.
     ///
     /// e.g.
@@ -128,15 +121,75 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
-    /// Name of a production chain to upload or instantiate the contract on.
-    #[clap(name = "chain", long, conflicts_with = "url")]
-    chain: Option<ProductionChain>,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl CLIExtrinsicOpts {
     /// Returns the verbosity
     pub fn verbosity(&self) -> Result<Verbosity> {
         TryFrom::try_from(&self.verbosity)
+    }
+}
+
+/// Arguments required for communtacting with a substrate node.
+#[derive(Clone, Debug, clap::Args)]
+pub struct CLIChainOpts {
+    /// Websockets url of a substrate node.
+    #[clap(
+        name = "url",
+        long,
+        value_parser,
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// Chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
+    /// Name of a production chain to be communicated with.
+    #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
+    chain: Option<ProductionChain>,
+}
+
+impl CLIChainOpts {
+    pub fn chain(&self) -> Chain {
+        if let Some(chain) = &self.chain {
+            Chain::Production(chain.clone())
+        } else if let Some(prod) = ProductionChain::from_parts(&self.url, &self.config) {
+            Chain::Production(prod)
+        } else {
+            Chain::Custom(self.url.clone(), self.config.clone())
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Chain {
+    Production(ProductionChain),
+    Custom(url::Url, String),
+}
+
+impl Chain {
+    pub fn url(&self) -> url::Url {
+        match self {
+            Chain::Production(prod) => prod.url(),
+            Chain::Custom(url, _) => url.clone(),
+        }
+    }
+
+    pub fn config(&self) -> &str {
+        match self {
+            Chain::Production(prod) => prod.config(),
+            Chain::Custom(_, config) => config,
+        }
+    }
+
+    pub fn production(&self) -> Option<&ProductionChain> {
+        if let Chain::Production(prod) = self {
+            return Some(prod)
+        }
+        None
     }
 }
 

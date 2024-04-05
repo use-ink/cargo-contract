@@ -36,13 +36,13 @@ scale-info = { version = "2.11.1", default-features = false, features = ["derive
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 serde_json = "1.0.115"
 thiserror = "1.0.58"
-strsim = "0.11.0"
+strsim = "0.11.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
 ink = "5.0.0"
-sp-core = "30.0.0"
-sp-keyring = "33.0.0"
+sp-core = "31.0.0"
+sp-keyring = "34.0.0"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

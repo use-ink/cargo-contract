@@ -37,7 +37,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -84,7 +87,7 @@ where
             )
         })?;
 
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let url = self.extrinsic_opts.url();
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
         check_env_types(&client, &transcoder, self.extrinsic_opts.verbosity())?;
@@ -112,7 +115,9 @@ impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
     C::Hash: IntoVisitor,
     C::AccountId: IntoVisitor,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    E::Balance: EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     Signer: tx::Signer<C> + Clone,
 {
     /// Uploads contract code to a specified URL using a JSON-RPC call.

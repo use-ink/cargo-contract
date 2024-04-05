@@ -41,6 +41,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -127,7 +131,7 @@ where
         let call_data = transcoder.encode(&self.message, &self.args)?;
         tracing::debug!("Message data: {:?}", hex::encode(&call_data));
 
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let url = self.extrinsic_opts.url();
         let rpc = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc.clone()).await?;
         let rpc = LegacyRpcMethods::new(rpc);
@@ -165,8 +169,10 @@ pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
 
 impl<C: Config, E: Environment, Signer> CallExec<C, E, Signer>
 where
-    <C::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::AccountId: EncodeAsType + IntoVisitor,
+    E::Balance: EncodeAsType,
     Signer: tx::Signer<C> + Clone,
 {
     /// Simulates a contract call without modifying the blockchain.

@@ -58,7 +58,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -155,7 +158,7 @@ where
         let artifacts = self.extrinsic_opts.contract_artifacts()?;
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
-        let (_, url) = self.extrinsic_opts.chain_and_endpoint();
+        let url = self.extrinsic_opts.url();
         let code = if let Some(code) = artifacts.code {
             Code::Upload(code.0)
         } else {
@@ -260,10 +263,11 @@ pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
 impl<C: Config, E: Environment, Signer> InstantiateExec<C, E, Signer>
 where
     C::AccountId: Decode,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
-    E::Balance: Serialize,
+    E::Balance: Serialize + EncodeAsType,
     Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.
