@@ -209,8 +209,7 @@ jobs:
         shell: bash
 
       - name: Run tests
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst \
-            --partition count:${{ matrix.partition }}/2 -j 1
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -j 1
 
   template:
     strategy:
