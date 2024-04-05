@@ -66,9 +66,6 @@ pub struct RemoveCommand {
     /// Export the call output as JSON.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-    /// The chain config to be used as part of the call.
-    #[clap(name = "config", long, default_value = "Polkadot")]
-    config: String,
 }
 
 impl RemoveCommand {
@@ -78,7 +75,11 @@ impl RemoveCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
     }
 
     async fn run<C: Config + Environment + SignerConfig<C>>(
@@ -101,8 +102,8 @@ impl RemoveCommand {
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -121,7 +122,7 @@ impl RemoveCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
+            .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
