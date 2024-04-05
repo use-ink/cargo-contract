@@ -145,7 +145,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@v2.32.8
+        with:
+          tool: nextest
 
       - name: Build and archive tests
         run: cargo nextest archive --cargo-profile debug-ci --workspace --all-features --archive-file nextest-archive-${{ matrix.os }}.tar.zst
@@ -183,7 +185,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@v2.32.8
+        with:
+          tool: nextest
 
       - name: Download archive
         uses: actions/download-artifact@v4
