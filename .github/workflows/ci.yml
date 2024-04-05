@@ -119,7 +119,7 @@ jobs:
         if: ${{ !steps.check_permissions.outputs.has-permission }}
         run: cargo clippy --profile debug-ci --all-targets -- -D warnings
 
-  build-test:
+  build-tests:
     strategy:
       fail-fast: false
       matrix:
@@ -157,14 +157,53 @@ jobs:
           name: nextest-archive-${{ matrix.os }}
           path: nextest-archive-${{ matrix.os }}.tar.zst
 
-  test:
-    needs: build-test
+  run-tests:
+    needs: build-tests
     strategy:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
         os: ["ubuntu-22.04", "macos-12"]
         partition: [1, 2]
+    runs-on: ${{ matrix.os }}
+    env:
+      RUST_BACKTRACE: full
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          default: true
+          target: wasm32-unknown-unknown
+          components: rust-src, clippy
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install nextest
+        uses: taiki-e/install-action@v2.32.8
+        with:
+          tool: nextest
+
+      - name: Download archive
+        uses: actions/download-artifact@v4
+        with:
+          name: nextest-archive-${{ matrix.os }}
+
+      - name: Run tests
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -E 'not test(integration_tests)'
+
+  run-integration-test:
+    needs: build-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        # We want newer versions than 'latest' here to have current wasm-opt
+        os: ["ubuntu-22.04", "macos-12"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -212,12 +251,9 @@ jobs:
           mv artifacts/substrate-contracts-node-$CONTRACTS_NODE_OS/substrate-contracts-node /usr/local/bin
         shell: bash
 
-      - name: Run tests
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -E 'not test(integration_tests)'
-
       - name: Run integration tests
         # The integration tests cannot be run in parallel
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -j 1 -E 'test(integration_tests)'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst -j 1 -E 'test(integration_tests)'
 
   template:
     strategy:
