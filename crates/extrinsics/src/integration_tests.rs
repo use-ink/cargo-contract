@@ -182,10 +182,6 @@ async fn build_upload_instantiate_call() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -199,6 +195,10 @@ async fn build_upload_instantiate_call() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
@@ -262,10 +262,6 @@ async fn build_upload_remove() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("incrementer")
@@ -279,6 +275,10 @@ async fn build_upload_remove() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
@@ -327,10 +327,6 @@ async fn build_upload_instantiate_info() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -344,6 +340,10 @@ async fn build_upload_instantiate_info() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
@@ -450,10 +450,6 @@ async fn api_build_upload_instantiate_call() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -467,6 +463,10 @@ async fn api_build_upload_instantiate_call() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     // construct the contract file path
     let contract_file = project_path.join("target/ink/flipper.contract");
@@ -590,10 +590,6 @@ async fn api_build_upload_remove() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("incrementer")
@@ -607,6 +603,10 @@ async fn api_build_upload_remove() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     // construct the contract file path
     let contract_file = project_path.join("target/ink/incrementer.contract");
@@ -706,10 +706,6 @@ async fn build_upload_instantiate_storage() {
         .tempdir()
         .expect("temporary directory creation failed");
 
-    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
-        .await
-        .expect("Error spawning contracts node");
-
     cargo_contract(tmp_dir.path())
         .arg("new")
         .arg("flipper")
@@ -723,6 +719,10 @@ async fn build_upload_instantiate_storage() {
         .arg("build")
         .assert()
         .success();
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
 
     let output = cargo_contract(project_path.as_path())
         .arg("upload")
