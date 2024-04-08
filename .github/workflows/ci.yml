@@ -208,6 +208,7 @@ jobs:
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
         os: ["ubuntu-22.04", "macos-12"]
+        partition: [1, 2]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -257,7 +258,7 @@ jobs:
 
       - name: Run integration tests
         # The integration tests cannot be run in parallel
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst -j 1 -E 'test(integration_tests)'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -j 1 -E 'test(integration_tests)'
 
   template:
     strategy:
