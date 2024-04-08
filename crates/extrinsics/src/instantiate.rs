@@ -280,7 +280,7 @@ where
     /// Returns the decoded dry run result, or an error in case of failure.
     pub async fn decode_instantiate_dry_run(
         &self,
-        result: &ContractInstantiateResult<C::AccountId, E::Balance, ()>,
+        result: &ContractInstantiateResult<C::AccountId, E::Balance>,
     ) -> Result<InstantiateDryRunResult<E::Balance>, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         match result.result {
@@ -319,7 +319,7 @@ where
     /// Returns the dry run simulation result, or an error in case of failure.
     pub async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance, ()>> {
+    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance>> {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest::<C, E> {
             origin: self.opts.signer().account_id(),
