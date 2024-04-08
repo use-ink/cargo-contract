@@ -70,7 +70,7 @@ pub struct StorageCommand {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Fetch the storage version of the pallet contracts (pallet version).
+    /// Fetch the storage version of the pallet contracts (state query: contracts::palletVersion()).
     #[clap(long, short)]
     version: bool,
     /// Arguments required for communtacting with a substrate node.
