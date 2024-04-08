@@ -195,7 +195,7 @@ jobs:
           name: nextest-archive-${{ matrix.os }}
 
       - name: Run tests
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -E 'not test(integration_tests)' -E 'not package(contract-build)'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -E 'not (test(integration_tests) | package(contract-build))'
 
       - name: Run contract build tests
         # The contract build tests cannot be run in parallel
