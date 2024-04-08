@@ -94,7 +94,9 @@ where
         }
     }
 
-    /// Fetch the storage version of the pallet contracts (pallet version)
+    /// Fetch the storage version of the pallet contracts.
+    ///
+    /// This is the result of a state query to the function `contracts::palletVersion())`.
     pub async fn version(&self) -> Result<u16> {
         self.rpc
             .client
