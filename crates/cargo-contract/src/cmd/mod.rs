@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+mod config;
+mod prod_chains;
+
 pub mod build;
 pub mod call;
 pub mod decode;
@@ -39,6 +42,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,
     schema::{
@@ -70,23 +74,19 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
+    TokenMetadata,
 };
-use core::fmt;
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
-use std::io::{
-    self,
-    Write,
-};
-pub use subxt::{
-    Config,
-    PolkadotConfig as DefaultConfig,
-};
-use subxt_signer::{
-    sr25519::Keypair,
-    SecretUri,
+
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    io::{
+        self,
+        Write,
+    },
+    str::FromStr,
 };
 
 /// Arguments required for creating and sending an extrinsic to a substrate node.
@@ -99,14 +99,6 @@ pub struct CLIExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
     /// Secret key URI for the account deploying the contract.
     ///
     /// e.g.
@@ -122,14 +114,16 @@ pub struct CLIExtrinsicOpts {
     /// The maximum amount of balance that can be charged from the caller to pay for the
     /// storage. consumed.
     #[clap(long)]
-    storage_deposit_limit:
-        Option<BalanceVariant<<DefaultEnvironment as Environment>::Balance>>,
+    storage_deposit_limit: Option<String>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
     #[clap(long)]
     skip_dry_run: bool,
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl CLIExtrinsicOpts {
@@ -139,13 +133,76 @@ impl CLIExtrinsicOpts {
     }
 }
 
+/// Arguments required for communtacting with a substrate node.
+#[derive(Clone, Debug, clap::Args)]
+pub struct CLIChainOpts {
+    /// Websockets url of a substrate node.
+    #[clap(
+        name = "url",
+        long,
+        value_parser,
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// Chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
+    /// Name of a production chain to be communicated with.
+    #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
+    chain: Option<ProductionChain>,
+}
+
+impl CLIChainOpts {
+    pub fn chain(&self) -> Chain {
+        if let Some(chain) = &self.chain {
+            Chain::Production(chain.clone())
+        } else if let Some(prod) = ProductionChain::from_parts(&self.url, &self.config) {
+            Chain::Production(prod)
+        } else {
+            Chain::Custom(self.url.clone(), self.config.clone())
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Chain {
+    Production(ProductionChain),
+    Custom(url::Url, String),
+}
+
+impl Chain {
+    pub fn url(&self) -> url::Url {
+        match self {
+            Chain::Production(prod) => prod.url(),
+            Chain::Custom(url, _) => url.clone(),
+        }
+    }
+
+    pub fn config(&self) -> &str {
+        match self {
+            Chain::Production(prod) => prod.config(),
+            Chain::Custom(_, config) => config,
+        }
+    }
+
+    pub fn production(&self) -> Option<&ProductionChain> {
+        if let Chain::Production(prod) = self {
+            return Some(prod)
+        }
+        None
+    }
+}
+
 const STORAGE_DEPOSIT_KEY: &str = "Storage Total Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
-pub fn display_contract_exec_result<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
-) -> Result<()> {
+pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance>,
+) -> Result<()>
+where
+    Balance: Debug,
+{
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
         .lines();
@@ -168,8 +225,8 @@ pub fn display_contract_exec_result<R, const WIDTH: usize>(
     Ok(())
 }
 
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize>(
-    result: &ContractResult<R, <DefaultEnvironment as Environment>::Balance, ()>,
+pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
+    result: &ContractResult<R, Balance>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -235,10 +292,11 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Hash>(
-    info: &ExtendedContractInfo<Hash, <DefaultEnvironment as Environment>::Balance>,
+pub fn basic_display_format_extended_contract_info<Hash, Balance>(
+    info: &ExtendedContractInfo<Hash, Balance>,
 ) where
-    Hash: fmt::Debug,
+    Hash: Debug,
+    Balance: Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
     name_value_println!(
@@ -269,21 +327,37 @@ pub fn basic_display_format_extended_contract_info<Hash>(
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts(contracts: &[<DefaultConfig as Config>::AccountId]) {
-    contracts
-        .iter()
-        .for_each(|e: &<DefaultConfig as Config>::AccountId| println!("{}", e))
+pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
+where
+    AccountId: Display,
+{
+    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
 }
 
-/// Create a Signer from a secret URI.
-pub fn create_signer(suri: &str) -> Result<Keypair> {
-    let uri = <SecretUri as std::str::FromStr>::from_str(suri)?;
-    let keypair = Keypair::from_uri(&uri)?;
-    Ok(keypair)
+/// Parse a balance from string format
+pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
+    balance: &str,
+    token_metadata: &TokenMetadata,
+) -> Result<Balance> {
+    BalanceVariant::from_str(balance)
+        .map_err(|e| anyhow!("Balance parsing failed: {e}"))
+        .and_then(|bv| bv.denominate_balance(token_metadata))
+}
+
+/// Parse a account from string format
+pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
+where
+    <AccountId as FromStr>::Err: Display,
+{
+    AccountId::from_str(account)
+        .map_err(|e| anyhow::anyhow!("Account address parsing failed: {e}"))
 }
 
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
-pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
+pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
+where
+    Hash: From<[u8; 32]>,
+{
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
         anyhow::bail!("Code hash should be 32 bytes in length")
@@ -293,19 +367,54 @@ pub fn parse_code_hash(input: &str) -> Result<<DefaultConfig as Config>::Hash> {
     Ok(arr.into())
 }
 
+/// Prompt the user to confirm the upload of unverifiable code to the production chain.
+pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
+    println!(
+        "{} (skip with --skip-validate)",
+        "Confirm upload:".bright_white().bold()
+    );
+    let warning = format!(
+        "You are trying to upload unverifiable code to {} mainnet",
+        chain
+    )
+    .bold()
+    .yellow();
+    print!("{}", warning);
+    println!(
+        "{} ({}): ",
+        "\nContinue?".bright_white().bold(),
+        "y/N".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'n'
+        "y" => Ok(()),
+        "n" | "" => Err(anyhow!("Upload cancelled!")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use subxt::{
+        Config,
+        SubstrateConfig,
+    };
+
     use super::*;
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok());
         // without 0x prefix
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok())
@@ -314,7 +423,7 @@ mod tests {
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
         )
         .is_err())
@@ -323,7 +432,7 @@ mod tests {
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(parse_code_hash(
+        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
             "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_err())

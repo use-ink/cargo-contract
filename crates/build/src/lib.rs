@@ -628,8 +628,11 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             String::from_utf8_lossy(&output.stdout).contains(linting::TOOLCHAIN_VERSION),
             format!(
                 "Toolchain `{0}` was not found!\n\
-                This specific version is required to provide additional source code analysis.\n\n
-                You can install it by executing `rustup install {0}`.",
+                This specific version is required to provide additional source code analysis.\n\n\
+                You can install it by executing:\n\
+                  rustup install {0}\n\
+                  rustup component add rust-src --toolchain {0}\n\
+                  rustup run {0} cargo install cargo-dylint dylint-link",
                 linting::TOOLCHAIN_VERSION,
             )
             .to_string()
@@ -637,8 +640,11 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     } else {
         anyhow::bail!(format!(
             "Toolchain `{0}` was not found!\n\
-            This specific version is required to provide additional source code analysis.\n\n
-            Install `rustup` according to https://rustup.rs/ and then run: `rustup install {0}`.",
+            This specific version is required to provide additional source code analysis.\n\n\
+            Install `rustup` according to https://rustup.rs/ and then run:\
+              rustup install {0}\n\
+              rustup component add rust-src --toolchain {0}\n\
+              rustup run {0} cargo install cargo-dylint dylint-link",
             linting::TOOLCHAIN_VERSION,
         )
         .to_string()

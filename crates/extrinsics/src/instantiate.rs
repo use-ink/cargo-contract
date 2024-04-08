@@ -58,7 +58,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
-    config,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -184,7 +187,6 @@ where
         Ok(InstantiateExec {
             args,
             opts: self.extrinsic_opts,
-            url,
             rpc,
             client,
             transcoder,
@@ -253,7 +255,6 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
 pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
     args: InstantiateArgs<C, E>,
-    url: String,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
@@ -262,10 +263,11 @@ pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
 impl<C: Config, E: Environment, Signer> InstantiateExec<C, E, Signer>
 where
     C::AccountId: Decode,
-    <C::ExtrinsicParams as config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
-    E::Balance: Serialize,
+    E::Balance: Serialize + EncodeAsType,
     Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.
@@ -278,7 +280,7 @@ where
     /// Returns the decoded dry run result, or an error in case of failure.
     pub async fn decode_instantiate_dry_run(
         &self,
-        result: &ContractInstantiateResult<C::AccountId, E::Balance, ()>,
+        result: &ContractInstantiateResult<C::AccountId, E::Balance>,
     ) -> Result<InstantiateDryRunResult<E::Balance>, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         match result.result {
@@ -317,7 +319,7 @@ where
     /// Returns the dry run simulation result, or an error in case of failure.
     pub async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance, ()>> {
+    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance>> {
         let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest::<C, E> {
             origin: self.opts.signer().account_id(),
@@ -469,11 +471,6 @@ where
     /// Returns the instantiate arguments.
     pub fn args(&self) -> &InstantiateArgs<C, E> {
         &self.args
-    }
-
-    /// Returns the url.
-    pub fn url(&self) -> &String {
-        &self.url
     }
 
     /// Returns the client.

@@ -15,10 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    create_signer,
+    config::SignerConfig,
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
+    parse_balance,
     print_dry_running_status,
     print_gas_required_success,
     prompt_confirm_tx,
@@ -27,6 +28,8 @@ use super::{
 };
 use crate::{
     anyhow,
+    call_with_config,
+    cmd::prompt_confirm_unverifiable_upload,
     ErrorVariant,
     InstantiateExec,
     Weight,
@@ -41,7 +44,6 @@ use contract_build::{
     Verbosity,
 };
 use contract_extrinsics::{
-    BalanceVariant,
     Code,
     DisplayEvents,
     ExtrinsicOptsBuilder,
@@ -50,14 +52,28 @@ use contract_extrinsics::{
     InstantiateExecResult,
     TokenMetadata,
 };
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
+use ink_env::Environment;
+use serde::Serialize;
 use sp_core::Bytes;
-use std::fmt::Debug;
-use subxt::PolkadotConfig as DefaultConfig;
-use subxt_signer::sr25519::Keypair;
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    str::FromStr,
+};
+use subxt::{
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
+    ext::{
+        codec::Decode,
+        scale_decode::IntoVisitor,
+        scale_encode::EncodeAsType,
+    },
+    Config,
+};
 
 #[derive(Debug, clap::Args)]
 pub struct InstantiateCommand {
@@ -71,7 +87,7 @@ pub struct InstantiateCommand {
     extrinsic_cli_opts: CLIExtrinsicOpts,
     /// Transfers an initial balance to the instantiated contract
     #[clap(name = "value", long, default_value = "0")]
-    value: BalanceVariant<<DefaultEnvironment as Environment>::Balance>,
+    value: String,
     /// Maximum amount of gas to be used for this command.
     /// If not specified will perform a dry-run to estimate the gas consumed for the
     /// instantiation.
@@ -103,35 +119,59 @@ impl InstantiateCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        let token_metadata =
-            TokenMetadata::query::<DefaultConfig>(&self.extrinsic_cli_opts.url).await?;
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
+    }
 
-        let signer = create_signer(&self.extrinsic_cli_opts.suri)?;
+    async fn run<C: Config + Environment + SignerConfig<C>>(
+        &self,
+    ) -> Result<(), ErrorVariant>
+    where
+        <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
+        <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType + Decode + Display,
+        <<C as Config>::AccountId as FromStr>::Err: Display,
+        C::Balance:
+            From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+        <C as Config>::Hash: From<[u8; 32]> + IntoVisitor + EncodeAsType,
+    {
+        let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
+            .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
+
+        let storage_deposit_limit = self
+            .extrinsic_cli_opts
+            .storage_deposit_limit
+            .clone()
+            .map(|b| parse_balance(&b, &token_metadata))
+            .transpose()
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to parse storage_deposit_limit option: {}", e)
+            })?;
+        let value = parse_balance(&self.value, &token_metadata)
+            .map_err(|e| anyhow::anyhow!("Failed to parse value option: {}", e))?;
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
-            .storage_deposit_limit(
-                self.extrinsic_cli_opts
-                    .storage_deposit_limit
-                    .clone()
-                    .map(|bv| bv.denominate_balance(&token_metadata))
-                    .transpose()?,
-            )
+            .url(chain.url())
+            .storage_deposit_limit(storage_deposit_limit)
             .done();
-        let instantiate_exec: InstantiateExec<
-            DefaultConfig,
-            DefaultEnvironment,
-            Keypair,
-        > = InstantiateCommandBuilder::new(extrinsic_opts)
-            .constructor(self.constructor.clone())
-            .args(self.args.clone())
-            .value(self.value.denominate_balance(&token_metadata)?)
-            .gas_limit(self.gas_limit)
-            .proof_size(self.proof_size)
-            .salt(self.salt.clone())
-            .done()
-            .await?;
+
+        let instantiate_exec: InstantiateExec<C, C, _> =
+            InstantiateCommandBuilder::new(extrinsic_opts)
+                .constructor(self.constructor.clone())
+                .args(self.args.clone())
+                .value(value)
+                .gas_limit(self.gas_limit)
+                .proof_size(self.proof_size)
+                .salt(self.salt.clone())
+                .done()
+                .await?;
 
         if !self.extrinsic_cli_opts.execute {
             let result = instantiate_exec.instantiate_dry_run().await?;
@@ -141,7 +181,7 @@ impl InstantiateCommand {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         print_instantiate_dry_run_result(&dry_run_result);
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH>(
+                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH, _>(
                             &result,
                         )?;
                         display_dry_run_result_warning("instantiate");
@@ -153,12 +193,21 @@ impl InstantiateCommand {
                         return Err(object)
                     } else {
                         name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(&result)?;
+                        display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
                     }
                     Err(object)
                 }
             }
         } else {
+            if let Some(chain) = chain.production() {
+                if !instantiate_exec
+                    .opts()
+                    .contract_artifacts()?
+                    .is_verifiable()
+                {
+                    prompt_confirm_unverifiable_upload(&chain.to_string())?
+                }
+            }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
                 &instantiate_exec,
@@ -196,11 +245,21 @@ impl InstantiateCommand {
 }
 
 /// A helper function to estimate the gas required for a contract instantiation.
-async fn pre_submit_dry_run_gas_estimate_instantiate(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
+async fn pre_submit_dry_run_gas_estimate_instantiate<
+    C: Config + Environment + SignerConfig<C>,
+>(
+    instantiate_exec: &InstantiateExec<C, C, C::Signer>,
     output_json: bool,
     skip_dry_run: bool,
-) -> Result<Weight> {
+) -> Result<Weight>
+where
+    C::Signer: subxt::tx::Signer<C> + Clone,
+    <C as Config>::AccountId: IntoVisitor + Display + Decode,
+    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    C::Balance: Serialize + Debug + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
     if skip_dry_run {
         return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
@@ -240,7 +299,7 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
                 Err(anyhow!("{}", serde_json::to_string_pretty(&object)?))
             } else {
                 name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
-                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH>(
+                display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(
                     &instantiate_result,
                 )?;
 
@@ -252,14 +311,21 @@ async fn pre_submit_dry_run_gas_estimate_instantiate(
 
 /// Displays the results of contract instantiation, including contract address,
 /// events, and optional code hash.
-pub async fn display_result(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
-    instantiate_exec_result: InstantiateExecResult<DefaultConfig>,
+pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
+    instantiate_exec: &InstantiateExec<C, C, C::Signer>,
+    instantiate_exec_result: InstantiateExecResult<C>,
     token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,
-) -> Result<(), ErrorVariant> {
-    let events = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(
+) -> Result<(), ErrorVariant>
+where
+    <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
+    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    C::Balance: Serialize + From<u128> + Display + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
+    let events = DisplayEvents::from_events::<C, C>(
         &instantiate_exec_result.events,
         Some(instantiate_exec.transcoder()),
         &instantiate_exec.client().metadata(),
@@ -275,10 +341,7 @@ pub async fn display_result(
         };
         println!("{}", display_instantiate_result.to_json()?)
     } else {
-        println!(
-            "{}",
-            events.display_events::<DefaultEnvironment>(verbosity, token_metadata)?
-        );
+        println!("{}", events.display_events::<C>(verbosity, token_metadata)?);
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
@@ -287,10 +350,17 @@ pub async fn display_result(
     Ok(())
 }
 
-pub fn print_default_instantiate_preview(
-    instantiate_exec: &InstantiateExec<DefaultConfig, DefaultEnvironment, Keypair>,
+pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<C>>(
+    instantiate_exec: &InstantiateExec<C, C, C::Signer>,
     gas_limit: Weight,
-) {
+) where
+    C::Signer: subxt::tx::Signer<C> + Clone,
+    <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
+    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    C::Balance: Serialize + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
     name_value_println!(
         "Constructor",
         instantiate_exec.args().constructor(),
@@ -323,8 +393,8 @@ impl InstantiateResult {
     }
 }
 
-pub fn print_instantiate_dry_run_result(
-    result: &InstantiateDryRunResult<<DefaultEnvironment as Environment>::Balance>,
+pub fn print_instantiate_dry_run_result<Balance: Serialize>(
+    result: &InstantiateDryRunResult<Balance>,
 ) {
     name_value_println!(
         "Result",

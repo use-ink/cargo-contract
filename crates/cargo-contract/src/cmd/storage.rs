@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::DefaultConfig;
 use anyhow::Result;
 use colored::Colorize;
 use comfy_table::{
@@ -28,16 +27,36 @@ use contract_extrinsics::{
     ContractStorageRpc,
     ErrorVariant,
 };
-use ink_env::DefaultEnvironment;
-use std::path::PathBuf;
-use subxt::Config;
+use ink_env::Environment;
+use serde::Serialize;
+use std::{
+    fmt::Display,
+    path::PathBuf,
+    str::FromStr,
+};
+use subxt::{
+    ext::scale_decode::IntoVisitor,
+    Config,
+};
+
+use crate::call_with_config;
+
+use super::{
+    parse_account,
+    CLIChainOpts,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "storage", about = "Inspect contract storage")]
 pub struct StorageCommand {
     /// The address of the contract to inspect storage of.
-    #[clap(name = "contract", long, env = "CONTRACT")]
-    contract: <DefaultConfig as Config>::AccountId,
+    #[clap(
+        name = "contract",
+        long,
+        env = "CONTRACT",
+        required_unless_present = "version"
+    )]
+    contract: Option<String>,
     /// Fetch the "raw" storage keys and values for the contract.
     #[clap(long)]
     raw: bool,
@@ -51,26 +70,48 @@ pub struct StorageCommand {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
+    /// Fetch the storage version of the pallet contracts (state query:
+    /// contracts::palletVersion()).
+    #[clap(long, short)]
+    version: bool,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl StorageCommand {
-    pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc = ContractStorageRpc::<DefaultConfig>::new(&self.url).await?;
-        let storage_layout =
-            ContractStorage::<DefaultConfig, DefaultEnvironment>::new(rpc);
+    pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        call_with_config!(self, run, self.chain_cli_opts.chain().config())
+    }
+
+    pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr,
+        <<C as Config>::AccountId as FromStr>::Err:
+            Into<Box<(dyn std::error::Error)>> + Display,
+        C::Balance: Serialize + IntoVisitor,
+        <C as Config>::Hash: IntoVisitor,
+    {
+        let rpc =
+            ContractStorageRpc::<C>::new(&self.chain_cli_opts.chain().url()).await?;
+        let storage_layout = ContractStorage::<C, C>::new(rpc);
+        if self.version {
+            println!("{}", storage_layout.version().await?);
+            return Ok(())
+        }
+
+        // Contract arg shall be always present in this case, it is enforced by
+        // clap configuration
+        let contract = self
+            .contract
+            .as_ref()
+            .map(|c| parse_account(c))
+            .transpose()?
+            .expect("Contract argument shall be present");
 
         if self.raw {
-            let storage_data = storage_layout
-                .load_contract_storage_data(&self.contract)
-                .await?;
+            let storage_data =
+                storage_layout.load_contract_storage_data(&contract).await?;
             println!(
                 "{json}",
                 json = serde_json::to_string_pretty(&storage_data)?
@@ -87,7 +128,7 @@ impl StorageCommand {
             Ok(contract_artifacts) => {
                 let transcoder = contract_artifacts.contract_transcoder()?;
                 let contract_storage = storage_layout
-                    .load_contract_storage_with_layout(&self.contract, &transcoder)
+                    .load_contract_storage_with_layout(&contract, &transcoder)
                     .await?;
                 if self.output_json {
                     println!(
@@ -104,14 +145,12 @@ impl StorageCommand {
                     "{} Displaying raw storage: no valid contract metadata artifacts found",
                     "Info:".cyan().bold(),
                 );
-                let storage_data = storage_layout
-                    .load_contract_storage_data(&self.contract)
-                    .await?;
+                let storage_data =
+                    storage_layout.load_contract_storage_data(&contract).await?;
                 println!(
                     "{json}",
                     json = serde_json::to_string_pretty(&storage_data)?
                 );
-                return Ok(())
             }
         }
 

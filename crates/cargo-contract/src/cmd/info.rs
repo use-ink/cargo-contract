@@ -14,10 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::call_with_config;
+
 use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
-    DefaultConfig,
+    parse_account,
+    CLIChainOpts,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
@@ -30,18 +33,24 @@ use contract_extrinsics::{
     ErrorVariant,
     TrieId,
 };
-use ink_env::{
-    DefaultEnvironment,
-    Environment,
-};
+use ink_env::Environment;
+use serde::Serialize;
 use std::{
-    fmt::Debug,
+    fmt::{
+        Debug,
+        Display,
+    },
     io::Write,
+    str::FromStr,
 };
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
+    },
+    ext::{
+        codec::Decode,
+        scale_decode::IntoVisitor,
     },
     Config,
     OnlineClient,
@@ -57,15 +66,7 @@ pub struct InfoCommand {
         env = "CONTRACT",
         required_unless_present = "all"
     )]
-    contract: Option<<DefaultConfig as Config>::AccountId>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
+    contract: Option<String>,
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
@@ -75,14 +76,30 @@ pub struct InfoCommand {
     /// Display all contracts addresses
     #[clap(name = "all", long)]
     all: bool,
+    /// Arguments required for communtacting with a substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl InfoCommand {
-    pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let rpc_cli = RpcClient::from_url(url_to_string(&self.url)).await?;
-        let client =
-            OnlineClient::<DefaultConfig>::from_rpc_client(rpc_cli.clone()).await?;
-        let rpc = LegacyRpcMethods::<DefaultConfig>::new(rpc_cli.clone());
+    pub async fn handle(&self) -> Result<(), ErrorVariant> {
+        call_with_config!(self, run, self.chain_cli_opts.chain().config())
+    }
+
+    pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
+    where
+        <C as Config>::AccountId:
+            Serialize + Display + IntoVisitor + Decode + AsRef<[u8]> + FromStr,
+        <C as Config>::Hash: IntoVisitor + Display,
+        <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
+        <<C as Config>::AccountId as FromStr>::Err:
+            Into<Box<(dyn std::error::Error)>> + Display,
+    {
+        let rpc_cli =
+            RpcClient::from_url(url_to_string(&self.chain_cli_opts.chain().url()))
+                .await?;
+        let client = OnlineClient::<C>::from_rpc_client(rpc_cli.clone()).await?;
+        let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
 
         // All flag applied
         if self.all {
@@ -103,12 +120,12 @@ impl InfoCommand {
             let contract = self
                 .contract
                 .as_ref()
-                .expect("Contract argument was not provided");
+                .map(|c| parse_account(c))
+                .transpose()?
+                .expect("Contract argument shall be present");
 
-            let info_to_json = fetch_contract_info::<DefaultConfig, DefaultEnvironment>(
-                contract, &rpc, &client,
-            )
-            .await?;
+            let info_to_json =
+                fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
@@ -128,16 +145,16 @@ impl InfoCommand {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&ExtendedContractInfo::<
-                        <DefaultConfig as Config>::Hash,
-                        <DefaultEnvironment as Environment>::Balance,
+                        <C as Config>::Hash,
+                        C::Balance,
                     >::new(
                         info_to_json, &wasm_code
                     ))?
                 )
             } else {
                 basic_display_format_extended_contract_info(&ExtendedContractInfo::<
-                    <DefaultConfig as Config>::Hash,
-                    <DefaultEnvironment as Environment>::Balance,
+                    <C as Config>::Hash,
+                    C::Balance,
                 >::new(
                     info_to_json, &wasm_code
                 ))
