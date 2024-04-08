@@ -40,7 +40,7 @@ use sp_weights::Weight;
 /// the `ContractsApi` version. Therefore when SCALE decoding a `ContractResult` its
 /// trailing data should be ignored to avoid any potential compatibility issues.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct ContractResult<R, Balance, EventRecord> {
+pub struct ContractResult<R, Balance> {
     /// How much weight was consumed during execution.
     pub gas_consumed: Weight,
     /// How much weight is required as gas limit in order to execute this call.
@@ -78,21 +78,15 @@ pub struct ContractResult<R, Balance, EventRecord> {
     pub debug_message: Vec<u8>,
     /// The execution result of the wasm code.
     pub result: R,
-    /// The events that were emitted during execution. It is an option as event
-    /// collection is optional.
-    pub events: Option<Vec<EventRecord>>,
 }
 
 /// Result type of a `bare_call` call as well as `ContractsApi::call`.
-pub type ContractExecResult<Balance, EventRecord> =
-    ContractResult<Result<ExecReturnValue, DispatchError>, Balance, EventRecord>;
+pub type ContractExecResult<Balance> =
+    ContractResult<Result<ExecReturnValue, DispatchError>, Balance>;
 
 /// Result type of a `bare_instantiate` call as well as `ContractsApi::instantiate`.
-pub type ContractInstantiateResult<AccountId, Balance, EventRecord> = ContractResult<
-    Result<InstantiateReturnValue<AccountId>, DispatchError>,
-    Balance,
-    EventRecord,
->;
+pub type ContractInstantiateResult<AccountId, Balance> =
+    ContractResult<Result<InstantiateReturnValue<AccountId>, DispatchError>, Balance>;
 
 /// Result type of a `bare_code_upload` call.
 pub type CodeUploadResult<CodeHash, Balance> =
