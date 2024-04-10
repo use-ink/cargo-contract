@@ -35,7 +35,7 @@ sp-core = "31.0.0"
 sp-runtime = "34.0.0"
 sp-weights = "30.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
-scale-info = "2.11.1"
+scale-info = "2.11.2"
 subxt = "0.35.2"
 hex = "0.4.3"
 derivative = "2.2.0"
