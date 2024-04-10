@@ -84,7 +84,7 @@ pub fn check_contract_ink_compatibility(
             "change the ink! version of your contract to {}",
             ink_required_versions
         );
-        let contract_not_compatible_message = "This version of cargo-contract is not\
+        let contract_not_compatible_message = "This version of cargo-contract is not \
                                                     compatible with the contract's ink! version.";
 
         // Find best cargo-contract version
