@@ -76,7 +76,7 @@ pub struct InfoCommand {
     /// Display all contracts addresses
     #[clap(name = "all", long)]
     all: bool,
-    /// Arguments required for communtacting with a substrate node.
+    /// Arguments required for communicating with a Substrate node.
     #[clap(flatten)]
     chain_cli_opts: CLIChainOpts,
 }

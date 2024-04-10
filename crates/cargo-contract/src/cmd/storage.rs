@@ -74,7 +74,7 @@ pub struct StorageCommand {
     /// contracts::palletVersion()).
     #[clap(long, short)]
     version: bool,
-    /// Arguments required for communtacting with a substrate node.
+    /// Arguments required for communicating with a Substrate node.
     #[clap(flatten)]
     chain_cli_opts: CLIChainOpts,
 }

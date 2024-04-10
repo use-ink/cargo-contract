@@ -34,7 +34,7 @@ use std::{
     path::PathBuf,
 };
 
-/// Arguments required for creating and sending an extrinsic to a substrate node.
+/// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Derivative)]
 #[derivative(Clone(bound = "E::Balance: Clone"))]
 pub struct ExtrinsicOpts<C: Config, E: Environment, Signer: Clone> {
@@ -85,7 +85,7 @@ where
         this
     }
 
-    /// Sets the websockets url of a substrate node.
+    /// Sets the websockets url of a Substrate node.
     pub fn url<T: Into<Url>>(self, url: T) -> Self {
         let mut this = self;
         this.opts.url = url.into();
@@ -137,7 +137,7 @@ where
         self.manifest_path.as_ref()
     }
 
-    /// Return the URL of the substrate node.
+    /// Return the URL of the Substrate node.
     pub fn url(&self) -> String {
         url_to_string(&self.url)
     }
