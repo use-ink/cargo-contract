@@ -117,6 +117,7 @@ impl CrateMetadata {
             .packages
             .iter()
             .find_map(|package| {
+                eprintln!("name: {:?}", package.name);
                 if package.name == "ink" || package.name == "ink_lang" {
                     Some(
                         Version::parse(&package.version.to_string())
