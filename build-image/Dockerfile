@@ -101,16 +101,21 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && eval "${COMMAND}" \
     # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
     && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
+    && cargo install cargo-dylint dylint-link \
     # Cleanup after `cargo install`
     && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache \
     # apt clean up
     && apt-get remove -y gnupg libssl-dev pkg-config \
     && apt-get autoremove -y \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Check if build with linting works
+    && cargo contract new test \
+    && cd test && cargo contract build --lint
 
 FROM slimmed-rust as ink-dev
 
+COPY --from=cc-builder /root/.dylint_drivers /root/.dylint_drivers
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-contract /usr/local/bin/cargo-contract
 COPY --from=cc-builder /usr/local/cargo/bin/cargo-dylint /usr/local/cargo/bin/cargo-dylint
 COPY --from=cc-builder /usr/local/cargo/bin/dylint-link /usr/local/cargo/bin/dylint-link
