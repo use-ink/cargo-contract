@@ -35,8 +35,8 @@ sp-core = "31.0.0"
 sp-runtime = "34.0.0"
 sp-weights = "30.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
-scale-info = "2.11.1"
-subxt = "0.35.1"
+scale-info = "2.11.2"
+subxt = "0.35.2"
 hex = "0.4.3"
 derivative = "2.2.0"
 ink_metadata = "5.0.0"
@@ -49,7 +49,7 @@ regex = "1.10.4"
 predicates = "3.1.0"
 tempfile = "3.10.1"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-subxt-signer = { version = "0.35.1", features = ["subxt", "sr25519"] }
+subxt-signer = { version = "0.35.2", features = ["subxt", "sr25519"] }
 
 [features]
 integration-tests = []

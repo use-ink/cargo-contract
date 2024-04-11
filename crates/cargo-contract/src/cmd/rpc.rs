@@ -38,7 +38,7 @@ pub struct RpcCommand {
     /// Export the call output in JSON format.
     #[clap(long)]
     output_json: bool,
-    /// Arguments required for communtacting with a substrate node.
+    /// Arguments required for communicating with a Substrate node.
     #[clap(flatten)]
     chain_cli_opts: CLIChainOpts,
 }

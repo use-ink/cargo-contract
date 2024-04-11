@@ -89,7 +89,7 @@ use std::{
     str::FromStr,
 };
 
-/// Arguments required for creating and sending an extrinsic to a substrate node.
+/// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CLIExtrinsicOpts {
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
@@ -121,7 +121,7 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
-    /// Arguments required for communtacting with a substrate node.
+    /// Arguments required for communicating with a Substrate node.
     #[clap(flatten)]
     chain_cli_opts: CLIChainOpts,
 }
@@ -133,10 +133,10 @@ impl CLIExtrinsicOpts {
     }
 }
 
-/// Arguments required for communtacting with a substrate node.
+/// Arguments required for communicating with a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CLIChainOpts {
-    /// Websockets url of a substrate node.
+    /// Websockets url of a Substrate node.
     #[clap(
         name = "url",
         long,

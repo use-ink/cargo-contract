@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./.images/cargo-contract.svg" alt="cargo-contract" height="170" />
+    <img src="https://raw.githubusercontent.com/paritytech/cargo-contract/master/.images/cargo-contract.svg" alt="cargo-contract" height="170" />
 
 [![CI Status][a1]][a2]
 [![Latest Release][d1]][d2]
@@ -14,7 +14,7 @@
 
 <p align="center">
 
-> <img src="./.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts in Parity's <a href="https://github.com/paritytech/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Substrate](https://github.com/paritytech/substrate) framework.
+> <img src="https://raw.githubusercontent.com/paritytech/cargo-contract/master/.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts in Parity's <a href="https://github.com/paritytech/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Substrate](https://github.com/paritytech/substrate) framework.
 
 </p>
 
