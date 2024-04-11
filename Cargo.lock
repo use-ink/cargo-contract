@@ -5664,9 +5664,9 @@ checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
 
 [[package]]
 name = "subxt"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "388162448313740aabe675bff00698e72f876b1c6ec85d4d2c34783cfa32a0f7"
+checksum = "bd68bef23f4de5e513ab4c29af69053e232b098f9c87ab552d7ea153b4a1fbc5"
 dependencies = [
  "async-trait",
  "base58",
@@ -5702,9 +5702,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd94344feea939a37b919b7381e038dededfd1a88e01bedda67fe40847abfc78"
+checksum = "9d9e2b256b71d31a2629e44eb9cbfd944eb7d577c9e0c8e9802cc3c3943af2d9"
 dependencies = [
  "frame-metadata 16.0.0",
  "heck 0.4.1",
@@ -5723,9 +5723,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-lightclient"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0dbc6ed49c3c5607fc7423d7ebda4dae858eb3040cdaec602105a240d4f412f"
+checksum = "1d51f1ac12e3be7aafea4d037730a57da4f22f2e9c73955666081ffa2697c6f1"
 dependencies = [
  "futures",
  "futures-util",
@@ -5740,9 +5740,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4707a920898a7c653210bc946d26904e81ae6fcbb4f91e3a56101d5979f72fe9"
+checksum = "98dc84d7e6a0abd7ed407cce0bf60d7d58004f699460cffb979640717d1ab506"
 dependencies = [
  "darling 0.20.8",
  "parity-scale-codec",
@@ -5755,9 +5755,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-metadata"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65ffc8b7d246ebd38611f818547ee8e09fd69717cb79aae22e3a54fc423e6e14"
+checksum = "cc10c54028d079a9f1be65188707cd29e5ffd8d0031a2b1346a0941d57b7ab7e"
 dependencies = [
  "derive_more",
  "frame-metadata 16.0.0",
