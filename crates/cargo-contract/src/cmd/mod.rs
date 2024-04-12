@@ -372,7 +372,7 @@ where
 /// Prompt the user to confirm the upload of unverifiable code to the production chain.
 pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!(
-        "{} (skip with --skip-validate)",
+        "{}",
         "Confirm upload:".bright_white().bold()
     );
     let warning = format!(
