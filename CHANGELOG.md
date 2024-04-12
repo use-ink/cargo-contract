@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add `cargo contract storage --version` command - [#1564](https://github.com/paritytech/cargo-contract/pull/1564)
-- Verify raw Wasm in cargo contract verify - [#1551](https://github.com/paritytech/cargo-contract/pull/1551)
-- Allow specifying production chain URL + check for verifiable build upon upload - [#1290](https://github.com/paritytech/cargo-contract/pull/1290)
+- Add `cargo contract verify --wasm` argument - [#1551](https://github.com/paritytech/cargo-contract/pull/1551)
+- Add `cargo contract instantiate --chain` with production chain endpoints - [#1290](https://github.com/paritytech/cargo-contract/pull/1290)
+- Warn when uploading unverifiable contract builds to production - [#1290](https://github.com/paritytech/cargo-contract/pull/1290)
 
 ## [4.0.2]
 
