@@ -82,9 +82,9 @@ dependencies = [
 
 [[package]]
 name = "allocator-api2"
-version = "0.2.16"
+version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
+checksum = "5c6cb57a04249c6480766f7f7cef5467412af1490f8d1e243141daddada3264f"
 
 [[package]]
 name = "android-tzdata"
@@ -481,9 +481,9 @@ checksum = "fbb36e985947064623dbd357f727af08ffd077f93d696782f3c56365fa2e2799"
 
 [[package]]
 name = "async-trait"
-version = "0.1.79"
+version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
+checksum = "c6fa2087f2753a7da8cc1c0dbfcf89579dd57458e36769de5ac750b4671737ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-contract"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1148,7 +1148,7 @@ checksum = "cd7e35aee659887cbfb97aaf227ac12cad1a9d7c71e55ff3376839ed4e282d08"
 
 [[package]]
 name = "contract-analyze"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "contract-metadata",
@@ -1158,7 +1158,7 @@ dependencies = [
 
 [[package]]
 name = "contract-build"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "blake2",
@@ -1198,7 +1198,7 @@ dependencies = [
 
 [[package]]
 name = "contract-extrinsics"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1236,7 +1236,7 @@ dependencies = [
 
 [[package]]
 name = "contract-metadata"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -2926,9 +2926,9 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "jobserver"
-version = "0.1.28"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab46a6e9526ddef3ae7f787c06f0f2600639ba80ea3eade3d8e670a2230f51d6"
+checksum = "f08474e32172238f2827bd160c67871cdb2801430f65c3979184dc362e3ca118"
 dependencies = [
  "libc",
 ]
@@ -5943,9 +5943,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.35"
+version = "0.3.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef89ece63debf11bc32d1ed8d078ac870cbeb44da02afb02a9ff135ae7ca0582"
+checksum = "5dfd88e563464686c916c7e46e623e520ddc6d79fa6641390f2e3fa86e83e885"
 dependencies = [
  "deranged",
  "itoa",
@@ -6126,7 +6126,7 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.6.5",
+ "winnow 0.6.6",
 ]
 
 [[package]]
@@ -7055,9 +7055,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dffa400e67ed5a4dd237983829e66475f0a4a26938c4b04c21baede6262215b8"
+checksum = "f0c976aaaa0e1f90dbb21e9587cdaf1d9679a1cde8875c0d6bd83ab96a208352"
 dependencies = [
  "memchr",
 ]
