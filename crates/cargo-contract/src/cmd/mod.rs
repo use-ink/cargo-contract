@@ -148,6 +148,8 @@ pub struct CLIChainOpts {
     #[clap(name = "config", long, default_value = "Polkadot")]
     config: String,
     /// Name of a production chain to be communicated with.
+    ///
+    /// Available: AlephZero, Astar, Shiden, Krest.
     #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
     chain: Option<ProductionChain>,
 }
