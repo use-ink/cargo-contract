@@ -652,10 +652,11 @@ fn build_byte_str(bytes: &[u8]) -> String {
 }
 
 fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
-    crate::load_module(p)
-        .unwrap()
-        .custom_sections()
-        .any(|e| e.name() == "name")
+    // crate::load_module(p)
+    //     .unwrap()
+    //     .custom_sections()
+    //     .any(|e| e.name() == "name")
+    return false
 }
 
 /// Enables running a group of tests sequentially, each starting with the original

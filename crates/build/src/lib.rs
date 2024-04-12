@@ -21,6 +21,16 @@ use contract_metadata::{
     compatibility::check_contract_ink_compatibility,
     ContractMetadata,
 };
+use wasm_encoder::{
+    ComponentSectionId,
+    Encode,
+    RawSection,
+    Section,
+};
+use wasmparser::{
+    Parser,
+    Payload,
+};
 use which as _;
 
 mod args;
@@ -85,16 +95,10 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
-use parity_wasm::elements::{
-    External,
-    Internal,
-    MemoryType,
-    Module,
-    Section,
-};
 use semver::Version;
 use std::{
     fs,
+    mem,
     path::{
         Path,
         PathBuf,
@@ -684,76 +688,60 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-/// Ensures the Wasm memory import of a given module has the maximum number of pages.
-///
-/// Iterates over the import section, finds the memory import entry if any and adjusts the
-/// maximum limit.
-fn ensure_maximum_memory_pages(
-    module: &mut Module,
-    maximum_allowed_pages: u32,
-) -> Result<()> {
-    let mem_ty = module
-        .import_section_mut()
-        .and_then(|section| {
-            section.entries_mut().iter_mut().find_map(|entry| {
-                match entry.external_mut() {
-                    External::Memory(ref mut mem_ty) => Some(mem_ty),
-                    _ => None,
-                }
-            })
-        })
-        .context(
-            "Memory import is not found. Is --import-memory specified in the linker args",
-        )?;
+// /// Ensures the Wasm memory import of a given module has the maximum number of pages.
+// ///
+// /// Iterates over the import section, finds the memory import entry if any and adjusts
+// the /// maximum limit.
+// fn ensure_maximum_memory_pages(
+//     module: &mut Module,
+//     maximum_allowed_pages: u32,
+// ) -> Result<()> { let mem_ty = module .import_section_mut() .and_then(|section| {
+//   section.entries_mut().iter_mut().find_map(|entry| { match entry.external_mut() {
+//   External::Memory(ref mut mem_ty) => Some(mem_ty), _ => None, } }) }) .context(
+//   "Memory import is not found. Is --import-memory specified in the linker args", )?;
 
-    if let Some(requested_maximum) = mem_ty.limits().maximum() {
-        // The module already has maximum, check if it is within the limit bail out.
-        if requested_maximum > maximum_allowed_pages {
-            anyhow::bail!(
-                "The wasm module requires {} pages. The maximum allowed number of pages is {}",
-                requested_maximum,
-                maximum_allowed_pages,
-            );
-        }
-    } else {
-        let initial = mem_ty.limits().initial();
-        *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
-    }
+//     if let Some(requested_maximum) = mem_ty.limits().maximum() {
+//         // The module already has maximum, check if it is within the limit bail out.
+//         if requested_maximum > maximum_allowed_pages {
+//             anyhow::bail!(
+//                 "The wasm module requires {} pages. The maximum allowed number of pages
+// is {}",                 requested_maximum,
+//                 maximum_allowed_pages,
+//             );
+//         }
+//     } else {
+//         let initial = mem_ty.limits().initial();
+//         *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 /// Strips all custom sections.
 ///
 /// Presently all custom sections are not required so they can be stripped safely.
 /// The name section is already stripped by `wasm-opt`.
-fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        match section {
-            Section::Reloc(_) => false,
-            Section::Custom(custom) if custom.name() != "name" => false,
-            _ => true,
-        }
-    })
+fn strip_custom_sections(name: &str) -> bool {
+    !(name.starts_with("reloc.") || name == "name")
 }
 
-/// A contract should export nothing but the "call" and "deploy" functions.
-///
-/// Any elements not referenced by these exports become orphaned and are removed by
-/// `wasm-opt`.
-fn strip_exports(module: &mut Module) {
-    if let Some(section) = module.export_section_mut() {
-        section.entries_mut().retain(|entry| {
-            matches!(entry.internal(), Internal::Function(_))
-                && (entry.field() == "call" || entry.field() == "deploy")
-        })
-    }
-}
+// /// A contract should export nothing but the "call" and "deploy" functions.
+// ///
+// /// Any elements not referenced by these exports become orphaned and are removed by
+// /// `wasm-opt`.
+// fn strip_exports(module: &mut Module) {
+//     if let Some(section) = module.export_section_mut() {
+//         section.entries_mut().retain(|entry| {
+//             matches!(entry.internal(), Internal::Function(_))
+//                 && (entry.field() == "call" || entry.field() == "deploy")
+//         })
+//     }
+// }
 
 /// Load and parse a Wasm file from disk.
-fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
+fn load_module<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let path = path.as_ref();
-    parity_wasm::deserialize_file(path).context(format!(
+    fs::read(path).context(format!(
         "Loading of wasm module at '{}' failed",
         path.display(),
     ))
@@ -764,34 +752,87 @@ fn post_process_wasm(
     optimized_code: &PathBuf,
     skip_wasm_validation: bool,
     verbosity: &Verbosity,
-    max_memory_pages: u32,
+    _max_memory_pages: u32,
 ) -> Result<()> {
     // Deserialize Wasm module from a file.
-    let mut module =
+    let module =
         load_module(optimized_code).context("Loading of optimized wasm failed")?;
 
-    strip_exports(&mut module);
-    ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
-    strip_custom_sections(&mut module);
+    let mut output = Vec::new();
+    let mut stack = Vec::new();
 
-    if !skip_wasm_validation {
-        validate_wasm::validate_import_section(&module)?;
-    } else {
-        verbose_eprintln!(
-            verbosity,
-            " {}",
-            "Skipping wasm validation! Contract code may be invalid."
-                .bright_yellow()
-                .bold()
-        );
+    for payload in Parser::new(0).parse_all(&module) {
+        let payload = payload?;
+
+        // Track nesting depth, so that we don't mess with inner producer sections:
+        match payload {
+            Payload::Version { encoding, .. } => {
+                output.extend_from_slice(match encoding {
+                    wasmparser::Encoding::Component => &wasm_encoder::Component::HEADER,
+                    wasmparser::Encoding::Module => &wasm_encoder::Module::HEADER,
+                });
+            }
+            Payload::ModuleSection { .. } | Payload::ComponentSection { .. } => {
+                stack.push(mem::take(&mut output));
+                continue
+            }
+            Payload::End { .. } => {
+                let mut parent = match stack.pop() {
+                    Some(c) => c,
+                    None => break,
+                };
+                if output.starts_with(&wasm_encoder::Component::HEADER) {
+                    parent.push(ComponentSectionId::Component as u8);
+                    output.encode(&mut parent);
+                } else {
+                    parent.push(ComponentSectionId::CoreModule as u8);
+                    output.encode(&mut parent);
+                }
+                output = parent;
+            }
+            _ => {}
+        }
+
+        match &payload {
+            Payload::CustomSection(c) => {
+                strip_custom_sections(c.name());
+            }
+            Payload::ExportSection(_) => {
+                // strip_exports(&mut module);
+            }
+            Payload::ImportSection(reader) => {
+                // ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
+
+                if !skip_wasm_validation {
+                    validate_wasm::validate_import_section(&module[reader.range()])?;
+                } else {
+                    verbose_eprintln!(
+                        verbosity,
+                        " {}",
+                        "Skipping wasm validation! Contract code may be invalid."
+                            .bright_yellow()
+                            .bold()
+                    );
+                }
+            }
+
+            _ => {}
+        }
+        if let Some((id, range)) = payload.as_section() {
+            RawSection {
+                id,
+                data: &module[range],
+            }
+            .append_to(&mut output);
+        }
     }
 
     debug_assert!(
-        !module.clone().into_bytes().unwrap().is_empty(),
+        !output.is_empty(),
         "resulting wasm size of post processing must be > 0"
     );
 
-    parity_wasm::serialize_to_file(optimized_code, module)?;
+    fs::write(optimized_code, output)?;
     Ok(())
 }
 

@@ -17,7 +17,7 @@
 use anyhow::Result;
 use colored::Colorize;
 use impl_serde::serialize as serde_hex;
-use parity_wasm::elements::Module;
+use wasmparser::ImportSectionReader;
 
 /// Marker inserted by the ink! codegen for an error which can't
 /// be checked at compile time.
@@ -75,43 +75,44 @@ pub enum EnforcedErrors {
 /// - Known bugs for which we want to recommend a solution.
 /// - Markers inserted by the ink! codegen for errors which can't be checked at compile
 ///   time.
-pub fn validate_import_section(module: &Module) -> Result<()> {
-    let imports = match module.import_section() {
-        Some(section) => section.entries().iter(),
-        None => {
-            // the module does not contain any imports,
-            // hence no further validation is necessary.
-            return Ok(())
-        }
-    };
-    let original_imports_len = imports.len();
+pub fn validate_import_section(import_section: &[u8]) -> Result<()> {
+    if import_section.is_empty() {
+        // The module does not contain any imports,
+        // hence no further validation is necessary.
+        return Ok(())
+    }
+
+    let reader = ImportSectionReader::new(import_section, 0)?;
+    let original_imports_len = reader.count();
     let mut errs = Vec::new();
 
-    let filtered_imports = imports.filter(|section| {
-        let field = section.field();
-        if field.contains("panic") {
-            errs.push(String::from(
-                "An unexpected panic function import was found in the contract Wasm.\n\
-                This typically goes back to a known bug in the Rust compiler:\n\
-                https://github.com/rust-lang/rust/issues/78744\n\n\
-                As a workaround try to insert `overflow-checks = false` into your `Cargo.toml`.\n\
-                This will disable safe math operations, but unfortunately we are currently not \n\
-                aware of a better workaround until the bug in the compiler is fixed.",
-            ));
-        } else if field.starts_with(INK_ENFORCE_ERR) {
-            errs.push(parse_linker_error(field));
-        }
-
-        match check_import(section.module(), field) {
-            Ok(_) => true,
-            Err(err) => {
-                errs.push(err);
-                false
+    let filtered_imports = reader.into_iter()
+        .map(|e| e.expect("Parsing import section failed"))
+        .filter(|section| {
+            let field = section.name;
+            if field.contains("panic") {
+                errs.push(String::from(
+                    "An unexpected panic function import was found in the contract Wasm.\n\
+                    This typically goes back to a known bug in the Rust compiler:\n\
+                    https://github.com/rust-lang/rust/issues/78744\n\n\
+                    As a workaround try to insert `overflow-checks = false` into your `Cargo.toml`.\n\
+                    This will disable safe math operations, but unfortunately we are currently not \n\
+                    aware of a better workaround until the bug in the compiler is fixed.",
+                ));
+            } else if field.starts_with(INK_ENFORCE_ERR) {
+                errs.push(parse_linker_error(field));
             }
-        }
-    });
 
-    if original_imports_len != filtered_imports.count() {
+            match check_import(section.module, field) {
+                Ok(_) => true,
+                Err(err) => {
+                    errs.push(err);
+                    false
+                }
+            }
+        });
+
+    if original_imports_len as usize != filtered_imports.count() {
         anyhow::bail!(format!(
             "Validation of the Wasm failed.\n\n\n{}\n\nIgnore with `--skip-wasm-validation`",
             errs.into_iter()
@@ -190,12 +191,26 @@ fn parse_linker_error(field: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::validate_import_section;
-    use parity_wasm::elements::Module;
+    use wasmparser::{
+        Parser,
+        Payload,
+    };
 
-    fn create_module(contract: &str) -> Module {
-        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
-        parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work")
+    use super::validate_import_section;
+
+    fn create_module(contract: &str) -> Vec<u8> {
+        wabt::wat2wasm(contract).expect("Invalid wabt")
+    }
+
+    fn import_section_slice(module: &[u8]) -> &[u8] {
+        for payload in Parser::new(0).parse_all(module) {
+            let payload = payload.expect("Invalid wasm payload");
+
+            if let Payload::ImportSection(reader) = payload {
+                return &module[reader.range()]
+            }
+        }
+        &[]
     }
 
     #[test]
@@ -210,7 +225,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_err());
@@ -227,12 +242,10 @@ mod tests {
                 (type (;0;) (func))
                 (import "env" "__ink_enforce_error_0x0110466c697010666c6970aa97cade01" (func $__ink_enforce_error_0x0110466c697010666c6970aa97cade01 (type 0)))
             )"#;
-        let wasm = wabt::wat2wasm(contract).expect("invalid wabt");
-        let module =
-            parity_wasm::deserialize_buffer(&wasm).expect("deserializing must work");
+        let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_err());
@@ -254,7 +267,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_err());
@@ -275,7 +288,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_err());
@@ -297,7 +310,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_ok());
@@ -310,7 +323,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(&module);
+        let res = validate_import_section(import_section_slice(&module));
 
         // then
         assert!(res.is_ok());
