@@ -371,10 +371,7 @@ where
 
 /// Prompt the user to confirm the upload of unverifiable code to the production chain.
 pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
-    println!(
-        "{}",
-        "Confirm upload:".bright_white().bold()
-    );
+    println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
         "Warning: You are about to upload unverifiable code to {} mainnet.\n\
         A third party won't be able to confirm that your uploaded contract Wasm blob \
