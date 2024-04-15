@@ -106,7 +106,7 @@ mod {{name}} {
             Ok(())
         }
 
-        /// We test that we can read and write a value from the on-chain contract contract.
+        /// We test that we can read and write a value from the on-chain contract.
         #[ink_e2e::test]
         async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
             // Given
