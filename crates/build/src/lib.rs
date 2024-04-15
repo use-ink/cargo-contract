@@ -703,12 +703,14 @@ fn ensure_maximum_memory_pages(
     imports_reader: &ImportSectionReader,
     maximum_allowed_pages: u32,
 ) -> Result<ImportSection> {
+    let mut memory_found = false;
     let imports = imports_reader.clone().into_iter().try_fold(
         ImportSection::new(), |mut imports, entry| {
             let entry = entry?;
             let mut entity  = EntityType::try_from(
-                entry.ty).map_err(|_| anyhow!("Unsupported conversion of import section data"))?;
+                entry.ty).map_err(|_| anyhow!("Unsupported type in import section"))?;
             if let EntityType::Memory(mut mem) = entity {
+                memory_found = true;
                if let Some(requested_maximum) = mem.maximum {
                     // The module already has maximum, check if it is within the limit bail out.
                     if requested_maximum > maximum_allowed_pages.into() {
@@ -727,6 +729,12 @@ fn ensure_maximum_memory_pages(
 
             Ok::<_, Error>(imports)
     })?;
+
+    if !memory_found {
+        anyhow::bail!(
+            "Memory import is not found. Is --import-memory specified in the linker args",
+        );
+    }
     Ok(imports)
 }
 
@@ -761,13 +769,24 @@ fn preserve_contract_exports(
     Ok(filtered_exports)
 }
 
-/// Load and parse a Wasm file from disk.
+/// Load a Wasm file from disk.
 fn load_module<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let path = path.as_ref();
     fs::read(path).context(format!(
         "Loading of wasm module at '{}' failed",
         path.display(),
     ))
+}
+
+/// Encode a Wasm section payload to an output buffer.
+fn encode_module_payload(payload: Payload, module: &[u8], output: &mut Vec<u8>) {
+    if let Some((id, range)) = payload.as_section() {
+        RawSection {
+            id,
+            data: &module[range],
+        }
+        .append_to(output);
+    }
 }
 
 /// Performs required post-processing steps on the Wasm artifact.
@@ -818,29 +837,21 @@ fn post_process_wasm(
 
         match &payload {
             Payload::CustomSection(c) => {
-                if strip_custom_sections(c.name()) {
-                    continue
+                if !strip_custom_sections(c.name()) {
+                    encode_module_payload(payload, &module, &mut output);
                 }
             }
             Payload::ExportSection(e) => {
                 let exports = preserve_contract_exports(e)?;
                 exports.append_to(&mut output);
-                continue
             }
             Payload::ImportSection(i) => {
                 let imports = ensure_maximum_memory_pages(i, max_memory_pages)?;
                 imports.append_to(&mut output);
-                continue
             }
-
-            _ => {}
-        }
-        if let Some((id, range)) = payload.as_section() {
-            RawSection {
-                id,
-                data: &module[range],
+            _ => {
+                encode_module_payload(payload, &module, &mut output);
             }
-            .append_to(&mut output);
         }
     }
 
