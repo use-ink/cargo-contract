@@ -17,7 +17,10 @@
 use anyhow::Result;
 use colored::Colorize;
 use impl_serde::serialize as serde_hex;
-use wasmparser::ImportSectionReader;
+use wasmparser::{
+    Parser,
+    Payload,
+};
 
 /// Marker inserted by the ink! codegen for an error which can't
 /// be checked at compile time.
@@ -75,14 +78,21 @@ pub enum EnforcedErrors {
 /// - Known bugs for which we want to recommend a solution.
 /// - Markers inserted by the ink! codegen for errors which can't be checked at compile
 ///   time.
-pub fn validate_import_section(import_section: &[u8]) -> Result<()> {
-    if import_section.is_empty() {
-        // The module does not contain any imports,
-        // hence no further validation is necessary.
-        return Ok(())
-    }
+pub fn validate_import_section(module: &[u8]) -> Result<()> {
+    let import_section = Parser::new(0).parse_all(module).find_map(|payload| {
+        if let Ok(Payload::ImportSection(section)) = payload {
+            Some(section)
+        } else {
+            None
+        }
+    });
 
-    let reader = ImportSectionReader::new(import_section, 0)?;
+    // If the module does not contain any imports,
+    // no further validation is necessary.
+    let Some(reader) = import_section else {
+        return Ok(())
+    };
+
     let original_imports_len = reader.count();
     let mut errs = Vec::new();
 
@@ -191,26 +201,10 @@ fn parse_linker_error(field: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use wasmparser::{
-        Parser,
-        Payload,
-    };
-
     use super::validate_import_section;
 
     fn create_module(contract: &str) -> Vec<u8> {
         wabt::wat2wasm(contract).expect("Invalid wabt")
-    }
-
-    fn import_section_slice(module: &[u8]) -> &[u8] {
-        for payload in Parser::new(0).parse_all(module) {
-            let payload = payload.expect("Invalid wasm payload");
-
-            if let Payload::ImportSection(reader) = payload {
-                return &module[reader.range()]
-            }
-        }
-        &[]
     }
 
     #[test]
@@ -225,7 +219,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_err());
@@ -245,7 +239,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_err());
@@ -267,7 +261,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_err());
@@ -288,7 +282,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_err());
@@ -310,7 +304,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_ok());
@@ -323,7 +317,7 @@ mod tests {
         let module = create_module(contract);
 
         // when
-        let res = validate_import_section(import_section_slice(&module));
+        let res = validate_import_section(&module);
 
         // then
         assert!(res.is_ok());

@@ -24,12 +24,15 @@ use contract_metadata::{
 use wasm_encoder::{
     ComponentSectionId,
     Encode,
+    EntityType,
     ExportSection,
+    ImportSection,
     RawSection,
     Section,
 };
 use wasmparser::{
     ExportSectionReader,
+    ImportSectionReader,
     Parser,
     Payload,
 };
@@ -93,7 +96,9 @@ pub use docker::{
 };
 
 use anyhow::{
+    anyhow,
     Context,
+    Error,
     Result,
 };
 use colored::Colorize;
@@ -690,34 +695,40 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-// /// Ensures the Wasm memory import of a given module has the maximum number of pages.
-// ///
-// /// Iterates over the import section, finds the memory import entry if any and adjusts
-// the /// maximum limit.
-// fn ensure_maximum_memory_pages(
-//     module: &mut Module,
-//     maximum_allowed_pages: u32,
-// ) -> Result<()> { let mem_ty = module .import_section_mut() .and_then(|section| {
-//   section.entries_mut().iter_mut().find_map(|entry| { match entry.external_mut() {
-//   External::Memory(ref mut mem_ty) => Some(mem_ty), _ => None, } }) }) .context(
-//   "Memory import is not found. Is --import-memory specified in the linker args", )?;
+/// Ensures the Wasm memory import of a given module has the maximum number of pages.
+///
+/// Iterates over the import section, finds the memory import entry if any and adjusts the
+/// maximum limit.
+fn ensure_maximum_memory_pages(
+    imports_reader: &ImportSectionReader,
+    maximum_allowed_pages: u32,
+) -> Result<ImportSection> {
+    let imports = imports_reader.clone().into_iter().try_fold(
+        ImportSection::new(), |mut imports, entry| {
+            let entry = entry?;
+            let mut entity  = EntityType::try_from(
+                entry.ty).map_err(|_| anyhow!("Unsupported conversion of import section data"))?;
+            if let EntityType::Memory(mut mem) = entity {
+               if let Some(requested_maximum) = mem.maximum {
+                    // The module already has maximum, check if it is within the limit bail out.
+                    if requested_maximum > maximum_allowed_pages.into() {
+                        anyhow::bail!(
+                            "The wasm module requires {} pages. The maximum allowed number of pages
+                            is {}", requested_maximum, maximum_allowed_pages,
+                        );
+                    }
+                }
+                else {
+                    mem.maximum = Some(maximum_allowed_pages.into());
+                    entity = EntityType::from(mem);
+                }
+            }
+            imports.import(entry.module, entry.name, entity);
 
-//     if let Some(requested_maximum) = mem_ty.limits().maximum() {
-//         // The module already has maximum, check if it is within the limit bail out.
-//         if requested_maximum > maximum_allowed_pages {
-//             anyhow::bail!(
-//                 "The wasm module requires {} pages. The maximum allowed number of pages
-// is {}",                 requested_maximum,
-//                 maximum_allowed_pages,
-//             );
-//         }
-//     } else {
-//         let initial = mem_ty.limits().initial();
-//         *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
-//     }
-
-//     Ok(())
-// }
+            Ok::<_, Error>(imports)
+    })?;
+    Ok(imports)
+}
 
 /// Strips all custom sections.
 ///
@@ -743,7 +754,7 @@ fn preserve_contract_exports(
             {
                 exports.export(entry.name, entry.kind.into(), entry.index);
             }
-            Ok::<_, anyhow::Error>(exports)
+            Ok::<_, Error>(exports)
         },
     )?;
 
@@ -764,7 +775,7 @@ fn post_process_wasm(
     optimized_code: &PathBuf,
     skip_wasm_validation: bool,
     verbosity: &Verbosity,
-    _max_memory_pages: u32,
+    max_memory_pages: u32,
 ) -> Result<()> {
     // Deserialize Wasm module from a file.
     let module =
@@ -816,20 +827,10 @@ fn post_process_wasm(
                 exports.append_to(&mut output);
                 continue
             }
-            Payload::ImportSection(reader) => {
-                // ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
-
-                if !skip_wasm_validation {
-                    validate_wasm::validate_import_section(&module[reader.range()])?;
-                } else {
-                    verbose_eprintln!(
-                        verbosity,
-                        " {}",
-                        "Skipping wasm validation! Contract code may be invalid."
-                            .bright_yellow()
-                            .bold()
-                    );
-                }
+            Payload::ImportSection(i) => {
+                let imports = ensure_maximum_memory_pages(i, max_memory_pages)?;
+                imports.append_to(&mut output);
+                continue
             }
 
             _ => {}
@@ -847,6 +848,18 @@ fn post_process_wasm(
         !output.is_empty(),
         "resulting wasm size of post processing must be > 0"
     );
+
+    if !skip_wasm_validation {
+        validate_wasm::validate_import_section(&output)?;
+    } else {
+        verbose_eprintln!(
+            verbosity,
+            " {}",
+            "Skipping wasm validation! Contract code may be invalid."
+                .bright_yellow()
+                .bold()
+        );
+    }
 
     fs::write(optimized_code, output)?;
     Ok(())
