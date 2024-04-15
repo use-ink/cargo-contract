@@ -42,6 +42,10 @@ use std::{
     },
     time::SystemTime,
 };
+use wasmparser::{
+    Parser,
+    Payload,
+};
 
 macro_rules! build_tests {
     ( $($fn:ident),* ) => {
@@ -652,11 +656,15 @@ fn build_byte_str(bytes: &[u8]) -> String {
 }
 
 fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
-    // crate::load_module(p)
-    //     .unwrap()
-    //     .custom_sections()
-    //     .any(|e| e.name() == "name")
-    return false
+    let module = crate::load_module(p).unwrap();
+    let has_debug_symbols = Parser::new(0).parse_all(&module).any(|e| {
+        if let Payload::CustomSection(section) = e.unwrap() {
+            matches!(section.name(), "name")
+        } else {
+            false
+        }
+    });
+    has_debug_symbols
 }
 
 /// Enables running a group of tests sequentially, each starting with the original

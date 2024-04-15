@@ -24,10 +24,12 @@ use contract_metadata::{
 use wasm_encoder::{
     ComponentSectionId,
     Encode,
+    ExportSection,
     RawSection,
     Section,
 };
 use wasmparser::{
+    ExportSectionReader,
     Parser,
     Payload,
 };
@@ -725,18 +727,28 @@ fn strip_custom_sections(name: &str) -> bool {
     !(name.starts_with("reloc.") || name == "name")
 }
 
-// /// A contract should export nothing but the "call" and "deploy" functions.
-// ///
-// /// Any elements not referenced by these exports become orphaned and are removed by
-// /// `wasm-opt`.
-// fn strip_exports(module: &mut Module) {
-//     if let Some(section) = module.export_section_mut() {
-//         section.entries_mut().retain(|entry| {
-//             matches!(entry.internal(), Internal::Function(_))
-//                 && (entry.field() == "call" || entry.field() == "deploy")
-//         })
-//     }
-// }
+/// A contract should export nothing but the "call" and "deploy" functions.
+///
+/// Any elements not referenced by these exports become orphaned and are removed by
+/// `wasm-opt`.
+fn preserve_contract_exports(
+    exports_reader: &ExportSectionReader,
+) -> Result<ExportSection> {
+    let filtered_exports = exports_reader.clone().into_iter().try_fold(
+        ExportSection::new(),
+        |mut exports, entry| {
+            let entry = entry.context("Parsing of wasm export section failed")?;
+            if matches!(entry.kind, wasmparser::ExternalKind::Func)
+                && (entry.name == "call" || entry.name == "deploy")
+            {
+                exports.export(entry.name, entry.kind.into(), entry.index);
+            }
+            Ok::<_, anyhow::Error>(exports)
+        },
+    )?;
+
+    Ok(filtered_exports)
+}
 
 /// Load and parse a Wasm file from disk.
 fn load_module<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
@@ -795,10 +807,14 @@ fn post_process_wasm(
 
         match &payload {
             Payload::CustomSection(c) => {
-                strip_custom_sections(c.name());
+                if strip_custom_sections(c.name()) {
+                    continue
+                }
             }
-            Payload::ExportSection(_) => {
-                // strip_exports(&mut module);
+            Payload::ExportSection(e) => {
+                let exports = preserve_contract_exports(e)?;
+                exports.append_to(&mut output);
+                continue
             }
             Payload::ImportSection(reader) => {
                 // ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
