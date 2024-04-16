@@ -860,7 +860,7 @@ fn post_process_module(
                     // Do not strip, forward a section without touching it
                     encode_module_payload(payload, module, output);
                 }
-                //Section is stripped
+                // Section is stripped
             }
             Payload::ExportSection(e) => {
                 let exports = preserve_contract_exports(e)?;
