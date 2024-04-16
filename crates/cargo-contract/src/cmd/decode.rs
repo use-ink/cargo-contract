@@ -38,12 +38,13 @@ pub struct DecodeCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum DecodeCommands {
+    // Decode a message as input
     #[clap(name = "message")]
     Message(DecodeMessage),
     /// Upload contract code
     #[clap(name = "constructor")]
     Constructor(DecodeConstructor),
-    /// Instantiate a contract
+    /// Decode an event as input
     #[clap(name = "event")]
     Event(DecodeEvent),
 }
