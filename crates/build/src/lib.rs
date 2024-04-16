@@ -824,7 +824,7 @@ fn post_process_module(
     for payload in Parser::new(0).parse_all(&module) {
         let payload = payload?;
 
-        // Track nesting depth, so that we don't mess with inner producer sections:
+        // Support for nested components and modules
         match payload {
             Payload::Version { encoding, .. } => {
                 output.extend_from_slice(match encoding {
@@ -854,10 +854,13 @@ fn post_process_module(
         }
 
         match &payload {
+            // Mutate module or component sections
             Payload::CustomSection(c) => {
                 if !strip_custom_sections(c.name()) {
+                    // Do not strip, forward a section without touching it
                     encode_module_payload(payload, module, output);
                 }
+                //Section is stripped
             }
             Payload::ExportSection(e) => {
                 let exports = preserve_contract_exports(e)?;
@@ -868,6 +871,7 @@ fn post_process_module(
                 imports.append_to(output);
             }
             _ => {
+                // Forward a section without touching it
                 encode_module_payload(payload, module, output);
             }
         }
