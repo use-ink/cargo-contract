@@ -821,7 +821,7 @@ fn post_process_module(
 ) -> Result<()> {
     let mut stack = Vec::new();
 
-    for payload in Parser::new(0).parse_all(&module) {
+    for payload in Parser::new(0).parse_all(module) {
         let payload = payload?;
 
         // Support for nested components and modules
