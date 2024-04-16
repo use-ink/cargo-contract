@@ -779,7 +779,7 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
 }
 
 /// Encode a Wasm section payload to an output buffer.
-fn encode_module_payload(payload: Payload, module: &[u8], output: &mut Vec<u8>) {
+fn encode_module_section(payload: Payload, module: &[u8], output: &mut Vec<u8>) {
     if let Some((id, range)) = payload.as_section() {
         RawSection {
             id,
@@ -850,29 +850,25 @@ fn post_process_module(
                 }
                 *output = parent;
             }
-            _ => {}
-        }
-
-        match &payload {
             // Mutate module or component sections
-            Payload::CustomSection(c) => {
+            Payload::CustomSection(ref c) => {
                 if !strip_custom_sections(c.name()) {
                     // Do not strip, forward a section without touching it
-                    encode_module_payload(payload, module, output);
+                    encode_module_section(payload, module, output);
                 }
                 // Section is stripped
             }
             Payload::ExportSection(e) => {
-                let exports = preserve_contract_exports(e)?;
+                let exports = preserve_contract_exports(&e)?;
                 exports.append_to(output);
             }
             Payload::ImportSection(i) => {
-                let imports = ensure_maximum_memory_pages(i, max_memory_pages)?;
+                let imports = ensure_maximum_memory_pages(&i, max_memory_pages)?;
                 imports.append_to(output);
             }
             _ => {
                 // Forward a section without touching it
-                encode_module_payload(payload, module, output);
+                encode_module_section(payload, module, output);
             }
         }
     }
