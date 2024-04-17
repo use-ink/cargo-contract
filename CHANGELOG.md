@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.1]
+
+### Fixed
+- Remove mention of non-existent argument, improve clarity of warning message - [#1590](https://github.com/paritytech/cargo-contract/pull/1590)
+
 ## [4.1.0]
 
 ### Fixed
