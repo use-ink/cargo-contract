@@ -64,6 +64,9 @@ impl WasmOptHandler {
             // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it,
             // in order that the Wasm binary containing these instructions can be loaded.
             .enable_feature(Feature::SignExt)
+            .enable_feature(Feature::Multivalue)
+            .enable_feature(Feature::BulkMemory)
+            .enable_feature(Feature::ReferenceTypes)
             // This pass will then remove any `signext` instructions in order that the resulting
             // Wasm binary is compatible with older versions of `pallet-contracts` which do not
             // support the `signext` instruction.

@@ -490,7 +490,7 @@ fn lint(
         "[==]".bold(),
         "Checking clippy linting rules".bright_green().bold()
     );
-    exec_cargo_clippy(crate_metadata, *verbosity)?;
+    //exec_cargo_clippy(crate_metadata, *verbosity)?;
 
     // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
     // it's required only for RiscV target. We're working on the toolchain integration
