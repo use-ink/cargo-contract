@@ -167,9 +167,9 @@ impl Target {
             //Self::Wasm => Some("-Ctarget-feature=+reference-types\x1f-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
             //Self::Wasm => Some("-Ctarget-feature=+mutable-global\x1f-Ctarget-feature=+reference-types\x1f-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
             //Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
-            //Self::Wasm => Some("-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
+            Self::Wasm => Some("-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
             //Self::Wasm => Some("-Ctarget-feature=+reference-types\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
-            Self::Wasm => Some("-Ctarget-feature=+reference-types\x1f-Ctarget-feature=+bulk-memory\x1f-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
+            //Self::Wasm => Some("-Ctarget-feature=+reference-types\x1f-Ctarget-feature=+bulk-memory\x1f-Ctarget-feature=+multivalue\x1f-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
             Self::RiscV => None,
         }
     }
