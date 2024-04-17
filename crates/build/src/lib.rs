@@ -22,8 +22,6 @@ use contract_metadata::{
     ContractMetadata,
 };
 use wasm_encoder::{
-    ComponentSectionId,
-    Encode,
     EntityType,
     ExportSection,
     ImportSection,
@@ -105,7 +103,6 @@ use colored::Colorize;
 use semver::Version;
 use std::{
     fs,
-    mem,
     path::{
         Path,
         PathBuf,
@@ -750,9 +747,7 @@ fn strip_custom_sections(name: &str) -> bool {
 ///
 /// Any elements not referenced by these exports become orphaned and are removed by
 /// `wasm-opt`.
-fn preserve_contract_exports(
-    exports_reader: &ExportSectionReader,
-) -> Result<ExportSection> {
+fn strip_export_section(exports_reader: &ExportSectionReader) -> Result<ExportSection> {
     let filtered_exports = exports_reader.clone().into_iter().try_fold(
         ExportSection::new(),
         |mut exports, entry| {
@@ -776,17 +771,6 @@ fn load_module<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
         "Loading of wasm module at '{}' failed",
         path.display(),
     ))
-}
-
-/// Encode a Wasm section payload to an output buffer.
-fn encode_module_section(payload: Payload, module: &[u8], output: &mut Vec<u8>) {
-    if let Some((id, range)) = payload.as_section() {
-        RawSection {
-            id,
-            data: &module[range],
-        }
-        .append_to(output);
-    }
 }
 
 /// Performs required post-processing steps on the Wasm artifact.
@@ -819,57 +803,44 @@ fn post_process_module(
     max_memory_pages: u64,
     output: &mut Vec<u8>,
 ) -> Result<()> {
-    let mut stack = Vec::new();
-
     for payload in Parser::new(0).parse_all(module) {
         let payload = payload?;
 
-        // Support for nested components and modules
         match payload {
             Payload::Version { encoding, .. } => {
                 output.extend_from_slice(match encoding {
-                    wasmparser::Encoding::Component => &wasm_encoder::Component::HEADER,
+                    wasmparser::Encoding::Component => {
+                        anyhow::bail!("Unsupported component section")
+                    }
                     wasmparser::Encoding::Module => &wasm_encoder::Module::HEADER,
                 });
             }
-            Payload::ModuleSection { .. } | Payload::ComponentSection { .. } => {
-                stack.push(mem::take(output));
+            Payload::End(_) => break,
+            Payload::CustomSection(ref c) => {
+                if strip_custom_sections(c.name()) {
+                    // Strip custom section
+                    continue
+                }
+            }
+            Payload::ExportSection(ref e) => {
+                let exports = strip_export_section(e)?;
+                exports.append_to(output);
                 continue
             }
-            Payload::End { .. } => {
-                let mut parent = match stack.pop() {
-                    Some(c) => c,
-                    None => break,
-                };
-                if output.starts_with(&wasm_encoder::Component::HEADER) {
-                    parent.push(ComponentSectionId::Component as u8);
-                    output.encode(&mut parent);
-                } else {
-                    parent.push(ComponentSectionId::CoreModule as u8);
-                    output.encode(&mut parent);
-                }
-                *output = parent;
-            }
-            // Mutate module or component sections
-            Payload::CustomSection(ref c) => {
-                if !strip_custom_sections(c.name()) {
-                    // Do not strip, forward a section without touching it
-                    encode_module_section(payload, module, output);
-                }
-                // Section is stripped
-            }
-            Payload::ExportSection(e) => {
-                let exports = preserve_contract_exports(&e)?;
-                exports.append_to(output);
-            }
-            Payload::ImportSection(i) => {
-                let imports = ensure_maximum_memory_pages(&i, max_memory_pages)?;
+            Payload::ImportSection(ref i) => {
+                let imports = ensure_maximum_memory_pages(i, max_memory_pages)?;
                 imports.append_to(output);
+                continue
             }
-            _ => {
-                // Forward a section without touching it
-                encode_module_section(payload, module, output);
+            _ => {}
+        }
+        // Forward a section without touching it
+        if let Some((id, range)) = payload.as_section() {
+            RawSection {
+                id,
+                data: &module[range],
             }
+            .append_to(output);
         }
     }
 
@@ -1379,7 +1350,7 @@ mod unit_tests {
     }
 
     #[test]
-    fn post_process_wasm_shrink_export_section() {
+    fn post_process_wasm_strip_export_section() {
         // given
         let contract = r#"
             (module
@@ -1436,7 +1407,7 @@ mod unit_tests {
 
         // when
         let res =
-            post_process_module(&module, true, &Verbosity::Verbose, 16, &mut output);
+            post_process_module(&module, false, &Verbosity::Verbose, 16, &mut output);
 
         // then
         assert!(res.is_ok());
