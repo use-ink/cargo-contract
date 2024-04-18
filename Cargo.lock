@@ -1172,7 +1172,6 @@ dependencies = [
  "hex",
  "impl-serde",
  "parity-scale-codec",
- "parity-wasm",
  "pretty_assertions",
  "regex",
  "rustc_version",
@@ -1190,7 +1189,9 @@ dependencies = [
  "uzers",
  "wabt",
  "walkdir",
+ "wasm-encoder",
  "wasm-opt",
+ "wasmparser 0.202.0",
  "which",
  "zip",
 ]
@@ -3094,6 +3095,12 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
+name = "leb128"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
 name = "libc"
@@ -6562,6 +6569,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
 
 [[package]]
+name = "wasm-encoder"
+version = "0.202.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfd106365a7f5f7aa3c1916a98cbb3ad477f5ff96ddb130285a91c6e7429e67a"
+dependencies = [
+ "leb128",
+ "wasmparser 0.202.0",
+]
+
+[[package]]
 name = "wasm-opt"
 version = "0.116.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6643,6 +6660,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmparser"
+version = "0.202.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6998515d3cf3f8b980ef7c11b29a9b1017d4cf86b99ae93b546992df9931413"
+dependencies = [
+ "bitflags 2.5.0",
+ "indexmap 2.2.6",
+ "semver",
+]
+
+[[package]]
 name = "wasmparser-nostd"
 version = "0.100.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6669,7 +6697,7 @@ dependencies = [
  "psm",
  "serde",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.102.0",
  "wasmtime-environ",
  "wasmtime-jit",
  "wasmtime-runtime",
@@ -6700,7 +6728,7 @@ dependencies = [
  "serde",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.102.0",
  "wasmtime-types",
 ]
 
@@ -6780,7 +6808,7 @@ dependencies = [
  "cranelift-entity",
  "serde",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.102.0",
 ]
 
 [[package]]
