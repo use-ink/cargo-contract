@@ -6570,12 +6570,12 @@ checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
 
 [[package]]
 name = "wasm-encoder"
-version = "0.202.0"
+version = "0.204.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd106365a7f5f7aa3c1916a98cbb3ad477f5ff96ddb130285a91c6e7429e67a"
+checksum = "500cbde9b4d8dfc0335ec729d226dbf083e51e47501ac71e6addaed10ccb0a51"
 dependencies = [
  "leb128",
- "wasmparser 0.202.0",
+ "wasmparser 0.204.0",
 ]
 
 [[package]]
@@ -6664,6 +6664,17 @@ name = "wasmparser"
 version = "0.202.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6998515d3cf3f8b980ef7c11b29a9b1017d4cf86b99ae93b546992df9931413"
+dependencies = [
+ "bitflags 2.5.0",
+ "indexmap 2.2.6",
+ "semver",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.204.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1239d539d9b92489cf729d40df694a62b09f5159f2ab058f4de15d4f820d6585"
 dependencies = [
  "bitflags 2.5.0",
  "indexmap 2.2.6",
