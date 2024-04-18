@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -25,19 +25,26 @@ use rust_decimal::{
     Decimal,
 };
 use serde_json::json;
-
-use super::Client;
-use crate::cmd::Balance;
+use subxt::{
+    backend::{
+        legacy::LegacyRpcMethods,
+        rpc::RpcClient,
+    },
+    Config,
+};
 
 use anyhow::{
     anyhow,
     Context,
     Result,
 };
+use url::Url;
+
+use crate::url_to_string;
 
 /// Represents different formats of a balance
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BalanceVariant {
+pub enum BalanceVariant<Balance> {
     /// Default format: no symbol, no token_decimals
     Default(Balance),
     /// Denominated format: symbol and token_decimals are present
@@ -72,8 +79,10 @@ pub enum UnitPrefix {
 
 impl TokenMetadata {
     /// Query [TokenMetadata] through the node's RPC
-    pub async fn query(client: &Client) -> Result<Self> {
-        let sys_props = client.rpc().system_properties().await?;
+    pub async fn query<C: Config>(url: &Url) -> Result<Self> {
+        let rpc_cli = RpcClient::from_url(url_to_string(url)).await?;
+        let rpc = LegacyRpcMethods::<C>::new(rpc_cli.clone());
+        let sys_props = rpc.system_properties().await?;
 
         let default_decimals = json!(12);
         let default_units = json!("UNIT");
@@ -95,7 +104,10 @@ impl TokenMetadata {
     }
 }
 
-impl FromStr for BalanceVariant {
+impl<Balance> FromStr for BalanceVariant<Balance>
+where
+    Balance: FromStr,
+{
     type Err = anyhow::Error;
 
     /// Attempts to parse the balance either in plain or denominated formats
@@ -154,7 +166,10 @@ impl FromStr for DenominatedBalance {
     }
 }
 
-impl BalanceVariant {
+impl<Balance> BalanceVariant<Balance>
+where
+    Balance: From<u128> + Clone,
+{
     /// Converts BalanceVariant into Balance.
     ///
     /// It is a reverse process of `from<T: Into<u128>>()`
@@ -162,44 +177,39 @@ impl BalanceVariant {
     /// Throws Error if `value` is of nigher precision that allowed.
     ///
     /// ```rust
-    /// use anyhow::{
-    ///     Ok,
-    ///     Result,
+    /// use contract_extrinsics::{
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
     /// let decimals = 6;
     /// let tm = TokenMetadata {
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(4, 1),
-    ///     unit: UnitPrefix::Micro,
-    ///     symbol: String::new("DOT"),
-    /// });
-    /// let result = sample_den_balance.denominate_balance(tm);
+    /// let sample_den_balance: BalanceVariant<u128> = "0.4\u{3bc}DOT".parse().unwrap();
+    /// let result = sample_den_balance.denominate_balance(&tm);
     /// assert!(result.is_err());
     /// ```
     ///
     /// Otherwise, [Balance] is returned:
     /// ```rust
-    ///  use anyhow::{Result, Ok};
-    ///  let decimals = 6;
-    ///  let tm = TokenMetadata {
-    ///        token_decimals: decimals,
-    ///        symbol: String::from("DOT"),
+    /// use contract_extrinsics::{
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
-    /// let sample_den_balance = Balance::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(4123, 0),
-    ///     unit: UnitPrefix::Micro,
-    ///     symbol: String::new("DOT")
-    /// });
+    /// let decimals = 6;
+    /// let tm = TokenMetadata {
+    ///     token_decimals: decimals,
+    ///     symbol: String::from("DOT"),
+    /// };
+    /// let sample_den_balance: BalanceVariant<u128> = "4123\u{3bc}DOT".parse().unwrap();
     /// let balance = 4123;
-    /// let result = sample_den_balance.denominate_balance(tm).unwrap()
+    /// let result = sample_den_balance.denominate_balance(&tm).unwrap();
     /// assert_eq!(balance, result);
     /// ```
     pub fn denominate_balance(&self, token_metadata: &TokenMetadata) -> Result<Balance> {
         match self {
-            BalanceVariant::Default(balance) => Ok(*balance),
+            BalanceVariant::Default(balance) => Ok(balance.clone()),
             BalanceVariant::Denominated(den_balance) => {
                 let zeros: usize = (token_metadata.token_decimals as isize
                     + match den_balance.unit {
@@ -221,12 +231,12 @@ impl BalanceVariant {
                         "Given precision of a Balance value is higher than allowed"
                     ))
                 }
-                let balance: Balance = den_balance
+                let balance: u128 = den_balance
                     .value
                     .checked_mul(multiple)
                     .context("error while converting balance to raw format. Overflow during multiplication!")?
                     .try_into()?;
-                Ok(balance)
+                Ok(balance.into())
             }
         }
     }
@@ -239,7 +249,7 @@ impl BalanceVariant {
     /// by manipulating the token_decimals.
     ///
     /// If the number is divisible by 10^(`token_decimals` + `unit_zeros`),
-    /// It sets the [UnitPrefix] and divides the `value` into `Decimal`
+    /// It sets the `UnitPrefix` and divides the `value` into `Decimal`
     ///
     /// If no [TokenMetadata] was present, than that means
     /// that [Balance] is to be displayed in *normal* format
@@ -247,23 +257,19 @@ impl BalanceVariant {
     ///
     /// # Examples
     /// ```rust
-    /// use anyhow::{
-    ///     Ok,
-    ///     Result,
+    /// use contract_extrinsics::{
+    ///     BalanceVariant,
+    ///     TokenMetadata,
     /// };
     /// let decimals = 10;
     /// let tm = TokenMetadata {
     ///     token_decimals: decimals,
     ///     symbol: String::from("DOT"),
     /// };
-    /// let sample_den_balance = BalanceVariant::Denominated(DenominatedBalance {
-    ///     value: Decimal::new(5005, 1),
-    ///     unit: UnitPrefix::Mega,
-    ///     symbol: String::from("DOT"),
-    /// });
-    /// let balance: Balance = 5_005_000_000_000_000_000;
-    /// let den_balance = BalanceVariant::from(balance, Some(tm));
-    /// assert_eq!(Ok(sample_den_balance), Ok(den_balance));
+    /// let sample_den_balance: BalanceVariant<u128> = "500.5MDOT".parse().unwrap();
+    /// let balance: u128 = 5_005_000_000_000_000_000;
+    /// let den_balance = BalanceVariant::from(balance, Some(&tm)).unwrap();
+    /// assert_eq!(sample_den_balance, den_balance);
     /// ```
     pub fn from<T: Into<u128>>(
         value: T,
@@ -350,12 +356,15 @@ impl BalanceVariant {
 
             Ok(BalanceVariant::Denominated(den_balance))
         } else {
-            Ok(BalanceVariant::Default(n))
+            Ok(BalanceVariant::Default(n.into()))
         }
     }
 }
 
-impl Display for BalanceVariant {
+impl<Balance> Display for BalanceVariant<Balance>
+where
+    Balance: Display + Clone,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BalanceVariant::Default(balance) => f.write_str(&balance.to_string()),
@@ -381,24 +390,41 @@ impl Display for DenominatedBalance {
 
 #[cfg(test)]
 mod tests {
+    use ink_env::{
+        DefaultEnvironment,
+        Environment,
+    };
+
     use super::*;
 
     #[test]
     fn correct_balances_parses_success() {
         assert!(
-            BalanceVariant::from_str("500DOT").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500DOT"
+            )
+            .is_ok(),
             "<500DOT> was not parsed correctly"
         );
         assert!(
-            BalanceVariant::from_str("500").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500"
+            )
+            .is_ok(),
             "<500> was not parsed correctly"
         );
         assert!(
-            BalanceVariant::from_str("1.0").is_err(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "1.0"
+            )
+            .is_err(),
             "<1.0> was not parsed correctly. Units must be provided"
         );
         assert!(
-            BalanceVariant::from_str("1.0DOT").is_ok(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "1.0DOT"
+            )
+            .is_ok(),
             "<1.0DOt> was not parsed correctly"
         );
     }
@@ -406,7 +432,10 @@ mod tests {
     #[test]
     fn incorrect_balances() {
         assert!(
-            BalanceVariant::from_str("500%").is_err(),
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500%"
+            )
+            .is_err(),
             "expected to fail parsing incorrect balance"
         );
     }
@@ -417,7 +446,11 @@ mod tests {
             token_decimals: 10,
             symbol: String::from("DOT"),
         };
-        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500MDOT",
+            )
+            .expect("successful parsing. qed");
         assert!(
             bv.denominate_balance(&tm).is_ok(),
             "balances could not be denominated correctly"
@@ -431,8 +464,13 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 500 * 1_000_000 * 10_000_000_000;
-        let bv = BalanceVariant::from_str("500MDOT").expect("successful parsing. qed");
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            500 * 1_000_000 * 10_000_000_000;
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "500MDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
     }
@@ -444,7 +482,8 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            5_005_000_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5MDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -457,7 +496,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000;
         let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -469,7 +508,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 1;
+        let balance: <DefaultEnvironment as Environment>::Balance = 1;
         let bv = BalanceVariant::from_str("0.1nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -485,7 +524,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let bv =
-            BalanceVariant::from_str("0.01546nDOT").expect("successful parsing. qed");
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "0.01546nDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -497,7 +539,8 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance =
+            5_005_000_000_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5GDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -510,7 +553,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000_000_000;
         let bv = BalanceVariant::from_str("500.5kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -523,7 +566,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000_000;
         let bv = BalanceVariant::from_str("500.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -536,7 +579,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000_000;
         let bv = BalanceVariant::from_str("500.5mDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -548,7 +591,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005_000;
         let bv = BalanceVariant::from_str("500.5μDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -560,7 +603,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_005;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_005;
         let bv = BalanceVariant::from_str("500.5nDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -573,7 +616,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 5_235_456_210_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 5_235_456_210_000_000;
         let bv =
             BalanceVariant::from_str("523.545621kDOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
@@ -587,7 +630,7 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let balance: Balance = 50_015_000_000_000;
+        let balance: <DefaultEnvironment as Environment>::Balance = 50_015_000_000_000;
         let bv = BalanceVariant::from_str("5001.5DOT").expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm).expect("successful parsing. qed");
         assert_eq!(balance, balance_parsed);
@@ -600,7 +643,11 @@ mod tests {
             token_decimals: decimals,
             symbol: String::from("DOT"),
         };
-        let bv = BalanceVariant::from_str("0.4μDOT").expect("successful parsing. qed");
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(
+                "0.4μDOT",
+            )
+            .expect("successful parsing. qed");
         let balance_parsed = bv.denominate_balance(&tm);
         assert!(balance_parsed.is_err())
     }
@@ -609,7 +656,8 @@ mod tests {
     fn big_input_to_denominate() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336DOT";
-        let bv = BalanceVariant::from_str(s);
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(s);
         assert!(bv.is_err())
     }
 
@@ -617,7 +665,8 @@ mod tests {
     fn big_input_to_raw() {
         // max value of Decimal:MAX is 79_228_162_514_264_337_593_543_950_335
         let s = "79_228_162_514_264_337_593_543_950_336";
-        let bv = BalanceVariant::from_str(s);
+        let bv =
+            BalanceVariant::<<DefaultEnvironment as Environment>::Balance>::from_str(s);
         assert!(bv.is_ok())
     }
 
@@ -629,8 +678,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 1),
             unit: UnitPrefix::Kilo,
@@ -647,8 +698,10 @@ mod tests {
             symbol: String::from("DOT"),
         };
         let balance = 532_500_000_000_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 2),
             unit: UnitPrefix::One,
@@ -669,8 +722,10 @@ mod tests {
         // 10_000 - Micro
         // 532_500 - 52.25 Micro
         let balance = 532_500_u128;
-        let denominated_balance =
-            BalanceVariant::from(balance, Some(&tm)).expect("successful conversion");
+        let denominated_balance = BalanceVariant::<
+            <DefaultEnvironment as Environment>::Balance,
+        >::from(balance, Some(&tm))
+        .expect("successful conversion");
         let sample = BalanceVariant::Denominated(DenominatedBalance {
             value: Decimal::new(5325, 2),
             unit: UnitPrefix::Micro,

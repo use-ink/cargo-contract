@@ -117,7 +117,7 @@ impl CrateMetadata {
             .packages
             .iter()
             .find_map(|package| {
-                if package.name == "ink" {
+                if package.name == "ink" || package.name == "ink_lang" {
                     Some(
                         Version::parse(&package.version.to_string())
                             .expect("Invalid ink crate version string"),

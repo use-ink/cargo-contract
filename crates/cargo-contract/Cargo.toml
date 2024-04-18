@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "3.0.2"
+version = "4.1.2"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 edition = "2021"
@@ -14,48 +14,51 @@ description = "Setup and deployment tool for developing Wasm based smart contrac
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
-    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "src/**/*.scale",
+    "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs",
 ]
 
 [dependencies]
-contract-build = { version = "3.0.2", path = "../build" }
-contract-metadata = { version = "3.0.2", path = "../metadata" }
-contract-transcode = { version = "3.0.2", path = "../transcode" }
+contract-build = { version = "4.1.2", path = "../build" }
+contract-extrinsics = { version = "4.1.2", path = "../extrinsics" }
+contract-transcode = { version = "4.1.2", path = "../transcode" }
+contract-metadata = { version = "4.1.2", path = "../metadata" }
+contract-analyze = { version = "4.1.2", path = "../analyze" }
 
-anyhow = "1.0.71"
-clap = { version = "4.3.0", features = ["derive", "env"] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
-which = "4.4.0"
-colored = "2.0.0"
-serde = { version = "1.0.163", default-features = false, features = ["derive"] }
-serde_json = "1.0.96"
-url = { version = "2.3.1", features = ["serde"] }
-rust_decimal = "1.29"
+anyhow = "1.0.81"
+clap = { version = "4.5.4", features = ["derive", "env"] }
+primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+which = "6.0.1"
+colored = "2.1.0"
+serde_json = "1.0.116"
+serde = { version = "1.0.197", default-features = false, features = ["derive"] }
+url = { version = "2.5.0", features = ["serde"] }
+semver = "1.0"
+jsonschema = "0.17"
+schemars = "0.8"
+ink_metadata = "5.0.0"
+ink_env = "5.0.0"
+comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
-async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-sp-core = "20.0.0"
-sp-runtime = "23.0.0"
-sp-weights = "19.0.0"
-pallet-contracts-primitives = "23.0.0"
-scale-info = "2.7.0"
-subxt = "0.28.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+subxt = { version = "0.35.3", features = ["substrate-compat"] }
+sp-core = "31.0.0"
+sp-weights = "30.0.0"
 hex = "0.4.3"
-jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
 
 [build-dependencies]
-anyhow = "1.0.71"
-substrate-build-script-utils = "5.0.0"
+anyhow = "1.0.81"
+substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
-which = "4.4.0"
+which = "6.0.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
-regex = "1.8.3"
-predicates = "3.0.3"
-tempfile = "3.5.0"
+assert_cmd = "2.0.14"
+regex = "1.10.4"
+predicates = "3.1.0"
+tempfile = "3.10.1"
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata

@@ -49,7 +49,7 @@ fn encode_works() {
 
                 #[ink(message, selector = 0xBABABABA)]
                 pub fn inc(&mut self, by: i32) {
-                    self.value += by;
+                    self.value.saturating_add(by);
                 }
 
                 #[ink(message, selector = 0xCACACACA)]

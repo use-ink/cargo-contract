@@ -76,7 +76,7 @@ build_tests!(
     build_with_json_output_works,
     building_contract_with_source_file_in_subfolder_must_work,
     building_contract_with_build_rs_must_work,
-    missing_cargo_dylint_installation_must_be_detected,
+    missing_linting_toolchain_installation_must_be_detected,
     generates_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
     unchanged_contract_no_metadata_artifacts_generates_metadata
@@ -87,7 +87,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -127,7 +127,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -164,7 +164,7 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         unstable_flags: Default::default(),
         optimization_passes: Some(OptimizationPasses::Zero),
         keep_debug_symbols: false,
-        lint: false,
+        extra_lints: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
         target: Default::default(),
@@ -207,7 +207,7 @@ fn optimization_passes_from_profile_must_be_used(
         // no optimization passes specified.
         optimization_passes: None,
         keep_debug_symbols: false,
-        lint: false,
+        extra_lints: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
         target: Default::default(),
@@ -237,7 +237,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -256,7 +256,7 @@ fn building_template_in_release_mode_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -286,7 +286,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -307,12 +307,12 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     let path = manifest_path.directory().expect("dir must exist");
     let build_rs_path = path.join(Path::new("build.rs"));
 
-    fs::write(build_rs_path, "fn main() {}")?;
+    fs::write(build_rs_path, "#![cfg_attr(dylint_lib = \"ink_linting_mandatory\", allow(no_main))]\n\nfn main() {}")?;
 
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -330,7 +330,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -348,7 +348,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -365,7 +365,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -378,7 +378,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn missing_cargo_dylint_installation_must_be_detected(
+fn missing_linting_toolchain_installation_must_be_detected(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     use super::util::tests::create_executable;
@@ -386,22 +386,19 @@ fn missing_cargo_dylint_installation_must_be_detected(
     // given
     let manifest_dir = manifest_path.directory().unwrap();
 
-    // mock existing `dylint-link` binary
-    let _tmp0 = create_executable(&manifest_dir.join("dylint-link"), "#!/bin/sh\nexit 0");
-
-    // mock a non-existing `cargo dylint` installation.
-    let _tmp1 = create_executable(&manifest_dir.join("cargo"), "#!/bin/sh\nexit 1");
+    // mock non-existing `rustup` binary
+    let _tmp0 = create_executable(&manifest_dir.join("rustup"), "#!/bin/sh\nexit 1");
 
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
-        lint: true,
+        extra_lints: true,
         ..Default::default()
     };
     let res = super::execute(args).map(|_| ()).unwrap_err();
 
     // then
-    assert!(format!("{res:?}").contains("cargo-dylint was not found!"));
+    assert!(format!("{res:?}").contains("` was not found!"));
 
     Ok(())
 }
@@ -438,7 +435,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = ExecuteArgs {
-        lint: false,
+        extra_lints: false,
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();

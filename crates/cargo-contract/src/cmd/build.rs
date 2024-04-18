@@ -21,6 +21,7 @@ use contract_build::{
     BuildResult,
     ExecuteArgs,
     Features,
+    ImageVariant,
     ManifestPath,
     Network,
     OptimizationPasses,
@@ -57,8 +58,10 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs linting checks during the build process
-    #[clap(long)]
+    /// Performs extra linting checks for ink! specific issues during the build process.
+    ///
+    /// Basic clippy lints are deemed important and run anyways.
+    #[clap(long, conflicts_with = "verifiable")]
     lint: bool,
     /// Which build artifacts to generate.
     ///
@@ -121,6 +124,13 @@ pub struct BuildCommand {
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u32,
+    /// Executes the build inside a docker container to produce a verifiable bundle.
+    /// Requires docker daemon running.
+    #[clap(long, default_value_t = false)]
+    verifiable: bool,
+    /// Specify a custom image for the verifiable build
+    #[clap(long, default_value = None)]
+    image: Option<String>,
 }
 
 impl BuildCommand {
@@ -128,11 +138,15 @@ impl BuildCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let unstable_flags: UnstableFlags =
             TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
-        let mut verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+        let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-        let build_mode = match self.build_release {
-            true => BuildMode::Release,
-            false => BuildMode::Debug,
+        let build_mode = if self.verifiable {
+            BuildMode::Verifiable
+        } else {
+            match self.build_release {
+                true => BuildMode::Release,
+                false => BuildMode::Debug,
+            }
         };
 
         let network = match self.build_offline {
@@ -145,10 +159,14 @@ impl BuildCommand {
             false => OutputType::HumanReadable,
         };
 
-        // We want to ensure that the only thing in `STDOUT` is our JSON formatted string.
-        if matches!(output_type, OutputType::Json) {
-            verbosity = Verbosity::Quiet;
+        if self.image.is_some() && build_mode != BuildMode::Verifiable {
+            anyhow::bail!("--image flag can only be used with verifiable builds!");
         }
+
+        let image = match &self.image {
+            Some(i) => ImageVariant::Custom(i.clone()),
+            None => ImageVariant::Default,
+        };
 
         let args = ExecuteArgs {
             manifest_path,
@@ -160,13 +178,13 @@ impl BuildCommand {
             unstable_flags,
             optimization_passes: self.optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
-            lint: self.lint,
+            extra_lints: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
             target: self.target,
             max_memory_pages: self.max_memory_pages,
+            image,
         };
-
         contract_build::execute(args)
     }
 }
@@ -179,36 +197,29 @@ pub struct CheckCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    #[clap(flatten)]
-    features: Features,
-    #[clap(flatten)]
-    unstable_options: UnstableOptions,
-    #[clap(long, default_value = "wasm")]
-    target: Target,
 }
 
 impl CheckCommand {
     pub fn exec(&self) -> Result<BuildResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
-        let unstable_flags: UnstableFlags =
-            TryFrom::<&UnstableOptions>::try_from(&self.unstable_options)?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
         let args = ExecuteArgs {
             manifest_path,
             verbosity,
             build_mode: BuildMode::Debug,
-            features: self.features.clone(),
+            features: Default::default(),
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
-            unstable_flags,
+            unstable_flags: Default::default(),
             optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
-            lint: false,
+            extra_lints: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
-            target: self.target,
+            target: Default::default(),
             max_memory_pages: 0,
+            image: ImageVariant::Default,
         };
 
         contract_build::execute(args)

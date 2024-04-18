@@ -16,25 +16,27 @@
 
 use toml::value;
 
-/// Subset of cargo profile settings to configure defaults for building contracts
+/// Subset of cargo profile settings to configure defaults for building contracts.
+///
+/// All fields are optional, and if not set, the default value from cargo will be used.
+/// See https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles.
+#[derive(Default)]
 pub struct Profile {
-    opt_level: OptLevel,
-    lto: Lto,
+    pub opt_level: Option<OptLevel>,
+    pub lto: Option<Lto>,
     // `None` means use rustc default.
-    codegen_units: Option<u32>,
-    overflow_checks: bool,
-    panic: PanicStrategy,
+    pub codegen_units: Option<u32>,
+    pub panic: Option<PanicStrategy>,
 }
 
 impl Profile {
     /// The preferred set of defaults for compiling a release build of a contract
     pub fn default_contract_release() -> Profile {
         Profile {
-            opt_level: OptLevel::Z,
-            lto: Lto::Fat,
+            opt_level: Some(OptLevel::Z),
+            lto: Some(Lto::Fat),
             codegen_units: Some(1),
-            overflow_checks: true,
-            panic: PanicStrategy::Abort,
+            panic: Some(PanicStrategy::Abort),
         }
     }
 
@@ -46,18 +48,31 @@ impl Profile {
     ///   - If a profile setting is not defined, the value from this profile instance will
     ///     be added
     pub(super) fn merge(&self, profile: &mut value::Table) {
-        let mut set_value_if_vacant = |key: &'static str, value: value::Value| {
-            if !profile.contains_key(key) {
-                profile.insert(key.into(), value);
+        fn set_value_if_vacant<T>(
+            key: &'static str,
+            value: Option<T>,
+            profile: &mut value::Table,
+        ) where
+            T: Into<value::Value>,
+        {
+            if let Some(value) = value {
+                if !profile.contains_key(key) {
+                    profile.insert(key.into(), value.into());
+                }
             }
-        };
-        set_value_if_vacant("opt-level", self.opt_level.to_toml_value());
-        set_value_if_vacant("lto", self.lto.to_toml_value());
-        if let Some(codegen_units) = self.codegen_units {
-            set_value_if_vacant("codegen-units", codegen_units.into());
         }
-        set_value_if_vacant("overflow-checks", self.overflow_checks.into());
-        set_value_if_vacant("panic", self.panic.to_toml_value());
+        set_value_if_vacant(
+            "opt-level",
+            self.opt_level.map(OptLevel::to_toml_value),
+            profile,
+        );
+        set_value_if_vacant("lto", self.lto.map(Lto::to_toml_value), profile);
+        set_value_if_vacant("codegen-units", self.codegen_units, profile);
+        set_value_if_vacant(
+            "panic",
+            self.panic.map(PanicStrategy::to_toml_value),
+            profile,
+        );
     }
 }
 
@@ -139,11 +154,10 @@ mod tests {
 
         // no `[profile.release]` section specified
         let manifest_toml = "";
-        let mut expected = toml::value::Table::new();
+        let mut expected = value::Table::new();
         expected.insert("opt-level".into(), value::Value::String("z".into()));
         expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
-        expected.insert("overflow-checks".into(), value::Value::Boolean(true));
         expected.insert("panic".into(), value::Value::String("abort".into()));
 
         let mut manifest_profile = toml::from_str(manifest_toml).unwrap();
@@ -161,14 +175,12 @@ mod tests {
             panic = "unwind"
             lto = false
             opt-level = 3
-            overflow-checks = false
             codegen-units = 256
         "#;
-        let mut expected = toml::value::Table::new();
+        let mut expected = value::Table::new();
         expected.insert("opt-level".into(), value::Value::Integer(3));
         expected.insert("lto".into(), value::Value::Boolean(false));
         expected.insert("codegen-units".into(), value::Value::Integer(256));
-        expected.insert("overflow-checks".into(), value::Value::Boolean(false));
         expected.insert("panic".into(), value::Value::String("unwind".into()));
 
         let mut manifest_profile = toml::from_str(manifest_toml).unwrap();

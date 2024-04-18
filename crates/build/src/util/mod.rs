@@ -27,7 +27,7 @@ use std::{
 use term_size as _;
 
 // Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
-pub(crate) fn rust_toolchain() -> Result<String> {
+pub fn rust_toolchain() -> Result<String> {
     let meta = rustc_version::version_meta()?;
     let toolchain = format!("{:?}-{}", meta.channel, meta.host,).to_lowercase();
 
@@ -58,7 +58,9 @@ where
     let mut cmd_args = Vec::new();
 
     cmd_args.push(command);
-    cmd_args.push("--color=always");
+    if command != "dylint" {
+        cmd_args.push("--color=always");
+    }
 
     match verbosity {
         Verbosity::Quiet => cmd_args.push("--quiet"),
@@ -102,9 +104,9 @@ pub fn cargo_tty_output(cmd: Expression) -> Expression {
         .map(|(width, _)| width.to_string())
         .unwrap_or_else(|| "100".to_string());
 
-    cmd.env("CARGO_TERM_COLOR", "always")
+    cmd.env("CARGO_TERM_COLOR", "auto")
         .env("CARGO_TERM_PROGRESS_WIDTH", term_size)
-        .env("CARGO_TERM_PROGRESS_WHEN", "always")
+        .env("CARGO_TERM_PROGRESS_WHEN", "auto")
 }
 
 /// Returns the base name of the path.
@@ -120,12 +122,13 @@ pub fn decode_hex(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     hex::decode(input.trim_start_matches("0x"))
 }
 
-/// Prints to stdout if `verbosity.is_verbose()` is `true`.
+/// Prints to stderr if `verbosity.is_verbose()` is `true`.
+/// Like `cargo`, we use stderr for verbose output.
 #[macro_export]
-macro_rules! maybe_println {
+macro_rules! verbose_eprintln {
     ($verbosity:expr, $($msg:tt)*) => {
         if $verbosity.is_verbose() {
-            ::std::println!($($msg)*);
+            ::std::eprintln!($($msg)*);
         }
     };
 }

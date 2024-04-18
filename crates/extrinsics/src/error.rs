@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -37,9 +37,9 @@ impl From<subxt::Error> for ErrorVariant {
                     .details()
                     .map(|details| {
                         ErrorVariant::Module(ModuleError {
-                            pallet: details.pallet().to_string(),
-                            error: details.error().to_string(),
-                            docs: details.docs().to_vec(),
+                            pallet: details.pallet.name().to_string(),
+                            error: details.variant.name.to_string(),
+                            docs: details.variant.docs.clone(),
                         })
                     })
                     .unwrap_or_else(|err| {
@@ -63,6 +63,18 @@ impl From<anyhow::Error> for ErrorVariant {
 impl From<&str> for ErrorVariant {
     fn from(err: &str) -> Self {
         Self::Generic(GenericError::from_message(err.to_owned()))
+    }
+}
+
+impl From<std::io::Error> for ErrorVariant {
+    fn from(value: std::io::Error) -> Self {
+        Self::Generic(GenericError::from_message(value.to_string()))
+    }
+}
+
+impl From<serde_json::Error> for ErrorVariant {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Generic(GenericError::from_message(format!("{error:?}")))
     }
 }
 
@@ -91,11 +103,15 @@ impl ErrorVariant {
     ) -> anyhow::Result<ErrorVariant> {
         match error {
             DispatchError::Module(err) => {
-                let details = metadata.error(err.index, err.error[0])?;
+                let pallet = metadata.pallet_by_index_err(err.index)?;
+                let variant =
+                    pallet.error_variant_by_index(err.error[0]).ok_or_else(|| {
+                        anyhow::anyhow!("Error variant {} not found", err.error[0])
+                    })?;
                 Ok(ErrorVariant::Module(ModuleError {
-                    pallet: details.pallet().to_owned(),
-                    error: details.error().to_owned(),
-                    docs: details.docs().to_owned(),
+                    pallet: pallet.name().to_string(),
+                    error: variant.name.to_owned(),
+                    docs: variant.docs.to_owned(),
                 }))
             }
             err => {

@@ -23,7 +23,10 @@ use super::{
     metadata,
     Profile,
 };
-use crate::OptimizationPasses;
+use crate::{
+    CrateMetadata,
+    OptimizationPasses,
+};
 
 use std::{
     convert::TryFrom,
@@ -134,12 +137,20 @@ impl Manifest {
     pub fn new(manifest_path: ManifestPath) -> Result<Manifest> {
         let toml = fs::read_to_string(&manifest_path).context("Loading Cargo.toml")?;
         let toml: value::Table = toml::from_str(&toml)?;
-
-        Ok(Manifest {
+        let mut manifest = Manifest {
             path: manifest_path,
             toml,
             metadata_package: false,
-        })
+        };
+        let profile = manifest.profile_release_table_mut()?;
+        if profile
+            .get("overflow-checks")
+            .and_then(|val| val.as_bool())
+            .unwrap_or(false)
+        {
+            anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
+        }
+        Ok(manifest)
     }
 
     /// Get the name of the package.
@@ -212,16 +223,6 @@ impl Manifest {
             .get("optimization-passes")
             .map(|val| val.to_string())
             .map(Into::into)
-    }
-
-    /// Set `[profile.release]` lto flag
-    pub fn with_profile_release_lto(&mut self, enabled: bool) -> Result<&mut Self> {
-        let lto = self
-            .profile_release_table_mut()?
-            .entry("lto")
-            .or_insert(enabled.into());
-        *lto = enabled.into();
-        Ok(self)
     }
 
     /// Set preferred defaults for the `[profile.release]` section
@@ -313,11 +314,14 @@ impl Manifest {
     }
 
     pub fn with_dylint(&mut self) -> Result<&mut Self> {
-        let ink_dylint = {
+        let ink_dylint = |lib_name: &str| {
             let mut map = value::Table::new();
-            map.insert("git".into(), "https://github.com/paritytech/ink/".into());
-            map.insert("tag".into(), "v4.0.0-alpha.3".into());
-            map.insert("pattern".into(), "linting/".into());
+            map.insert("git".into(), crate::linting::GIT_URL.into());
+            map.insert("rev".into(), crate::linting::GIT_REV.into());
+            map.insert(
+                "pattern".into(),
+                value::Value::String(format!("linting/{}", lib_name)),
+            );
             value::Value::Table(map)
         };
 
@@ -338,7 +342,58 @@ impl Manifest {
             .or_insert(value::Value::Array(Default::default()))
             .as_array_mut()
             .context("workspace.metadata.dylint.libraries section should be an array")?
-            .push(ink_dylint);
+            .extend(vec![ink_dylint("mandatory"), ink_dylint("extra")]);
+
+        Ok(self)
+    }
+
+    /// Merge the workspace dependencies with the crate dependencies.
+    pub fn with_merged_workspace_dependencies(
+        &mut self,
+        crate_metadata: &CrateMetadata,
+    ) -> Result<&mut Self> {
+        let workspace_manifest_path =
+            crate_metadata.cargo_meta.workspace_root.join("Cargo.toml");
+
+        // If the workspace manifest is the same as the crate manifest, there's not
+        // workspace to fix
+        if workspace_manifest_path == self.path.path {
+            return Ok(self)
+        }
+
+        let workspace_toml =
+            fs::read_to_string(&workspace_manifest_path).context("Loading Cargo.toml")?;
+        let workspace_toml: value::Table = toml::from_str(&workspace_toml)?;
+
+        let workspace_dependencies = workspace_toml
+            .get("workspace")
+            .ok_or_else(|| {
+                anyhow::anyhow!("[workspace] should exist in workspace manifest")
+            })?
+            .as_table()
+            .ok_or_else(|| anyhow::anyhow!("[workspace] should be a table"))?
+            .get("dependencies");
+
+        // If no workspace dependencies are defined, return
+        let Some(workspace_dependencies) = workspace_dependencies else {
+            return Ok(self)
+        };
+
+        let workspace_dependencies =
+            workspace_dependencies.as_table().ok_or_else(|| {
+                anyhow::anyhow!("[workspace.dependencies] should be a table")
+            })?;
+
+        merge_workspace_with_crate_dependencies(
+            "dependencies",
+            &mut self.toml,
+            workspace_dependencies,
+        )?;
+        merge_workspace_with_crate_dependencies(
+            "dev-dependencies",
+            &mut self.toml,
+            workspace_dependencies,
+        )?;
 
         Ok(self)
     }
@@ -548,6 +603,77 @@ fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
     crate_types
         .iter()
         .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+}
+
+fn merge_workspace_with_crate_dependencies(
+    section_name: &str,
+    crate_toml: &mut value::Table,
+    workspace_dependencies: &value::Table,
+) -> Result<()> {
+    let Some(dependencies) = crate_toml.get_mut(section_name) else {
+        return Ok(())
+    };
+
+    let table = dependencies
+        .as_table_mut()
+        .ok_or_else(|| anyhow::anyhow!("dependencies should be a table"))?;
+
+    for (name, value) in table {
+        let Some(dependency) = value.as_table_mut() else {
+            continue
+        };
+
+        let is_workspace_dependency = dependency
+            .get_mut("workspace")
+            .unwrap_or(&mut toml::Value::Boolean(false))
+            .as_bool()
+            .unwrap_or(false);
+        if !is_workspace_dependency {
+            continue
+        }
+
+        let workspace_dependency = workspace_dependencies.get(name).ok_or_else(|| {
+            anyhow::anyhow!("'{}' is not a key in workspace_dependencies", name)
+        })?;
+        let workspace_dependency = match workspace_dependency {
+            toml::Value::Table(table) => table.to_owned(),
+            // If the workspace dependency is just a version string, we create a table
+            toml::Value::String(version) => {
+                let mut table = toml::value::Table::new();
+                table.insert("version".to_string(), toml::Value::String(version.clone()));
+                table
+            }
+            // If the workspace dependency is invalid, we throw an error
+            _ => {
+                anyhow::bail!("Invalid workspace dependency for {}", name);
+            }
+        };
+
+        dependency.remove("workspace");
+        for (key, value) in workspace_dependency {
+            if let Some(config) = dependency.get_mut(&key) {
+                // If it's an array we merge the values,
+                // otherwise we keep the crate value.
+                if let toml::Value::Array(value) = value {
+                    if let toml::Value::Array(config) = config {
+                        config.extend(value.clone());
+
+                        let mut new_config = Vec::new();
+                        for v in config.iter() {
+                            if !new_config.contains(v) {
+                                new_config.push(v.clone());
+                            }
+                        }
+                        *config = new_config;
+                    }
+                }
+            } else {
+                dependency.insert(key.clone(), value.clone());
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -16,12 +16,10 @@
 
 use std::path::PathBuf;
 
-use crate::{
-    cmd::extrinsics::ContractArtifacts,
-    DEFAULT_KEY_COL_WIDTH,
-};
+use crate::DEFAULT_KEY_COL_WIDTH;
 use anyhow::Result;
 use colored::Colorize as _;
+use contract_extrinsics::ContractArtifacts;
 
 #[derive(Debug, Clone, clap::Args)]
 #[clap(
