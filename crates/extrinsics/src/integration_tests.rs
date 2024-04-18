@@ -95,7 +95,7 @@ impl ContractsNodeProcess {
             .arg(format!("--base-path={}", tmp_dir.path().to_string_lossy()))
             .spawn()?;
         // wait for rpc to be initialized
-        const MAX_ATTEMPTS: u32 = 10;
+        const MAX_ATTEMPTS: u32 = 15;
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
