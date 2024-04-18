@@ -93,6 +93,7 @@ macro_rules! define_chains {
 
 define_chains! {
     /// List of production chains where the contract can be deployed to.
+    #[derive(clap::ValueEnum)]
     pub enum ProductionChain {
         AlephZero = ("wss://ws.azero.dev:443/", "Substrate"),
         Astar = ("wss://rpc.astar.network:443/", "Polkadot"),

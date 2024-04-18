@@ -369,12 +369,13 @@ where
 
 /// Prompt the user to confirm the upload of unverifiable code to the production chain.
 pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
-    println!(
-        "{} (skip with --skip-validate)",
-        "Confirm upload:".bright_white().bold()
-    );
+    println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
-        "You are trying to upload unverifiable code to {} mainnet",
+        "Warning: You are about to upload unverifiable code to {} mainnet.\n\
+        A third party won't be able to confirm that your uploaded contract Wasm blob \
+        matches a particular contract source code.\n\n\
+        You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
+        See https://use.ink/basics/contract-verification for more info.",
         chain
     )
     .bold()
