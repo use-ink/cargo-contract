@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 #![deny(unused_crate_dependencies)]
+
+use std::collections::HashMap;
+use core::ops::Range;
 use anyhow::{
-    anyhow,
-    bail,
-    Result,
+    anyhow, bail, Result
 };
 pub use contract_metadata::Language;
 use parity_wasm::elements::{
@@ -31,6 +32,130 @@ use parity_wasm::elements::{
     TypeSection,
     ValueType,
 };
+use wasmparser::{FuncType, Name, NameSectionReader, Parser, Payload};
+
+struct ModuleInfo {
+    custom_sections: HashMap<String, Range<usize>>,
+    start_section: Option<(u32, Range<usize>)>,
+    module_bytes: Vec<u8>,
+    // Function idx maps to type idx
+    functions: Vec<u32>,
+    // Types for inner functions
+    types: Vec<FuncType>,
+}
+
+impl ModuleInfo{
+    fn parse(
+        code: &[u8],
+    ) -> Result<Self> {
+        let mut module = Self { custom_sections: HashMap::new(),
+            start_section: None,
+            module_bytes: code.to_owned(),
+            functions: Vec::new(),
+            types: Vec::new(),
+        };
+        for payload in Parser::new(0).parse_all(&module.module_bytes) {
+            let payload = payload?;
+    
+            match payload {
+                Payload::Version { encoding, .. } => {
+                    match encoding {
+                        wasmparser::Encoding::Component => {
+                            anyhow::bail!("Unsupported component section")
+                        }
+                        wasmparser::Encoding::Module => {},
+                    };
+                }
+                Payload::End(_) => break,
+                Payload::CustomSection(ref c) => {
+                    module.custom_sections.insert(c.name().to_string(), c.range());
+                }
+                Payload::StartSection {func, range} => {
+                    module.start_section = Some((func, range));
+                }
+                Payload::CodeSectionStart {
+                        count: _,
+                        range,
+                        size: _,
+                    } => {
+                        // let reader = wasmparser::CodeSectionReader::new(&module.module_bytes, range.start)?;
+
+                        // for body in reader {
+                        //     let body = body?;
+                        //     let range = body.range();
+                        // }
+
+                    },
+                Payload::ImportSection(reader) => {
+                    for ty in reader {
+                        
+                           if let wasmparser::TypeRef::Func(ty) = ty?.ty {
+                                // Save imported functions
+                                module.functions.push(ty);
+                            }
+                            
+                        
+                    }
+                }
+                Payload::TypeSection(reader) => {
+                    // Save function types
+                    for ty in reader.into_iter_err_on_gc_types() {
+                        module.types.push(ty?);
+                    }
+                }
+                Payload::FunctionSection(reader) => {
+                    for ty in reader {
+                        module.functions.push(ty?);
+                    }
+                }
+                _ => {}
+            }
+        }
+    
+        Ok(module)
+    }
+
+    pub fn new(code: &[u8]) -> Result<Self> {
+        Self::parse(code)
+    }
+
+    /// Get custom section names.
+    pub fn custom_section_names(&self) -> Vec<String> {
+        self.custom_sections.keys().map(ToOwned::to_owned).collect()
+    }
+
+    /// Check if functiona name is present in the 'name' custom section
+    fn has_function_name(&self, name: &str) -> Result<bool> {
+        // The contract compiled in debug mode includes function names in the name section.
+        let name_section = self.custom_sections.get("name").ok_or_else(|| anyhow!("Not found"))?;
+        let reader = NameSectionReader::new(&self.module_bytes, name_section.start);
+        for section in reader {
+            if let Name::Function(n) = section? {
+                for e in n {
+                    let naming = e?;
+                    if naming.name == name {
+                        return Ok(true)
+                    }
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    pub fn has_start_section(&self) -> bool {
+        self.start_section.is_some()
+    }
+
+    fn get_function_type_index(&self, function: FuncType) -> Result<usize> //body
+    {
+        for (i, ty) in self.types.iter().enumerate() {
+            if ty == &function {
+                return  Ok(i);
+            }
+        }
+        bail!("Not found")
+    }    
+}
 
 /// Detects the programming language of a smart contract from its WebAssembly (Wasm)
 /// binary code.
@@ -39,17 +164,18 @@ use parity_wasm::elements::{
 /// the contract's source language. It currently supports detection for Ink!, Solidity,
 /// and AssemblyScript languages.
 pub fn determine_language(code: &[u8]) -> Result<Language> {
-    let wasm_module: Module = parity_wasm::deserialize_buffer(code)?;
-    let module = wasm_module.clone().parse_names().unwrap_or(wasm_module);
-    let start_section = module.start_section();
+    let module = ModuleInfo::new(code)?;
 
-    if start_section.is_none() && has_custom_section(&module, "producers") {
+    // let wasm_module: Module = parity_wasm::deserialize_buffer(code)?;
+    // let module = wasm_module.clone().parse_names().unwrap_or(wasm_module);
+    let start_section = module.has_start_section();
+
+    if !start_section && module.custom_section_names().iter().any(|e| e.as_str() == "producers") {
         return Ok(Language::Solidity)
-    } else if start_section.is_some() && has_custom_section(&module, "sourceMappingURL") {
+    } else if start_section && module.custom_section_names().iter().any(|e| e.as_str() == "sourceMappingURL") {
         return Ok(Language::AssemblyScript)
-    } else if start_section.is_none()
-        && (is_ink_function_present(&module) || has_function_name(&module, "ink_env"))
-    {
+    } else if !start_section
+       && /*(is_ink_function_present(&module)*/ matches!(module.has_function_name("ink_env"), Ok(true))    {
         return Ok(Language::Ink)
     }
 
@@ -98,31 +224,6 @@ fn is_ink_function_present(module: &Module) -> bool {
     } else {
         false
     }
-}
-
-/// Check if any function in the 'name' section contains the specified name.
-fn has_function_name(module: &Module, name: &str) -> bool {
-    // The contract compiled in debug mode includes function names in the name section.
-    module
-        .names_section()
-        .map(|section| {
-            if let Some(functions) = section.functions() {
-                functions
-                    .names()
-                    .iter()
-                    .any(|(_, func)| func.contains(name))
-            } else {
-                false
-            }
-        })
-        .unwrap_or(false)
-}
-
-/// Check if custom section is present.
-fn has_custom_section(module: &Module, section_name: &str) -> bool {
-    module
-        .custom_sections()
-        .any(|section| section.name() == section_name)
 }
 
 /// Get the function index from the import section.
