@@ -123,7 +123,7 @@ pub struct BuildCommand {
     target: Target,
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
-    max_memory_pages: u32,
+    max_memory_pages: u64,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
     #[clap(long, default_value_t = false)]

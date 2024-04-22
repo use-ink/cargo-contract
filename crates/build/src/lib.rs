@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright 2018-2024 Parity Technologies (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
+mod post_process_wasm;
 #[cfg(test)]
 mod tests;
 pub mod util;
@@ -58,6 +59,10 @@ pub use self::{
         WasmOptSettings,
     },
     new::new_contract_project,
+    post_process_wasm::{
+        load_module,
+        post_process_wasm,
+    },
     util::DEFAULT_KEY_COL_WIDTH,
     wasm_opt::{
         OptimizationPasses,
@@ -85,13 +90,6 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
-use parity_wasm::elements::{
-    External,
-    Internal,
-    MemoryType,
-    Module,
-    Section,
-};
 use semver::Version;
 use std::{
     fs,
@@ -105,7 +103,7 @@ use std::{
 use strum::IntoEnumIterator;
 
 /// This is the default maximum number of pages available for a contract to allocate.
-pub const DEFAULT_MAX_MEMORY_PAGES: u32 = 16;
+pub const DEFAULT_MAX_MEMORY_PAGES: u64 = 16;
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -140,7 +138,7 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
-    pub max_memory_pages: u32,
+    pub max_memory_pages: u64,
     pub image: ImageVariant,
 }
 
@@ -681,117 +679,6 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             .bright_yellow());
     }
 
-    Ok(())
-}
-
-/// Ensures the Wasm memory import of a given module has the maximum number of pages.
-///
-/// Iterates over the import section, finds the memory import entry if any and adjusts the
-/// maximum limit.
-fn ensure_maximum_memory_pages(
-    module: &mut Module,
-    maximum_allowed_pages: u32,
-) -> Result<()> {
-    let mem_ty = module
-        .import_section_mut()
-        .and_then(|section| {
-            section.entries_mut().iter_mut().find_map(|entry| {
-                match entry.external_mut() {
-                    External::Memory(ref mut mem_ty) => Some(mem_ty),
-                    _ => None,
-                }
-            })
-        })
-        .context(
-            "Memory import is not found. Is --import-memory specified in the linker args",
-        )?;
-
-    if let Some(requested_maximum) = mem_ty.limits().maximum() {
-        // The module already has maximum, check if it is within the limit bail out.
-        if requested_maximum > maximum_allowed_pages {
-            anyhow::bail!(
-                "The wasm module requires {} pages. The maximum allowed number of pages is {}",
-                requested_maximum,
-                maximum_allowed_pages,
-            );
-        }
-    } else {
-        let initial = mem_ty.limits().initial();
-        *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
-    }
-
-    Ok(())
-}
-
-/// Strips all custom sections.
-///
-/// Presently all custom sections are not required so they can be stripped safely.
-/// The name section is already stripped by `wasm-opt`.
-fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        match section {
-            Section::Reloc(_) => false,
-            Section::Custom(custom) if custom.name() != "name" => false,
-            _ => true,
-        }
-    })
-}
-
-/// A contract should export nothing but the "call" and "deploy" functions.
-///
-/// Any elements not referenced by these exports become orphaned and are removed by
-/// `wasm-opt`.
-fn strip_exports(module: &mut Module) {
-    if let Some(section) = module.export_section_mut() {
-        section.entries_mut().retain(|entry| {
-            matches!(entry.internal(), Internal::Function(_))
-                && (entry.field() == "call" || entry.field() == "deploy")
-        })
-    }
-}
-
-/// Load and parse a Wasm file from disk.
-fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
-    let path = path.as_ref();
-    parity_wasm::deserialize_file(path).context(format!(
-        "Loading of wasm module at '{}' failed",
-        path.display(),
-    ))
-}
-
-/// Performs required post-processing steps on the Wasm artifact.
-fn post_process_wasm(
-    optimized_code: &PathBuf,
-    skip_wasm_validation: bool,
-    verbosity: &Verbosity,
-    max_memory_pages: u32,
-) -> Result<()> {
-    // Deserialize Wasm module from a file.
-    let mut module =
-        load_module(optimized_code).context("Loading of optimized wasm failed")?;
-
-    strip_exports(&mut module);
-    ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
-    strip_custom_sections(&mut module);
-
-    if !skip_wasm_validation {
-        validate_wasm::validate_import_section(&module)?;
-    } else {
-        verbose_eprintln!(
-            verbosity,
-            " {}",
-            "Skipping wasm validation! Contract code may be invalid."
-                .bright_yellow()
-                .bold()
-        );
-    }
-
-    debug_assert!(
-        !module.clone().into_bytes().unwrap().is_empty(),
-        "resulting wasm size of post processing must be > 0"
-    );
-
-    parity_wasm::serialize_to_file(optimized_code, module)?;
     Ok(())
 }
 
