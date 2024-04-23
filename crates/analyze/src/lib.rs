@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 #![deny(unused_crate_dependencies)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use core::ops::Range;
 use anyhow::{
     anyhow, bail, Result
@@ -32,29 +32,34 @@ use parity_wasm::elements::{
     TypeSection,
     ValueType,
 };
-use wasmparser::{FuncType, Name, NameSectionReader, Parser, Payload};
+use wasmparser::{BinaryReaderError, FuncType, Import, Name, NameSectionReader, Operator, Parser, Payload, RefType, TypeRef};
 
-struct ModuleInfo {
+#[derive(Default)]
+struct ModuleInfo<'a> {
     custom_sections: HashMap<String, Range<usize>>,
     start_section: Option<(u32, Range<usize>)>,
-    module_bytes: Vec<u8>,
+    module_bytes: &'a [u8],
     // Function idx maps to type idx
     functions: Vec<u32>,
     // Types for inner functions
     types: Vec<FuncType>,
+    imports: Vec<Import<'a>>,
+    bodies: Vec<Vec<Operator<'a>>>
 }
 
-impl ModuleInfo{
+impl <'a> ModuleInfo<'a>{
     fn parse(
-        code: &[u8],
+        code: &'a [u8],
     ) -> Result<Self> {
         let mut module = Self { custom_sections: HashMap::new(),
             start_section: None,
-            module_bytes: code.to_owned(),
+            module_bytes: code,
             functions: Vec::new(),
             types: Vec::new(),
+            imports: Vec::new(),
+            bodies: Vec::new(),
         };
-        for payload in Parser::new(0).parse_all(&module.module_bytes) {
+        for payload in Parser::new(0).parse_all(module.module_bytes) {
             let payload = payload?;
     
             match payload {
@@ -78,17 +83,21 @@ impl ModuleInfo{
                         range,
                         size: _,
                     } => {
-                        // let reader = wasmparser::CodeSectionReader::new(&module.module_bytes, range.start)?;
+                        let reader = wasmparser::CodeSectionReader::new(&module.module_bytes, range.start)?;
 
-                        // for body in reader {
-                        //     let body = body?;
-                        //     let range = body.range();
-                        // }
+                         for body in reader {
+                             let body = body?;
+                             let reader = body.get_operators_reader();
+                                let operators = reader?;
+                                let ops = operators.into_iter().collect::<std::result::Result<Vec<_>, _>>()?;
+                                module.bodies.push(ops);
+                        }
 
                     },
                 Payload::ImportSection(reader) => {
                     for ty in reader {
                         
+                        module.imports.push(ty.clone()?);
                            if let wasmparser::TypeRef::Func(ty) = ty?.ty {
                                 // Save imported functions
                                 module.functions.push(ty);
@@ -115,8 +124,10 @@ impl ModuleInfo{
         Ok(module)
     }
 
-    pub fn new(code: &[u8]) -> Result<Self> {
+    pub fn new(code: &'a[u8]) -> Result<Self> {
+
         Self::parse(code)
+
     }
 
     /// Get custom section names.
@@ -146,15 +157,92 @@ impl ModuleInfo{
         self.start_section.is_some()
     }
 
-    fn get_function_type_index(&self, function: FuncType) -> Result<usize> //body
+    fn get_function_type_index(&self, function: &FuncType) -> Result<usize> //body
     {
         for (i, ty) in self.types.iter().enumerate() {
-            if ty == &function {
+            if ty == function {
                 return  Ok(i);
             }
         }
         bail!("Not found")
-    }    
+    }
+
+    fn get_function_import_index(&self, name: &str) -> Option<u32> //body
+    {
+        self.imports.iter().find_map( |e| {
+            if e.name == name  {
+                if let TypeRef::Func(idx) = e.ty {
+                return Some(idx)
+                }
+            }
+            None
+        })
+    }
+
+    fn filter_function_by_type(
+        &self,
+        function_type: &FuncType,
+    ) -> Result<Vec<Vec<Operator>>> {
+        let func_type_index = self.get_function_type_index(function_type)?;
+    
+        self
+            .functions
+            .iter()
+            .enumerate()
+            .filter(|(_, &elem)| elem == func_type_index as u32)
+            .map(|(index, _)| {
+                self
+                    .bodies
+                    .get(index)
+                    .ok_or(anyhow!("Requested function not found code section")).cloned()
+            })
+            .collect::<Result<Vec<_>>>()
+    }
+
+    /// Checks if a ink! function is present.
+fn is_ink_function_present(module: &Module) -> bool {
+    let import_section = module
+        .import_section()
+        .expect("Import setction shall be present");
+
+    // Signature for 'deny_payment' ink! function.
+    let ink_func_deny_payment_sig =
+        Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
+    // Signature for 'transferred_value' ink! function.
+    let ink_func_transferred_value_sig =
+        Type::Function(FunctionType::new(vec![ValueType::I32], vec![]));
+
+    // The deny_payment and transferred_value functions internally call the
+    // value_transferred function. Getting its index from import section.
+    let value_transferred_index =
+        // For ink! >=4
+        get_function_import_index(import_section, "value_transferred").or(
+            // For ink! ^3
+            get_function_import_index(import_section, "seal_value_transferred"),
+        );
+
+    let mut functions: Vec<&FuncBody> = Vec::new();
+    let function_signatures =
+        vec![&ink_func_deny_payment_sig, &ink_func_transferred_value_sig];
+
+    for signature in function_signatures {
+        if let Ok(mut func) = filter_function_by_type(module, signature) {
+            functions.append(&mut func);
+        }
+    }
+
+    if let Ok(index) = value_transferred_index {
+        functions.iter().any(|&body| {
+            body.code().elements().iter().any(|instruction| {
+                // Matches the 'value_transferred' function.
+                matches!(instruction, &Instruction::Call(i) if i as usize == index)
+            })
+        })
+    } else {
+        false
+    }
+}
+
 }
 
 /// Detects the programming language of a smart contract from its WebAssembly (Wasm)
