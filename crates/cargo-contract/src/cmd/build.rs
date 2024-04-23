@@ -61,7 +61,7 @@ pub struct BuildCommand {
     /// Performs extra linting checks for ink! specific issues during the build process.
     ///
     /// Basic clippy lints are deemed important and run anyways.
-    #[clap(long, conflicts_with = "verifiable")]
+    #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
     ///
