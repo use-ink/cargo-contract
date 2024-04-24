@@ -15,12 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 #![deny(unused_crate_dependencies)]
 
-use std::{collections::HashMap};
-use core::ops::Range;
 use anyhow::{
-    anyhow, bail, Result
+    anyhow,
+    bail,
+    Result,
 };
 pub use contract_metadata::Language;
+use core::ops::Range;
 use parity_wasm::elements::{
     External,
     FuncBody,
@@ -32,78 +33,80 @@ use parity_wasm::elements::{
     TypeSection,
     ValueType,
 };
-use wasmparser::{BinaryReaderError, FuncType, Import, Name, NameSectionReader, Operator, Parser, Payload, RefType, TypeRef};
+use std::collections::HashMap;
+use wasmparser::{
+    FuncType,
+    Import,
+    Name,
+    NameSectionReader,
+    Operator,
+    Parser,
+    Payload,
+    TypeRef,
+    ValType,
+};
 
 #[derive(Default)]
 struct ModuleInfo<'a> {
     custom_sections: HashMap<String, Range<usize>>,
     start_section: Option<(u32, Range<usize>)>,
-    module_bytes: &'a [u8],
     // Function idx maps to type idx
     functions: Vec<u32>,
     // Types for inner functions
     types: Vec<FuncType>,
     imports: Vec<Import<'a>>,
-    bodies: Vec<Vec<Operator<'a>>>
+    bodies: Vec<Vec<Operator<'a>>>,
+    module_bytes: &'a [u8],
 }
 
-impl <'a> ModuleInfo<'a>{
-    fn parse(
-        code: &'a [u8],
-    ) -> Result<Self> {
-        let mut module = Self { custom_sections: HashMap::new(),
-            start_section: None,
+impl<'a> ModuleInfo<'a> {
+    fn parse(code: &'a [u8]) -> Result<Self> {
+        let mut module = Self {
             module_bytes: code,
-            functions: Vec::new(),
-            types: Vec::new(),
-            imports: Vec::new(),
-            bodies: Vec::new(),
+            ..Default::default()
         };
         for payload in Parser::new(0).parse_all(module.module_bytes) {
             let payload = payload?;
-    
+
             match payload {
-                Payload::Version { encoding, .. } => {
-                    match encoding {
-                        wasmparser::Encoding::Component => {
-                            anyhow::bail!("Unsupported component section")
-                        }
-                        wasmparser::Encoding::Module => {},
-                    };
+                Payload::Version {
+                    num: _,
+                    encoding: wasmparser::Encoding::Component,
+                    range: _,
+                } => {
+                    anyhow::bail!("Unsupported component section")
                 }
                 Payload::End(_) => break,
                 Payload::CustomSection(ref c) => {
-                    module.custom_sections.insert(c.name().to_string(), c.range());
+                    module
+                        .custom_sections
+                        .insert(c.name().to_string(), c.range());
                 }
-                Payload::StartSection {func, range} => {
+                Payload::StartSection { func, range } => {
                     module.start_section = Some((func, range));
                 }
                 Payload::CodeSectionStart {
-                        count: _,
-                        range,
-                        size: _,
-                    } => {
-                        let reader = wasmparser::CodeSectionReader::new(&module.module_bytes, range.start)?;
-
-                         for body in reader {
-                             let body = body?;
-                             let reader = body.get_operators_reader();
-                                let operators = reader?;
-                                let ops = operators.into_iter().collect::<std::result::Result<Vec<_>, _>>()?;
-                                module.bodies.push(ops);
-                        }
-
-                    },
+                    count: _,
+                    range,
+                    size: _,
+                } => {
+                    let reader = wasmparser::CodeSectionReader::new(
+                        &module.module_bytes[range],
+                        0,
+                    )?;
+                    for body in reader {
+                        let body = body?;
+                        let reader = body.get_operators_reader();
+                        let operators = reader?;
+                        let ops = operators
+                            .into_iter()
+                            .collect::<std::result::Result<Vec<_>, _>>()?;
+                        module.bodies.push(ops);
+                    }
+                }
                 Payload::ImportSection(reader) => {
                     for ty in reader {
-                        
-                        module.imports.push(ty.clone()?);
-                           if let wasmparser::TypeRef::Func(ty) = ty?.ty {
-                                // Save imported functions
-                                module.functions.push(ty);
-                            }
-                            
-                        
+                        module.imports.push(ty?);
                     }
                 }
                 Payload::TypeSection(reader) => {
@@ -120,14 +123,11 @@ impl <'a> ModuleInfo<'a>{
                 _ => {}
             }
         }
-    
         Ok(module)
     }
 
-    pub fn new(code: &'a[u8]) -> Result<Self> {
-
+    pub fn new(code: &'a [u8]) -> Result<Self> {
         Self::parse(code)
-
     }
 
     /// Get custom section names.
@@ -137,8 +137,12 @@ impl <'a> ModuleInfo<'a>{
 
     /// Check if functiona name is present in the 'name' custom section
     fn has_function_name(&self, name: &str) -> Result<bool> {
-        // The contract compiled in debug mode includes function names in the name section.
-        let name_section = self.custom_sections.get("name").ok_or_else(|| anyhow!("Not found"))?;
+        // The contract compiled in debug mode includes function names in the name
+        // section.
+        let name_section = self
+            .custom_sections
+            .get("name")
+            .ok_or_else(|| anyhow!("Not found"))?;
         let reader = NameSectionReader::new(&self.module_bytes, name_section.start);
         for section in reader {
             if let Name::Function(n) = section? {
@@ -161,22 +165,19 @@ impl <'a> ModuleInfo<'a>{
     {
         for (i, ty) in self.types.iter().enumerate() {
             if ty == function {
-                return  Ok(i);
+                return Ok(i)
             }
         }
         bail!("Not found")
     }
 
-    fn get_function_import_index(&self, name: &str) -> Option<u32> //body
+    fn get_function_import_index(&self, name: &str) -> Result<usize> //body
     {
-        self.imports.iter().find_map( |e| {
-            if e.name == name  {
-                if let TypeRef::Func(idx) = e.ty {
-                return Some(idx)
-                }
-            }
-            None
-        })
+        self.imports
+            .iter()
+            .filter(|&entry| matches!(entry.ty, TypeRef::Func(_)))
+            .position(|e| e.name == name)
+            .ok_or(anyhow!("Missing required import for: {}", name))
     }
 
     fn filter_function_by_type(
@@ -184,65 +185,59 @@ impl <'a> ModuleInfo<'a>{
         function_type: &FuncType,
     ) -> Result<Vec<Vec<Operator>>> {
         let func_type_index = self.get_function_type_index(function_type)?;
-    
-        self
-            .functions
+        println!("function type index: {func_type_index}");
+
+        self.functions
             .iter()
             .enumerate()
             .filter(|(_, &elem)| elem == func_type_index as u32)
             .map(|(index, _)| {
-                self
-                    .bodies
+                self.bodies
                     .get(index)
-                    .ok_or(anyhow!("Requested function not found code section")).cloned()
+                    .ok_or(anyhow!("Requested function not found code section"))
+                    .cloned()
             })
             .collect::<Result<Vec<_>>>()
     }
 
     /// Checks if a ink! function is present.
-fn is_ink_function_present(module: &Module) -> bool {
-    let import_section = module
-        .import_section()
-        .expect("Import setction shall be present");
+    fn is_ink_function_present(&self) -> bool {
+        // Signature for 'deny_payment' ink! function.
+        let ink_func_deny_payment_sig = FuncType::new(vec![], vec![ValType::I32]);
+        // Signature for 'transferred_value' ink! function.
+        let ink_func_transferred_value_sig = FuncType::new(vec![ValType::I32], vec![]);
 
-    // Signature for 'deny_payment' ink! function.
-    let ink_func_deny_payment_sig =
-        Type::Function(FunctionType::new(vec![], vec![ValueType::I32]));
-    // Signature for 'transferred_value' ink! function.
-    let ink_func_transferred_value_sig =
-        Type::Function(FunctionType::new(vec![ValueType::I32], vec![]));
-
-    // The deny_payment and transferred_value functions internally call the
-    // value_transferred function. Getting its index from import section.
-    let value_transferred_index =
+        // The deny_payment and transferred_value functions internally call the
+        // value_transferred function. Getting its index from import section.
+        let value_transferred_index =
         // For ink! >=4
-        get_function_import_index(import_section, "value_transferred").or(
+        self.get_function_import_index("value_transferred").or(
             // For ink! ^3
-            get_function_import_index(import_section, "seal_value_transferred"),
+            self.get_function_import_index("seal_value_transferred"),
         );
+        println!("value_transferred_index: {:?}", value_transferred_index);
 
-    let mut functions: Vec<&FuncBody> = Vec::new();
-    let function_signatures =
-        vec![&ink_func_deny_payment_sig, &ink_func_transferred_value_sig];
+        let mut functions: Vec<Vec<Operator>> = Vec::new();
+        let function_signatures =
+            vec![&ink_func_deny_payment_sig, &ink_func_transferred_value_sig];
 
-    for signature in function_signatures {
-        if let Ok(mut func) = filter_function_by_type(module, signature) {
-            functions.append(&mut func);
+        for signature in function_signatures {
+            if let Ok(mut func) = self.filter_function_by_type(signature) {
+                functions.append(&mut func);
+            }
         }
-    }
-
-    if let Ok(index) = value_transferred_index {
-        functions.iter().any(|&body| {
-            body.code().elements().iter().any(|instruction| {
+        println!("functions {}", functions.len());
+        if let Ok(index) = value_transferred_index {
+            functions.iter().any(|body| {
+            body.iter().any(|instruction| {
                 // Matches the 'value_transferred' function.
-                matches!(instruction, &Instruction::Call(i) if i as usize == index)
+                matches!(instruction, &Operator::Call{function_index} if function_index as usize == index)
             })
         })
-    } else {
-        false
+        } else {
+            false
+        }
     }
-}
-
 }
 
 /// Detects the programming language of a smart contract from its WebAssembly (Wasm)
@@ -258,12 +253,24 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
     // let module = wasm_module.clone().parse_names().unwrap_or(wasm_module);
     let start_section = module.has_start_section();
 
-    if !start_section && module.custom_section_names().iter().any(|e| e.as_str() == "producers") {
+    if !start_section
+        && module
+            .custom_section_names()
+            .iter()
+            .any(|e| e.as_str() == "producers")
+    {
         return Ok(Language::Solidity)
-    } else if start_section && module.custom_section_names().iter().any(|e| e.as_str() == "sourceMappingURL") {
+    } else if start_section
+        && module
+            .custom_section_names()
+            .iter()
+            .any(|e| e.as_str() == "sourceMappingURL")
+    {
         return Ok(Language::AssemblyScript)
     } else if !start_section
-       && /*(is_ink_function_present(&module)*/ matches!(module.has_function_name("ink_env"), Ok(true))    {
+        && (module.is_ink_function_present()
+            || matches!(module.has_function_name("ink_env"), Ok(true)))
+    {
         return Ok(Language::Ink)
     }
 
@@ -271,7 +278,7 @@ pub fn determine_language(code: &[u8]) -> Result<Language> {
 }
 
 /// Checks if a ink! function is present.
-fn is_ink_function_present(module: &Module) -> bool {
+fn _is_ink_function_present(module: &Module) -> bool {
     let import_section = module
         .import_section()
         .expect("Import setction shall be present");
@@ -404,10 +411,12 @@ mod tests {
             (type (;1;) (func (result i32)))
             (type (;2;) (func (param i32 i32)))
             (import "seal" "foo" (func (;0;) (type 0)))
-            (import "seal0" "value_transferred" (func (;1;) (type 2)))
+            (import "seal" "foo1" (func (;1;) (type 0)))
+            (import "seal" "foo1" (func (;2;) (type 0)))
+            (import "seal0" "value_transferred" (func (;3;) (type 2)))
             (import "env" "memory" (memory (;0;) 2 16))
-            (func (;2;) (type 2))
-            (func (;3;) (type 1) (result i32)
+            (func (;4;) (type 2))
+            (func (;5;) (type 1) (result i32)
             (local i32 i64 i64)
             global.get 0
             i32.const 32
@@ -427,7 +436,7 @@ mod tests {
             local.get 0
             i32.const 28
             i32.add
-            call 1
+            call 3
             local.get 0
             i64.load offset=8
             local.set 1
