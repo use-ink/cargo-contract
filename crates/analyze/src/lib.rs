@@ -191,11 +191,11 @@ fn is_ink_function_present(module: &Module) -> bool {
     // The deny_payment and transferred_value functions internally call the
     // value_transferred function. Getting its index from import section.
     let value_transferred_index =
-    // For ink! >=4
-    module.function_import_index("value_transferred").or(
-        // For ink! ^3
-        module.function_import_index("seal_value_transferred"),
-    );
+        // For ink! >=4
+        module.function_import_index("value_transferred").or(
+            // For ink! ^3
+            module.function_import_index("seal_value_transferred"),
+        );
 
     let mut functions: Vec<Vec<Operator>> = Vec::new();
     let function_signatures =
