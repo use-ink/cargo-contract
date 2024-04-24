@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
-//#![deny(unused_crate_dependencies)]
+#![deny(unused_crate_dependencies)]
 
 use anyhow::{
     anyhow,
@@ -37,17 +37,17 @@ use wasmparser::{
 /// WebAssembly module
 #[derive(Default)]
 pub struct Module<'a> {
-    // Map the custom section name to its data.
+    /// Map the custom section name to its data.
     pub custom_sections: HashMap<&'a str, &'a [u8]>,
-    // Start section function.
+    /// Start section function.
     pub start_section: Option<u32>,
-    // Map the function index to the type index.
+    /// Map the function index to the type index.
     pub function_sections: Vec<u32>,
-    // Type sections containing functions only.
+    /// Type sections containing functions only.
     pub type_sections: Vec<FuncType>,
-    // Import sections.
+    /// Import sections.
     pub import_sections: Vec<Import<'a>>,
-    // Code sections containing instructions only.
+    /// Code sections containing instructions only.
     pub code_sections: Vec<Vec<Operator<'a>>>,
 }
 
@@ -280,12 +280,10 @@ mod tests {
             (type (;1;) (func (result i32)))
             (type (;2;) (func (param i32 i32)))
             (import "seal" "foo" (func (;0;) (type 0)))
-            (import "seal" "foo1" (func (;1;) (type 0)))
-            (import "seal" "foo1" (func (;2;) (type 0)))
-            (import "seal0" "value_transferred" (func (;3;) (type 2)))
+            (import "seal0" "value_transferred" (func (;1;) (type 2)))
             (import "env" "memory" (memory (;0;) 2 16))
-            (func (;4;) (type 2))
-            (func (;5;) (type 1) (result i32)
+            (func (;2;) (type 2))
+            (func (;3;) (type 1) (result i32)
             (local i32 i64 i64)
             global.get 0
             i32.const 32
@@ -305,7 +303,7 @@ mod tests {
             local.get 0
             i32.const 28
             i32.add
-            call 3
+            call 1
             local.get 0
             i64.load offset=8
             local.set 1
