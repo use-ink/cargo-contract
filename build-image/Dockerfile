@@ -28,7 +28,7 @@ LABEL io.parity.image.vendor="Parity Technologies" \
     io.parity.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
     llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
-    io.parity.image.documentation="https://github.com/paritytech/cargo-contract/blob/master/\
+    io.parity.image.documentation="https://github.com/use-ink/cargo-contract/blob/master/\
     build-image/README.md" \
     io.parity.version.rust=${RUST_VERSION} \
     io.parity.version.cargo-contract.version=${CARGO_CONTRACT_VERSION} \

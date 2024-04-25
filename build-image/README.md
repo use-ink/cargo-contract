@@ -6,7 +6,7 @@ Used for reproducible builds in `cargo contract build --verifiable`
 
 **Rust versions:**
 
-Currently, the 1.69 toolchain is temporarily required to build ink! contracts because of https://github.com/paritytech/cargo-contract/issues/1139
+Currently, the 1.69 toolchain is temporarily required to build ink! contracts because of https://github.com/use-ink/cargo-contract/issues/1139
 
 **Rust tools & toolchains:**
 
