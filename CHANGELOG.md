@@ -373,7 +373,7 @@ First release candidate for compatibility with `ink! 4.0-rc`.
 
 ## [2.0.0-beta] - 2022-11-22
 
-This release supports the ink! [`v4.0.0-beta`](https://github.com/paritytech/ink/releases/tag/v4.0.0-beta) release.
+This release supports the ink! [`v4.0.0-beta`](https://github.com/use-ink/ink/releases/tag/v4.0.0-beta) release.
 
 ### Changed
 - Update to weights v2 - [#809](https://github.com/use-ink/cargo-contract/pull/809)
@@ -404,7 +404,7 @@ This release supports the ink! [`v4.0.0-beta`](https://github.com/paritytech/ink
 
 ## [2.0.0-alpha.3] - 2022-09-21
 
-This release supports compatibility with the [`v4.0.0-alpha.3`](https://github.com/paritytech/ink/releases/tag/v4.0.0-alpha.3)
+This release supports compatibility with the [`v4.0.0-alpha.3`](https://github.com/use-ink/ink/releases/tag/v4.0.0-alpha.3)
 release of `ink!`. It is *not* backwards compatible with older versions of `ink!`.
 
 ### Added
@@ -427,7 +427,7 @@ This release brings two exciting updates! First, contracts can now be built usin
 `stable` Rust toolchain! Don't ask us how we managed to do this 👻.
 
 Secondly, it allows you to build ink! `v4.0.0-alpha.1`, which introduced a small - but
-breaking - change to the ink! ABI as part of [paritytech/ink#1313](https://github.com/paritytech/ink/pull/1313).
+breaking - change to the ink! ABI as part of [use-ink/ink#1313](https://github.com/use-ink/ink/pull/1313).
 
 ### Added
 - Add support for ink!'s `version` metadata field - [#641](https://github.com/use-ink/cargo-contract/pull/641)
