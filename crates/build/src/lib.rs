@@ -116,7 +116,7 @@ pub(crate) mod linting {
     /// https://github.com/paritytech/ink/blob/master/linting/rust-toolchain.toml
     pub const TOOLCHAIN_VERSION: &str = "nightly-2024-02-08";
     /// Git repository with ink_linting libraries
-    pub const GIT_URL: &str = "https://github.com/paritytech/ink/";
+    pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
     pub const GIT_REV: &str = "ef91c60e52eb5d3ae80fd25082bc0a9468332e36";
 }

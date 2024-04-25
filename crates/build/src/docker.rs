@@ -95,7 +95,7 @@ use crate::{
 
 use colored::Colorize;
 /// Default image to be used for the build.
-const IMAGE: &str = "paritytech/contracts-verifiable";
+const IMAGE: &str = "useink/contracts-verifiable";
 /// We assume the docker image contains the same tag as the current version of the crate.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The default directory to be mounted in the container.
