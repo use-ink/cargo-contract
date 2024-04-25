@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Update repository URLs from `paritytech` GitHub organization to new `use-ink` one ‒ [#1617](https://github.com/use-ink/cargo-contract/pull/1617)
+
 ## [4.1.1]
 
 ### Fixed
