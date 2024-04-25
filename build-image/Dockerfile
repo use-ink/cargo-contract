@@ -23,24 +23,24 @@ ARG MUSL_V=1.2.2-1
 ARG RUST_LINTER_VERSION=nightly-2024-02-08
 
 # metadata
-LABEL io.parity.image.vendor="Parity Technologies" \
-    io.parity.image.title="paritytech/contracts-verifiable" \
-    io.parity.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
+LABEL ink.use.image.vendor="Use Ink" \
+    ink.use.image.title="useink/contracts-verifiable" \
+    ink.use.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
     llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
-    io.parity.image.documentation="https://github.com/paritytech/cargo-contract/blob/master/\
+    ink.use.image.documentation="https://github.com/use-ink/cargo-contract/blob/master/\
     build-image/README.md" \
-    io.parity.version.rust=${RUST_VERSION} \
-    io.parity.version.cargo-contract.version=${CARGO_CONTRACT_VERSION} \
-    io.parity.version.cargo-contract.git.repository=${CARGO_CONTRACT_GIT} \
-    io.parity.version.cargo-contract.git.branch=${CARGO_CONTRACT_BRANCH} \
-    io.parity.version.cargo-contract.git.revision=${CARGO_CONTRACT_REV} \
-    io.parity.version.cargo-contract.git.tag=${CARGO_CONTRACT_TAG} \
-    io.parity.version.gcc=${GCC_VERSION} \
-    io.parity.version.wget=${WGET_VERSION} \
-    io.parity.version.g_plus_plus=${G_VERSION} \
-    io.parity.version.musl=${MUSL_V} \
-    io.parity.version.rust_linter=${RUST_LINTER_VERSION}
+    ink.use.version.rust=${RUST_VERSION} \
+    ink.use.version.cargo-contract.version=${CARGO_CONTRACT_VERSION} \
+    ink.use.version.cargo-contract.git.repository=${CARGO_CONTRACT_GIT} \
+    ink.use.version.cargo-contract.git.branch=${CARGO_CONTRACT_BRANCH} \
+    ink.use.version.cargo-contract.git.revision=${CARGO_CONTRACT_REV} \
+    ink.use.version.cargo-contract.git.tag=${CARGO_CONTRACT_TAG} \
+    ink.use.version.gcc=${GCC_VERSION} \
+    ink.use.version.wget=${WGET_VERSION} \
+    ink.use.version.g_plus_plus=${G_VERSION} \
+    ink.use.version.musl=${MUSL_V} \
+    ink.use.version.rust_linter=${RUST_LINTER_VERSION}
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
