@@ -46,7 +46,7 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
     -   (MacOS) `brew install openssl`
     -   ```
-        export TOOLCHAIN_VERSION=nightly-2023-12-28
+        export TOOLCHAIN_VERSION=nightly-2024-02-08
         rustup install $TOOLCHAIN_VERSION
         rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
         rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
