@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright 2018-2023 Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
