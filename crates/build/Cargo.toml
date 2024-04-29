@@ -38,7 +38,7 @@ term_size = "0.3.2"
 url = { version = "2.5.0", features = ["serde"] }
 wasm-opt = { version = "=0.116.1", default-features = false }
 which = "6.0.1"
-zip = { version = "1.1.1", default-features = false }
+zip = { version = "1.1.2", default-features = false }
 strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
@@ -53,7 +53,7 @@ uzers = "0.12"
 [build-dependencies]
 anyhow = "1.0.81"
 walkdir = "2.5.0"
-zip = { version = "1.1.1", default-features = false }
+zip = { version = "1.1.2", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
