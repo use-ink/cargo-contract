@@ -29,6 +29,7 @@ use super::{
 use crate::{
     anyhow,
     call_with_config,
+    cmd::prompt_confirm_unverifiable_upload,
     ErrorVariant,
     InstantiateExec,
     Weight,
@@ -62,7 +63,10 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    config::ExtrinsicParams,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
@@ -118,7 +122,11 @@ impl InstantiateCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
     }
 
     async fn run<C: Config + Environment + SignerConfig<C>>(
@@ -128,14 +136,17 @@ impl InstantiateCommand {
         <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType + Decode + Display,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance: From<u128> + Display + Default + FromStr + Serialize + Debug,
-        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        C::Balance:
+            From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
         <C as Config>::Hash: From<[u8; 32]> + IntoVisitor + EncodeAsType,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
+
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -150,7 +161,7 @@ impl InstantiateCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
+            .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -191,6 +202,15 @@ impl InstantiateCommand {
                 }
             }
         } else {
+            if let Some(chain) = chain.production() {
+                if !instantiate_exec
+                    .opts()
+                    .contract_artifacts()?
+                    .is_verifiable()
+                {
+                    prompt_confirm_unverifiable_upload(&chain.to_string())?
+                }
+            }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
                 &instantiate_exec,
@@ -239,8 +259,9 @@ where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + Debug,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + Debug + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     if skip_dry_run {
         return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
@@ -303,8 +324,9 @@ pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
 where
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + From<u128> + Display,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + From<u128> + Display + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     let events = DisplayEvents::from_events::<C, C>(
         &instantiate_exec_result.events,
@@ -338,8 +360,9 @@ pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Serialize + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     name_value_println!(
         "Constructor",

@@ -22,7 +22,10 @@ use contract_extrinsics::{
 };
 use subxt::ext::scale_value;
 
-use super::MAX_KEY_COL_WIDTH;
+use super::{
+    CLIChainOpts,
+    MAX_KEY_COL_WIDTH,
+};
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "rpc", about = "Make a raw RPC call")]
@@ -32,22 +35,17 @@ pub struct RpcCommand {
     /// The arguments of the method to call.
     #[clap(num_args = 0..)]
     params: Vec<String>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
     /// Export the call output in JSON format.
     #[clap(long)]
     output_json: bool,
+    /// Arguments required for communicating with a Substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl RpcCommand {
     pub async fn run(&self) -> Result<(), ErrorVariant> {
-        let request = RpcRequest::new(&self.url).await?;
+        let request = RpcRequest::new(&self.chain_cli_opts.chain().url()).await?;
         let params = RawParams::new(&self.params)?;
 
         let result = request.raw_call(&self.method, params).await;

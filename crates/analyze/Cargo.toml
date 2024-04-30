@@ -1,6 +1,6 @@
 [package]
 name = "contract-analyze"
-version = "4.0.0-rc.2"
+version = "4.1.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
@@ -14,9 +14,10 @@ keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-metadata = { version = "4.0.0-rc.2", path = "../metadata" }
-parity-wasm = { version = "0.45.0" }
-anyhow = "1.0.80"
+contract-metadata = { version = "4.1.1", path = "../metadata" }
+wasmparser = "0.206.0"
+anyhow = "1.0.81"
 
 [dev-dependencies]
-wabt = "0.10.0"
+wat = "1.206.0"
+

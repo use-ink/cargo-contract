@@ -30,6 +30,7 @@ use super::{
     config::SignerConfig,
     display_dry_run_result_warning,
     parse_balance,
+    prompt_confirm_unverifiable_upload,
     CLIExtrinsicOpts,
 };
 use anyhow::Result;
@@ -44,7 +45,10 @@ use contract_extrinsics::{
 use ink_env::Environment;
 use serde::Serialize;
 use subxt::{
-    config::ExtrinsicParams,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -72,7 +76,11 @@ impl UploadCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
     }
 
     async fn run<C: Config + Environment + SignerConfig<C>>(
@@ -81,15 +89,22 @@ impl UploadCommand {
     where
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance:
-            Into<u128> + From<u128> + Display + Default + FromStr + Serialize + Debug,
-        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        C::Balance: Into<u128>
+            + From<u128>
+            + Display
+            + Default
+            + FromStr
+            + Serialize
+            + Debug
+            + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
         <C as Config>::Hash: IntoVisitor + EncodeAsType + From<[u8; 32]>,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -102,7 +117,7 @@ impl UploadCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
+            .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
@@ -136,6 +151,11 @@ impl UploadCommand {
                 }
             }
         } else {
+            if let Some(chain) = chain.production() {
+                if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
+                    prompt_confirm_unverifiable_upload(&chain.to_string())?
+                }
+            }
             let upload_result = upload_exec.upload_code().await?;
             let display_events = DisplayEvents::from_events::<C, C>(
                 &upload_result.events,

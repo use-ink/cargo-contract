@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 mod config;
+mod prod_chains;
 
 pub mod build;
 pub mod call;
@@ -41,6 +42,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,
     schema::{
@@ -87,7 +89,7 @@ use std::{
     str::FromStr,
 };
 
-/// Arguments required for creating and sending an extrinsic to a substrate node.
+/// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CLIExtrinsicOpts {
     /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
@@ -97,14 +99,6 @@ pub struct CLIExtrinsicOpts {
     /// Path to the `Cargo.toml` of the contract.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// Websockets url of a substrate node.
-    #[clap(
-        name = "url",
-        long,
-        value_parser,
-        default_value = "ws://localhost:9944"
-    )]
-    url: url::Url,
     /// Secret key URI for the account deploying the contract.
     ///
     /// e.g.
@@ -127,6 +121,9 @@ pub struct CLIExtrinsicOpts {
     /// Before submitting a transaction, do not ask the user for confirmation.
     #[clap(short('y'), long)]
     skip_confirm: bool,
+    /// Arguments required for communicating with a Substrate node.
+    #[clap(flatten)]
+    chain_cli_opts: CLIChainOpts,
 }
 
 impl CLIExtrinsicOpts {
@@ -136,12 +133,72 @@ impl CLIExtrinsicOpts {
     }
 }
 
+/// Arguments required for communicating with a Substrate node.
+#[derive(Clone, Debug, clap::Args)]
+pub struct CLIChainOpts {
+    /// Websockets url of a Substrate node.
+    #[clap(
+        name = "url",
+        long,
+        value_parser,
+        default_value = "ws://localhost:9944"
+    )]
+    url: url::Url,
+    /// Chain config to be used as part of the call.
+    #[clap(name = "config", long, default_value = "Polkadot")]
+    config: String,
+    /// Name of a production chain to be communicated with.
+    #[clap(name = "chain", long, conflicts_with_all = ["url", "config"])]
+    chain: Option<ProductionChain>,
+}
+
+impl CLIChainOpts {
+    pub fn chain(&self) -> Chain {
+        if let Some(chain) = &self.chain {
+            Chain::Production(chain.clone())
+        } else if let Some(prod) = ProductionChain::from_parts(&self.url, &self.config) {
+            Chain::Production(prod)
+        } else {
+            Chain::Custom(self.url.clone(), self.config.clone())
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Chain {
+    Production(ProductionChain),
+    Custom(url::Url, String),
+}
+
+impl Chain {
+    pub fn url(&self) -> url::Url {
+        match self {
+            Chain::Production(prod) => prod.url(),
+            Chain::Custom(url, _) => url.clone(),
+        }
+    }
+
+    pub fn config(&self) -> &str {
+        match self {
+            Chain::Production(prod) => prod.config(),
+            Chain::Custom(_, config) => config,
+        }
+    }
+
+    pub fn production(&self) -> Option<&ProductionChain> {
+        if let Chain::Production(prod) = self {
+            return Some(prod)
+        }
+        None
+    }
+}
+
 const STORAGE_DEPOSIT_KEY: &str = "Storage Total Deposit";
 pub const MAX_KEY_COL_WIDTH: usize = STORAGE_DEPOSIT_KEY.len() + 1;
 
 /// Print to stdout the fields of the result of a `instantiate` or `call` dry-run via RPC.
 pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, Balance>,
 ) -> Result<()>
 where
     Balance: Debug,
@@ -169,7 +226,7 @@ where
 }
 
 pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
-    result: &ContractResult<R, Balance, ()>,
+    result: &ContractResult<R, Balance>,
 ) -> Result<()> {
     let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
         .context("Error decoding UTF8 debug message bytes")?
@@ -308,6 +365,37 @@ where
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     Ok(arr.into())
+}
+
+/// Prompt the user to confirm the upload of unverifiable code to the production chain.
+pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
+    println!("{}", "Confirm upload:".bright_white().bold());
+    let warning = format!(
+        "Warning: You are about to upload unverifiable code to {} mainnet.\n\
+        A third party won't be able to confirm that your uploaded contract Wasm blob \
+        matches a particular contract source code.\n\n\
+        You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
+        See https://use.ink/basics/contract-verification for more info.",
+        chain
+    )
+    .bold()
+    .yellow();
+    print!("{}", warning);
+    println!(
+        "{} ({}): ",
+        "\nContinue?".bright_white().bold(),
+        "y/N".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'n'
+        "y" => Ok(()),
+        "n" | "" => Err(anyhow!("Upload cancelled!")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
 }
 
 #[cfg(test)]

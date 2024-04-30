@@ -58,10 +58,9 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs extra ink! linting checks during the build process.
+    /// Performs extra linting checks for ink! specific issues during the build process.
     ///
-    /// This only adds extra ink! linting checks. Basic clippy and ink! lints which we
-    /// are deem important are run anyways.
+    /// Basic clippy lints are deemed important and run anyways.
     #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
@@ -124,7 +123,7 @@ pub struct BuildCommand {
     target: Target,
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
-    max_memory_pages: u32,
+    max_memory_pages: u64,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
     #[clap(long, default_value_t = false)]

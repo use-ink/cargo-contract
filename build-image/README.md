@@ -4,10 +4,6 @@ Docker image based on the minimalistic Debian image `bitnami/minideb:bullseye-am
 
 Used for reproducible builds in `cargo contract build --verifiable`
 
-**Rust versions:**
-
-Currently, the 1.69 toolchain is temporarily required to build ink! contracts because of https://github.com/paritytech/cargo-contract/issues/1139
-
 **Rust tools & toolchains:**
 
 We use stable releases from crates.io
@@ -15,7 +11,7 @@ We use stable releases from crates.io
 - `cargo-contract`
 - `wasm32-unknown-unknown`: The toolchain to compile Rust codebases for Wasm.
 
-[Click here](https://hub.docker.com/repository/docker/paritytech/contracts-verifiable) for the registry.
+[Click here](https://hub.docker.com/repository/docker/useink/contracts-verifiable) for the registry.
 
 ## Usage
 
@@ -26,7 +22,7 @@ and work directory is set to `/contract`. You need to mount the folder with the 
 docker run -d \
     --name ink-container \
     --mount type=bind,source="$(pwd)",target="/contract" \
-    paritytech/contracts-verified
+    useink/contracts-verifiable
 ```
 
 For multi-contract projects, like in the example below:
@@ -50,3 +46,20 @@ to the root contract:
 It is a known issue that running AMD64 image on the ARM host architecture significantly impacts the performance
 and build times. To solve this issues, enable _Use Rosetta for x86/amd64 emulation on Apple Silicon_ in
 _Settings_ -> _Features in development_ tab in Docker Desktop App.
+
+**How to debug**
+
+Build docker image:
+
+```bash
+docker buildx build -t useink/contracts-verifiable:0.0.1-local --build-arg CARGO_CONTRACT_VERSION=4.1.0 .
+```
+
+Run docker container:
+
+```bash
+docker container run \
+    -it --rm --entrypoint /bin/bash \
+    --mount type=bind,source="$(pwd)",target="/contract" \
+    useink/contracts-verifiable:0.0.1-local
+```

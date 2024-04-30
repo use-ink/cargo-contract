@@ -60,7 +60,10 @@ use contract_extrinsics::{
 use contract_transcode::Value;
 use sp_weights::Weight;
 use subxt::{
-    config::ExtrinsicParams,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -110,7 +113,11 @@ impl CallCommand {
     }
 
     pub async fn handle(&self) -> Result<(), ErrorVariant> {
-        call_with_config!(self, run, self.config.as_str())
+        call_with_config!(
+            self,
+            run,
+            self.extrinsic_cli_opts.chain_cli_opts.chain().config()
+        )
     }
 
     async fn run<C: Config + Environment + SignerConfig<C>>(
@@ -119,15 +126,17 @@ impl CallCommand {
     where
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance: From<u128> + Display + Default + FromStr + Serialize + Debug,
-        <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+        C::Balance:
+            From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
+        <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+            From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     {
         let contract = parse_account(&self.contract)
             .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
-        let token_metadata =
-            TokenMetadata::query::<C>(&self.extrinsic_cli_opts.url).await?;
+        let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
+        let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -142,7 +151,7 @@ impl CallCommand {
         let extrinsic_opts = ExtrinsicOptsBuilder::new(signer)
             .file(self.extrinsic_cli_opts.file.clone())
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
-            .url(self.extrinsic_cli_opts.url.clone())
+            .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
             .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
@@ -250,8 +259,9 @@ async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment, Signer>(
 where
     Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType,
-    C::Balance: Debug,
-    <C::ExtrinsicParams as ExtrinsicParams<C>>::OtherParams: Default,
+    C::Balance: Debug + EncodeAsType,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     if skip_dry_run {
         return match (call_exec.gas_limit(), call_exec.proof_size()) {

@@ -41,6 +41,10 @@ use subxt::{
         rpc::RpcClient,
     },
     blocks::ExtrinsicEvents,
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
@@ -165,8 +169,10 @@ pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
 
 impl<C: Config, E: Environment, Signer> CallExec<C, E, Signer>
 where
-    <C::ExtrinsicParams as subxt::config::ExtrinsicParams<C>>::OtherParams: Default,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::AccountId: EncodeAsType + IntoVisitor,
+    E::Balance: EncodeAsType,
     Signer: tx::Signer<C> + Clone,
 {
     /// Simulates a contract call without modifying the blockchain.
@@ -178,7 +184,7 @@ where
     ///
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
-    pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance, ()>> {
+    pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance>> {
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: self.opts.signer().account_id(),

@@ -126,6 +126,7 @@ use anyhow::{
     Context,
     Result,
 };
+pub use ink_metadata;
 use ink_metadata::{
     ConstructorSpec,
     InkProject,

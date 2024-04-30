@@ -46,8 +46,8 @@ use sp_core::{
 };
 use std::{
     collections::BTreeMap,
-    fmt,
     fmt::{
+        self,
         Display,
         Formatter,
     },
@@ -64,11 +64,7 @@ use subxt::{
             RpcClient,
         },
     },
-    error::DecodeError,
-    ext::scale_decode::{
-        IntoVisitor,
-        Visitor,
-    },
+    ext::scale_decode::IntoVisitor,
     Config,
     OnlineClient,
 };
@@ -89,7 +85,6 @@ impl<C: Config, E: Environment> ContractStorage<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
-    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
     E::Balance: IntoVisitor + Serialize,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
@@ -97,6 +92,22 @@ where
             rpc,
             _phantom: Default::default(),
         }
+    }
+
+    /// Fetch the storage version of the pallet contracts.
+    ///
+    /// This is the result of a state query to the function `contracts::palletVersion())`.
+    pub async fn version(&self) -> Result<u16> {
+        self.rpc
+            .client
+            .storage()
+            .at_latest()
+            .await?
+            .storage_version("Contracts")
+            .await
+            .map_err(|e| {
+                anyhow!("The storage version for the contracts pallet could not be determined: {e}")
+            })
     }
 
     /// Load the raw key/value storage for a given contract.
@@ -604,7 +615,6 @@ impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
     C::Hash: IntoVisitor,
-    DecodeError: From<<<C::AccountId as IntoVisitor>::Visitor as Visitor>::Error>,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {

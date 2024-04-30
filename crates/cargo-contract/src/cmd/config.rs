@@ -19,7 +19,6 @@ use ink_env::{
     DefaultEnvironment,
     Environment,
 };
-use sp_core::Pair;
 use std::{
     fmt::Debug,
     str::FromStr,
@@ -28,6 +27,10 @@ use subxt::{
     config::{
         PolkadotExtrinsicParams,
         SubstrateExtrinsicParams,
+    },
+    ext::{
+        sp_core,
+        sp_core::Pair,
     },
     tx::{
         PairSigner,
