@@ -64,9 +64,6 @@ pub struct UploadCommand {
     /// Export the call output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-    /// The chain config to be used as part of the call.
-    #[clap(name = "config", long, default_value = "Polkadot")]
-    config: String,
 }
 
 impl UploadCommand {
