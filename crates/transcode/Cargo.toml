@@ -33,7 +33,7 @@ nom-supreme = { version = "0.7.0", features = ["error"] }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "serde"] }
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 scale-info = { version = "2.11.2", default-features = false, features = ["derive"] }
-serde = { version = "1.0.199", default-features = false, features = ["derive"] }
+serde = { version = "1.0.200", default-features = false, features = ["derive"] }
 serde_json = "1.0.116"
 thiserror = "1.0.59"
 strsim = "0.11.1"
