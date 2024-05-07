@@ -16,7 +16,7 @@ include = ["Cargo.toml", "*.rs", "LICENSE"]
 [dependencies]
 contract-metadata = { version = "4.1.1", path = "../metadata" }
 wasmparser = "0.206.0"
-anyhow = "1.0.81"
+anyhow = "1.0.83"
 
 [dev-dependencies]
 wat = "1.206.0"
