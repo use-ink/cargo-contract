@@ -26,8 +26,8 @@ itertools = { version = "0.12", default-features = false }
 tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.1.0"
-serde = { version = "1.0.200", default-features = false, features = ["derive"] }
-serde_json = "1.0.116"
+serde = { version = "1.0.201", default-features = false, features = ["derive"] }
+serde_json = "1.0.117"
 url = { version = "2.5.0", features = ["serde"] }
 rust_decimal = "1.35"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -35,7 +35,7 @@ sp-core = "31.0.0"
 sp-runtime = "34.0.0"
 sp-weights = "30.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
-scale-info = "2.11.2"
+scale-info = "2.11.3"
 subxt = "0.35.3"
 hex = "0.4.3"
 derivative = "2.2.0"
