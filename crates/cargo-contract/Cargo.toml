@@ -43,7 +43,7 @@ comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = { version = "0.35.3", features = ["substrate-compat"] }
+subxt = { version = "0.36.0", features = ["substrate-compat"] }
 sp-core = "31.0.0"
 sp-weights = "30.0.0"
 hex = "0.4.3"
