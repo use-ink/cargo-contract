@@ -10,7 +10,7 @@ repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-build"
 homepage = "https://www.substrate.io/"
 description = "Library for building ink! smart contracts"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
 
 [dependencies]

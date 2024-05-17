@@ -11,7 +11,7 @@ repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on substrate"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]

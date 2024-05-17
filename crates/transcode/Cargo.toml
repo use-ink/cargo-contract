@@ -10,7 +10,7 @@ repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-transcode"
 homepage = "https://www.substrate.io/"
 description = "Library encoding calls for smart contracts on substrate"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [lib]
