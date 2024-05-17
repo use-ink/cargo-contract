@@ -1,12 +1,12 @@
 [package]
 name = "contract-build"
 version = "4.1.1"
-authors = ["Use Ink <ink@r0gue.io>"]
+authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/paritytech/cargo-contract"
+repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-build"
 homepage = "https://www.substrate.io/"
 description = "Library for building ink! smart contracts"
