@@ -1,7 +1,7 @@
 [package]
 name = "contract-analyze"
 version = "4.1.1"
-authors = ["Parity Technologies <admin@parity.io>"]
+authors = ["Use Ink <ink@r0gue.io>"]
 edition = "2021"
 
 license = "Apache-2.0"
