@@ -28,7 +28,7 @@ rustc_version = "0.4.0"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 toml = "0.8.13"
 tracing = "0.1.40"
-wasm-encoder = { version = "0.207.0", features = ["wasmparser"] }
+wasm-encoder = { version = "0.212.0", features = ["wasmparser"] }
 wasmparser = "0.207.0"
 semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
