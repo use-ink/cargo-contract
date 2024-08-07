@@ -40,82 +40,38 @@ mod integration_tests;
 use env_check::compare_node_env_with_contract;
 
 use anyhow::Result;
-use contract_build::{
-    CrateMetadata,
-    Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
-};
-use scale::{
-    Decode,
-    Encode,
-};
+use contract_build::{CrateMetadata, Verbosity, DEFAULT_KEY_COL_WIDTH};
+use scale::{Decode, Encode};
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     blocks,
-    config::{
-        DefaultExtrinsicParams,
-        DefaultExtrinsicParamsBuilder,
-        ExtrinsicParams,
-    },
-    tx,
-    Config,
-    OnlineClient,
+    config::{DefaultExtrinsicParams, DefaultExtrinsicParamsBuilder, ExtrinsicParams},
+    tx, Config, OnlineClient,
 };
 
-pub use balance::{
-    BalanceVariant,
-    TokenMetadata,
-};
-pub use call::{
-    CallCommandBuilder,
-    CallExec,
-};
+pub use balance::{BalanceVariant, TokenMetadata};
+pub use call::{CallCommandBuilder, CallExec};
 pub use contract_artifacts::ContractArtifacts;
 pub use contract_info::{
-    fetch_all_contracts,
-    fetch_contract_info,
-    fetch_wasm_code,
-    ContractInfo,
-    TrieId,
+    fetch_all_contracts, fetch_contract_info, fetch_wasm_code, ContractInfo, TrieId,
 };
 use contract_metadata::ContractMetadata;
 pub use contract_storage::{
-    ContractStorage,
-    ContractStorageCell,
-    ContractStorageLayout,
-    ContractStorageRpc,
+    ContractStorage, ContractStorageCell, ContractStorageLayout, ContractStorageRpc,
 };
 pub use contract_transcode::ContractMessageTranscoder;
-pub use error::{
-    ErrorVariant,
-    GenericError,
-};
+pub use error::{ErrorVariant, GenericError};
 pub use events::DisplayEvents;
 pub use extrinsic_opts::ExtrinsicOptsBuilder;
 pub use instantiate::{
-    Code,
-    InstantiateArgs,
-    InstantiateCommandBuilder,
-    InstantiateDryRunResult,
-    InstantiateExec,
-    InstantiateExecResult,
+    Code, InstantiateArgs, InstantiateCommandBuilder, InstantiateDryRunResult,
+    InstantiateExec, InstantiateExecResult,
 };
-pub use remove::{
-    RemoveCommandBuilder,
-    RemoveExec,
-    RemoveResult,
-};
+pub use remove::{RemoveCommandBuilder, RemoveExec, RemoveResult};
 
-pub use upload::{
-    UploadCommandBuilder,
-    UploadExec,
-    UploadResult,
-};
+pub use upload::{UploadCommandBuilder, UploadExec, UploadResult};
 
-pub use rpc::{
-    RawParams,
-    RpcRequest,
-};
+pub use rpc::{RawParams, RpcRequest};
 
 /// The Wasm code of a contract.
 #[derive(Debug, Clone)]
@@ -148,7 +104,7 @@ async fn submit_extrinsic<C, Call, Signer>(
 ) -> core::result::Result<blocks::ExtrinsicEvents<C>, subxt::Error>
 where
     C: Config,
-    Call: tx::TxPayload,
+    Call: tx::Payload,
     Signer: tx::Signer<C>,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
@@ -171,10 +127,7 @@ where
     // We require this because we use `substrate-contracts-node` as our development node,
     // which does not currently support finality, so we just want to wait until it is
     // included in a block.
-    use subxt::error::{
-        RpcError,
-        TransactionError,
-    };
+    use subxt::error::{RpcError, TransactionError};
     use tx::TxStatus;
 
     while let Some(status) = tx.next().await {
@@ -182,7 +135,7 @@ where
             TxStatus::InBestBlock(tx_in_block)
             | TxStatus::InFinalizedBlock(tx_in_block) => {
                 let events = tx_in_block.wait_for_success().await?;
-                return Ok(events)
+                return Ok(events);
             }
             TxStatus::Error { message } => {
                 return Err(TransactionError::Error(message).into())
@@ -264,14 +217,12 @@ where
 // Converts a Url into a String representation without excluding the default port.
 pub fn url_to_string(url: &url::Url) -> String {
     match (url.port(), url.port_or_known_default()) {
-        (None, Some(port)) => {
-            format!(
-                "{}:{port}{}",
-                &url[..url::Position::AfterHost],
-                &url[url::Position::BeforePath..]
-            )
-            .to_string()
-        }
+        (None, Some(port)) => format!(
+            "{}:{port}{}",
+            &url[..url::Position::AfterHost],
+            &url[url::Position::BeforePath..]
+        )
+        .to_string(),
         _ => url.to_string(),
     }
 }
