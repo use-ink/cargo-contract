@@ -14,9 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{upload::Determinism, WasmCode};
+use crate::{
+    upload::Determinism, 
+    WasmCode
+};
 use subxt::{
-    ext::{codec::Compact, scale_encode::EncodeAsType},
+    ext::{
+        codec::Compact, 
+        scale_encode::EncodeAsType
+    },
     utils::MultiAddress,
 };
 
