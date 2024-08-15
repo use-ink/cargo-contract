@@ -1,7 +1,7 @@
 # contract-build
 
-A crate for building [`ink!`](https://github.com/paritytech/ink) smart contracts. Used by
-[`cargo-contract`](https://github.com/paritytech/cargo-contract).
+A crate for building [`ink!`](https://github.com/use-ink/ink) smart contracts. Used by
+[`cargo-contract`](https://github.com/use-ink/cargo-contract).
 
 ## Usage
 

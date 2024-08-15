@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Use Ink (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ const INK_ENFORCE_ERR: &str = "__ink_enforce_error_";
 /// # Important Note
 ///
 /// This is a copy of the equivalent type in ink!, which currently resides
-/// [here](https://github.com/paritytech/ink/blob/master/crates/lang/codegen/src/generator/cross_calling.rs).
+/// [here](https://github.com/use-ink/ink/blob/master/crates/lang/codegen/src/generator/cross_calling.rs).
 /// This type must be compatible with the ink! version in order to decode
 /// the error encoded in the marker.
 #[derive(scale::Encode, scale::Decode)]

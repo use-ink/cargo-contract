@@ -1,17 +1,17 @@
 [package]
 name = "cargo-contract"
 version = "4.1.1"
-authors = ["Use Ink <ink@r0gue.io>"]
+authors = ["Use Ink <ink@use.ink>"]
 build = "build.rs"
 edition = "2021"
 
 license = "GPL-3.0"
 readme = "README.md"
-repository = "https://github.com/paritytech/cargo-contract"
+repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/"
-homepage = "https://www.parity.io/"
+homepage = "https://use.ink"
 description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
     "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs",
