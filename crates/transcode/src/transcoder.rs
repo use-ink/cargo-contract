@@ -284,10 +284,7 @@ mod tests {
         transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::MIN.into()))?;
         transcode_roundtrip::<i32>("2147483647", Value::Int(i32::MAX.into()))?;
 
-        transcode_roundtrip::<i64>(
-            "-9223372036854775808",
-            Value::Int(i64::MIN.into()),
-        )?;
+        transcode_roundtrip::<i64>("-9223372036854775808", Value::Int(i64::MIN.into()))?;
         transcode_roundtrip::<i64>(
             "\"9_223_372_036_854_775_807\"",
             Value::Int(i64::MAX.into()),
