@@ -184,12 +184,14 @@ pub struct Event {
 
 /// Events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
+#[allow(dead_code)]
 pub struct Events(Vec<Event>);
 
 /// Displays events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct DisplayEvents(Vec<Event>);
 
+#[allow(clippy::needless_borrows_for_generic_args)]
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events<C: Config, E: Environment>(
@@ -331,6 +333,7 @@ impl DisplayEvents {
 
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
+#[allow(clippy::needless_borrows_for_generic_args)]
 fn contract_event_data_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
