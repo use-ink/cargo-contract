@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated the toolchain version used by `ink_linting` - [#1616](https://github.com/paritytech/cargo-contract/pull/1616)
+- Bump the version of `subxt` and `subxt-signer` - [#1722](https://github.com/use-ink/cargo-contract/pull/1722)
+
+### Removed
+- Remove support for `V11` metadata [#1722](https://github.com/use-ink/cargo-contract/pull/1722)
 
 ## [4.1.1]
 

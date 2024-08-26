@@ -26,12 +26,11 @@
 //! The process of the build is following:
 //! 1. Pull the image from the registry or use the local copy if available
 //! 2. Parse other arguments that were passed to the host execution context
-//! 3. Calculate the digest of the command and use it
-//! to uniquely identify the container
+//! 3. Calculate the digest of the command and use it to uniquely identify the container
 //! 4. If the container exists, we just start the build, if not, we create it
-//! 5. After the build, the docker container produces metadata with
-//! paths relative to its internal storage structure, we parse the file
-//! and overwrite those paths relative to the host machine.
+//! 5. After the build, the docker container produces metadata with paths relative to its
+//!    internal storage structure, we parse the file and overwrite those paths relative to
+//!    the host machine.
 
 use std::{
     cmp::Ordering,
