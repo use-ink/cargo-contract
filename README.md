@@ -176,8 +176,8 @@ Fetch and display the storage of a contract on chain.
 Invoke an RPC call to the node. See [rpc](docs/rpc.md).
 
 
-### Compatibility
-Metadata Version: This project only supports metadata versions starting from V14 and onwards.
+## Compatibility
+Metadata Version: This project only supports metadata versions starting from `V14` and onwards.
 
 ## Publishing
 
