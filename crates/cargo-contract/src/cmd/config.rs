@@ -236,7 +236,7 @@ macro_rules! call_with_config_internal {
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
-        let config_name = format!("crate::cmd::config::{}", $config_name);
+        let config_name = format!("$crate :: cmd :: config :: {}", $config_name);
         $crate::call_with_config_internal!(
             $obj,
             $function,
