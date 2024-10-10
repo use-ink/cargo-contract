@@ -49,7 +49,7 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::Bytes;
+use sp_core::{Bytes, H160};
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -337,10 +337,7 @@ where
         &self,
         code: Vec<u8>,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        println!("instantiating!");
-        // println!("args.value: {:?}", self.args.value);
-        println!("args.data: {:?}", self.args.data);
+    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
@@ -361,7 +358,7 @@ where
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = events
-            .find_last::<ContractInstantiated<C::AccountId>>()?
+            .find_last::<ContractInstantiated<H160>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -375,7 +372,7 @@ where
         &self,
         code_hash: C::Hash,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
         let call = Instantiate::<C::Hash, E::Balance>::new(
             self.args.value,
             gas_limit,
@@ -390,7 +387,7 @@ where
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
         let instantiated = events
-            .find_first::<ContractInstantiated<C::AccountId>>()?
+            .find_first::<ContractInstantiated<H160>>()?
             .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
 
         Ok(InstantiateExecResult {
@@ -413,7 +410,7 @@ where
     pub async fn instantiate(
         &self,
         gas_limit: Option<Weight>,
-    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
@@ -488,10 +485,10 @@ where
 }
 
 /// A struct representing the result of an instantiate command execution.
-pub struct InstantiateExecResult<C: Config> {
+pub struct InstantiateExecResult<C: Config, AccountId> {
     pub events: ExtrinsicEvents<C>,
     pub code_hash: Option<C::Hash>,
-    pub contract_address: sp_core::H160,
+    pub contract_address: AccountId,
 }
 
 /// Result of the contract call
