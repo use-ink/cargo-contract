@@ -89,14 +89,14 @@ pub struct ContractInstantiated<AccountId> {
     /// Account id of the deployer.
     pub deployer: AccountId,
     /// Account id where the contract was instantiated to.
-    pub contract: AccountId,
+    pub contract: sp_core::H160,
 }
 
 impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
 where
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "Instantiated";
 }
 

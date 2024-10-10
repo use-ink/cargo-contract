@@ -148,12 +148,15 @@ impl UploadCommand {
                 }
             }
         } else {
+            println!("UPLOAD CODE HERE");
             if let Some(chain) = chain.production() {
                 if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
+            println!("UPLOADING....");
             let upload_result = upload_exec.upload_code().await?;
+            println!("After UPLOADING....");
             let display_events = DisplayEvents::from_events::<C, C>(
                 &upload_result.events,
                 None,

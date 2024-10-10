@@ -56,7 +56,7 @@ use subxt::{
 
 /// A builder for the call command.
 pub struct CallCommandBuilder<C: Config, E: Environment, Signer: Clone> {
-    contract: C::AccountId,
+    contract: H160,
     message: String,
     args: Vec<String>,
     extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
@@ -72,7 +72,7 @@ where
 {
     /// Returns a clean builder for [`CallExec`].
     pub fn new(
-        contract: C::AccountId,
+        contract: H160,
         message: &str,
         extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
     ) -> CallCommandBuilder<C, E, Signer> {
@@ -153,8 +153,10 @@ where
     }
 }
 
+use sp_core::H160;
+
 pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
-    contract: C::AccountId,
+    contract: H160,
     message: String,
     args: Vec<String>,
     opts: ExtrinsicOpts<C, E, Signer>,
@@ -185,6 +187,7 @@ where
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance>> {
+        println!("calling contract dry run");
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: self.opts.signer().account_id(),
@@ -194,7 +197,7 @@ where
             storage_deposit_limit,
             input_data: self.call_data.clone(),
         };
-        state_call(&self.rpc, "ContractsApi_call", call_request).await
+        state_call(&self.rpc, "ReviveApi_call", call_request).await
     }
 
     /// Calls a contract on the blockchain with a specified gas limit.
@@ -209,6 +212,7 @@ where
         &self,
         gas_limit: Option<Weight>,
     ) -> Result<ExtrinsicEvents<C>, ErrorVariant> {
+        println!("calling contract");
         if !self
             .transcoder()
             .metadata()
@@ -238,7 +242,7 @@ where
             self.contract.clone().into(),
             self.value,
             gas_limit,
-            storage_deposit_limit,
+            storage_deposit_limit.unwrap(),
             self.call_data.clone(),
         )
         .build();
@@ -289,7 +293,7 @@ where
     }
 
     /// Returns the address of the the contract to call.
-    pub fn contract(&self) -> &C::AccountId {
+    pub fn contract(&self) -> &sp_core::H160 {
         &self.contract
     }
 
@@ -345,7 +349,7 @@ where
 #[derive(Encode)]
 struct CallRequest<AccountId, Balance> {
     origin: AccountId,
-    dest: AccountId,
+    dest: sp_core::H160,
     value: Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,

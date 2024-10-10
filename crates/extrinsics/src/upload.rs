@@ -132,9 +132,9 @@ where
             origin: self.opts.signer().account_id(),
             code: self.code.0.clone(),
             storage_deposit_limit,
-            determinism: Determinism::Enforced,
+            // determinism: Determinism::Enforced,
         };
-        state_call(&self.rpc, "ContractsApi_upload_code", call_request).await
+        state_call(&self.rpc, "ReviveApi_upload_code", call_request).await
     }
 
     /// Uploads contract code to the blockchain with specified options.
@@ -148,11 +148,12 @@ where
 
         let call = UploadCode::new(
             self.code.clone(),
-            storage_deposit_limit,
-            Determinism::Enforced,
+            storage_deposit_limit.unwrap(),
+            // Determinism::Enforced,
         )
         .build();
 
+        println!("submitting extrinsic");
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
@@ -190,7 +191,7 @@ struct CodeUploadRequest<AccountId, Balance> {
     origin: AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
-    determinism: Determinism,
+    // determinism: Determinism,
 }
 
 /// A struct representing the result of an upload command execution.

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use sp_core::H160;
 use crate::{
     upload::Determinism,
     WasmCode,
@@ -70,7 +71,7 @@ impl<Hash> RemoveCode<Hash> {
     }
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
-        subxt::tx::DefaultPayload::new("Contracts", "remove_code", self)
+        subxt::tx::DefaultPayload::new("Revive", "remove_code", self)
     }
 }
 
@@ -79,25 +80,26 @@ impl<Hash> RemoveCode<Hash> {
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub(crate) struct UploadCode<Balance> {
     code: Vec<u8>,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    determinism: Determinism,
+    storage_deposit_limit: Balance,
+    // determinism: Determinism,
 }
 
 impl<Balance> UploadCode<Balance> {
     pub fn new(
         code: WasmCode,
-        storage_deposit_limit: Option<Balance>,
-        determinism: Determinism,
+        storage_deposit_limit: Balance,
+        // determinism: Determinism,
     ) -> Self {
         Self {
             code: code.0,
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
-            determinism,
+            // storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
+            // determinism,
         }
     }
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
-        subxt::tx::DefaultPayload::new("Contracts", "upload_code", self)
+        subxt::tx::DefaultPayload::new("Revive", "upload_code", self)
     }
 }
 
@@ -108,25 +110,25 @@ pub(crate) struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
+    storage_deposit_limit: Balance,
     code: Vec<u8>,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<Vec<u8>>,
 }
 
 impl<Balance> InstantiateWithCode<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
+        storage_deposit_limit: Balance,
         code: Vec<u8>,
         data: Vec<u8>,
-        salt: Vec<u8>,
+        salt: Option<Vec<u8>>,
     ) -> Self {
         Self {
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             code,
             data,
             salt,
@@ -134,7 +136,7 @@ impl<Balance> InstantiateWithCode<Balance> {
     }
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
-        subxt::tx::DefaultPayload::new("Contracts", "instantiate_with_code", self)
+        subxt::tx::DefaultPayload::new("Revive", "instantiate_with_code", self)
     }
 }
 
@@ -177,40 +179,40 @@ where
     }
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
-        subxt::tx::DefaultPayload::new("Contracts", "instantiate", self)
+        subxt::tx::DefaultPayload::new("Revive", "instantiate", self)
     }
 }
 
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Call<AccountId, Balance> {
-    dest: MultiAddress<AccountId, ()>,
+pub(crate) struct Call<Balance> {
+    dest: H160,
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
+    storage_deposit_limit: Balance,
     data: Vec<u8>,
 }
 
-impl<AccountId, Balance> Call<AccountId, Balance> {
+impl<Balance> Call<Balance> {
     pub fn new(
-        dest: MultiAddress<AccountId, ()>,
+        dest: H160,
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
+        storage_deposit_limit: Balance,
         data: Vec<u8>,
     ) -> Self {
         Self {
             dest,
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             data,
         }
     }
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
-        subxt::tx::DefaultPayload::new("Contracts", "call", self)
+        subxt::tx::DefaultPayload::new("Revive", "call", self)
     }
 }

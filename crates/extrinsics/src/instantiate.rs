@@ -330,7 +330,7 @@ where
             data: self.args.data.clone(),
             salt: self.args.salt.clone(),
         };
-        state_call(&self.rpc, "ContractsApi_instantiate", &call_request).await
+        state_call(&self.rpc, "ReviveApi_instantiate", &call_request).await
     }
 
     async fn instantiate_with_code(
@@ -338,13 +338,16 @@ where
         code: Vec<u8>,
         gas_limit: Weight,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+        println!("instantiating!");
+        // println!("args.value: {:?}", self.args.value);
+        println!("args.data: {:?}", self.args.data);
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            self.args.storage_deposit_limit.unwrap(),
             code,
             self.args.data.clone(),
-            self.args.salt.clone(),
+            None
         )
         .build();
 
@@ -488,7 +491,7 @@ where
 pub struct InstantiateExecResult<C: Config> {
     pub events: ExtrinsicEvents<C>,
     pub code_hash: Option<C::Hash>,
-    pub contract_address: C::AccountId,
+    pub contract_address: sp_core::H160,
 }
 
 /// Result of the contract call
