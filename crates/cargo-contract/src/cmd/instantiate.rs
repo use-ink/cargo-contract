@@ -62,6 +62,7 @@ use std::{
     },
     str::FromStr,
 };
+use sp_core::H160;
 use subxt::{
     config::{
         DefaultExtrinsicParams,
@@ -313,7 +314,7 @@ where
 /// events, and optional code hash.
 pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
-    instantiate_exec_result: InstantiateExecResult<C>,
+    instantiate_exec_result: InstantiateExecResult<C, H160>,
     token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,

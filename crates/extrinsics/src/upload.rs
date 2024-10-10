@@ -153,7 +153,6 @@ where
         )
         .build();
 
-        println!("submitting extrinsic");
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 

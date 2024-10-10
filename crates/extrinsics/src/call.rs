@@ -187,7 +187,6 @@ where
     /// Returns the dry run simulation result of type [`ContractExecResult`], which
     /// includes information about the simulated call, or an error in case of failure.
     pub async fn call_dry_run(&self) -> Result<ContractExecResult<E::Balance>> {
-        println!("calling contract dry run");
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: self.opts.signer().account_id(),
@@ -212,7 +211,6 @@ where
         &self,
         gas_limit: Option<Weight>,
     ) -> Result<ExtrinsicEvents<C>, ErrorVariant> {
-        println!("calling contract");
         if !self
             .transcoder()
             .metadata()
