@@ -33,6 +33,7 @@ use std::{
     option::Option,
     path::PathBuf,
 };
+use scale::Encode;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Derivative)]
@@ -58,13 +59,15 @@ where
 {
     /// Returns a clean builder for [`ExtrinsicOpts`].
     pub fn new(signer: Signer) -> ExtrinsicOptsBuilder<C, E, Signer> {
+        let sdl = 10000000000u128.encode();
+        let sdl: E::Balance = crate::Decode::decode(&mut &sdl[..]).unwrap();
         ExtrinsicOptsBuilder {
             opts: ExtrinsicOpts {
                 file: None,
                 manifest_path: None,
                 url: url::Url::parse("ws://localhost:9944").unwrap(),
                 signer,
-                storage_deposit_limit: None,
+                storage_deposit_limit: Some(sdl),
                 verbosity: Verbosity::Default,
                 _marker: PhantomData,
             },
