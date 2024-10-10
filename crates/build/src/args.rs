@@ -157,7 +157,7 @@ impl Target {
     pub fn llvm_target(&self) -> &'static str {
         match self {
             Self::Wasm => "wasm32-unknown-unknown",
-            Self::RiscV => "riscv32i-unknown-none-elf",
+            Self::RiscV => "riscv32ema-unknown-none-elf",
         }
     }
 
@@ -165,7 +165,7 @@ impl Target {
     pub fn rustflags(&self) -> Option<&'static str> {
         match self {
             Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
-            Self::RiscV => None,
+            Self::RiscV => Some("-Crelocation-model=pie\x1f-Clink-arg=--emit-relocs\x1f-Clink-arg=--unique"),
         }
     }
 
