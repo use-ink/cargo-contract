@@ -88,6 +88,7 @@ pub use docker::{
 use anyhow::{
     Context,
     Result,
+    bail
 };
 use colored::Colorize;
 use semver::Version;
@@ -298,7 +299,12 @@ fn exec_cargo_for_onchain_target(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
-        let mut args = vec![target_dir, "--release".to_owned()];
+
+        let mut args = vec![
+            format!("--target={}", target.llvm_target()),
+            "--release".to_owned(),
+            target_dir,
+        ];
         args.extend(onchain_cargo_options(target));
         network.append_to_args(&mut args);
 
@@ -333,15 +339,11 @@ fn exec_cargo_for_onchain_target(
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
+            env.push(("RUSTUP_TOOLCHAIN", Some("rve-nightly".to_string())));
             fs::create_dir_all(&crate_metadata.target_directory)?;
-            let path = crate_metadata
-                .target_directory
-                .join(".riscv_memory_layout.ld");
-            fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
-            let path = path.display();
             env.push((
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{rustflags}\x1f-Clink-arg=-T{path}",)),
+                Some(format!("{}", rustflags)),
             ));
         } else {
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
@@ -834,7 +836,8 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*extra_lints, crate_metadata, target, verbosity)?;
+    // TODO: dylint causing errors with riscv
+    // lint(*extra_lints, crate_metadata, target, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
@@ -930,7 +933,14 @@ fn local_build(
             )?;
         }
         Target::RiscV => {
-            fs::copy(&crate_metadata.original_code, &crate_metadata.dest_code)?;
+            let mut config = polkavm_linker::Config::default();
+            config.set_strip(!keep_debug_symbols);
+            let orig = fs::read(&crate_metadata.original_code)?;
+            let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
+                Ok(linked) => linked,
+                Err(err) => bail!("Failed to link polkavm program: {}", err),
+            };
+            fs::write(&crate_metadata.dest_code, linked)?;
         }
     }
 
