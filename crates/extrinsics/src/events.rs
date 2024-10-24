@@ -31,6 +31,7 @@ use contract_transcode::{
 use anyhow::Result;
 use ink_env::Environment;
 use scale_info::form::PortableForm;
+use sp_core::H160;
 use std::{
     fmt::{
         Display,
@@ -309,6 +310,22 @@ impl DisplayEvents {
                                 Some(token_metadata),
                             )?
                             .to_string();
+                        }
+                    }
+                    if field.type_name == Some("H160".to_string()) {
+                        // Value is in the format: H160([bytes])
+                        // Extract the byte array between the brackets and convert it to a
+                        // hexadecimal string
+                        if let (Some(start), Some(end)) =
+                            (value.find('['), value.find(']'))
+                        {
+                            let byte_str = &value[start + 1..end];
+                            let bytes: Vec<u8> = byte_str
+                                .split(", ")
+                                .filter_map(|s| s.parse::<u8>().ok())
+                                .collect();
+                            let h160_value = H160::from_slice(&bytes);
+                            value = format!("0x{}", hex::encode(h160_value.as_bytes()));
                         }
                     }
                     let _ = writeln!(
