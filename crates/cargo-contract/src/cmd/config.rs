@@ -250,7 +250,8 @@ macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
         assert!(
             !format!("{}", $config_name).contains("::"),
-            "The supplied config name is not allowed to contain `::`."
+            "The supplied config name `{}` is not allowed to contain `::`.",
+            $config_name
         );
 
         let config_name_nonspaced = format!("$crate::cmd::config::{}", $config_name);
