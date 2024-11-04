@@ -263,7 +263,9 @@ macro_rules! call_with_config {
             $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
         );
-        if !res_nonspaced.is_err() {return res_nonspaced}
+        if !res_nonspaced.is_err() {
+            return res_nonspaced
+        }
         $crate::call_with_config_internal!(
             $obj,
             $function,
