@@ -42,11 +42,12 @@ use std::{
 use serde::{
     ser::SerializeMap,
     Serialize,
+    Deserialize,
 };
 
 pub use self::parse::parse_value;
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Value {
     Bool(bool),
     Char(char),
@@ -165,7 +166,7 @@ impl Map {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Tuple {
     ident: Option<String>,
     values: Vec<Value>,
@@ -198,7 +199,7 @@ impl Tuple {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Seq {
     elems: Vec<Value>,
 }
@@ -223,7 +224,7 @@ impl Seq {
     }
 }
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Hex {
     s: String,
     #[serde(skip_serializing)]
