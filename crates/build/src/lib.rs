@@ -763,11 +763,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
         BuildArtifacts::All => {
             let (opt_result, build_info, dest_wasm) =
-                local_build(&crate_metadata, &optimization_passes, &args).map_err(
-                    |e| {
+                local_build(&crate_metadata, &optimization_passes, &args).inspect_err(
+                    |_| {
                         // build error -> bundle is stale
                         clean_metadata();
-                        e
                     },
                 )?;
 
