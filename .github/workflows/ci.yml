@@ -240,7 +240,7 @@ jobs:
 
       - name: Install latest `substrate-contracts-node` binary
         env:
-          CONTRACTS_NODE_URL: wget https://github.com/paritytech/substrate-contracts-node/releases/latest/download/substrate-contracts-node-
+          CONTRACTS_NODE_URL: https://github.com/paritytech/substrate-contracts-node/releases/latest/download/substrate-contracts-node-
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
               CONTRACTS_NODE_OS=linux
