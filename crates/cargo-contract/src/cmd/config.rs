@@ -218,14 +218,14 @@ macro_rules! call_with_config_internal {
                 stringify!($config) => $obj.$function::<$config>().await,
             )*
             _ => {
-
-                let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.trim_start_matches("crate::cmd::config::"))
+              let configs = vec![$(stringify!($config)),*].iter()
+                .map(|s| s.replace(" ", ""))
+                .map(|s| s.trim_start_matches("$crate::cmd::config::").to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
                     contract_extrinsics::GenericError::from_message(
-                        format!("Chain configuration not found, Allowed configurations: {configs}")
+                        format!("Chain configuration {} not found, allowed configurations: {configs}", $config_name)
                 )))
             },
         }
@@ -233,14 +233,44 @@ macro_rules! call_with_config_internal {
 }
 
 /// Macro that allows calling the command member function with chain configuration
+///
+/// # Developer Note
+///
+/// In older Rust versions the macro `stringify!($crate::foo)` expanded to
+/// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/pull/125174,
+/// `stringify!` expands to `"$crate :: foo"` now. In order to support both older and
+/// newer Rust versions our macro has to handle both cases, spaced and non-spaced.
+///
+/// # Known Limitation
+///
+///  The `$config_name:expr` has to be in the `$crate::cmd::config` crate and cannot
+/// contain  another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
-        let config_name = format!("crate::cmd::config::{}", $config_name);
+        assert!(
+            !format!("{}", $config_name).contains("::"),
+            "The supplied config name `{}` is not allowed to contain `::`.",
+            $config_name
+        );
+
+        let res_nonspaced = $crate::call_with_config_internal!(
+            $obj,
+            $function,
+            format!("$crate::cmd::config::{}", $config_name).as_str(),
+            // All available chain configs need to be specified here
+            $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Substrate,
+            $crate::cmd::config::Ecdsachain
+        );
+        if !res_nonspaced.is_err() {
+            return res_nonspaced
+        }
+
         $crate::call_with_config_internal!(
             $obj,
             $function,
-            config_name.as_str(),
+            format!("$crate :: cmd :: config :: {}", $config_name).as_str(),
             // All available chain configs need to be specified here
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
