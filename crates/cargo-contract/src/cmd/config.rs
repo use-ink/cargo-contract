@@ -233,18 +233,50 @@ macro_rules! call_with_config_internal {
 }
 
 /// Macro that allows calling the command member function with chain configuration
+///
+/// # Developer Note
+///
+/// In older Rust versions, the macro `stringify!($crate::foo)` expanded to
+/// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/issues/128992,
+/// `stringify!` expands to `"$crate :: foo"` now. In order to support both older and newer
+/// Rust versions our macro has to handle both cases, spaced and non-spaced.
+///
+/// Known limitation: the `$config_name:expr` has to be in the `$crate::cmd::config` crate
+/// and cannot contain another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
-        let config_name = format!("crate::cmd::config::{}", $config_name);
-        $crate::call_with_config_internal!(
+        assert!(!format!("{}", $config_name).contains("::"), "The supplied config name is not allowed to contain `::`.");
+
+        let config_name_nonspaced = format!("$crate::cmd::config::{}", $config_name);
+        let config_name_spaced = format!("$crate :: cmd :: config :: {}", $config_name);
+
+        let res_nonspaced = $crate::call_with_config_internal!(
             $obj,
             $function,
-            config_name.as_str(),
+            config_name_nonspaced.as_str(),
+
             // All available chain configs need to be specified here
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
-        )
+        );
+
+        let res_spaced = $crate::call_with_config_internal!(
+            $obj,
+            $function,
+            config_name_spaced.as_str(),
+
+            // All available chain configs need to be specified here
+            $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Substrate,
+            $crate::cmd::config::Ecdsachain
+        );
+
+        if !res_spaced.is_err() {
+            res_nonspaced
+        } else {
+            res_spaced
+        }
     }};
 }
