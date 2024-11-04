@@ -268,6 +268,7 @@ macro_rules! call_with_config {
         if !res_nonspaced.is_err() {
             return res_nonspaced
         }
+
         $crate::call_with_config_internal!(
             $obj,
             $function,
