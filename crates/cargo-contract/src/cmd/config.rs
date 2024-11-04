@@ -225,7 +225,7 @@ macro_rules! call_with_config_internal {
                 .join(", ");
                 Err(ErrorVariant::Generic(
                     contract_extrinsics::GenericError::from_message(
-                        format!("Chain configuration not found, Allowed configurations: {configs}")
+                        format!("Chain configuration {} not found, allowed configurations: {configs}", $config_name)
                 )))
             },
         }
