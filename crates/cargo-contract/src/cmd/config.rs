@@ -219,8 +219,8 @@ macro_rules! call_with_config_internal {
             )*
             _ => {
               let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.trim_start_matches("$crate::cmd::config::"))
                 .map(|s| s.replace(" ", ""))
+                .map(|s| s.trim_start_matches("$crate::cmd::config::"))
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
