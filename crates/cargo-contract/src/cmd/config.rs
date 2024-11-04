@@ -236,13 +236,15 @@ macro_rules! call_with_config_internal {
 ///
 /// # Developer Note
 ///
-/// In older Rust versions, the macro `stringify!($crate::foo)` expanded to
-/// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/issues/128992,
+/// In older Rust versions the macro `stringify!($crate::foo)` expanded to
+/// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/pull/125174,
 /// `stringify!` expands to `"$crate :: foo"` now. In order to support both older and
 /// newer Rust versions our macro has to handle both cases, spaced and non-spaced.
 ///
-/// Known limitation: the `$config_name:expr` has to be in the `$crate::cmd::config` crate
-/// and cannot contain another `::` sub-path.
+/// # Known Limitation
+///
+///  The `$config_name:expr` has to be in the `$crate::cmd::config` crate and cannot
+/// contain  another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
