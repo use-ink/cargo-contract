@@ -40,9 +40,8 @@ use std::{
 };
 
 use serde::{
-    ser::SerializeMap,
-    Serialize,
     Deserialize,
+    Serialize,
 };
 
 pub use self::parse::parse_value;
@@ -68,20 +67,27 @@ pub struct Map {
     map: IndexMap<Value, Value>,
 }
 
-// `IndexMap` is defined outside and can not be made serializable.
-// Therefore, we implement custom implementation for the wrapping `Map`
+// We implement a custom serialization to not persist the `ident` field.
 impl Serialize for Map {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.map.len()))?;
-        for (k, v) in &self.map {
-            // we need to convert the key to a string
-            // because serde_json disallows non-string keys
-            map.serialize_entry(&k.to_string(), v)?;
-        }
-        map.end()
+        self.map.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Map {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let indexmap = IndexMap::deserialize(deserializer)?;
+        let map = Map {
+            ident: None,
+            map: indexmap,
+        };
+        Ok(map)
     }
 }
 
