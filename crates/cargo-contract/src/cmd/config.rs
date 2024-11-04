@@ -254,13 +254,10 @@ macro_rules! call_with_config {
             $config_name
         );
 
-        let config_name_nonspaced = format!("$crate::cmd::config::{}", $config_name);
-        let config_name_spaced = format!("$crate :: cmd :: config :: {}", $config_name);
-
         let res_nonspaced = $crate::call_with_config_internal!(
             $obj,
             $function,
-            config_name_nonspaced.as_str(),
+            format!("$crate::cmd::config::{}", $config_name).as_str(),
             // All available chain configs need to be specified here
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
@@ -273,7 +270,7 @@ macro_rules! call_with_config {
         $crate::call_with_config_internal!(
             $obj,
             $function,
-            config_name_spaced.as_str(),
+            format!("$crate :: cmd :: config :: {}", $config_name).as_str(),
             // All available chain configs need to be specified here
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
