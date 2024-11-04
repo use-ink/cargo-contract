@@ -220,7 +220,7 @@ macro_rules! call_with_config_internal {
             _ => {
               let configs = vec![$(stringify!($config)),*].iter()
                 .map(|s| s.replace(" ", ""))
-                .map(|s| s.trim_start_matches("$crate::cmd::config::"))
+                .map(|s| s.trim_start_matches("$crate::cmd::config::").to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
@@ -263,8 +263,8 @@ macro_rules! call_with_config {
             $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
         );
-
-        let res_spaced = $crate::call_with_config_internal!(
+        if !res_nonspaced.is_err() {return res_nonspaced}
+        $crate::call_with_config_internal!(
             $obj,
             $function,
             config_name_spaced.as_str(),
@@ -272,12 +272,6 @@ macro_rules! call_with_config {
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
-        );
-
-        if !res_spaced.is_err() {
-            res_nonspaced
-        } else {
-            res_spaced
-        }
+        )
     }};
 }
