@@ -29,7 +29,7 @@ colored = "2.1.0"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 serde_json = "1.0.117"
 url = { version = "2.5.0", features = ["serde"] }
-rust_decimal = "1.35"
+rust_decimal = "1.36"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sp-core = "31.0.0"
 sp-runtime = "34.0.0"
