@@ -28,7 +28,7 @@ jobs:
 
       - name: Build and push Docker image from master
         if: ${{ github.event_name == 'push' }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./build-image/Dockerfile
@@ -50,7 +50,7 @@ jobs:
 
       - name: Build and push Docker image from release
         if: ${{ github.event_name == 'release' }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./build-image/Dockerfile
