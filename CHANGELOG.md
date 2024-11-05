@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
 
+### Added
+- Add `serde::Deserialize` for `contract_transcode::scon::Value` - [#1564](https://github.com/paritytech/cargo-contract/pull/1564)
+
 ## [5.0.0-alpha]
 
 ### Changed
