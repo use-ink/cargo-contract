@@ -22,4 +22,4 @@ url = { version = "2.5.0", features = ["serde"] }
 anyhow = "1.0.83"
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"
