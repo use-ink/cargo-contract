@@ -58,5 +58,5 @@ walkdir = "2.5.0"
 zip = { version = "2.2.0", default-features = false }
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"
 wabt = "0.10.0"
