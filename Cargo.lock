@@ -1173,7 +1173,7 @@ version = "5.0.0-alpha"
 dependencies = [
  "anyhow",
  "contract-metadata",
- "wasmparser 0.207.0",
+ "wasmparser 0.219.1",
  "wat",
 ]
 
@@ -1213,7 +1213,7 @@ dependencies = [
  "walkdir",
  "wasm-encoder",
  "wasm-opt",
- "wasmparser 0.207.0",
+ "wasmparser 0.219.1",
  "which",
  "zip",
 ]
@@ -6915,11 +6915,22 @@ version = "0.207.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e19bb9f8ab07616da582ef8adb24c54f1424c7ec876720b7da9db8ec0626c92c"
 dependencies = [
+ "bitflags 2.5.0",
+ "indexmap 2.2.6",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.219.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c771866898879073c53b565a6c7b49953795159836714ac56a5befb581227c5"
+dependencies = [
  "ahash 0.8.11",
  "bitflags 2.5.0",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
  "semver",
+ "serde",
 ]
 
 [[package]]
