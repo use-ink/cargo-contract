@@ -23,6 +23,7 @@ use anyhow::{
 pub use contract_metadata::Language;
 use std::collections::HashMap;
 use wasmparser::{
+    BinaryReader,
     FuncType,
     Import,
     Name,
@@ -78,7 +79,8 @@ impl<'a> Module<'a> {
                     range,
                     size: _,
                 } => {
-                    let reader = wasmparser::CodeSectionReader::new(&code[range], 0)?;
+                    let binary_reader = BinaryReader::new(&code[range], 0);
+                    let reader = wasmparser::CodeSectionReader::new(binary_reader)?;
                     for body in reader {
                         let body = body?;
                         let reader = body.get_operators_reader();
@@ -124,7 +126,8 @@ impl<'a> Module<'a> {
             .custom_sections
             .get("name")
             .ok_or(anyhow!("Custom section 'name' not found."))?;
-        let reader = NameSectionReader::new(name_section, 0);
+        let binary_reader = BinaryReader::new(name_section, 0);
+        let reader = NameSectionReader::new(binary_reader);
         for section in reader {
             if let Name::Function(name_reader) = section? {
                 for naming in name_reader {
