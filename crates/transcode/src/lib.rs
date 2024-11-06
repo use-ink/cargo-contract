@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Use Ink (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 //! `"false" -> Value::Bool(false)`
 //!
 //! This value is then matched with the metadata for the expected type in that context.
-//! e.g. the [flipper](https://github.com/paritytech/ink/blob/master/examples/flipper/lib.rs) contract
+//! e.g. the [flipper](https://github.com/use-ink/ink/blob/master/examples/flipper/lib.rs) contract
 //! accepts a `bool` argument to its `new` constructor, which will be reflected in the
 //! contract metadata as [`scale_info::TypeDefPrimitive::Bool`].
 //!

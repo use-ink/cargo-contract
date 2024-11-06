@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Use Ink (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -41,10 +41,10 @@
 //! let contract = Contract::builder()
 //!     .name("incrementer".to_string())
 //!     .version(Version::new(2, 1, 0))
-//!     .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+//!     .authors(vec!["Use Ink <ink@use.ink>".to_string()])
 //!     .description("increment a value".to_string())
 //!     .documentation(Url::parse("http://docs.rs/").unwrap())
-//!     .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+//!     .repository(Url::parse("http://github.com/use-ink/ink/").unwrap())
 //!     .homepage(Url::parse("http://example.com/").unwrap())
 //!     .license("Apache-2.0".to_string())
 //!     .build()
@@ -667,7 +667,7 @@ mod tests {
         let missing_name = Contract::builder()
             // .name("incrementer".to_string())
             .version(Version::new(2, 1, 0))
-            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .build();
 
         assert_eq!(
@@ -678,7 +678,7 @@ mod tests {
         let missing_version = Contract::builder()
             .name("incrementer")
             // .version(Version::new(2, 1, 0))
-            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .build();
 
         assert_eq!(
@@ -689,7 +689,7 @@ mod tests {
         let missing_authors = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
-            // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            // .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .build();
 
         assert_eq!(
@@ -700,7 +700,7 @@ mod tests {
         let missing_all = Contract::builder()
             // .name("incrementer".to_string())
             // .version(Version::new(2, 1, 0))
-            // .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            // .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .build();
 
         assert_eq!(
@@ -739,10 +739,10 @@ mod tests {
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
-            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .description("increment a value")
             .documentation(Url::parse("http://docs.rs/").unwrap())
-            .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+            .repository(Url::parse("http://github.com/use-ink/ink/").unwrap())
             .homepage(Url::parse("http://example.com/").unwrap())
             .license("Apache-2.0")
             .build()
@@ -797,11 +797,11 @@ mod tests {
                     "name": "incrementer",
                     "version": "2.1.0",
                     "authors": [
-                      "Parity Technologies <admin@parity.io>"
+                      "Use Ink <ink@use.ink>"
                     ],
                     "description": "increment a value",
                     "documentation": "http://docs.rs/",
-                    "repository": "http://github.com/paritytech/ink/",
+                    "repository": "http://github.com/use-ink/ink/",
                     "homepage": "http://example.com/",
                     "license": "Apache-2.0",
                 },
@@ -834,7 +834,7 @@ mod tests {
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
-            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .build()
             .unwrap();
         let abi_json = json! {
@@ -857,7 +857,7 @@ mod tests {
                     "name": "incrementer",
                     "version": "2.1.0",
                     "authors": [
-                      "Parity Technologies <admin@parity.io>"
+                      "Use Ink <ink@use.ink>"
                     ],
                 },
                 "image": serde_json::Value::Null,
@@ -905,10 +905,10 @@ mod tests {
         let contract = Contract::builder()
             .name("incrementer")
             .version(Version::new(2, 1, 0))
-            .authors(vec!["Parity Technologies <admin@parity.io>".to_string()])
+            .authors(vec!["Use Ink <ink@use.ink>".to_string()])
             .description("increment a value")
             .documentation(Url::parse("http://docs.rs/").unwrap())
-            .repository(Url::parse("http://github.com/paritytech/ink/").unwrap())
+            .repository(Url::parse("http://github.com/use-ink/ink/").unwrap())
             .homepage(Url::parse("http://example.com/").unwrap())
             .license("Apache-2.0")
             .build()
