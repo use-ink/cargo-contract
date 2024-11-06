@@ -20,7 +20,7 @@ ARG WGET_VERSION=1.21-1+deb11u1
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
 # The rust version used by linter
-ARG RUST_LINTER_VERSION=nightly-2024-02-08
+ARG RUST_LINTER_VERSION=nightly-2024-09-05
 
 # metadata
 LABEL ink.use.image.vendor="Use Ink" \
@@ -105,7 +105,7 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && cargo install cargo-dylint dylint-link \
     # Check if build with linting works
     && cargo contract new test \
-    # Generate /usr/local/dylint_drivers/nightly-2024-02-08-x86_64-unknown-linux-gnu/dylint-driver bin
+    # Generate /usr/local/dylint_drivers/nightly-2024-09-05-x86_64-unknown-linux-gnu/dylint-driver bin
     && mkdir -p $DYLINT_DRIVER_PATH \
     && cd test && cargo contract build --lint --verbose --release && cd .. \
     && rm -rf test \
