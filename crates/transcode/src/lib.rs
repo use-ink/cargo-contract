@@ -513,7 +513,7 @@ mod tests {
 
     use crate::scon::Hex;
 
-    #[allow(clippy::extra_unused_lifetimes)]
+    #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
     #[ink::contract]
     pub mod transcode {
         #[ink(storage)]

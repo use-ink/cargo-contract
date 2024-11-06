@@ -69,8 +69,8 @@ impl<Hash> RemoveCode<Hash> {
         Self { code_hash }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "remove_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Contracts", "remove_code", self)
     }
 }
 
@@ -96,8 +96,8 @@ impl<Balance> UploadCode<Balance> {
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "upload_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Contracts", "upload_code", self)
     }
 }
 
@@ -133,8 +133,8 @@ impl<Balance> InstantiateWithCode<Balance> {
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "instantiate_with_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Contracts", "instantiate_with_code", self)
     }
 }
 
@@ -176,8 +176,8 @@ where
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "instantiate", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Contracts", "instantiate", self)
     }
 }
 
@@ -210,7 +210,7 @@ impl<AccountId, Balance> Call<AccountId, Balance> {
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "call", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Contracts", "call", self)
     }
 }

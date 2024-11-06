@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "4.1.1"
+version = "5.0.0-alpha"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
@@ -18,8 +18,8 @@ impl-serde = "0.4.0"
 semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1.0.117"
-url = { version = "2.5.0", features = ["serde"] }
+url = { version = "2.5.3", features = ["serde"] }
 anyhow = "1.0.83"
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"

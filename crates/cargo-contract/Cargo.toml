@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "4.1.1"
+version = "5.0.0-alpha"
 authors = ["Use Ink <ink@use.ink>"]
 build = "build.rs"
 edition = "2021"
@@ -18,11 +18,11 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "4.1.1", path = "../build" }
-contract-extrinsics = { version = "4.1.1", path = "../extrinsics" }
-contract-transcode = { version = "4.1.1", path = "../transcode" }
-contract-metadata = { version = "4.1.1", path = "../metadata" }
-contract-analyze = { version = "4.1.1", path = "../analyze" }
+contract-build = { version = "5.0.0-alpha", path = "../build" }
+contract-extrinsics = { version = "5.0.0-alpha", path = "../extrinsics" }
+contract-transcode = { version = "5.0.0-alpha", path = "../transcode" }
+contract-metadata = { version = "5.0.0-alpha", path = "../metadata" }
+contract-analyze = { version = "5.0.0-alpha", path = "../analyze" }
 
 anyhow = "1.0.83"
 clap = { version = "4.5.4", features = ["derive", "env"] }
@@ -33,7 +33,7 @@ which = "6.0.1"
 colored = "2.1.0"
 serde_json = "1.0.117"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
-url = { version = "2.5.0", features = ["serde"] }
+url = { version = "2.5.3", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.18"
 schemars = "0.8"
@@ -43,7 +43,7 @@ comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = { version = "0.35.3", features = ["substrate-compat"] }
+subxt = { version = "0.37.0", features = ["substrate-compat"] }
 sp-core = "31.0.0"
 sp-weights = "30.0.0"
 hex = "0.4.3"
