@@ -37,6 +37,7 @@ use contract_metadata::{
     ContractMetadata,
 };
 
+use regex::Regex;
 use std::{
     fs::File,
     path::PathBuf,
@@ -196,6 +197,9 @@ impl VerifyCommand {
             let rust_toolchain = contract_build::util::rust_toolchain()
                 .expect("`rustc` always has a version associated with it.");
 
+            validate_toolchain_name(&expected_rust_toolchain)?;
+            validate_toolchain_name(&rust_toolchain)?;
+
             let rustc_matches = rust_toolchain == expected_rust_toolchain;
             let mismatched_rustc = format!(
             "\nYou are trying to `verify` a contract using the `{rust_toolchain}` toolchain.\n\
@@ -323,5 +327,58 @@ impl VerificationResult {
     /// Display the build results in a pretty formatted JSON string.
     pub fn serialize_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
+    }
+}
+
+/// Validates that the passed `toolchain` is a valid Rust toolchain.
+///
+/// # Developers Note
+///
+/// Strictly speaking Rust has not yet defined rules for legal toolchain
+/// names. See https://github.com/rust-lang/rustup/issues/4059 for more
+/// details.
+///
+/// We took a "good enough" approach and restrict valid toolchain names
+/// to established ones.
+fn validate_toolchain_name(toolchain: &str) -> Result<()> {
+    let re = Regex::new(r"^[a-zA-Z._\-0-9]+$").expect("failed creating regex");
+    if re.is_match(toolchain) {
+        return Ok(());
+    }
+    anyhow::bail!("Invalid toolchain name: {}", toolchain)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_toolchain_names() {
+        assert!(validate_toolchain_name("nightly").is_ok());
+        assert!(validate_toolchain_name("stable").is_ok());
+        assert!(validate_toolchain_name("beta").is_ok());
+
+        assert!(validate_toolchain_name("nightly-2023-01-01").is_ok());
+        assert!(validate_toolchain_name("beta-2024-01-02").is_ok());
+        assert!(validate_toolchain_name("stable-2022-03-03").is_ok());
+
+        assert!(validate_toolchain_name("1.56.0").is_ok());
+        assert!(validate_toolchain_name("1.70").is_ok());
+
+        assert!(validate_toolchain_name("1.70-aarch64-apple-darwin").is_ok());
+        assert!(
+            validate_toolchain_name("nightly-2024-11-05-aarch64-apple-darwin").is_ok()
+        );
+        assert!(validate_toolchain_name("stable-x86_64-unknown-linux-gnu").is_ok());
+    }
+
+    #[test]
+    fn invalid_toolchain_names() {
+        assert!(validate_toolchain_name("https://sh.rust-toolchain.rs").is_err());
+        assert!(validate_toolchain_name("_ $").is_err());
+        assert!(validate_toolchain_name(
+            "nightly', please install https://sh.rust-toolchain.rs"
+        )
+        .is_err());
     }
 }
