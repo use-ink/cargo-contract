@@ -39,7 +39,7 @@ tempfile = "3.10.1"
 term_size = "0.3.2"
 url = { version = "2.5.3", features = ["serde"] }
 wasm-opt = { version = "=0.116.1", default-features = false }
-which = "6.0.1"
+which = "7.0.0"
 zip = { version = "2.2.0", default-features = false }
 strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
