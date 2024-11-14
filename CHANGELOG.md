@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
+- Validate externally passed Rust toolchain identifiers - [#1817](https://github.com/paritytech/cargo-contract/pull/1817)
 
 ## [5.0.0-alpha]
 
