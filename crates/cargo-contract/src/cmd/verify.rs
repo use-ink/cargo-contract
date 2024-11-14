@@ -202,10 +202,12 @@ impl VerifyCommand {
 
             let rustc_matches = rust_toolchain == expected_rust_toolchain;
             let mismatched_rustc = format!(
-            "\nYou are trying to `verify` a contract using the `{rust_toolchain}` toolchain.\n\
-             However, the original contract was built using `{expected_rust_toolchain}`. Please\n\
-             install the correct toolchain (`rustup install {expected_rust_toolchain}`) and\n\
-             re-run the `verify` command.",);
+                "\nYou are trying to `verify` a contract using the following toolchain:\n\
+                {rust_toolchain}\n\n\
+                However, the original contract was built using this one:\n\
+                {expected_rust_toolchain}\n\n\
+                Please install the correct toolchain and re-run the `verify` command:\n\
+                rustup install {expected_rust_toolchain}");
             anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
             let expected_cargo_contract_version = build_info.cargo_contract_version;
@@ -218,10 +220,11 @@ impl VerifyCommand {
                 cargo_contract_version == expected_cargo_contract_version;
             let mismatched_cargo_contract = format!(
                 "\nYou are trying to `verify` a contract using `cargo-contract` version \
-            `{cargo_contract_version}`.\n\
-             However, the original contract was built using `cargo-contract` version \
-             `{expected_cargo_contract_version}`.\n\
-             Please install the matching version and re-run the `verify` command.",
+                `{cargo_contract_version}`.\n\n\
+                However, the original contract was built using `cargo-contract` version \
+                `{expected_cargo_contract_version}`.\n\n\
+                Please install the matching version and re-run the `verify` command.\n\
+                cargo install --force --locked cargo-contract --version {expected_cargo_contract_version}",
             );
             anyhow::ensure!(
                 cargo_contract_matches,
