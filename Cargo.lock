@@ -1184,7 +1184,7 @@ dependencies = [
  "duct",
  "heck 0.5.0",
  "hex",
- "impl-serde 0.4.0",
+ "impl-serde 0.5.0",
  "parity-scale-codec",
  "pretty_assertions",
  "regex",
@@ -1253,7 +1253,7 @@ name = "contract-metadata"
 version = "5.0.0-alpha"
 dependencies = [
  "anyhow",
- "impl-serde 0.4.0",
+ "impl-serde 0.5.0",
  "pretty_assertions",
  "semver",
  "serde",
