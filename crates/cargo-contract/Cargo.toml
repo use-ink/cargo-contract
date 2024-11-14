@@ -35,7 +35,7 @@ serde_json = "1.0.117"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 url = { version = "2.5.3", features = ["serde"] }
 semver = "1.0"
-jsonschema = "0.18"
+jsonschema = "0.26"
 schemars = "0.8"
 ink_metadata = "5.0.0"
 ink_env = "5.0.0"
