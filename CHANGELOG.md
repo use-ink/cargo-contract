@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
+- For contract verification: don't rely on Wasm hash in metadata - [#1820](https://github.com/paritytech/cargo-contract/pull/1820)
 
 ## [5.0.0-alpha]
 
