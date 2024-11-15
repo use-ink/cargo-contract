@@ -219,8 +219,7 @@ macro_rules! call_with_config_internal {
             )*
             _ => {
               let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.replace(" ", ""))
-                .map(|s| s.trim_start_matches("$crate::cmd::config::").to_string())
+                .map(|s| s.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
@@ -267,7 +266,7 @@ macro_rules! call_with_config {
             return res_nonspaced
         }
 
-        $crate::call_with_config_internal!(
+        let res_spaced = $crate::call_with_config_internal!(
             $obj,
             $function,
             format!("$crate :: cmd :: config :: {}", $config_name).as_str(),
@@ -275,6 +274,33 @@ macro_rules! call_with_config {
             $crate::cmd::config::Polkadot,
             $crate::cmd::config::Substrate,
             $crate::cmd::config::Ecdsachain
-        )
+        );
+        if !res_spaced.is_err() {
+            return res_spaced
+        }
+
+        let res_spaced_without_dollar = $crate::call_with_config_internal!(
+            $obj,
+            $function,
+            format!("crate :: cmd :: config :: {}", $config_name).as_str(),
+            // All available chain configs need to be specified here
+            $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Substrate,
+            $crate::cmd::config::Ecdsachain
+        );
+        if !res_spaced_without_dollar.is_err() {
+            return res_spaced_without_dollar
+        }
+
+        let res_nonspaced_without_dollar = $crate::call_with_config_internal!(
+            $obj,
+            $function,
+            format!("crate::cmd::config::{}", $config_name).as_str(),
+            // All available chain configs need to be specified here
+            $crate::cmd::config::Polkadot,
+            $crate::cmd::config::Substrate,
+            $crate::cmd::config::Ecdsachain
+        );
+        res_nonspaced_without_dollar
     }};
 }
