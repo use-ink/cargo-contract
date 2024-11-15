@@ -251,7 +251,8 @@ fn verify_different_contracts() {
         .expect("Failed to write wasm binary to the current dir!");
 
     // when
-    let output: &str = r#"Failed to verify the authenticity of `incrementer`"#;
+    let output: &str = "Failed to verify `reference.contract` against the workspace at \
+                        `Cargo.toml`: the hashed Wasm blobs are not matching.";
 
     // then
     cargo_contract(&project_dir)
