@@ -300,6 +300,22 @@ impl VerifyCommand {
             .bright_red());
         }
 
+        // check that the metadata hash is the same as reference_code_hash
+        if reference_code_hash != metadata.source.hash {
+            verbose_eprintln!(
+                verbosity,
+                "Expected code hash in reference metadata ({}): {}\nGot Code Hash: {}\n",
+                &path.display(),
+                &reference_code_hash,
+                &metadata.source.hash
+            );
+            anyhow::bail!(format!(
+                "\nThe reference contract `{}` metadata is corrupt: the source.hash does not match the source.wasm hash.",
+                format!("{}", &path.display()).bright_white()
+            )
+            .bright_red());
+        }
+
         Ok(VerificationResult {
             is_verified: true,
             image: metadata.image,
