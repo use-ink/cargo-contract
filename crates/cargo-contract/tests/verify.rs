@@ -14,7 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::Path;
+use serde_json::{
+    Map,
+    Value,
+};
+use std::path::{
+    Path,
+    PathBuf,
+};
+use tempfile::TempDir;
 
 /// Create a `cargo contract` command
 fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
@@ -266,4 +274,95 @@ fn verify_different_contracts() {
         .assert()
         .failure()
         .stderr(predicates::str::contains(output));
+}
+
+#[test]
+fn verify_must_fail_on_manipulated_wasm_code() {
+    // given
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+    let (project_dir, mut metadata_json) = create_and_compile_minimal_contract(&tmp_dir);
+
+    // when
+    // we change the `source.wasm` blob to a different contract bytecode, but the hash
+    // will remain the same as the one from our compiled minimal contract.
+    let source = metadata_json
+        .get_mut("source")
+        .expect("source field not found in metadata");
+    let wasm = source
+        .get_mut("wasm")
+        .expect("source.wasm field not found in metadata");
+    *wasm = Value::String(String::from("0x00"));
+
+    let contract_file =
+        project_dir.join("contract_with_mismatching_wasm_hash_and_code.contract");
+    let metadata = serde_json::to_string_pretty(&metadata_json)
+        .expect("failed converting metadata to json");
+    std::fs::write(contract_file, metadata)
+        .expect("Failed to write bundle contract to the current dir!");
+
+    // then
+    let output: &str = "Failed to verify `contract_with_mismatching_wasm_hash_and_code.contract` \
+                        against the workspace at `Cargo.toml`: the hashed Wasm blobs are not \
+                        matching.";
+    cargo_contract(&project_dir)
+        .arg("verify")
+        .arg("--contract")
+        .arg("contract_with_mismatching_wasm_hash_and_code.contract")
+        .arg("--output-json")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(output));
+}
+
+// Creates a minimal contract in `tmp_dir` and compiles it.
+//
+// Returns a tuple of:
+//  * the workspace folder within `tmp_dir` and
+//  * the metadata contained in the `.contract` file that build.
+fn create_and_compile_minimal_contract(
+    tmp_dir: &TempDir,
+) -> (PathBuf, Map<String, Value>) {
+    let contract = r#"
+    #![cfg_attr(not(feature = "std"), no_std, no_main)]
+
+    #[ink::contract]
+    mod minimal {
+        #[ink(storage)]
+        pub struct Minimal {}
+
+        impl Minimal {
+            #[ink(constructor)]
+            pub fn new() -> Self {
+                Self { }
+            }
+
+            #[ink(message)]
+            pub fn void(&self) { }
+        }
+    }"#;
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("minimal")
+        .assert()
+        .success();
+    let project_dir = tmp_dir.path().to_path_buf().join("minimal");
+    let lib = project_dir.join("lib.rs");
+    std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
+
+    tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
+    cargo_contract(&project_dir)
+        .arg("build")
+        .arg("--release")
+        .assert()
+        .success();
+
+    let bundle_path = project_dir.join("target/ink/minimal.contract");
+    let bundle = std::fs::read(bundle_path)
+        .expect("Failed to read the content of the contract bundle!");
+    let metadata_json: Map<String, Value> = serde_json::from_slice(&bundle).unwrap();
+
+    (project_dir, metadata_json)
 }

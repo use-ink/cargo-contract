@@ -37,6 +37,7 @@ use contract_metadata::{
     ContractMetadata,
 };
 
+use contract_build::util::decode_hex;
 use std::{
     fs::File,
     path::PathBuf,
@@ -241,8 +242,21 @@ impl VerifyCommand {
         let build_result = execute(args)?;
 
         // 4. Grab the code hash from the built contract and compare it with the reference
-        //    one.
-        let reference_code_hash = metadata.source.hash;
+        //    code hash.
+        //
+        //    We compute the hash of the reference code here, instead of relying on
+        //    the `source.hash` field in the metadata. This is because the `source.hash`
+        //    field could have been manipulated; we want to be sure that _the code_ of
+        //    both contracts is equal.
+        let reference_wasm_blob = decode_hex(
+            &metadata
+                .source
+                .wasm
+                .expect("no source.wasm field exists in metadata")
+                .to_string(),
+        )
+        .expect("decoding the source.wasm hex failed");
+        let reference_code_hash = CodeHash(code_hash(&reference_wasm_blob));
         let built_contract_path = if let Some(m) = build_result.metadata_result {
             m
         } else {
