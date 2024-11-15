@@ -317,6 +317,46 @@ fn verify_must_fail_on_manipulated_wasm_code() {
         .stderr(predicates::str::contains(output));
 }
 
+#[test]
+fn verify_must_fail_on_corrupt_hash() {
+    // given
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+    let (project_dir, mut metadata_json) = create_and_compile_minimal_contract(&tmp_dir);
+
+    // when
+    // we change the `source.hash` value to a different hash
+    let source = metadata_json
+        .get_mut("source")
+        .expect("source field not found in metadata");
+    let wasm = source
+        .get_mut("hash")
+        .expect("source.hash field not found in metadata");
+    *wasm = Value::String(String::from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+    ));
+
+    let contract_file = project_dir.join("contract_with_corrupt_hash.contract");
+    let metadata = serde_json::to_string_pretty(&metadata_json)
+        .expect("failed converting metadata to json");
+    std::fs::write(contract_file, metadata)
+        .expect("Failed to write bundle contract to the current dir!");
+
+    // then
+    let output: &str = "The reference contract `contract_with_corrupt_hash.contract` \
+                        metadata is corrupt: the source.hash does not match the source.wasm hash.";
+    cargo_contract(&project_dir)
+        .arg("verify")
+        .arg("--contract")
+        .arg("contract_with_corrupt_hash.contract")
+        .arg("--output-json")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(output));
+}
+
 // Creates a minimal contract in `tmp_dir` and compiles it.
 //
 // Returns a tuple of:
