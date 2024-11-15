@@ -287,16 +287,17 @@ impl VerifyCommand {
         if reference_code_hash != target_code_hash {
             verbose_eprintln!(
                 verbosity,
-                "Expected Code Hash: '{}'\n\nGot Code Hash: `{}`",
+                "Expected code hash in reference contract ({}): {}\nGot Code Hash: {}\n",
+                &path.display(),
                 &reference_code_hash,
                 &target_code_hash
             );
             anyhow::bail!(format!(
-                "\nFailed to verify the authenticity of {} contract against the workspace \n\
-                found at {}.",
-                format!("`{}`", metadata.contract.name).bright_white(),
-                format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
-            );
+                "\nFailed to verify `{}` against the workspace at `{}`: the hashed Wasm blobs are not matching.",
+                format!("{}", &path.display()).bright_white(),
+                format!("{}", manifest_path.as_ref().display()).bright_white()
+            )
+            .bright_red());
         }
 
         Ok(VerificationResult {
