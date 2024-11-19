@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
+- Fix "chain configuration not found" error (Rust 1.79) - [#1821](https://github.com/paritytech/cargo-contract/pull/1821)
 
 ## [4.1.1]
 

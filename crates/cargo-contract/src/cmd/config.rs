@@ -212,15 +212,14 @@ where
 
 #[macro_export]
 macro_rules! call_with_config_internal {
-    ($obj:tt ,$function:tt, $config_name:expr, $($config:ty),*) => {
+    ($obj:tt ,$function:tt, $config_name:expr, $( ($config_str:literal, $config_obj:ty) ),*) => {
         match $config_name {
             $(
-                stringify!($config) => $obj.$function::<$config>().await,
+                $config_str => $obj.$function::<$config_obj>().await,
             )*
             _ => {
-              let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.replace(" ", ""))
-                .map(|s| s.trim_start_matches("$crate::cmd::config::").to_string())
+              let configs = vec![$($config_str),*].iter()
+                .map(|s| s.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
@@ -254,27 +253,14 @@ macro_rules! call_with_config {
             $config_name
         );
 
-        let res_nonspaced = $crate::call_with_config_internal!(
-            $obj,
-            $function,
-            format!("$crate::cmd::config::{}", $config_name).as_str(),
-            // All available chain configs need to be specified here
-            $crate::cmd::config::Polkadot,
-            $crate::cmd::config::Substrate,
-            $crate::cmd::config::Ecdsachain
-        );
-        if !res_nonspaced.is_err() {
-            return res_nonspaced
-        }
-
         $crate::call_with_config_internal!(
             $obj,
             $function,
-            format!("$crate :: cmd :: config :: {}", $config_name).as_str(),
+            $config_name,
             // All available chain configs need to be specified here
-            $crate::cmd::config::Polkadot,
-            $crate::cmd::config::Substrate,
-            $crate::cmd::config::Ecdsachain
+            ("Polkadot", $crate::cmd::config::Polkadot),
+            ("Substrate", $crate::cmd::config::Substrate),
+            ("Ecdsachain", $crate::cmd::config::Ecdsachain)
         )
     }};
 }
