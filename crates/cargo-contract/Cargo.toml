@@ -32,7 +32,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 which = "7.0.0"
 colored = "2.1.0"
 regex = "1"
-serde_json = "1.0.117"
+serde_json = "1.0.133"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 url = { version = "2.5.3", features = ["serde"] }
 semver = "1.0"
@@ -44,7 +44,7 @@ comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = { version = "0.37.0", features = ["substrate-compat"] }
+subxt = { version = "0.38.0", features = ["substrate-compat"] }
 sp-core = "31.0.0"
 sp-weights = "30.0.0"
 hex = "0.4.3"
