@@ -260,7 +260,7 @@ macro_rules! call_with_config {
             // All available chain configs need to be specified here
             ("Polkadot", $crate::cmd::config::Polkadot),
             ("Substrate", $crate::cmd::config::Substrate),
-            ("Ecdssachain", $crate::cmd::config::Ecdsachain)
+            ("Ecdsachain", $crate::cmd::config::Ecdsachain)
         )
     }};
 }
