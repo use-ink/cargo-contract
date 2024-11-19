@@ -22,6 +22,7 @@ use colored::Colorize;
 use contract_build::{
     code_hash,
     execute,
+    util::decode_hex,
     verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
@@ -29,7 +30,6 @@ use contract_build::{
     ExecuteArgs,
     ImageVariant,
     ManifestPath,
-    util::decode_hex,
     Verbosity,
     VerbosityFlags,
 };
@@ -38,11 +38,11 @@ use contract_metadata::{
     ContractMetadata,
 };
 
+use regex::Regex;
 use std::{
     fs::File,
     path::PathBuf,
 };
-use regex::Regex;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
