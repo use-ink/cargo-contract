@@ -22,6 +22,7 @@ use colored::Colorize;
 use contract_build::{
     code_hash,
     execute,
+    util::decode_hex,
     verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
@@ -248,8 +249,21 @@ impl VerifyCommand {
         let build_result = execute(args)?;
 
         // 4. Grab the code hash from the built contract and compare it with the reference
-        //    one.
-        let reference_code_hash = metadata.source.hash;
+        //    code hash.
+        //
+        //    We compute the hash of the reference code here, instead of relying on
+        //    the `source.hash` field in the metadata. This is because the `source.hash`
+        //    field could have been manipulated; we want to be sure that _the code_ of
+        //    both contracts is equal.
+        let reference_wasm_blob = decode_hex(
+            &metadata
+                .source
+                .wasm
+                .expect("no source.wasm field exists in metadata")
+                .to_string(),
+        )
+        .expect("decoding the source.wasm hex failed");
+        let reference_code_hash = CodeHash(code_hash(&reference_wasm_blob));
         let built_contract_path = if let Some(m) = build_result.metadata_result {
             m
         } else {
@@ -280,16 +294,33 @@ impl VerifyCommand {
         if reference_code_hash != target_code_hash {
             verbose_eprintln!(
                 verbosity,
-                "Expected Code Hash: '{}'\n\nGot Code Hash: `{}`",
+                "Expected code hash in reference contract ({}): {}\nGot Code Hash: {}\n",
+                &path.display(),
                 &reference_code_hash,
                 &target_code_hash
             );
             anyhow::bail!(format!(
-                "\nFailed to verify the authenticity of {} contract against the workspace \n\
-                found at {}.",
-                format!("`{}`", metadata.contract.name).bright_white(),
-                format!("{:?}", manifest_path.as_ref()).bright_white()).bright_red()
+                "\nFailed to verify `{}` against the workspace at `{}`: the hashed Wasm blobs are not matching.",
+                format!("{}", &path.display()).bright_white(),
+                format!("{}", manifest_path.as_ref().display()).bright_white()
+            )
+            .bright_red());
+        }
+
+        // check that the metadata hash is the same as reference_code_hash
+        if reference_code_hash != metadata.source.hash {
+            verbose_eprintln!(
+                verbosity,
+                "Expected code hash in reference metadata ({}): {}\nGot Code Hash: {}\n",
+                &path.display(),
+                &reference_code_hash,
+                &metadata.source.hash
             );
+            anyhow::bail!(format!(
+                "\nThe reference contract `{}` metadata is corrupt: the source.hash does not match the source.wasm hash.",
+                format!("{}", &path.display()).bright_white()
+            )
+            .bright_red());
         }
 
         Ok(VerificationResult {
