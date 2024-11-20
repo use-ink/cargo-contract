@@ -13,13 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Remove support for `V11` metadata [#1722](https://github.com/use-ink/cargo-contract/pull/1722)
 
+## [4.1.3]
+
+### Fixed
+- Fix "chain configuration not found" error (Rust 1.79) - [#1821](https://github.com/paritytech/cargo-contract/pull/1821)
+- Validate externally passed Rust toolchain identifiers - [#1817](https://github.com/paritytech/cargo-contract/pull/1817)
+- For contract verification: don't rely on Wasm hash in metadata - [#1820](https://github.com/paritytech/cargo-contract/pull/1820)
+
 ## [4.1.2]
 
 ### Fixed
 - Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
-- Fix "chain configuration not found" error (Rust 1.79) - [#1821](https://github.com/paritytech/cargo-contract/pull/1821)
-- Validate externally passed Rust toolchain identifiers - [#1817](https://github.com/paritytech/cargo-contract/pull/1817)
-- For contract verification: don't rely on Wasm hash in metadata - [#1820](https://github.com/paritytech/cargo-contract/pull/1820)
 
 ## [4.1.1]
 
