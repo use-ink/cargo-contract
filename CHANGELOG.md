@@ -6,16 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.0.0]
 
-This release concludes the migration of ink! from Parity to the outside world.
+This release concludes the migration of ink! from Parity to the outside world. It doesn't come with any new features, we just:
 
-It doesn't come with any new features, we merely:
 * …changed the Parity URLs to ones for our new GitHub organization
 [@use-ink](https://github.com/use-ink/).
 * …upgraded many dependencies to newer versions, which results in two particular
   breaking changes regarding compatibility:
-  (1) We had to remove support for Substrate metadata that is below
-      `V14` in [#1722](https://github.com/use-ink/cargo-contract/pull/1722).
-  (2) `cargo-contract` v5 works only with Rust >= 1.81.
+  * We had to remove support for Substrate metadata that is below
+      `V14` in [#1722](https://github.com/use-ink/cargo-contract/pull/1722). Metadata formats below `V14` are quite old and we hope this doesn't affect anyone.
+  * `cargo-contract` v5 works only with Rust >= 1.81.
 
 ### Changed
 - Updated the toolchain version used by `ink_linting` - [#1616](https://github.com/use-ink/cargo-contract/pull/1616)
