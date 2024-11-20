@@ -840,13 +840,9 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         Some(opt_passes) => *opt_passes,
         None => {
             let mut manifest = Manifest::new(manifest_path.clone())?;
-
-            match manifest.profile_optimization_passes() {
-                // if no setting is found, neither on the cli nor in the profile,
-                // then we use the default
-                None => OptimizationPasses::default(),
-                Some(opt_passes) => opt_passes,
-            }
+            // if no setting is found, neither on the cli nor in the profile,
+            // then we use the default
+            manifest.profile_optimization_passes().unwrap_or_default()
         }
     };
 
@@ -880,11 +876,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
         BuildArtifacts::All => {
             let (opt_result, build_info, dest_wasm) =
-                local_build(&crate_metadata, &optimization_passes, &args).map_err(
-                    |e| {
+                local_build(&crate_metadata, &optimization_passes, &args).inspect_err(
+                    |_| {
                         // build error -> bundle is stale
                         clean_metadata();
-                        e
                     },
                 )?;
 

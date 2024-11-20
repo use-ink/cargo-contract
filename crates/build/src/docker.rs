@@ -27,11 +27,11 @@
 //! 1. Pull the image from the registry or use the local copy if available
 //! 2. Parse other arguments that were passed to the host execution context
 //! 3. Calculate the digest of the command and use it
-//! to uniquely identify the container
+//!    to uniquely identify the container
 //! 4. If the container exists, we just start the build, if not, we create it
 //! 5. After the build, the docker container produces metadata with
-//! paths relative to its internal storage structure, we parse the file
-//! and overwrite those paths relative to the host machine.
+//!    paths relative to its internal storage structure, we parse the file
+//!    and overwrite those paths relative to the host machine.
 
 use std::{
     cmp::Ordering,
@@ -219,6 +219,9 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     });
     build_result.dest_wasm = new_path;
 
+    // TODO: Clippy currently throws a false-positive here. The manual allow can be
+    // removed after https://github.com/rust-lang/rust-clippy/pull/13609 has been released.
+    #[allow(clippy::manual_inspect)]
     build_result.metadata_result.as_mut().map(|m| {
         m.dest_bundle = host_folder.join(
             m.dest_bundle
