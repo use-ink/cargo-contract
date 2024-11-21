@@ -49,7 +49,7 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{Bytes, H160};
+use sp_core::{Bytes};
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -70,6 +70,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use subxt::utils::H160;
 
 /// A builder for the instantiate command.
 pub struct InstantiateCommandBuilder<C: Config, E: Environment, Signer: Clone> {

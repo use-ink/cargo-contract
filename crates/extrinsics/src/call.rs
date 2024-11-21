@@ -153,7 +153,7 @@ where
     }
 }
 
-use sp_core::H160;
+use subxt::utils::H160;
 
 pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
     contract: H160,
@@ -237,7 +237,7 @@ where
         let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = Call::new(
-            self.contract.clone().into(),
+            self.contract.clone(),
             self.value,
             gas_limit,
             storage_deposit_limit.unwrap(),
@@ -291,7 +291,7 @@ where
     }
 
     /// Returns the address of the the contract to call.
-    pub fn contract(&self) -> &sp_core::H160 {
+    pub fn contract(&self) -> &subxt::utils::H160 {
         &self.contract
     }
 
@@ -347,7 +347,7 @@ where
 #[derive(Encode)]
 struct CallRequest<AccountId, Balance> {
     origin: AccountId,
-    dest: sp_core::H160,
+    dest: subxt::utils::H160,
     value: Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,

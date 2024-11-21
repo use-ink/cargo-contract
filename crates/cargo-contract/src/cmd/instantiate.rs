@@ -62,7 +62,7 @@ use std::{
     },
     str::FromStr,
 };
-use sp_core::H160;
+use subxt::utils::H160;
 use subxt::{
     config::{
         DefaultExtrinsicParams,

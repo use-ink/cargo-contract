@@ -31,7 +31,7 @@ use contract_transcode::{
 use anyhow::Result;
 use ink_env::Environment;
 use scale_info::form::PortableForm;
-use sp_core::H160;
+use subxt::utils::H160;
 use std::{
     fmt::{
         Display,

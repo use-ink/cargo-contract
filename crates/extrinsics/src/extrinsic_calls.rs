@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use sp_core::H160;
 use crate::{
     upload::Determinism,
     WasmCode,
@@ -26,6 +25,7 @@ use subxt::{
     },
     utils::MultiAddress,
 };
+use subxt::utils::H160;
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
 #[derive(Debug, EncodeAsType)]
