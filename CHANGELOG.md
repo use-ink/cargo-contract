@@ -4,15 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]
+## [5.0.0]
 
-### Fixed
-- Fix "chain configuration not found" error - [#1786](https://github.com/paritytech/cargo-contract/pull/1786)
-- Fix "chain configuration not found" error (Rust 1.79) - [#1821](https://github.com/paritytech/cargo-contract/pull/1821)
-- Validate externally passed Rust toolchain identifiers - [#1817](https://github.com/paritytech/cargo-contract/pull/1817)
-- For contract verification: don't rely on Wasm hash in metadata - [#1820](https://github.com/paritytech/cargo-contract/pull/1820)
+This release concludes the migration of ink! from Parity to the outside world. It doesn't come with any new features, we just:
 
-## [5.0.0-alpha]
+* …changed the Parity URLs to ones for our new GitHub organization
+[@use-ink](https://github.com/use-ink/).
+* …upgraded many dependencies to newer versions, which results in two particular
+  breaking changes regarding compatibility:
+  * We had to remove support for Substrate metadata that is below
+      `V14` in [#1722](https://github.com/use-ink/cargo-contract/pull/1722). Metadata formats below `V14` are quite old and we hope this doesn't affect anyone.
+  * `cargo-contract` v5 works only with Rust >= 1.81.
 
 ### Changed
 - Updated the toolchain version used by `ink_linting` - [#1616](https://github.com/use-ink/cargo-contract/pull/1616)

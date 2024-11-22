@@ -1,6 +1,6 @@
 [package]
 name = "contract-metadata"
-version = "5.0.0-alpha"
+version = "5.0.0"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
