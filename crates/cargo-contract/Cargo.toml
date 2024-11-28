@@ -38,8 +38,8 @@ url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.26"
 schemars = "0.8"
-ink_metadata = "5.0.0"
-ink_env = "5.0.0"
+ink_metadata = "5.1.0"
+ink_env = "5.1.0"
 comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
