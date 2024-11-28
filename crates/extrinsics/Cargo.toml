@@ -32,8 +32,8 @@ url = { version = "2.5.4", features = ["serde"] }
 rust_decimal = "1.36"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sp-core = "31.0.0"
-sp-runtime = "34.0.0"
-sp-weights = "30.0.0"
+sp-runtime = "35.0.0"
+sp-weights = "31.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
 scale-info = "2.11.6"
 subxt = "0.38.0"
