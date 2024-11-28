@@ -27,7 +27,7 @@ contract-analyze = { version = "5.0.0", path = "../analyze" }
 anyhow = "1.0.83"
 clap = { version = "4.5.4", features = ["derive", "env"] }
 primitive-types = { version = "0.13.1", default-features = false, features = ["codec", "scale-info", "serde"] }
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 which = "7.0.0"
 colored = "2.1.0"

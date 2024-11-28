@@ -29,7 +29,7 @@ scale = { package = "parity-scale-codec", version = "3.0.0", features = [
     "derive",
 ] }
 toml = "0.8.13"
-tracing = "0.1.40"
+tracing = "0.1.41"
 wasm-encoder = { version = "0.220.0", features = ["wasmparser"] }
 wasmparser = "0.220.0"
 semver = { version = "1.0.23", features = ["serde"] }
