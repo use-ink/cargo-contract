@@ -1,6 +1,6 @@
 [package]
 name = "contract-analyze"
-version = "5.0.0"
+version = "5.0.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
@@ -14,7 +14,7 @@ keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-metadata = { version = "5.0.0", path = "../metadata" }
+contract-metadata = { version = "5.0.1", path = "../metadata" }
 wasmparser = "0.220.0"
 anyhow = "1.0.83"
 
