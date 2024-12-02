@@ -48,7 +48,7 @@ assert_cmd = "2.0.14"
 regex = "1.10.4"
 predicates = "3.1.0"
 tempfile = "3.10.1"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 subxt-signer = { version = "0.38.0", features = ["subxt", "sr25519"] }
 
 [features]
