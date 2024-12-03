@@ -301,11 +301,11 @@ fn exec_cargo_for_onchain_target(
         );
 
         let mut args = vec![
-            format!("--target={}", target.llvm_target()),
+            format!("--target={}", target.llvm_target(crate_metadata)),
             "--release".to_owned(),
             target_dir,
         ];
-        args.extend(onchain_cargo_options(target));
+        args.extend(onchain_cargo_options(target, crate_metadata));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -521,9 +521,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Returns a list of cargo options used for on-chain builds
-fn onchain_cargo_options(target: &Target) -> Vec<String> {
+fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
-        format!("--target={}", target.llvm_target()),
+        format!("--target={}", target.llvm_target(crate_metadata)),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
@@ -558,7 +558,7 @@ fn exec_cargo_dylint(
     args.push("--".to_owned());
     // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
     // macros, as it does for the release build.
-    args.extend(onchain_cargo_options(target));
+    args.extend(onchain_cargo_options(target, crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
     let env = vec![
@@ -859,7 +859,10 @@ fn local_build(
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
-    fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
+    fs::write(
+        &crate_metadata.target_file_path,
+        target.llvm_target(crate_metadata),
+    )?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
         version

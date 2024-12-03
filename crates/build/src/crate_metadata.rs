@@ -103,7 +103,7 @@ impl CrateMetadata {
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
-        original_code.push(target.llvm_target());
+        original_code.push(target.llvm_target_alias());
         original_code.push("release");
         original_code.push(root_package.name.clone());
         original_code.set_extension(target.source_extension());
