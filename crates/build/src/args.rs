@@ -23,6 +23,7 @@ use std::{
     fs,
     fs::File,
     io::Write,
+    path::Path,
 };
 
 #[derive(Default, Clone, Debug, Args)]
@@ -168,7 +169,15 @@ impl Target {
                 let target_dir = crate_metadata.target_directory.to_string_lossy();
                 let path =
                     format!("{}/riscv32emac-unknown-none-polkavm.json", target_dir);
-                if !fs::exists(&path) {
+                if !Path::exists(Path::new(&path)) {
+                    fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(
+                        |e| {
+                            panic!(
+                                "unable to create target dir {:?}: {:?}",
+                                target_dir, e
+                            )
+                        },
+                    );
                     let mut file = File::create(&path).unwrap();
                     let config = include_str!("../riscv32emac-unknown-none-polkavm.json");
                     file.write_all(config.as_bytes()).unwrap();
