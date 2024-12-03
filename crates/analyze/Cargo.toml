@@ -19,5 +19,5 @@ wasmparser = "0.220.0"
 anyhow = "1.0.83"
 
 [dev-dependencies]
-wat = "1.207.0"
+wat = "1.221.2"
 
