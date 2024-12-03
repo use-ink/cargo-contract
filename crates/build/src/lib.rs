@@ -339,12 +339,8 @@ fn exec_cargo_for_onchain_target(
 
         // the linker needs our linker script as file
         if matches!(target, Target::RiscV) {
-            env.push(("RUSTUP_TOOLCHAIN", Some("rve-nightly".to_string())));
             fs::create_dir_all(&crate_metadata.target_directory)?;
-            env.push((
-                "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{}", rustflags)),
-            ));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(format!("{}", rustflags))));
         } else {
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };
@@ -574,6 +570,9 @@ fn exec_cargo_dylint(
         // there is this bug: https://github.com/mozilla/sccache/issues/1000.
         // Until we have a justification for leaving the wrapper we should unset it.
         ("RUSTC_WRAPPER", None),
+        // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+        // is being build for `std` or for a Wasm/RISC-V runtime.
+        ("RUSTFLAGS", Some("--cfg\x1fsubstrate_runtime".to_string())),
     ];
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
