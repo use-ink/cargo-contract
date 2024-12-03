@@ -252,8 +252,8 @@ jobs:
           fi
           curl -L -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
           tar xfzv substrate-contracts-node.tar.gz
-          chmod +x artifacts/substrate-contracts-node-*/substrate-contracts-node &&
-          mv artifacts/substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
+          chmod +x substrate-contracts-node-*/substrate-contracts-node &&
+          mv substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
         shell: bash
 
       - name: Run integration tests
