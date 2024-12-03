@@ -504,14 +504,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // the value should be true
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -534,7 +530,7 @@ async fn api_build_upload_instantiate_call() {
     // flip the value
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
         CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
+            instantiate_result.contract_address,
             "flip",
             opts.clone(),
         )
@@ -557,14 +553,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // make sure the value has been flipped
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
