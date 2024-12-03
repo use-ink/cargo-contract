@@ -39,6 +39,7 @@ use std::{
     time,
 };
 use subxt::{
+    utils::H160,
     OnlineClient,
     PolkadotConfig as DefaultConfig,
 };
@@ -495,7 +496,7 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+    let instantiate_result: InstantiateExecResult<DefaultConfig, H160> =
         instantiate_result.unwrap();
     let contract_account = instantiate_result.contract_address.to_string();
     assert_eq!(48, contract_account.len(), "{contract_account:?}");
