@@ -836,8 +836,7 @@ fn local_build(
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    // TODO: dylint causing errors with riscv
-    // lint(*extra_lints, crate_metadata, target, verbosity)?;
+    lint(*extra_lints, crate_metadata, target, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
