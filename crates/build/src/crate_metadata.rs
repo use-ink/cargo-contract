@@ -163,6 +163,15 @@ impl CrateMetadata {
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
         target_directory.join(fname_bundle)
     }
+
+    /// Returns `true` if `ink_e2e` is a dependency of the project.
+    pub fn depends_on_ink_e2e(&self) -> bool {
+        let (metadata, _root_package) = get_cargo_metadata(&self.manifest_path).unwrap();
+        metadata
+            .packages
+            .iter()
+            .any(|package| package.name == "ink_e2e")
+    }
 }
 
 /// Get the result of `cargo metadata`, together with the root package id.

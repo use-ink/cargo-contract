@@ -314,6 +314,12 @@ fn exec_cargo_for_onchain_target(
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
+        if *target == Target::RiscV {
+            features.push("ink/revive");
+            if crate_metadata.depends_on_ink_e2e() {
+                features.push("ink_e2e/revive");
+            }
+        }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
         if rustc_version::version_meta()?.channel == rustc_version::Channel::Stable {
