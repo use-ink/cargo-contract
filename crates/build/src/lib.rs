@@ -937,6 +937,9 @@ fn local_build(
         Target::RiscV => {
             let mut config = polkavm_linker::Config::default();
             config.set_strip(!keep_debug_symbols);
+            if *build_mode != BuildMode::Debug {
+                config.set_optimize(true);
+            }
             let orig = fs::read(&crate_metadata.original_code)?;
             let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
                 Ok(linked) => linked,
