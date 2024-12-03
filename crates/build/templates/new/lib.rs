@@ -15,7 +15,6 @@ mod {{name}} {
     impl {{camel_name}} {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        #[ink(payable)]
         pub fn new(init_value: bool) -> Self {
             Self { value: init_value }
         }
@@ -32,14 +31,12 @@ mod {{name}} {
         /// This one flips the value of the stored `bool` from `true`
         /// to `false` and vice versa.
         #[ink(message)]
-        #[ink(payable)]
         pub fn flip(&mut self) {
             self.value = !self.value;
         }
 
         /// Simply returns the current value of our `bool`.
         #[ink(message)]
-        #[ink(payable)]
         pub fn get(&self) -> bool {
             self.value
         }
