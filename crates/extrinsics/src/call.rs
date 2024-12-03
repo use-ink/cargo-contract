@@ -50,6 +50,7 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
+    utils::H160,
     Config,
     OnlineClient,
 };
@@ -153,8 +154,6 @@ where
     }
 }
 
-use subxt::utils::H160;
-
 pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
     contract: H160,
     message: String,
@@ -190,7 +189,7 @@ where
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: self.opts.signer().account_id(),
-            dest: self.contract.clone(),
+            dest: self.contract,
             value: self.value,
             gas_limit: None,
             storage_deposit_limit,
@@ -237,10 +236,10 @@ where
         let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = Call::new(
-            self.contract.clone(),
+            self.contract,
             self.value,
             gas_limit,
-            storage_deposit_limit.unwrap(),
+            storage_deposit_limit.expect("no storage deposit limit available"),
             self.call_data.clone(),
         )
         .build();

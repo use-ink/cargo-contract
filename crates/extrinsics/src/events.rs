@@ -31,7 +31,6 @@ use contract_transcode::{
 use anyhow::Result;
 use ink_env::Environment;
 use scale_info::form::PortableForm;
-use subxt::utils::H160;
 use std::{
     fmt::{
         Display,
@@ -50,6 +49,7 @@ use subxt::{
         },
         scale_encode,
     },
+    utils::H160,
     Config,
 };
 
@@ -313,9 +313,9 @@ impl DisplayEvents {
                         }
                     }
                     if field.type_name == Some("H160".to_string()) {
-                        // Value is in the format: H160([bytes])
+                        // Value is in the format `H160([bytes])`.
                         // Extract the byte array between the brackets and convert it to a
-                        // hexadecimal string
+                        // hexadecimal string.
                         if let (Some(start), Some(end)) =
                             (value.find('['), value.find(']'))
                         {

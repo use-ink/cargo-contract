@@ -86,13 +86,14 @@ pub use docker::{
 };
 
 use anyhow::{
+    bail,
     Context,
     Result,
-    bail
 };
 use colored::Colorize;
 use semver::Version;
 use std::{
+    cmp::PartialEq,
     fs,
     path::{
         Path,
@@ -343,13 +344,8 @@ fn exec_cargo_for_onchain_target(
             }
         };
 
-        // the linker needs our linker script as file
-        if matches!(target, Target::RiscV) {
-            fs::create_dir_all(&crate_metadata.target_directory)?;
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(format!("{}", rustflags))));
-        } else {
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
-        };
+        fs::create_dir_all(&crate_metadata.target_directory)?;
+        env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
         execute_cargo(util::cargo_cmd(
             command,

@@ -62,7 +62,6 @@ use std::{
     },
     str::FromStr,
 };
-use subxt::utils::H160;
 use subxt::{
     config::{
         DefaultExtrinsicParams,
@@ -73,6 +72,7 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
+    utils::H160,
     Config,
 };
 

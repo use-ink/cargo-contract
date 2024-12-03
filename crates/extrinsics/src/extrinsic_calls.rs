@@ -14,18 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    upload::Determinism,
-    WasmCode,
-};
+use crate::WasmCode;
 use subxt::{
     ext::{
         codec::Compact,
         scale_encode::EncodeAsType,
     },
-    utils::MultiAddress,
+    utils::H160,
 };
-use subxt::utils::H160;
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
 #[derive(Debug, EncodeAsType)]
@@ -81,20 +77,13 @@ impl<Hash> RemoveCode<Hash> {
 pub(crate) struct UploadCode<Balance> {
     code: Vec<u8>,
     storage_deposit_limit: Balance,
-    // determinism: Determinism,
 }
 
 impl<Balance> UploadCode<Balance> {
-    pub fn new(
-        code: WasmCode,
-        storage_deposit_limit: Balance,
-        // determinism: Determinism,
-    ) -> Self {
+    pub fn new(code: WasmCode, storage_deposit_limit: Balance) -> Self {
         Self {
             code: code.0,
-            // storage_deposit_limit: storage_deposit_limit.map(Into::into),
             storage_deposit_limit,
-            // determinism,
         }
     }
 

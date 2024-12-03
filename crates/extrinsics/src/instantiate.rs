@@ -49,7 +49,7 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{Bytes};
+use sp_core::Bytes;
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -67,10 +67,10 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
+    utils::H160,
     Config,
     OnlineClient,
 };
-use subxt::utils::H160;
 
 /// A builder for the instantiate command.
 pub struct InstantiateCommandBuilder<C: Config, E: Environment, Signer: Clone> {
@@ -342,10 +342,12 @@ where
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit.unwrap(),
+            self.args
+                .storage_deposit_limit
+                .expect("no storage deposit limit available"),
             code,
             self.args.data.clone(),
-            None
+            None,
         )
         .build();
 
