@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "5.0.0"
+version = "5.0.1"
 authors = ["Use Ink <ink@use.ink>"]
 build = "build.rs"
 edition = "2021"
@@ -18,35 +18,35 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "5.0.0", path = "../build" }
-contract-extrinsics = { version = "5.0.0", path = "../extrinsics" }
-contract-transcode = { version = "5.0.0", path = "../transcode" }
-contract-metadata = { version = "5.0.0", path = "../metadata" }
-contract-analyze = { version = "5.0.0", path = "../analyze" }
+contract-build = { version = "5.0.1", path = "../build" }
+contract-extrinsics = { version = "5.0.1", path = "../extrinsics" }
+contract-transcode = { version = "5.0.1", path = "../transcode" }
+contract-metadata = { version = "5.0.1", path = "../metadata" }
+contract-analyze = { version = "5.0.1", path = "../analyze" }
 
 anyhow = "1.0.83"
 clap = { version = "4.5.4", features = ["derive", "env"] }
 primitive-types = { version = "0.13.1", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 which = "7.0.0"
 colored = "2.1.0"
 regex = "1"
 serde_json = "1.0.133"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
-url = { version = "2.5.3", features = ["serde"] }
+url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.26"
 schemars = "0.8"
-ink_metadata = "5.0.0"
-ink_env = "5.0.0"
+ink_metadata = "5.1.0"
+ink_env = "5.1.0"
 comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.38.0", features = ["substrate-compat"] }
-sp-core = "31.0.0"
-sp-weights = "30.0.0"
+sp-core = "32.0.0"
+sp-weights = "31.0.0"
 hex = "0.4.3"
 
 [build-dependencies]

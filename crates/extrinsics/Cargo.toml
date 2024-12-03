@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "5.0.0"
+version = "5.0.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 rust-version = "1.70"
@@ -15,9 +15,9 @@ keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]
-contract-build = { version = "5.0.0", path = "../build" }
-contract-metadata = { version = "5.0.0", path = "../metadata" }
-contract-transcode = { version = "5.0.0", path = "../transcode" }
+contract-build = { version = "5.0.1", path = "../build" }
+contract-metadata = { version = "5.0.1", path = "../metadata" }
+contract-transcode = { version = "5.0.1", path = "../transcode" }
 
 anyhow = "1.0.83"
 blake2 = { version = "0.10.6", default-features = false }
@@ -28,27 +28,27 @@ scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive
 colored = "2.1.0"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 serde_json = "1.0.133"
-url = { version = "2.5.3", features = ["serde"] }
+url = { version = "2.5.4", features = ["serde"] }
 rust_decimal = "1.36"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = "31.0.0"
-sp-runtime = "34.0.0"
-sp-weights = "30.0.0"
+sp-core = "32.0.0"
+sp-runtime = "35.0.0"
+sp-weights = "31.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
 scale-info = "2.11.6"
 subxt = "0.38.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = "5.0.0"
-ink_env = "5.0.0"
+ink_metadata = "5.1.0"
+ink_env = "5.1.0"
 
 [dev-dependencies]
-ink = "5.0.0"
+ink = "5.1.0"
 assert_cmd = "2.0.14"
 regex = "1.10.4"
 predicates = "3.1.0"
 tempfile = "3.10.1"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 subxt-signer = { version = "0.38.0", features = ["subxt", "sr25519"] }
 
 [features]
