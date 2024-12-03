@@ -1940,7 +1940,7 @@ dependencies = [
  "hex",
  "impl-serde 0.5.0",
  "parity-scale-codec",
- "polkavm-linker 0.11.0",
+ "polkavm-linker 0.17.1",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -2904,6 +2904,27 @@ checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
 dependencies = [
  "cfg-if",
  "dirs-sys-next",
+]
+
+[[package]]
+name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -3925,6 +3946,10 @@ name = "gimli"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
+dependencies = [
+ "fallible-iterator 0.3.0",
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "glob"
@@ -5544,6 +5569,12 @@ name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
+name = "option-ext"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "os_pipe"
@@ -8344,9 +8375,9 @@ dependencies = [
 
 [[package]]
 name = "polkavm-common"
-version = "0.11.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "254b19b64ff9b57c06b32c0affed961cb9a32429b8d3e5cf2633cad7fbb3e270"
+checksum = "8f0dbafef4ab6ceecb4982ac3b550df430ef4f9fdbf07c108b7d4f91a0682fce"
 
 [[package]]
 name = "polkavm-derive"
@@ -8495,15 +8526,16 @@ dependencies = [
 
 [[package]]
 name = "polkavm-linker"
-version = "0.11.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "535a2095a186ccde2cd2fa721d6370c495586d47714817565b2f6621d31164b3"
+checksum = "0422ead3030d5cde69e2206dbc7d65da872b121876507cd5363f6c6e6aa45157"
 dependencies = [
- "gimli 0.28.1",
+ "dirs",
+ "gimli 0.31.1",
  "hashbrown 0.14.5",
  "log",
  "object 0.36.5",
- "polkavm-common 0.11.0",
+ "polkavm-common 0.17.0",
  "regalloc2 0.9.3",
  "rustc-demangle",
 ]
