@@ -170,17 +170,17 @@ impl Target {
     pub fn rustflags(&self) -> Option<&'static str> {
             // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
             // is being build for `std` or for a Wasm/RISC-V runtime.
-            Self::RiscV => Some("--cfg\x1fsubstrate_runtime")
+             Some("--cfg\x1fsubstrate_runtime")
     }
 
     /// The file extension that is used by rustc when outputting the binary.
     pub fn source_extension(&self) -> &'static str {
-            Self::RiscV => "polkavm"
+             "polkavm"
     }
 
     // The file extension that is used to store the post processed binary.
     pub fn dest_extension(&self) -> &'static str {
-            Self::RiscV => "polkavm"
+             "polkavm"
     }
 }
 
