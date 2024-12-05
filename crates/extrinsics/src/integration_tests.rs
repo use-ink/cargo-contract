@@ -340,6 +340,7 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target riscv")
         .assert()
         .success();
 
@@ -463,6 +464,7 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target riscv")
         .assert()
         .success();
 
@@ -595,6 +597,7 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target riscv")
         .assert()
         .success();
 
@@ -711,6 +714,7 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target riscv")
         .assert()
         .success();
 
