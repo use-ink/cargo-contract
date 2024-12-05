@@ -86,12 +86,14 @@ pub use docker::{
 };
 
 use anyhow::{
+    bail,
     Context,
     Result,
 };
 use colored::Colorize;
 use semver::Version;
 use std::{
+    cmp::PartialEq,
     fs,
     path::{
         Path,
@@ -298,8 +300,13 @@ fn exec_cargo_for_onchain_target(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
-        let mut args = vec![target_dir, "--release".to_owned()];
-        args.extend(onchain_cargo_options(target));
+
+        let mut args = vec![
+            format!("--target={}", target.llvm_target(crate_metadata)),
+            "--release".to_owned(),
+            target_dir,
+        ];
+        args.extend(onchain_cargo_options(target, crate_metadata));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -307,6 +314,12 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+        }
+        if *target == Target::RiscV {
+            features.push("ink/revive");
+            if crate_metadata.depends_on_ink_e2e() {
+                features.push("ink_e2e/revive");
+            }
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -331,21 +344,8 @@ fn exec_cargo_for_onchain_target(
             }
         };
 
-        // the linker needs our linker script as file
-        if matches!(target, Target::RiscV) {
-            fs::create_dir_all(&crate_metadata.target_directory)?;
-            let path = crate_metadata
-                .target_directory
-                .join(".riscv_memory_layout.ld");
-            fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
-            let path = path.display();
-            env.push((
-                "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{rustflags}\x1f-Clink-arg=-T{path}",)),
-            ));
-        } else {
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
-        };
+        fs::create_dir_all(&crate_metadata.target_directory)?;
+        env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
         execute_cargo(util::cargo_cmd(
             command,
@@ -519,9 +519,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Returns a list of cargo options used for on-chain builds
-fn onchain_cargo_options(target: &Target) -> Vec<String> {
+fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
-        format!("--target={}", target.llvm_target()),
+        format!("--target={}", target.llvm_target(crate_metadata)),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
@@ -556,7 +556,7 @@ fn exec_cargo_dylint(
     args.push("--".to_owned());
     // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
     // macros, as it does for the release build.
-    args.extend(onchain_cargo_options(target));
+    args.extend(onchain_cargo_options(target, crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
     let env = vec![
@@ -572,6 +572,9 @@ fn exec_cargo_dylint(
         // there is this bug: https://github.com/mozilla/sccache/issues/1000.
         // Until we have a justification for leaving the wrapper we should unset it.
         ("RUSTC_WRAPPER", None),
+        // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+        // is being build for `std` or for a Wasm/RISC-V runtime.
+        ("RUSTFLAGS", Some("--cfg\x1fsubstrate_runtime".to_string())),
     ];
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
@@ -856,7 +859,10 @@ fn local_build(
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
-    fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
+    fs::write(
+        &crate_metadata.target_file_path,
+        target.llvm_target(crate_metadata),
+    )?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
         version
@@ -929,7 +935,17 @@ fn local_build(
             )?;
         }
         Target::RiscV => {
-            fs::copy(&crate_metadata.original_code, &crate_metadata.dest_code)?;
+            let mut config = polkavm_linker::Config::default();
+            config.set_strip(!keep_debug_symbols);
+            if *build_mode != BuildMode::Debug {
+                config.set_optimize(true);
+            }
+            let orig = fs::read(&crate_metadata.original_code)?;
+            let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
+                Ok(linked) => linked,
+                Err(err) => bail!("Failed to link polkavm program: {}", err),
+            };
+            fs::write(&crate_metadata.dest_code, linked)?;
         }
     }
 

@@ -50,13 +50,14 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
+    utils::H160,
     Config,
     OnlineClient,
 };
 
 /// A builder for the call command.
 pub struct CallCommandBuilder<C: Config, E: Environment, Signer: Clone> {
-    contract: C::AccountId,
+    contract: H160,
     message: String,
     args: Vec<String>,
     extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
@@ -72,7 +73,7 @@ where
 {
     /// Returns a clean builder for [`CallExec`].
     pub fn new(
-        contract: C::AccountId,
+        contract: H160,
         message: &str,
         extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
     ) -> CallCommandBuilder<C, E, Signer> {
@@ -154,7 +155,7 @@ where
 }
 
 pub struct CallExec<C: Config, E: Environment, Signer: Clone> {
-    contract: C::AccountId,
+    contract: H160,
     message: String,
     args: Vec<String>,
     opts: ExtrinsicOpts<C, E, Signer>,
@@ -188,13 +189,13 @@ where
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CallRequest {
             origin: self.opts.signer().account_id(),
-            dest: self.contract.clone(),
+            dest: self.contract,
             value: self.value,
             gas_limit: None,
             storage_deposit_limit,
             input_data: self.call_data.clone(),
         };
-        state_call(&self.rpc, "ContractsApi_call", call_request).await
+        state_call(&self.rpc, "ReviveApi_call", call_request).await
     }
 
     /// Calls a contract on the blockchain with a specified gas limit.
@@ -235,10 +236,10 @@ where
         let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = Call::new(
-            self.contract.clone().into(),
+            self.contract,
             self.value,
             gas_limit,
-            storage_deposit_limit,
+            storage_deposit_limit.expect("no storage deposit limit available"),
             self.call_data.clone(),
         )
         .build();
@@ -289,7 +290,7 @@ where
     }
 
     /// Returns the address of the the contract to call.
-    pub fn contract(&self) -> &C::AccountId {
+    pub fn contract(&self) -> &subxt::utils::H160 {
         &self.contract
     }
 
@@ -345,7 +346,7 @@ where
 #[derive(Encode)]
 struct CallRequest<AccountId, Balance> {
     origin: AccountId,
-    dest: AccountId,
+    dest: subxt::utils::H160,
     value: Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<Balance>,

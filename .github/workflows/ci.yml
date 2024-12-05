@@ -124,7 +124,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-22.04", "macos-15"]
     runs-on: ${{ matrix.os }}
     env:
       RUST_BACKTRACE: full
@@ -163,7 +163,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-22.04", "macos-15"]
         partition: [1, 2]
     runs-on: ${{ matrix.os }}
     env:
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12"]
+        os: ["ubuntu-22.04", "macos-15"]
         partition: [1, 2]
     runs-on: ${{ matrix.os }}
     env:
@@ -252,8 +252,8 @@ jobs:
           fi
           curl -L -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
           tar xfzv substrate-contracts-node.tar.gz
-          chmod +x artifacts/substrate-contracts-node-*/substrate-contracts-node &&
-          mv artifacts/substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
+          chmod +x substrate-contracts-node-*/substrate-contracts-node &&
+          mv substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
         shell: bash
 
       - name: Run integration tests
@@ -265,7 +265,7 @@ jobs:
       fail-fast: false
       matrix:
         # We want newer versions than 'latest' here to have current wasm-opt
-        os: ["ubuntu-22.04", "macos-12", "windows-2022"]
+        os: ["ubuntu-22.04", "macos-15", "windows-2022"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

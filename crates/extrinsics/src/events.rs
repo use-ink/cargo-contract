@@ -49,6 +49,7 @@ use subxt::{
         },
         scale_encode,
     },
+    utils::H160,
     Config,
 };
 
@@ -96,7 +97,7 @@ impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
 where
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "Instantiated";
 }
 
@@ -309,6 +310,22 @@ impl DisplayEvents {
                                 Some(token_metadata),
                             )?
                             .to_string();
+                        }
+                    }
+                    if field.type_name == Some("H160".to_string()) {
+                        // Value is in the format `H160([bytes])`.
+                        // Extract the byte array between the brackets and convert it to a
+                        // hexadecimal string.
+                        if let (Some(start), Some(end)) =
+                            (value.find('['), value.find(']'))
+                        {
+                            let byte_str = &value[start + 1..end];
+                            let bytes: Vec<u8> = byte_str
+                                .split(", ")
+                                .filter_map(|s| s.parse::<u8>().ok())
+                                .collect();
+                            let h160_value = H160::from_slice(&bytes);
+                            value = format!("0x{}", hex::encode(h160_value.as_bytes()));
                         }
                     }
                     let _ = writeln!(

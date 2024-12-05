@@ -39,6 +39,7 @@ use std::{
     time,
 };
 use subxt::{
+    utils::H160,
     OnlineClient,
     PolkadotConfig as DefaultConfig,
 };
@@ -193,6 +194,8 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -338,6 +341,8 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -461,6 +466,8 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -495,7 +502,7 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+    let instantiate_result: InstantiateExecResult<DefaultConfig, H160> =
         instantiate_result.unwrap();
     let contract_account = instantiate_result.contract_address.to_string();
     assert_eq!(48, contract_account.len(), "{contract_account:?}");
@@ -503,14 +510,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // the value should be true
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -533,7 +536,7 @@ async fn api_build_upload_instantiate_call() {
     // flip the value
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
         CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
+            instantiate_result.contract_address,
             "flip",
             opts.clone(),
         )
@@ -556,14 +559,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // make sure the value has been flipped
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -601,6 +600,8 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -717,6 +718,8 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 

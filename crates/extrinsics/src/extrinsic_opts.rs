@@ -28,6 +28,7 @@ use crate::{
     url_to_string,
     ContractArtifacts,
 };
+use scale::Encode;
 use std::{
     marker::PhantomData,
     option::Option,
@@ -58,13 +59,16 @@ where
 {
     /// Returns a clean builder for [`ExtrinsicOpts`].
     pub fn new(signer: Signer) -> ExtrinsicOptsBuilder<C, E, Signer> {
+        let storage_deposit_limit = 10000000000u128.encode();
+        let storage_deposit_limit: E::Balance =
+            crate::Decode::decode(&mut &storage_deposit_limit[..]).unwrap();
         ExtrinsicOptsBuilder {
             opts: ExtrinsicOpts {
                 file: None,
                 manifest_path: None,
                 url: url::Url::parse("ws://localhost:9944").unwrap(),
                 signer,
-                storage_deposit_limit: None,
+                storage_deposit_limit: Some(storage_deposit_limit),
                 verbosity: Verbosity::Default,
                 _marker: PhantomData,
             },

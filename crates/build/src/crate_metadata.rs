@@ -104,7 +104,7 @@ impl CrateMetadata {
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
-        original_code.push(target.llvm_target());
+        original_code.push(target.llvm_target_alias());
         original_code.push("release");
         original_code.push(root_package.name.clone());
         original_code.set_extension(target.source_extension());
@@ -163,6 +163,15 @@ impl CrateMetadata {
         let target_directory = self.target_directory.clone();
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
         target_directory.join(fname_bundle)
+    }
+
+    /// Returns `true` if `ink_e2e` is a dependency of the project.
+    pub fn depends_on_ink_e2e(&self) -> bool {
+        let (metadata, _root_package) = get_cargo_metadata(&self.manifest_path).unwrap();
+        metadata
+            .packages
+            .iter()
+            .any(|package| package.name == "ink_e2e")
     }
 }
 
