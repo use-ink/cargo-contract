@@ -8,10 +8,10 @@ edition = "2021"
 license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/use-ink/cargo-contract"
-documentation = "https://docs.substrate.io/tutorials/v3/ink-workshop/pt1/"
+documentation = "https://use.ink"
 homepage = "https://use.ink"
-description = "Setup and deployment tool for developing Wasm based smart contracts via ink!"
-keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
+description = "Setup and deployment tool for developing smart contracts via ink!"
+keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 categories = ["command-line-utilities", "development-tools::build-utils", "development-tools::cargo-plugins"]
 include = [
     "Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs",
@@ -38,8 +38,8 @@ url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.26"
 schemars = "0.8"
-ink_metadata = "5.1.0"
-ink_env = "5.1.0"
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
 comfy-table = "7.1.1"
 
 # dependencies for extrinsics (deploying and calling a contract)

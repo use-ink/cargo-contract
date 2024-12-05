@@ -94,7 +94,7 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
     let bundle = std::fs::read(bundle_path)
         .expect("Failed to read the content of the contract bundle!");
 
-    let wasm_path = project_dir.join("target/ink/incrementer.wasm");
+    let wasm_path = project_dir.join("target/ink/incrementer.polkavm");
     let wasm = std::fs::read(wasm_path)
         .expect("Failed to read the content of the contract binary!");
 
@@ -158,7 +158,7 @@ fn verify_equivalent_contracts() {
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
-    let wasm = project_dir.join("reference.wasm");
+    let wasm = project_dir.join("reference.polkavm");
     std::fs::write(wasm, ref_wasm)
         .expect("Failed to write wasm binary to the current dir!");
 
@@ -178,7 +178,7 @@ fn verify_equivalent_contracts() {
     cargo_contract(&project_dir)
         .arg("verify")
         .arg("--wasm")
-        .arg("reference.wasm")
+        .arg("reference.polkavm")
         .arg("--output-json")
         .assert()
         .success()
@@ -246,13 +246,13 @@ fn verify_different_contracts() {
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
-    let wasm = project_dir.join("reference.wasm");
+    let wasm = project_dir.join("reference.polkavm");
     std::fs::write(wasm, ref_wasm)
-        .expect("Failed to write wasm binary to the current dir!");
+        .expect("Failed to write polkavm binary to the current dir!");
 
     // when
     let output: &str = "Failed to verify `reference.contract` against the workspace at \
-                        `Cargo.toml`: the hashed Wasm blobs are not matching.";
+                        `Cargo.toml`: the hashed polkavm blobs are not matching.";
 
     // then
     cargo_contract(&project_dir)
@@ -265,12 +265,11 @@ fn verify_different_contracts() {
         .stderr(predicates::str::contains(output));
     // and
 
-    let output: &str =
-        r#"Failed to verify the authenticity of wasm binary at `reference.wasm`"#;
+    let output: &str = r#"Failed to verify the authenticity of the polkavm binary at `reference.polkavm`"#;
     cargo_contract(&project_dir)
         .arg("verify")
         .arg("--wasm")
-        .arg("reference.wasm")
+        .arg("reference.polkavm")
         .arg("--output-json")
         .assert()
         .failure()
@@ -306,7 +305,7 @@ fn verify_must_fail_on_manipulated_wasm_code() {
 
     // then
     let output: &str = "Failed to verify `contract_with_mismatching_wasm_hash_and_code.contract` \
-                        against the workspace at `Cargo.toml`: the hashed Wasm blobs are not \
+                        against the workspace at `Cargo.toml`: the hashed polkavm blobs are not \
                         matching.";
     cargo_contract(&project_dir)
         .arg("verify")

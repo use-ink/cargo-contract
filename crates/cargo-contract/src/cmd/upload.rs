@@ -120,12 +120,13 @@ impl UploadCommand {
 
         let upload_exec: UploadExec<C, C, _> =
             UploadCommandBuilder::new(extrinsic_opts).done().await?;
-        let code_hash = upload_exec.code().code_hash();
+        let code_hash = upload_exec.code().code_hash(); // todo
         let metadata = upload_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {
             match upload_exec.upload_code_rpc().await? {
                 Ok(result) => {
+                    eprintln!("result {:?}", result);
                     let upload_result = UploadDryRunResult {
                         result: String::from("Success!"),
                         code_hash: format!("{:?}", result.code_hash),
@@ -139,6 +140,7 @@ impl UploadCommand {
                     }
                 }
                 Err(err) => {
+                    eprintln!("err {:?}", err);
                     let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                     if self.output_json() {
                         return Err(err)
@@ -168,7 +170,7 @@ impl UploadCommand {
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
-                let code_hash: <C as Config>::Hash = code_stored.code_hash;
+                let code_hash = code_stored.code_hash;
                 if self.output_json() {
                     // Create a JSON object with the events and the code hash.
                     let json_object = serde_json::json!({

@@ -10,7 +10,7 @@ repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
-keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
+keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE", "compatibility_list.json"]
 
 [dependencies]

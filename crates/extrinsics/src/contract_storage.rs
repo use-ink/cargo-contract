@@ -103,7 +103,7 @@ where
             .storage()
             .at_latest()
             .await?
-            .storage_version("Contracts")
+            .storage_version("Revive")
             .await
             .map_err(|e| {
                 anyhow!("The storage version for the contracts pallet could not be determined: {e}")

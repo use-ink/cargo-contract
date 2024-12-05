@@ -25,6 +25,7 @@ mod events;
 mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
+mod map_account;
 pub mod pallet_contracts_primitives;
 mod remove;
 mod rpc;
@@ -40,28 +41,6 @@ mod integration_tests;
 use env_check::compare_node_env_with_contract;
 
 use anyhow::Result;
-use contract_build::{
-    CrateMetadata,
-    Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
-};
-use scale::{
-    Decode,
-    Encode,
-};
-use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    blocks,
-    config::{
-        DefaultExtrinsicParams,
-        DefaultExtrinsicParamsBuilder,
-        ExtrinsicParams,
-    },
-    tx,
-    Config,
-    OnlineClient,
-};
-
 pub use balance::{
     BalanceVariant,
     TokenMetadata,
@@ -71,6 +50,11 @@ pub use call::{
     CallExec,
 };
 pub use contract_artifacts::ContractArtifacts;
+use contract_build::{
+    CrateMetadata,
+    Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
+};
 pub use contract_info::{
     fetch_all_contracts,
     fetch_contract_info,
@@ -91,7 +75,10 @@ pub use error::{
     GenericError,
 };
 pub use events::DisplayEvents;
-pub use extrinsic_opts::ExtrinsicOptsBuilder;
+pub use extrinsic_opts::{
+    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
+};
 pub use instantiate::{
     Code,
     InstantiateArgs,
@@ -100,12 +87,36 @@ pub use instantiate::{
     InstantiateExec,
     InstantiateExecResult,
 };
+pub use map_account::{
+    MapAccountCommandBuilder,
+    MapAccountDryRunResult,
+    MapAccountExec,
+    MapAccountExecResult,
+};
 pub use remove::{
     RemoveCommandBuilder,
     RemoveExec,
     RemoveResult,
 };
-
+use scale::{
+    Decode,
+    Encode,
+};
+use subxt::{
+    backend::legacy::{
+        rpc_methods::DryRunResult,
+        LegacyRpcMethods,
+    },
+    blocks,
+    config::{
+        DefaultExtrinsicParams,
+        DefaultExtrinsicParamsBuilder,
+        ExtrinsicParams,
+    },
+    tx,
+    Config,
+    OnlineClient,
+};
 pub use upload::{
     UploadCommandBuilder,
     UploadExec,
@@ -197,6 +208,49 @@ where
         }
     }
     Err(RpcError::SubscriptionDropped.into())
+}
+
+/// Wait for the transaction to be included successfully into a block.
+///
+/// # Errors
+///
+/// If a runtime Module error occurs, this will only display the pallet and error indices.
+/// Dynamic lookups of the actual error will be available once the following issue is
+/// resolved: <https://github.com/paritytech/subxt/issues/443>.
+///
+/// # Finality
+///
+/// Currently this will report success once the transaction is included in a block. In the
+/// future there could be a flag to wait for finality before reporting success.
+async fn dry_run_extrinsic<C, Call, Signer>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    call: &Call,
+    signer: &Signer,
+) -> core::result::Result<DryRunResult, subxt::Error>
+where
+    C: Config,
+    Call: tx::Payload,
+    Signer: tx::Signer<C>,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
+    let account_id = Signer::account_id(signer);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
+    eprintln!("account id {:?}", account_id);
+    eprintln!("account nonce {:?}", account_nonce);
+
+    let params = DefaultExtrinsicParamsBuilder::new()
+        .nonce(account_nonce)
+        .build();
+    let extrinsic = client
+        .tx()
+        .create_signed_offline(call, signer, params.into())?;
+    //let foo = extrinsic.encoded();
+    //eprintln!("hex: {}", hex::encode(foo));
+    let bytes = rpc.dry_run(extrinsic.encoded(), None).await?;
+    bytes.into_dry_run_result(&client.metadata())
 }
 
 /// Return the account nonce at the *best* block for an account ID.

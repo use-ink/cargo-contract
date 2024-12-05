@@ -27,7 +27,6 @@ use crate::{
     Features,
     Lto,
     Network,
-    OptimizationPasses,
     Profile,
     UnstableFlags,
     Verbosity,
@@ -84,8 +83,6 @@ pub struct BuildInfo {
     pub cargo_contract_version: Version,
     /// The type of build that was used when building the contract.
     pub build_mode: BuildMode,
-    /// Information about the `wasm-opt` optimization settings.
-    pub wasm_opt_settings: WasmOptSettings,
 }
 
 impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
@@ -95,15 +92,6 @@ impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
         let tmp = serde_json::to_string(&build_info)?;
         serde_json::from_str(&tmp)
     }
-}
-
-/// Settings used when optimizing the Wasm binary using Binaryen's `wasm-opt`.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub struct WasmOptSettings {
-    /// The level of optimization used during the `wasm-opt` run.
-    pub optimization_passes: OptimizationPasses,
-    /// Whether or not the Wasm name section should be kept.
-    pub keep_debug_symbols: bool,
 }
 
 /// Generates a file with metadata describing the ABI of the smart contract.

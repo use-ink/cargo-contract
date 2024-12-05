@@ -82,7 +82,7 @@ where
     let best_block = get_best_block(rpc).await?;
 
     let contract_info_address = dynamic(
-        "Contracts",
+        "Revive",
         "ContractInfoOf",
         vec![Value::from_bytes(contract)],
     );
@@ -269,7 +269,7 @@ where
     let best_block = get_best_block(rpc).await?;
 
     let pristine_code_address =
-        dynamic("Contracts", "PristineCode", vec![Value::from_bytes(hash)]);
+        dynamic("Revive", "PristineCode", vec![Value::from_bytes(hash)]);
     let pristine_code = client
         .storage()
         .at(best_block)
@@ -310,7 +310,7 @@ where
 {
     let best_block = get_best_block(rpc).await?;
     let root_key =
-        subxt::dynamic::storage("Contracts", "ContractInfoOf", ()).to_root_bytes();
+        subxt::dynamic::storage("Revive", "ContractInfoOf", ()).to_root_bytes();
     let mut keys = client
         .storage()
         .at(best_block)

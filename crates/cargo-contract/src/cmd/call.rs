@@ -35,6 +35,7 @@ use super::{
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
+    offer_map_account_if_needed,
     parse_account,
     parse_balance,
     print_dry_running_status,
@@ -134,6 +135,15 @@ impl CallCommand {
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
         let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
         let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
+
+        let extrinsic_opts = ExtrinsicOptsBuilder::new(signer.clone())
+            .file(self.extrinsic_cli_opts.file.clone())
+            .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
+            .url(chain.url())
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
+            .done();
+        offer_map_account_if_needed(extrinsic_opts).await?;
+
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit

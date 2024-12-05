@@ -74,9 +74,13 @@ pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
     pallet_contracts_primitives::ContractResult,
     BalanceVariant,
+    MapAccountCommandBuilder,
+    MapAccountExec,
     TokenMetadata,
 };
 
+use crate::cmd::config::SignerConfig;
+use ink_env::Environment;
 use std::{
     fmt::{
         Debug,
@@ -87,6 +91,10 @@ use std::{
         Write,
     },
     str::FromStr,
+};
+use subxt::config::{
+    DefaultExtrinsicParams,
+    ExtrinsicParams,
 };
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
@@ -271,6 +279,59 @@ pub fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
         "n" => Err(anyhow!("Transaction not submitted")),
         c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
+}
+
+/// Prompt the user to confirm transaction submission.
+fn prompt_confirm_mapping<F: FnOnce()>(show_details: F) -> Result<()> {
+    println!(
+        "{} (skip with --skip-confirm or -y)",
+        "Confirm transaction details:".bright_white().bold()
+    );
+    show_details();
+    print!(
+        "{} ({}/n): ",
+        "The account you're submitting from is not yet mapped. Map?"
+            .bright_white()
+            .bold(),
+        "Y".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'y'
+        "y" | "" => Ok(()),
+        "n" => Err(anyhow!("Transaction not submitted")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
+}
+
+async fn offer_map_account_if_needed<C: subxt::Config + Environment + SignerConfig<C>>(
+    extrinsic_opts: contract_extrinsics::ExtrinsicOpts<
+        C,
+        C,
+        <C as SignerConfig<C>>::Signer,
+    >,
+) -> Result<(), contract_extrinsics::ErrorVariant>
+where
+    <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
+    let map_exec: MapAccountExec<C, C, _> =
+        MapAccountCommandBuilder::new(extrinsic_opts).done().await?;
+    let result = map_exec.map_account_dry_run().await;
+    if result.is_ok() {
+        let reply = prompt_confirm_mapping(|| {
+            // todo print additional information about the costs of mapping an account
+        });
+        if reply.is_ok() {
+            let res = map_exec.map_account().await?;
+            eprintln!("mapping res {:?}", res.address);
+        }
+    }
+    Ok(())
 }
 
 pub fn print_dry_running_status(msg: &str) {

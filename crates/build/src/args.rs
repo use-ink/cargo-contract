@@ -134,91 +134,48 @@ impl BuildArtifacts {
     }
 }
 
-/// The list of targets that ink! supports.
-#[derive(
-    Eq,
-    PartialEq,
-    Copy,
-    Clone,
-    Debug,
-    Default,
-    clap::ValueEnum,
-    serde::Serialize,
-    serde::Deserialize,
-    strum::EnumIter,
-)]
-pub enum Target {
-    /// WebAssembly
-    #[clap(name = "wasm")]
-    #[default]
-    Wasm,
-    /// RISC-V: Experimental
-    #[clap(name = "riscv")]
-    RiscV,
-}
+#[derive(Default, Copy, Clone)]
+pub struct Target;
 
 impl Target {
     /// The target string to be passed to rustc in order to build for this target.
-    pub fn llvm_target(&self, crate_metadata: &CrateMetadata) -> String {
-        match self {
-            Self::Wasm => "wasm32-unknown-unknown".to_string(),
-            Self::RiscV => {
-                // Instead of a target literal we use a JSON file with a more complex
-                // target configuration here. The path to the file is passed for the
-                // `rustc --target` argument. We write this file to the `target/` folder.
-                let target_dir = crate_metadata.target_directory.to_string_lossy();
-                let path =
-                    format!("{}/riscv32emac-unknown-none-polkavm.json", target_dir);
-                if !Path::exists(Path::new(&path)) {
-                    fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(
-                        |e| {
-                            panic!(
-                                "unable to create target dir {:?}: {:?}",
-                                target_dir, e
-                            )
-                        },
-                    );
-                    let mut file = File::create(&path).unwrap();
-                    let config = include_str!("../riscv32emac-unknown-none-polkavm.json");
-                    file.write_all(config.as_bytes()).unwrap();
-                }
-                path
-            }
+    pub fn llvm_target(crate_metadata: &CrateMetadata) -> String {
+        // Instead of a target literal we use a JSON file with a more complex
+        // target configuration here. The path to the file is passed for the
+        // `rustc --target` argument. We write this file to the `target/` folder.
+        let target_dir = crate_metadata.target_directory.to_string_lossy();
+        let path = format!("{}/riscv64emac-unknown-none-polkavm.json", target_dir);
+        if !Path::exists(Path::new(&path)) {
+            fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(|e| {
+                panic!("unable to create target dir {:?}: {:?}", target_dir, e)
+            });
+            let mut file = File::create(&path).unwrap();
+            let config = include_str!("../riscv64emac-unknown-none-polkavm.json");
+            file.write_all(config.as_bytes()).unwrap();
         }
+        path
     }
 
     /// The name used for the target folder inside the `target/` folder.
-    pub fn llvm_target_alias(&self) -> &'static str {
-        match self {
-            Self::Wasm => "wasm32-unknown-unknown",
-            Self::RiscV => "riscv32emac-unknown-none-polkavm",
-        }
+    pub fn llvm_target_alias() -> &'static str {
+        "riscv64emac-unknown-none-polkavm"
     }
 
     /// Target specific flags to be set to `CARGO_ENCODED_RUSTFLAGS` while building.
-    pub fn rustflags(&self) -> Option<&'static str> {
-        match self {
-            Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
-            // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
-            // is being build for `std` or for a Wasm/RISC-V runtime.
-            Self::RiscV => Some("--cfg\x1fsubstrate_runtime"),
-        }
+    pub fn rustflags() -> Option<&'static str> {
+        // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+        // is being build for `std` or for a Wasm/RISC-V runtime.
+        Some("--cfg\x1fsubstrate_runtime")
     }
 
     /// The file extension that is used by rustc when outputting the binary.
-    pub fn source_extension(&self) -> &'static str {
-        match self {
-            Self::Wasm => "wasm",
-            Self::RiscV => "",
-        }
+    pub fn source_extension() -> &'static str {
+        ""
     }
 
     // The file extension that is used to store the post processed binary.
-    pub fn dest_extension(&self) -> &'static str {
-        match self {
-            Self::Wasm => "wasm",
-            Self::RiscV => "riscv",
-        }
+    pub fn dest_extension() -> &'static str {
+        "polkavm"
     }
 }
 

@@ -28,12 +28,10 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
-mod post_process_wasm;
 #[cfg(test)]
 mod tests;
 pub mod util;
-mod validate_wasm;
-mod wasm_opt;
+mod validate_bytecode;
 mod workspace;
 
 #[deprecated(since = "2.0.2", note = "Use MetadataArtifacts instead")]
@@ -56,18 +54,9 @@ pub use self::{
     metadata::{
         BuildInfo,
         MetadataArtifacts,
-        WasmOptSettings,
     },
     new::new_contract_project,
-    post_process_wasm::{
-        load_module,
-        post_process_wasm,
-    },
     util::DEFAULT_KEY_COL_WIDTH,
-    wasm_opt::{
-        OptimizationPasses,
-        OptimizationResult,
-    },
     workspace::{
         Lto,
         Manifest,
@@ -79,7 +68,6 @@ pub use self::{
     },
 };
 
-use crate::wasm_opt::WasmOptHandler;
 pub use docker::{
     docker_build,
     ImageVariant,
@@ -91,6 +79,7 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
+use regex::Regex;
 use semver::Version;
 use std::{
     cmp::PartialEq,
@@ -102,10 +91,6 @@ use std::{
     process::Command,
     str,
 };
-use strum::IntoEnumIterator;
-
-/// This is the default maximum number of pages available for a contract to allocate.
-pub const DEFAULT_MAX_MEMORY_PAGES: u64 = 16;
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -116,6 +101,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
     /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
+    /// todo update to newer
     pub const TOOLCHAIN_VERSION: &str = "nightly-2024-09-05";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
@@ -123,8 +109,17 @@ pub(crate) mod linting {
     pub const GIT_REV: &str = "5ec034ca05e1239371e1d1c904d7580b375da9ca";
 }
 
+/// Result of linking an ELF woth PolkaVM.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct LinkerSizeResult {
+    /// The original ELF size.
+    pub original_size: f64,
+    /// The size after linking with PolkaVM.
+    pub optimized_size: f64,
+}
+
 /// Arguments to use when executing `build` or `check` commands.
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct ExecuteArgs {
     /// The location of the Cargo manifest (`Cargo.toml`) file to use.
     pub manifest_path: ManifestPath,
@@ -134,36 +129,11 @@ pub struct ExecuteArgs {
     pub network: Network,
     pub build_artifact: BuildArtifacts,
     pub unstable_flags: UnstableFlags,
-    pub optimization_passes: Option<OptimizationPasses>,
     pub keep_debug_symbols: bool,
     pub extra_lints: bool,
     pub output_type: OutputType,
-    pub skip_wasm_validation: bool,
-    pub target: Target,
-    pub max_memory_pages: u64,
+    pub skip_clippy_and_linting: bool,
     pub image: ImageVariant,
-}
-
-impl Default for ExecuteArgs {
-    fn default() -> Self {
-        Self {
-            manifest_path: Default::default(),
-            verbosity: Default::default(),
-            build_mode: Default::default(),
-            features: Default::default(),
-            network: Default::default(),
-            build_artifact: Default::default(),
-            unstable_flags: Default::default(),
-            optimization_passes: Default::default(),
-            keep_debug_symbols: Default::default(),
-            extra_lints: Default::default(),
-            output_type: Default::default(),
-            skip_wasm_validation: Default::default(),
-            target: Default::default(),
-            max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
-            image: Default::default(),
-        }
-    }
 }
 
 /// Result of the build process.
@@ -175,8 +145,8 @@ pub struct BuildResult {
     pub metadata_result: Option<MetadataArtifacts>,
     /// Path to the directory where output files are written to.
     pub target_directory: PathBuf,
-    /// If existent the result of the optimization.
-    pub optimization_result: Option<OptimizationResult>,
+    /// If existent the result of the linking.
+    pub linker_size_result: Option<LinkerSizeResult>,
     /// The mode to build the contract in.
     pub build_mode: BuildMode,
     /// Which build artifacts were generated.
@@ -192,9 +162,9 @@ pub struct BuildResult {
 
 impl BuildResult {
     pub fn display(&self) -> String {
-        let opt_size_diff = if let Some(ref opt_result) = self.optimization_result {
+        let opt_size_diff = if let Some(ref opt_result) = self.linker_size_result {
             let size_diff = format!(
-                "\nOriginal wasm size: {}, Optimized: {}\n\n",
+                "\nOriginal size: {}, Optimized: {}\n\n",
                 format!("{:.1}K", opt_result.original_size).bold(),
                 format!("{:.1}K", opt_result.optimized_size).bold(),
             );
@@ -293,7 +263,6 @@ fn exec_cargo_for_onchain_target(
     network: &Network,
     verbosity: &Verbosity,
     unstable_flags: &UnstableFlags,
-    target: &Target,
 ) -> Result<()> {
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = format!(
@@ -302,11 +271,11 @@ fn exec_cargo_for_onchain_target(
         );
 
         let mut args = vec![
-            format!("--target={}", target.llvm_target(crate_metadata)),
+            format!("--target={}", Target::llvm_target(crate_metadata)),
             "--release".to_owned(),
             target_dir,
         ];
-        args.extend(onchain_cargo_options(target, crate_metadata));
+        args.extend(onchain_cargo_options(crate_metadata));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -314,12 +283,6 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
-        }
-        if *target == Target::RiscV {
-            features.push("ink/revive");
-            if crate_metadata.depends_on_ink_e2e() {
-                features.push("ink_e2e/revive");
-            }
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -336,8 +299,8 @@ fn exec_cargo_for_onchain_target(
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
         let rustflags = {
-            let common_flags = "-Clinker-plugin-lto";
-            if let Some(target_flags) = target.rustflags() {
+            let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
+            if let Some(target_flags) = Target::rustflags() {
                 format!("{}\x1f{}", common_flags, target_flags)
             } else {
                 common_flags.to_string()
@@ -471,7 +434,6 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
 fn lint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
-    target: &Target,
     verbosity: &Verbosity,
 ) -> Result<()> {
     verbose_eprintln!(
@@ -485,14 +447,15 @@ fn lint(
     // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
     // it's required only for RiscV target. We're working on the toolchain integration
     // and will make this step mandatory for all targets in future releases.
-    if extra_lints || matches!(target, Target::RiscV) {
+    // TODO add flag skip linting
+    if extra_lints {
         verbose_eprintln!(
             verbosity,
             " {} {}",
             "[==]".bold(),
             "Checking ink! linting rules".bright_green().bold()
         );
-        exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
+        exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
     }
 
     Ok(())
@@ -519,9 +482,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Returns a list of cargo options used for on-chain builds
-fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec<String> {
+fn onchain_cargo_options(crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
-        format!("--target={}", target.llvm_target(crate_metadata)),
+        format!("--target={}", Target::llvm_target(crate_metadata)),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
@@ -534,7 +497,6 @@ fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec
 fn exec_cargo_dylint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
-    target: &Target,
     verbosity: Verbosity,
 ) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
@@ -556,7 +518,7 @@ fn exec_cargo_dylint(
     args.push("--".to_owned());
     // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
     // macros, as it does for the release build.
-    args.extend(onchain_cargo_options(target, crate_metadata));
+    args.extend(onchain_cargo_options(crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
     let env = vec![
@@ -712,10 +674,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         network,
         build_artifact,
         unstable_flags,
-        optimization_passes,
         extra_lints,
         output_type,
-        target,
         ..
     } = &args;
 
@@ -724,19 +684,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         return docker_build(args)
     }
 
-    // The CLI flag `optimization-passes` overwrites optimization passes which are
-    // potentially defined in the `Cargo.toml` profile.
-    let optimization_passes = match optimization_passes {
-        Some(opt_passes) => *opt_passes,
-        None => {
-            let mut manifest = Manifest::new(manifest_path.clone())?;
-            // if no setting is found, neither on the cli nor in the profile,
-            // then we use the default
-            manifest.profile_optimization_passes().unwrap_or_default()
-        }
-    };
-
-    let crate_metadata = CrateMetadata::collect(manifest_path, *target)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
@@ -754,24 +702,21 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*extra_lints, &crate_metadata, target, verbosity)?;
+            lint(*extra_lints, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_wasm) =
-                local_build(&crate_metadata, &optimization_passes, &args)?;
+            let (opt_result, _, dest_wasm) = local_build(&crate_metadata, &args)?;
             (opt_result, None, Some(dest_wasm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm) =
-                local_build(&crate_metadata, &optimization_passes, &args).inspect_err(
-                    |_| {
-                        // build error -> bundle is stale
-                        clean_metadata();
-                    },
-                )?;
+            let (opt_result, build_info, dest_wasm) = local_build(&crate_metadata, &args)
+                .inspect_err(|_| {
+                    // build error -> bundle is stale
+                    clean_metadata();
+                })?;
 
             let metadata_result = MetadataArtifacts {
                 dest_metadata: crate_metadata.metadata_path(),
@@ -805,7 +750,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         dest_wasm,
         metadata_result,
         target_directory: crate_metadata.target_directory,
-        optimization_result: opt_result,
+        linker_size_result: opt_result,
         build_mode: *build_mode,
         build_artifact: *build_artifact,
         verbosity: *verbosity,
@@ -817,9 +762,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 /// Build the contract on host locally
 fn local_build(
     crate_metadata: &CrateMetadata,
-    optimization_passes: &OptimizationPasses,
     args: &ExecuteArgs,
-) -> Result<(Option<OptimizationResult>, BuildInfo, PathBuf)> {
+) -> Result<(Option<LinkerSizeResult>, BuildInfo, PathBuf)> {
     let ExecuteArgs {
         verbosity,
         features,
@@ -828,15 +772,15 @@ fn local_build(
         unstable_flags,
         keep_debug_symbols,
         extra_lints,
-        skip_wasm_validation,
-        target,
-        max_memory_pages,
+        skip_clippy_and_linting,
         ..
     } = args;
 
-    // We always want to lint first so we don't suppress any warnings when a build is
-    // skipped because of a matching fingerprint.
-    lint(*extra_lints, crate_metadata, target, verbosity)?;
+    if !skip_clippy_and_linting {
+        // We always want to lint first so we don't suppress any warnings when a build is
+        // skipped because of a matching fingerprint.
+        lint(*extra_lints, crate_metadata, verbosity)?;
+    }
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
@@ -855,13 +799,12 @@ fn local_build(
         network,
         verbosity,
         unstable_flags,
-        target,
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
     fs::write(
         &crate_metadata.target_file_path,
-        target.llvm_target(crate_metadata),
+        Target::llvm_target(crate_metadata),
     )?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
@@ -877,10 +820,6 @@ fn local_build(
         rust_toolchain: util::rust_toolchain()?,
         cargo_contract_version,
         build_mode: *build_mode,
-        wasm_opt_settings: WasmOptSettings {
-            optimization_passes: *optimization_passes,
-            keep_debug_symbols: *keep_debug_symbols,
-        },
     };
 
     let post_fingerprint = Fingerprint::new(crate_metadata)?.ok_or_else(|| {
@@ -916,42 +855,50 @@ fn local_build(
     );
 
     // remove build artifacts so we don't have anything stale lingering around
-    for t in Target::iter() {
-        fs::remove_file(crate_metadata.dest_code.with_extension(t.dest_extension())).ok();
-    }
+    fs::remove_file(
+        crate_metadata
+            .dest_code
+            .with_extension(Target::dest_extension()),
+    )
+    .ok();
 
     let original_size =
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
-    match target {
-        Target::Wasm => {
-            let handler = WasmOptHandler::new(*optimization_passes, *keep_debug_symbols)?;
-            handler.optimize(&crate_metadata.original_code, &crate_metadata.dest_code)?;
-            post_process_wasm(
-                &crate_metadata.dest_code,
-                *skip_wasm_validation,
-                verbosity,
-                *max_memory_pages,
-            )?;
-        }
-        Target::RiscV => {
-            let mut config = polkavm_linker::Config::default();
-            config.set_strip(!keep_debug_symbols);
-            if *build_mode != BuildMode::Debug {
-                config.set_optimize(true);
-            }
-            let orig = fs::read(&crate_metadata.original_code)?;
-            let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
-                Ok(linked) => linked,
-                Err(err) => bail!("Failed to link polkavm program: {}", err),
-            };
-            fs::write(&crate_metadata.dest_code, linked)?;
-        }
+    let mut config = polkavm_linker::Config::default();
+    config.set_strip(!keep_debug_symbols);
+    if *build_mode != BuildMode::Debug {
+        config.set_optimize(true);
     }
+    let orig = fs::read(&crate_metadata.original_code)?;
+
+    //let section =
+    // polkavm_linker::Elf::<object::elf::FileHeader32<object::endian::LittleEndian>>::parse(data)
+    // { let section = polkavm_linker::Elf::parse(orig.as_ref());
+    //eprintln!("section {:?}", section);
+
+    let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
+        Ok(linked) => linked,
+        Err(err) => {
+            let re =
+                Regex::new(r"'(__ink_enforce_error_.*)'").expect("failed creating regex");
+            let err = err.to_string();
+            let mut ink_err = re.captures_iter(&err).map(|c| c.extract());
+            let mut details = String::from("");
+            if let Some((_, [ink_err_identifier])) = ink_err.next() {
+                details = format!(
+                    "\n\n{}",
+                    validate_bytecode::parse_linker_error(ink_err_identifier)
+                );
+            }
+            bail!("Failed to link polkavm program: {}{}", err, details)
+        }
+    };
+    fs::write(&crate_metadata.dest_code, linked)?;
 
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
 
-    let optimization_result = OptimizationResult {
+    let optimization_result = LinkerSizeResult {
         original_size,
         optimized_size,
     };
@@ -999,7 +946,23 @@ impl Fingerprint {
 
 /// Returns the blake2 hash of the code slice.
 pub fn code_hash(code: &[u8]) -> [u8; 32] {
-    blake2_hash(code)
+    // todo
+    //blake2_hash(code)
+    h256_hash(code)
+}
+
+fn h256_hash(code: &[u8]) -> [u8; 32] {
+    use sha3::{
+        Digest,
+        Keccak256,
+    };
+    let hash = Keccak256::digest(code);
+    //let hash = H256::from_slice(hash.as_slice());
+    let sl = hash.as_slice();
+    assert!(sl.len() == 32, "todo");
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(sl);
+    arr
 }
 
 /// Returns the blake2 hash of the given bytes.
@@ -1052,7 +1015,7 @@ mod unit_tests {
     fn build_result_seralization_sanity_check() {
         // given
         let raw_result = r#"{
-  "dest_wasm": "/path/to/contract.wasm",
+  "dest_wasm": "/path/to/contract.polkavm",
   "metadata_result": {
     "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
@@ -1069,13 +1032,13 @@ mod unit_tests {
 }"#;
 
         let build_result = BuildResult {
-            dest_wasm: Some(PathBuf::from("/path/to/contract.wasm")),
+            dest_wasm: Some(PathBuf::from("/path/to/contract.polkavm")),
             metadata_result: Some(MetadataArtifacts {
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),
             target_directory: PathBuf::from("/path/to/target"),
-            optimization_result: Some(OptimizationResult {
+            linker_size_result: Some(LinkerSizeResult {
                 original_size: 64.0,
                 optimized_size: 32.0,
             }),

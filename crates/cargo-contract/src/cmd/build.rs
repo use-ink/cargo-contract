@@ -24,9 +24,7 @@ use contract_build::{
     ImageVariant,
     ManifestPath,
     Network,
-    OptimizationPasses,
     OutputType,
-    Target,
     UnstableFlags,
     UnstableOptions,
     Verbosity,
@@ -80,33 +78,6 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[clap(flatten)]
     unstable_options: UnstableOptions,
-    /// Number of optimization passes, passed as an argument to `wasm-opt`.
-    ///
-    /// - `0`: execute no optimization passes
-    ///
-    /// - `1`: execute 1 optimization pass (quick & useful opts, useful for iteration
-    ///   builds)
-    ///
-    /// - `2`, execute 2 optimization passes (most opts, generally gets most perf)
-    ///
-    /// - `3`, execute 3 optimization passes (spends potentially a lot of time
-    ///   optimizing)
-    ///
-    /// - `4`, execute 4 optimization passes (also flatten the IR, which can take a lot
-    ///   more time and memory but is useful on more nested / complex / less-optimized
-    ///   input)
-    ///
-    /// - `s`, execute default optimization passes, focusing on code size
-    ///
-    /// - `z`, execute default optimization passes, super-focusing on code size
-    ///
-    /// - The default value is `z`
-    ///
-    /// - It is possible to define the number of optimization passes in the
-    ///   `[package.metadata.contract]` of your `Cargo.toml` as e.g. `optimization-passes
-    ///   = "3"`. The CLI argument always takes precedence over the profile value.
-    #[clap(long)]
-    optimization_passes: Option<OptimizationPasses>,
     /// Do not remove symbols (Wasm name section) when optimizing.
     ///
     /// This is useful if one wants to analyze or debug the optimized binary.
@@ -115,15 +86,9 @@ pub struct BuildCommand {
     /// Export the build output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-    /// Don't perform wasm validation checks e.g. for permitted imports.
-    #[clap(long)]
-    skip_wasm_validation: bool,
-    /// Which bytecode to build the contract into.
-    #[clap(long, default_value = "wasm")]
-    target: Target,
-    /// The maximum number of pages available for a wasm contract to allocate.
-    #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
-    max_memory_pages: u64,
+    /// Neither execute `clippy`, nor the ink! linter.
+    #[clap(long = "skip-linting")]
+    skip_clippy_and_linting: bool,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
     #[clap(long, default_value_t = false)]
@@ -176,13 +141,10 @@ impl BuildCommand {
             network,
             build_artifact: self.build_artifact,
             unstable_flags,
-            optimization_passes: self.optimization_passes,
             keep_debug_symbols: self.keep_debug_symbols,
             extra_lints: self.lint,
             output_type,
-            skip_wasm_validation: self.skip_wasm_validation,
-            target: self.target,
-            max_memory_pages: self.max_memory_pages,
+            skip_clippy_and_linting: self.skip_clippy_and_linting,
             image,
         };
         contract_build::execute(args)
@@ -212,13 +174,10 @@ impl CheckCommand {
             network: Network::default(),
             build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags: Default::default(),
-            optimization_passes: Some(OptimizationPasses::Zero),
             keep_debug_symbols: false,
             extra_lints: false,
             output_type: OutputType::default(),
-            skip_wasm_validation: false,
-            target: Default::default(),
-            max_memory_pages: 0,
+            skip_clippy_and_linting: false,
             image: ImageVariant::Default,
         };
 

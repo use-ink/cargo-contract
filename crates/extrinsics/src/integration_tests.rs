@@ -407,7 +407,7 @@ async fn build_upload_instantiate_info() {
     );
 
     // construct the contract file path
-    let contract_wasm = project_path.join("target/ink/flipper.wasm");
+    let contract_wasm = project_path.join("target/ink/flipper.polkavm");
 
     let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
     assert_eq!(code_hash(&code), code_hash(&output.stdout));

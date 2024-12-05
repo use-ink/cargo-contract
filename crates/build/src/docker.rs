@@ -126,7 +126,6 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         manifest_path,
         verbosity,
         output_type,
-        target,
         image,
         ..
     } = args;
@@ -134,7 +133,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         .enable_all()
         .build()?
         .block_on(async {
-            let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
+            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 

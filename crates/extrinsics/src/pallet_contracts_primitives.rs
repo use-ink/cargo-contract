@@ -21,6 +21,7 @@ use scale::{
     MaxEncodedLen,
 };
 use scale_info::TypeInfo;
+use sp_core::H256;
 use sp_runtime::{
     DispatchError,
     RuntimeDebug,
@@ -29,6 +30,7 @@ use sp_weights::Weight;
 
 // A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
 
+/// todo
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
 /// `ContractsApi::call` and `ContractsApi::instantiate`.
 ///
@@ -89,8 +91,8 @@ pub type ContractInstantiateResult<AccountId, Balance> =
     ContractResult<Result<InstantiateReturnValue<AccountId>, DispatchError>, Balance>;
 
 /// Result type of a `bare_code_upload` call.
-pub type CodeUploadResult<CodeHash, Balance> =
-    Result<CodeUploadReturnValue<CodeHash, Balance>, DispatchError>;
+pub type CodeUploadResult<Balance> =
+    Result<CodeUploadReturnValue<Balance>, DispatchError>;
 
 /// Result type of a `get_storage` call.
 pub type GetStorageResult = Result<Option<Vec<u8>>, ContractAccessError>;
@@ -135,11 +137,12 @@ pub struct InstantiateReturnValue<AccountId> {
 
 /// The result of successfully uploading a contract.
 #[derive(Clone, PartialEq, Eq, Encode, Decode, MaxEncodedLen, RuntimeDebug, TypeInfo)]
-pub struct CodeUploadReturnValue<CodeHash, Balance> {
+pub struct CodeUploadReturnValue<Balance> {
     /// The key under which the new code is stored.
-    pub code_hash: CodeHash,
+    pub code_hash: H256,
     /// The deposit that was reserved at the caller. Is zero when the code already
     /// existed.
+    //pub deposit: Balance,
     pub deposit: Balance,
 }
 

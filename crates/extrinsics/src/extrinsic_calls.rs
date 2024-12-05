@@ -140,9 +140,10 @@ where
     value: Balance,
     gas_limit: Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
+    // todo H256
     code_hash: Hash,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
 impl<Hash, Balance> Instantiate<Hash, Balance>
@@ -155,7 +156,7 @@ where
         storage_deposit_limit: Option<Balance>,
         code_hash: Hash,
         data: Vec<u8>,
-        salt: Vec<u8>,
+        salt: Option<[u8; 32]>,
     ) -> Self {
         Self {
             value,
@@ -203,5 +204,20 @@ impl<Balance> Call<Balance> {
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
         subxt::tx::DefaultPayload::new("Revive", "call", self)
+    }
+}
+
+/// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
+#[derive(Debug, EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub(crate) struct MapAccount {}
+
+impl MapAccount {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "map_account", self)
     }
 }

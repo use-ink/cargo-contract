@@ -67,7 +67,10 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
-    utils::H160,
+    utils::{
+        H160,
+        H256,
+    },
     Config,
     OnlineClient,
 };
@@ -166,7 +169,13 @@ where
             let code_hash = artifacts.code_hash()?;
             Code::Existing(code_hash.into())
         };
-        let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
+        let salt = self.salt.clone().map(|s| {
+            let bytes = s.0;
+            assert!(bytes.len() <= 32, "salt has to be <= 32 bytes");
+            let mut salt = [0u8; 32];
+            salt[..bytes.len()].copy_from_slice(&bytes[..bytes.len()]);
+            salt
+        });
 
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
@@ -204,7 +213,7 @@ pub struct InstantiateArgs<C: Config, E: Environment> {
     storage_deposit_limit: Option<E::Balance>,
     code: Code<C::Hash>,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
 impl<C: Config, E: Environment> InstantiateArgs<C, E> {
@@ -248,8 +257,8 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
     }
 
     /// Returns the salt used in the address derivation of the new contract.
-    pub fn salt(&self) -> &[u8] {
-        &self.salt
+    pub fn salt(&self) -> Option<&[u8; 32]> {
+        self.salt.as_ref()
     }
 }
 
@@ -329,7 +338,7 @@ where
             storage_deposit_limit,
             code: self.args.code.clone(),
             data: self.args.data.clone(),
-            salt: self.args.salt.clone(),
+            salt: self.args.salt,
         };
         state_call(&self.rpc, "ReviveApi_instantiate", &call_request).await
     }
@@ -357,7 +366,7 @@ where
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = events
-            .find_first::<CodeStored<C::Hash>>()?
+            .find_first::<CodeStored<E::Balance>>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = events
@@ -382,7 +391,7 @@ where
             self.args.storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
-            self.args.salt.clone(),
+            self.args.salt,
         )
         .build();
 
@@ -490,7 +499,8 @@ where
 /// A struct representing the result of an instantiate command execution.
 pub struct InstantiateExecResult<C: Config, AccountId> {
     pub events: ExtrinsicEvents<C>,
-    pub code_hash: Option<C::Hash>,
+    pub code_hash: Option<H256>,
+    // todo shouldn't this be H160
     pub contract_address: AccountId,
 }
 
@@ -525,7 +535,7 @@ struct InstantiateRequest<C: Config, E: Environment> {
     storage_deposit_limit: Option<E::Balance>,
     code: Code<C::Hash>,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
 /// Reference to an existing code hash or a new Wasm module.

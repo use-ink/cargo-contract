@@ -19,6 +19,7 @@ use super::{
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
+    offer_map_account_if_needed,
     parse_balance,
     print_dry_running_status,
     print_gas_required_success,
@@ -145,6 +146,14 @@ impl InstantiateCommand {
         let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
         let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
 
+        let extrinsic_opts = ExtrinsicOptsBuilder::new(signer.clone())
+            .file(self.extrinsic_cli_opts.file.clone())
+            .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
+            .url(chain.url())
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
+            .done();
+        offer_map_account_if_needed(extrinsic_opts).await?;
+
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -161,6 +170,7 @@ impl InstantiateCommand {
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
 
         let instantiate_exec: InstantiateExec<C, C, _> =
@@ -209,6 +219,7 @@ impl InstantiateCommand {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
+
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
                 &instantiate_exec,
@@ -346,7 +357,10 @@ where
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
-        name_value_println!("Contract", contract_address);
+        name_value_println!(
+            "Contract",
+            format!("{:?}", instantiate_exec_result.contract_address)
+        );
     };
     Ok(())
 }

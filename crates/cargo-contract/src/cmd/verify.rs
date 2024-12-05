@@ -99,7 +99,6 @@ impl VerifyCommand {
         let args = ExecuteArgs {
             manifest_path: manifest_path.clone(),
             verbosity,
-            optimization_passes: Some(contract_build::OptimizationPasses::Z),
             build_mode: BuildMode::Release,
             build_artifact: BuildArtifacts::CodeOnly,
             extra_lints: false,
@@ -130,7 +129,7 @@ impl VerifyCommand {
 
         if output_code_hash != reference_code_hash {
             anyhow::bail!(format!(
-                "\nFailed to verify the authenticity of wasm binary at {} against the workspace \n\
+                "\nFailed to verify the authenticity of the polkavm binary at {} against the workspace \n\
                 found at {}.\n Expected {}, found {}",
                 format!("`{}`", path.display()).bright_white(),
                 format!("`{}`", built_wasm_path.display()).bright_white(),
@@ -239,8 +238,6 @@ impl VerifyCommand {
             verbosity,
             build_mode,
             build_artifact: BuildArtifacts::All,
-            optimization_passes: Some(build_info.wasm_opt_settings.optimization_passes),
-            keep_debug_symbols: build_info.wasm_opt_settings.keep_debug_symbols,
             image: ImageVariant::from(metadata.image.clone()),
             extra_lints: false,
             ..Default::default()
@@ -300,7 +297,7 @@ impl VerifyCommand {
                 &target_code_hash
             );
             anyhow::bail!(format!(
-                "\nFailed to verify `{}` against the workspace at `{}`: the hashed Wasm blobs are not matching.",
+                "\nFailed to verify `{}` against the workspace at `{}`: the hashed polkavm blobs are not matching.",
                 format!("{}", &path.display()).bright_white(),
                 format!("{}", manifest_path.as_ref().display()).bright_white()
             )

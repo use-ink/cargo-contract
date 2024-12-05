@@ -23,10 +23,7 @@ use super::{
     metadata,
     Profile,
 };
-use crate::{
-    CrateMetadata,
-    OptimizationPasses,
-};
+use crate::CrateMetadata;
 
 use std::{
     convert::TryFrom,
@@ -211,20 +208,6 @@ impl Manifest {
         Ok(self)
     }
 
-    /// Extract `optimization-passes` from `[package.metadata.contract]`
-    pub fn profile_optimization_passes(&mut self) -> Option<OptimizationPasses> {
-        self.toml
-            .get("package")?
-            .as_table()?
-            .get("metadata")?
-            .as_table()?
-            .get("contract")?
-            .as_table()?
-            .get("optimization-passes")
-            .map(|val| val.to_string())
-            .map(Into::into)
-    }
-
     /// Set preferred defaults for the `[profile.release]` section
     ///
     /// # Note
@@ -274,7 +257,7 @@ impl Manifest {
     pub fn with_removed_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
         let crate_types = self.crate_types_mut()?;
         if crate_type_exists(crate_type, crate_types) {
-            crate_types.retain(|v| v.as_str().map_or(true, |s| s != crate_type));
+            crate_types.retain(|v| v.as_str() != Some(crate_type));
         }
         Ok(self)
     }
@@ -600,9 +583,7 @@ impl PathRewrite {
 }
 
 fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
-    crate_types
-        .iter()
-        .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+    crate_types.iter().any(|v| v.as_str() == Some(crate_type))
 }
 
 fn merge_workspace_with_crate_dependencies(

@@ -131,6 +131,7 @@ use ink_metadata::{
     MessageSpec,
 };
 use itertools::Itertools;
+use regex::Regex;
 use scale::{
     Compact,
     Decode,
@@ -179,6 +180,10 @@ impl ContractMessageTranscoder {
         let transcoder = TranscoderBuilder::new(metadata.registry())
             .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
             .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
+            //.register_custom_type_decoder::<primitive_types::H160, _>(env_types::H160)
+            //.register_custom_type_decoder::<primitive_types::U256, _>(env_types::U256)
+            //.register_custom_type_transcoder::<primitive_types::H160, _>(env_types::H160)
+            .register_custom_type_transcoder::<primitive_types::U256, _>(env_types::U256)
             .done();
         Self {
             metadata,
@@ -251,6 +256,7 @@ impl ContractMessageTranscoder {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
+            assert_not_shortened_hex(arg.as_ref());
             let value = scon::parse_value(arg.as_ref())?;
             self.transcoder.encode(
                 self.metadata.registry(),
@@ -435,6 +441,16 @@ impl ContractMessageTranscoder {
     }
 }
 
+// Assert that `arg` is not in a shortened format a la `0xbc3f…f58a`.
+fn assert_not_shortened_hex(arg: &str) {
+    let re = Regex::new(r"^0x[a-fA-F0-9]+…[a-fA-F0-9]+$").unwrap();
+    if re.is_match(arg) {
+        panic!("Error: You are attempting to transcode a shortened hex value: `{:?}`.\n\
+                This would result in a different return value than the un-shortened hex value.\n\
+                You likely called `to_string()` on e.g. `H160` and got a shortened output.", arg);
+    }
+}
+
 impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
     type Error = anyhow::Error;
 
@@ -579,6 +595,11 @@ mod tests {
             #[ink(message)]
             pub fn uint_array_args(&self, arr: [u8; 4]) {
                 let _ = arr;
+            }
+
+            #[ink(message)]
+            pub fn h160(&self, addr: ink::H160) {
+                let _ = addr;
             }
         }
     }
@@ -736,6 +757,17 @@ mod tests {
         let expected: [u8; 4] = [0xDE, 0xAD, 0xBE, 0xEF];
         assert_eq!(expected.encode(), encoded_args);
         Ok(())
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Error: You are attempting to transcode a shortened hex value: `\"0xbc3f…f58a\"`"
+    )]
+    fn encode_must_panic_on_shortened_hex() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let _encoded = transcoder.encode("h160", ["0xbc3f…f58a"]);
     }
 
     #[test]

@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::Path;
+use std::{
+    path::Path,
+    time::Duration,
+};
 
 /// Create a `cargo contract` command
 fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
@@ -25,6 +28,7 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
 
 #[test]
 fn decode_works() {
+    eprintln!("decode_works");
     // given
     let contract = r#"
         #![cfg_attr(not(feature = "std"), no_std, no_main)]
@@ -54,11 +58,13 @@ fn decode_works() {
 			}
 		}"#;
 
+    eprintln!("Creating new tempfile");
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
         .tempdir()
         .expect("temporary directory creation failed");
 
+    eprintln!("Creating contract in {:?}", tmp_dir);
     // cargo contract new decode_test
     cargo_contract(tmp_dir.path())
         .arg("new")
@@ -69,6 +75,7 @@ fn decode_works() {
     let project_dir = tmp_dir.path().to_path_buf().join("switcher");
 
     let lib = project_dir.join("lib.rs");
+    tracing::debug!("Writing contract to {:?}", lib);
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
@@ -78,6 +85,7 @@ fn decode_works() {
     let msg_data: &str = "babebabe01";
     let msg_decoded: &str = r#"switch { value: true }"#;
 
+    tracing::debug!("Decoding contract in {}", project_dir.to_string_lossy());
     // then
     // message data is being decoded properly
     cargo_contract(&project_dir)
@@ -89,6 +97,7 @@ fn decode_works() {
         .success()
         .stdout(predicates::str::contains(msg_decoded));
 
+    tracing::debug!("Decoded contract in {}", project_dir.to_string_lossy());
     // and when
     let wrong_msg_data: &str = "babebabe010A";
     let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `switch`, `value` but `0A` bytes were left unread";

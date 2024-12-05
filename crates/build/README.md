@@ -13,7 +13,6 @@ use contract_build::{
     BuildMode,
     Features,
     Network,
-    OptimizationPasses,
     OutputType,
     UnstableFlags,
     Target,
@@ -30,13 +29,10 @@ let args = contract_build::ExecuteArgs {
     network: Network::Online,
     build_artifact: BuildArtifacts::All,
     unstable_flags: UnstableFlags::default(),
-    optimization_passes: Some(OptimizationPasses::default()),
     keep_debug_symbols: false,
     extra_lints: false,
     output_type: OutputType::Json,
-    skip_wasm_validation: false,
-    target: Target::Wasm,
-    max_memory_pages: 16,
+    skip_clippy_and_linting: false,
     image: ImageVariant::Default,
 };
 
