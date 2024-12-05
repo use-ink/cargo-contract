@@ -28,7 +28,6 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
-mod post_process_wasm;
 #[cfg(test)]
 mod tests;
 pub mod util;
@@ -59,10 +58,6 @@ pub use self::{
         WasmOptSettings,
     },
     new::new_contract_project,
-    post_process_wasm::{
-        load_module,
-        post_process_wasm,
-    },
     util::DEFAULT_KEY_COL_WIDTH,
     wasm_opt::{
         OptimizationPasses,
@@ -923,31 +918,17 @@ fn local_build(
     let original_size =
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
-    match target {
-        Target::Wasm => {
-            let handler = WasmOptHandler::new(*optimization_passes, *keep_debug_symbols)?;
-            handler.optimize(&crate_metadata.original_code, &crate_metadata.dest_code)?;
-            post_process_wasm(
-                &crate_metadata.dest_code,
-                *skip_wasm_validation,
-                verbosity,
-                *max_memory_pages,
-            )?;
+        let mut config = polkavm_linker::Config::default();
+        config.set_strip(!keep_debug_symbols);
+        if *build_mode != BuildMode::Debug {
+            config.set_optimize(true);
         }
-        Target::RiscV => {
-            let mut config = polkavm_linker::Config::default();
-            config.set_strip(!keep_debug_symbols);
-            if *build_mode != BuildMode::Debug {
-                config.set_optimize(true);
-            }
-            let orig = fs::read(&crate_metadata.original_code)?;
-            let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
-                Ok(linked) => linked,
-                Err(err) => bail!("Failed to link polkavm program: {}", err),
-            };
-            fs::write(&crate_metadata.dest_code, linked)?;
-        }
-    }
+        let orig = fs::read(&crate_metadata.original_code)?;
+        let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
+            Ok(linked) => linked,
+            Err(err) => bail!("Failed to link polkavm program: {}", err),
+        };
+        fs::write(&crate_metadata.dest_code, linked)?;
 
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
 

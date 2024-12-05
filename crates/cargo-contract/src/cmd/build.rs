@@ -118,9 +118,6 @@ pub struct BuildCommand {
     /// Don't perform wasm validation checks e.g. for permitted imports.
     #[clap(long)]
     skip_wasm_validation: bool,
-    /// Which bytecode to build the contract into.
-    #[clap(long, default_value = "wasm")]
-    target: Target,
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u64,
