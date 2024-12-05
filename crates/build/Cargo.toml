@@ -19,7 +19,7 @@ anyhow = "1.0.83"
 blake2 = "0.10.6"
 cargo_metadata = "0.19.1"
 colored = "2.1.0"
-clap = { version = "4.5.4", features = ["derive", "env"] }
+clap = { version = "4.5.22", features = ["derive", "env"] }
 duct = "0.13.7"
 heck = "0.5.0"
 hex = "0.4.3"
