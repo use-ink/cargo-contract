@@ -27,6 +27,16 @@ This release concludes the migration of ink! from Parity to the outside world. I
       `V14` in [#1722](https://github.com/use-ink/cargo-contract/pull/1722). Metadata formats below `V14` are quite old and we hope this doesn't affect anyone.
   * `cargo-contract` v5 works only with Rust >= 1.81.
 
+For the linter in `cargo-contract` the Rust toolchain version changed.
+To upgrade:
+
+```
+export TOOLCHAIN_VERSION=nightly-2024-09-05
+rustup install $TOOLCHAIN_VERSION
+rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
+rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
+```
+
 ### Changed
 - Updated the toolchain version used by `ink_linting` - [#1616](https://github.com/use-ink/cargo-contract/pull/1616)
 - Update repository URLs & references from `paritytech` GitHub organization to new `use-ink` one ‒ [#1663](https://github.com/use-ink/cargo-contract/pull/1663)
