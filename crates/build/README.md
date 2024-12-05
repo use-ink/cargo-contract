@@ -35,7 +35,6 @@ let args = contract_build::ExecuteArgs {
     extra_lints: false,
     output_type: OutputType::Json,
     skip_wasm_validation: false,
-    target: Target::Wasm,
     max_memory_pages: 16,
     image: ImageVariant::Default,
 };

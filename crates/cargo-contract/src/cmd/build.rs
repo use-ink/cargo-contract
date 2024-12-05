@@ -118,9 +118,6 @@ pub struct BuildCommand {
     /// Don't perform wasm validation checks e.g. for permitted imports.
     #[clap(long)]
     skip_wasm_validation: bool,
-    /// Which bytecode to build the contract into.
-    #[clap(long, default_value = "wasm")]
-    target: Target,
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
     max_memory_pages: u64,
@@ -181,7 +178,6 @@ impl BuildCommand {
             extra_lints: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
-            target: self.target,
             max_memory_pages: self.max_memory_pages,
             image,
         };
@@ -217,7 +213,6 @@ impl CheckCommand {
             extra_lints: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
-            target: Default::default(),
             max_memory_pages: 0,
             image: ImageVariant::Default,
         };
