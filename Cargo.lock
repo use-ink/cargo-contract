@@ -1931,7 +1931,7 @@ dependencies = [
  "hex",
  "impl-serde 0.5.0",
  "parity-scale-codec",
- "polkavm-linker 0.17.1",
+ "polkavm-linker 0.18.0",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -8378,9 +8378,9 @@ dependencies = [
 
 [[package]]
 name = "polkavm-common"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f0dbafef4ab6ceecb4982ac3b550df430ef4f9fdbf07c108b7d4f91a0682fce"
+checksum = "31ff33982a807d8567645d4784b9b5d7ab87bcb494f534a57cadd9012688e102"
 
 [[package]]
 name = "polkavm-derive"
@@ -8498,16 +8498,16 @@ dependencies = [
 
 [[package]]
 name = "polkavm-linker"
-version = "0.17.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0422ead3030d5cde69e2206dbc7d65da872b121876507cd5363f6c6e6aa45157"
+checksum = "e9bfe793b094d9ea5c99b7c43ba46e277b0f8f48f4bbfdbabf8d3ebf701a4bd3"
 dependencies = [
  "dirs",
  "gimli 0.31.1",
  "hashbrown 0.14.5",
  "log",
  "object 0.36.5",
- "polkavm-common 0.17.0",
+ "polkavm-common 0.18.0",
  "regalloc2 0.9.3",
  "rustc-demangle",
 ]
