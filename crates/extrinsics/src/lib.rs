@@ -22,13 +22,13 @@ mod contract_storage;
 mod env_check;
 mod error;
 mod events;
-mod extrinsic_calls;
-mod extrinsic_opts;
+pub mod extrinsic_calls;
+pub mod extrinsic_opts;
 mod instantiate;
 pub mod pallet_contracts_primitives;
 mod remove;
 mod rpc;
-mod upload;
+pub mod upload;
 
 #[cfg(test)]
 mod contract_storage_tests;
