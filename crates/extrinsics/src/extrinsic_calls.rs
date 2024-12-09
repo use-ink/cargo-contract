@@ -77,7 +77,7 @@ impl<Hash> RemoveCode<Hash> {
 /// A raw call to `pallet-contracts`'s `upload_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct UploadCode<Balance> {
+pub struct UploadCode<Balance> {
     code: Vec<u8>,
     storage_deposit_limit: Option<Compact<Balance>>,
     determinism: Determinism,
@@ -104,7 +104,7 @@ impl<Balance> UploadCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct InstantiateWithCode<Balance> {
+pub struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
@@ -141,7 +141,7 @@ impl<Balance> InstantiateWithCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate<Hash, Balance>
+pub struct Instantiate<Hash, Balance>
 where
     Hash: EncodeAsType,
 {
@@ -184,7 +184,7 @@ where
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Call<AccountId, Balance> {
+pub struct Call<AccountId, Balance> {
     dest: MultiAddress<AccountId, ()>,
     #[codec(compact)]
     value: Balance,
