@@ -134,7 +134,6 @@ pub struct ExecuteArgs {
     pub extra_lints: bool,
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
-    pub target: Target,
     pub max_memory_pages: u64,
     pub image: ImageVariant,
 }
@@ -154,7 +153,6 @@ impl Default for ExecuteArgs {
             extra_lints: Default::default(),
             output_type: Default::default(),
             skip_wasm_validation: Default::default(),
-            target: Default::default(),
             max_memory_pages: DEFAULT_MAX_MEMORY_PAGES,
             image: Default::default(),
         }
@@ -288,7 +286,6 @@ fn exec_cargo_for_onchain_target(
     network: &Network,
     verbosity: &Verbosity,
     unstable_flags: &UnstableFlags,
-    target: &Target,
 ) -> Result<()> {
     let cargo_build = |manifest_path: &ManifestPath| {
         let target_dir = format!(
@@ -296,12 +293,13 @@ fn exec_cargo_for_onchain_target(
             crate_metadata.target_directory.to_string_lossy()
         );
 
+        eprintln!("--target={}", Target::llvm_target(crate_metadata));
         let mut args = vec![
-            format!("--target={}", target.llvm_target(crate_metadata)),
+            format!("--target={}", Target::llvm_target(crate_metadata)),
             "--release".to_owned(),
             target_dir,
         ];
-        args.extend(onchain_cargo_options(target, crate_metadata));
+        args.extend(onchain_cargo_options(crate_metadata));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -309,12 +307,6 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
-        }
-        if *target == Target::RiscV {
-            features.push("ink/revive");
-            if crate_metadata.depends_on_ink_e2e() {
-                features.push("ink_e2e/revive");
-            }
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -332,7 +324,7 @@ fn exec_cargo_for_onchain_target(
         // warnings.
         let rustflags = {
             let common_flags = "-Clinker-plugin-lto";
-            if let Some(target_flags) = target.rustflags() {
+            if let Some(target_flags) = Target::rustflags() {
                 format!("{}\x1f{}", common_flags, target_flags)
             } else {
                 common_flags.to_string()
@@ -466,7 +458,6 @@ fn execute_cargo(cargo: duct::Expression) -> Result<()> {
 fn lint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
-    target: &Target,
     verbosity: &Verbosity,
 ) -> Result<()> {
     verbose_eprintln!(
@@ -480,14 +471,15 @@ fn lint(
     // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
     // it's required only for RiscV target. We're working on the toolchain integration
     // and will make this step mandatory for all targets in future releases.
-    if extra_lints || matches!(target, Target::RiscV) {
+    // TODO add flag skip linting
+    if extra_lints {
         verbose_eprintln!(
             verbosity,
             " {} {}",
             "[==]".bold(),
             "Checking ink! linting rules".bright_green().bold()
         );
-        exec_cargo_dylint(extra_lints, crate_metadata, target, *verbosity)?;
+        exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
     }
 
     Ok(())
@@ -514,9 +506,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Returns a list of cargo options used for on-chain builds
-fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec<String> {
+fn onchain_cargo_options(crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
-        format!("--target={}", target.llvm_target(crate_metadata)),
+        format!("--target={}", Target::llvm_target(crate_metadata)),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
@@ -529,7 +521,6 @@ fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec
 fn exec_cargo_dylint(
     extra_lints: bool,
     crate_metadata: &CrateMetadata,
-    target: &Target,
     verbosity: Verbosity,
 ) -> Result<()> {
     check_dylint_requirements(crate_metadata.manifest_path.directory())?;
@@ -551,7 +542,7 @@ fn exec_cargo_dylint(
     args.push("--".to_owned());
     // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
     // macros, as it does for the release build.
-    args.extend(onchain_cargo_options(target, crate_metadata));
+    args.extend(onchain_cargo_options(crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
     let env = vec![
@@ -710,7 +701,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         optimization_passes,
         extra_lints,
         output_type,
-        target,
         ..
     } = &args;
 
@@ -731,7 +721,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
     };
 
-    let crate_metadata = CrateMetadata::collect(manifest_path, *target)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
@@ -749,7 +739,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_wasm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*extra_lints, &crate_metadata, target, verbosity)?;
+            lint(*extra_lints, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
@@ -824,14 +814,13 @@ fn local_build(
         keep_debug_symbols,
         extra_lints,
         skip_wasm_validation,
-        target,
         max_memory_pages,
         ..
     } = args;
 
     // We always want to lint first so we don't suppress any warnings when a build is
     // skipped because of a matching fingerprint.
-    lint(*extra_lints, crate_metadata, target, verbosity)?;
+    lint(*extra_lints, crate_metadata, verbosity)?;
 
     let pre_fingerprint = Fingerprint::new(crate_metadata)?;
 
@@ -850,13 +839,14 @@ fn local_build(
         network,
         verbosity,
         unstable_flags,
-        target,
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
+    eprintln!("target_file_path: {:?}", crate_metadata.target_file_path);
+    eprintln!("llvm: {:?}", Target::llvm_target(crate_metadata) );
     fs::write(
         &crate_metadata.target_file_path,
-        target.llvm_target(crate_metadata),
+        Target::llvm_target(crate_metadata),
     )?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
@@ -911,14 +901,13 @@ fn local_build(
     );
 
     // remove build artifacts so we don't have anything stale lingering around
-    for t in Target::iter() {
-        fs::remove_file(crate_metadata.dest_code.with_extension(t.dest_extension())).ok();
-    }
+    fs::remove_file(crate_metadata.dest_code.with_extension(Target::dest_extension())).ok();
 
     let original_size =
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
         let mut config = polkavm_linker::Config::default();
+        // TODO optimize?
         config.set_strip(!keep_debug_symbols);
         if *build_mode != BuildMode::Debug {
             config.set_optimize(true);
@@ -928,6 +917,7 @@ fn local_build(
             Ok(linked) => linked,
             Err(err) => bail!("Failed to link polkavm program: {}", err),
         };
+        eprintln!("wrote to {:?}", crate_metadata.dest_code);
         fs::write(&crate_metadata.dest_code, linked)?;
 
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;

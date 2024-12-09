@@ -178,7 +178,6 @@ impl BuildCommand {
             extra_lints: self.lint,
             output_type,
             skip_wasm_validation: self.skip_wasm_validation,
-            target: self.target,
             max_memory_pages: self.max_memory_pages,
             image,
         };
@@ -214,7 +213,6 @@ impl CheckCommand {
             extra_lints: false,
             output_type: OutputType::default(),
             skip_wasm_validation: false,
-            target: Default::default(),
             max_memory_pages: 0,
             image: ImageVariant::Default,
         };

@@ -171,7 +171,6 @@ fn optimization_passes_from_cli_must_take_precedence_over_profile(
         extra_lints: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
-        target: Default::default(),
         ..Default::default()
     };
 
@@ -214,7 +213,6 @@ fn optimization_passes_from_profile_must_be_used(
         extra_lints: false,
         output_type: OutputType::Json,
         skip_wasm_validation: false,
-        target: Default::default(),
         ..Default::default()
     };
 
@@ -431,7 +429,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     )?;
     test_manifest.write()?;
 
-    let crate_metadata = CrateMetadata::collect(manifest_path, Target::Wasm)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     // usually this file will be produced by a previous build step
     let final_contract_wasm_path = &crate_metadata.dest_code;
@@ -710,7 +708,7 @@ impl BuildTestContext {
     ) -> Result<()> {
         println!("Running {name}");
         let manifest_path = ManifestPath::new(self.working_dir.join("Cargo.toml"))?;
-        let crate_metadata = CrateMetadata::collect(&manifest_path, Target::Wasm)?;
+        let crate_metadata = CrateMetadata::collect(&manifest_path)?;
         match test(&manifest_path) {
             Ok(()) => (),
             Err(err) => {
