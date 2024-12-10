@@ -21,7 +21,7 @@ mod contract_info;
 mod contract_storage;
 mod env_check;
 mod error;
-mod events;
+pub mod events;
 pub mod extrinsic_calls;
 pub mod extrinsic_opts;
 mod instantiate;
