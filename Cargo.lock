@@ -1949,7 +1949,7 @@ dependencies = [
  "uzers",
  "wabt",
  "walkdir",
- "wasm-encoder 0.220.0",
+ "wasm-encoder",
  "wasm-opt",
  "wasmparser 0.220.0",
  "which",
@@ -12934,16 +12934,6 @@ checksum = "6ee99da9c5ba11bd675621338ef6fa52296b76b83305e9b6e5c77d4c286d6d49"
 
 [[package]]
 name = "wasm-encoder"
-version = "0.220.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebf48234b389415b226a4daef6562933d38c7b28a8b8f64c5c4130dad1561ab7"
-dependencies = [
- "leb128",
- "wasmparser 0.220.0",
-]
-
-[[package]]
-name = "wasm-encoder"
 version = "0.221.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c17a3bd88f2155da63a1f2fcb8a56377a24f0b6dfed12733bb5f544e86f690c5"
@@ -13290,7 +13280,7 @@ dependencies = [
  "leb128",
  "memchr",
  "unicode-width 0.2.0",
- "wasm-encoder 0.221.2",
+ "wasm-encoder",
 ]
 
 [[package]]
