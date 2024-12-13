@@ -106,8 +106,6 @@ impl CrateMetadata {
         original_code.push(root_package.name.clone());
         original_code.set_extension(Target::source_extension());
 
-        eprintln!("---original_code {:?}", original_code);
-
         // {target_dir}/{contract_artifact_name}.code
         let mut dest_code = target_directory.clone();
         dest_code.push(contract_artifact_name.clone());

@@ -842,8 +842,6 @@ fn local_build(
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
-    eprintln!("target_file_path: {:?}", crate_metadata.target_file_path);
-    eprintln!("llvm: {:?}", Target::llvm_target(crate_metadata));
     fs::write(
         &crate_metadata.target_file_path,
         Target::llvm_target(crate_metadata),
