@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+[Unreleased]
+### Changed
+- Make extrinsic call types, upload, and events public - [#1873](https://github.com/use-ink/cargo-contract/pull/1873)
+
 ## [5.0.1]
 
 ### Changed
