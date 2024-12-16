@@ -29,6 +29,7 @@ use sp_weights::Weight;
 
 // A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
 
+/// todo
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
 /// `ContractsApi::call` and `ContractsApi::instantiate`.
 ///

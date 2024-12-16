@@ -293,7 +293,6 @@ fn exec_cargo_for_onchain_target(
             crate_metadata.target_directory.to_string_lossy()
         );
 
-        eprintln!("--target={}", Target::llvm_target(crate_metadata));
         let mut args = vec![
             format!("--target={}", Target::llvm_target(crate_metadata)),
             "--release".to_owned(),
