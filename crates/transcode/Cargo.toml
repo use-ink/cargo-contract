@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "5.0.1"
+version = "5.0.2"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
@@ -20,7 +20,7 @@ path = "src/lib.rs"
 anyhow = "1.0.94"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.6", default-features = false }
-contract-metadata = { version = "5.0.1", path = "../metadata" }
+contract-metadata = { version = "5.0.2", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.2.6"
