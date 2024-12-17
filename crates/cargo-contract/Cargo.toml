@@ -1,6 +1,6 @@
 [package]
 name = "cargo-contract"
-version = "5.0.1"
+version = "5.0.2"
 authors = ["Use Ink <ink@use.ink>"]
 build = "build.rs"
 edition = "2021"
@@ -18,11 +18,11 @@ include = [
 ]
 
 [dependencies]
-contract-build = { version = "5.0.1", path = "../build" }
-contract-extrinsics = { version = "5.0.1", path = "../extrinsics" }
-contract-transcode = { version = "5.0.1", path = "../transcode" }
-contract-metadata = { version = "5.0.1", path = "../metadata" }
-contract-analyze = { version = "5.0.1", path = "../analyze" }
+contract-build = { version = "5.0.2", path = "../build" }
+contract-extrinsics = { version = "5.0.2", path = "../extrinsics" }
+contract-transcode = { version = "5.0.2", path = "../transcode" }
+contract-metadata = { version = "5.0.2", path = "../metadata" }
+contract-analyze = { version = "5.0.2", path = "../analyze" }
 
 anyhow = "1.0.94"
 clap = { version = "4.5.22", features = ["derive", "env"] }
