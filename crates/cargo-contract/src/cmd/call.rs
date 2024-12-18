@@ -130,8 +130,8 @@ impl CallCommand {
     {
         let contract = parse_account(&self.contract)
             .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
-        let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
-            .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
+
+        let signer: Result<Signer, Error> = self.extrinsic_cli_opts.signer(self.extrinsic_cli_opts);
         let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
         let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
         let storage_deposit_limit = self

@@ -6,8 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## [5.0.2]
+
 ### Changed
 - Target `pallet-revive` instead of `pallet-contracts` - [#1851](https://github.com/use-ink/cargo-contract/pull/1851)
+
+### Added
+- Add `suri-path` and `password-path` options for `cargo contract` commands including `upload`, `instantiate`, `call`, and `remove`
 
 ## [5.0.1]
 
