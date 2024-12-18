@@ -1,25 +1,25 @@
 [package]
 name = "contract-metadata"
-version = "4.1.2"
-authors = ["Parity Technologies <admin@parity.io>"]
+version = "5.0.2"
+authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/paritytech/cargo-contract"
+repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-metadata"
 homepage = "https://www.substrate.io/"
 description = "Library defining metadata for smart contracts on substrate"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE", "compatibility_list.json"]
 
 [dependencies]
-impl-serde = "0.4.0"
-semver = { version = "1.0.22", features = ["serde"] }
+impl-serde = "0.5.0"
+semver = { version = "1.0.24", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.116"
-url = { version = "2.5.0", features = ["serde"] }
-anyhow = "1.0.81"
+serde_json = "1.0.133"
+url = { version = "2.5.4", features = ["serde"] }
+anyhow = "1.0.94"
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"

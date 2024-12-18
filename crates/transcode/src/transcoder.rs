@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -275,31 +275,28 @@ mod tests {
 
     #[test]
     fn transcode_integers() -> Result<()> {
-        transcode_roundtrip::<i8>("-128", Value::Int(i8::min_value().into()))?;
-        transcode_roundtrip::<i8>("127", Value::Int(i8::max_value().into()))?;
+        transcode_roundtrip::<i8>("-128", Value::Int(i8::MIN.into()))?;
+        transcode_roundtrip::<i8>("127", Value::Int(i8::MAX.into()))?;
 
-        transcode_roundtrip::<i16>("-32768", Value::Int(i16::min_value().into()))?;
-        transcode_roundtrip::<i16>("32767", Value::Int(i16::max_value().into()))?;
+        transcode_roundtrip::<i16>("-32768", Value::Int(i16::MIN.into()))?;
+        transcode_roundtrip::<i16>("32767", Value::Int(i16::MAX.into()))?;
 
-        transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::min_value().into()))?;
-        transcode_roundtrip::<i32>("2147483647", Value::Int(i32::max_value().into()))?;
+        transcode_roundtrip::<i32>("-2147483648", Value::Int(i32::MIN.into()))?;
+        transcode_roundtrip::<i32>("2147483647", Value::Int(i32::MAX.into()))?;
 
-        transcode_roundtrip::<i64>(
-            "-9223372036854775808",
-            Value::Int(i64::min_value().into()),
-        )?;
+        transcode_roundtrip::<i64>("-9223372036854775808", Value::Int(i64::MIN.into()))?;
         transcode_roundtrip::<i64>(
             "\"9_223_372_036_854_775_807\"",
-            Value::Int(i64::max_value().into()),
+            Value::Int(i64::MAX.into()),
         )?;
 
         transcode_roundtrip::<i128>(
             "-170141183460469231731687303715884105728",
-            Value::Int(i128::min_value()),
+            Value::Int(i128::MIN),
         )?;
         transcode_roundtrip::<i128>(
             "\"170141183460469231731687303715884105727\"",
-            Value::Int(i128::max_value()),
+            Value::Int(i128::MAX),
         )
     }
 

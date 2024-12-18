@@ -1,55 +1,55 @@
 [package]
 name = "contract-extrinsics"
-version = "4.1.2"
-authors = ["Parity Technologies <admin@parity.io>"]
+version = "5.0.2"
+authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 rust-version = "1.70"
 
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/paritytech/cargo-contract"
+repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on substrate"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]
-contract-build = { version = "4.1.2", path = "../build" }
-contract-metadata = { version = "4.1.2", path = "../metadata" }
-contract-transcode = { version = "4.1.2", path = "../transcode" }
+contract-build = { version = "5.0.2", path = "../build" }
+contract-metadata = { version = "5.0.2", path = "../metadata" }
+contract-transcode = { version = "5.0.2", path = "../transcode" }
 
-anyhow = "1.0.81"
+anyhow = "1.0.94"
 blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.30", default-features = false, features = ["std"] }
-itertools = { version = "0.12", default-features = false }
+itertools = { version = "0.13", default-features = false }
 tracing = "0.1.40"
 scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 colored = "2.1.0"
-serde = { version = "1.0.197", default-features = false, features = ["derive"] }
-serde_json = "1.0.116"
-url = { version = "2.5.0", features = ["serde"] }
-rust_decimal = "1.35"
+serde = { version = "1.0.216", default-features = false, features = ["derive"] }
+serde_json = "1.0.133"
+url = { version = "2.5.4", features = ["serde"] }
+rust_decimal = "1.36"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = "31.0.0"
-sp-runtime = "34.0.0"
-sp-weights = "30.0.0"
+sp-core = "32.0.0"
+sp-runtime = "35.0.0"
+sp-weights = "31.0.0"
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
-scale-info = "2.11.2"
-subxt = "0.35.3"
+scale-info = "2.11.6"
+subxt = "0.38.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = "5.0.0"
-ink_env = "5.0.0"
+ink_metadata = "5.1.0"
+ink_env = "5.1.0"
 
 [dev-dependencies]
-ink = "5.0.0"
+ink = "5.1.0"
 assert_cmd = "2.0.14"
 regex = "1.10.4"
 predicates = "3.1.0"
 tempfile = "3.10.1"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-subxt-signer = { version = "0.35.3", features = ["subxt", "sr25519"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+subxt-signer = { version = "0.38.0", features = ["subxt", "sr25519"] }
 
 [features]
 integration-tests = []

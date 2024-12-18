@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -49,6 +49,7 @@ use subxt::{
         },
         scale_encode,
     },
+    utils::H160,
     Config,
 };
 
@@ -96,7 +97,7 @@ impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
 where
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "Instantiated";
 }
 
@@ -184,12 +185,14 @@ pub struct Event {
 
 /// Events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
+#[allow(dead_code)]
 pub struct Events(Vec<Event>);
 
 /// Displays events produced from invoking a contract extrinsic.
 #[derive(serde::Serialize)]
 pub struct DisplayEvents(Vec<Event>);
 
+#[allow(clippy::needless_borrows_for_generic_args)]
 impl DisplayEvents {
     /// Parses events and returns an object which can be serialised
     pub fn from_events<C: Config, E: Environment>(
@@ -309,6 +312,22 @@ impl DisplayEvents {
                             .to_string();
                         }
                     }
+                    if field.type_name == Some("H160".to_string()) {
+                        // Value is in the format `H160([bytes])`.
+                        // Extract the byte array between the brackets and convert it to a
+                        // hexadecimal string.
+                        if let (Some(start), Some(end)) =
+                            (value.find('['), value.find(']'))
+                        {
+                            let byte_str = &value[start + 1..end];
+                            let bytes: Vec<u8> = byte_str
+                                .split(", ")
+                                .filter_map(|s| s.parse::<u8>().ok())
+                                .collect();
+                            let h160_value = H160::from_slice(&bytes);
+                            value = format!("0x{}", hex::encode(h160_value.as_bytes()));
+                        }
+                    }
                     let _ = writeln!(
                         out,
                         "{:width$}{}: {}",
@@ -331,6 +350,7 @@ impl DisplayEvents {
 
 /// Construct the contract event data field, attempting to decode the event using the
 /// [`ContractMessageTranscoder`] if available.
+#[allow(clippy::needless_borrows_for_generic_args)]
 fn contract_event_data_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,

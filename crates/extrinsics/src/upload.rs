@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -132,9 +132,8 @@ where
             origin: self.opts.signer().account_id(),
             code: self.code.0.clone(),
             storage_deposit_limit,
-            determinism: Determinism::Enforced,
         };
-        state_call(&self.rpc, "ContractsApi_upload_code", call_request).await
+        state_call(&self.rpc, "ReviveApi_upload_code", call_request).await
     }
 
     /// Uploads contract code to the blockchain with specified options.
@@ -148,8 +147,7 @@ where
 
         let call = UploadCode::new(
             self.code.clone(),
-            storage_deposit_limit,
-            Determinism::Enforced,
+            storage_deposit_limit.expect("no storage deposit limit available"),
         )
         .build();
 
@@ -190,7 +188,6 @@ struct CodeUploadRequest<AccountId, Balance> {
     origin: AccountId,
     code: Vec<u8>,
     storage_deposit_limit: Option<Balance>,
-    determinism: Determinism,
 }
 
 /// A struct representing the result of an upload command execution.

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ pub struct BuildCommand {
     /// Performs extra linting checks for ink! specific issues during the build process.
     ///
     /// Basic clippy lints are deemed important and run anyways.
-    #[clap(long, conflicts_with = "verifiable")]
+    #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
     ///
@@ -123,7 +123,7 @@ pub struct BuildCommand {
     target: Target,
     /// The maximum number of pages available for a wasm contract to allocate.
     #[clap(long, default_value_t = contract_build::DEFAULT_MAX_MEMORY_PAGES)]
-    max_memory_pages: u32,
+    max_memory_pages: u64,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
     #[clap(long, default_value_t = false)]

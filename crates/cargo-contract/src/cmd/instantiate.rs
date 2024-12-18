@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -72,6 +72,7 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
+    utils::H160,
     Config,
 };
 
@@ -313,7 +314,7 @@ where
 /// events, and optional code hash.
 pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
-    instantiate_exec_result: InstantiateExecResult<C>,
+    instantiate_exec_result: InstantiateExecResult<C, H160>,
     token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,

@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -39,6 +39,7 @@ use std::{
     time,
 };
 use subxt::{
+    utils::H160,
     OnlineClient,
     PolkadotConfig as DefaultConfig,
 };
@@ -95,7 +96,7 @@ impl ContractsNodeProcess {
             .arg(format!("--base-path={}", tmp_dir.path().to_string_lossy()))
             .spawn()?;
         // wait for rpc to be initialized
-        const MAX_ATTEMPTS: u32 = 10;
+        const MAX_ATTEMPTS: u32 = 15;
         let mut attempts = 1;
         let client = loop {
             thread::sleep(time::Duration::from_secs(1));
@@ -193,6 +194,8 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -340,6 +343,8 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -463,6 +468,8 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -497,7 +504,7 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result: InstantiateExecResult<DefaultConfig> =
+    let instantiate_result: InstantiateExecResult<DefaultConfig, H160> =
         instantiate_result.unwrap();
     let contract_account = instantiate_result.contract_address.to_string();
     assert_eq!(48, contract_account.len(), "{contract_account:?}");
@@ -505,14 +512,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // the value should be true
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -535,7 +538,7 @@ async fn api_build_upload_instantiate_call() {
     // flip the value
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
         CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
+            instantiate_result.contract_address,
             "flip",
             opts.clone(),
         )
@@ -558,14 +561,10 @@ async fn api_build_upload_instantiate_call() {
     // call the contract
     // make sure the value has been flipped
     let call: CallExec<DefaultConfig, DefaultEnvironment, Keypair> =
-        CallCommandBuilder::new(
-            instantiate_result.contract_address.clone(),
-            "get",
-            opts.clone(),
-        )
-        .done()
-        .await
-        .unwrap();
+        CallCommandBuilder::new(instantiate_result.contract_address, "get", opts.clone())
+            .done()
+            .await
+            .unwrap();
     let result = call.call_dry_run().await;
     assert!(result.is_ok(), "call failed");
     let result = result.unwrap();
@@ -603,6 +602,8 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 
@@ -719,6 +720,8 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--target")
+        .arg("riscv")
         .assert()
         .success();
 

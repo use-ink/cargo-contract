@@ -1,22 +1,23 @@
 [package]
 name = "contract-analyze"
-version = "4.1.2"
-authors = ["Parity Technologies <admin@parity.io>"]
+version = "5.0.2"
+authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/paritytech/cargo-contract"
+repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-analyze"
 homepage = "https://www.substrate.io/"
 description = "Library determining source language for smart contracts on substrate"
-keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
+keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
-contract-metadata = { version = "4.1.2", path = "../metadata" }
-parity-wasm = { version = "0.45.0" }
-anyhow = "1.0.81"
+contract-metadata = { version = "5.0.2", path = "../metadata" }
+wasmparser = "0.220.0"
+anyhow = "1.0.94"
 
 [dev-dependencies]
-wabt = "0.10.0"
+wat = "1.221.2"
+

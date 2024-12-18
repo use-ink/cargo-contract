@@ -1,4 +1,4 @@
-// Copyright (C) Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -212,20 +212,19 @@ where
 
 #[macro_export]
 macro_rules! call_with_config_internal {
-    ($obj:tt ,$function:tt, $config_name:expr, $($config:ty),*) => {
+    ($obj:tt ,$function:tt, $config_name:expr, $( ($config_str:literal, $config_obj:ty) ),*) => {
         match $config_name {
             $(
-                stringify!($config) => $obj.$function::<$config>().await,
+                $config_str => $obj.$function::<$config_obj>().await,
             )*
             _ => {
-
-                let configs = vec![$(stringify!($config)),*].iter()
-                .map(|s| s.trim_start_matches("crate::cmd::config::"))
+              let configs = vec![$($config_str),*].iter()
+                .map(|s| s.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
                 Err(ErrorVariant::Generic(
                     contract_extrinsics::GenericError::from_message(
-                        format!("Chain configuration not found, Allowed configurations: {configs}")
+                        format!("Chain configuration {} not found, allowed configurations: {configs}", $config_name)
                 )))
             },
         }
@@ -233,18 +232,35 @@ macro_rules! call_with_config_internal {
 }
 
 /// Macro that allows calling the command member function with chain configuration
+///
+/// # Developer Note
+///
+/// In older Rust versions the macro `stringify!($crate::foo)` expanded to
+/// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/pull/125174,
+/// `stringify!` expands to `"$crate :: foo"` now. In order to support both older and
+/// newer Rust versions our macro has to handle both cases, spaced and non-spaced.
+///
+/// # Known Limitation
+///
+///  The `$config_name:expr` has to be in the `$crate::cmd::config` crate and cannot
+/// contain  another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{
-        let config_name = format!("crate::cmd::config::{}", $config_name);
+        assert!(
+            !format!("{}", $config_name).contains("::"),
+            "The supplied config name `{}` is not allowed to contain `::`.",
+            $config_name
+        );
+
         $crate::call_with_config_internal!(
             $obj,
             $function,
-            config_name.as_str(),
+            $config_name,
             // All available chain configs need to be specified here
-            $crate::cmd::config::Polkadot,
-            $crate::cmd::config::Substrate,
-            $crate::cmd::config::Ecdsachain
+            ("Polkadot", $crate::cmd::config::Polkadot),
+            ("Substrate", $crate::cmd::config::Substrate),
+            ("Ecdsachain", $crate::cmd::config::Ecdsachain)
         )
     }};
 }

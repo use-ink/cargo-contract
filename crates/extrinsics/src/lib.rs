@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -148,7 +148,7 @@ async fn submit_extrinsic<C, Call, Signer>(
 ) -> core::result::Result<blocks::ExtrinsicEvents<C>, subxt::Error>
 where
     C: Config,
-    Call: tx::TxPayload,
+    Call: tx::Payload,
     Signer: tx::Signer<C>,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,

@@ -13,7 +13,6 @@ use contract_build::{
     Verbosity,
     VerbosityFlags,
 };
-use jsonschema::JSONSchema;
 use schemars::schema_for;
 
 #[derive(Debug, Clone, Default, clap::ValueEnum)]
@@ -116,20 +115,9 @@ impl VerifySchemaCommand {
             format!("Failed to deserialize schema file {}", path.display()),
         )?;
 
-        // 3. Build validator
-
-        // We have to use let-else here, otherwise `&schema` is required to be static
-        let Ok(validator) = JSONSchema::compile(&schema) else {
-            anyhow::bail!("Failed to compile schema to validation tree")
-        };
-
         // 3. Validate and display error if any
-        validator.validate(&metadata).map_err(|errors| {
-            let error_msg = errors.fold(
-                String::from("Error during schema validation:\n"),
-                |acc, e| format!("{}\n{}", acc, e),
-            );
-            anyhow!(error_msg)
+        jsonschema::validate(&schema, &metadata).map_err(|err| {
+            anyhow!(format!("Error during schema validation: {}\n", err))
         })?;
 
         Ok(SchemaVerificationResult {

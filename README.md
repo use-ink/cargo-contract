@@ -1,12 +1,12 @@
 <div align="center">
-    <img src="https://raw.githubusercontent.com/paritytech/cargo-contract/master/.images/cargo-contract.svg" alt="cargo-contract" height="170" />
+    <img src="https://raw.githubusercontent.com/use-ink/cargo-contract/master/.images/cargo-contract.svg" alt="cargo-contract" height="170" />
 
 [![CI Status][a1]][a2]
 [![Latest Release][d1]][d2]
 [![stack-exchange][s1]][s2]
 
-[a1]: https://github.com/paritytech/cargo-contract/workflows/ci/badge.svg
-[a2]: https://github.com/paritytech/cargo-contract/actions?query=workflow%3Aci+branch%3Amaster
+[a1]: https://github.com/use-ink/cargo-contract/workflows/ci/badge.svg
+[a2]: https://github.com/use-ink/cargo-contract/actions?query=workflow%3Aci+branch%3Amaster
 [d1]: https://img.shields.io/crates/v/cargo-contract.svg
 [d2]: https://crates.io/crates/cargo-contract
 [s1]: https://img.shields.io/badge/click-white.svg?logo=StackExchange&label=ink!%20Support%20on%20StackExchange&labelColor=white&color=blue
@@ -14,7 +14,7 @@
 
 <p align="center">
 
-> <img src="https://raw.githubusercontent.com/paritytech/cargo-contract/master/.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts in Parity's <a href="https://github.com/paritytech/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Substrate](https://github.com/paritytech/substrate) framework.
+> <img src="https://raw.githubusercontent.com/use-ink/cargo-contract/master/.images/ink-squid.svg" alt="squink, the ink! mascot" style="vertical-align: middle" align="left" height="60" />`cargo-contract` is a CLI tool which helps you develop smart contracts for Polkadot's <a href="https://github.com/use-ink/ink">ink!</a>.<br/>ink! is a Rust [eDSL](https://wiki.haskell.org/Embedded_domain_specific_language) which allows you to write smart contracts for blockchains built on the [Substrate](https://github.com/paritytech/substrate) framework.
 
 </p>
 
@@ -29,7 +29,7 @@
 More relevant links:
 
 -   Find answers to your questions by joining our [Stack Exchange][s2] community
--   [ink!](https://github.com/paritytech/ink) ‒ The main ink! repository with smart contract examples
+-   [ink!](https://github.com/use-ink/ink) ‒ The main ink! repository with smart contract examples
 -   [Contracts UI](https://contracts-ui.substrate.io/) ‒ Frontend for contract deployment and interaction
 -   [Substrate Contracts Node](https://github.com/paritytech/substrate-contracts-node) ‒ Simple Substrate blockchain which includes smart contract functionality
 
@@ -46,7 +46,7 @@ Modern releases of gcc and clang, as well as Visual Studio 2019+ should work.
 
     -   (MacOS) `brew install openssl`
     -   ```
-        export TOOLCHAIN_VERSION=nightly-2023-12-28
+        export TOOLCHAIN_VERSION=nightly-2024-09-05
         rustup install $TOOLCHAIN_VERSION
         rustup component add rust-src --toolchain $TOOLCHAIN_VERSION
         rustup run $TOOLCHAIN_VERSION cargo install cargo-dylint dylint-link
@@ -59,7 +59,7 @@ You can always update the `cargo-contract` binary to the latest version by runni
 
 ### Installation using Docker Image
 
-If you prefer to use Docker instead we have a Docker image
+If you prefer to use Docker instead, Parity has a Docker image
 [available on the Docker Hub](https://hub.docker.com/r/paritytech/contracts-ci-linux):
 
 ```bash
@@ -108,7 +108,7 @@ e.g. `cargo contract new --help`.
 Create an initial smart contract with some scaffolding code into a new
 folder `my_contract` .
 
-The contract contains the source code for the [`Flipper`](https://github.com/paritytech/ink-examples/blob/main/flipper/lib.rs)
+The contract contains the source code for the [`Flipper`](https://github.com/use-ink/ink-examples/blob/main/flipper/lib.rs)
 contract, which is about the simplest "smart" contract you can build ‒ a `bool` which gets flipped
 from `true` to `false` through the `flip()` function.
 
@@ -176,6 +176,9 @@ Fetch and display the storage of a contract on chain.
 Invoke an RPC call to the node. See [rpc](docs/rpc.md).
 
 
+## Compatibility
+Metadata Version: This project only supports metadata versions starting from `V14` and onwards.
+
 ## Publishing
 
 In order to publish a new version of `cargo-contract`:
@@ -190,6 +193,3 @@ In order to publish a new version of `cargo-contract`:
 ## License
 
 The entire code within this repository is licensed under the [GPLv3](LICENSE).
-
-Please [contact us](https://www.parity.io/contact/) if you have questions about
-the licensing of our products.

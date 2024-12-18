@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -14,11 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::CrateMetadata;
 use anyhow::Result;
 use clap::Args;
 use std::{
     convert::TryFrom,
     fmt,
+    fs,
+    fs::File,
+    io::Write,
+    path::Path,
 };
 
 #[derive(Default, Clone, Debug, Args)]
@@ -154,10 +159,39 @@ pub enum Target {
 
 impl Target {
     /// The target string to be passed to rustc in order to build for this target.
-    pub fn llvm_target(&self) -> &'static str {
+    pub fn llvm_target(&self, crate_metadata: &CrateMetadata) -> String {
+        match self {
+            Self::Wasm => "wasm32-unknown-unknown".to_string(),
+            Self::RiscV => {
+                // Instead of a target literal we use a JSON file with a more complex
+                // target configuration here. The path to the file is passed for the
+                // `rustc --target` argument. We write this file to the `target/` folder.
+                let target_dir = crate_metadata.target_directory.to_string_lossy();
+                let path =
+                    format!("{}/riscv32emac-unknown-none-polkavm.json", target_dir);
+                if !Path::exists(Path::new(&path)) {
+                    fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(
+                        |e| {
+                            panic!(
+                                "unable to create target dir {:?}: {:?}",
+                                target_dir, e
+                            )
+                        },
+                    );
+                    let mut file = File::create(&path).unwrap();
+                    let config = include_str!("../riscv32emac-unknown-none-polkavm.json");
+                    file.write_all(config.as_bytes()).unwrap();
+                }
+                path
+            }
+        }
+    }
+
+    /// The name used for the target folder inside the `target/` folder.
+    pub fn llvm_target_alias(&self) -> &'static str {
         match self {
             Self::Wasm => "wasm32-unknown-unknown",
-            Self::RiscV => "riscv32i-unknown-none-elf",
+            Self::RiscV => "riscv32emac-unknown-none-polkavm",
         }
     }
 
@@ -165,7 +199,9 @@ impl Target {
     pub fn rustflags(&self) -> Option<&'static str> {
         match self {
             Self::Wasm => Some("-Clink-arg=-zstack-size=65536\x1f-Clink-arg=--import-memory\x1f-Ctarget-cpu=mvp"),
-            Self::RiscV => None,
+            // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+            // is being build for `std` or for a Wasm/RISC-V runtime.
+            Self::RiscV => Some("--cfg\x1fsubstrate_runtime"),
         }
     }
 

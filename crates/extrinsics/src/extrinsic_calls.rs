@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -14,16 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    upload::Determinism,
-    WasmCode,
-};
+use crate::WasmCode;
 use subxt::{
     ext::{
         codec::Compact,
         scale_encode::EncodeAsType,
     },
-    utils::MultiAddress,
+    utils::H160,
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
@@ -69,8 +66,8 @@ impl<Hash> RemoveCode<Hash> {
         Self { code_hash }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "remove_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "remove_code", self)
     }
 }
 
@@ -79,25 +76,19 @@ impl<Hash> RemoveCode<Hash> {
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
 pub(crate) struct UploadCode<Balance> {
     code: Vec<u8>,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    determinism: Determinism,
+    storage_deposit_limit: Balance,
 }
 
 impl<Balance> UploadCode<Balance> {
-    pub fn new(
-        code: WasmCode,
-        storage_deposit_limit: Option<Balance>,
-        determinism: Determinism,
-    ) -> Self {
+    pub fn new(code: WasmCode, storage_deposit_limit: Balance) -> Self {
         Self {
             code: code.0,
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
-            determinism,
+            storage_deposit_limit,
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "upload_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "upload_code", self)
     }
 }
 
@@ -108,33 +99,33 @@ pub(crate) struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
+    storage_deposit_limit: Balance,
     code: Vec<u8>,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<Vec<u8>>,
 }
 
 impl<Balance> InstantiateWithCode<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
+        storage_deposit_limit: Balance,
         code: Vec<u8>,
         data: Vec<u8>,
-        salt: Vec<u8>,
+        salt: Option<Vec<u8>>,
     ) -> Self {
         Self {
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             code,
             data,
             salt,
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "instantiate_with_code", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "instantiate_with_code", self)
     }
 }
 
@@ -176,41 +167,41 @@ where
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "instantiate", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "instantiate", self)
     }
 }
 
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Call<AccountId, Balance> {
-    dest: MultiAddress<AccountId, ()>,
+pub(crate) struct Call<Balance> {
+    dest: H160,
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
+    storage_deposit_limit: Balance,
     data: Vec<u8>,
 }
 
-impl<AccountId, Balance> Call<AccountId, Balance> {
+impl<Balance> Call<Balance> {
     pub fn new(
-        dest: MultiAddress<AccountId, ()>,
+        dest: H160,
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
+        storage_deposit_limit: Balance,
         data: Vec<u8>,
     ) -> Self {
         Self {
             dest,
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             data,
         }
     }
 
-    pub fn build(self) -> subxt::tx::Payload<Self> {
-        subxt::tx::Payload::new("Contracts", "call", self)
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "call", self)
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -41,6 +41,10 @@ use std::{
         PathBuf,
     },
     time::SystemTime,
+};
+use wasmparser::{
+    Parser,
+    Payload,
 };
 
 macro_rules! build_tests {
@@ -652,10 +656,15 @@ fn build_byte_str(bytes: &[u8]) -> String {
 }
 
 fn has_debug_symbols<P: AsRef<Path>>(p: P) -> bool {
-    crate::load_module(p)
-        .unwrap()
-        .custom_sections()
-        .any(|e| e.name() == "name")
+    let module = crate::load_module(p).unwrap();
+    let has_debug_symbols = Parser::new(0).parse_all(&module).any(|e| {
+        if let Payload::CustomSection(section) = e.unwrap() {
+            matches!(section.name(), "name")
+        } else {
+            false
+        }
+    });
+    has_debug_symbols
 }
 
 /// Enables running a group of tests sequentially, each starting with the original

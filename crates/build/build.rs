@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -90,7 +90,7 @@ fn zip_dir(src_dir: &Path, dst_file: &Path, method: CompressionMethod) -> Result
     let it = walkdir.into_iter().filter_map(|e| e.ok());
 
     let mut zip = ZipWriter::new(file);
-    let options = FileOptions::default()
+    let options = FileOptions::<()>::default()
         .compression_method(method)
         .unix_permissions(DEFAULT_UNIX_PERMISSIONS);
 

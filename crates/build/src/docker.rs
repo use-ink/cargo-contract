@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -26,12 +26,11 @@
 //! The process of the build is following:
 //! 1. Pull the image from the registry or use the local copy if available
 //! 2. Parse other arguments that were passed to the host execution context
-//! 3. Calculate the digest of the command and use it
-//! to uniquely identify the container
+//! 3. Calculate the digest of the command and use it to uniquely identify the container
 //! 4. If the container exists, we just start the build, if not, we create it
-//! 5. After the build, the docker container produces metadata with
-//! paths relative to its internal storage structure, we parse the file
-//! and overwrite those paths relative to the host machine.
+//! 5. After the build, the docker container produces metadata with paths relative to its
+//!    internal storage structure, we parse the file and overwrite those paths relative to
+//!    the host machine.
 
 use std::{
     cmp::Ordering,
@@ -95,7 +94,7 @@ use crate::{
 
 use colored::Colorize;
 /// Default image to be used for the build.
-const IMAGE: &str = "paritytech/contracts-verifiable";
+const IMAGE: &str = "useink/contracts-verifiable";
 /// We assume the docker image contains the same tag as the current version of the crate.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The default directory to be mounted in the container.
@@ -219,6 +218,9 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     });
     build_result.dest_wasm = new_path;
 
+    // TODO: Clippy currently throws a false-positive here. The manual allow can be
+    // removed after https://github.com/rust-lang/rust-clippy/pull/13609 has been released.
+    #[allow(clippy::manual_inspect)]
     build_result.metadata_result.as_mut().map(|m| {
         m.dest_bundle = host_folder.join(
             m.dest_bundle

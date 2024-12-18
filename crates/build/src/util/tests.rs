@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -91,7 +91,7 @@ pub fn create_executable(path: &Path, content: &str) -> MockGuard {
     let mut guard = MockGuard(path.to_path_buf());
     let mut file = std::fs::File::create(path).unwrap();
     let path = path.canonicalize().unwrap();
-    guard.0 = path.clone();
+    guard.0.clone_from(&path);
     file.write_all(content.as_bytes())
         .expect("writing of executable failed");
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
+mod post_process_wasm;
 #[cfg(test)]
 mod tests;
 pub mod util;
@@ -58,6 +59,10 @@ pub use self::{
         WasmOptSettings,
     },
     new::new_contract_project,
+    post_process_wasm::{
+        load_module,
+        post_process_wasm,
+    },
     util::DEFAULT_KEY_COL_WIDTH,
     wasm_opt::{
         OptimizationPasses,
@@ -81,19 +86,14 @@ pub use docker::{
 };
 
 use anyhow::{
+    bail,
     Context,
     Result,
 };
 use colored::Colorize;
-use parity_wasm::elements::{
-    External,
-    Internal,
-    MemoryType,
-    Module,
-    Section,
-};
 use semver::Version;
 use std::{
+    cmp::PartialEq,
     fs,
     path::{
         Path,
@@ -105,7 +105,7 @@ use std::{
 use strum::IntoEnumIterator;
 
 /// This is the default maximum number of pages available for a contract to allocate.
-pub const DEFAULT_MAX_MEMORY_PAGES: u32 = 16;
+pub const DEFAULT_MAX_MEMORY_PAGES: u64 = 16;
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -115,12 +115,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Ensure it is kept up-to-date when updating `cargo-contract`.
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
-    /// https://github.com/paritytech/ink/blob/master/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2023-12-28";
+    /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-09-05";
     /// Git repository with ink_linting libraries
-    pub const GIT_URL: &str = "https://github.com/paritytech/ink/";
+    pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "b6880dd9384e09ec4e7ad65453cd844113e8a316";
+    pub const GIT_REV: &str = "5ec034ca05e1239371e1d1c904d7580b375da9ca";
 }
 
 /// Arguments to use when executing `build` or `check` commands.
@@ -140,7 +140,7 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub skip_wasm_validation: bool,
     pub target: Target,
-    pub max_memory_pages: u32,
+    pub max_memory_pages: u64,
     pub image: ImageVariant,
 }
 
@@ -300,8 +300,13 @@ fn exec_cargo_for_onchain_target(
             "--target-dir={}",
             crate_metadata.target_directory.to_string_lossy()
         );
-        let mut args = vec![target_dir, "--release".to_owned()];
-        args.extend(onchain_cargo_options(target));
+
+        let mut args = vec![
+            format!("--target={}", target.llvm_target(crate_metadata)),
+            "--release".to_owned(),
+            target_dir,
+        ];
+        args.extend(onchain_cargo_options(target, crate_metadata));
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
@@ -309,6 +314,12 @@ fn exec_cargo_for_onchain_target(
             features.push("ink/ink-debug");
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+        }
+        if *target == Target::RiscV {
+            features.push("ink/revive");
+            if crate_metadata.depends_on_ink_e2e() {
+                features.push("ink_e2e/revive");
+            }
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -333,21 +344,8 @@ fn exec_cargo_for_onchain_target(
             }
         };
 
-        // the linker needs our linker script as file
-        if matches!(target, Target::RiscV) {
-            fs::create_dir_all(&crate_metadata.target_directory)?;
-            let path = crate_metadata
-                .target_directory
-                .join(".riscv_memory_layout.ld");
-            fs::write(&path, include_bytes!("../riscv_memory_layout.ld"))?;
-            let path = path.display();
-            env.push((
-                "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{rustflags}\x1f-Clink-arg=-T{path}",)),
-            ));
-        } else {
-            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
-        };
+        fs::create_dir_all(&crate_metadata.target_directory)?;
+        env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
         execute_cargo(util::cargo_cmd(
             command,
@@ -521,9 +519,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
 }
 
 /// Returns a list of cargo options used for on-chain builds
-fn onchain_cargo_options(target: &Target) -> Vec<String> {
+fn onchain_cargo_options(target: &Target, crate_metadata: &CrateMetadata) -> Vec<String> {
     vec![
-        format!("--target={}", target.llvm_target()),
+        format!("--target={}", target.llvm_target(crate_metadata)),
         "-Zbuild-std=core,alloc".to_owned(),
         "--no-default-features".to_owned(),
     ]
@@ -558,7 +556,7 @@ fn exec_cargo_dylint(
     args.push("--".to_owned());
     // Pass on-chain build options to ensure the linter expands all conditional `cfg_attr`
     // macros, as it does for the release build.
-    args.extend(onchain_cargo_options(target));
+    args.extend(onchain_cargo_options(target, crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
     let env = vec![
@@ -574,6 +572,9 @@ fn exec_cargo_dylint(
         // there is this bug: https://github.com/mozilla/sccache/issues/1000.
         // Until we have a justification for leaving the wrapper we should unset it.
         ("RUSTC_WRAPPER", None),
+        // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+        // is being build for `std` or for a Wasm/RISC-V runtime.
+        ("RUSTFLAGS", Some("--cfg\x1fsubstrate_runtime".to_string())),
     ];
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
@@ -684,117 +685,6 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-/// Ensures the Wasm memory import of a given module has the maximum number of pages.
-///
-/// Iterates over the import section, finds the memory import entry if any and adjusts the
-/// maximum limit.
-fn ensure_maximum_memory_pages(
-    module: &mut Module,
-    maximum_allowed_pages: u32,
-) -> Result<()> {
-    let mem_ty = module
-        .import_section_mut()
-        .and_then(|section| {
-            section.entries_mut().iter_mut().find_map(|entry| {
-                match entry.external_mut() {
-                    External::Memory(ref mut mem_ty) => Some(mem_ty),
-                    _ => None,
-                }
-            })
-        })
-        .context(
-            "Memory import is not found. Is --import-memory specified in the linker args",
-        )?;
-
-    if let Some(requested_maximum) = mem_ty.limits().maximum() {
-        // The module already has maximum, check if it is within the limit bail out.
-        if requested_maximum > maximum_allowed_pages {
-            anyhow::bail!(
-                "The wasm module requires {} pages. The maximum allowed number of pages is {}",
-                requested_maximum,
-                maximum_allowed_pages,
-            );
-        }
-    } else {
-        let initial = mem_ty.limits().initial();
-        *mem_ty = MemoryType::new(initial, Some(maximum_allowed_pages));
-    }
-
-    Ok(())
-}
-
-/// Strips all custom sections.
-///
-/// Presently all custom sections are not required so they can be stripped safely.
-/// The name section is already stripped by `wasm-opt`.
-fn strip_custom_sections(module: &mut Module) {
-    module.sections_mut().retain(|section| {
-        match section {
-            Section::Reloc(_) => false,
-            Section::Custom(custom) if custom.name() != "name" => false,
-            _ => true,
-        }
-    })
-}
-
-/// A contract should export nothing but the "call" and "deploy" functions.
-///
-/// Any elements not referenced by these exports become orphaned and are removed by
-/// `wasm-opt`.
-fn strip_exports(module: &mut Module) {
-    if let Some(section) = module.export_section_mut() {
-        section.entries_mut().retain(|entry| {
-            matches!(entry.internal(), Internal::Function(_))
-                && (entry.field() == "call" || entry.field() == "deploy")
-        })
-    }
-}
-
-/// Load and parse a Wasm file from disk.
-fn load_module<P: AsRef<Path>>(path: P) -> Result<Module> {
-    let path = path.as_ref();
-    parity_wasm::deserialize_file(path).context(format!(
-        "Loading of wasm module at '{}' failed",
-        path.display(),
-    ))
-}
-
-/// Performs required post-processing steps on the Wasm artifact.
-fn post_process_wasm(
-    optimized_code: &PathBuf,
-    skip_wasm_validation: bool,
-    verbosity: &Verbosity,
-    max_memory_pages: u32,
-) -> Result<()> {
-    // Deserialize Wasm module from a file.
-    let mut module =
-        load_module(optimized_code).context("Loading of optimized wasm failed")?;
-
-    strip_exports(&mut module);
-    ensure_maximum_memory_pages(&mut module, max_memory_pages)?;
-    strip_custom_sections(&mut module);
-
-    if !skip_wasm_validation {
-        validate_wasm::validate_import_section(&module)?;
-    } else {
-        verbose_eprintln!(
-            verbosity,
-            " {}",
-            "Skipping wasm validation! Contract code may be invalid."
-                .bright_yellow()
-                .bold()
-        );
-    }
-
-    debug_assert!(
-        !module.clone().into_bytes().unwrap().is_empty(),
-        "resulting wasm size of post processing must be > 0"
-    );
-
-    parity_wasm::serialize_to_file(optimized_code, module)?;
-    Ok(())
-}
-
 /// Checks whether the supplied `ink_version` already contains the debug feature.
 ///
 /// This feature was introduced in `3.0.0-rc4` with `ink_env/ink-debug`.
@@ -840,13 +730,9 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         Some(opt_passes) => *opt_passes,
         None => {
             let mut manifest = Manifest::new(manifest_path.clone())?;
-
-            match manifest.profile_optimization_passes() {
-                // if no setting is found, neither on the cli nor in the profile,
-                // then we use the default
-                None => OptimizationPasses::default(),
-                Some(opt_passes) => opt_passes,
-            }
+            // if no setting is found, neither on the cli nor in the profile,
+            // then we use the default
+            manifest.profile_optimization_passes().unwrap_or_default()
         }
     };
 
@@ -880,11 +766,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
         BuildArtifacts::All => {
             let (opt_result, build_info, dest_wasm) =
-                local_build(&crate_metadata, &optimization_passes, &args).map_err(
-                    |e| {
+                local_build(&crate_metadata, &optimization_passes, &args).inspect_err(
+                    |_| {
                         // build error -> bundle is stale
                         clean_metadata();
-                        e
                     },
                 )?;
 
@@ -974,7 +859,10 @@ fn local_build(
     )?;
 
     // We persist the latest target we used so we trigger a rebuild when we switch
-    fs::write(&crate_metadata.target_file_path, target.llvm_target())?;
+    fs::write(
+        &crate_metadata.target_file_path,
+        target.llvm_target(crate_metadata),
+    )?;
 
     let cargo_contract_version = if let Ok(version) = Version::parse(VERSION) {
         version
@@ -1047,7 +935,17 @@ fn local_build(
             )?;
         }
         Target::RiscV => {
-            fs::copy(&crate_metadata.original_code, &crate_metadata.dest_code)?;
+            let mut config = polkavm_linker::Config::default();
+            config.set_strip(!keep_debug_symbols);
+            if *build_mode != BuildMode::Debug {
+                config.set_optimize(true);
+            }
+            let orig = fs::read(&crate_metadata.original_code)?;
+            let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
+                Ok(linked) => linked,
+                Err(err) => bail!("Failed to link polkavm program: {}", err),
+            };
+            fs::write(&crate_metadata.dest_code, linked)?;
         }
     }
 

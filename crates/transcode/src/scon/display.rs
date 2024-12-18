@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) Use Ink (UK) Ltd.
 // This file is part of cargo-contract.
 //
 // cargo-contract is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ use std::fmt::{
 /// Wraps Value for custom Debug impl to provide pretty-printed Display
 struct DisplayValue<'a>(&'a Value);
 
-impl<'a> Debug for DisplayValue<'a> {
+impl Debug for DisplayValue<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.0 {
             Value::Bool(boolean) => <bool as Debug>::fmt(boolean, f),
@@ -61,7 +61,7 @@ impl Display for Value {
 
 struct DisplayMap<'a>(&'a Map);
 
-impl<'a> Debug for DisplayMap<'a> {
+impl Debug for DisplayMap<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.0.ident {
             Some(ref name) => {
@@ -84,7 +84,7 @@ impl<'a> Debug for DisplayMap<'a> {
 
 struct DisplayTuple<'a>(&'a Tuple);
 
-impl<'a> Debug for DisplayTuple<'a> {
+impl Debug for DisplayTuple<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let name = self.0.ident.as_ref().map_or("", |s| s.as_str());
         let mut builder = f.debug_tuple(name);
@@ -97,7 +97,7 @@ impl<'a> Debug for DisplayTuple<'a> {
 
 struct DisplaySeq<'a>(&'a Seq);
 
-impl<'a> Debug for DisplaySeq<'a> {
+impl Debug for DisplaySeq<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut builder = f.debug_list();
         for elem in &self.0.elems {
