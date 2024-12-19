@@ -975,6 +975,19 @@ pub fn code_hash(code: &[u8]) -> [u8; 32] {
     blake2_hash(code)
 }
 
+/*
+fn h256_hash(code: &[u8]) -> [u8; 32] {
+    use sha3::{
+        Digest,
+        Keccak256,
+    };
+    let hash = Keccak256::digest(code);
+    let hash = H256::from_slice(hash.as_slice());
+    hash.
+}
+
+ */
+
 /// Returns the blake2 hash of the given bytes.
 fn blake2_hash(code: &[u8]) -> [u8; 32] {
     use blake2::digest::{

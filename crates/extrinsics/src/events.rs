@@ -38,6 +38,7 @@ use std::{
     },
     str::FromStr,
 };
+use sp_core::U256;
 use subxt::{
     self,
     blocks::ExtrinsicEvents,
@@ -111,14 +112,19 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored<Hash> {
+pub struct CodeStored<Hash, Balance> {
     /// Hash under which the contract code was stored.
     pub code_hash: Hash,
+    /// todo
+    pub deposit_released: Balance,
+    /// todo
+    pub uploader: H160,
 }
 
-impl<Hash> StaticEvent for CodeStored<Hash>
+impl<Hash, Balance> StaticEvent for CodeStored<Hash, Balance>
 where
     Hash: IntoVisitor,
+    Balance: IntoVisitor,
 {
     const PALLET: &'static str = "Contracts";
     const EVENT: &'static str = "CodeStored";

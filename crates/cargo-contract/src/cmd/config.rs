@@ -69,6 +69,7 @@ impl Environment for Ecdsachain {
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
     type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
+    type EventRecord = ();
 }
 
 impl SignerConfig<Self> for Ecdsachain
@@ -102,6 +103,7 @@ impl Environment for Substrate {
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
     type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
+    type EventRecord = ();
 }
 
 impl SignerConfig<Self> for Substrate {
@@ -132,6 +134,7 @@ impl Environment for Polkadot {
     type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <DefaultEnvironment as Environment>::BlockNumber;
     type ChainExtension = <DefaultEnvironment as Environment>::ChainExtension;
+    type EventRecord = ();
 }
 
 impl SignerConfig<Self> for Polkadot {

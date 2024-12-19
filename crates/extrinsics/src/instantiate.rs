@@ -357,7 +357,7 @@ where
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = events
-            .find_first::<CodeStored<C::Hash>>()?
+            .find_first::<CodeStored<C::Hash,  E::Balance>>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = events

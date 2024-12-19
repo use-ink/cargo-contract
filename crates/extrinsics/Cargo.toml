@@ -39,11 +39,11 @@ scale-info = "2.11.6"
 subxt = "0.38.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = "5.1.0"
-ink_env = "5.1.0"
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
 
 [dev-dependencies]
-ink = "5.1.0"
+ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
 assert_cmd = "2.0.14"
 regex = "1.10.4"
 predicates = "3.1.0"
