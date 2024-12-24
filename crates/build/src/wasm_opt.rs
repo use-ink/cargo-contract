@@ -15,11 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use anyhow::Result;
+/*
 use wasm_opt::{
     Feature,
     OptimizationOptions,
     Pass,
 };
+ */
 
 use std::{
     fmt,
@@ -59,6 +61,7 @@ impl WasmOptHandler {
             self.optimization_level
         );
 
+        /*
         OptimizationOptions::from(self.optimization_level)
             .mvp_features_only()
             // Since rustc 1.70 `SignExt` can't be disabled anymore. Hence we have to allow it,
@@ -74,6 +77,8 @@ impl WasmOptHandler {
             .zero_filled_memory(true)
             .debug_info(self.keep_debug_symbols)
             .run(original_wasm, dest_wasm)?;
+
+         */
 
         if !dest_wasm.exists() {
             return Err(anyhow::anyhow!(
@@ -142,6 +147,7 @@ impl From<String> for OptimizationPasses {
     }
 }
 
+/*
 impl From<OptimizationPasses> for OptimizationOptions {
     fn from(passes: OptimizationPasses) -> OptimizationOptions {
         match passes {
@@ -157,6 +163,8 @@ impl From<OptimizationPasses> for OptimizationOptions {
         }
     }
 }
+
+ */
 
 /// Result of the optimization process.
 #[derive(serde::Serialize, serde::Deserialize)]

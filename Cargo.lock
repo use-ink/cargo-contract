@@ -2137,7 +2137,6 @@ dependencies = [
  "uzers",
  "wabt",
  "walkdir",
- "wasm-opt",
  "wasmparser 0.220.0",
  "which",
  "zip",
