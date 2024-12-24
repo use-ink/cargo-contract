@@ -170,7 +170,7 @@ impl UploadCommand {
                 )?
             };
             if let Some(code_stored) = upload_result.code_stored {
-                let code_hash: <C as Config>::Hash = code_stored.code_hash;
+                let code_hash= code_stored.code_hash;
                 if self.output_json() {
                     // Create a JSON object with the events and the code hash.
                     let json_object = serde_json::json!({

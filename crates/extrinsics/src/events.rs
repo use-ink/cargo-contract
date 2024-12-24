@@ -53,6 +53,7 @@ use subxt::{
     utils::H160,
     Config,
 };
+use subxt::ext::scale_decode::ext::primitive_types::H256;
 
 /// A custom event emitted by the contract.
 #[derive(
@@ -73,7 +74,7 @@ impl<AccountId> StaticEvent for ContractEmitted<AccountId>
 where
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "ContractEmitted";
 }
 
@@ -112,21 +113,20 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored<Hash, Balance> {
+pub struct CodeStored<Balance> {
     /// Hash under which the contract code was stored.
-    pub code_hash: Hash,
+    pub code_hash: H256,
     /// todo
-    pub deposit_released: Balance,
+    pub deposit_held: Balance,
     /// todo
     pub uploader: H160,
 }
 
-impl<Hash, Balance> StaticEvent for CodeStored<Hash, Balance>
+impl<Balance> StaticEvent for CodeStored<Balance>
 where
-    Hash: IntoVisitor,
     Balance: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "CodeStored";
 }
 
@@ -152,7 +152,7 @@ where
     Balance: IntoVisitor,
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "CodeRemoved";
 }
 

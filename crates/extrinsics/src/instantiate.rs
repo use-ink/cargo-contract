@@ -67,7 +67,7 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
-    utils::H160,
+    utils::{H160, H256},
     Config,
     OnlineClient,
 };
@@ -357,7 +357,7 @@ where
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = events
-            .find_first::<CodeStored<C::Hash,  E::Balance>>()?
+            .find_first::<CodeStored<E::Balance>>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = events
@@ -490,7 +490,7 @@ where
 /// A struct representing the result of an instantiate command execution.
 pub struct InstantiateExecResult<C: Config, AccountId> {
     pub events: ExtrinsicEvents<C>,
-    pub code_hash: Option<C::Hash>,
+    pub code_hash: Option<H256>,
     pub contract_address: AccountId,
 }
 

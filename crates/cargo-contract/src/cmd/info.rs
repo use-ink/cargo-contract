@@ -107,7 +107,7 @@ impl InfoCommand {
 
             if self.output_json {
                 let contracts_json = serde_json::json!({
-                    "contracts": contracts
+                    "Revive": contracts
                 });
                 println!("{}", serde_json::to_string_pretty(&contracts_json)?);
             } else {

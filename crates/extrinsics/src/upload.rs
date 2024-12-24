@@ -31,6 +31,7 @@ use anyhow::Result;
 use contract_transcode::ContractMessageTranscoder;
 use ink_env::Environment;
 use scale::Encode;
+use sp_core::H256;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -156,7 +157,7 @@ where
 
         eprintln!("events: {:?}", events);
 
-        let code_stored = events.find_first::<CodeStored<C::Hash,  E::Balance>>()?;
+        let code_stored = events.find_first::<CodeStored<E::Balance>>()?;
         eprintln!("did we find code_stored? {}", code_stored.is_some());
         Ok(UploadResult {
             code_stored,
@@ -195,7 +196,7 @@ struct CodeUploadRequest<AccountId, Balance> {
 
 /// A struct representing the result of an upload command execution.
 pub struct UploadResult<C: Config, E: Environment> {
-    pub code_stored: Option<CodeStored<C::Hash,  E::Balance>>,
+    pub code_stored: Option<CodeStored<E::Balance>>,
     pub events: ExtrinsicEvents<C>,
 }
 
