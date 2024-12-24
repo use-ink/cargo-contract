@@ -346,7 +346,7 @@ where
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
-        name_value_println!("Contract", contract_address);
+        name_value_println!("Contract", format!("{contract_address:?}"));
     };
     Ok(())
 }

@@ -120,7 +120,7 @@ impl UploadCommand {
 
         let upload_exec: UploadExec<C, C, _> =
             UploadCommandBuilder::new(extrinsic_opts).done().await?;
-        let code_hash = upload_exec.code().code_hash();
+        let code_hash = upload_exec.code().code_hash(); // todo
         let metadata = upload_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {

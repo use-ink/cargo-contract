@@ -127,7 +127,7 @@ where
     /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
-    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
+    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<E::Balance>> {
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CodeUploadRequest {
             origin: self.opts.signer().account_id(),
