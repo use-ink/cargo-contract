@@ -506,7 +506,9 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         "--",
         // these are hard errors because we want to guarantee that implicit overflows
         // and lossy integer conversions never happen
+        // See https://github.com/use-ink/cargo-contract/pull/1190
         "-Dclippy::arithmetic_side_effects",
+        // See https://github.com/use-ink/cargo-contract/pull/1895
         "-Dclippy::cast_possible_truncation",
         "-Dclippy::cast_possible_wrap",
         "-Dclippy::cast_sign_loss",
