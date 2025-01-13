@@ -49,7 +49,10 @@ use scale::{
     Decode,
     Encode,
 };
-use sp_core::{Bytes, H160};
+use sp_core::{
+    Bytes,
+    H160,
+};
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -344,7 +347,7 @@ where
             self.args.storage_deposit_limit.unwrap(),
             code,
             self.args.data.clone(),
-            None
+            None,
         )
         .build();
 

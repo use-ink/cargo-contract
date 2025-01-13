@@ -97,7 +97,7 @@ pub fn check_contract_ink_compatibility(
                     .iter()
                     .any(|req| req.matches(ink_version))
                 {
-                    return Some(ver)
+                    return Some(ver);
                 }
                 None
             })

@@ -28,12 +28,12 @@ use crate::{
     url_to_string,
     ContractArtifacts,
 };
+use scale::Encode;
 use std::{
     marker::PhantomData,
     option::Option,
     path::PathBuf,
 };
-use scale::Encode;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Derivative)]

@@ -86,9 +86,9 @@ pub use docker::{
 };
 
 use anyhow::{
+    bail,
     Context,
     Result,
-    bail
 };
 use colored::Colorize;
 use semver::Version;
@@ -341,10 +341,7 @@ fn exec_cargo_for_onchain_target(
         if matches!(target, Target::RiscV) {
             env.push(("RUSTUP_TOOLCHAIN", Some("rve-nightly".to_string())));
             fs::create_dir_all(&crate_metadata.target_directory)?;
-            env.push((
-                "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("{}", rustflags)),
-            ));
+            env.push(("CARGO_ENCODED_RUSTFLAGS", Some(format!("{}", rustflags))));
         } else {
             env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
         };

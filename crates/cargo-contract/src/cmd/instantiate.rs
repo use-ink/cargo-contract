@@ -54,7 +54,10 @@ use contract_extrinsics::{
 };
 use ink_env::Environment;
 use serde::Serialize;
-use sp_core::Bytes;
+use sp_core::{
+    Bytes,
+    H160,
+};
 use std::{
     fmt::{
         Debug,
@@ -62,7 +65,6 @@ use std::{
     },
     str::FromStr,
 };
-use sp_core::H160;
 use subxt::{
     config::{
         DefaultExtrinsicParams,

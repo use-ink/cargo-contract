@@ -12,7 +12,7 @@ documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on substrate"
 keywords = ["wasm", "parity", "webassembly", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE",]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
 contract-build = { version = "5.0.0-alpha", path = "../build" }
@@ -24,23 +24,27 @@ blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.30", default-features = false, features = ["std"] }
 itertools = { version = "0.12", default-features = false }
 tracing = "0.1.40"
-scale = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
+scale = { package = "parity-scale-codec", version = "3.0.0", features = [
+ "derive",
+] }
 colored = "2.1.0"
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 serde_json = "1.0.117"
 url = { version = "2.5.0", features = ["serde"] }
 rust_decimal = "1.35"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = "31.0.0"
-sp-runtime = "34.0.0"
-sp-weights = "30.0.0"
-pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = ["scale"] }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
+pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = [
+ "scale",
+] }
 scale-info = "2.11.3"
 subxt = "0.37.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = "5.0.0"
-ink_env = "5.0.0"
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
 
 [dev-dependencies]
 ink = "5.0.0"
