@@ -24,8 +24,8 @@ contract-metadata = { version = "5.0.0-alpha", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.2.6"
-ink_env = "5.0.0"
-ink_metadata = "5.0.0"
+ink_env = { workspace = true }
+ink_metadata = { workspace = true }
 itertools = "0.12.1"
 tracing = "0.1.40"
 nom = "7.1.3"
@@ -48,7 +48,7 @@ strsim = "0.11.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
+ink = { workspace = true }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
 

@@ -33,9 +33,9 @@ serde_json = "1.0.117"
 url = { version = "2.5.0", features = ["serde"] }
 rust_decimal = "1.35"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-weights = { workspace = true }
 pallet-contracts-uapi = { package = "pallet-contracts-uapi-next", version = "=6.0.3", features = [
  "scale",
 ] }
@@ -43,8 +43,8 @@ scale-info = "2.11.3"
 subxt = "0.37.0"
 hex = "0.4.3"
 derivative = "2.2.0"
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
+ink_metadata = { workspace = true }
+ink_env = { workspace = true }
 
 [dev-dependencies]
 ink = "5.0.0"
