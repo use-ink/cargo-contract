@@ -223,7 +223,7 @@ impl BuildResult {
                     .to_string()
                     .bold()
             );
-            return out
+            return out;
         };
 
         let mut out = format!(
@@ -610,7 +610,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
             child
         } else {
             tracing::debug!("Error spawning `{:?}`", cmd);
-            return false
+            return false;
         };
 
         child.wait().map(|ret| ret.success()).unwrap_or_else(|err| {
@@ -717,7 +717,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
 
     // if image exists, then --verifiable was called and we need to build inside docker.
     if build_mode == &BuildMode::Verifiable {
-        return docker_build(args)
+        return docker_build(args);
     }
 
     // The CLI flag `optimization-passes` overwrites optimization passes which are
@@ -824,7 +824,6 @@ fn local_build(
         network,
         unstable_flags,
         keep_debug_symbols,
-        extra_lints,
         skip_wasm_validation,
         target,
         max_memory_pages,
@@ -900,7 +899,7 @@ fn local_build(
             crate_metadata.original_code.display(),
             pre_fingerprint
         );
-        return Ok((None, build_info, dest_code_path))
+        return Ok((None, build_info, dest_code_path));
     }
 
     verbose_eprintln!(

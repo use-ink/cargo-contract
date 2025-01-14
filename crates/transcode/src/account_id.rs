@@ -122,7 +122,7 @@ impl AccountId32 {
         use base58::FromBase58;
         let data = s.from_base58().map_err(|_| FromSs58Error::BadBase58)?;
         if data.len() < 2 {
-            return Err(FromSs58Error::BadLength)
+            return Err(FromSs58Error::BadLength);
         }
         let prefix_len = match data[0] {
             0..=63 => 1,
@@ -130,14 +130,14 @@ impl AccountId32 {
             _ => return Err(FromSs58Error::InvalidPrefix),
         };
         if data.len() != prefix_len + body_len + CHECKSUM_LEN {
-            return Err(FromSs58Error::BadLength)
+            return Err(FromSs58Error::BadLength);
         }
         let hash = ss58hash(&data[0..body_len + prefix_len]);
         let checksum = &hash[0..CHECKSUM_LEN];
         if data[body_len + prefix_len..body_len + prefix_len + CHECKSUM_LEN] != *checksum
         {
             // Invalid checksum.
-            return Err(FromSs58Error::InvalidChecksum)
+            return Err(FromSs58Error::InvalidChecksum);
         }
 
         let result = data[prefix_len..body_len + prefix_len]
@@ -212,14 +212,14 @@ mod test {
     use super::*;
 
     use sp_core::crypto::Ss58Codec;
-    use sp_keyring::AccountKeyring;
+    use sp_keyring::Sr25519Keyring;
 
     #[test]
     fn ss58_is_compatible_with_substrate_impl() {
         let keyrings = vec![
-            AccountKeyring::Alice,
-            AccountKeyring::Bob,
-            AccountKeyring::Charlie,
+            Sr25519Keyring::Alice,
+            Sr25519Keyring::Bob,
+            Sr25519Keyring::Charlie,
         ];
 
         for keyring in keyrings {
