@@ -47,7 +47,7 @@ tokio-stream = "0.1"
 bollard = "0.18"
 crossterm = "0.28.1"
 
-polkavm-linker = "0.17.1"
+polkavm-linker = "0.19.0"
 
 contract-metadata = { version = "5.0.1", path = "../metadata" }
 
