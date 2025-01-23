@@ -467,9 +467,14 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         "--all-features",
         // customize clippy lints after the "--"
         "--",
-        // this is a hard error because we want to guarantee that implicit overflows
-        // never happen
+        // these are hard errors because we want to guarantee that implicit overflows
+        // and lossy integer conversions never happen
+        // See https://github.com/use-ink/cargo-contract/pull/1190
         "-Dclippy::arithmetic_side_effects",
+        // See https://github.com/use-ink/cargo-contract/pull/1895
+        "-Dclippy::cast_possible_truncation",
+        "-Dclippy::cast_possible_wrap",
+        "-Dclippy::cast_sign_loss",
     ];
     // we execute clippy with the plain manifest no temp dir required
     execute_cargo(util::cargo_cmd(
