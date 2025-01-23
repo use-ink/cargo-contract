@@ -274,7 +274,7 @@ impl Manifest {
     pub fn with_removed_crate_type(&mut self, crate_type: &str) -> Result<&mut Self> {
         let crate_types = self.crate_types_mut()?;
         if crate_type_exists(crate_type, crate_types) {
-            crate_types.retain(|v| v.as_str().map_or(true, |s| s != crate_type));
+            crate_types.retain(|v| v.as_str() != Some(crate_type));
         }
         Ok(self)
     }
@@ -600,9 +600,7 @@ impl PathRewrite {
 }
 
 fn crate_type_exists(crate_type: &str, crate_types: &[value::Value]) -> bool {
-    crate_types
-        .iter()
-        .any(|v| v.as_str().map_or(false, |s| s == crate_type))
+    crate_types.iter().any(|v| v.as_str() == Some(crate_type))
 }
 
 fn merge_workspace_with_crate_dependencies(
