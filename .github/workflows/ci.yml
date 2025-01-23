@@ -151,15 +151,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
-
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
@@ -191,15 +182,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -238,15 +220,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rust-src, clippy
-
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
@@ -259,24 +232,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nextest-archive-${{ matrix.os }}
-
-      - name: Install latest `substrate-contracts-node` binary
-        env:
-          CONTRACTS_NODE_URL: https://github.com/paritytech/substrate-contracts-node/releases/latest/download/substrate-contracts-node-
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-              CONTRACTS_NODE_OS=linux
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-              CONTRACTS_NODE_OS=mac-universal
-          else
-              echo "$RUNNER_OS not supported"
-              exit 1
-          fi
-          curl -L -o substrate-contracts-node.tar.gz "$CONTRACTS_NODE_URL$CONTRACTS_NODE_OS.tar.gz"
-          tar xfzv substrate-contracts-node.tar.gz
-          chmod +x substrate-contracts-node-*/substrate-contracts-node &&
-          mv substrate-contracts-node-*/substrate-contracts-node /usr/local/bin
-        shell: bash
 
       - name: Run integration tests
         # The integration tests cannot be run in parallel
@@ -293,6 +248,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -306,9 +264,6 @@ jobs:
           toolchain: stable
           default: true
           components: rust-src
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
 
       - name: Check Template
         run: >-
