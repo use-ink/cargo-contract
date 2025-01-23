@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+### Changed
+- Use ink! release version in new contract template - [1896](https://github.com/use-ink/cargo-contract/pull/1896)
+
 ## [5.0.2]
 
 ### Changed
