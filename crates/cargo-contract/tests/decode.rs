@@ -16,7 +16,6 @@
 
 use std::{
     path::Path,
-    time::Duration,
 };
 
 /// Create a `cargo contract` command
@@ -28,7 +27,6 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
 
 #[test]
 fn decode_works() {
-    eprintln!("decode_works");
     // given
     let contract = r#"
         #![cfg_attr(not(feature = "std"), no_std, no_main)]
@@ -58,13 +56,11 @@ fn decode_works() {
 			}
 		}"#;
 
-    eprintln!("Creating new tempfile");
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
         .tempdir()
         .expect("temporary directory creation failed");
 
-    eprintln!("Creating contract in {:?}", tmp_dir);
     // cargo contract new decode_test
     cargo_contract(tmp_dir.path())
         .arg("new")

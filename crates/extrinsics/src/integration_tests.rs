@@ -194,8 +194,6 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--target")
-        .arg("riscv")
         .assert()
         .success();
 
@@ -341,8 +339,6 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--target")
-        .arg("riscv")
         .assert()
         .success();
 
@@ -466,8 +462,6 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--target")
-        .arg("riscv")
         .assert()
         .success();
 
@@ -600,8 +594,6 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--target")
-        .arg("riscv")
         .assert()
         .success();
 
@@ -624,6 +616,9 @@ async fn api_build_upload_remove() {
             .await
             .unwrap();
     let upload_result = upload.upload_code().await;
+    if let Err(e) = upload_result {
+        eprintln!("upload result {:?}", e);
+    }
     assert!(upload_result.is_ok(), "upload code failed");
     let upload_result = upload_result.unwrap();
     let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
@@ -718,8 +713,6 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--target")
-        .arg("riscv")
         .assert()
         .success();
 

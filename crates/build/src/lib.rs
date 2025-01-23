@@ -1019,6 +1019,7 @@ mod unit_tests {
     #[test]
     fn build_result_seralization_sanity_check() {
         // given
+        // todo rename fields
         let raw_result = r#"{
   "dest_wasm": "/path/to/contract.polkavm",
   "metadata_result": {
@@ -1026,7 +1027,7 @@ mod unit_tests {
     "dest_bundle": "/path/to/contract.contract"
   },
   "target_directory": "/path/to/target",
-  "optimization_result": {
+  "linker_size_result": {
     "original_size": 64.0,
     "optimized_size": 32.0
   },
