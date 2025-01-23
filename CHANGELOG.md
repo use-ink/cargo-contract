@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+### Added
+- Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
+
 ### Changed
 - Use ink! release version in new contract template - [1896](https://github.com/use-ink/cargo-contract/pull/1896)
 
