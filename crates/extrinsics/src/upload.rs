@@ -147,6 +147,7 @@ where
 
         let call = UploadCode::new(
             self.code.clone(),
+            // todo maybe we can remove the option altogether?
             storage_deposit_limit.expect("no storage deposit limit available"),
         )
         .build();

@@ -59,7 +59,7 @@ where
 {
     /// Returns a clean builder for [`ExtrinsicOpts`].
     pub fn new(signer: Signer) -> ExtrinsicOptsBuilder<C, E, Signer> {
-        let storage_deposit_limit = 10000000000u128.encode();
+        let storage_deposit_limit = 1_000_000_000_000u128.encode();
         let storage_deposit_limit: E::Balance =
             crate::Decode::decode(&mut &storage_deposit_limit[..]).unwrap();
         ExtrinsicOptsBuilder {

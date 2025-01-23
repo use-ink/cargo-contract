@@ -24,6 +24,15 @@ use std::path::{
 };
 use tempfile::TempDir;
 
+/// todo
+fn project_path(path: PathBuf) -> PathBuf {
+    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
+        PathBuf::from(foo)
+    } else {
+        path
+    }
+}
+
 /// Create a `cargo contract` command
 fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
     let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -90,7 +99,8 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
         .assert()
         .success();
 
-    let bundle_path = project_dir.join("target/ink/incrementer.contract");
+    let target_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
+    let bundle_path = target_dir.join("target/ink/incrementer.contract");
     let bundle = std::fs::read(bundle_path)
         .expect("Failed to read the content of the contract bundle!");
 

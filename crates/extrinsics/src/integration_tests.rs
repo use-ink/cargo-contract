@@ -32,7 +32,10 @@ use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
-    path::Path,
+    path::{
+        Path,
+        PathBuf,
+    },
     process,
     str,
     thread,
@@ -334,7 +337,7 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    let mut project_path = tmp_dir.path().to_path_buf();
+    let mut project_path = project_path(tmp_dir.path().to_path_buf());
     project_path.push("flipper");
 
     cargo_contract(project_path.as_path())
@@ -457,7 +460,8 @@ async fn api_build_upload_instantiate_call() {
         .assert()
         .success();
 
-    let mut project_path = tmp_dir.path().to_path_buf();
+    let mut project_path =
+        crate::integration_tests::project_path(tmp_dir.path().to_path_buf());
     project_path.push("flipper");
 
     cargo_contract(project_path.as_path())
@@ -591,7 +595,7 @@ async fn api_build_upload_remove() {
         .assert()
         .success();
 
-    let mut project_path = tmp_dir.path().to_path_buf();
+    let mut project_path = project_path(tmp_dir.path().to_path_buf());
     project_path.push("incrementer");
 
     cargo_contract(project_path.as_path())
@@ -618,13 +622,10 @@ async fn api_build_upload_remove() {
             .await
             .unwrap();
     let upload_result = upload.upload_code().await;
-    if let Err(e) = upload_result {
-        panic!("upload code failed with {:?}", e);
-    }
-    let upload_result = upload_result.unwrap();
+    let upload_result = upload_result.unwrap_or_else(|err| {
+        panic!("upload code failed with {:?}", err);
+    });
     let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
-    let code_hash = hex::encode(code_hash_h256);
-    assert_eq!(64, code_hash.len(), "{code_hash:?}");
 
     // remove the contract
     let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
@@ -634,11 +635,20 @@ async fn api_build_upload_remove() {
             .await
             .unwrap();
     let remove_result = remove.remove_code().await;
-    assert!(remove_result.is_ok(), "remove code failed");
-    remove_result.unwrap();
+    remove_result.unwrap_or_else(|err| {
+        panic!("upload code failed with {:?}", err);
+    });
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
+}
+
+fn project_path(path: PathBuf) -> PathBuf {
+    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
+        PathBuf::from(foo)
+    } else {
+        path
+    }
 }
 
 /// Sanity test the RPC API

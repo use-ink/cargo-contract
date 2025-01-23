@@ -139,17 +139,15 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeRemoved<Hash, AccountId, Balance> {
-    pub code_hash: Hash,
+pub struct CodeRemoved<Balance> {
+    pub code_hash: H256,
     pub deposit_released: Balance,
-    pub remover: AccountId,
+    pub remover: H160,
 }
 
-impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, AccountId, Balance>
+impl<Balance> StaticEvent for CodeRemoved<Balance>
 where
-    Hash: IntoVisitor,
     Balance: IntoVisitor,
-    AccountId: IntoVisitor,
 {
     const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "CodeRemoved";

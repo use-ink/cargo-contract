@@ -118,7 +118,6 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     manifest_path: &ManifestPath,
 ) -> Result<()> {
     // given
-    let project_dir = manifest_path.directory().expect("directory must exist");
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
@@ -130,6 +129,12 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     super::execute(args).expect("build failed");
 
     // then
+    let project_dir = project_path(
+        manifest_path
+            .directory()
+            .expect("directory must exist")
+            .to_path_buf(),
+    );
     assert!(
         !project_dir.join("target/ink/new_project.contract").exists(),
         "found contract artifact in project directory!"
@@ -683,4 +688,12 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn project_path(path: PathBuf) -> PathBuf {
+    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
+        PathBuf::from(foo)
+    } else {
+        path
+    }
 }
