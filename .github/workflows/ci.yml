@@ -114,28 +114,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clippy with features
-        uses: actions-rs/clippy-check@v1
         if: ${{ steps.check_permissions.outputs.has-permission }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --all-targets -- -D warnings
+        run: cargo +nightly clippy --all-features --all-targets -- -D warnings
 
       - name: Clippy without features
         if: ${{ steps.check_permissions.outputs.has-permission }}
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets -- -D warnings
+        run: cargo +nightly clippy --all-targets -- -D warnings
 
         # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
       - name: Clippy with features (no annotations)
         if: ${{ !steps.check_permissions.outputs.has-permission }}
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: cargo +nightly clippy --all-features --all-targets -- -D warnings
 
         # Runs if the GITHUB_TOKEN does not have `write` permissions e.g. @dependabot
       - name: Clippy without features (no annotations)
         if: ${{ !steps.check_permissions.outputs.has-permission }}
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo +nightly clippy --all-targets -- -D warnings
 
   build-tests:
     runs-on: ubuntu-latest

@@ -617,9 +617,8 @@ async fn api_build_upload_remove() {
             .unwrap();
     let upload_result = upload.upload_code().await;
     if let Err(e) = upload_result {
-        eprintln!("upload result {:?}", e);
+        panic!("upload code failed with {:?}", e);
     }
-    assert!(upload_result.is_ok(), "upload code failed");
     let upload_result = upload_result.unwrap();
     let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
     let code_hash = hex::encode(code_hash_h256);
