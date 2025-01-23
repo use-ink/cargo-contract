@@ -18,7 +18,7 @@ use super::{
     ContractMessageTranscoder,
     ContractMetadata,
     CrateMetadata,
-    WasmCode,
+    PolkavmCode,
 };
 use anyhow::{
     Context,
@@ -41,7 +41,7 @@ pub struct ContractArtifacts {
     /// The deserialized contract metadata if the expected metadata file exists.
     metadata: Option<ContractMetadata>,
     /// The Wasm code of the contract if available.
-    pub code: Option<WasmCode>,
+    pub code: Option<PolkavmCode>,
 }
 
 impl ContractArtifacts {
@@ -72,6 +72,7 @@ impl ContractArtifacts {
         };
         Self::from_artifact_path(artifact_path.as_path())
     }
+
     /// Given a contract artifact path, load the contract code and metadata where
     /// possible.
     fn from_artifact_path(path: &Path) -> Result<Self> {
@@ -80,15 +81,15 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
+                    let code = metadata.clone().source.wasm.map(|wasm| PolkavmCode(wasm.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
-                Some("wasm") => {
+                Some("polkavm") => {
                     let file_name = path.file_stem()
-                        .context("WASM bundle file has unreadable name")?
+                        .context("PolkaVM bundle file has unreadable name")?
                         .to_str()
                         .context("Error parsing filename string")?;
-                    let code = Some(WasmCode(std::fs::read(path)?));
+                    let code = Some(PolkavmCode(std::fs::read(path)?));
                     let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
                     let metadata_path = dir.join(format!("{file_name}.json"));
                     if !metadata_path.exists() {
@@ -99,11 +100,11 @@ impl ContractArtifacts {
                     }
                 }
                 Some(ext) => anyhow::bail!(
-                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.wasm`"
+                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.polkavm`"
                 ),
                 None => {
                     anyhow::bail!(
-                        "Artifact path has no extension, expected `.contract`, `.json`, or `.wasm`"
+                        "Artifact path has no extension, expected `.contract`, `.json`, or `.polkavm`"
                     )
                 }
             };

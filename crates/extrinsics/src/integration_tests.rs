@@ -484,7 +484,9 @@ async fn api_build_upload_instantiate_call() {
             .await
             .unwrap();
     let upload_result = upload.upload_code().await;
-    assert!(upload_result.is_ok(), "upload code failed");
+    if let Err(e) = upload_result {
+        panic!("upload code failed with {:?}", e);
+    }
     upload_result.unwrap();
 
     // instantiate the contract

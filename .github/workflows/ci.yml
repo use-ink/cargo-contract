@@ -15,8 +15,6 @@ env:
     # Image can be edited at https://github.com/use-ink/docker-images
     IMAGE:                           useink/ci
     CARGO_TARGET_DIR:                /ci-cache/${{ github.repository }}/targets/${{ github.ref_name }}/${{ github.job }}
-    CARGO_INCREMENTAL:               0
-    RUST_BACKTRACE: full
 
 concurrency:
     # Cancel in-progress jobs triggered only on pull_requests

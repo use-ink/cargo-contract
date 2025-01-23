@@ -128,11 +128,11 @@ pub use rpc::{
     RpcRequest,
 };
 
-/// The Wasm code of a contract.
+/// The PolkaVM code of a contract.
 #[derive(Debug, Clone)]
-pub struct WasmCode(Vec<u8>);
+pub struct PolkavmCode(Vec<u8>);
 
-impl WasmCode {
+impl PolkavmCode {
     /// The hash of the contract code: uniquely identifies the contract code on-chain.
     pub fn code_hash(&self) -> [u8; 32] {
         contract_build::code_hash(&self.0)
@@ -149,8 +149,8 @@ impl WasmCode {
 ///
 /// # Finality
 ///
-/// Currently this will report success once the transaction is included in a block. In the
-/// future there could be a flag to wait for finality before reporting success.
+/// Currently, this will report success once the transaction is included in a block. In
+/// the future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<C, Call, Signer>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,

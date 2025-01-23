@@ -20,7 +20,7 @@ use super::{
     state_call,
     submit_extrinsic,
     ErrorVariant,
-    WasmCode,
+    PolkavmCode,
 };
 use crate::{
     check_env_types,
@@ -107,7 +107,7 @@ pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
-    code: WasmCode,
+    code: PolkavmCode,
     transcoder: ContractMessageTranscoder,
 }
 
@@ -175,7 +175,7 @@ where
     }
 
     /// Returns the code.
-    pub fn code(&self) -> &WasmCode {
+    pub fn code(&self) -> &PolkavmCode {
         &self.code
     }
 
