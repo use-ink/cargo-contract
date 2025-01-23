@@ -54,7 +54,7 @@ uzers = "0.12"
 [build-dependencies]
 anyhow = "1.0.95"
 walkdir = "2.5.0"
-zip = { version = "2.2.1", default-features = false }
+zip = { version = "2.2.2", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
