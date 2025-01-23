@@ -47,10 +47,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --check
+        run: |
+          cargo +nightly fmt --all -- --check
 
   # Runs `cargo check` on each individual crate in the `crates` directory.
   #
