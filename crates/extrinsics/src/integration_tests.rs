@@ -460,10 +460,10 @@ async fn api_build_upload_instantiate_call() {
         .assert()
         .success();
 
-    let mut project_path = project_path(tmp_dir.path().to_path_buf());
-    project_path.push("flipper");
+    let mut project_dir = tmp_dir.path().to_path_buf();
+    project_dir.push("flipper");
 
-    cargo_contract(project_path.as_path())
+    cargo_contract(project_dir.as_path())
         .arg("build")
         .assert()
         .success();
@@ -473,7 +473,7 @@ async fn api_build_upload_instantiate_call() {
         .expect("Error spawning contracts node");
 
     // construct the contract file path
-    let contract_file = project_path.join("target/ink/flipper.contract");
+    let contract_file = project_path(project_dir).join("target/ink/flipper.contract");
 
     // upload the contract
     let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();

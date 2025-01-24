@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use contract_build::project_path;
 use std::path::Path;
 
 /// Create a `cargo contract` command
@@ -72,7 +71,7 @@ fn encode_works() {
         .assert()
         .success();
 
-    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
+    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");

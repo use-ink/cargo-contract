@@ -79,7 +79,7 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
         .assert()
         .success();
 
-    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
+    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -150,7 +150,7 @@ fn verify_equivalent_contracts() {
         .assert()
         .success();
 
-    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
+    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -235,7 +235,7 @@ fn verify_different_contracts() {
         .assert()
         .success();
 
-    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
+    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -390,7 +390,7 @@ fn create_and_compile_minimal_contract(
         .arg("minimal")
         .assert()
         .success();
-    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("minimal");
+    let project_dir = tmp_dir.path().to_path_buf().join("minimal");
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
@@ -401,7 +401,8 @@ fn create_and_compile_minimal_contract(
         .assert()
         .success();
 
-    let bundle_path = project_dir.join("target/ink/minimal.contract");
+    let bundle_path =
+        project_path(project_dir.clone()).join("target/ink/minimal.contract");
     let bundle = std::fs::read(&bundle_path).unwrap_or_else(|err| {
         panic!(
             "Failed to read the content of the contract bundle at {:?}: {:?}",
