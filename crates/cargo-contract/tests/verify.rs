@@ -91,16 +91,16 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
         .assert()
         .success();
 
-    let target_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
-    let bundle_path = target_dir.join("target/ink/incrementer.contract");
+    let target_dir = project_path(project_dir.join("target"));
+    let bundle_path = target_dir.join("ink/incrementer.contract");
     let bundle = std::fs::read(bundle_path)
         .expect("Failed to read the content of the contract bundle!");
 
-    let wasm_path = project_dir.join("target/ink/incrementer.polkavm");
-    let wasm = std::fs::read(wasm_path)
+    let polkavm_path = target_dir.join("ink/incrementer.polkavm");
+    let blob = std::fs::read(polkavm_path)
         .expect("Failed to read the content of the contract binary!");
 
-    (bundle, wasm)
+    (bundle, blob)
 }
 
 #[test]
@@ -402,7 +402,7 @@ fn create_and_compile_minimal_contract(
         .success();
 
     let bundle_path =
-        project_path(project_dir.clone()).join("target/ink/minimal.contract");
+        project_path(project_dir.clone().join("target")).join("ink/minimal.contract");
     let bundle = std::fs::read(&bundle_path).unwrap_or_else(|err| {
         panic!(
             "Failed to read the content of the contract bundle at {:?}: {:?}",

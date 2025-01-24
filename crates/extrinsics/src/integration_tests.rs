@@ -337,10 +337,10 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    let mut project_path = project_path(tmp_dir.path().to_path_buf());
-    project_path.push("flipper");
+    let mut project_dir = project_path(tmp_dir.path().to_path_buf());
+    project_dir.push("flipper");
 
-    cargo_contract(project_path.as_path())
+    cargo_contract(project_dir.as_path())
         .arg("build")
         .assert()
         .success();
@@ -349,7 +349,7 @@ async fn build_upload_instantiate_info() {
         .await
         .expect("Error spawning contracts node");
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
         .arg("-x")
@@ -358,7 +358,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
         .args(["--args", "true"])
@@ -373,7 +373,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .output()
@@ -381,7 +381,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "getting info failed: {stderr}");
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -393,7 +393,7 @@ async fn build_upload_instantiate_info() {
         "getting info as JSON format failed: {stderr}"
     );
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--binary")
@@ -406,12 +406,13 @@ async fn build_upload_instantiate_info() {
     );
 
     // construct the contract file path
-    let contract_wasm = project_path.join("target/ink/flipper.polkavm");
+    let contract_bytecode =
+        project_path(project_dir.join("target")).join("ink/flipper.polkavm");
 
-    let code = std::fs::read(contract_wasm).expect("contract Wasm file not found");
+    let code = std::fs::read(contract_bytecode).expect("contract Wasm file not found");
     assert_eq!(code_hash(&code), code_hash(&output.stdout));
 
-    cargo_contract(project_path.as_path())
+    cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
@@ -419,7 +420,7 @@ async fn build_upload_instantiate_info() {
         .assert()
         .stdout(predicate::str::contains(r#""wasm": "0x"#));
 
-    let output = cargo_contract(project_path.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .arg("--all")
         .output()
@@ -473,7 +474,8 @@ async fn api_build_upload_instantiate_call() {
         .expect("Error spawning contracts node");
 
     // construct the contract file path
-    let contract_file = project_path(project_dir).join("target/ink/flipper.contract");
+    let contract_file =
+        project_path(project_dir.join("target")).join("ink/flipper.contract");
 
     // upload the contract
     let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();
@@ -594,10 +596,10 @@ async fn api_build_upload_remove() {
         .assert()
         .success();
 
-    let mut project_path = project_path(tmp_dir.path().to_path_buf());
-    project_path.push("incrementer");
+    let mut project_dir = project_path(tmp_dir.path().to_path_buf());
+    project_dir.push("incrementer");
 
-    cargo_contract(project_path.as_path())
+    cargo_contract(project_dir.as_path())
         .arg("build")
         .assert()
         .success();
@@ -607,7 +609,8 @@ async fn api_build_upload_remove() {
         .expect("Error spawning contracts node");
 
     // construct the contract file path
-    let contract_file = project_path.join("target/ink/incrementer.contract");
+    let contract_file =
+        project_path(project_dir.join("target")).join("ink/incrementer.contract");
 
     // upload the contract
     let uri = <SecretUri as std::str::FromStr>::from_str("//Alice").unwrap();

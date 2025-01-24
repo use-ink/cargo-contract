@@ -137,11 +137,15 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
             .to_path_buf(),
     );
     assert!(
-        !project_dir.join("target/ink/new_project.contract").exists(),
+        !project_path(project_dir.join("target"))
+            .join("ink/new_project.contract")
+            .exists(),
         "found contract artifact in project directory!"
     );
     assert!(
-        !project_dir.join("target/ink/new_project.polkavm").exists(),
+        !project_path(project_dir.join("target"))
+            .join("ink/new_project.polkavm")
+            .exists(),
         "found wasm artifact in project directory!"
     );
     Ok(())
