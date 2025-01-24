@@ -30,6 +30,8 @@ pub mod metadata;
 mod new;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub use tests::project_path;
 pub mod util;
 mod validate_bytecode;
 mod workspace;

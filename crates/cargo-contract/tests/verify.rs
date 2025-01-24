@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use contract_build::project_path;
 use serde_json::{
     Map,
     Value,
@@ -23,15 +24,6 @@ use std::path::{
     PathBuf,
 };
 use tempfile::TempDir;
-
-/// todo
-fn project_path(path: PathBuf) -> PathBuf {
-    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
-        PathBuf::from(foo)
-    } else {
-        path
-    }
-}
 
 /// Create a `cargo contract` command
 fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
@@ -87,7 +79,7 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
         .assert()
         .success();
 
-    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
+    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -158,7 +150,7 @@ fn verify_equivalent_contracts() {
         .assert()
         .success();
 
-    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
+    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -243,7 +235,7 @@ fn verify_different_contracts() {
         .assert()
         .success();
 
-    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
+    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
@@ -398,7 +390,7 @@ fn create_and_compile_minimal_contract(
         .arg("minimal")
         .assert()
         .success();
-    let project_dir = tmp_dir.path().to_path_buf().join("minimal");
+    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("minimal");
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
@@ -410,8 +402,12 @@ fn create_and_compile_minimal_contract(
         .success();
 
     let bundle_path = project_dir.join("target/ink/minimal.contract");
-    let bundle = std::fs::read(bundle_path)
-        .expect("Failed to read the content of the contract bundle!");
+    let bundle = std::fs::read(bundle_path).unwrap_or_else(|err| {
+        panic!(
+            "Failed to read the content of the contract bundle at {:?}: {:?}",
+            bundle_path, err
+        );
+    });
     let metadata_json: Map<String, Value> = serde_json::from_slice(&bundle).unwrap();
 
     (project_dir, metadata_json)

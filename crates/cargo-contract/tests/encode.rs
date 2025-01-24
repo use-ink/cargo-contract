@@ -71,7 +71,7 @@ fn encode_works() {
         .assert()
         .success();
 
-    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
+    let project_dir = project_path(tmp_dir.path().to_path_buf()).join("incrementer");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");

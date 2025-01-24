@@ -27,7 +27,10 @@ use crate::{
     UploadExec,
 };
 use anyhow::Result;
-use contract_build::code_hash;
+use contract_build::{
+    code_hash,
+    project_path,
+};
 use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
@@ -460,8 +463,7 @@ async fn api_build_upload_instantiate_call() {
         .assert()
         .success();
 
-    let mut project_path =
-        crate::integration_tests::project_path(tmp_dir.path().to_path_buf());
+    let mut project_path = project_path(tmp_dir.path().to_path_buf());
     project_path.push("flipper");
 
     cargo_contract(project_path.as_path())
@@ -641,14 +643,6 @@ async fn api_build_upload_remove() {
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
-}
-
-fn project_path(path: PathBuf) -> PathBuf {
-    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
-        PathBuf::from(foo)
-    } else {
-        path
-    }
 }
 
 /// Sanity test the RPC API

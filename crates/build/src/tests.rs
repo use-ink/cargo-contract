@@ -690,9 +690,10 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
     Ok(())
 }
 
-fn project_path(path: PathBuf) -> PathBuf {
-    if let Ok(foo) = std::env::var("CARGO_TARGET_DIR") {
-        PathBuf::from(foo)
+/// todo
+pub fn project_path(path: PathBuf) -> PathBuf {
+    if let Ok(cargo_target_dir) = std::env::var("CARGO_TARGET_DIR") {
+        PathBuf::from(cargo_target_dir)
     } else {
         path
     }
