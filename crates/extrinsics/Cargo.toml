@@ -1,6 +1,6 @@
 [package]
 name = "contract-extrinsics"
-version = "5.0.2"
+version = "5.0.3"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 rust-version = "1.70"
@@ -15,9 +15,9 @@ keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
 include = ["Cargo.toml", "*.rs", "LICENSE",]
 
 [dependencies]
-contract-build = { version = "5.0.2", path = "../build" }
-contract-metadata = { version = "5.0.2", path = "../metadata" }
-contract-transcode = { version = "5.0.2", path = "../transcode" }
+contract-build = { version = "5.0.3", path = "../build" }
+contract-metadata = { version = "5.0.3", path = "../metadata" }
+contract-transcode = { version = "5.0.3", path = "../transcode" }
 
 anyhow = "1.0.94"
 blake2 = { version = "0.10.6", default-features = false }
