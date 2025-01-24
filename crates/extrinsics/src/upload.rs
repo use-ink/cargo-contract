@@ -154,7 +154,6 @@ where
 
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
-
         eprintln!("events: {:?}", events);
 
         let code_stored = events.find_first::<CodeStored<E::Balance>>()?;

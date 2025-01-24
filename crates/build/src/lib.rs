@@ -877,11 +877,6 @@ fn local_build(
     }
     let orig = fs::read(&crate_metadata.original_code)?;
 
-    //let section =
-    // polkavm_linker::Elf::<object::elf::FileHeader32<object::endian::LittleEndian>>::parse(data)
-    // { let section = polkavm_linker::Elf::parse(orig.as_ref());
-    //eprintln!("section {:?}", section);
-
     let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
         Ok(linked) => linked,
         Err(err) => {

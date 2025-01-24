@@ -266,7 +266,6 @@ impl CustomTypeDecoder for U256 {
 
 impl CustomTypeEncoder for U256 {
     fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
-        eprintln!("value {:?}", value);
         let u256 = match value {
             Value::Literal(literal) => {
                 primitive_types::U256::from_str(literal).map_err(|e| {

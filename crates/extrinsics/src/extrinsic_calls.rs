@@ -20,7 +20,10 @@ use subxt::{
         codec::Compact,
         scale_encode::EncodeAsType,
     },
-    utils::H160,
+    utils::{
+        H160,
+        H256,
+    },
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
@@ -132,29 +135,22 @@ impl<Balance> InstantiateWithCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate<Hash, Balance>
-where
-    Hash: EncodeAsType,
-{
+pub(crate) struct Instantiate<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
     storage_deposit_limit: Option<Compact<Balance>>,
-    // todo H256
-    code_hash: Hash,
+    code_hash: H256,
     data: Vec<u8>,
     salt: Option<[u8; 32]>,
 }
 
-impl<Hash, Balance> Instantiate<Hash, Balance>
-where
-    Hash: EncodeAsType,
-{
+impl<Balance> Instantiate<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
         storage_deposit_limit: Option<Balance>,
-        code_hash: Hash,
+        code_hash: H256,
         data: Vec<u8>,
         salt: Option<[u8; 32]>,
     ) -> Self {

@@ -73,7 +73,6 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
-    utils::H160,
     Config,
 };
 
@@ -325,7 +324,7 @@ where
 /// events, and optional code hash.
 pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
-    instantiate_exec_result: InstantiateExecResult<C, H160>,
+    instantiate_exec_result: InstantiateExecResult<C>,
     token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,

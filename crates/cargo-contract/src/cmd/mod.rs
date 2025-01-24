@@ -92,9 +92,12 @@ use std::{
     },
     str::FromStr,
 };
-use subxt::config::{
-    DefaultExtrinsicParams,
-    ExtrinsicParams,
+use subxt::{
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
+    tx::Signer,
 };
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
@@ -319,6 +322,7 @@ where
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
+    let account_id = extrinsic_opts.signer().account_id();
     let map_exec: MapAccountExec<C, C, _> =
         MapAccountCommandBuilder::new(extrinsic_opts).done().await?;
     let result = map_exec.map_account_dry_run().await;
@@ -328,7 +332,12 @@ where
         });
         if reply.is_ok() {
             let res = map_exec.map_account().await?;
-            eprintln!("mapping res {:?}", res.address);
+            println!(
+                "Account {:?} was mapped to address {:?}",
+                account_id, res.address
+            );
+            // name_value_println!("Account {:?} was mapped to address", format!("{:?}",
+            // result.gas_required), WIDTH);
         }
     }
     Ok(())

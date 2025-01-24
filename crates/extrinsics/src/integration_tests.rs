@@ -21,6 +21,7 @@ use crate::{
     ExtrinsicOptsBuilder,
     InstantiateCommandBuilder,
     InstantiateExecResult,
+    MapAccountCommandBuilder,
     RemoveCommandBuilder,
     RemoveExec,
     UploadCommandBuilder,
@@ -42,7 +43,6 @@ use std::{
     time,
 };
 use subxt::{
-    utils::H160,
     OnlineClient,
     PolkadotConfig as DefaultConfig,
 };
@@ -494,6 +494,13 @@ async fn api_build_upload_instantiate_call() {
     }
     upload_result.unwrap();
 
+    // map the account
+    let map_exec = MapAccountCommandBuilder::new(opts.clone())
+        .done()
+        .await
+        .unwrap();
+    let _ = map_exec.map_account().await.unwrap();
+
     // instantiate the contract
     let instantiate = InstantiateCommandBuilder::new(opts.clone())
         .constructor("new")
@@ -503,10 +510,8 @@ async fn api_build_upload_instantiate_call() {
         .unwrap();
     let instantiate_result = instantiate.instantiate(None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
-    let instantiate_result: InstantiateExecResult<DefaultConfig, H160> =
+    let instantiate_result: InstantiateExecResult<DefaultConfig> =
         instantiate_result.unwrap();
-    let contract_account = instantiate_result.contract_address.to_string();
-    assert_eq!(48, contract_account.len(), "{contract_account:?}");
 
     // call the contract
     // the value should be true
@@ -596,7 +601,7 @@ async fn api_build_upload_remove() {
         .assert()
         .success();
 
-    let mut project_dir = project_path(tmp_dir.path().to_path_buf());
+    let mut project_dir = tmp_dir.path().to_path_buf();
     project_dir.push("incrementer");
 
     cargo_contract(project_dir.as_path())

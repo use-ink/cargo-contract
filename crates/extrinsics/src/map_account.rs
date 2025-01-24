@@ -146,19 +146,13 @@ where
         let res =
             dry_run_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
         match res {
-            DryRunResult::Success => {
-                eprintln!("success");
-                Ok(())
-            }
+            DryRunResult::Success => Ok(()),
             DryRunResult::DispatchError(err) => {
-                eprintln!("dispatch error {:?}", err);
-                Err(anyhow::format_err!("not validated"))
+                Err(anyhow::format_err!("dispatch error: {:?}", err))
             }
             DryRunResult::TransactionValidityError => {
-                eprintln!("validity error");
-                //Err(anyhow::format_err!("validity err"))
-
                 // todo seems like an external bug: https://github.com/paritytech/polkadot-sdk/issues/7305
+                // Err(anyhow::format_err!("validity err"))
                 Ok(())
             }
         }

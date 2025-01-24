@@ -238,17 +238,12 @@ where
     let account_id = Signer::account_id(signer);
     let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
 
-    eprintln!("account id {:?}", account_id);
-    eprintln!("account nonce {:?}", account_nonce);
-
     let params = DefaultExtrinsicParamsBuilder::new()
         .nonce(account_nonce)
         .build();
     let extrinsic = client
         .tx()
         .create_signed_offline(call, signer, params.into())?;
-    //let foo = extrinsic.encoded();
-    //eprintln!("hex: {}", hex::encode(foo));
     let bytes = rpc.dry_run(extrinsic.encoded(), None).await?;
     bytes.into_dry_run_result(&client.metadata())
 }

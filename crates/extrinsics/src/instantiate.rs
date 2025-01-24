@@ -204,19 +204,19 @@ where
     }
 }
 
-pub struct InstantiateArgs<C: Config, E: Environment> {
+pub struct InstantiateArgs<E: Environment> {
     constructor: String,
     raw_args: Vec<String>,
     value: E::Balance,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     storage_deposit_limit: Option<E::Balance>,
-    code: Code<C::Hash>,
+    code: Code,
     data: Vec<u8>,
     salt: Option<[u8; 32]>,
 }
 
-impl<C: Config, E: Environment> InstantiateArgs<C, E> {
+impl<E: Environment> InstantiateArgs<E> {
     /// Returns the constructor name.
     pub fn constructor(&self) -> &str {
         &self.constructor
@@ -247,7 +247,7 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
         self.storage_deposit_limit.map(Into::into)
     }
 
-    pub fn code(&self) -> &Code<C::Hash> {
+    pub fn code(&self) -> &Code {
         &self.code
     }
 
@@ -264,7 +264,7 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
 
 pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
-    args: InstantiateArgs<C, E>,
+    args: InstantiateArgs<E>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
@@ -347,7 +347,7 @@ where
         &self,
         code: Vec<u8>,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
@@ -382,10 +382,10 @@ where
 
     async fn instantiate_with_code_hash(
         &self,
-        code_hash: C::Hash,
+        code_hash: H256,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
-        let call = Instantiate::<C::Hash, E::Balance>::new(
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+        let call = Instantiate::<E::Balance>::new(
             self.args.value,
             gas_limit,
             self.args.storage_deposit_limit,
@@ -422,15 +422,20 @@ where
     pub async fn instantiate(
         &self,
         gas_limit: Option<Weight>,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
+        eprintln!("inside");
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
             None => self.estimate_gas().await?,
         };
         match self.args.code.clone() {
-            Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
+            Code::Upload(code) => {
+                eprintln!("upload");
+                self.instantiate_with_code(code, gas_limit).await
+            }
             Code::Existing(code_hash) => {
+                eprintln!("existing");
                 self.instantiate_with_code_hash(code_hash, gas_limit).await
             }
         }
@@ -468,6 +473,10 @@ where
                             err,
                             &self.client.metadata(),
                         )?;
+                        tracing::info!(
+                            "Pre-submission dry-run failed. Error: {}",
+                            object
+                        );
                         Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
                     }
                 }
@@ -481,7 +490,7 @@ where
     }
 
     /// Returns the instantiate arguments.
-    pub fn args(&self) -> &InstantiateArgs<C, E> {
+    pub fn args(&self) -> &InstantiateArgs<E> {
         &self.args
     }
 
@@ -497,11 +506,10 @@ where
 }
 
 /// A struct representing the result of an instantiate command execution.
-pub struct InstantiateExecResult<C: Config, AccountId> {
+pub struct InstantiateExecResult<C: Config> {
     pub events: ExtrinsicEvents<C>,
     pub code_hash: Option<H256>,
-    // todo shouldn't this be H160
-    pub contract_address: AccountId,
+    pub contract_address: H160,
 }
 
 /// Result of the contract call
@@ -533,19 +541,16 @@ struct InstantiateRequest<C: Config, E: Environment> {
     value: E::Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<E::Balance>,
-    code: Code<C::Hash>,
+    code: Code,
     data: Vec<u8>,
     salt: Option<[u8; 32]>,
 }
 
 /// Reference to an existing code hash or a new Wasm module.
 #[derive(Clone, Encode)]
-pub enum Code<Hash>
-where
-    Hash: Clone,
-{
+pub enum Code {
     /// A Wasm module as raw bytes.
     Upload(Vec<u8>),
     /// The code hash of an on-chain Wasm blob.
-    Existing(Hash),
+    Existing(H256),
 }

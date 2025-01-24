@@ -209,10 +209,6 @@ fn exec(cmd: Command) -> Result<()> {
             })
         }
         Command::Instantiate(instantiate) => {
-            // todo
-            // check if mapping exist
-            //eprintln!("does mapping exist?");
-
             runtime.block_on(async {
                 instantiate
                     .handle()

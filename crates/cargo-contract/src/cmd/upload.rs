@@ -126,7 +126,6 @@ impl UploadCommand {
         if !self.extrinsic_cli_opts.execute {
             match upload_exec.upload_code_rpc().await? {
                 Ok(result) => {
-                    eprintln!("result {:?}", result);
                     let upload_result = UploadDryRunResult {
                         result: String::from("Success!"),
                         code_hash: format!("{:?}", result.code_hash),
@@ -140,7 +139,6 @@ impl UploadCommand {
                     }
                 }
                 Err(err) => {
-                    eprintln!("err {:?}", err);
                     let err = ErrorVariant::from_dispatch_error(&err, &metadata)?;
                     if self.output_json() {
                         return Err(err)
