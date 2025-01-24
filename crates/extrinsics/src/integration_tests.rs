@@ -35,10 +35,7 @@ use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use std::{
     ffi::OsStr,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::Path,
     process,
     str,
     thread,

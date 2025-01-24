@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    project_path,
     util::tests::TestContractManifest,
     BuildArtifacts,
     BuildMode,
@@ -688,13 +689,4 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
         }
     }
     Ok(())
-}
-
-/// todo
-pub fn project_path(path: PathBuf) -> PathBuf {
-    if let Ok(cargo_target_dir) = std::env::var("CARGO_TARGET_DIR") {
-        PathBuf::from(cargo_target_dir)
-    } else {
-        path
-    }
 }

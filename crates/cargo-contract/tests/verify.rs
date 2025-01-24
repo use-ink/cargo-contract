@@ -402,7 +402,7 @@ fn create_and_compile_minimal_contract(
         .success();
 
     let bundle_path = project_dir.join("target/ink/minimal.contract");
-    let bundle = std::fs::read(bundle_path).unwrap_or_else(|err| {
+    let bundle = std::fs::read(&bundle_path).unwrap_or_else(|err| {
         panic!(
             "Failed to read the content of the contract bundle at {:?}: {:?}",
             bundle_path, err

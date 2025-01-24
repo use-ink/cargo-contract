@@ -30,8 +30,6 @@ pub mod metadata;
 mod new;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-pub use tests::project_path;
 pub mod util;
 mod validate_bytecode;
 mod workspace;
@@ -982,6 +980,15 @@ fn blake2_hash(code: &[u8]) -> [u8; 32] {
     blake2.update(code);
     let result = blake2.finalize();
     result.into()
+}
+
+/// todo
+pub fn project_path(path: PathBuf) -> PathBuf {
+    if let Ok(cargo_target_dir) = std::env::var("CARGO_TARGET_DIR") {
+        PathBuf::from(cargo_target_dir)
+    } else {
+        path
+    }
 }
 
 /// Testing individual functions where the build itself is not actually invoked. See
