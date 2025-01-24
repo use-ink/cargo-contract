@@ -24,7 +24,7 @@ contract-transcode = { version = "5.0.1", path = "../transcode" }
 contract-metadata = { version = "5.0.1", path = "../metadata" }
 contract-analyze = { version = "5.0.1", path = "../analyze" }
 
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 clap = { version = "4.5.23", features = ["derive", "env"] }
 primitive-types = { version = "0.13.1", default-features = false, features = ["codec", "scale-info", "serde"] }
 tracing = "0.1.40"
@@ -50,7 +50,7 @@ sp-weights = "31.0.0"
 hex = "0.4.3"
 
 [build-dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
 which = "7.0.1"

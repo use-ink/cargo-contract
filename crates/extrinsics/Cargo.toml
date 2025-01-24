@@ -19,7 +19,7 @@ contract-build = { version = "5.0.1", path = "../build" }
 contract-metadata = { version = "5.0.1", path = "../metadata" }
 contract-transcode = { version = "5.0.1", path = "../transcode" }
 
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.30", default-features = false, features = ["std"] }
 itertools = { version = "0.13", default-features = false }
