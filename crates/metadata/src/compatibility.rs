@@ -179,11 +179,17 @@ mod tests {
         let cargo_contract_version = Some(Version::new(5, 0, 3));
 
         let ink_version = Version::new(5, 1, 1);
-        let res = check_contract_ink_compatibility(&ink_version, cargo_contract_version.clone());
+        let res = check_contract_ink_compatibility(
+            &ink_version,
+            cargo_contract_version.clone(),
+        );
         assert!(res.is_ok());
 
         let ink_version = Version::new(5, 0, 0);
-        let res = check_contract_ink_compatibility(&ink_version, cargo_contract_version.clone());
+        let res = check_contract_ink_compatibility(
+            &ink_version,
+            cargo_contract_version.clone(),
+        );
         assert!(res.is_ok());
 
         let ink_version = Version::new(5, 1, 0);
