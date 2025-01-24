@@ -172,4 +172,28 @@ mod tests {
         let res = check_contract_ink_compatibility(&ink_version, None);
         assert!(res.is_ok());
     }
+
+    #[test]
+    fn check_current_ink_and_cargo_contract_versions() {
+        // Current `cargo-contract` version is 5.0.3
+        let cargo_contract_version = Some(Version::new(5, 0, 3));
+
+        let ink_version = Version::new(5, 1, 1);
+        let res = check_contract_ink_compatibility(
+            &ink_version,
+            cargo_contract_version.clone(),
+        );
+        assert!(res.is_ok());
+
+        let ink_version = Version::new(5, 0, 0);
+        let res = check_contract_ink_compatibility(
+            &ink_version,
+            cargo_contract_version.clone(),
+        );
+        assert!(res.is_ok());
+
+        let ink_version = Version::new(5, 1, 0);
+        let res = check_contract_ink_compatibility(&ink_version, cargo_contract_version);
+        assert!(res.is_ok());
+    }
 }
