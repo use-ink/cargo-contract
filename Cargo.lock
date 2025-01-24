@@ -1577,7 +1577,7 @@ dependencies = [
  "primitive-types 0.13.1",
  "regex",
  "schemars",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
  "serde_json",
  "sp-core 32.0.0",
@@ -1609,7 +1609,7 @@ checksum = "eee4243f1f26fc7a42710e7439c149e2b10b05472f88090acce52632f231a73a"
 dependencies = [
  "camino",
  "cargo-platform",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -1623,7 +1623,7 @@ checksum = "8769706aad5d996120af43197bf46ef6ad0fda35216b4505f926a365a232d924"
 dependencies = [
  "camino",
  "cargo-platform",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
  "serde_json",
  "thiserror 2.0.8",
@@ -1935,7 +1935,7 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
  "serde_json",
  "strum 0.26.3",
@@ -2001,7 +2001,7 @@ dependencies = [
  "anyhow",
  "impl-serde 0.5.0",
  "pretty_assertions",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
  "serde_json",
  "url",
@@ -9225,7 +9225,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
 dependencies = [
- "semver 1.0.24",
+ "semver 1.0.25",
 ]
 
 [[package]]
@@ -9912,9 +9912,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.24"
+version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
+checksum = "f79dfe2d285b0488816f30e700a7438c5a73d816b5b7d3ac72fbc48b0d185e03"
 dependencies = [
  "serde",
 ]
@@ -13058,7 +13058,7 @@ dependencies = [
  "bitflags 2.6.0",
  "hashbrown 0.14.5",
  "indexmap 2.7.0",
- "semver 1.0.24",
+ "semver 1.0.25",
  "serde",
 ]
 
@@ -13070,7 +13070,7 @@ checksum = "9845c470a2e10b61dd42c385839cdd6496363ed63b5c9e420b5488b77bd22083"
 dependencies = [
  "bitflags 2.6.0",
  "indexmap 2.7.0",
- "semver 1.0.24",
+ "semver 1.0.25",
 ]
 
 [[package]]
