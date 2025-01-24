@@ -16,7 +16,7 @@
 
 use super::{
     events::CodeStored,
-    pallet_contracts_primitives::CodeUploadResult,
+    pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
     ErrorVariant,

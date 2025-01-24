@@ -99,12 +99,10 @@ impl EnvTypesTranscoder {
         match self.decoders.get(&type_id) {
             Some(decoder) => {
                 tracing::debug!("Decoding type {:?} with custom decoder", type_id);
-                eprintln!("Decoding type {:?} with custom decoder", type_id);
                 let decoded = decoder.decode_value(input)?;
                 Ok(Some(decoded))
             }
             None => {
-                eprintln!("No custom decoder found for type {:?}", type_id);
                 tracing::debug!("No custom decoder found for type {:?}", type_id);
                 Ok(None)
             }

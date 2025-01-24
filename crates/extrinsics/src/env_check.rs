@@ -23,7 +23,7 @@ fn get_node_env_fields(
     let Some(env_type) = registry.types.iter().find(|t| {
         let len = t.ty.path.segments.len();
         let bound = len.saturating_sub(2);
-        t.ty.path.segments[bound..] == ["pallet_contracts", "Environment"]
+        t.ty.path.segments[bound..] == ["pallet_revive", "Environment"]
     }) else {
         // if we can't find the type, then we use the old contract version.
         verbose_eprintln!(
@@ -212,7 +212,7 @@ mod tests {
     pub struct EnvironmentType<T>(PhantomData<T>);
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
-    #[scale_info(replace_segment("tests", "pallet_contracts"))]
+    #[scale_info(replace_segment("tests", "pallet_revive"))]
     pub struct Environment {
         account_id: EnvironmentType<AccountId>,
         balance: EnvironmentType<Balance>,
@@ -223,7 +223,7 @@ mod tests {
     }
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
-    #[scale_info(replace_segment("tests", "pallet_contracts"))]
+    #[scale_info(replace_segment("tests", "pallet_revive"))]
     #[scale_info(replace_segment("InvalidEnvironment", "Environment"))]
     pub struct InvalidEnvironment {
         account_id: EnvironmentType<AccountId>,

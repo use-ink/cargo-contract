@@ -19,7 +19,7 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
-    pallet_contracts_primitives::{
+    pallet_revive_primitives::{
         ContractInstantiateResult,
         StorageDeposit,
     },
@@ -424,18 +424,13 @@ where
         gas_limit: Option<Weight>,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
-        eprintln!("inside");
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
             None => self.estimate_gas().await?,
         };
         match self.args.code.clone() {
-            Code::Upload(code) => {
-                eprintln!("upload");
-                self.instantiate_with_code(code, gas_limit).await
-            }
+            Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
             Code::Existing(code_hash) => {
-                eprintln!("existing");
                 self.instantiate_with_code_hash(code_hash, gas_limit).await
             }
         }

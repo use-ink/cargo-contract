@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use pallet_contracts_uapi::ReturnFlags;
+use pallet_revive_uapi::ReturnFlags;
 use scale::{
     Decode,
     Encode,
@@ -27,7 +27,8 @@ use sp_runtime::{
 };
 use sp_weights::Weight;
 use subxt::utils::H256;
-// A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
+
+// A copy of primitive types defined within `pallet_revive`, required for RPC calls.
 
 /// todo
 /// Result type of a `bare_call` or `bare_instantiate` call as well as

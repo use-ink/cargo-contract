@@ -16,7 +16,7 @@
 
 use super::{
     dry_run_extrinsic,
-    pallet_contracts_primitives::StorageDeposit,
+    pallet_revive_primitives::StorageDeposit,
     submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,

@@ -1,6 +1,6 @@
 # Contract Extrinsics
 
-Defines the extrinsics for smart contracts targeting [substrate](https://github.com/paritytech/substrate). 
+Defines the extrinsics for smart contracts targeting [substrate](https://github.com/paritytech/substrate).
 
 Currently part of [`cargo-contract`](https://github.com/use-ink/cargo-contract), the build tool for smart
  contracts written in [ink!](https://github.com/use-ink/ink).
@@ -109,7 +109,7 @@ dispatchable.
 e.g. `cargo contract remove --suri //Alice`
 
 Assumes that `cargo contract build` and `cargo contract upload` have already been run to produce the contract artifacts.
-This command will only succeed if there are no contract instances of this code. Contracts which have already been instantiated from this code must either `terminate` themselves or have their code changed via a `set_code` call to `pallet_contracts`.
+This command will only succeed if there are no contract instances of this code. Contracts which have already been instantiated from this code must either `terminate` themselves or have their code changed via a `set_code` call to `pallet_revive`.
 
 ```
 cargo contract remove \

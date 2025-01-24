@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    pallet_contracts_primitives::ContractExecResult,
+    pallet_revive_primitives::ContractExecResult,
     state_call,
     submit_extrinsic,
     ContractMessageTranscoder,

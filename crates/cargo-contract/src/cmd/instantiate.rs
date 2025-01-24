@@ -218,7 +218,6 @@ impl InstantiateCommand {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?
                 }
             }
-
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
             let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
                 &instantiate_exec,

@@ -38,20 +38,22 @@ url = { version = "2.5.4", features = ["serde"] }
 semver = "1.0"
 jsonschema = "0.26"
 schemars = "0.8"
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-remove-wasm-default-to-revive" }
 comfy-table = "7.1.1"
+
+ink_metadata = { git = "https://github.com/use-ink/ink" }
+ink_env = { git = "https://github.com/use-ink/ink" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.38.0", features = ["substrate-compat"] }
-sp-core = "32.0.0"
-sp-weights = "31.0.0"
 hex = "0.4.3"
+
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067"}
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067"}
 
 [build-dependencies]
 anyhow = "1.0.94"
-substrate-build-script-utils = "11.0.0"
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
 current_platform = "0.2.0"
 which = "7.0.1"
 
@@ -65,9 +67,12 @@ tempfile = "3.10.1"
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
 # generation code with `#[cfg(feature = "std")]`.
 default = ["std"]
-std = []
+std = [
+    #"sp-core/std",
+    #"sp-weights/std"
+]
 
-# Enable this to execute long running tests, which usually are only run on the CI server
+# Enable this to execute long-running tests, which usually are only run on the CI server
 #
 # Disabled by default
 test-ci-only = []

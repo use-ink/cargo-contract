@@ -26,7 +26,7 @@ mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 mod map_account;
-pub mod pallet_contracts_primitives;
+pub mod pallet_revive_primitives;
 mod remove;
 mod rpc;
 mod upload;

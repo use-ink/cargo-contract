@@ -51,7 +51,7 @@ use anyhow::{
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
-    pallet_contracts_primitives::StorageDeposit,
+    pallet_revive_primitives::StorageDeposit,
     CallCommandBuilder,
     CallExec,
     DisplayEvents,
