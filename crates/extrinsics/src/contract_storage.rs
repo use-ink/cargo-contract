@@ -67,6 +67,7 @@ use subxt::{
     ext::scale_decode::IntoVisitor,
     Config,
     OnlineClient,
+    utils::H160,
 };
 
 use super::{
@@ -113,8 +114,11 @@ where
     /// Load the raw key/value storage for a given contract.
     pub async fn load_contract_storage_data(
         &self,
-        contract_account: &C::AccountId,
-    ) -> Result<ContractStorageData> {
+        contract_account: &H160,
+    ) -> Result<ContractStorageData>
+    where
+        C::AccountId: Decode,
+    {
         let contract_info = self.rpc.fetch_contract_info::<E>(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
@@ -159,9 +163,12 @@ where
 
     pub async fn load_contract_storage_with_layout(
         &self,
-        contract_account: &C::AccountId,
+        contract_account: &H160, // todo rename
         decoder: &ContractMessageTranscoder,
-    ) -> Result<ContractStorageLayout> {
+    ) -> Result<ContractStorageLayout>
+    where
+        C::AccountId: Decode,
+    {
         let data = self.load_contract_storage_data(contract_account).await?;
         ContractStorageLayout::new(data, decoder)
     }
@@ -632,9 +639,10 @@ where
     /// Fetch the contract info to access the trie id for querying storage.
     pub async fn fetch_contract_info<E: Environment>(
         &self,
-        contract: &C::AccountId,
+        contract: &H160,
     ) -> Result<ContractInfo<C::Hash, E::Balance>>
     where
+        C::AccountId: Decode,
         E::Balance: IntoVisitor,
     {
         fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await

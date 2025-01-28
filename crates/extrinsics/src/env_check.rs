@@ -16,14 +16,33 @@ use anyhow::{
     Result,
 };
 
+/*
+impl Environment for DefaultEnvironment {
+    const MAX_EVENT_TOPICS: usize = 4;
+
+    type AccountId = AccountId;
+
+    // t.ty.path.segments[bound..] == ["pallet_balances", "types", "AccountData"] -> free
+    type Balance = Balance;
+
+    type Hash = Hash;
+
+    type Timestamp = Timestamp;
+
+    type BlockNumber = BlockNumber;
+
+    type ChainExtension = NoChainExtension;
+}
+ */
 fn get_node_env_fields(
     registry: &PortableRegistry,
     verbosity: &Verbosity,
+    path_segments: Vec<&str>,
 ) -> Result<Option<Vec<Field<PortableForm>>>> {
     let Some(env_type) = registry.types.iter().find(|t| {
         let len = t.ty.path.segments.len();
-        let bound = len.saturating_sub(2);
-        t.ty.path.segments[bound..] == ["pallet_revive", "Environment"]
+        let bound = len.saturating_sub(path_segments.len());
+        t.ty.path.segments[bound..].to_vec() == path_segments
     }) else {
         // if we can't find the type, then we use the old contract version.
         verbose_eprintln!(
@@ -38,6 +57,11 @@ fn get_node_env_fields(
 
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
         Ok(Some(composite.fields.clone()))
+    } else if let TypeDef::Variant(variant) = &env_type.ty.type_def {
+        for v in &variant.variants {
+            return Ok(Some(v.fields.clone()));
+        }
+        Ok(None)
     } else {
         anyhow::bail!("`Environment` type definition is in the wrong format");
     }
@@ -87,21 +111,49 @@ pub fn compare_node_env_with_contract(
     contract_metadata: &InkProject,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    let Some(env_fields) = get_node_env_fields(node_registry, verbosity)? else {
-        return Ok(())
-    };
-    for field in env_fields {
-        let field_name = field.name.context("Field does not have a name")?;
-        if &field_name == "hasher" {
-            continue
+    // Compare the field `field_id` in the path of `path_segments` from the `node_registry`
+    // with the fitting type from the `ink::Environment`.
+    fn compare(
+        node_registry: &PortableRegistry,
+        contract_metadata: &InkProject,
+        verbosity: &Verbosity,
+        path_segments: Vec<&str>,
+        field_id: &str
+    ) -> Result<()> {
+        let Some(env_fields) = get_node_env_fields(node_registry, verbosity, path_segments)? else {
+            return Ok(())
+        };
+
+        for field in env_fields {
+            let field_name = field.name.context("Field does not have a name")?;
+            if &field_name != field_id {
+                continue
+            }
+            let field_def = resolve_type_definition(node_registry, field.ty.id)?;
+            let checked =
+                compare_type(&field_name, field_def, contract_metadata, node_registry)?;
+            if !checked {
+                anyhow::bail!("Failed to validate the field: {}", field_name);
+            }
         }
-        let field_def = resolve_type_definition(node_registry, field.ty.id)?;
-        let checked =
-            compare_type(&field_name, field_def, contract_metadata, node_registry)?;
-        if !checked {
-            anyhow::bail!("Failed to validate the field: {}", field_name);
-        }
+        Ok(())
     }
+
+    compare(&node_registry, &contract_metadata, &verbosity,
+        vec!["pallet_balances", "types", "AccountData"], "free"
+    )?;
+    compare(&node_registry, &contract_metadata, &verbosity,
+            vec!["pallet_revive", "wasm", "CodeInfo"], "owner"
+    )?;
+    compare(&node_registry, &contract_metadata, &verbosity,
+            vec!["sp_runtime", "generic", "header", "Header"], "parent_hash"
+    )?;
+    compare(&node_registry, &contract_metadata, &verbosity,
+            vec!["sp_runtime", "generic", "header", "Header"], "number"
+    )?;
+    compare(&node_registry, &contract_metadata, &verbosity,
+            vec!["pallet_timestamp", "pallet", "Call"], "now"
+    )?;
     Ok(())
 }
 
@@ -114,11 +166,11 @@ fn compare_type(
 ) -> Result<bool> {
     let contract_registry = contract_metadata.registry();
     let tt_id = match type_name {
-        "account_id" => contract_metadata.spec().environment().account_id().ty().id,
-        "balance" => contract_metadata.spec().environment().balance().ty().id,
-        "hash" => contract_metadata.spec().environment().hash().ty().id,
-        "timestamp" => contract_metadata.spec().environment().timestamp().ty().id,
-        "block_number" => {
+        "free" => contract_metadata.spec().environment().balance().ty().id,
+        "owner" => contract_metadata.spec().environment().account_id().ty().id,
+        "parent_hash" => contract_metadata.spec().environment().hash().ty().id,
+        "now" => contract_metadata.spec().environment().timestamp().ty().id,
+        "number" => {
             contract_metadata
                 .spec()
                 .environment()
@@ -140,6 +192,11 @@ fn compare_type(
                 resolve_type_definition(contract_registry, contract_arr.type_param.id)?;
             return Ok(contract_arr_type == node_arr_type)
         }
+    }
+    if let TypeDef::Compact(node_compact) = &type_def {
+        let node_compact_type =
+            resolve_type_definition(node_registry, node_compact.type_param.id)?;
+        return Ok(tt_def == node_compact_type)
     }
     Ok(type_def == tt_def)
 }

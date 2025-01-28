@@ -96,6 +96,8 @@ use subxt::config::{
     DefaultExtrinsicParams,
     ExtrinsicParams,
 };
+use subxt::utils::H160;
+//use contract_transcode::env_types::H160;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -328,7 +330,11 @@ where
         });
         if reply.is_ok() {
             let res = map_exec.map_account().await?;
-            println!("Account was mapped to address {:?}", res.address);
+            name_value_println!(
+                "Address",
+                format!("{:?}", res.address),
+                DEFAULT_KEY_COL_WIDTH
+            );
         }
     }
     Ok(())
@@ -405,7 +411,8 @@ pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
         .and_then(|bv| bv.denominate_balance(token_metadata))
 }
 
-/// Parse a account from string format
+// todo check where this is used
+/// Parse an account from string format
 pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
 where
     <AccountId as FromStr>::Err: Display,
@@ -414,6 +421,17 @@ where
         .map_err(|e| anyhow::anyhow!("Account address parsing failed: {e}"))
 }
 
+/// Parse a hex encoded H160 address from a string.
+pub fn parse_addr(addr: &str) -> Result<H160>
+{
+    let bytes = contract_build::util::decode_hex(addr)?;
+    if bytes.len() != 20 {
+        anyhow::bail!("H160 must be 20 bytes in length, but is {:?}", bytes.len())
+    }
+    Ok(H160::from_slice(&bytes[..]))
+}
+
+// todo
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
 pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
 where
@@ -421,7 +439,7 @@ where
 {
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
+        anyhow::bail!("Code hash must be 32 bytes in length")
     }
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);

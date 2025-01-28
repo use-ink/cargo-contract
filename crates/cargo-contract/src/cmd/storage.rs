@@ -38,7 +38,7 @@ use subxt::{
     ext::scale_decode::IntoVisitor,
     Config,
 };
-
+use subxt::ext::codec::Decode;
 use crate::call_with_config;
 
 use super::{
@@ -86,7 +86,7 @@ impl StorageCommand {
 
     pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
     where
-        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr,
+        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr + Decode,
         <<C as Config>::AccountId as FromStr>::Err:
             Into<Box<(dyn std::error::Error)>> + Display,
         C::Balance: Serialize + IntoVisitor,

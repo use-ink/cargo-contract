@@ -41,7 +41,9 @@ use subxt::{
     storage::dynamic,
     Config,
     OnlineClient,
+    utils::H160,
 };
+use contract_transcode::env_types::AccountId;
 
 /// Return the account data for an account ID.
 async fn get_account_balance<C: Config, E: Environment>(
@@ -68,14 +70,82 @@ where
     Ok(data)
 }
 
+
+/// Map a Ethereum address to its original `AccountId32`.
+///
+/// Stores the last 12 byte for addresses that were originally an `AccountId32` instead
+/// of an `H160`. Register your `AccountId32` using [`Pallet::map_account`] in order to
+/// use it with this pallet.
+//#[pallet::storage]
+//pub(crate) type AddressSuffix<T: Config> = StorageMap<_, Identity, H160, [u8; 12]>
+
+/// Fetch the contract info from the storage using the provided client.
+pub async fn fetch_mapped_account<C: Config, E: Environment>(
+    contract: &H160,
+    rpc: &LegacyRpcMethods<C>,
+    client: &OnlineClient<C>,
+) -> Result<C::AccountId>
+where
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
+    C::Hash: IntoVisitor,
+    E::Balance: IntoVisitor,
+{
+    /*
+    let best_block = get_best_block(rpc).await?;
+
+    let contract_info_address = dynamic(
+        "Revive",
+        "AddressSuffix",
+        vec![Value::from_bytes(contract)],
+    );
+    let raw_value = client
+        .storage()
+        .at(best_block)
+        .fetch(&contract_info_address)
+        .await?
+        .ok_or_else(|| {
+            anyhow!(
+                "No address suffix was found for contract {}",
+                contract
+            )
+        })?;
+
+    let suffix = raw_value.as_type::<[u8; 12]>()?;
+
+    let mut raw_account_id = [0u8; 32];
+    raw_account_id[..20].copy_from_slice(&contract.0[..20]);
+    raw_account_id[20..].copy_from_slice(&suffix[..12]);
+
+     */
+    let mut raw_account_id = [0xEE; 32];
+    raw_account_id[..20].copy_from_slice(&contract.0[..20]);
+
+    //let account: C::AccountId = raw_account_id.decode();
+    //let account: C::AccountId = Decode::decode(&mut raw_account_id)
+        //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+    //Ok(account)
+    Decode::decode(&mut &raw_account_id[..])
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+    //let contract_info_raw =
+        //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
+    //let addr = contract_info_raw.get_addr();
+
+    //let account =
+        //get_mapped_account::<C, E>(addr, rpc, client).await?;
+    //let deposit_account_data =
+        //get_account_balance::<C, E>(account, rpc, client).await?;
+    //Ok(contract_info_raw.into_contract_info(deposit_account_data))
+
+}
+
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info<C: Config, E: Environment>(
-    contract: &C::AccountId,
+    contract: &H160,
     rpc: &LegacyRpcMethods<C>,
     client: &OnlineClient<C>,
 ) -> Result<ContractInfo<C::Hash, E::Balance>>
 where
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
     C::Hash: IntoVisitor,
     E::Balance: IntoVisitor,
 {
@@ -93,26 +163,28 @@ where
         .await?
         .ok_or_else(|| {
             anyhow!(
-                "No contract information was found for account id {}",
+                "No contract information was found for contract {}",
                 contract
             )
         })?;
 
     let contract_info_raw =
         ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
-    let deposit_account = contract_info_raw.get_deposit_account();
+    let addr = contract_info_raw.get_addr();
 
+    let account =
+        fetch_mapped_account::<C, E>(addr, rpc, client).await?;
     let deposit_account_data =
-        get_account_balance::<C, E>(deposit_account, rpc, client).await?;
+        get_account_balance::<C, E>(&account, rpc, client).await?;
     Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
 struct ContractInfoRaw<C: Config, E: Environment> {
-    deposit_account: C::AccountId,
+    //account: C::AccountId,
+    addr: H160,
     contract_info: ContractInfoOf<C::Hash, E::Balance>,
-    deposit_on_main_account: bool,
 }
 
 impl<C: Config, E: Environment> ContractInfoRaw<C, E>
@@ -122,38 +194,29 @@ where
     E::Balance: IntoVisitor,
 {
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
-    /// contract info value. Determines whether it's a main or secondary account deposit.
+    /// contract info value.
     pub fn new(
-        contract_account: C::AccountId,
+        contract_account: H160,
         contract_info_value: DecodedValueThunk,
     ) -> Result<Self> {
         let contract_info =
             contract_info_value.as_type::<ContractInfoOf<C::Hash, E::Balance>>()?;
-        // Pallet-contracts [>=10, <15] store the contract's deposit as a free balance
-        // in a secondary account (deposit account). Other versions store it as
-        // reserved balance on the main contract's account. If the
-        // `deposit_account` field is present in a contract info structure,
-        // the contract's deposit is in this account.
-        match Self::get_deposit_account_id(&contract_info_value) {
-            Ok(deposit_account) => {
                 Ok(Self {
-                    deposit_account,
+                    //account: contract_account,
+                    addr: contract_account,
                     contract_info,
-                    deposit_on_main_account: false,
                 })
-            }
-            Err(_) => {
-                Ok(Self {
-                    deposit_account: contract_account,
-                    contract_info,
-                    deposit_on_main_account: true,
-                })
-            }
-        }
     }
 
-    pub fn get_deposit_account(&self) -> &C::AccountId {
-        &self.deposit_account
+    /*
+    pub fn get_account(&self) -> &C::AccountId {
+        &self.account
+    }
+
+     */
+
+    pub fn get_addr(&self) -> &H160 {
+        &self.addr
     }
 
     /// Convert `ContractInfoRaw` to `ContractInfo`
@@ -161,25 +224,13 @@ where
         self,
         deposit: AccountData<E::Balance>,
     ) -> ContractInfo<C::Hash, E::Balance> {
-        let total_deposit = if self.deposit_on_main_account {
-            deposit.reserved
-        } else {
-            deposit.free
-        };
-
         ContractInfo {
             trie_id: self.contract_info.trie_id.0.into(),
             code_hash: self.contract_info.code_hash,
             storage_items: self.contract_info.storage_items,
             storage_items_deposit: self.contract_info.storage_item_deposit,
-            storage_total_deposit: total_deposit,
+            storage_total_deposit: deposit.reserved,
         }
-    }
-
-    /// Decode the deposit account from the contract info
-    fn get_deposit_account_id(contract_info: &DecodedValueThunk) -> Result<C::AccountId> {
-        let account = contract_info.as_type::<DepositAccount<C::AccountId>>()?;
-        Ok(account.deposit_account)
     }
 }
 

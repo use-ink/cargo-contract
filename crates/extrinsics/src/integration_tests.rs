@@ -337,7 +337,7 @@ async fn build_upload_instantiate_info() {
         .assert()
         .success();
 
-    let mut project_dir = project_path(tmp_dir.path().to_path_buf());
+    let mut project_dir = tmp_dir.path().to_path_buf();
     project_dir.push("flipper");
 
     cargo_contract(project_dir.as_path())
@@ -349,6 +349,7 @@ async fn build_upload_instantiate_info() {
         .await
         .expect("Error spawning contracts node");
 
+    eprintln!("---1");
     let output = cargo_contract(project_dir.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
@@ -358,6 +359,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
+    eprintln!("---2");
     let output = cargo_contract(project_dir.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
@@ -373,6 +375,7 @@ async fn build_upload_instantiate_info() {
     let contract_account = extract_contract_address(stdout);
     assert_eq!(48, contract_account.len(), "{stdout:?}");
 
+    eprintln!("---3");
     let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])

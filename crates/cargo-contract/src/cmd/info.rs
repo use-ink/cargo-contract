@@ -20,6 +20,7 @@ use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
     parse_account,
+    parse_addr,
     CLIChainOpts,
 };
 use anyhow::Result;
@@ -55,6 +56,7 @@ use subxt::{
     Config,
     OnlineClient,
 };
+use contract_transcode::env_types::H160;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]
@@ -117,16 +119,21 @@ impl InfoCommand {
         } else {
             // Contract arg shall be always present in this case, it is enforced by
             // clap configuration
+            eprintln!("---1");
             let contract = self
                 .contract
                 .as_ref()
-                .map(|c| parse_account(c))
+                //.map(|c| H160::from())
+                .map(|c| parse_addr(c))
+                // todo
                 .transpose()?
                 .expect("Contract argument shall be present");
 
+            eprintln!("---2 {:?}", contract);
             let info_to_json =
                 fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
+            eprintln!("---3");
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
             // Binary flag applied
