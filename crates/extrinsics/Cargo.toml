@@ -57,3 +57,11 @@ subxt-signer = { version = "0.38.0", features = ["subxt", "sr25519"] }
 [features]
 integration-tests = []
 test-ci-only = []
+
+# todo
+# we temporarily replace the version of this dep in child deps. this is because of version
+# issues with the `parity-scale-codec` used in `ink` and `polkadot-sdk`. there was some
+# yanking of `parity-scale-codec` dep versions recently and this replacement here should
+# not be necessary for long.
+[replace]
+"parity-scale-codec-derive:3.7.2" = { git = "https://github.com/paritytech/parity-scale-codec", tag = "3.6.12" }
