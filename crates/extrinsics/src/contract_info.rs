@@ -39,11 +39,11 @@ use subxt::{
         scale_value::Value,
     },
     storage::dynamic,
+    utils::H160,
     Config,
     OnlineClient,
-    utils::H160,
 };
-use contract_transcode::env_types::AccountId;
+//use contract_transcode::env_types::AccountId;
 
 /// Return the account data for an account ID.
 async fn get_account_balance<C: Config, E: Environment>(
@@ -70,7 +70,6 @@ where
     Ok(data)
 }
 
-
 /// Map a Ethereum address to its original `AccountId32`.
 ///
 /// Stores the last 12 byte for addresses that were originally an `AccountId32` instead
@@ -82,8 +81,8 @@ where
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_mapped_account<C: Config, E: Environment>(
     contract: &H160,
-    rpc: &LegacyRpcMethods<C>,
-    client: &OnlineClient<C>,
+    _rpc: &LegacyRpcMethods<C>,
+    _client: &OnlineClient<C>,
 ) -> Result<C::AccountId>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
@@ -122,20 +121,19 @@ where
 
     //let account: C::AccountId = raw_account_id.decode();
     //let account: C::AccountId = Decode::decode(&mut raw_account_id)
-        //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+    //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //Ok(account)
     Decode::decode(&mut &raw_account_id[..])
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //let contract_info_raw =
-        //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
+    //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
     //let addr = contract_info_raw.get_addr();
 
     //let account =
-        //get_mapped_account::<C, E>(addr, rpc, client).await?;
+    //get_mapped_account::<C, E>(addr, rpc, client).await?;
     //let deposit_account_data =
-        //get_account_balance::<C, E>(account, rpc, client).await?;
+    //get_account_balance::<C, E>(account, rpc, client).await?;
     //Ok(contract_info_raw.into_contract_info(deposit_account_data))
-
 }
 
 /// Fetch the contract info from the storage using the provided client.
@@ -172,10 +170,8 @@ where
         ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
     let addr = contract_info_raw.get_addr();
 
-    let account =
-        fetch_mapped_account::<C, E>(addr, rpc, client).await?;
-    let deposit_account_data =
-        get_account_balance::<C, E>(&account, rpc, client).await?;
+    let account = fetch_mapped_account::<C, E>(addr, rpc, client).await?;
+    let deposit_account_data = get_account_balance::<C, E>(&account, rpc, client).await?;
     Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
@@ -201,11 +197,11 @@ where
     ) -> Result<Self> {
         let contract_info =
             contract_info_value.as_type::<ContractInfoOf<C::Hash, E::Balance>>()?;
-                Ok(Self {
-                    //account: contract_account,
-                    addr: contract_account,
-                    contract_info,
-                })
+        Ok(Self {
+            //account: contract_account,
+            addr: contract_account,
+            contract_info,
+        })
     }
 
     /*
@@ -389,7 +385,6 @@ struct AccountInfo<Balance> {
 #[derive(Clone, Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 struct AccountData<Balance> {
-    free: Balance,
     reserved: Balance,
 }
 
@@ -406,13 +401,6 @@ struct ContractInfoOf<Hash, Balance> {
     code_hash: Hash,
     storage_items: u32,
     storage_item_deposit: Balance,
-}
-
-/// A struct used in storage reads to access the deposit account from contract info.
-#[derive(Debug, DecodeAsType)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct DepositAccount<AccountId> {
-    deposit_account: AccountId,
 }
 
 #[cfg(test)]

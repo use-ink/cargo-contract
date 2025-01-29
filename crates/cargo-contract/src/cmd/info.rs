@@ -34,6 +34,7 @@ use contract_extrinsics::{
     ErrorVariant,
     TrieId,
 };
+use contract_transcode::env_types::H160;
 use ink_env::Environment;
 use serde::Serialize;
 use std::{
@@ -56,7 +57,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-use contract_transcode::env_types::H160;
 
 #[derive(Debug, clap::Args)]
 #[clap(name = "info", about = "Get infos from a contract")]

@@ -65,9 +65,9 @@ use subxt::{
         },
     },
     ext::scale_decode::IntoVisitor,
+    utils::H160,
     Config,
     OnlineClient,
-    utils::H160,
 };
 
 use super::{

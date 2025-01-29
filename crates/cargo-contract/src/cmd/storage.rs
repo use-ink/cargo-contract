@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::call_with_config;
 use anyhow::Result;
 use colored::Colorize;
 use comfy_table::{
@@ -35,11 +36,12 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    ext::scale_decode::IntoVisitor,
+    ext::{
+        codec::Decode,
+        scale_decode::IntoVisitor,
+    },
     Config,
 };
-use subxt::ext::codec::Decode;
-use crate::call_with_config;
 
 use super::{
     parse_account,

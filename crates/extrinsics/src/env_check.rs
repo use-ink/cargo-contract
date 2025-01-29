@@ -111,16 +111,18 @@ pub fn compare_node_env_with_contract(
     contract_metadata: &InkProject,
     verbosity: &Verbosity,
 ) -> Result<()> {
-    // Compare the field `field_id` in the path of `path_segments` from the `node_registry`
-    // with the fitting type from the `ink::Environment`.
+    // Compare the field `field_id` in the path of `path_segments` from the
+    // `node_registry` with the fitting type from the `ink::Environment`.
     fn compare(
         node_registry: &PortableRegistry,
         contract_metadata: &InkProject,
         verbosity: &Verbosity,
         path_segments: Vec<&str>,
-        field_id: &str
+        field_id: &str,
     ) -> Result<()> {
-        let Some(env_fields) = get_node_env_fields(node_registry, verbosity, path_segments)? else {
+        let Some(env_fields) =
+            get_node_env_fields(node_registry, verbosity, path_segments)?
+        else {
             return Ok(())
         };
 
@@ -139,20 +141,40 @@ pub fn compare_node_env_with_contract(
         Ok(())
     }
 
-    compare(&node_registry, &contract_metadata, &verbosity,
-        vec!["pallet_balances", "types", "AccountData"], "free"
+    compare(
+        &node_registry,
+        &contract_metadata,
+        &verbosity,
+        vec!["pallet_balances", "types", "AccountData"],
+        "free",
     )?;
-    compare(&node_registry, &contract_metadata, &verbosity,
-            vec!["pallet_revive", "wasm", "CodeInfo"], "owner"
+    compare(
+        &node_registry,
+        &contract_metadata,
+        &verbosity,
+        vec!["pallet_revive", "wasm", "CodeInfo"],
+        "owner",
     )?;
-    compare(&node_registry, &contract_metadata, &verbosity,
-            vec!["sp_runtime", "generic", "header", "Header"], "parent_hash"
+    compare(
+        &node_registry,
+        &contract_metadata,
+        &verbosity,
+        vec!["sp_runtime", "generic", "header", "Header"],
+        "parent_hash",
     )?;
-    compare(&node_registry, &contract_metadata, &verbosity,
-            vec!["sp_runtime", "generic", "header", "Header"], "number"
+    compare(
+        &node_registry,
+        &contract_metadata,
+        &verbosity,
+        vec!["sp_runtime", "generic", "header", "Header"],
+        "number",
     )?;
-    compare(&node_registry, &contract_metadata, &verbosity,
-            vec!["pallet_timestamp", "pallet", "Call"], "now"
+    compare(
+        &node_registry,
+        &contract_metadata,
+        &verbosity,
+        vec!["pallet_timestamp", "pallet", "Call"],
+        "now",
     )?;
     Ok(())
 }

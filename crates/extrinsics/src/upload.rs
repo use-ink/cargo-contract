@@ -115,7 +115,7 @@ impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
     C::Hash: IntoVisitor,
     C::AccountId: IntoVisitor,
-    E::Balance: EncodeAsType,
+    E::Balance: IntoVisitor + EncodeAsType,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     Signer: tx::Signer<C> + Clone,

@@ -277,7 +277,7 @@ where
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
-    E::Balance: Serialize + EncodeAsType,
+    E::Balance: IntoVisitor + Serialize + EncodeAsType,
     Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.

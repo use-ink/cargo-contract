@@ -92,11 +92,13 @@ use std::{
     },
     str::FromStr,
 };
-use subxt::config::{
-    DefaultExtrinsicParams,
-    ExtrinsicParams,
+use subxt::{
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
+    utils::H160,
 };
-use subxt::utils::H160;
 //use contract_transcode::env_types::H160;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
@@ -422,8 +424,7 @@ where
 }
 
 /// Parse a hex encoded H160 address from a string.
-pub fn parse_addr(addr: &str) -> Result<H160>
-{
+pub fn parse_addr(addr: &str) -> Result<H160> {
     let bytes = contract_build::util::decode_hex(addr)?;
     if bytes.len() != 20 {
         anyhow::bail!("H160 must be 20 bytes in length, but is {:?}", bytes.len())
