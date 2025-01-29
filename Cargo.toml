@@ -1,3 +1,11 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
+
+# todo
+# we temporarily replace the version of this dep in child deps. this is because of version
+# issues with the `parity-scale-codec` used in `ink` and `polkadot-sdk`. there was some
+# yanking of `parity-scale-codec` dep versions recently and this replacement here should
+# not be necessary for long.
+[patch.crates-io]
+parity-scale-codec-derive = { git = "https://github.com/paritytech/parity-scale-codec", tag = "v3.6.12" }
