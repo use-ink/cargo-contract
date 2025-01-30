@@ -5,10 +5,10 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-fix-return-types-jan-25" }
+ink = { git = "https://github.com/use-ink/ink", branch = "master" }
 
 [dev-dependencies]
-ink_e2e = { git = "https://github.com/use-ink/ink", branch = "cmichi-fix-return-types-jan-25" }
+ink_e2e = { git = "https://github.com/use-ink/ink", branch = "master" }
 
 [lib]
 path = "lib.rs"
