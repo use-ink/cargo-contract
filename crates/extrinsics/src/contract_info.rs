@@ -165,8 +165,7 @@ where
             )
         })?;
 
-    let contract_info_raw =
-        ContractInfoRaw::<C, E>::new(*contract, contract_info_value)?;
+    let contract_info_raw = ContractInfoRaw::<C, E>::new(*contract, contract_info_value)?;
     let addr = contract_info_raw.get_addr();
 
     let account = fetch_mapped_account::<C, E>(addr, rpc, client).await?;
