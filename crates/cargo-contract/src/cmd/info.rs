@@ -19,7 +19,6 @@ use crate::call_with_config;
 use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
-    parse_account,
     parse_addr,
     CLIChainOpts,
 };
@@ -34,7 +33,6 @@ use contract_extrinsics::{
     ErrorVariant,
     TrieId,
 };
-use contract_transcode::env_types::H160;
 use ink_env::Environment;
 use serde::Serialize;
 use std::{

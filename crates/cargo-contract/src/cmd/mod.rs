@@ -413,7 +413,7 @@ pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
         .and_then(|bv| bv.denominate_balance(token_metadata))
 }
 
-// todo check where this is used
+// todo check where this is used, possibly remove
 /// Parse an account from string format
 pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
 where

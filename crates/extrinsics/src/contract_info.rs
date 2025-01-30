@@ -75,9 +75,8 @@ where
 /// Stores the last 12 byte for addresses that were originally an `AccountId32` instead
 /// of an `H160`. Register your `AccountId32` using [`Pallet::map_account`] in order to
 /// use it with this pallet.
-//#[pallet::storage]
-//pub(crate) type AddressSuffix<T: Config> = StorageMap<_, Identity, H160, [u8; 12]>
-
+/// #[pallet::storage]
+/// pub(crate) type AddressSuffix<T: Config> = StorageMap<_, Identity, H160, [u8; 12]>
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_mapped_account<C: Config, E: Environment>(
     contract: &H160,
@@ -167,7 +166,7 @@ where
         })?;
 
     let contract_info_raw =
-        ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
+        ContractInfoRaw::<C, E>::new(*contract, contract_info_value)?;
     let addr = contract_info_raw.get_addr();
 
     let account = fetch_mapped_account::<C, E>(addr, rpc, client).await?;

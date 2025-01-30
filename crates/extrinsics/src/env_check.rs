@@ -58,10 +58,8 @@ fn get_node_env_fields(
     if let TypeDef::Composite(composite) = &env_type.ty.type_def {
         Ok(Some(composite.fields.clone()))
     } else if let TypeDef::Variant(variant) = &env_type.ty.type_def {
-        for v in &variant.variants {
-            return Ok(Some(v.fields.clone()));
-        }
-        Ok(None)
+        // todo comment why taking the first is ok
+        Ok(variant.variants.first().map(|v| v.fields.clone()))
     } else {
         anyhow::bail!("`Environment` type definition is in the wrong format");
     }
@@ -128,7 +126,7 @@ pub fn compare_node_env_with_contract(
 
         for field in env_fields {
             let field_name = field.name.context("Field does not have a name")?;
-            if &field_name != field_id {
+            if field_name != field_id {
                 continue
             }
             let field_def = resolve_type_definition(node_registry, field.ty.id)?;
@@ -142,37 +140,37 @@ pub fn compare_node_env_with_contract(
     }
 
     compare(
-        &node_registry,
-        &contract_metadata,
-        &verbosity,
+        node_registry,
+        contract_metadata,
+        verbosity,
         vec!["pallet_balances", "types", "AccountData"],
         "free",
     )?;
     compare(
-        &node_registry,
-        &contract_metadata,
-        &verbosity,
+        node_registry,
+        contract_metadata,
+        verbosity,
         vec!["pallet_revive", "wasm", "CodeInfo"],
         "owner",
     )?;
     compare(
-        &node_registry,
-        &contract_metadata,
-        &verbosity,
+        node_registry,
+        contract_metadata,
+        verbosity,
         vec!["sp_runtime", "generic", "header", "Header"],
         "parent_hash",
     )?;
     compare(
-        &node_registry,
-        &contract_metadata,
-        &verbosity,
+        node_registry,
+        contract_metadata,
+        verbosity,
         vec!["sp_runtime", "generic", "header", "Header"],
         "number",
     )?;
     compare(
-        &node_registry,
-        &contract_metadata,
-        &verbosity,
+        node_registry,
+        contract_metadata,
+        verbosity,
         vec!["pallet_timestamp", "pallet", "Call"],
         "now",
     )?;
