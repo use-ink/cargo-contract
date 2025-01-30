@@ -25,7 +25,7 @@ heck = "0.5.0"
 hex = "0.4.3"
 impl-serde = "0.5.0"
 rustc_version = "0.4.1"
-scale = { package = "parity-scale-codec", version = "3.6.2", features = [
+scale = { package = "parity-scale-codec", version = "3.6.12", features = [
     "derive",
 ] }
 toml = "0.8.19"
