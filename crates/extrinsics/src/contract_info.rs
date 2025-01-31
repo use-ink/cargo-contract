@@ -122,6 +122,7 @@ where
     //let account: C::AccountId = Decode::decode(&mut raw_account_id)
     //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //Ok(account)
+    eprintln!("---yy");
     Decode::decode(&mut &raw_account_id[..])
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //let contract_info_raw =
@@ -329,6 +330,20 @@ where
 
 /// Parse a contract account address from a storage key. Returns error if a key is
 /// malformated.
+fn parse_contract_address(
+    storage_contract_account_key: &[u8],
+    storage_contract_root_key_len: usize,
+) -> Result<H160> {
+    let mut account = storage_contract_account_key
+        .get(storage_contract_root_key_len..)
+        .ok_or(anyhow!("Unexpected storage key size"))?;
+    Decode::decode(&mut account)
+        .map_err(|err| anyhow!("H160 deserialization error: {}", err))
+}
+
+/*
+/// Parse a contract account address from a storage key. Returns error if a key is
+/// malformated.
 fn parse_contract_account_address<C: Config>(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
@@ -336,6 +351,7 @@ fn parse_contract_account_address<C: Config>(
 where
     C::AccountId: Decode,
 {
+    eprintln!("---xx");
     // storage_contract_account_key is a concatenation of contract_info_of root key and
     // Twox64Concat(AccountId)
     let mut account = storage_contract_account_key
@@ -345,14 +361,13 @@ where
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
 }
 
+ */
+
 /// Fetch all contract addresses from the storage using the provided client.
 pub async fn fetch_all_contracts<C: Config>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
-) -> Result<Vec<C::AccountId>>
-where
-    C::AccountId: Decode,
-{
+) -> Result<Vec<H160>> {
     let best_block = get_best_block(rpc).await?;
     let root_key =
         subxt::dynamic::storage("Revive", "ContractInfoOf", ()).to_root_bytes();
@@ -365,7 +380,9 @@ where
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
         let key = result?;
-        let contract_account = parse_contract_account_address::<C>(&key, root_key.len())?;
+        //let contract_account = parse_contract_account_address::<C>(&key,
+        // root_key.len())?;
+        let contract_account = parse_contract_address(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }
 

@@ -183,6 +183,11 @@ where
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
+
+    /// Sets a new storage deposit limit.
+    pub fn set_storage_deposit_limit(&mut self, limit: Option<E::Balance>) {
+        self.opts.set_storage_deposit_limit(limit);
+    }
 }
 
 /// A struct that encodes RPC parameters required for a call to upload a new code.

@@ -944,13 +944,12 @@ impl Fingerprint {
     }
 }
 
-/// Returns the blake2 hash of the code slice.
+/// Returns the H256 hash of the code slice.
 pub fn code_hash(code: &[u8]) -> [u8; 32] {
-    // todo
-    //blake2_hash(code)
     h256_hash(code)
 }
 
+// todo
 fn h256_hash(code: &[u8]) -> [u8; 32] {
     use sha3::{
         Digest,

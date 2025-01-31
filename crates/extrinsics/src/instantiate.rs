@@ -50,6 +50,7 @@ use scale::{
     Encode,
 };
 use sp_core::Bytes;
+use sp_runtime::traits::Zero;
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -243,8 +244,8 @@ impl<E: Environment> InstantiateArgs<E> {
     }
 
     /// Returns the storage deposit limit for this instantiation.
-    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<E::Balance>> {
-        self.storage_deposit_limit.map(Into::into)
+    pub fn storage_deposit_limit(&self) -> Option<E::Balance> {
+        self.storage_deposit_limit
     }
 
     pub fn code(&self) -> &Code {
@@ -277,7 +278,7 @@ where
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
-    E::Balance: IntoVisitor + Serialize + EncodeAsType,
+    E::Balance: IntoVisitor + Serialize + EncodeAsType + Zero,
     Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.
@@ -330,12 +331,11 @@ where
     pub async fn instantiate_dry_run(
         &self,
     ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance>> {
-        let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest::<C, E> {
             origin: self.opts.signer().account_id(),
             value: self.args.value,
             gas_limit: None,
-            storage_deposit_limit,
+            storage_deposit_limit: self.args.storage_deposit_limit,
             code: self.args.code.clone(),
             data: self.args.data.clone(),
             salt: self.args.salt,
@@ -347,13 +347,12 @@ where
         &self,
         code: Vec<u8>,
         gas_limit: Weight,
+        storage_deposit_limit: E::Balance,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
-            self.args
-                .storage_deposit_limit
-                .expect("no storage deposit limit available"),
+            storage_deposit_limit,
             code,
             self.args.data.clone(),
             None,
@@ -384,11 +383,12 @@ where
         &self,
         code_hash: H256,
         gas_limit: Weight,
+        storage_deposit_limit: E::Balance,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         let call = Instantiate::<E::Balance>::new(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
             self.args.salt,
@@ -422,20 +422,91 @@ where
     pub async fn instantiate(
         &self,
         gas_limit: Option<Weight>,
+        storage_deposit_limit: Option<E::Balance>,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
-        let gas_limit = match gas_limit {
-            Some(gas_limit) => gas_limit,
-            None => self.estimate_gas().await?,
+        let use_gas_limit;
+        let use_storage_deposit_limit;
+        if gas_limit.is_none() || storage_deposit_limit.is_none() {
+            let estimation = self.estimate_limits().await?;
+            if gas_limit.is_none() {
+                use_gas_limit = estimation.0;
+            } else {
+                use_gas_limit = gas_limit.unwrap();
+            }
+            if storage_deposit_limit.is_none() {
+                use_storage_deposit_limit = estimation.1;
+            } else {
+                use_storage_deposit_limit = storage_deposit_limit.unwrap();
+            }
+        } else {
+            use_gas_limit = gas_limit.unwrap();
+            use_storage_deposit_limit = storage_deposit_limit.unwrap();
+        }
+
+        /*
+        let (gas_limit, storage_deposit_limit) = match gas_limit {
+            (Some(gas_limit), (Some(storage_deposit_limit)) => gas_limit,
+            None => self.estimate_limits().await?,
         };
+        */
         match self.args.code.clone() {
-            Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
+            Code::Upload(code) => {
+                self.instantiate_with_code(code, use_gas_limit, use_storage_deposit_limit)
+                    .await
+            }
             Code::Existing(code_hash) => {
-                self.instantiate_with_code_hash(code_hash, gas_limit).await
+                self.instantiate_with_code_hash(
+                    code_hash,
+                    use_gas_limit,
+                    use_storage_deposit_limit,
+                )
+                .await
             }
         }
     }
 
+    /// Estimates the gas required for the contract instantiation process without
+    /// modifying the blockchain.
+    ///
+    /// This function provides a gas estimation for contract instantiation, considering
+    /// the user-specified values or using estimates based on a dry run.
+    ///
+    /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
+    /// an error.
+    pub async fn estimate_limits(&self) -> Result<(Weight, E::Balance)> {
+        let instantiate_result = self.instantiate_dry_run().await?;
+        match instantiate_result.result {
+            Ok(_) => {
+                // use user specified values where provided, otherwise use the
+                // estimates
+                let ref_time = self
+                    .args
+                    .gas_limit
+                    .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
+                let proof_size = self
+                    .args
+                    .proof_size
+                    .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
+                let deposit_limit =
+                    self.args.storage_deposit_limit.unwrap_or_else(|| {
+                        match instantiate_result.storage_deposit {
+                            StorageDeposit::Refund(_) => E::Balance::zero(),
+                            StorageDeposit::Charge(value) => value,
+                        }
+                    });
+                Ok((Weight::from_parts(ref_time, proof_size), deposit_limit))
+            }
+            Err(ref err) => {
+                let object =
+                    ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
+                tracing::info!("Pre-submission dry-run failed. Error: {}", object);
+                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+            }
+        }
+    }
+
+    /*
     /// Estimates the gas required for the contract instantiation process without
     /// modifying the blockchain.
     ///
@@ -478,6 +549,7 @@ where
             }
         }
     }
+    */
 
     /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {

@@ -142,7 +142,6 @@ pub struct CodeUploadReturnValue<Balance> {
     pub code_hash: H256,
     /// The deposit that was reserved at the caller. Is zero when the code already
     /// existed.
-    //pub deposit: Balance,
     pub deposit: Balance,
 }
 

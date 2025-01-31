@@ -396,11 +396,8 @@ pub fn basic_display_format_extended_contract_info<Hash, Balance>(
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
-where
-    AccountId: Display,
-{
-    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
+pub fn display_all_contracts(contracts: &[H160]) {
+    contracts.iter().for_each(|e: &H160| println!("{:?}", e))
 }
 
 /// Parse a balance from string format

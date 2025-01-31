@@ -118,7 +118,7 @@ impl UploadCommand {
             .storage_deposit_limit(storage_deposit_limit)
             .done();
 
-        let upload_exec: UploadExec<C, C, _> =
+        let mut upload_exec: UploadExec<C, C, _> =
             UploadCommandBuilder::new(extrinsic_opts).done().await?;
         let code_hash = upload_exec.code().code_hash(); // todo
         let metadata = upload_exec.client().metadata();
@@ -148,6 +148,16 @@ impl UploadCommand {
                 }
             }
         } else {
+            // A storage deposit needs to be provided for the extrinsic, if none is
+            // given on the cli we execute a dry-run and use that.
+            if storage_deposit_limit.is_none() {
+                let limit = upload_exec.upload_code_rpc().await?
+                    .unwrap_or_else(|err| {
+                        panic!("No storage limit was given on the cli. We tried to fetch one via dry-run, but this failed: {:?}", err);
+                    });
+                upload_exec.set_storage_deposit_limit(Some(limit.deposit));
+            }
+
             if let Some(chain) = chain.production() {
                 if !upload_exec.opts().contract_artifacts()?.is_verifiable() {
                     prompt_confirm_unverifiable_upload(&chain.to_string())?

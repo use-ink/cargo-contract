@@ -48,7 +48,6 @@ pub struct ExtrinsicOpts<C: Config, E: Environment, Signer: Clone> {
     _marker: PhantomData<C>,
 }
 
-/// A builder for extrinsic options.
 pub struct ExtrinsicOptsBuilder<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
 }
@@ -129,6 +128,11 @@ where
             self.manifest_path.as_ref(),
             self.file.as_ref(),
         )
+    }
+
+    /// Sets a new storage deposit limit.
+    pub fn set_storage_deposit_limit(&mut self, limit: Option<E::Balance>) {
+        self.storage_deposit_limit = limit;
     }
 
     /// Return the file path of the contract artifact.

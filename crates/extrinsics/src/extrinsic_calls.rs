@@ -16,10 +16,7 @@
 
 use crate::PolkavmCode;
 use subxt::{
-    ext::{
-        codec::Compact,
-        scale_encode::EncodeAsType,
-    },
+    ext::scale_encode::EncodeAsType,
     utils::{
         H160,
         H256,
@@ -102,6 +99,7 @@ pub(crate) struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
+    #[codec(compact)]
     storage_deposit_limit: Balance,
     code: Vec<u8>,
     data: Vec<u8>,
@@ -139,7 +137,8 @@ pub(crate) struct Instantiate<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
+    #[codec(compact)]
+    storage_deposit_limit: Balance,
     code_hash: H256,
     data: Vec<u8>,
     salt: Option<[u8; 32]>,
@@ -149,7 +148,7 @@ impl<Balance> Instantiate<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
+        storage_deposit_limit: Balance,
         code_hash: H256,
         data: Vec<u8>,
         salt: Option<[u8; 32]>,
@@ -157,7 +156,7 @@ impl<Balance> Instantiate<Balance> {
         Self {
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             code_hash,
             data,
             salt,

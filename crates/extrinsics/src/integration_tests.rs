@@ -34,6 +34,7 @@ use contract_build::{
 };
 use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
+use regex::Regex;
 use std::{
     ffi::OsStr,
     path::Path,
@@ -226,7 +227,7 @@ async fn build_upload_instantiate_call() {
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
     let contract_account = extract_contract_address(stdout);
-    assert_eq!(48, contract_account.len(), "{stdout:?}");
+    assert_eq!(42, contract_account.len(), "{stdout:?}");
 
     let call_get_rpc = |expected: bool| {
         cargo_contract(project_path.as_path())
@@ -349,7 +350,6 @@ async fn build_upload_instantiate_info() {
         .await
         .expect("Error spawning contracts node");
 
-    eprintln!("---1");
     let output = cargo_contract(project_dir.as_path())
         .arg("upload")
         .args(["--suri", "//Alice"])
@@ -359,7 +359,6 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(output.status.success(), "upload code failed: {stderr}");
 
-    eprintln!("---2");
     let output = cargo_contract(project_dir.as_path())
         .arg("instantiate")
         .args(["--constructor", "new"])
@@ -373,9 +372,8 @@ async fn build_upload_instantiate_info() {
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
     let contract_account = extract_contract_address(stdout);
-    assert_eq!(48, contract_account.len(), "{stdout:?}");
+    assert_eq!(42, contract_account.len(), "{stdout:?}");
 
-    eprintln!("---3");
     let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
@@ -405,7 +403,7 @@ async fn build_upload_instantiate_info() {
     let stderr = str::from_utf8(&output.stderr).unwrap();
     assert!(
         output.status.success(),
-        "getting Wasm code failed: {stderr}"
+        "getting binary code failed: {stderr}"
     );
 
     // construct the contract file path
@@ -415,13 +413,24 @@ async fn build_upload_instantiate_info() {
     let code = std::fs::read(contract_bytecode).expect("contract Wasm file not found");
     assert_eq!(code_hash(&code), code_hash(&output.stdout));
 
-    cargo_contract(project_dir.as_path())
+    let output = cargo_contract(project_dir.as_path())
         .arg("info")
         .args(["--contract", contract_account])
         .arg("--output-json")
         .arg("--binary")
-        .assert()
-        .stdout(predicate::str::contains(r#""wasm": "0x"#));
+        .output()
+        .expect("failed ");
+    assert!(
+        output.status.success(),
+        "getting binary code in json format failed: {stderr}"
+    );
+    let hex_fs_binary = hex::encode(&code);
+
+    let json = String::from_utf8(output.stdout.clone()).unwrap();
+    let re = Regex::new(r#""wasm": "0x([A-Za-z0-9]+)"#).expect("regex creation failed");
+    let caps = re.captures(&json).unwrap();
+    let hex_output = caps.get(1).unwrap().as_str();
+    assert_eq!(hex_fs_binary, hex_output);
 
     let output = cargo_contract(project_dir.as_path())
         .arg("info")
@@ -435,7 +444,9 @@ async fn build_upload_instantiate_info() {
         "getting all contracts failed: {stderr}"
     );
 
-    assert_eq!(stdout.trim_end(), contract_account, "{stdout:?}");
+    // todo test info --all --output-json
+
+    assert_eq!(stdout.trim_end(), contract_account.trim_end(), "{stdout:?}");
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
@@ -511,7 +522,7 @@ async fn api_build_upload_instantiate_call() {
         .done()
         .await
         .unwrap();
-    let instantiate_result = instantiate.instantiate(None).await;
+    let instantiate_result = instantiate.instantiate(None, None).await;
     assert!(instantiate_result.is_ok(), "instantiate code failed");
     let instantiate_result: InstantiateExecResult<DefaultConfig> =
         instantiate_result.unwrap();
@@ -755,7 +766,7 @@ async fn build_upload_instantiate_storage() {
     assert!(output.status.success(), "instantiate failed: {stderr}");
 
     let contract_account = extract_contract_address(stdout);
-    assert_eq!(48, contract_account.len(), "{stdout:?}");
+    assert_eq!(42, contract_account.len(), "{stdout:?}");
 
     let output = cargo_contract(project_path.as_path())
         .arg("storage")
