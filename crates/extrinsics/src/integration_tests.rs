@@ -508,12 +508,12 @@ async fn api_build_upload_instantiate_call() {
     }
     upload_result.unwrap();
 
-    // map the account
+    // map the account, if not already mapped (i.e. ignore the result)
     let map_exec = MapAccountCommandBuilder::new(opts.clone())
         .done()
         .await
         .unwrap();
-    let _ = map_exec.map_account().await.unwrap();
+    let _ = map_exec.map_account().await;
 
     // instantiate the contract
     let instantiate = InstantiateCommandBuilder::new(opts.clone())
@@ -547,7 +547,7 @@ async fn api_build_upload_instantiate_call() {
 
     // call the contract on the immutable "get" message trying to execute
     // this should fail because "get" is immutable
-    match call.call(None).await {
+    match call.call(None, 0.into()).await {
         Err(crate::ErrorVariant::Generic(_)) => {}
         _ => panic!("immutable call was not prevented"),
     }
@@ -563,7 +563,7 @@ async fn api_build_upload_instantiate_call() {
         .done()
         .await
         .unwrap();
-    let call_result = call.call(None).await;
+    let call_result = call.call(None, 0.into()).await;
     assert!(call_result.is_ok(), "call failed");
     let call_result = call_result.unwrap();
     let output = DisplayEvents::from_events::<DefaultConfig, DefaultEnvironment>(

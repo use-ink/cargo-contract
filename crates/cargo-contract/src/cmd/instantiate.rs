@@ -293,7 +293,7 @@ where
             Some(limit) => Ok(limit),
             _ => {
                 Err(anyhow!(
-                        "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+                        "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
                     ))
             }
         }?;

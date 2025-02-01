@@ -122,7 +122,7 @@ where
     //let account: C::AccountId = Decode::decode(&mut raw_account_id)
     //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //Ok(account)
-    eprintln!("---yy");
+    //eprintln!("---yy");
     Decode::decode(&mut &raw_account_id[..])
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
     //let contract_info_raw =
@@ -161,7 +161,7 @@ where
         .await?
         .ok_or_else(|| {
             anyhow!(
-                "No contract information was found for contract {}",
+                "No contract information was found for contract {:?}",
                 contract
             )
         })?;

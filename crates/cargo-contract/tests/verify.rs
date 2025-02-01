@@ -240,12 +240,9 @@ fn verify_different_contracts() {
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
-    eprintln!("-------0");
-    eprintln!("Building contract in {}", project_dir.to_string_lossy());
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir).arg("build").assert().success();
 
-    eprintln!("-------1");
     // Compile reference contract and write bundle and wasm in the directory.
     let (ref_bundle, ref_wasm) = compile_reference_contract();
     let bundle = project_dir.join("reference.contract");
@@ -256,7 +253,6 @@ fn verify_different_contracts() {
         .expect("Failed to write polkavm binary to the current dir!");
 
     // when
-    eprintln!("-------2");
     let output: &str = "Failed to verify `reference.contract` against the workspace at \
                         `Cargo.toml`: the hashed polkavm blobs are not matching.";
 
@@ -269,7 +265,6 @@ fn verify_different_contracts() {
         .assert()
         .failure()
         .stderr(predicates::str::contains(output));
-    eprintln!("-------3");
     // and
 
     let output: &str = r#"Failed to verify the authenticity of the polkavm binary at `reference.polkavm`"#;

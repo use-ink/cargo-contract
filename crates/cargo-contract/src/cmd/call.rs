@@ -68,6 +68,7 @@ use subxt::{
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
+        sp_runtime::traits::Zero,
     },
     Config,
 };
@@ -124,8 +125,14 @@ impl CallCommand {
     where
         <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
         <<C as Config>::AccountId as FromStr>::Err: Display,
-        C::Balance:
-            From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
+        C::Balance: From<u128>
+            + Display
+            + Default
+            + FromStr
+            + Serialize
+            + Debug
+            + EncodeAsType
+            + Zero,
         <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
             From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     {
@@ -214,12 +221,13 @@ impl CallCommand {
                 }
             }
         } else {
-            let gas_limit = pre_submit_dry_run_gas_estimate_call(
-                &call_exec,
-                self.output_json(),
-                self.extrinsic_cli_opts.skip_dry_run,
-            )
-            .await?;
+            let (gas_limit, storage_deposit_limit) =
+                pre_submit_dry_run_gas_estimate_call(
+                    &call_exec,
+                    self.output_json(),
+                    self.extrinsic_cli_opts.skip_dry_run,
+                )
+                .await?;
             if !self.extrinsic_cli_opts.skip_confirm {
                 prompt_confirm_tx(|| {
                     name_value_println!(
@@ -239,7 +247,9 @@ impl CallCommand {
                     );
                 })?;
             }
-            let events = call_exec.call(Some(gas_limit)).await?;
+            let events = call_exec
+                .call(Some(gas_limit), Some(storage_deposit_limit))
+                .await?;
             let display_events =
                 DisplayEvents::from_events::<C, C>(&events, None, &metadata)?;
 
@@ -262,23 +272,32 @@ async fn pre_submit_dry_run_gas_estimate_call<C: Config + Environment, Signer>(
     call_exec: &CallExec<C, C, Signer>,
     output_json: bool,
     skip_dry_run: bool,
-) -> Result<Weight>
+) -> Result<(Weight, C::Balance)>
 where
     Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType,
-    C::Balance: Debug + EncodeAsType,
+    C::Balance: Debug + EncodeAsType + Zero,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     if skip_dry_run {
-        return match (call_exec.gas_limit(), call_exec.proof_size()) {
+        let weight = match (call_exec.gas_limit(), call_exec.proof_size()) {
             (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
             _ => {
                 Err(anyhow!(
                 "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
             ))
             }
-        };
+        }?;
+        let storage_deposit_limit = match call_exec.opts().storage_deposit_limit() {
+            Some(limit) => Ok(limit),
+            _ => {
+                Err(anyhow!(
+                        "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
+                    ))
+            }
+        }?;
+        return Ok((weight, storage_deposit_limit));
     }
     if !output_json {
         print_dry_running_status(call_exec.message());
@@ -296,7 +315,17 @@ where
             let proof_size = call_exec
                 .proof_size()
                 .unwrap_or_else(|| call_result.gas_required.proof_size());
-            Ok(Weight::from_parts(ref_time, proof_size))
+            let storage_deposit_limit =
+                call_exec.opts().storage_deposit_limit().unwrap_or_else(|| {
+                    match call_result.storage_deposit {
+                        StorageDeposit::Refund(_) => C::Balance::zero(),
+                        StorageDeposit::Charge(charge) => charge,
+                    }
+                });
+            Ok((
+                Weight::from_parts(ref_time, proof_size),
+                storage_deposit_limit,
+            ))
         }
         Err(ref err) => {
             let object =

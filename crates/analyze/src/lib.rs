@@ -53,6 +53,8 @@ pub fn determine_language(_code: &[u8]) -> Result<Language> {
 #[cfg(test)]
 mod tests {
     /*
+    // todo
+
     #[test]
     fn fails_with_unsupported_language() {
         let contract = r#"

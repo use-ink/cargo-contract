@@ -117,7 +117,6 @@ impl InfoCommand {
         } else {
             // Contract arg shall be always present in this case, it is enforced by
             // clap configuration
-            //eprintln!("---1");
             let contract = self
                 .contract
                 .as_ref()
@@ -127,11 +126,9 @@ impl InfoCommand {
                 .transpose()?
                 .expect("Contract argument shall be present");
 
-            //eprintln!("---2 {:?}", contract);
             let info_to_json =
                 fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
-            //eprintln!("---3");
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
             // Binary flag applied
