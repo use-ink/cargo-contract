@@ -811,3 +811,152 @@ async fn build_upload_instantiate_storage() {
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
+
+/// Sanity test if setting limits is adhered to throughout the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> call
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn adhere_to_limits_during_build_upload_instantiate_call() {
+    fn workflow(lib: &Path, project_path: &Path, salt: &str, arg: &str) {
+        tracing::debug!("Testing with {}", arg);
+        let contract = r#"
+        #![cfg_attr(not(feature = "std"), no_std, no_main)]
+
+		#[ink::contract]
+		mod flipper {
+		    const SALT: u8 = %;
+
+			#[ink(storage)]
+			pub struct Flipper {
+				value: bool,
+				vec: ink::prelude::vec::Vec<u8>,
+			}
+
+			impl Flipper {
+				#[ink(constructor)]
+				pub fn new(init_value: bool) -> Self {
+					Self { value: init_value, vec: Default::default() }
+				}
+
+				#[ink(message)]
+				pub fn push(&mut self) {
+					self.vec.push(SALT);
+				}
+			}
+		}"#;
+
+        tracing::debug!("Writing contract to {:?}", lib);
+        std::fs::write(lib, contract.replace("%", salt))
+            .expect("Failed to write contract lib.rs");
+
+        cargo_contract(project_path)
+            .arg("build")
+            .arg("--skip-linting")
+            .assert()
+            .success();
+
+        let output = cargo_contract(project_path)
+            .arg("upload")
+            .args(["--suri", "//Alice"])
+            .arg("-x")
+            .args([arg, "0"])
+            .output()
+            .expect("failed to execute process");
+        let stderr = str::from_utf8(&output.stderr).unwrap();
+        assert!(
+            !output.status.success(),
+            "upload code succeeded, but should have failed: {stderr}"
+        );
+
+        let output = cargo_contract(project_path)
+            .arg("upload")
+            .args(["--suri", "//Alice"])
+            .arg("-x")
+            .output()
+            .expect("failed to execute process");
+        let stderr = str::from_utf8(&output.stderr).unwrap();
+        assert!(output.status.success(), "upload code failed: {stderr}");
+
+        let output = cargo_contract(project_path)
+            .arg("instantiate")
+            .args(["--constructor", "new"])
+            .args(["--args", "true"])
+            .args([arg, "0"])
+            .args(["--suri", "//Alice"])
+            .arg("-x")
+            .output()
+            .expect("failed to execute process");
+        let stderr = str::from_utf8(&output.stderr).unwrap();
+        assert!(
+            !output.status.success(),
+            "instantiate succeeded, but should have failed: {stderr}"
+        );
+
+        let output = cargo_contract(project_path)
+            .arg("instantiate")
+            .args(["--constructor", "new"])
+            .args(["--args", "true"])
+            .args(["--suri", "//Alice"])
+            .arg("-x")
+            .output()
+            .expect("failed to execute process");
+        let stdout = str::from_utf8(&output.stdout).unwrap();
+        let stderr = str::from_utf8(&output.stderr).unwrap();
+        assert!(output.status.success(), "instantiate failed: {stderr}");
+
+        let contract_account = extract_contract_address(stdout);
+        cargo_contract(project_path)
+            .arg("call")
+            .args(["--message", "push"])
+            .args(["--contract", contract_account])
+            .args(["--suri", "//Alice"])
+            .args([arg, "0"])
+            .arg("-x")
+            .assert()
+            .failure();
+
+        cargo_contract(project_path)
+            .arg("call")
+            .args(["--message", "push"])
+            .args(["--contract", contract_account])
+            .args(["--suri", "//Alice"])
+            .arg("-x")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ExtrinsicSuccess"));
+    }
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+    let lib = project_path.join("lib.rs");
+    let project_path = project_path.as_path();
+
+    workflow(&lib, project_path, "10", "--storage-deposit-limit");
+    workflow(&lib, project_path, "20", "--gas");
+    workflow(&lib, project_path, "30", "--proof-size");
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
