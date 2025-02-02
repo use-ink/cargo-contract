@@ -31,10 +31,17 @@ use anyhow::Result;
 use contract_build::{
     code_hash,
     project_path,
+    util::decode_hex,
 };
+use contract_transcode::AccountId32;
+use ink::H160;
 use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use regex::Regex;
+use scale::{
+    Decode,
+    Encode,
+};
 use std::{
     ffi::OsStr,
     path::Path,
@@ -960,3 +967,220 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
     // prevent the node_process from being dropped and killed
     let _ = node_process;
 }
+
+/// Sanity test if setting limits is adhered to throughout the whole lifecycle of:
+///   new -> build -> upload -> instantiate -> call
+///
+/// # Note
+///
+/// Requires [`substrate-contracts-node`](https://github.com/paritytech/substrate-contracts-node/) to
+/// be installed and available on the `PATH`, and the no other process running using the
+/// default port `9944`.
+#[tokio::test]
+async fn complex_types_for_contract_interaction() {
+    let contract = r#"
+        #![cfg_attr(not(feature = "std"), no_std, no_main)]
+
+		#[ink::contract]
+		mod flipper {
+
+			#[ink(storage)]
+			pub struct Flipper {
+			    addr: ink::H160,
+			    account_id: AccountId,
+			    hash: Hash,
+			    h256_hash: ink::H256,
+			    value: ink::U256,
+			}
+
+			impl Flipper {
+				#[ink(constructor)]
+				pub fn new(
+                    addr: ink::H160,
+                    account_id: AccountId,
+                    hash: Hash,
+                    h256_hash: ink::H256,
+                    value: ink::U256
+                ) -> Self {
+					Self {
+					    addr,
+					    account_id,
+					    hash,
+					    h256_hash,
+					    value
+					}
+				}
+
+				#[ink(message)]
+				pub fn get(&mut self) -> (ink::H160, Hash, ink::H256, ink::U256) {
+				    (self.addr, self.hash, self.h256_hash, self.value)
+				}
+
+				#[ink(message)]
+				pub fn get_account_id(&mut self) -> AccountId {
+				    self.account_id
+				}
+			}
+		}"#;
+
+    let node_process = ContractsNodeProcess::spawn(CONTRACTS_NODE)
+        .await
+        .expect("Error spawning contracts node");
+
+    init_tracing_subscriber();
+
+    let tmp_dir = tempfile::Builder::new()
+        .prefix("cargo-contract.cli.test.")
+        .tempdir()
+        .expect("temporary directory creation failed");
+
+    cargo_contract(tmp_dir.path())
+        .arg("new")
+        .arg("flipper")
+        .assert()
+        .success();
+
+    let mut project_path = tmp_dir.path().to_path_buf();
+    project_path.push("flipper");
+    let lib = project_path.join("lib.rs");
+    let project_path = project_path.as_path();
+
+    tracing::debug!("Writing contract to {:?}", lib);
+    std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
+
+    cargo_contract(project_path)
+        .arg("build")
+        .arg("--verbose")
+        .assert()
+        .success()
+        .get_output();
+
+    let output = cargo_contract(project_path)
+        .arg("upload")
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "upload code failed: {stderr}");
+
+    let addr: ink::H160 = ink::H160::from([0x42; 20]);
+    let account_id: AccountId32 = AccountId32::from([0x13; 32]);
+    let hash: [u8; 32] = [0xAB; 32];
+    let h256_hash: ink::H256 = ink::H256::from([0x17; 32]);
+    //let value: ink::U256 = ink::U256::MAX;
+    let value: ink::U256 = ink::U256::one();
+
+    eprintln!("addr {}", hex::encode(addr).as_str());
+
+    let output = cargo_contract(project_path)
+        .arg("instantiate")
+        .args(["--constructor", "new"])
+        .args(["--args",
+            &format!("0x{}", hex::encode(addr).as_str()) ,
+            &format!("0x{}",hex::encode(account_id).as_str()),
+                     &format!("0x{}",hex::encode(hash).as_str()),
+                                  &format!("0x{}",hex::encode(h256_hash).as_str()),
+                                  &format!("0x{}",hex::encode(value.encode()).as_str())])
+        /*
+        .args(["--args", &format!("[0x{}, 0x{}, 0x{}, 0x{}, 0x{}]", hex::encode(addr).as_str(),
+                      hex::encode(account_id).as_str(),
+                      hex::encode(hash).as_str(),
+                      hex::encode(h256_hash).as_str(),
+                      hex::encode(value.encode()).as_str())])
+         */
+        /*
+        .args(format!("--args [0x{}, 0x{}, 0x{}, 0x{}, 0x{}]", hex::encode(addr).as_str(),
+         hex::encode(account_id).as_str(),
+         hex::encode(hash).as_str(),
+         hex::encode(h256_hash).as_str(),
+         hex::encode(value.encode()).as_str()))
+         */
+        .args(["--suri", "//Alice"])
+        .arg("-x")
+        .output()
+        .expect("failed to execute process");
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    let stderr = str::from_utf8(&output.stderr).unwrap();
+    assert!(output.status.success(), "instantiate failed: {stderr}");
+
+    // todo dry run?
+    let contract_account = extract_contract_address(stdout);
+    let assert = cargo_contract(project_path)
+        .arg("call")
+        .args(["--message", "get"])
+        .args(["--contract", contract_account])
+        .args(["--suri", "//Alice"])
+        .assert()
+        .success();
+    let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
+
+    eprintln!("stdout {}", stdout);
+
+    let re = Regex::new(r#"\s+Result\s+Ok\(\(([A-Za-z0-9,\s]+)\)\)"#)
+        .expect("regex creation failed");
+    let caps = re.captures(stdout).unwrap();
+    let tuple_content = caps.get(1).unwrap().as_str();
+    let re = Regex::new(
+        r#"([A-Za-z0-9]+),\s+([A-Za-z0-9]+),\s+([A-Za-z0-9]+),\s+([A-Za-z0-9]+)"#,
+    )
+    .expect("regex creation failed");
+    let caps = re.captures(tuple_content).unwrap();
+
+    use std::str::FromStr;
+    let ret_addr = caps.get(1).unwrap().as_str();
+    let _ret_hash = caps.get(2).unwrap().as_str();
+    let ret_h256 = caps.get(3).unwrap().as_str();
+    let ret_u256 = caps.get(4).unwrap().as_str();
+
+    let ret_addr = H160::from_str(ret_addr).unwrap();
+    assert_eq!(addr, ret_addr, "returned H160 address does not match!");
+
+    /*
+    // todo move to env_types tests
+    let ret_addr = contract_transcode::env_types::H160::encode_value(
+        &contract_transcode::env_types::H160{},
+        &Value::String(ret_addr.to_string())).unwrap();
+
+    let ret_addr = contract_transcode::env_types::H160::decode_value(
+        &ret_addr).unwrap();
+    assert_eq!(addr, ret_addr, "returned H160 address does not match!");
+     */
+
+    //let ret_hash = Hash::from(decode_hex(ret_hash).unwrap()).unwrap();
+    //assert_eq!(hash, ret_hash, "returned Hash does not match!");
+
+    let ret_h256 = Decode::decode(&mut &decode_hex(ret_h256).unwrap()[..]).unwrap();
+    assert_eq!(h256_hash, ret_h256, "returned H256 does not match!");
+
+    eprintln!("ret_u256 {:?}", ret_u256);
+    assert_eq!(value.to_string(), ret_u256, "returned U256 does not match!");
+
+    let assert = cargo_contract(project_path)
+        .arg("call")
+        .args(["--message", "get_account_id"])
+        .args(["--contract", contract_account])
+        .args(["--suri", "//Alice"])
+        .assert()
+        .success();
+    let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
+
+    eprintln!("stdout {}", stdout);
+    let re =
+        Regex::new(r#"Result\s+Ok\(([A-Za-z0-9]+)\)"#).expect("regex creation failed");
+    let caps = re.captures(stdout).unwrap();
+    let _ret_account_id = caps.get(1).unwrap().as_str();
+    // eprintln!("ret_account_id {}", _ret_account_id);
+
+    // todo use transcode
+    //let account_id: AccountId32 = AccountId32::from([0x13; 32]);
+    //let ret_h256 = Decode::decode(&mut decode_hex(ret_h256).unwrap()[..]).unwrap();
+    //assert_eq!(account_id, ret_account_id, "returned AccountId does not match!");
+
+    // todo assert AccountId is the same
+
+    // prevent the node_process from being dropped and killed
+    let _ = node_process;
+}
+
+// todo add integration tests for `cargo contract account`

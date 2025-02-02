@@ -77,7 +77,6 @@ impl EnvTypesTranscoder {
         match self.encoders.get(&type_id) {
             Some(encoder) => {
                 tracing::debug!("Encoding type {:?} with custom encoder", type_id);
-                eprintln!("Encoding type {:?} with custom encoder", type_id);
                 let encoded_env_type = encoder
                     .encode_value(value)
                     .context("Error encoding custom type")?;
@@ -202,6 +201,35 @@ impl CustomTypeDecoder for AccountId {
 #[derive(Clone)]
 pub struct Hash;
 
+impl CustomTypeEncoder for Hash {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        // todo currently using H256 here
+        let h256 = match value {
+            Value::Literal(literal) => {
+                primitive_types::H256::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing H256 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                primitive_types::H256::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                })?
+            }
+            Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, hex, uint, or literal for a U256"
+                ))
+            }
+        };
+        Ok(h256.encode())
+    }
+}
+
 impl CustomTypeDecoder for Hash {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let hash = primitive_types::H256::decode(input)?;
@@ -258,7 +286,7 @@ pub struct U256;
 impl CustomTypeDecoder for U256 {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let u256 = primitive_types::U256::decode(input)?;
-        Ok(Value::Hex(Hex::from_str(&format!("{u256:?}"))?))
+        Ok(Value::Literal(format!("{}", u256)))
     }
 }
 
@@ -280,9 +308,11 @@ impl CustomTypeEncoder for U256 {
                 })?
             }
             Value::UInt(uint128) => {
+                // todo
                 let u_128 = U128::from(*uint128);
                 primitive_types::U256::from(u_128)
             }
+            // todo from_slice?
             Value::Hex(hex) => primitive_types::U256::from_little_endian(hex.bytes()),
             _ => {
                 return Err(anyhow::anyhow!(
@@ -290,6 +320,54 @@ impl CustomTypeEncoder for U256 {
                 ))
             }
         };
-        Ok(u256.encode())
+        let ret = u256.encode();
+        Ok(ret)
     }
 }
+
+/// Custom decoding for the `H256` or `[u8; 32]` type so that it is displayed as a hex
+/// encoded string.
+#[derive(Clone)]
+pub struct H256;
+
+impl CustomTypeDecoder for H256 {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
+        let h256 = primitive_types::H256::decode(input)?;
+        Ok(Value::Hex(Hex::from_str(&format!("{h256:?}"))?))
+    }
+}
+
+impl CustomTypeEncoder for H256 {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        let h256 = match value {
+            Value::Literal(literal) => {
+                primitive_types::H256::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing H256 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                primitive_types::H256::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                })?
+            }
+            Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, hex, uint, or literal for a H256"
+                ))
+            }
+        };
+        Ok(h256.encode())
+    }
+}
+
+/*
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
+*/

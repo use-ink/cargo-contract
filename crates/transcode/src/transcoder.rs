@@ -99,11 +99,29 @@ impl TranscoderBuilder {
 
     pub fn with_default_custom_type_transcoders(self) -> Self {
         self.register_custom_type_transcoder::<AccountId32, _>(env_types::AccountId)
+            /*
             .register_custom_type_decoder::<primitive_types::H256, _>(env_types::Hash)
             //.register_custom_type_decoder::<primitive_types::H160, _>(env_types::H160)
             //.register_custom_type_decoder::<primitive_types::U256, _>(env_types::U256)
             //.register_custom_type_transcoder::<primitive_types::H160, _>(env_types::H160)
             .register_custom_type_transcoder::<primitive_types::U256, _>(env_types::U256)
+
+             */
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
+            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::H256)
+            //.register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::Hash)
+            .register_custom_type_transcoder::<primitive_types::H160, _>(env_types::H160)
+            .register_custom_type_transcoder::<primitive_types::H256, _>(env_types::H256)
+            .register_custom_type_transcoder::<primitive_types::U256, _>(env_types::U256)
+        //.register_custom_type_decoder::<primitive_types::U256, _>(env_types::U256)
+
+        /*
+        .register_custom_type_decoder::<primitive_types::H160, _>(env_types::H160)
+        .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::AccountId)
+        .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
+        .register_custom_type_decoder::<primitive_types::U256, _>(env_types::H256)
+        .register_custom_type_decoder::<primitive_types::U256, _>(env_types::U256)
+         */
     }
 
     pub fn register_custom_type_transcoder<T, U>(self, transcoder: U) -> Self
