@@ -136,6 +136,56 @@ where
     //Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
+/// Returns the `AccountId32` for a `H160`.
+pub async fn resolve_h160<C: Config, E: Environment>(
+    addr: &H160,
+    rpc: &LegacyRpcMethods<C>,
+    client: &OnlineClient<C>,
+) -> Result<C::AccountId>
+where
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
+    C::Hash: IntoVisitor,
+    E::Balance: IntoVisitor,
+{
+    let best_block = get_best_block(rpc).await?;
+
+    let contract_info_address =
+        dynamic("Revive", "AddressSuffix", vec![Value::from_bytes(addr)]);
+    let raw_value = client
+        .storage()
+        .at(best_block)
+        .fetch(&contract_info_address)
+        .await?
+        .ok_or_else(|| {
+            anyhow!("No address suffix was found for H160 address {:?}", addr)
+        })?;
+
+    let suffix = raw_value.as_type::<[u8; 12]>()?;
+
+    let mut raw_account_id = [0u8; 32];
+    raw_account_id[..20].copy_from_slice(&addr.0[..20]);
+    raw_account_id[20..].copy_from_slice(&suffix[..12]);
+
+    //let account: C::AccountId = raw_account_id.decode();
+    let account: C::AccountId = Decode::decode(&mut &raw_account_id[..])
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))?;
+    Ok(account)
+    /*
+    //eprintln!("---yy");
+    Decode::decode(&mut &raw_account_id[..])
+        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
+    //let contract_info_raw =
+    //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
+    //let addr = contract_info_raw.get_addr();
+
+    //let account =
+    //get_mapped_account::<C, E>(addr, rpc, client).await?;
+    //let deposit_account_data =
+    //get_account_balance::<C, E>(account, rpc, client).await?;
+    //Ok(contract_info_raw.into_contract_info(deposit_account_data))
+     */
+}
+
 /// Fetch the contract info from the storage using the provided client.
 pub async fn fetch_contract_info<C: Config, E: Environment>(
     contract: &H160,

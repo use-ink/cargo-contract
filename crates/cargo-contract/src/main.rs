@@ -19,6 +19,7 @@
 mod cmd;
 
 use self::cmd::{
+    AccountCommand,
     BuildCommand,
     CallCommand,
     CheckCommand,
@@ -130,6 +131,9 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
+    /// Account handling and information
+    #[clap(name = "account")]
+    Account(AccountCommand),
     /// Encodes a contracts input calls and their arguments
     #[clap(name = "encode")]
     Encode(EncodeCommand),
@@ -232,6 +236,9 @@ fn exec(cmd: Command) -> Result<()> {
                     .await
                     .map_err(|err| map_extrinsic_err(err, remove.output_json()))
             })
+        }
+        Command::Account(account) => {
+            runtime.block_on(async { account.handle().await.map_err(format_err) })
         }
         Command::Info(info) => {
             runtime.block_on(async { info.handle().await.map_err(format_err) })

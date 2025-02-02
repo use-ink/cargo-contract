@@ -17,6 +17,7 @@
 mod config;
 mod prod_chains;
 
+pub mod account;
 pub mod build;
 pub mod call;
 pub mod decode;
@@ -31,6 +32,7 @@ pub mod upload;
 pub mod verify;
 
 pub(crate) use self::{
+    account::AccountCommand,
     build::{
         BuildCommand,
         CheckCommand,

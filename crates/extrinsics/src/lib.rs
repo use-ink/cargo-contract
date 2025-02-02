@@ -59,6 +59,7 @@ pub use contract_info::{
     fetch_all_contracts,
     fetch_contract_info,
     fetch_wasm_code,
+    resolve_h160,
     ContractInfo,
     TrieId,
 };
