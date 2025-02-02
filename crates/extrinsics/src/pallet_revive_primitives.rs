@@ -28,15 +28,14 @@ use sp_runtime::{
 use sp_weights::Weight;
 use subxt::utils::H256;
 
-// A copy of primitive types defined within `pallet_revive`, required for RPC calls.
-
-/// todo
+/// Copied from `pallet_revive`, required for RPC calls.
+///
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
 /// `ContractsApi::call` and `ContractsApi::instantiate`.
 ///
 /// It contains the execution result together with some auxiliary information.
 ///
-/// #Note
+/// # Note
 ///
 /// It has been extended to include `events` at the end of the struct while not bumping
 /// the `ContractsApi` version. Therefore when SCALE decoding a `ContractResult` its

@@ -120,9 +120,7 @@ impl InfoCommand {
             let contract = self
                 .contract
                 .as_ref()
-                //.map(|c| H160::from())
                 .map(|c| parse_addr(c))
-                // todo
                 .transpose()?
                 .expect("Contract argument shall be present");
 
@@ -131,6 +129,7 @@ impl InfoCommand {
 
             let wasm_code =
                 fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
+
             // Binary flag applied
             if self.binary {
                 if self.output_json {

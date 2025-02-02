@@ -147,17 +147,16 @@ where
 
         let call = UploadCode::new(
             self.code.clone(),
-            // todo maybe we can remove the option altogether?
             storage_deposit_limit.expect("no storage deposit limit available"),
         )
         .build();
 
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
-        eprintln!("events: {:?}", events);
+        tracing::debug!("events: {:?}", events);
 
         let code_stored = events.find_first::<CodeStored<E::Balance>>()?;
-        eprintln!("did we find code_stored? {}", code_stored.is_some());
+        tracing::debug!("did we find `CodeStored`? {}", code_stored.is_some());
         Ok(UploadResult {
             code_stored,
             events,

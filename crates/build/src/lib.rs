@@ -101,12 +101,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
     /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-    /// todo update to newer
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-09-05";
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-11-28";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "5ec034ca05e1239371e1d1c904d7580b375da9ca";
+    pub const GIT_REV: &str = "bf546be877180ec7198a566baeee7844f7139fd0";
 }
 
 /// Result of linking an ELF woth PolkaVM.
@@ -956,7 +955,6 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
         Keccak256,
     };
     let hash = Keccak256::digest(code);
-    //let hash = H256::from_slice(hash.as_slice());
     let sl = hash.as_slice();
     assert!(sl.len() == 32, "todo");
     let mut arr = [0u8; 32];

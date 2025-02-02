@@ -30,6 +30,7 @@ pub use contract_metadata::Language;
 /// and AssemblyScript languages.
 pub fn determine_language(_code: &[u8]) -> Result<Language> {
     /*
+    // todo
     if !start_section && module.custom_sections.keys().any(|e| e == &"producers") {
         return Ok(Language::Solidity)
     } else if start_section

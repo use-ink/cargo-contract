@@ -17,20 +17,9 @@ use anyhow::{
 };
 
 /*
+// todo missing comparison for those. not sure if even exposed somewhere.
 impl Environment for DefaultEnvironment {
     const MAX_EVENT_TOPICS: usize = 4;
-
-    type AccountId = AccountId;
-
-    // t.ty.path.segments[bound..] == ["pallet_balances", "types", "AccountData"] -> free
-    type Balance = Balance;
-
-    type Hash = Hash;
-
-    type Timestamp = Timestamp;
-
-    type BlockNumber = BlockNumber;
-
     type ChainExtension = NoChainExtension;
 }
  */
