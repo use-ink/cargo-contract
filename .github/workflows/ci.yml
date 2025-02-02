@@ -145,7 +145,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.24
+        uses: taiki-e/install-action@v2.47.32
         with:
           tool: nextest
 
@@ -177,7 +177,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.24
+        uses: taiki-e/install-action@v2.47.32
         with:
           tool: nextest
 
@@ -214,7 +214,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.24
+        uses: taiki-e/install-action@v2.47.32
         with:
           tool: nextest
 

@@ -19,7 +19,7 @@ semver = { version = "1.0.24", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1.0.133"
 url = { version = "2.5.4", features = ["serde"] }
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -115,9 +115,9 @@ where
 pub struct CodeStored<Balance> {
     /// Hash under which the contract code was stored.
     pub code_hash: H256,
-    /// todo
+    /// Deposit held for the storing contract code on-chain.
     pub deposit_held: Balance,
-    /// todo
+    /// Address of the uploader.
     pub uploader: H160,
 }
 

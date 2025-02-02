@@ -163,13 +163,13 @@ where
 
     pub async fn load_contract_storage_with_layout(
         &self,
-        contract_account: &H160, // todo rename
+        contract_addr: &H160,
         decoder: &ContractMessageTranscoder,
     ) -> Result<ContractStorageLayout>
     where
         C::AccountId: Decode,
     {
-        let data = self.load_contract_storage_data(contract_account).await?;
+        let data = self.load_contract_storage_data(contract_addr).await?;
         ContractStorageLayout::new(data, decoder)
     }
 }
