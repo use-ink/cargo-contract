@@ -28,6 +28,7 @@ rustc_version = "0.4.1"
 scale = { package = "parity-scale-codec", version = "3.6.12", features = [
     "derive",
 ] }
+scale-info = "2.11.6"
 toml = "0.8.19"
 tracing = "0.1.41"
 semver = { version = "1.0.25", features = ["serde"] }
@@ -42,10 +43,13 @@ tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1.17"
 bollard = "0.18.1"
 crossterm = "0.28.1"
+itertools = "0.13.0"
+alloy-json-abi = "0.8.20"
 
 polkavm-linker = "0.18.0"
 
 contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
 sha3 = "0.11.0-pre.4"
 
 [target.'cfg(unix)'.dependencies]

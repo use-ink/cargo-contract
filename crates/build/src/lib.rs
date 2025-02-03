@@ -28,6 +28,7 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
+mod solidity_metadata;
 #[cfg(test)]
 mod tests;
 pub mod util;
@@ -42,6 +43,7 @@ pub use self::{
         BuildArtifacts,
         BuildMode,
         Features,
+        MetadataSpec,
         Network,
         OutputType,
         Target,
@@ -133,6 +135,7 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub skip_clippy_and_linting: bool,
     pub image: ImageVariant,
+    pub metadata_spec: MetadataSpec,
 }
 
 /// Result of the build process.
@@ -204,8 +207,12 @@ impl BuildResult {
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let bundle = format!(
-                "  - {} (code + metadata)\n",
-                util::base_name(&metadata_result.dest_bundle).bold()
+                "  - {} ({})\n",
+                util::base_name(&metadata_result.dest_bundle).bold(),
+                match metadata_result.spec {
+                    MetadataSpec::Ink => "code + metadata",
+                    MetadataSpec::Solidity => "Solidity compatible contract metadata",
+                }
             );
             out.push_str(&bundle);
         }
@@ -218,8 +225,12 @@ impl BuildResult {
         }
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let metadata = format!(
-                "  - {} (the contract's metadata)",
-                util::base_name(&metadata_result.dest_metadata).bold()
+                "  - {} (the contract's {})",
+                util::base_name(&metadata_result.dest_metadata).bold(),
+                match metadata_result.spec {
+                    MetadataSpec::Ink => "metadata",
+                    MetadataSpec::Solidity => "Solidity compatible ABI",
+                }
             );
             out.push_str(&metadata);
         }
@@ -680,6 +691,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         extra_lints,
         output_type,
+        metadata_spec,
         ..
     } = &args;
 
@@ -701,6 +713,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();
         fs::remove_file(crate_metadata.contract_bundle_path()).ok();
+        fs::remove_file(solidity_metadata::abi_path(&crate_metadata)).ok();
+        fs::remove_file(solidity_metadata::metadata_path(&crate_metadata)).ok();
     };
 
     let (opt_result, metadata_result, dest_binary) = match build_artifact {
@@ -722,17 +736,46 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     clean_metadata();
                 })?;
 
+            let (dest_metadata, dest_bundle) = match metadata_spec {
+                MetadataSpec::Ink => {
+                    (
+                        crate_metadata.metadata_path(),
+                        crate_metadata.contract_bundle_path(),
+                    )
+                }
+                MetadataSpec::Solidity => {
+                    (
+                        solidity_metadata::abi_path(&crate_metadata),
+                        solidity_metadata::metadata_path(&crate_metadata),
+                    )
+                }
+            };
             let metadata_result = MetadataArtifacts {
-                dest_metadata: crate_metadata.metadata_path(),
-                dest_bundle: crate_metadata.contract_bundle_path(),
+                spec: *metadata_spec,
+                dest_metadata,
+                dest_bundle,
             };
 
-            // skip metadata generation if contract unchanged and all metadata artifacts
-            // exist.
+            // skip metadata generation if contract is unchanged, metadata spec is
+            // unchanged, and all metadata artifacts exist.
+            let pre_metadata_spec =
+                fs::read_to_string(&crate_metadata.metadata_spec_path);
+            let is_unchanged_metadata_spec =
+                pre_metadata_spec.ok() == Some(metadata_spec.to_string());
             if opt_result.is_some()
+                || !is_unchanged_metadata_spec
                 || !metadata_result.dest_metadata.exists()
                 || !metadata_result.dest_bundle.exists()
             {
+                // Persists the current metadata spec used so we trigger regeneration
+                // when we switch
+                if !is_unchanged_metadata_spec {
+                    fs::write(
+                        &crate_metadata.metadata_spec_path,
+                        metadata_spec.to_string(),
+                    )?;
+                }
+
                 // if metadata build fails after a code build it might become stale
                 clean_metadata();
                 metadata::execute(
@@ -744,6 +787,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     *verbosity,
                     unstable_flags,
                     build_info,
+                    *metadata_spec,
                 )?;
             }
             (opt_result, Some(metadata_result), Some(dest_binary))
