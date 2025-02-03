@@ -12,6 +12,7 @@ use contract_build::{
     BuildArtifacts,
     BuildMode,
     Features,
+    MetadataSpec,
     Network,
     OutputType,
     UnstableFlags,
@@ -34,6 +35,7 @@ let args = contract_build::ExecuteArgs {
     output_type: OutputType::Json,
     skip_clippy_and_linting: false,
     image: ImageVariant::Default,
+    metadata_spec: MetadataSpec::Ink,
 };
 
 contract_build::execute(args);
