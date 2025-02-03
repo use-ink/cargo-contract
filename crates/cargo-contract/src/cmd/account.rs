@@ -100,6 +100,10 @@ impl AccountCommand {
 
         let account_id = resolve_h160::<C, C>(&addr, &rpc, &client).await?;
 
+        // todo display account balance as well
+        //let deposit_account_data =
+        //get_account_balance::<C, E>(account, rpc, client).await?;
+
         if self.output_json {
             let wasm = serde_json::json!({
                 "account_id": format!("0x{}", hex::encode(account_id))

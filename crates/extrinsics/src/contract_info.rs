@@ -88,52 +88,10 @@ where
     C::Hash: IntoVisitor,
     E::Balance: IntoVisitor,
 {
-    /*
-    let best_block = get_best_block(rpc).await?;
-
-    let contract_info_address = dynamic(
-        "Revive",
-        "AddressSuffix",
-        vec![Value::from_bytes(contract)],
-    );
-    let raw_value = client
-        .storage()
-        .at(best_block)
-        .fetch(&contract_info_address)
-        .await?
-        .ok_or_else(|| {
-            anyhow!(
-                "No address suffix was found for contract {}",
-                contract
-            )
-        })?;
-
-    let suffix = raw_value.as_type::<[u8; 12]>()?;
-
-    let mut raw_account_id = [0u8; 32];
-    raw_account_id[..20].copy_from_slice(&contract.0[..20]);
-    raw_account_id[20..].copy_from_slice(&suffix[..12]);
-
-     */
     let mut raw_account_id = [0xEE; 32];
     raw_account_id[..20].copy_from_slice(&contract.0[..20]);
-
-    //let account: C::AccountId = raw_account_id.decode();
-    //let account: C::AccountId = Decode::decode(&mut raw_account_id)
-    //.map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-    //Ok(account)
-    //eprintln!("---yy");
     Decode::decode(&mut &raw_account_id[..])
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-    //let contract_info_raw =
-    //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
-    //let addr = contract_info_raw.get_addr();
-
-    //let account =
-    //get_mapped_account::<C, E>(addr, rpc, client).await?;
-    //let deposit_account_data =
-    //get_account_balance::<C, E>(account, rpc, client).await?;
-    //Ok(contract_info_raw.into_contract_info(deposit_account_data))
 }
 
 /// Returns the `AccountId32` for a `H160`.
@@ -166,24 +124,9 @@ where
     raw_account_id[..20].copy_from_slice(&addr.0[..20]);
     raw_account_id[20..].copy_from_slice(&suffix[..12]);
 
-    //let account: C::AccountId = raw_account_id.decode();
     let account: C::AccountId = Decode::decode(&mut &raw_account_id[..])
         .map_err(|err| anyhow!("AccountId deserialization error: {}", err))?;
     Ok(account)
-    /*
-    //eprintln!("---yy");
-    Decode::decode(&mut &raw_account_id[..])
-        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-    //let contract_info_raw =
-    //ContractInfoRaw::<C, E>::new(contract.clone(), contract_info_value)?;
-    //let addr = contract_info_raw.get_addr();
-
-    //let account =
-    //get_mapped_account::<C, E>(addr, rpc, client).await?;
-    //let deposit_account_data =
-    //get_account_balance::<C, E>(account, rpc, client).await?;
-    //Ok(contract_info_raw.into_contract_info(deposit_account_data))
-     */
 }
 
 /// Fetch the contract info from the storage using the provided client.
@@ -391,28 +334,6 @@ fn parse_contract_address(
         .map_err(|err| anyhow!("H160 deserialization error: {}", err))
 }
 
-/*
-/// Parse a contract account address from a storage key. Returns error if a key is
-/// malformated.
-fn parse_contract_account_address<C: Config>(
-    storage_contract_account_key: &[u8],
-    storage_contract_root_key_len: usize,
-) -> Result<C::AccountId>
-where
-    C::AccountId: Decode,
-{
-    eprintln!("---xx");
-    // storage_contract_account_key is a concatenation of contract_info_of root key and
-    // Twox64Concat(AccountId)
-    let mut account = storage_contract_account_key
-        .get(storage_contract_root_key_len + 8..)
-        .ok_or(anyhow!("Unexpected storage key size"))?;
-    Decode::decode(&mut account)
-        .map_err(|err| anyhow!("AccountId deserialization error: {}", err))
-}
-
- */
-
 /// Fetch all contract addresses from the storage using the provided client.
 pub async fn fetch_all_contracts<C: Config>(
     client: &OnlineClient<C>,
@@ -430,8 +351,6 @@ pub async fn fetch_all_contracts<C: Config>(
     let mut contract_accounts = Vec::new();
     while let Some(result) = keys.next().await {
         let key = result?;
-        //let contract_account = parse_contract_account_address::<C>(&key,
-        // root_key.len())?;
         let contract_account = parse_contract_address(&key, root_key.len())?;
         contract_accounts.push(contract_account);
     }

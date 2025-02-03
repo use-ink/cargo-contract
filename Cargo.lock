@@ -1753,9 +1753,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
+checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
 
 [[package]]
 name = "camino"
@@ -8329,18 +8329,18 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.1.8"
+version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e2ec53ad785f4d35dac0adea7f7dc6f1bb277ad84a680c7afefeae05d1f5916"
+checksum = "dfe2e71e1471fe07709406bf725f710b02927c9c54b2b5b2ec0e8087d97c327d"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "1.1.8"
+version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d56a66c0c55993aa927429d0f8a0abfd74f084e4d9c192cffed01e418d83eefb"
+checksum = "f6e859e6e5bd50440ab63c47e3ebabc90f26251f7c73c3d3e837b74a1cc3fa67"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -11651,7 +11651,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-377-ext",
@@ -11761,7 +11761,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -11781,7 +11781,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -12131,7 +12131,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -12183,7 +12183,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "Inflector",
  "expander",
@@ -12343,7 +12343,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 
 [[package]]
 name = "sp-storage"
@@ -12360,7 +12360,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
@@ -12409,7 +12409,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -12573,7 +12573,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#23833ccee9c1c2062123e60901e6dc1076e0697d"
+source = "git+https://github.com/paritytech/polkadot-sdk#4f4f6f82bd54748231384128c8d8b37e51bd8367"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -13811,9 +13811,9 @@ dependencies = [
 
 [[package]]
 name = "wait-timeout"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
+checksum = "09ac3b126d3914f9849036f826e054cbabdc8519970b8998ddaf3b5bd3c65f11"
 dependencies = [
  "libc",
 ]

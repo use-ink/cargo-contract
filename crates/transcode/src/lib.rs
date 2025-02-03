@@ -795,25 +795,14 @@ mod tests {
         let account_id: AccountId32 = AccountId32::from([0x13; 32]);
         let _hash: [u8; 32] = [0xAB; 32];
         let h256: ink::H256 = ink::H256::from([0x17; 32]);
-        //let value: ink::U256 = ink::U256::MAX;
+        // todo let value: ink::U256 = ink::U256::MAX;
         let value: ink::U256 = ink::U256::one();
 
-        //let encoded = Result::<(ink::H160, [u8; 32], ink::H256, ink::U256),
-        // ink::primitives::LangError>::Ok(
-        eprintln!("calling encode");
         let encoded = Result::<
             (u32, ink::H160, ink::H256, ink::U256, AccountId32),
             ink::primitives::LangError,
         >::Ok((32, addr, h256, value, account_id))
         .encode();
-
-        /*
-        let encoded = Result::<(ink::H160, ink::H256, ink::U256), ink::primitives::LangError>::Ok(
-            //(addr, hash, h256_hash, value)
-            (addr, h256_hash, value)
-        ).encode();
-
-         */
 
         let decoded = transcoder
             .decode_message_return("get_complex", &mut &encoded[..])
