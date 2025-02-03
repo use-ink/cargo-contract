@@ -285,9 +285,11 @@ impl Features {
     serde::Serialize,
     serde::Deserialize,
 )]
+#[serde(rename_all = "lowercase")]
 pub enum MetadataSpec {
     /// ink!
     #[clap(name = "ink")]
+    #[serde(rename = "ink!")]
     #[default]
     Ink,
     /// Solidity

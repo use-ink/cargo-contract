@@ -1068,6 +1068,7 @@ mod unit_tests {
         let raw_result = r#"{
   "dest_binary": "/path/to/contract.polkavm",
   "metadata_result": {
+    "spec": "ink!",
     "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
   },
@@ -1085,6 +1086,7 @@ mod unit_tests {
         let build_result = BuildResult {
             dest_binary: Some(PathBuf::from("/path/to/contract.polkavm")),
             metadata_result: Some(MetadataArtifacts {
+                spec: MetadataSpec::Ink,
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
             }),
