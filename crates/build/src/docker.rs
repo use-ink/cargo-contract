@@ -246,24 +246,46 @@ async fn update_metadata(
     client: &Docker,
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
-        let mut metadata = ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
+        match metadata_artifacts.spec {
+            crate::MetadataSpec::Ink => {
+                let mut metadata =
+                    ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
 
-        let build_image = find_local_image(client, build_image.to_string())
-            .await?
-            .context("Image summary does not exist")?;
-        // find alternative unique identifier of the image, otherwise grab the digest
-        let image_tag = match build_image
-            .repo_tags
-            .iter()
-            .find(|t| !t.ends_with("latest"))
-        {
-            Some(tag) => tag.to_owned(),
-            None => build_image.id.clone(),
-        };
+                let build_image = find_local_image(client, build_image.to_string())
+                    .await?
+                    .context("Image summary does not exist")?;
+                // find alternative unique identifier of the image, otherwise grab the
+                // digest
+                let image_tag = match build_image
+                    .repo_tags
+                    .iter()
+                    .find(|t| !t.ends_with("latest"))
+                {
+                    Some(tag) => tag.to_owned(),
+                    None => build_image.id.clone(),
+                };
 
-        metadata.image = Some(image_tag);
+                metadata.image = Some(image_tag);
 
-        crate::metadata::write_metadata(metadata_artifacts, metadata, verbosity, true)?;
+                crate::metadata::write_metadata(
+                    metadata_artifacts,
+                    metadata,
+                    verbosity,
+                    true,
+                )?;
+            }
+            crate::MetadataSpec::Solidity => {
+                let metadata = crate::solidity_metadata::load_metadata(
+                    &metadata_artifacts.dest_bundle,
+                )?;
+                crate::metadata::write_solidity_metadata(
+                    metadata_artifacts,
+                    metadata,
+                    verbosity,
+                    true,
+                )?;
+            }
+        }
     }
     Ok(())
 }

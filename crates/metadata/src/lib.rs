@@ -619,7 +619,7 @@ impl ContractBuilder {
         self
     }
 
-    /// Finalize construction of the [`ContractMetadata`].
+    /// Finalize construction of the [`Contract`] metadata.
     ///
     /// Returns an `Err` if any required fields missing.
     pub fn build(&self) -> Result<Contract, String> {
