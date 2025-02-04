@@ -103,7 +103,7 @@ cargo contract call \
 
 ### `remove`
 
-Remove the bytecode of the contract to the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
+Remove the contract binary from the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
 dispatchable.
 
 e.g. `cargo contract remove --suri //Alice`

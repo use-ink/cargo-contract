@@ -28,11 +28,11 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler =
 //!     SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-//! let contract_bytecode = SourceContractBytecode::new(vec![0u8]);
+//! let contract_binary = SourceContractBinary::new(vec![0u8]);
 //! // Optional information about how the contract was build
 //! let build_info: Map<String, Value> = Map::new();
 //! let source = Source::new(
-//!     Some(contract_bytecode),
+//!     Some(contract_binary),
 //!     CodeHash([0u8; 32]),
 //!     language,
 //!     compiler,
@@ -132,8 +132,8 @@ impl ContractMetadata {
         }
     }
 
-    pub fn remove_source_contract_bytecode_attribute(&mut self) {
-        self.source.contract_bytecode = None;
+    pub fn remove_source_contract_binary_attribute(&mut self) {
+        self.source.contract_binary = None;
     }
 
     /// Reads the file and tries to parse it as instance of `ContractMetadata`.
@@ -192,19 +192,19 @@ impl Display for CodeHash {
     }
 }
 
-/// Information about the contract's bytecode (for PolkaVM).
+/// Information about the contract's binary (for PolkaVM).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
-    /// The hash of the contract's bytecode.
+    /// The hash of the contract's binary.
     pub hash: CodeHash,
     /// The language used to write the contract.
     pub language: SourceLanguage,
     /// The compiler used to compile the contract.
     pub compiler: SourceCompiler,
-    /// The actual bytecode of the contract (compiled for PolkaVM).
+    /// The actual binary of the contract (compiled for PolkaVM).
     /// Used to optionally bundle the code with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contract_bytecode: Option<SourceContractBytecode>,
+    pub contract_binary: Option<SourceContractBinary>,
     /// Extra information about the environment in which the contract was built.
     ///
     /// Useful for producing deterministic builds.
@@ -215,7 +215,7 @@ pub struct Source {
 impl Source {
     /// Constructs a new InkProjectSource.
     pub fn new(
-        contract_bytecode: Option<SourceContractBytecode>,
+        contract_binary: Option<SourceContractBinary>,
         hash: CodeHash,
         language: SourceLanguage,
         compiler: SourceCompiler,
@@ -225,31 +225,31 @@ impl Source {
             hash,
             language,
             compiler,
-            contract_bytecode,
+            contract_binary,
             build_info,
         }
     }
 }
 
-/// The PolkaVM bytecode of the compiled smart contract.
+/// The binary of the compiled smart contract (compiled for PolkaVM).
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct SourceContractBytecode(
+pub struct SourceContractBinary(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
         deserialize_with = "byte_str::deserialize_from_byte_str"
     )]
-    /// The raw bytes of the contract's bytecode.
+    /// The raw bytes of the contract's binary.
     pub Vec<u8>,
 );
 
-impl SourceContractBytecode {
+impl SourceContractBinary {
     /// Constructs a new `SourceContractBytecode`.
-    pub fn new(contract_bytecode: Vec<u8>) -> Self {
-        SourceContractBytecode(contract_bytecode)
+    pub fn new(contract_binary: Vec<u8>) -> Self {
+        SourceContractBinary(contract_binary)
     }
 }
 
-impl Display for SourceContractBytecode {
+impl Display for SourceContractBinary {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
         for byte in &self.0 {
@@ -716,7 +716,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let contract_bytecode = SourceContractBytecode::new(vec![0u8, 1u8, 2u8]);
+        let contract_binary = SourceContractBinary::new(vec![0u8, 1u8, 2u8]);
         let build_info = json! {
             {
                 "example_compiler_version": 42,
@@ -729,7 +729,7 @@ mod tests {
         .clone();
 
         let source = Source::new(
-            Some(contract_bytecode),
+            Some(contract_binary),
             CodeHash([0u8; 32]),
             language,
             compiler,
@@ -785,7 +785,7 @@ mod tests {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
                     "compiler": "rustc 1.46.0-nightly",
-                    "contract_bytecode": "0x000102",
+                    "contract_binary": "0x000102",
                     "build_info": {
                         "example_compiler_version": 42,
                         "example_settings": [],
@@ -883,7 +883,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let contract_bytecode = SourceContractBytecode::new(vec![0u8, 1u8, 2u8]);
+        let contract_binary = SourceContractBinary::new(vec![0u8, 1u8, 2u8]);
         let build_info = json! {
             {
                 "example_compiler_version": 42,
@@ -896,7 +896,7 @@ mod tests {
         .clone();
 
         let source = Source::new(
-            Some(contract_bytecode),
+            Some(contract_binary),
             CodeHash([0u8; 32]),
             language,
             compiler,

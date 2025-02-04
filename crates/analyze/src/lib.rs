@@ -25,7 +25,7 @@ pub use contract_metadata::Language;
 /// Detects the programming language of a smart contract from its PolkaVM
 /// binary code.
 ///
-/// This function accepts contract bytecode as input and employs a set of heuristics
+/// This function accepts a binary contract as input and employs a set of heuristics
 /// to identify the contract's source language. It currently supports detection of the
 /// ink! and Solidity languages.
 pub fn determine_language(_code: &[u8]) -> Result<Language> {

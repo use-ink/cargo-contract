@@ -77,7 +77,7 @@ impl VerifyCommand {
         if let Some(path) = &self.contract_bundle {
             self.verify_contract(manifest_path, verbosity, path)
         } else if let Some(path) = &self.contract_binary {
-            self.verify_polkavm_bytecode(manifest_path, verbosity, path)
+            self.verify_contract_binary(manifest_path, verbosity, path)
         } else {
             anyhow::bail!(
                 "Either --contract-binary or --contract-bundle must be specified"
@@ -85,8 +85,8 @@ impl VerifyCommand {
         }
     }
 
-    /// Verify `.polkavm` binary.
-    fn verify_polkavm_bytecode(
+    /// Verify a contract binary (`.polkavm`).
+    fn verify_contract_binary(
         &self,
         manifest_path: ManifestPath,
         verbosity: Verbosity,
@@ -112,7 +112,7 @@ impl VerifyCommand {
 
         // 4. Grab the code hash from the built contract and compare it with the reference
         //    one.
-        let built_polkavm_path = if let Some(m) = build_result.dest_polkavm {
+        let built_polkavm_path = if let Some(m) = build_result.dest_binary {
             m
         } else {
             // Since we're building the contract ourselves this should always be
@@ -255,11 +255,11 @@ impl VerifyCommand {
         let reference_polkavm_blob = decode_hex(
             &metadata
                 .source
-                .contract_bytecode
-                .expect("no source.polkavm field exists in metadata")
+                .contract_binary
+                .expect("no `source.polkavm` field exists in metadata")
                 .to_string(),
         )
-        .expect("decoding the source.polkavm hex failed");
+        .expect("decoding the `source.polkavm` hex failed");
         let reference_code_hash = CodeHash(code_hash(&reference_polkavm_blob));
         let built_contract_path = if let Some(m) = build_result.metadata_result {
             m

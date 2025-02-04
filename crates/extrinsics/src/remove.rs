@@ -96,7 +96,7 @@ where
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let final_code_hash = match (self.code_hash.as_ref(), artifacts.contract_bytecode.as_ref()) {
+        let final_code_hash = match (self.code_hash.as_ref(), artifacts.contract_binary.as_ref()) {
             (Some(code_h), _) => Ok(*code_h),
             (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
             (None, None) => Err(anyhow::anyhow!(

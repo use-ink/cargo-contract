@@ -116,7 +116,7 @@ from `true` to `false` through the `flip()` function.
 
 ##### `cargo contract build`
 
-Compile the contract into [PolkaVM](https://github.com/paritytech/polkavm) bytecode, generate
+Compile the contract into a [PolkaVM](https://github.com/paritytech/polkavm) binary, generate
 metadata for it, and bundle both together in a `<name>.contract` file, which you can use for
 deploying the contract on-chain.
 

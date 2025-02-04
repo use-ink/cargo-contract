@@ -164,7 +164,7 @@ where
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let url = self.extrinsic_opts.url();
-        let code = if let Some(code) = artifacts.contract_bytecode {
+        let code = if let Some(code) = artifacts.contract_binary {
             Code::Upload(code.0)
         } else {
             let code_hash = artifacts.code_hash()?;
@@ -613,7 +613,7 @@ struct InstantiateRequest<C: Config, E: Environment> {
     salt: Option<[u8; 32]>,
 }
 
-/// Reference to an existing code hash or new contract bytecode.
+/// Reference to an existing code hash or new contract binary.
 #[derive(Clone, Encode)]
 pub enum Code {
     /// A contract binary as raw bytes.

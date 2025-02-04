@@ -40,8 +40,8 @@ pub struct ContractArtifacts {
     metadata_path: PathBuf,
     /// The deserialized contract metadata if the expected metadata file exists.
     metadata: Option<ContractMetadata>,
-    /// The contract bytecode if available.
-    pub contract_bytecode: Option<ContractBinary>,
+    /// The contract binary if available.
+    pub contract_binary: Option<ContractBinary>,
 }
 
 impl ContractArtifacts {
@@ -81,7 +81,7 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.contract_bytecode.map(|bytecode| ContractBinary(bytecode.0));
+                    let code = metadata.clone().source.contract_binary.map(|binary| ContractBinary(binary.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
                 Some("polkavm") => {
@@ -118,7 +118,7 @@ impl ContractArtifacts {
             artifacts_path: path.into(),
             metadata_path,
             metadata,
-            contract_bytecode: code,
+            contract_binary: code,
         })
     }
 

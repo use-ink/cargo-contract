@@ -57,7 +57,7 @@ use contract_build::{
 };
 pub use contract_info::{
     fetch_all_contracts,
-    fetch_contract_bytecode,
+    fetch_contract_binary,
     fetch_contract_info,
     resolve_h160,
     ContractInfo,
@@ -129,7 +129,7 @@ pub use rpc::{
     RpcRequest,
 };
 
-/// The bytecode of a contract (compiled for PolkaVM).
+/// The binary of a contract (compiled for PolkaVM).
 #[derive(Debug, Clone)]
 pub struct ContractBinary(Vec<u8>);
 
