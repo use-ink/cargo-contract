@@ -41,7 +41,7 @@ use contract_metadata::{
     Language,
     Source,
     SourceCompiler,
-    SourceContractBytecode,
+    SourceContractBinary,
     SourceLanguage,
     User,
 };
@@ -194,7 +194,7 @@ pub fn write_metadata(
 ) -> Result<()> {
     {
         let mut metadata = metadata.clone();
-        metadata.remove_source_contract_bytecode_attribute();
+        metadata.remove_source_contract_binary_attribute();
         let contents = serde_json::to_string_pretty(&metadata)?;
         fs::write(&metadata_artifacts.dest_metadata, contents)?;
     }
@@ -245,10 +245,10 @@ fn extended_metadata(
     let source = {
         let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-        let contract_bytecode = fs::read(final_contract_binary)?;
-        let hash = code_hash(contract_bytecode.as_slice());
+        let contract_binary = fs::read(final_contract_binary)?;
+        let hash = code_hash(contract_binary.as_slice());
         Source::new(
-            Some(SourceContractBytecode::new(contract_bytecode)),
+            Some(SourceContractBinary::new(contract_binary)),
             hash.into(),
             lang,
             compiler,

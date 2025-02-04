@@ -155,13 +155,14 @@ fn verify_equivalent_contracts() {
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
-    // Compile reference contract and write contract bundle and bytecode in the directory.
-    let (ref_bundle, ref_bytecode) = compile_reference_contract();
+    // Compile reference contract and write contract bundle and contract binary in the
+    // directory.
+    let (ref_bundle, ref_binary) = compile_reference_contract();
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
     let binary_path = project_dir.join("reference.polkavm");
-    std::fs::write(binary_path, ref_bytecode)
+    std::fs::write(binary_path, ref_binary)
         .expect("Failed to write `.polkavm` binary to the current dir!");
 
     // when
@@ -243,13 +244,14 @@ fn verify_different_contracts() {
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir).arg("build").assert().success();
 
-    // Compile reference contract and write contract bundle and bytecode in the directory.
-    let (ref_bundle, ref_bytecode) = compile_reference_contract();
+    // Compile reference contract and write contract bundle and contract binary in the
+    // directory.
+    let (ref_bundle, ref_binary) = compile_reference_contract();
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
-    let bytecode_path = project_dir.join("reference.polkavm");
-    std::fs::write(bytecode_path, ref_bytecode)
+    let binary_path = project_dir.join("reference.polkavm");
+    std::fs::write(binary_path, ref_binary)
         .expect("Failed to write polkavm binary to the current dir!");
 
     // when
@@ -279,7 +281,7 @@ fn verify_different_contracts() {
 }
 
 #[test]
-fn verify_must_fail_on_manipulated_bytecode() {
+fn verify_must_fail_on_manipulated_binary() {
     // given
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
@@ -288,31 +290,31 @@ fn verify_must_fail_on_manipulated_bytecode() {
     let (project_dir, mut metadata_json) = create_and_compile_minimal_contract(&tmp_dir);
 
     // when
-    // we change the `source.polkavm` blob to a different contract bytecode, but the hash
+    // we change the `source.polkavm` blob to a different contract binary, but the hash
     // will remain the same as the one from our compiled minimal contract.
     let source = metadata_json
         .get_mut("source")
         .expect("source field not found in metadata");
-    let contract_bytecode = source
-        .get_mut("contract_bytecode")
-        .expect("source.contract_bytecode field not found in metadata");
-    *contract_bytecode = Value::String(String::from("0x00"));
+    let contract_binary = source
+        .get_mut("contract_binary")
+        .expect("`source.contract_binary` field not found in metadata");
+    *contract_binary = Value::String(String::from("0x00"));
 
     let contract_file =
-        project_dir.join("contract_with_mismatching_bytecode_hash_and_code.contract");
+        project_dir.join("contract_with_mismatching_binary_hash_and_code.contract");
     let metadata = serde_json::to_string_pretty(&metadata_json)
         .expect("failed converting metadata to json");
     std::fs::write(contract_file, metadata)
         .expect("Failed to write bundle contract to the current dir!");
 
     // then
-    let output: &str = "Failed to verify `contract_with_mismatching_bytecode_hash_and_code.contract` \
+    let output: &str = "Failed to verify `contract_with_mismatching_binary_hash_and_code.contract` \
                         against the workspace at `Cargo.toml`: the hashed polkavm blobs are not \
                         matching.";
     cargo_contract(&project_dir)
         .arg("verify")
         .arg("--contract-bundle")
-        .arg("contract_with_mismatching_bytecode_hash_and_code.contract")
+        .arg("contract_with_mismatching_binary_hash_and_code.contract")
         .arg("--output-json")
         .assert()
         .failure()
@@ -333,10 +335,10 @@ fn verify_must_fail_on_corrupt_hash() {
     let source = metadata_json
         .get_mut("source")
         .expect("source field not found in metadata");
-    let bytecode_hash = source
+    let binary_hash = source
         .get_mut("hash")
         .expect("source.hash field not found in metadata");
-    *bytecode_hash = Value::String(String::from(
+    *binary_hash = Value::String(String::from(
         "0x0000000000000000000000000000000000000000000000000000000000000000",
     ));
 

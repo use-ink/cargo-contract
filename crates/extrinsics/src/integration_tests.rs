@@ -414,11 +414,11 @@ async fn build_upload_instantiate_info() {
     );
 
     // construct the contract file path
-    let contract_bytecode =
+    let contract_binary =
         project_path(project_dir.join("target")).join("ink/flipper.polkavm");
 
     let code =
-        std::fs::read(contract_bytecode).expect("contract `.polkavm` file not found");
+        std::fs::read(contract_binary).expect("contract `.polkavm` file not found");
     assert_eq!(code_hash(&code), code_hash(&output.stdout));
 
     let output = cargo_contract(project_dir.as_path())
@@ -435,7 +435,7 @@ async fn build_upload_instantiate_info() {
     let hex_fs_binary = hex::encode(&code);
 
     let json = String::from_utf8(output.stdout.clone()).unwrap();
-    let re = Regex::new(r#""contract_bytecode": "0x([A-Za-z0-9]+)"#)
+    let re = Regex::new(r#""contract_binary": "0x([A-Za-z0-9]+)"#)
         .expect("regex creation failed");
     let caps = re.captures(&json).unwrap();
     let hex_output = caps.get(1).unwrap().as_str();

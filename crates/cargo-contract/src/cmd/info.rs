@@ -26,7 +26,7 @@ use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
     fetch_all_contracts,
-    fetch_contract_bytecode,
+    fetch_contract_binary,
     fetch_contract_info,
     url_to_string,
     ContractInfo,
@@ -70,7 +70,7 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
-    /// Display the contract's bytecode.
+    /// Display the contract's binary.
     #[clap(name = "binary", long, conflicts_with = "all")]
     binary: bool,
     /// Display all contracts addresses
@@ -127,19 +127,19 @@ impl InfoCommand {
             let info_to_json =
                 fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
-            let contract_bytecode =
-                fetch_contract_bytecode(&client, &rpc, info_to_json.code_hash()).await?;
+            let contract_binary =
+                fetch_contract_binary(&client, &rpc, info_to_json.code_hash()).await?;
 
             // Binary flag applied
             if self.binary {
                 if self.output_json {
                     let output = serde_json::json!({
-                        "contract_bytecode": format!("0x{}", hex::encode(contract_bytecode))
+                        "contract_binary": format!("0x{}", hex::encode(contract_binary))
                     });
                     println!("{}", serde_json::to_string_pretty(&output)?);
                 } else {
                     std::io::stdout()
-                        .write_all(&contract_bytecode)
+                        .write_all(&contract_binary)
                         .expect("Writing to stdout failed")
                 }
             } else if self.output_json {
@@ -149,7 +149,7 @@ impl InfoCommand {
                         <C as Config>::Hash,
                         C::Balance,
                     >::new(
-                        info_to_json, &contract_bytecode
+                        info_to_json, &contract_binary
                     ))?
                 )
             } else {
@@ -158,7 +158,7 @@ impl InfoCommand {
                     C::Balance,
                 >::new(
                     info_to_json,
-                    &contract_bytecode,
+                    &contract_binary,
                 ))
             }
             Ok(())

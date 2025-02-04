@@ -199,8 +199,8 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Check(check) => {
             let res = check.exec().map_err(format_err)?;
             assert!(
-                res.dest_polkavm.is_none(),
-                "no dest_polkavm must be on the generation result"
+                res.dest_binary.is_none(),
+                "no dest_binary must be on the generation result"
             );
             Ok(())
         }

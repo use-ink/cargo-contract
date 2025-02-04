@@ -80,7 +80,7 @@ where
         let transcoder = artifacts.contract_transcoder()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts.contract_bytecode.ok_or_else(|| {
+        let code = artifacts.contract_binary.ok_or_else(|| {
             anyhow::anyhow!(
                 "Contract code not found from artifact file {}",
                 artifacts_path.display()

@@ -144,12 +144,12 @@ pub struct CodeUploadReturnValue<Balance> {
     pub deposit: Balance,
 }
 
-/// Reference to an existing code hash or a new contract bytecode.
+/// Reference to an existing code hash or a new contract binary.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum Code<Hash> {
     /// Bytecode of a contract.
     Upload(Vec<u8>),
-    /// The code hash of an on-chain contract bytecode.
+    /// The code hash of an on-chain contract binary.
     Existing(Hash),
 }
 

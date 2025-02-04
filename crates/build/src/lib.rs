@@ -138,8 +138,8 @@ pub struct ExecuteArgs {
 /// Result of the build process.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct BuildResult {
-    /// Path to the resulting file with the bytecode.
-    pub dest_polkavm: Option<PathBuf>,
+    /// Path to the resulting binary file.
+    pub dest_binary: Option<PathBuf>,
     /// Result of the metadata generation.
     pub metadata_result: Option<MetadataArtifacts>,
     /// Path to the directory where output files are written to.
@@ -186,7 +186,7 @@ impl BuildResult {
                 "{}{}Your contract's code is ready. You can find it here:\n{}",
                 opt_size_diff,
                 build_mode,
-                self.dest_polkavm
+                self.dest_binary
                     .as_ref()
                     .expect("polkavm path must exist")
                     .display()
@@ -209,10 +209,10 @@ impl BuildResult {
             );
             out.push_str(&bundle);
         }
-        if let Some(dest_polkavm) = self.dest_polkavm.as_ref() {
+        if let Some(dest_binary) = self.dest_binary.as_ref() {
             let path = format!(
                 "  - {} (the contract's code)\n",
-                util::base_name(dest_polkavm).bold()
+                util::base_name(dest_binary).bold()
             );
             out.push_str(&path);
         }
@@ -703,7 +703,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         fs::remove_file(crate_metadata.contract_bundle_path()).ok();
     };
 
-    let (opt_result, metadata_result, dest_polkavm) = match build_artifact {
+    let (opt_result, metadata_result, dest_binary) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
             lint(*extra_lints, &crate_metadata, verbosity)?;
@@ -712,11 +712,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_polkavm) = local_build(&crate_metadata, &args)?;
-            (opt_result, None, Some(dest_polkavm))
+            let (opt_result, _, dest_binary) = local_build(&crate_metadata, &args)?;
+            (opt_result, None, Some(dest_binary))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_polkavm) =
+            let (opt_result, build_info, dest_binary) =
                 local_build(&crate_metadata, &args).inspect_err(|_| {
                     // build error -> bundle is stale
                     clean_metadata();
@@ -737,7 +737,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 clean_metadata();
                 metadata::execute(
                     &crate_metadata,
-                    dest_polkavm.as_path(),
+                    dest_binary.as_path(),
                     &metadata_result,
                     features,
                     *network,
@@ -746,12 +746,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     build_info,
                 )?;
             }
-            (opt_result, Some(metadata_result), Some(dest_polkavm))
+            (opt_result, Some(metadata_result), Some(dest_binary))
         }
     };
 
     Ok(BuildResult {
-        dest_polkavm,
+        dest_binary,
         metadata_result,
         target_directory: crate_metadata.target_directory,
         linker_size_result: opt_result,
@@ -839,12 +839,11 @@ fn local_build(
         post_fingerprint
     );
 
-    let dest_code_path = crate_metadata.dest_bytecode.clone();
+    let dest_code_path = crate_metadata.dest_binary.clone();
 
-    if pre_fingerprint == Some(post_fingerprint) && crate_metadata.dest_bytecode.exists()
-    {
+    if pre_fingerprint == Some(post_fingerprint) && crate_metadata.dest_binary.exists() {
         tracing::info!(
-            "No changes in the original PolkaVM bytecode at {}, fingerprint {:?}. \
+            "No changes in the original PolkaVM binary at {}, fingerprint {:?}. \
                 Skipping metadata generation.",
             crate_metadata.original_code.display(),
             pre_fingerprint
@@ -862,7 +861,7 @@ fn local_build(
     // remove build artifacts so we don't have anything stale lingering around
     fs::remove_file(
         crate_metadata
-            .dest_bytecode
+            .dest_binary
             .with_extension(Target::dest_extension()),
     )
     .ok();
@@ -894,7 +893,7 @@ fn local_build(
             bail!("Failed to link polkavm program: {}{}", err, details)
         }
     };
-    fs::write(&crate_metadata.dest_bytecode, linked)?;
+    fs::write(&crate_metadata.dest_binary, linked)?;
 
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
 
@@ -906,7 +905,7 @@ fn local_build(
     Ok((
         Some(optimization_result),
         build_info,
-        crate_metadata.dest_bytecode.clone(),
+        crate_metadata.dest_binary.clone(),
     ))
 }
 
@@ -1023,7 +1022,7 @@ mod unit_tests {
         // given
         // todo rename fields
         let raw_result = r#"{
-  "dest_polkavm": "/path/to/contract.polkavm",
+  "dest_binary": "/path/to/contract.polkavm",
   "metadata_result": {
     "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
@@ -1040,7 +1039,7 @@ mod unit_tests {
 }"#;
 
         let build_result = BuildResult {
-            dest_polkavm: Some(PathBuf::from("/path/to/contract.polkavm")),
+            dest_binary: Some(PathBuf::from("/path/to/contract.polkavm")),
             metadata_result: Some(MetadataArtifacts {
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
