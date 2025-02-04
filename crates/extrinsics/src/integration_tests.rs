@@ -435,7 +435,7 @@ async fn build_upload_instantiate_info() {
     let hex_fs_binary = hex::encode(&code);
 
     let json = String::from_utf8(output.stdout.clone()).unwrap();
-    let re = Regex::new(r#""polkavm_bytecode": "0x([A-Za-z0-9]+)"#)
+    let re = Regex::new(r#""contract_bytecode": "0x([A-Za-z0-9]+)"#)
         .expect("regex creation failed");
     let caps = re.captures(&json).unwrap();
     let hex_output = caps.get(1).unwrap().as_str();

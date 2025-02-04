@@ -60,7 +60,7 @@ pub struct VerifyCommand {
     contract_bundle: Option<PathBuf>,
     /// The reference contract binary (`*.polkavm`) that the selected contract
     /// will be checked against.
-    #[clap(long, conflicts_with = "contract")]
+    #[clap(long, conflicts_with = "contract_bundle")]
     contract_binary: Option<PathBuf>,
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
