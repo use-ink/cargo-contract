@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::call_with_config;
 use anyhow::Result;
 use colored::Colorize;
 use comfy_table::{
@@ -35,11 +36,12 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    ext::scale_decode::IntoVisitor,
+    ext::{
+        codec::Decode,
+        scale_decode::IntoVisitor,
+    },
     Config,
 };
-
-use crate::call_with_config;
 
 use super::{
     parse_account,
@@ -63,8 +65,8 @@ pub struct StorageCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long, conflicts_with = "raw")]
     output_json: bool,
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
+    /// Path to a contract build artifact file: a raw `.polkavm` file, a `.contract`
+    /// bundle, or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.
@@ -86,7 +88,7 @@ impl StorageCommand {
 
     pub async fn run<C: Config + Environment>(&self) -> Result<(), ErrorVariant>
     where
-        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr,
+        <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr + Decode,
         <<C as Config>::AccountId as FromStr>::Err:
             Into<Box<(dyn std::error::Error)>> + Display,
         C::Balance: Serialize + IntoVisitor,

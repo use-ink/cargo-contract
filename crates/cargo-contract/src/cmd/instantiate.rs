@@ -19,6 +19,7 @@ use super::{
     display_contract_exec_result,
     display_contract_exec_result_debug,
     display_dry_run_result_warning,
+    offer_map_account_if_needed,
     parse_balance,
     print_dry_running_status,
     print_gas_required_success,
@@ -44,6 +45,7 @@ use contract_build::{
     Verbosity,
 };
 use contract_extrinsics::{
+    pallet_revive_primitives::StorageDeposit,
     Code,
     DisplayEvents,
     ExtrinsicOptsBuilder,
@@ -71,8 +73,8 @@ use subxt::{
         codec::Decode,
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
+        sp_runtime::traits::Zero,
     },
-    utils::H160,
     Config,
 };
 
@@ -145,6 +147,14 @@ impl InstantiateCommand {
         let chain = self.extrinsic_cli_opts.chain_cli_opts.chain();
         let token_metadata = TokenMetadata::query::<C>(&chain.url()).await?;
 
+        let extrinsic_opts = ExtrinsicOptsBuilder::new(signer.clone())
+            .file(self.extrinsic_cli_opts.file.clone())
+            .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
+            .url(chain.url())
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
+            .done();
+        offer_map_account_if_needed(extrinsic_opts).await?;
+
         let storage_deposit_limit = self
             .extrinsic_cli_opts
             .storage_deposit_limit
@@ -161,6 +171,7 @@ impl InstantiateCommand {
             .manifest_path(self.extrinsic_cli_opts.manifest_path.clone())
             .url(chain.url())
             .storage_deposit_limit(storage_deposit_limit)
+            .verbosity(self.extrinsic_cli_opts.verbosity()?)
             .done();
 
         let instantiate_exec: InstantiateExec<C, C, _> =
@@ -210,15 +221,20 @@ impl InstantiateCommand {
                 }
             }
             tracing::debug!("instantiate data {:?}", instantiate_exec.args().data());
-            let gas_limit = pre_submit_dry_run_gas_estimate_instantiate(
-                &instantiate_exec,
-                self.output_json(),
-                self.extrinsic_cli_opts.skip_dry_run,
-            )
-            .await?;
+            let (gas_limit, storage_deposit_limit) =
+                pre_submit_dry_run_gas_estimate_instantiate(
+                    &instantiate_exec,
+                    self.output_json(),
+                    self.extrinsic_cli_opts.skip_dry_run,
+                )
+                .await?;
             if !self.extrinsic_cli_opts.skip_confirm {
                 prompt_confirm_tx(|| {
-                    print_default_instantiate_preview(&instantiate_exec, gas_limit);
+                    print_default_instantiate_preview(
+                        &instantiate_exec,
+                        gas_limit,
+                        storage_deposit_limit,
+                    );
                     if let Code::Existing(code_hash) =
                         instantiate_exec.args().code().clone()
                     {
@@ -230,8 +246,9 @@ impl InstantiateCommand {
                     }
                 })?;
             }
-            let instantiate_result =
-                instantiate_exec.instantiate(Some(gas_limit)).await?;
+            let instantiate_result = instantiate_exec
+                .instantiate(Some(gas_limit), Some(storage_deposit_limit))
+                .await?;
             display_result(
                 &instantiate_exec,
                 instantiate_result,
@@ -245,31 +262,42 @@ impl InstantiateCommand {
     }
 }
 
-/// A helper function to estimate the gas required for a contract instantiation.
+/// A helper function to estimate the gas + storage deposit limit required for a contract
+/// instantiation.
 async fn pre_submit_dry_run_gas_estimate_instantiate<
     C: Config + Environment + SignerConfig<C>,
 >(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
     output_json: bool,
     skip_dry_run: bool,
-) -> Result<Weight>
+) -> Result<(Weight, C::Balance)>
 where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + Debug + EncodeAsType,
+    C::Balance: Serialize + Debug + EncodeAsType + Zero,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
     if skip_dry_run {
-        return match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
+        // todo simplify this code
+        let weight = match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
                 (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
                 _ => {
                     Err(anyhow!(
                         "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
                     ))
                 }
-            };
+            }?;
+        let storage_deposit_limit = match instantiate_exec.args().storage_deposit_limit() {
+            Some(limit) => Ok(limit),
+            _ => {
+                Err(anyhow!(
+                        "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
+                    ))
+            }
+        }?;
+        return Ok((weight, storage_deposit_limit));
     }
     if !output_json {
         print_dry_running_status(instantiate_exec.args().constructor());
@@ -289,7 +317,19 @@ where
                 .args()
                 .proof_size()
                 .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
-            Ok(Weight::from_parts(ref_time, proof_size))
+            let storage_deposit_limit = instantiate_exec
+                .args()
+                .storage_deposit_limit()
+                .unwrap_or_else(|| {
+                    match instantiate_result.storage_deposit {
+                        StorageDeposit::Refund(_) => C::Balance::zero(),
+                        StorageDeposit::Charge(charge) => charge,
+                    }
+                });
+            Ok((
+                Weight::from_parts(ref_time, proof_size),
+                storage_deposit_limit,
+            ))
         }
         Err(ref err) => {
             let object = ErrorVariant::from_dispatch_error(
@@ -314,7 +354,7 @@ where
 /// events, and optional code hash.
 pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
-    instantiate_exec_result: InstantiateExecResult<C, H160>,
+    instantiate_exec_result: InstantiateExecResult<C>,
     token_metadata: &TokenMetadata,
     output_json: bool,
     verbosity: Verbosity,
@@ -346,7 +386,10 @@ where
         if let Some(code_hash) = instantiate_exec_result.code_hash {
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
-        name_value_println!("Contract", contract_address);
+        name_value_println!(
+            "Contract",
+            format!("{:?}", instantiate_exec_result.contract_address)
+        );
     };
     Ok(())
 }
@@ -354,11 +397,12 @@ where
 pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<C>>(
     instantiate_exec: &InstantiateExec<C, C, C::Signer>,
     gas_limit: Weight,
+    storage_deposit_limit: C::Balance,
 ) where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
     <C as Config>::Hash: IntoVisitor + EncodeAsType,
-    C::Balance: Serialize + EncodeAsType,
+    C::Balance: Serialize + EncodeAsType + Display,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
 {
@@ -373,6 +417,11 @@ pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<
         DEFAULT_KEY_COL_WIDTH
     );
     name_value_println!("Gas limit", gas_limit.to_string(), DEFAULT_KEY_COL_WIDTH);
+    name_value_println!(
+        "Storage Deposit Limit",
+        storage_deposit_limit.to_string(),
+        DEFAULT_KEY_COL_WIDTH
+    );
 }
 
 /// Result of a successful contract instantiation for displaying.

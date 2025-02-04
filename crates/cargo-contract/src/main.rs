@@ -19,6 +19,7 @@
 mod cmd;
 
 use self::cmd::{
+    AccountCommand,
     BuildCommand,
     CallCommand,
     CheckCommand,
@@ -78,7 +79,7 @@ use which as _;
 #[clap(bin_name = "cargo")]
 #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
 pub(crate) enum Opts {
-    /// Utilities to develop Wasm smart contracts.
+    /// Utilities to develop ink! smart contracts.
     #[clap(name = "contract")]
     #[clap(version = env!("CARGO_CONTRACT_CLI_IMPL_VERSION"))]
     #[clap(action = ArgAction::DeriveDisplayOrder)]
@@ -117,7 +118,7 @@ enum Command {
     /// `<name>.contract` file
     #[clap(name = "build")]
     Build(BuildCommand),
-    /// Check that the code builds as Wasm; does not output any `<name>.contract`
+    /// Check that the code builds for PolkaVM; does not output any `<name>.contract`
     /// artifact to the `target/` directory
     #[clap(name = "check")]
     Check(CheckCommand),
@@ -130,6 +131,9 @@ enum Command {
     /// Call a contract
     #[clap(name = "call")]
     Call(CallCommand),
+    /// Account handling and information
+    #[clap(name = "account")]
+    Account(AccountCommand),
     /// Encodes a contracts input calls and their arguments
     #[clap(name = "encode")]
     Encode(EncodeCommand),
@@ -195,8 +199,8 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Check(check) => {
             let res = check.exec().map_err(format_err)?;
             assert!(
-                res.dest_wasm.is_none(),
-                "no dest_wasm must be on the generation result"
+                res.dest_polkavm.is_none(),
+                "no dest_polkavm must be on the generation result"
             );
             Ok(())
         }
@@ -232,6 +236,9 @@ fn exec(cmd: Command) -> Result<()> {
                     .await
                     .map_err(|err| map_extrinsic_err(err, remove.output_json()))
             })
+        }
+        Command::Account(account) => {
+            runtime.block_on(async { account.handle().await.map_err(format_err) })
         }
         Command::Info(info) => {
             runtime.block_on(async { info.handle().await.map_err(format_err) })

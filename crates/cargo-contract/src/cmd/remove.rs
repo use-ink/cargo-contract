@@ -146,7 +146,7 @@ impl RemoveCommand {
             )?
         };
         if let Some(code_removed) = remove_result.code_removed {
-            let remove_result: <C as Config>::Hash = code_removed.code_hash;
+            let remove_result = code_removed.code_hash;
 
             if self.output_json() {
                 // Create a JSON object with the events and the removed code hash.

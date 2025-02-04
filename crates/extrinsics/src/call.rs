@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    pallet_contracts_primitives::ContractExecResult,
+    pallet_revive_primitives::ContractExecResult,
     state_call,
     submit_extrinsic,
     ContractMessageTranscoder,
@@ -33,8 +33,10 @@ use anyhow::{
 };
 use ink_env::Environment;
 use scale::Encode;
+use sp_runtime::traits::Zero;
 use sp_weights::Weight;
 
+use crate::pallet_revive_primitives::StorageDeposit;
 use subxt::{
     backend::{
         legacy::LegacyRpcMethods,
@@ -173,7 +175,7 @@ where
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::AccountId: EncodeAsType + IntoVisitor,
-    E::Balance: EncodeAsType,
+    E::Balance: EncodeAsType + Zero,
     Signer: tx::Signer<C> + Clone,
 {
     /// Simulates a contract call without modifying the blockchain.
@@ -209,6 +211,7 @@ where
     pub async fn call(
         &self,
         gas_limit: Option<Weight>,
+        storage_deposit_limit: Option<E::Balance>,
     ) -> Result<ExtrinsicEvents<C>, ErrorVariant> {
         if !self
             .transcoder()
@@ -228,18 +231,23 @@ where
         }
 
         // use user specified values where provided, otherwise estimate
+        // todo write in a way that estimate_gas() is only executed when really needed
+        let estimate = self.estimate_gas().await?;
         let gas_limit = match gas_limit {
             Some(gas_limit) => gas_limit,
-            None => self.estimate_gas().await?,
+            None => estimate.0,
+        };
+        let storage_deposit_limit = match storage_deposit_limit {
+            Some(deposit_limit) => deposit_limit,
+            None => estimate.1,
         };
         tracing::debug!("calling contract {:?}", self.contract);
-        let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = Call::new(
             self.contract,
             self.value,
             gas_limit,
-            storage_deposit_limit.expect("no storage deposit limit available"),
+            storage_deposit_limit,
             self.call_data.clone(),
         )
         .build();
@@ -258,10 +266,14 @@ where
     ///
     /// Returns the estimated gas weight of type [`Weight`] for contract calls, or an
     /// error.
-    pub async fn estimate_gas(&self) -> Result<Weight> {
-        match (self.gas_limit, self.proof_size) {
-            (Some(ref_time), Some(proof_size)) => {
-                Ok(Weight::from_parts(ref_time, proof_size))
+    pub async fn estimate_gas(&self) -> Result<(Weight, E::Balance)> {
+        match (
+            self.gas_limit,
+            self.proof_size,
+            self.opts.storage_deposit_limit(),
+        ) {
+            (Some(ref_time), Some(proof_size), Some(deposit_limit)) => {
+                Ok((Weight::from_parts(ref_time, proof_size), deposit_limit))
             }
             _ => {
                 let call_result = self.call_dry_run().await?;
@@ -275,7 +287,17 @@ where
                         let proof_size = self
                             .proof_size
                             .unwrap_or_else(|| call_result.gas_required.proof_size());
-                        Ok(Weight::from_parts(ref_time, proof_size))
+                        let storage_deposit_limit =
+                            self.opts.storage_deposit_limit().unwrap_or_else(|| {
+                                match call_result.storage_deposit {
+                                    StorageDeposit::Refund(_) => E::Balance::zero(),
+                                    StorageDeposit::Charge(charge) => charge,
+                                }
+                            });
+                        Ok((
+                            Weight::from_parts(ref_time, proof_size),
+                            storage_deposit_limit,
+                        ))
                     }
                     Err(ref err) => {
                         let object = ErrorVariant::from_dispatch_error(

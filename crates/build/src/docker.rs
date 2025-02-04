@@ -126,7 +126,6 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         manifest_path,
         verbosity,
         output_type,
-        target,
         image,
         ..
     } = args;
@@ -134,7 +133,7 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         .enable_all()
         .build()?
         .block_on(async {
-            let crate_metadata = CrateMetadata::collect(&manifest_path, target)?;
+            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 
@@ -209,14 +208,14 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     );
     build_result.target_directory = new_path;
 
-    let new_path = build_result.dest_wasm.as_ref().map(|p| {
+    let new_path = build_result.dest_polkavm.as_ref().map(|p| {
         host_folder.join(
             p.as_path()
                 .strip_prefix(MOUNT_DIR)
                 .expect("cannot strip prefix"),
         )
     });
-    build_result.dest_wasm = new_path;
+    build_result.dest_polkavm = new_path;
 
     // TODO: Clippy currently throws a false-positive here. The manual allow can be
     // removed after https://github.com/rust-lang/rust-clippy/pull/13609 has been released.

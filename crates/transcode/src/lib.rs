@@ -131,6 +131,7 @@ use ink_metadata::{
     MessageSpec,
 };
 use itertools::Itertools;
+use regex::Regex;
 use scale::{
     Compact,
     Decode,
@@ -177,8 +178,7 @@ where
 impl ContractMessageTranscoder {
     pub fn new(metadata: InkProject) -> Self {
         let transcoder = TranscoderBuilder::new(metadata.registry())
-            .register_custom_type_transcoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::AccountId, _>(env_types::AccountId)
-            .register_custom_type_decoder::<<ink_env::DefaultEnvironment as ink_env::Environment>::Hash, _>(env_types::Hash)
+            .with_default_custom_type_transcoders()
             .done();
         Self {
             metadata,
@@ -251,6 +251,7 @@ impl ContractMessageTranscoder {
 
         let mut encoded = selector.to_bytes().to_vec();
         for (spec, arg) in spec_args.iter().zip(args) {
+            assert_not_shortened_hex(arg.as_ref());
             let value = scon::parse_value(arg.as_ref())?;
             self.transcoder.encode(
                 self.metadata.registry(),
@@ -435,6 +436,16 @@ impl ContractMessageTranscoder {
     }
 }
 
+// Assert that `arg` is not in a shortened format a la `0xbc3f…f58a`.
+fn assert_not_shortened_hex(arg: &str) {
+    let re = Regex::new(r"^0x[a-fA-F0-9]+…[a-fA-F0-9]+$").unwrap();
+    if re.is_match(arg) {
+        panic!("Error: You are attempting to transcode a shortened hex value: `{:?}`.\n\
+                This would result in a different return value than the un-shortened hex value.\n\
+                You likely called `to_string()` on e.g. `H160` and got a shortened output.", arg);
+    }
+}
+
 impl TryFrom<contract_metadata::ContractMetadata> for ContractMessageTranscoder {
     type Error = anyhow::Error;
 
@@ -502,6 +513,7 @@ impl CompositeTypeFields {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scon::Hex;
     use ink_env::{
         DefaultEnvironment,
         Environment,
@@ -510,8 +522,6 @@ mod tests {
     use scale::Encode;
     use scon::Value;
     use std::str::FromStr;
-
-    use crate::scon::Hex;
 
     #[allow(clippy::extra_unused_lifetimes, unexpected_cfgs, non_local_definitions)]
     #[ink::contract]
@@ -551,6 +561,28 @@ mod tests {
             }
 
             #[ink(message)]
+            pub fn get_complex(
+                &self,
+            ) -> (u32, ink::H160, ink::H256, ink::U256, AccountId) {
+                (
+                    32u32,
+                    self.env().address(),
+                    self.env().own_code_hash().unwrap(),
+                    //self.env().transferred_value()
+                    ink::U256::one(),
+                    AccountId::from([0x17; 32]),
+                )
+            }
+            //pub fn get_complex(&mut self) -> (ink::H160, Hash, ink::H256, ink::U256) {
+            //(self.env().address(), [0xABu8; 32].into(),
+            /*
+            pub fn get_complex(&self) -> (ink::H160, ink::H256, ink::U256) {
+                (self.env().address(),
+                self.env().own_code_hash().unwrap(), self.env().transferred_value())
+            }
+             */
+
+            #[ink(message)]
             pub fn set_account_id(&self, account_id: AccountId) {
                 let _ = account_id;
             }
@@ -579,6 +611,11 @@ mod tests {
             #[ink(message)]
             pub fn uint_array_args(&self, arr: [u8; 4]) {
                 let _ = arr;
+            }
+
+            #[ink(message)]
+            pub fn h160(&self, addr: ink::H160) {
+                let _ = addr;
             }
         }
     }
@@ -739,6 +776,59 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(
+        expected = "Error: You are attempting to transcode a shortened hex value: `\"0xbc3f…f58a\"`"
+    )]
+    fn encode_must_panic_on_shortened_hex() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let _encoded = transcoder.encode("h160", ["0xbc3f…f58a"]);
+    }
+
+    #[test]
+    fn decode_complex_return() {
+        let metadata = generate_metadata();
+        let transcoder = ContractMessageTranscoder::new(metadata);
+
+        let addr: ink::H160 = ink::H160::from([0x42; 20]);
+        let account_id: AccountId32 = AccountId32::from([0x13; 32]);
+        let _hash: [u8; 32] = [0xAB; 32];
+        let h256: ink::H256 = ink::H256::from([0x17; 32]);
+        // todo let value: ink::U256 = ink::U256::MAX;
+        let value: ink::U256 = ink::U256::one();
+
+        let encoded = Result::<
+            (u32, ink::H160, ink::H256, ink::U256, AccountId32),
+            ink::primitives::LangError,
+        >::Ok((32, addr, h256, value, account_id))
+        .encode();
+
+        let decoded = transcoder
+            .decode_message_return("get_complex", &mut &encoded[..])
+            .unwrap_or_else(|e| panic!("Error decoding return value {e}"));
+
+        let expected = Value::Tuple(Tuple::new(
+            "Ok".into(),
+            [
+                Value::Tuple(Tuple::new(
+                    None,
+                    [
+                        Value::UInt(32),
+                        Value::Hex(Hex::from_str("0x4242424242424242424242424242424242424242").unwrap()),
+                        Value::Hex(Hex::from_str("0x1717171717171717171717171717171717171717171717171717171717171717").unwrap()),
+                        Value::Literal("1".to_string()),
+                        Value::Literal("5CViS5pKamF1VbJ9tmQKPNDpLpJaBCfpPw2m49UzQ8zgiDGT".to_string()),
+                    ]
+                    .into_iter().collect()
+                ))
+            ]
+            .into_iter().collect(),
+        ));
+        assert_eq!(expected, decoded);
+    }
+
+    #[test]
     fn decode_primitive_return() {
         let metadata = generate_metadata();
         let transcoder = ContractMessageTranscoder::new(metadata);
@@ -794,6 +884,8 @@ mod tests {
         let encoded_bytes = encoded.encode();
         let _ = transcoder
             .decode_contract_event(&signature_topic, &mut &encoded_bytes[..])?;
+
+        // todo assert is missing
 
         Ok(())
     }

@@ -17,6 +17,7 @@
 mod config;
 mod prod_chains;
 
+pub mod account;
 pub mod build;
 pub mod call;
 pub mod decode;
@@ -31,6 +32,7 @@ pub mod upload;
 pub mod verify;
 
 pub(crate) use self::{
+    account::AccountCommand,
     build::{
         BuildCommand,
         CheckCommand,
@@ -72,11 +74,15 @@ use contract_build::{
 };
 pub(crate) use contract_extrinsics::ErrorVariant;
 use contract_extrinsics::{
-    pallet_contracts_primitives::ContractResult,
+    pallet_revive_primitives::ContractResult,
     BalanceVariant,
+    MapAccountCommandBuilder,
+    MapAccountExec,
     TokenMetadata,
 };
 
+use crate::cmd::config::SignerConfig;
+use ink_env::Environment;
 use std::{
     fmt::{
         Debug,
@@ -88,12 +94,20 @@ use std::{
     },
     str::FromStr,
 };
+use subxt::{
+    config::{
+        DefaultExtrinsicParams,
+        ExtrinsicParams,
+    },
+    utils::H160,
+};
+//use contract_transcode::env_types::H160;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CLIExtrinsicOpts {
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
+    /// Path to a contract build artifact file: a raw `.polkavm` file, a `.contract`
+    /// bundle, or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.
@@ -273,6 +287,63 @@ pub fn prompt_confirm_tx<F: FnOnce()>(show_details: F) -> Result<()> {
     }
 }
 
+/// Prompt the user to confirm transaction submission.
+fn prompt_confirm_mapping<F: FnOnce()>(show_details: F) -> Result<()> {
+    println!(
+        "{} (skip with --skip-confirm or -y)",
+        "Confirm transaction details:".bright_white().bold()
+    );
+    show_details();
+    print!(
+        "{} ({}/n): ",
+        "The account you're submitting from is not yet mapped. Map?"
+            .bright_white()
+            .bold(),
+        "Y".bright_white().bold()
+    );
+
+    let mut buf = String::new();
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut buf)?;
+    match buf.trim().to_lowercase().as_str() {
+        // default is 'y'
+        "y" | "" => Ok(()),
+        "n" => Err(anyhow!("Transaction not submitted")),
+        c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
+    }
+}
+
+async fn offer_map_account_if_needed<C: subxt::Config + Environment + SignerConfig<C>>(
+    extrinsic_opts: contract_extrinsics::ExtrinsicOpts<
+        C,
+        C,
+        <C as SignerConfig<C>>::Signer,
+    >,
+) -> Result<(), contract_extrinsics::ErrorVariant>
+where
+    <C as SignerConfig<C>>::Signer: subxt::tx::Signer<C> + Clone + FromStr,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
+    let map_exec: MapAccountExec<C, C, _> =
+        MapAccountCommandBuilder::new(extrinsic_opts).done().await?;
+    let result = map_exec.map_account_dry_run().await;
+    if result.is_ok() {
+        let reply = prompt_confirm_mapping(|| {
+            // todo print additional information about the costs of mapping an account
+        });
+        if reply.is_ok() {
+            let res = map_exec.map_account().await?;
+            name_value_println!(
+                "Address",
+                format!("{:?}", res.address),
+                DEFAULT_KEY_COL_WIDTH
+            );
+        }
+    }
+    Ok(())
+}
+
 pub fn print_dry_running_status(msg: &str) {
     println!(
         "{:>width$} {} (skip with --skip-dry-run)",
@@ -327,11 +398,8 @@ pub fn basic_display_format_extended_contract_info<Hash, Balance>(
 }
 
 /// Display all contracts addresses in a formatted way
-pub fn display_all_contracts<AccountId>(contracts: &[AccountId])
-where
-    AccountId: Display,
-{
-    contracts.iter().for_each(|e: &AccountId| println!("{}", e))
+pub fn display_all_contracts(contracts: &[H160]) {
+    contracts.iter().for_each(|e: &H160| println!("{:?}", e))
 }
 
 /// Parse a balance from string format
@@ -344,7 +412,8 @@ pub fn parse_balance<Balance: FromStr + From<u128> + Clone>(
         .and_then(|bv| bv.denominate_balance(token_metadata))
 }
 
-/// Parse a account from string format
+// todo check where this is used, possibly remove
+/// Parse an account from string format
 pub fn parse_account<AccountId: FromStr>(account: &str) -> Result<AccountId>
 where
     <AccountId as FromStr>::Err: Display,
@@ -353,6 +422,16 @@ where
         .map_err(|e| anyhow::anyhow!("Account address parsing failed: {e}"))
 }
 
+/// Parse a hex encoded H160 address from a string.
+pub fn parse_addr(addr: &str) -> Result<H160> {
+    let bytes = contract_build::util::decode_hex(addr)?;
+    if bytes.len() != 20 {
+        anyhow::bail!("H160 must be 20 bytes in length, but is {:?}", bytes.len())
+    }
+    Ok(H160::from_slice(&bytes[..]))
+}
+
+// todo
 /// Parse a hex encoded 32 byte hash. Returns error if not exactly 32 bytes.
 pub fn parse_code_hash<Hash>(input: &str) -> Result<Hash>
 where
@@ -360,7 +439,7 @@ where
 {
     let bytes = contract_build::util::decode_hex(input)?;
     if bytes.len() != 32 {
-        anyhow::bail!("Code hash should be 32 bytes in length")
+        anyhow::bail!("Code hash must be 32 bytes in length")
     }
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
@@ -372,7 +451,7 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
         "Warning: You are about to upload unverifiable code to {} mainnet.\n\
-        A third party won't be able to confirm that your uploaded contract Wasm blob \
+        A third party won't be able to confirm that your uploaded contract binary blob \
         matches a particular contract source code.\n\n\
         You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
         See https://use.ink/basics/contract-verification for more info.",

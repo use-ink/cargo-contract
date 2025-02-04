@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use contract_build::project_path;
 use serde_json::{
     Map,
     Value,
@@ -31,7 +32,7 @@ fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
     cmd
 }
 
-/// Compile the reference contract and return a byte array of its bundle and raw wasm
+/// Compile the reference contract and return a byte array of its bundle and raw
 /// binary.
 fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
     let contract = r#"
@@ -90,15 +91,16 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
         .assert()
         .success();
 
-    let bundle_path = project_dir.join("target/ink/incrementer.contract");
+    let target_dir = project_path(project_dir.join("target"));
+    let bundle_path = target_dir.join("ink/incrementer.contract");
     let bundle = std::fs::read(bundle_path)
         .expect("Failed to read the content of the contract bundle!");
 
-    let wasm_path = project_dir.join("target/ink/incrementer.wasm");
-    let wasm = std::fs::read(wasm_path)
+    let polkavm_path = target_dir.join("ink/incrementer.polkavm");
+    let blob = std::fs::read(polkavm_path)
         .expect("Failed to read the content of the contract binary!");
 
-    (bundle, wasm)
+    (bundle, blob)
 }
 
 #[test]
@@ -153,14 +155,14 @@ fn verify_equivalent_contracts() {
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
-    // Compile reference contract and write bundle and wasm in the directory.
-    let (ref_bundle, ref_wasm) = compile_reference_contract();
+    // Compile reference contract and write contract bundle and bytecode in the directory.
+    let (ref_bundle, ref_bytecode) = compile_reference_contract();
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
-    let wasm = project_dir.join("reference.wasm");
-    std::fs::write(wasm, ref_wasm)
-        .expect("Failed to write wasm binary to the current dir!");
+    let binary_path = project_dir.join("reference.polkavm");
+    std::fs::write(binary_path, ref_bytecode)
+        .expect("Failed to write `.polkavm` binary to the current dir!");
 
     // when
     let output: &str = r#""is_verified": true"#;
@@ -168,7 +170,7 @@ fn verify_equivalent_contracts() {
     // then
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract")
+        .arg("--contract-bundle")
         .arg("reference.contract")
         .arg("--output-json")
         .assert()
@@ -177,8 +179,8 @@ fn verify_equivalent_contracts() {
     // and
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--wasm")
-        .arg("reference.wasm")
+        .arg("--contract-binary")
+        .arg("reference.polkavm")
         .arg("--output-json")
         .assert()
         .success()
@@ -241,23 +243,23 @@ fn verify_different_contracts() {
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir).arg("build").assert().success();
 
-    // Compile reference contract and write bundle and wasm in the directory.
-    let (ref_bundle, ref_wasm) = compile_reference_contract();
+    // Compile reference contract and write contract bundle and bytecode in the directory.
+    let (ref_bundle, ref_bytecode) = compile_reference_contract();
     let bundle = project_dir.join("reference.contract");
     std::fs::write(bundle, ref_bundle)
         .expect("Failed to write bundle contract to the current dir!");
-    let wasm = project_dir.join("reference.wasm");
-    std::fs::write(wasm, ref_wasm)
-        .expect("Failed to write wasm binary to the current dir!");
+    let bytecode_path = project_dir.join("reference.polkavm");
+    std::fs::write(bytecode_path, ref_bytecode)
+        .expect("Failed to write polkavm binary to the current dir!");
 
     // when
     let output: &str = "Failed to verify `reference.contract` against the workspace at \
-                        `Cargo.toml`: the hashed Wasm blobs are not matching.";
+                        `Cargo.toml`: the hashed polkavm blobs are not matching.";
 
     // then
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract")
+        .arg("--contract-bundle")
         .arg("reference.contract")
         .arg("--output-json")
         .assert()
@@ -265,12 +267,11 @@ fn verify_different_contracts() {
         .stderr(predicates::str::contains(output));
     // and
 
-    let output: &str =
-        r#"Failed to verify the authenticity of wasm binary at `reference.wasm`"#;
+    let output: &str = r#"Failed to verify the authenticity of the polkavm binary at `reference.polkavm`"#;
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--wasm")
-        .arg("reference.wasm")
+        .arg("--contract-binary")
+        .arg("reference.polkavm")
         .arg("--output-json")
         .assert()
         .failure()
@@ -278,7 +279,7 @@ fn verify_different_contracts() {
 }
 
 #[test]
-fn verify_must_fail_on_manipulated_wasm_code() {
+fn verify_must_fail_on_manipulated_bytecode() {
     // given
     let tmp_dir = tempfile::Builder::new()
         .prefix("cargo-contract.cli.test.")
@@ -287,31 +288,31 @@ fn verify_must_fail_on_manipulated_wasm_code() {
     let (project_dir, mut metadata_json) = create_and_compile_minimal_contract(&tmp_dir);
 
     // when
-    // we change the `source.wasm` blob to a different contract bytecode, but the hash
+    // we change the `source.polkavm` blob to a different contract bytecode, but the hash
     // will remain the same as the one from our compiled minimal contract.
     let source = metadata_json
         .get_mut("source")
         .expect("source field not found in metadata");
-    let wasm = source
-        .get_mut("wasm")
-        .expect("source.wasm field not found in metadata");
-    *wasm = Value::String(String::from("0x00"));
+    let contract_bytecode = source
+        .get_mut("contract_bytecode")
+        .expect("source.contract_bytecode field not found in metadata");
+    *contract_bytecode = Value::String(String::from("0x00"));
 
     let contract_file =
-        project_dir.join("contract_with_mismatching_wasm_hash_and_code.contract");
+        project_dir.join("contract_with_mismatching_bytecode_hash_and_code.contract");
     let metadata = serde_json::to_string_pretty(&metadata_json)
         .expect("failed converting metadata to json");
     std::fs::write(contract_file, metadata)
         .expect("Failed to write bundle contract to the current dir!");
 
     // then
-    let output: &str = "Failed to verify `contract_with_mismatching_wasm_hash_and_code.contract` \
-                        against the workspace at `Cargo.toml`: the hashed Wasm blobs are not \
+    let output: &str = "Failed to verify `contract_with_mismatching_bytecode_hash_and_code.contract` \
+                        against the workspace at `Cargo.toml`: the hashed polkavm blobs are not \
                         matching.";
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract")
-        .arg("contract_with_mismatching_wasm_hash_and_code.contract")
+        .arg("--contract-bundle")
+        .arg("contract_with_mismatching_bytecode_hash_and_code.contract")
         .arg("--output-json")
         .assert()
         .failure()
@@ -332,10 +333,10 @@ fn verify_must_fail_on_corrupt_hash() {
     let source = metadata_json
         .get_mut("source")
         .expect("source field not found in metadata");
-    let wasm = source
+    let bytecode_hash = source
         .get_mut("hash")
         .expect("source.hash field not found in metadata");
-    *wasm = Value::String(String::from(
+    *bytecode_hash = Value::String(String::from(
         "0x0000000000000000000000000000000000000000000000000000000000000000",
     ));
 
@@ -347,10 +348,10 @@ fn verify_must_fail_on_corrupt_hash() {
 
     // then
     let output: &str = "The reference contract `contract_with_corrupt_hash.contract` \
-                        metadata is corrupt: the source.hash does not match the source.wasm hash.";
+                        metadata is corrupt: the `source.hash` does not match the `source.polkavm` hash.";
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract")
+        .arg("--contract-bundle")
         .arg("contract_with_corrupt_hash.contract")
         .arg("--output-json")
         .assert()
@@ -400,9 +401,14 @@ fn create_and_compile_minimal_contract(
         .assert()
         .success();
 
-    let bundle_path = project_dir.join("target/ink/minimal.contract");
-    let bundle = std::fs::read(bundle_path)
-        .expect("Failed to read the content of the contract bundle!");
+    let bundle_path =
+        project_path(project_dir.clone().join("target")).join("ink/minimal.contract");
+    let bundle = std::fs::read(&bundle_path).unwrap_or_else(|err| {
+        panic!(
+            "Failed to read the content of the contract bundle at {:?}: {:?}",
+            bundle_path, err
+        );
+    });
     let metadata_json: Map<String, Value> = serde_json::from_slice(&bundle).unwrap();
 
     (project_dir, metadata_json)

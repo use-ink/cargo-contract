@@ -65,6 +65,7 @@ use subxt::{
         },
     },
     ext::scale_decode::IntoVisitor,
+    utils::H160,
     Config,
     OnlineClient,
 };
@@ -103,7 +104,7 @@ where
             .storage()
             .at_latest()
             .await?
-            .storage_version("Contracts")
+            .storage_version("Revive")
             .await
             .map_err(|e| {
                 anyhow!("The storage version for the contracts pallet could not be determined: {e}")
@@ -113,8 +114,11 @@ where
     /// Load the raw key/value storage for a given contract.
     pub async fn load_contract_storage_data(
         &self,
-        contract_account: &C::AccountId,
-    ) -> Result<ContractStorageData> {
+        contract_account: &H160,
+    ) -> Result<ContractStorageData>
+    where
+        C::AccountId: Decode,
+    {
         let contract_info = self.rpc.fetch_contract_info::<E>(contract_account).await?;
         let trie_id = contract_info.trie_id();
 
@@ -159,10 +163,13 @@ where
 
     pub async fn load_contract_storage_with_layout(
         &self,
-        contract_account: &C::AccountId,
+        contract_addr: &H160,
         decoder: &ContractMessageTranscoder,
-    ) -> Result<ContractStorageLayout> {
-        let data = self.load_contract_storage_data(contract_account).await?;
+    ) -> Result<ContractStorageLayout>
+    where
+        C::AccountId: Decode,
+    {
+        let data = self.load_contract_storage_data(contract_addr).await?;
         ContractStorageLayout::new(data, decoder)
     }
 }
@@ -632,9 +639,10 @@ where
     /// Fetch the contract info to access the trie id for querying storage.
     pub async fn fetch_contract_info<E: Environment>(
         &self,
-        contract: &C::AccountId,
+        contract: &H160,
     ) -> Result<ContractInfo<C::Hash, E::Balance>>
     where
+        C::AccountId: Decode,
         E::Balance: IntoVisitor,
     {
         fetch_contract_info::<C, E>(contract, &self.rpc_methods, &self.client).await

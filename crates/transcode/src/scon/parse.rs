@@ -57,8 +57,10 @@ use std::str::FromStr as _;
 
 /// Attempt to parse a SCON value
 pub fn parse_value(input: &str) -> anyhow::Result<Value> {
-    let (_, value) = scon_value(input)
-        .map_err(|err| anyhow::anyhow!("Error parsing Value: {}", err))?;
+    let (_, value) = scon_value(input).map_err(|err| {
+        eprintln!("err: {}", err);
+        anyhow::anyhow!("Error parsing Value: {}", err)
+    })?;
     Ok(value)
 }
 

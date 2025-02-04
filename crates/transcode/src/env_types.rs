@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    assert_not_shortened_hex,
     AccountId32,
     Hex,
     Value,
@@ -23,6 +24,7 @@ use anyhow::{
     Context,
     Result,
 };
+use primitive_types::U128;
 use scale::{
     Decode,
     Encode,
@@ -143,8 +145,8 @@ pub trait CustomTypeDecoder: Send + Sync {
 
 /// Custom encoding/decoding for the Substrate `AccountId` type.
 ///
-/// Enables an `AccountId` to be input/ouput as an SS58 Encoded literal e.g.
-/// 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+/// Enables an `AccountId` to be input/output as an SS58 Encoded literal e.g.
+/// `5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`.
 #[derive(Clone)]
 pub struct AccountId;
 
@@ -179,7 +181,7 @@ impl CustomTypeEncoder for AccountId {
             }
             _ => {
                 return Err(anyhow::anyhow!(
-                    "Expected a string or a literal for an AccountId"
+                    "Expected a string, literal, or hex for an AccountId"
                 ))
             }
         };
@@ -196,7 +198,37 @@ impl CustomTypeDecoder for AccountId {
 
 /// Custom decoding for the `Hash` or `[u8; 32]` type so that it is displayed as a hex
 /// encoded string.
+#[derive(Clone)]
 pub struct Hash;
+
+impl CustomTypeEncoder for Hash {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        // todo currently using H256 here
+        let h256 = match value {
+            Value::Literal(literal) => {
+                primitive_types::H256::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing H256 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                primitive_types::H256::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                })?
+            }
+            Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, hex, uint, or literal for a U256"
+                ))
+            }
+        };
+        Ok(h256.encode())
+    }
+}
 
 impl CustomTypeDecoder for Hash {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
@@ -204,3 +236,138 @@ impl CustomTypeDecoder for Hash {
         Ok(Value::Hex(Hex::from_str(&format!("{hash:?}"))?))
     }
 }
+
+/// Custom decoding for the `H160` or `[u8; 20]` type so that it is displayed as a hex
+/// encoded string.
+#[derive(Clone)]
+pub struct H160;
+
+impl CustomTypeDecoder for H160 {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
+        let h160 = primitive_types::H160::decode(input)?;
+        Ok(Value::Hex(Hex::from_str(&format!("{h160:?}"))?))
+    }
+}
+
+impl CustomTypeEncoder for H160 {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        let h160 = match value {
+            Value::Literal(literal) => {
+                primitive_types::H160::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing H160 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                assert_not_shortened_hex(string);
+                primitive_types::H160::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing H160 from string '{}': {}", string, e)
+                })?
+            }
+            Value::Hex(hex) => primitive_types::H160::from_slice(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, literal, or hex for an H160"
+                ))
+            }
+        };
+        Ok(h160.encode())
+    }
+}
+
+/// Custom decoding for the `U256` or `[u8; 32]` type so that it is displayed as a hex
+/// encoded string.
+#[derive(Clone)]
+pub struct U256;
+
+impl CustomTypeDecoder for U256 {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
+        let u256 = primitive_types::U256::decode(input)?;
+        Ok(Value::Literal(format!("{}", u256)))
+    }
+}
+
+impl CustomTypeEncoder for U256 {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        let u256 = match value {
+            Value::Literal(literal) => {
+                primitive_types::U256::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing U256 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                primitive_types::U256::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing U256 from string '{}': {}", string, e)
+                })?
+            }
+            Value::UInt(uint128) => {
+                // todo
+                let u_128 = U128::from(*uint128);
+                primitive_types::U256::from(u_128)
+            }
+            // todo from_slice?
+            Value::Hex(hex) => primitive_types::U256::from_little_endian(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, hex, uint, or literal for a U256"
+                ))
+            }
+        };
+        let ret = u256.encode();
+        Ok(ret)
+    }
+}
+
+/// Custom decoding for the `H256` or `[u8; 32]` type so that it is displayed as a hex
+/// encoded string.
+#[derive(Clone)]
+pub struct H256;
+
+impl CustomTypeDecoder for H256 {
+    fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
+        let h256 = primitive_types::H256::decode(input)?;
+        Ok(Value::Hex(Hex::from_str(&format!("{h256:?}"))?))
+    }
+}
+
+impl CustomTypeEncoder for H256 {
+    fn encode_value(&self, value: &Value) -> Result<Vec<u8>> {
+        let h256 = match value {
+            Value::Literal(literal) => {
+                primitive_types::H256::from_str(literal).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Error parsing H256 from literal `{}`: {}",
+                        literal,
+                        e
+                    )
+                })?
+            }
+            Value::String(string) => {
+                primitive_types::H256::from_str(string).map_err(|e| {
+                    anyhow::anyhow!("Error parsing H256 from string '{}': {}", string, e)
+                })?
+            }
+            Value::Hex(hex) => primitive_types::H256::from_slice(hex.bytes()),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Expected a string, hex, uint, or literal for a H256"
+                ))
+            }
+        };
+        Ok(h256.encode())
+    }
+}
+
+/*
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
+*/

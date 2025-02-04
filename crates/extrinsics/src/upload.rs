@@ -16,11 +16,11 @@
 
 use super::{
     events::CodeStored,
-    pallet_contracts_primitives::CodeUploadResult,
+    pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
+    ContractBinary,
     ErrorVariant,
-    WasmCode,
 };
 use crate::{
     check_env_types,
@@ -80,7 +80,7 @@ where
         let transcoder = artifacts.contract_transcoder()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts.code.ok_or_else(|| {
+        let code = artifacts.contract_bytecode.ok_or_else(|| {
             anyhow::anyhow!(
                 "Contract code not found from artifact file {}",
                 artifacts_path.display()
@@ -107,7 +107,7 @@ pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
-    code: WasmCode,
+    code: ContractBinary,
     transcoder: ContractMessageTranscoder,
 }
 
@@ -115,7 +115,7 @@ impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
     C::Hash: IntoVisitor,
     C::AccountId: IntoVisitor,
-    E::Balance: EncodeAsType,
+    E::Balance: IntoVisitor + EncodeAsType,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     Signer: tx::Signer<C> + Clone,
@@ -126,7 +126,7 @@ where
     /// It constructs a [`CodeUploadRequest`] with the code and relevant parameters,
     /// then sends the request using the provided URL. This operation does not modify
     /// the state of the blockchain.
-    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<C::Hash, E::Balance>> {
+    pub async fn upload_code_rpc(&self) -> Result<CodeUploadResult<E::Balance>> {
         let storage_deposit_limit = self.opts.storage_deposit_limit();
         let call_request = CodeUploadRequest {
             origin: self.opts.signer().account_id(),
@@ -142,7 +142,7 @@ where
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
+    pub async fn upload_code(&self) -> Result<UploadResult<C, E>, ErrorVariant> {
         let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = UploadCode::new(
@@ -153,8 +153,10 @@ where
 
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
+        tracing::debug!("events: {:?}", events);
 
-        let code_stored = events.find_first::<CodeStored<C::Hash>>()?;
+        let code_stored = events.find_first::<CodeStored<E::Balance>>()?;
+        tracing::debug!("did we find `CodeStored`? {}", code_stored.is_some());
         Ok(UploadResult {
             code_stored,
             events,
@@ -172,13 +174,18 @@ where
     }
 
     /// Returns the code.
-    pub fn code(&self) -> &WasmCode {
+    pub fn code(&self) -> &ContractBinary {
         &self.code
     }
 
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
+    }
+
+    /// Sets a new storage deposit limit.
+    pub fn set_storage_deposit_limit(&mut self, limit: Option<E::Balance>) {
+        self.opts.set_storage_deposit_limit(limit);
     }
 }
 
@@ -191,8 +198,8 @@ struct CodeUploadRequest<AccountId, Balance> {
 }
 
 /// A struct representing the result of an upload command execution.
-pub struct UploadResult<C: Config> {
-    pub code_stored: Option<CodeStored<C::Hash>>,
+pub struct UploadResult<C: Config, E: Environment> {
+    pub code_stored: Option<CodeStored<E::Balance>>,
     pub events: ExtrinsicEvents<C>,
 }
 

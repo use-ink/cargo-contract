@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use pallet_contracts_uapi::ReturnFlags;
+use pallet_revive_uapi::ReturnFlags;
 use scale::{
     Decode,
     Encode,
@@ -26,15 +26,16 @@ use sp_runtime::{
     RuntimeDebug,
 };
 use sp_weights::Weight;
+use subxt::utils::H256;
 
-// A copy of primitive types defined within `pallet_contracts`, required for RPC calls.
-
+/// Copied from `pallet_revive`, required for RPC calls.
+///
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
 /// `ContractsApi::call` and `ContractsApi::instantiate`.
 ///
 /// It contains the execution result together with some auxiliary information.
 ///
-/// #Note
+/// # Note
 ///
 /// It has been extended to include `events` at the end of the struct while not bumping
 /// the `ContractsApi` version. Therefore when SCALE decoding a `ContractResult` its
@@ -76,21 +77,21 @@ pub struct ContractResult<R, Balance> {
     /// The debug message is never generated during on-chain execution. It is reserved
     /// for RPC calls.
     pub debug_message: Vec<u8>,
-    /// The execution result of the wasm code.
+    /// The execution result of the code.
     pub result: R,
 }
 
-/// Result type of a `bare_call` call as well as `ContractsApi::call`.
+/// Result type of a `bare_call` call, as well as `ContractsApi::call`.
 pub type ContractExecResult<Balance> =
     ContractResult<Result<ExecReturnValue, DispatchError>, Balance>;
 
-/// Result type of a `bare_instantiate` call as well as `ContractsApi::instantiate`.
+/// Result type of a `bare_instantiate` call, as well as `ContractsApi::instantiate`.
 pub type ContractInstantiateResult<AccountId, Balance> =
     ContractResult<Result<InstantiateReturnValue<AccountId>, DispatchError>, Balance>;
 
 /// Result type of a `bare_code_upload` call.
-pub type CodeUploadResult<CodeHash, Balance> =
-    Result<CodeUploadReturnValue<CodeHash, Balance>, DispatchError>;
+pub type CodeUploadResult<Balance> =
+    Result<CodeUploadReturnValue<Balance>, DispatchError>;
 
 /// Result type of a `get_storage` call.
 pub type GetStorageResult = Result<Option<Vec<u8>>, ContractAccessError>;
@@ -135,20 +136,20 @@ pub struct InstantiateReturnValue<AccountId> {
 
 /// The result of successfully uploading a contract.
 #[derive(Clone, PartialEq, Eq, Encode, Decode, MaxEncodedLen, RuntimeDebug, TypeInfo)]
-pub struct CodeUploadReturnValue<CodeHash, Balance> {
+pub struct CodeUploadReturnValue<Balance> {
     /// The key under which the new code is stored.
-    pub code_hash: CodeHash,
+    pub code_hash: H256,
     /// The deposit that was reserved at the caller. Is zero when the code already
     /// existed.
     pub deposit: Balance,
 }
 
-/// Reference to an existing code hash or a new wasm module.
+/// Reference to an existing code hash or a new contract bytecode.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum Code<Hash> {
-    /// A wasm module as raw bytes.
+    /// Bytecode of a contract.
     Upload(Vec<u8>),
-    /// The code hash of an on-chain wasm blob.
+    /// The code hash of an on-chain contract bytecode.
     Existing(Hash),
 }
 

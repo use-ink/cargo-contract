@@ -42,13 +42,14 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
+    utils::H256,
     Config,
     OnlineClient,
 };
 
 /// A builder for the remove command.
 pub struct RemoveCommandBuilder<C: Config, E: Environment, Signer: Clone> {
-    code_hash: Option<C::Hash>,
+    code_hash: Option<H256>,
     extrinsic_opts: ExtrinsicOpts<C, E, Signer>,
 }
 
@@ -67,7 +68,7 @@ where
     }
 
     /// Sets the hash of the smart contract code already uploaded to the chain.
-    pub fn code_hash(self, code_hash: Option<C::Hash>) -> Self {
+    pub fn code_hash(self, code_hash: Option<H256>) -> Self {
         let mut this = self;
         this.code_hash = code_hash;
         this
@@ -95,7 +96,7 @@ where
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
 
-        let final_code_hash = match (self.code_hash.as_ref(), artifacts.code.as_ref()) {
+        let final_code_hash = match (self.code_hash.as_ref(), artifacts.contract_bytecode.as_ref()) {
             (Some(code_h), _) => Ok(*code_h),
             (None, Some(_)) => artifacts.code_hash().map(|h| h.into() ),
             (None, None) => Err(anyhow::anyhow!(
@@ -122,7 +123,7 @@ where
 }
 
 pub struct RemoveExec<C: Config, E: Environment, Signer: Clone> {
-    final_code_hash: C::Hash,
+    final_code_hash: H256,
     opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
@@ -157,8 +158,7 @@ where
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
-        let code_removed =
-            events.find_first::<CodeRemoved<C::Hash, C::AccountId, E::Balance>>()?;
+        let code_removed = events.find_first::<CodeRemoved<E::Balance>>()?;
         Ok(RemoveResult {
             code_removed,
             events,
@@ -166,7 +166,7 @@ where
     }
 
     /// Returns the final code hash.
-    pub fn final_code_hash(&self) -> C::Hash {
+    pub fn final_code_hash(&self) -> H256 {
         self.final_code_hash
     }
 
@@ -186,8 +186,8 @@ where
     }
 }
 
-/// A struct representing the result of an remove command execution.
+/// A struct representing the result of a remove command execution.
 pub struct RemoveResult<C: Config, E: Environment> {
-    pub code_removed: Option<CodeRemoved<C::Hash, C::AccountId, E::Balance>>,
+    pub code_removed: Option<CodeRemoved<E::Balance>>,
     pub events: ExtrinsicEvents<C>,
 }

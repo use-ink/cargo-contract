@@ -25,7 +25,8 @@ mod events;
 mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
-pub mod pallet_contracts_primitives;
+mod map_account;
+pub mod pallet_revive_primitives;
 mod remove;
 mod rpc;
 mod upload;
@@ -40,28 +41,6 @@ mod integration_tests;
 use env_check::compare_node_env_with_contract;
 
 use anyhow::Result;
-use contract_build::{
-    CrateMetadata,
-    Verbosity,
-    DEFAULT_KEY_COL_WIDTH,
-};
-use scale::{
-    Decode,
-    Encode,
-};
-use subxt::{
-    backend::legacy::LegacyRpcMethods,
-    blocks,
-    config::{
-        DefaultExtrinsicParams,
-        DefaultExtrinsicParamsBuilder,
-        ExtrinsicParams,
-    },
-    tx,
-    Config,
-    OnlineClient,
-};
-
 pub use balance::{
     BalanceVariant,
     TokenMetadata,
@@ -71,10 +50,16 @@ pub use call::{
     CallExec,
 };
 pub use contract_artifacts::ContractArtifacts;
+use contract_build::{
+    CrateMetadata,
+    Verbosity,
+    DEFAULT_KEY_COL_WIDTH,
+};
 pub use contract_info::{
     fetch_all_contracts,
+    fetch_contract_bytecode,
     fetch_contract_info,
-    fetch_wasm_code,
+    resolve_h160,
     ContractInfo,
     TrieId,
 };
@@ -91,7 +76,10 @@ pub use error::{
     GenericError,
 };
 pub use events::DisplayEvents;
-pub use extrinsic_opts::ExtrinsicOptsBuilder;
+pub use extrinsic_opts::{
+    ExtrinsicOpts,
+    ExtrinsicOptsBuilder,
+};
 pub use instantiate::{
     Code,
     InstantiateArgs,
@@ -100,12 +88,36 @@ pub use instantiate::{
     InstantiateExec,
     InstantiateExecResult,
 };
+pub use map_account::{
+    MapAccountCommandBuilder,
+    MapAccountDryRunResult,
+    MapAccountExec,
+    MapAccountExecResult,
+};
 pub use remove::{
     RemoveCommandBuilder,
     RemoveExec,
     RemoveResult,
 };
-
+use scale::{
+    Decode,
+    Encode,
+};
+use subxt::{
+    backend::legacy::{
+        rpc_methods::DryRunResult,
+        LegacyRpcMethods,
+    },
+    blocks,
+    config::{
+        DefaultExtrinsicParams,
+        DefaultExtrinsicParamsBuilder,
+        ExtrinsicParams,
+    },
+    tx,
+    Config,
+    OnlineClient,
+};
 pub use upload::{
     UploadCommandBuilder,
     UploadExec,
@@ -117,11 +129,11 @@ pub use rpc::{
     RpcRequest,
 };
 
-/// The Wasm code of a contract.
+/// The bytecode of a contract (compiled for PolkaVM).
 #[derive(Debug, Clone)]
-pub struct WasmCode(Vec<u8>);
+pub struct ContractBinary(Vec<u8>);
 
-impl WasmCode {
+impl ContractBinary {
     /// The hash of the contract code: uniquely identifies the contract code on-chain.
     pub fn code_hash(&self) -> [u8; 32] {
         contract_build::code_hash(&self.0)
@@ -138,8 +150,8 @@ impl WasmCode {
 ///
 /// # Finality
 ///
-/// Currently this will report success once the transaction is included in a block. In the
-/// future there could be a flag to wait for finality before reporting success.
+/// Currently, this will report success once the transaction is included in a block. In
+/// the future there could be a flag to wait for finality before reporting success.
 async fn submit_extrinsic<C, Call, Signer>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
@@ -197,6 +209,44 @@ where
         }
     }
     Err(RpcError::SubscriptionDropped.into())
+}
+
+/// Wait for the transaction to be included successfully into a block.
+///
+/// # Errors
+///
+/// If a runtime Module error occurs, this will only display the pallet and error indices.
+/// Dynamic lookups of the actual error will be available once the following issue is
+/// resolved: <https://github.com/paritytech/subxt/issues/443>.
+///
+/// # Finality
+///
+/// Currently this will report success once the transaction is included in a block. In the
+/// future there could be a flag to wait for finality before reporting success.
+async fn dry_run_extrinsic<C, Call, Signer>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    call: &Call,
+    signer: &Signer,
+) -> core::result::Result<DryRunResult, subxt::Error>
+where
+    C: Config,
+    Call: tx::Payload,
+    Signer: tx::Signer<C>,
+    <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
+        From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+{
+    let account_id = Signer::account_id(signer);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
+    let params = DefaultExtrinsicParamsBuilder::new()
+        .nonce(account_nonce)
+        .build();
+    let extrinsic = client
+        .tx()
+        .create_signed_offline(call, signer, params.into())?;
+    let bytes = rpc.dry_run(extrinsic.encoded(), None).await?;
+    bytes.into_dry_run_result(&client.metadata())
 }
 
 /// Return the account nonce at the *best* block for an account ID.

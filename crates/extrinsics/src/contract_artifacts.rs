@@ -15,10 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    ContractBinary,
     ContractMessageTranscoder,
     ContractMetadata,
     CrateMetadata,
-    WasmCode,
 };
 use anyhow::{
     Context,
@@ -40,8 +40,8 @@ pub struct ContractArtifacts {
     metadata_path: PathBuf,
     /// The deserialized contract metadata if the expected metadata file exists.
     metadata: Option<ContractMetadata>,
-    /// The Wasm code of the contract if available.
-    pub code: Option<WasmCode>,
+    /// The contract bytecode if available.
+    pub contract_bytecode: Option<ContractBinary>,
 }
 
 impl ContractArtifacts {
@@ -52,10 +52,7 @@ impl ContractArtifacts {
     ) -> Result<ContractArtifacts> {
         let artifact_path = match (manifest_path, file) {
             (manifest_path, None) => {
-                let crate_metadata = CrateMetadata::from_manifest_path(
-                    manifest_path,
-                    contract_build::Target::Wasm,
-                )?;
+                let crate_metadata = CrateMetadata::from_manifest_path(manifest_path)?;
 
                 if crate_metadata.contract_bundle_path().exists() {
                     crate_metadata.contract_bundle_path()
@@ -75,6 +72,7 @@ impl ContractArtifacts {
         };
         Self::from_artifact_path(artifact_path.as_path())
     }
+
     /// Given a contract artifact path, load the contract code and metadata where
     /// possible.
     fn from_artifact_path(path: &Path) -> Result<Self> {
@@ -83,15 +81,15 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.wasm.map(|wasm| WasmCode(wasm.0));
+                    let code = metadata.clone().source.contract_bytecode.map(|bytecode| ContractBinary(bytecode.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
-                Some("wasm") => {
+                Some("polkavm") => {
                     let file_name = path.file_stem()
-                        .context("WASM bundle file has unreadable name")?
+                        .context("PolkaVM bundle file has unreadable name")?
                         .to_str()
                         .context("Error parsing filename string")?;
-                    let code = Some(WasmCode(std::fs::read(path)?));
+                    let code = Some(ContractBinary(std::fs::read(path)?));
                     let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
                     let metadata_path = dir.join(format!("{file_name}.json"));
                     if !metadata_path.exists() {
@@ -102,11 +100,11 @@ impl ContractArtifacts {
                     }
                 }
                 Some(ext) => anyhow::bail!(
-                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.wasm`"
+                    "Invalid artifact extension {ext}, expected `.contract`, `.json` or `.polkavm`"
                 ),
                 None => {
                     anyhow::bail!(
-                        "Artifact path has no extension, expected `.contract`, `.json`, or `.wasm`"
+                        "Artifact path has no extension, expected `.contract`, `.json`, or `.polkavm`"
                     )
                 }
             };
@@ -120,7 +118,7 @@ impl ContractArtifacts {
             artifacts_path: path.into(),
             metadata_path,
             metadata,
-            code,
+            contract_bytecode: code,
         })
     }
 

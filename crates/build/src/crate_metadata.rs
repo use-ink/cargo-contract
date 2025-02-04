@@ -48,7 +48,7 @@ pub struct CrateMetadata {
     pub contract_artifact_name: String,
     pub root_package: Package,
     pub original_code: PathBuf,
-    pub dest_code: PathBuf,
+    pub dest_bytecode: PathBuf,
     pub ink_version: Version,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
@@ -59,16 +59,13 @@ pub struct CrateMetadata {
 
 impl CrateMetadata {
     /// Attempt to construct [`CrateMetadata`] from the given manifest path.
-    pub fn from_manifest_path(
-        manifest_path: Option<&PathBuf>,
-        target: Target,
-    ) -> Result<Self> {
+    pub fn from_manifest_path(manifest_path: Option<&PathBuf>) -> Result<Self> {
         let manifest_path = ManifestPath::try_from(manifest_path)?;
-        Self::collect(&manifest_path, target)
+        Self::collect(&manifest_path)
     }
 
     /// Parses the contract manifest and returns relevant metadata.
-    pub fn collect(manifest_path: &ManifestPath, target: Target) -> Result<Self> {
+    pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
@@ -104,15 +101,15 @@ impl CrateMetadata {
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
-        original_code.push(target.llvm_target_alias());
+        original_code.push(Target::llvm_target_alias());
         original_code.push("release");
         original_code.push(root_package.name.clone());
-        original_code.set_extension(target.source_extension());
+        original_code.set_extension(Target::source_extension());
 
         // {target_dir}/{contract_artifact_name}.code
         let mut dest_code = target_directory.clone();
         dest_code.push(contract_artifact_name.clone());
-        dest_code.set_extension(target.dest_extension());
+        dest_code.set_extension(Target::dest_extension());
 
         let ink_version = metadata
             .packages
@@ -141,7 +138,7 @@ impl CrateMetadata {
             root_package,
             contract_artifact_name,
             original_code: original_code.into(),
-            dest_code: dest_code.into(),
+            dest_bytecode: dest_code.into(),
             ink_version,
             documentation,
             homepage,
@@ -163,15 +160,6 @@ impl CrateMetadata {
         let target_directory = self.target_directory.clone();
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
         target_directory.join(fname_bundle)
-    }
-
-    /// Returns `true` if `ink_e2e` is a dependency of the project.
-    pub fn depends_on_ink_e2e(&self) -> bool {
-        let (metadata, _root_package) = get_cargo_metadata(&self.manifest_path).unwrap();
-        metadata
-            .packages
-            .iter()
-            .any(|package| package.name == "ink_e2e")
     }
 }
 
@@ -228,7 +216,6 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
             .map(Url::parse)
             .transpose()
             .context(format!("{field_name} should be a valid URL"))
-            .map_err(Into::into)
     };
 
     let documentation = get_url("documentation")?;

@@ -19,7 +19,7 @@ use super::{
         CodeStored,
         ContractInstantiated,
     },
-    pallet_contracts_primitives::{
+    pallet_revive_primitives::{
         ContractInstantiateResult,
         StorageDeposit,
     },
@@ -50,6 +50,7 @@ use scale::{
     Encode,
 };
 use sp_core::Bytes;
+use sp_runtime::traits::Zero;
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -67,7 +68,10 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
-    utils::H160,
+    utils::{
+        H160,
+        H256,
+    },
     Config,
     OnlineClient,
 };
@@ -160,13 +164,19 @@ where
         let transcoder = artifacts.contract_transcoder()?;
         let data = transcoder.encode(&self.constructor, &self.args)?;
         let url = self.extrinsic_opts.url();
-        let code = if let Some(code) = artifacts.code {
+        let code = if let Some(code) = artifacts.contract_bytecode {
             Code::Upload(code.0)
         } else {
             let code_hash = artifacts.code_hash()?;
             Code::Existing(code_hash.into())
         };
-        let salt = self.salt.clone().map(|s| s.0).unwrap_or_default();
+        let salt = self.salt.clone().map(|s| {
+            let bytes = s.0;
+            assert!(bytes.len() <= 32, "salt has to be <= 32 bytes");
+            let mut salt = [0u8; 32];
+            salt[..bytes.len()].copy_from_slice(&bytes[..bytes.len()]);
+            salt
+        });
 
         let rpc_cli = RpcClient::from_url(&url).await?;
         let client = OnlineClient::from_rpc_client(rpc_cli.clone()).await?;
@@ -195,19 +205,19 @@ where
     }
 }
 
-pub struct InstantiateArgs<C: Config, E: Environment> {
+pub struct InstantiateArgs<E: Environment> {
     constructor: String,
     raw_args: Vec<String>,
     value: E::Balance,
     gas_limit: Option<u64>,
     proof_size: Option<u64>,
     storage_deposit_limit: Option<E::Balance>,
-    code: Code<C::Hash>,
+    code: Code,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
-impl<C: Config, E: Environment> InstantiateArgs<C, E> {
+impl<E: Environment> InstantiateArgs<E> {
     /// Returns the constructor name.
     pub fn constructor(&self) -> &str {
         &self.constructor
@@ -234,11 +244,11 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
     }
 
     /// Returns the storage deposit limit for this instantiation.
-    pub fn storage_deposit_limit_compact(&self) -> Option<scale::Compact<E::Balance>> {
-        self.storage_deposit_limit.map(Into::into)
+    pub fn storage_deposit_limit(&self) -> Option<E::Balance> {
+        self.storage_deposit_limit
     }
 
-    pub fn code(&self) -> &Code<C::Hash> {
+    pub fn code(&self) -> &Code {
         &self.code
     }
 
@@ -248,14 +258,14 @@ impl<C: Config, E: Environment> InstantiateArgs<C, E> {
     }
 
     /// Returns the salt used in the address derivation of the new contract.
-    pub fn salt(&self) -> &[u8] {
-        &self.salt
+    pub fn salt(&self) -> Option<&[u8; 32]> {
+        self.salt.as_ref()
     }
 }
 
 pub struct InstantiateExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
-    args: InstantiateArgs<C, E>,
+    args: InstantiateArgs<E>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
     transcoder: ContractMessageTranscoder,
@@ -268,7 +278,7 @@ where
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
     C::Hash: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
-    E::Balance: Serialize + EncodeAsType,
+    E::Balance: IntoVisitor + Serialize + EncodeAsType + Zero,
     Signer: tx::Signer<C> + Clone,
 {
     /// Decodes the result of a simulated contract instantiation.
@@ -321,15 +331,14 @@ where
     pub async fn instantiate_dry_run(
         &self,
     ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance>> {
-        let storage_deposit_limit = self.args.storage_deposit_limit;
         let call_request = InstantiateRequest::<C, E> {
             origin: self.opts.signer().account_id(),
             value: self.args.value,
             gas_limit: None,
-            storage_deposit_limit,
+            storage_deposit_limit: self.args.storage_deposit_limit,
             code: self.args.code.clone(),
             data: self.args.data.clone(),
-            salt: self.args.salt.clone(),
+            salt: self.args.salt,
         };
         state_call(&self.rpc, "ReviveApi_instantiate", &call_request).await
     }
@@ -338,13 +347,12 @@ where
         &self,
         code: Vec<u8>,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
+        storage_deposit_limit: E::Balance,
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
-            self.args
-                .storage_deposit_limit
-                .expect("no storage deposit limit available"),
+            storage_deposit_limit,
             code,
             self.args.data.clone(),
             None,
@@ -357,7 +365,7 @@ where
         // The CodeStored event is only raised if the contract has not already been
         // uploaded.
         let code_hash = events
-            .find_first::<CodeStored<C::Hash>>()?
+            .find_first::<CodeStored<E::Balance>>()?
             .map(|code_stored| code_stored.code_hash);
 
         let instantiated = events
@@ -373,16 +381,17 @@ where
 
     async fn instantiate_with_code_hash(
         &self,
-        code_hash: C::Hash,
+        code_hash: H256,
         gas_limit: Weight,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
-        let call = Instantiate::<C::Hash, E::Balance>::new(
+        storage_deposit_limit: E::Balance,
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+        let call = Instantiate::<E::Balance>::new(
             self.args.value,
             gas_limit,
-            self.args.storage_deposit_limit,
+            storage_deposit_limit,
             code_hash,
             self.args.data.clone(),
-            self.args.salt.clone(),
+            self.args.salt,
         )
         .build();
 
@@ -413,20 +422,91 @@ where
     pub async fn instantiate(
         &self,
         gas_limit: Option<Weight>,
-    ) -> Result<InstantiateExecResult<C, H160>, ErrorVariant> {
+        storage_deposit_limit: Option<E::Balance>,
+    ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         // use user specified values where provided, otherwise estimate
-        let gas_limit = match gas_limit {
-            Some(gas_limit) => gas_limit,
-            None => self.estimate_gas().await?,
+        let use_gas_limit;
+        let use_storage_deposit_limit;
+        if gas_limit.is_none() || storage_deposit_limit.is_none() {
+            let estimation = self.estimate_limits().await?;
+            if gas_limit.is_none() {
+                use_gas_limit = estimation.0;
+            } else {
+                use_gas_limit = gas_limit.unwrap();
+            }
+            if storage_deposit_limit.is_none() {
+                use_storage_deposit_limit = estimation.1;
+            } else {
+                use_storage_deposit_limit = storage_deposit_limit.unwrap();
+            }
+        } else {
+            use_gas_limit = gas_limit.unwrap();
+            use_storage_deposit_limit = storage_deposit_limit.unwrap();
+        }
+
+        /*
+        let (gas_limit, storage_deposit_limit) = match gas_limit {
+            (Some(gas_limit), (Some(storage_deposit_limit)) => gas_limit,
+            None => self.estimate_limits().await?,
         };
+        */
         match self.args.code.clone() {
-            Code::Upload(code) => self.instantiate_with_code(code, gas_limit).await,
+            Code::Upload(code) => {
+                self.instantiate_with_code(code, use_gas_limit, use_storage_deposit_limit)
+                    .await
+            }
             Code::Existing(code_hash) => {
-                self.instantiate_with_code_hash(code_hash, gas_limit).await
+                self.instantiate_with_code_hash(
+                    code_hash,
+                    use_gas_limit,
+                    use_storage_deposit_limit,
+                )
+                .await
             }
         }
     }
 
+    /// Estimates the gas required for the contract instantiation process without
+    /// modifying the blockchain.
+    ///
+    /// This function provides a gas estimation for contract instantiation, considering
+    /// the user-specified values or using estimates based on a dry run.
+    ///
+    /// Returns the estimated gas weight of type [`Weight`] for contract instantiation, or
+    /// an error.
+    pub async fn estimate_limits(&self) -> Result<(Weight, E::Balance)> {
+        let instantiate_result = self.instantiate_dry_run().await?;
+        match instantiate_result.result {
+            Ok(_) => {
+                // use user specified values where provided, otherwise use the
+                // estimates
+                let ref_time = self
+                    .args
+                    .gas_limit
+                    .unwrap_or_else(|| instantiate_result.gas_required.ref_time());
+                let proof_size = self
+                    .args
+                    .proof_size
+                    .unwrap_or_else(|| instantiate_result.gas_required.proof_size());
+                let deposit_limit =
+                    self.args.storage_deposit_limit.unwrap_or_else(|| {
+                        match instantiate_result.storage_deposit {
+                            StorageDeposit::Refund(_) => E::Balance::zero(),
+                            StorageDeposit::Charge(value) => value,
+                        }
+                    });
+                Ok((Weight::from_parts(ref_time, proof_size), deposit_limit))
+            }
+            Err(ref err) => {
+                let object =
+                    ErrorVariant::from_dispatch_error(err, &self.client.metadata())?;
+                tracing::info!("Pre-submission dry-run failed. Error: {}", object);
+                Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
+            }
+        }
+    }
+
+    /*
     /// Estimates the gas required for the contract instantiation process without
     /// modifying the blockchain.
     ///
@@ -459,12 +539,17 @@ where
                             err,
                             &self.client.metadata(),
                         )?;
+                        tracing::info!(
+                            "Pre-submission dry-run failed. Error: {}",
+                            object
+                        );
                         Err(anyhow!("Pre-submission dry-run failed. Error: {}", object))
                     }
                 }
             }
         }
     }
+    */
 
     /// Returns the extrinsic options.
     pub fn opts(&self) -> &ExtrinsicOpts<C, E, Signer> {
@@ -472,7 +557,7 @@ where
     }
 
     /// Returns the instantiate arguments.
-    pub fn args(&self) -> &InstantiateArgs<C, E> {
+    pub fn args(&self) -> &InstantiateArgs<E> {
         &self.args
     }
 
@@ -488,10 +573,10 @@ where
 }
 
 /// A struct representing the result of an instantiate command execution.
-pub struct InstantiateExecResult<C: Config, AccountId> {
+pub struct InstantiateExecResult<C: Config> {
     pub events: ExtrinsicEvents<C>,
-    pub code_hash: Option<C::Hash>,
-    pub contract_address: AccountId,
+    pub code_hash: Option<H256>,
+    pub contract_address: H160,
 }
 
 /// Result of the contract call
@@ -523,19 +608,16 @@ struct InstantiateRequest<C: Config, E: Environment> {
     value: E::Balance,
     gas_limit: Option<Weight>,
     storage_deposit_limit: Option<E::Balance>,
-    code: Code<C::Hash>,
+    code: Code,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
-/// Reference to an existing code hash or a new Wasm module.
+/// Reference to an existing code hash or new contract bytecode.
 #[derive(Clone, Encode)]
-pub enum Code<Hash>
-where
-    Hash: Clone,
-{
-    /// A Wasm module as raw bytes.
+pub enum Code {
+    /// A contract binary as raw bytes.
     Upload(Vec<u8>),
-    /// The code hash of an on-chain Wasm blob.
-    Existing(Hash),
+    /// The code hash of an on-chain contract binary blob.
+    Existing(H256),
 }

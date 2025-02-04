@@ -19,15 +19,15 @@ use crate::call_with_config;
 use super::{
     basic_display_format_extended_contract_info,
     display_all_contracts,
-    parse_account,
+    parse_addr,
     CLIChainOpts,
 };
 use anyhow::Result;
 use contract_analyze::determine_language;
 use contract_extrinsics::{
     fetch_all_contracts,
+    fetch_contract_bytecode,
     fetch_contract_info,
-    fetch_wasm_code,
     url_to_string,
     ContractInfo,
     ErrorVariant,
@@ -70,7 +70,7 @@ pub struct InfoCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long)]
     output_json: bool,
-    /// Display the contract's Wasm bytecode.
+    /// Display the contract's bytecode.
     #[clap(name = "binary", long, conflicts_with = "all")]
     binary: bool,
     /// Display all contracts addresses
@@ -107,7 +107,7 @@ impl InfoCommand {
 
             if self.output_json {
                 let contracts_json = serde_json::json!({
-                    "contracts": contracts
+                    "Revive": contracts
                 });
                 println!("{}", serde_json::to_string_pretty(&contracts_json)?);
             } else {
@@ -120,25 +120,26 @@ impl InfoCommand {
             let contract = self
                 .contract
                 .as_ref()
-                .map(|c| parse_account(c))
+                .map(|c| parse_addr(c))
                 .transpose()?
                 .expect("Contract argument shall be present");
 
             let info_to_json =
                 fetch_contract_info::<C, C>(&contract, &rpc, &client).await?;
 
-            let wasm_code =
-                fetch_wasm_code(&client, &rpc, info_to_json.code_hash()).await?;
+            let contract_bytecode =
+                fetch_contract_bytecode(&client, &rpc, info_to_json.code_hash()).await?;
+
             // Binary flag applied
             if self.binary {
                 if self.output_json {
-                    let wasm = serde_json::json!({
-                        "wasm": format!("0x{}", hex::encode(wasm_code))
+                    let output = serde_json::json!({
+                        "contract_bytecode": format!("0x{}", hex::encode(contract_bytecode))
                     });
-                    println!("{}", serde_json::to_string_pretty(&wasm)?);
+                    println!("{}", serde_json::to_string_pretty(&output)?);
                 } else {
                     std::io::stdout()
-                        .write_all(&wasm_code)
+                        .write_all(&contract_bytecode)
                         .expect("Writing to stdout failed")
                 }
             } else if self.output_json {
@@ -148,7 +149,7 @@ impl InfoCommand {
                         <C as Config>::Hash,
                         C::Balance,
                     >::new(
-                        info_to_json, &wasm_code
+                        info_to_json, &contract_bytecode
                     ))?
                 )
             } else {
@@ -156,7 +157,8 @@ impl InfoCommand {
                     <C as Config>::Hash,
                     C::Balance,
                 >::new(
-                    info_to_json, &wasm_code
+                    info_to_json,
+                    &contract_bytecode,
                 ))
             }
             Ok(())

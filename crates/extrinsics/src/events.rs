@@ -45,6 +45,7 @@ use subxt::{
     ext::{
         scale_decode::{
             self,
+            ext::primitive_types::H256,
             IntoVisitor,
         },
         scale_encode,
@@ -72,7 +73,7 @@ impl<AccountId> StaticEvent for ContractEmitted<AccountId>
 where
     AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "ContractEmitted";
 }
 
@@ -111,16 +112,20 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored<Hash> {
+pub struct CodeStored<Balance> {
     /// Hash under which the contract code was stored.
-    pub code_hash: Hash,
+    pub code_hash: H256,
+    /// Deposit held for the storing contract code on-chain.
+    pub deposit_held: Balance,
+    /// Address of the uploader.
+    pub uploader: H160,
 }
 
-impl<Hash> StaticEvent for CodeStored<Hash>
+impl<Balance> StaticEvent for CodeStored<Balance>
 where
-    Hash: IntoVisitor,
+    Balance: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "CodeStored";
 }
 
@@ -134,19 +139,17 @@ where
 )]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeRemoved<Hash, AccountId, Balance> {
-    pub code_hash: Hash,
+pub struct CodeRemoved<Balance> {
+    pub code_hash: H256,
     pub deposit_released: Balance,
-    pub remover: AccountId,
+    pub remover: H160,
 }
 
-impl<Hash, Balance, AccountId> StaticEvent for CodeRemoved<Hash, AccountId, Balance>
+impl<Balance> StaticEvent for CodeRemoved<Balance>
 where
-    Hash: IntoVisitor,
     Balance: IntoVisitor,
-    AccountId: IntoVisitor,
 {
-    const PALLET: &'static str = "Contracts";
+    const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "CodeRemoved";
 }
 

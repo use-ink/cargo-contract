@@ -69,6 +69,7 @@ fn decode_works() {
     let project_dir = tmp_dir.path().to_path_buf().join("switcher");
 
     let lib = project_dir.join("lib.rs");
+    tracing::debug!("Writing contract to {:?}", lib);
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
@@ -78,6 +79,7 @@ fn decode_works() {
     let msg_data: &str = "babebabe01";
     let msg_decoded: &str = r#"switch { value: true }"#;
 
+    tracing::debug!("Decoding contract in {}", project_dir.to_string_lossy());
     // then
     // message data is being decoded properly
     cargo_contract(&project_dir)
@@ -89,6 +91,7 @@ fn decode_works() {
         .success()
         .stdout(predicates::str::contains(msg_decoded));
 
+    tracing::debug!("Decoded contract in {}", project_dir.to_string_lossy());
     // and when
     let wrong_msg_data: &str = "babebabe010A";
     let error_msg: &str = "input length was longer than expected by 1 byte(s).\nManaged to decode `switch`, `value` but `0A` bytes were left unread";

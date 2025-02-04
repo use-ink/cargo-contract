@@ -165,34 +165,6 @@ impl TestContractManifest {
         Ok(())
     }
 
-    /// Set `optimization-passes` in `[package.metadata.contract]`
-    pub fn set_profile_optimization_passes<P>(
-        &mut self,
-        passes: P,
-    ) -> Result<Option<value::Value>>
-    where
-        P: ToString,
-    {
-        Ok(self
-            .toml
-            .entry("package")
-            .or_insert(value::Value::Table(Default::default()))
-            .as_table_mut()
-            .context("package section should be a table")?
-            .entry("metadata")
-            .or_insert(value::Value::Table(Default::default()))
-            .as_table_mut()
-            .context("metadata section should be a table")?
-            .entry("contract")
-            .or_insert(value::Value::Table(Default::default()))
-            .as_table_mut()
-            .context("metadata.contract section should be a table")?
-            .insert(
-                "optimization-passes".to_string(),
-                value::Value::String(passes.to_string()),
-            ))
-    }
-
     /// Set the dependency version of `package` to `version`.
     pub fn set_dependency_version(
         &mut self,

@@ -1,6 +1,6 @@
 [package]
 name = "contract-build"
-version = "5.0.1"
+version = "6.0.0-alpha"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
@@ -10,55 +10,51 @@ repository = "https://github.com/use-ink/cargo-contract"
 documentation = "https://docs.rs/contract-build"
 homepage = "https://www.substrate.io/"
 description = "Library for building ink! smart contracts"
-keywords = ["wasm", "ink", "webassembly", "blockchain", "edsl"]
+keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE", "build.rs", "templates", "riscv_memory_layout.ld"]
 
 [dependencies]
 regex = "1"
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 blake2 = "0.10.6"
 cargo_metadata = "0.19.1"
-colored = "2.1.0"
-clap = { version = "4.5.23", features = ["derive", "env"] }
+colored = "3.0.0"
+clap = { version = "4.5.27", features = ["derive", "env"] }
 duct = "0.13.7"
 heck = "0.5.0"
 hex = "0.4.3"
 impl-serde = "0.5.0"
-rustc_version = "0.4.0"
-scale = { package = "parity-scale-codec", version = "3.0.0", features = [
+rustc_version = "0.4.1"
+scale = { package = "parity-scale-codec", version = "3.6.12", features = [
     "derive",
 ] }
-toml = "0.8.13"
-tracing = "0.1.40"
-wasm-encoder = { version = "0.220.0", features = ["wasmparser"] }
-wasmparser = "0.220.0"
-semver = { version = "1.0.24", features = ["serde"] }
+toml = "0.8.19"
+tracing = "0.1.41"
+semver = { version = "1.0.25", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-serde_json = "1.0.133"
-tempfile = "3.10.1"
+serde_json = "1.0.138"
+tempfile = "3.16.0"
 term_size = "0.3.2"
 url = { version = "2.5.4", features = ["serde"] }
-wasm-opt = { version = "=0.116.1", default-features = false }
 which = "7.0.1"
 zip = { version = "2.2.2", default-features = false }
-strum = { version = "0.26", features = ["derive"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tokio-stream = "0.1"
-bollard = "0.18"
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1.17"
+bollard = "0.18.1"
 crossterm = "0.28.1"
 
-polkavm-linker = "0.17.1"
+polkavm-linker = "0.18.0"
 
-contract-metadata = { version = "5.0.1", path = "../metadata" }
+contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
+sha3 = "0.11.0-pre.4"
 
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
 
 [build-dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 walkdir = "2.5.0"
 zip = { version = "2.2.2", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
-wabt = "0.10.0"

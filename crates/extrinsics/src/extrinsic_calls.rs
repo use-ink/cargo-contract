@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::WasmCode;
+use crate::ContractBinary;
 use subxt::{
-    ext::{
-        codec::Compact,
-        scale_encode::EncodeAsType,
+    ext::scale_encode::EncodeAsType,
+    utils::{
+        H160,
+        H256,
     },
-    utils::H160,
 };
 
 /// Copied from `sp_weight` to additionally implement `scale_encode::EncodeAsType`.
@@ -80,7 +80,7 @@ pub(crate) struct UploadCode<Balance> {
 }
 
 impl<Balance> UploadCode<Balance> {
-    pub fn new(code: WasmCode, storage_deposit_limit: Balance) -> Self {
+    pub fn new(code: ContractBinary, storage_deposit_limit: Balance) -> Self {
         Self {
             code: code.0,
             storage_deposit_limit,
@@ -99,6 +99,7 @@ pub(crate) struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
+    #[codec(compact)]
     storage_deposit_limit: Balance,
     code: Vec<u8>,
     data: Vec<u8>,
@@ -132,35 +133,30 @@ impl<Balance> InstantiateWithCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate<Hash, Balance>
-where
-    Hash: EncodeAsType,
-{
+pub(crate) struct Instantiate<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
-    storage_deposit_limit: Option<Compact<Balance>>,
-    code_hash: Hash,
+    #[codec(compact)]
+    storage_deposit_limit: Balance,
+    code_hash: H256,
     data: Vec<u8>,
-    salt: Vec<u8>,
+    salt: Option<[u8; 32]>,
 }
 
-impl<Hash, Balance> Instantiate<Hash, Balance>
-where
-    Hash: EncodeAsType,
-{
+impl<Balance> Instantiate<Balance> {
     pub fn new(
         value: Balance,
         gas_limit: sp_weights::Weight,
-        storage_deposit_limit: Option<Balance>,
-        code_hash: Hash,
+        storage_deposit_limit: Balance,
+        code_hash: H256,
         data: Vec<u8>,
-        salt: Vec<u8>,
+        salt: Option<[u8; 32]>,
     ) -> Self {
         Self {
             value,
             gas_limit: gas_limit.into(),
-            storage_deposit_limit: storage_deposit_limit.map(Into::into),
+            storage_deposit_limit,
             code_hash,
             data,
             salt,
@@ -203,5 +199,20 @@ impl<Balance> Call<Balance> {
 
     pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
         subxt::tx::DefaultPayload::new("Revive", "call", self)
+    }
+}
+
+/// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
+#[derive(Debug, EncodeAsType)]
+#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
+pub(crate) struct MapAccount {}
+
+impl MapAccount {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(self) -> subxt::tx::DefaultPayload<Self> {
+        subxt::tx::DefaultPayload::new("Revive", "map_account", self)
     }
 }

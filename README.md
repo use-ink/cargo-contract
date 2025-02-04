@@ -86,7 +86,9 @@ docker run --rm -it -v ${pwd}:/sources paritytech/contracts-ci-linux \
 
 ### Verifiable builds
 
-Some block explorers require the Wasm binary to be compiled in the deterministic environment.
+Some block explorers require the contract binary to be compiled in the deterministic environment.
+This allows to verify that a certain contract source code matches the contract binary stored on-chain.
+
 To achieve it, you should build your contract using Docker image we provide:
 
 ```bash
@@ -114,14 +116,14 @@ from `true` to `false` through the `flip()` function.
 
 ##### `cargo contract build`
 
-Compile the contract into optimized WebAssembly bytecode, generate metadata for it,
-and bundle both together in a `<name>.contract` file, which you can use for
+Compile the contract into [PolkaVM](https://github.com/paritytech/polkavm) bytecode, generate
+metadata for it, and bundle both together in a `<name>.contract` file, which you can use for
 deploying the contract on-chain.
 
 ##### `cargo contract check`
 
-Check that the code builds as WebAssembly. This command does not output any `<name>.contract`
-artifact to the `target/` directory.
+Check that the code builds for [PolkaVM](https://github.com/paritytech/polkavm).
+This command does not output any `<name>.contract` artifact to the `target/` directory.
 
 ##### `cargo contract upload`
 
@@ -134,6 +136,10 @@ Create an instance of a contract on chain. See [extrinsics](crates/extrinsics/RE
 ##### `cargo contract call`
 
 Invoke a message on an existing contract on chain. See [extrinsics](crates/extrinsics/README.md).
+
+##### `cargo contract account`
+
+Allows resolving an H160 contract address to the Substrate `AccountId` which it is mapped to.
 
 ##### `cargo contract encode`
 
