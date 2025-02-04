@@ -65,8 +65,8 @@ pub struct StorageCommand {
     /// Export the instantiate output in JSON format.
     #[clap(name = "output-json", long, conflicts_with = "raw")]
     output_json: bool,
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
+    /// Path to a contract build artifact file: a raw `.polkavm` file, a `.contract`
+    /// bundle, or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.

@@ -1,5 +1,7 @@
 # Verifiable builds using Docker
 
+todo reread this whole file
+
 Docker image based on the minimalistic Debian image `bitnami/minideb:bullseye-amd64`.
 
 Used for reproducible builds in `cargo contract build --verifiable`

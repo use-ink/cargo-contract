@@ -85,7 +85,7 @@ impl VerifySchemaCommand {
                     "Failed to deserialize contract bundle {}",
                     path.display()
                 ))?;
-            contract_metadata.remove_source_wasm_attribute();
+            contract_metadata.remove_source_contract_bytecode_attribute();
 
             metadata = serde_json::value::to_value(contract_metadata)?;
             metadata_source = path.display().to_string();

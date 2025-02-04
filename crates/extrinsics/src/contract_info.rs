@@ -296,8 +296,8 @@ impl Display for TrieId {
     }
 }
 
-/// Fetch the contract wasm code from the storage using the provided client and code hash.
-pub async fn fetch_wasm_code<C: Config>(
+/// Fetch the contract bytecode from the storage using the provided client and code hash.
+pub async fn fetch_contract_bytecode<C: Config>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
     hash: &C::Hash,
@@ -314,10 +314,12 @@ where
         .at(best_block)
         .fetch(&pristine_code_address)
         .await?
-        .ok_or_else(|| anyhow!("No WASM code was found for code hash {}", hash))?;
+        .ok_or_else(|| {
+            anyhow!("No contract bytecode was found for code hash {}", hash)
+        })?;
     let pristine_code = pristine_code
         .as_type::<BoundedVec<u8>>()
-        .map_err(|e| anyhow!("Contract wasm code could not be parsed: {e}"));
+        .map_err(|e| anyhow!("Contract bytecode could not be parsed: {e}"));
     pristine_code.map(|v| v.0)
 }
 

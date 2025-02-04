@@ -106,8 +106,8 @@ use subxt::{
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CLIExtrinsicOpts {
-    /// Path to a contract build artifact file: a raw `.wasm` file, a `.contract` bundle,
-    /// or a `.json` metadata file.
+    /// Path to a contract build artifact file: a raw `.polkavm` file, a `.contract`
+    /// bundle, or a `.json` metadata file.
     #[clap(value_parser, conflicts_with = "manifest_path")]
     file: Option<PathBuf>,
     /// Path to the `Cargo.toml` of the contract.
@@ -451,7 +451,7 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
         "Warning: You are about to upload unverifiable code to {} mainnet.\n\
-        A third party won't be able to confirm that your uploaded contract Wasm blob \
+        A third party won't be able to confirm that your uploaded contract binary blob \
         matches a particular contract source code.\n\n\
         You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
         See https://use.ink/basics/contract-verification for more info.",

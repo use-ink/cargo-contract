@@ -108,16 +108,17 @@ impl Network {
 )]
 #[clap(name = "build-artifacts")]
 pub enum BuildArtifacts {
-    /// Generate the Wasm, the metadata and a bundled `<name>.contract` file
+    /// Generate the contract binary (`<name>.polkavm`), the metadata and a bundled
+    /// `<name>.contract` file.
     #[clap(name = "all")]
     #[default]
     All,
-    /// Only the Wasm is created, generation of metadata and a bundled `<name>.contract`
-    /// file is skipped
+    /// Only the contract binary (`<name>.polkavm`) is created, generation of metadata
+    /// and a bundled `<name>.contract` file is skipped.
     #[clap(name = "code-only")]
     CodeOnly,
-    /// No artifacts produced: runs the `cargo check` command for the Wasm target, only
-    /// checks for compilation errors.
+    /// No artifacts produced: runs the `cargo check` command for the PolkaVM target,
+    /// only checks for compilation errors.
     #[clap(name = "check-only")]
     CheckOnly,
 }

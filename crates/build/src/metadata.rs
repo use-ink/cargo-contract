@@ -41,8 +41,8 @@ use contract_metadata::{
     Language,
     Source,
     SourceCompiler,
+    SourceContractBytecode,
     SourceLanguage,
-    SourceWasm,
     User,
 };
 use semver::Version;
@@ -100,7 +100,7 @@ impl TryFrom<BuildInfo> for serde_json::Map<String, serde_json::Value> {
 #[allow(clippy::too_many_arguments)]
 pub fn execute(
     crate_metadata: &CrateMetadata,
-    final_contract_wasm: &Path,
+    final_contract_binary: &Path,
     metadata_artifacts: &MetadataArtifacts,
     features: &Features,
     network: Network,
@@ -113,7 +113,7 @@ pub fn execute(
         source,
         contract,
         user,
-    } = extended_metadata(crate_metadata, final_contract_wasm, build_info)?;
+    } = extended_metadata(crate_metadata, final_contract_binary, build_info)?;
 
     let generate_metadata = |manifest_path: &ManifestPath| -> Result<()> {
         verbose_eprintln!(
@@ -194,7 +194,7 @@ pub fn write_metadata(
 ) -> Result<()> {
     {
         let mut metadata = metadata.clone();
-        metadata.remove_source_wasm_attribute();
+        metadata.remove_source_contract_bytecode_attribute();
         let contents = serde_json::to_string_pretty(&metadata)?;
         fs::write(&metadata_artifacts.dest_metadata, contents)?;
     }
@@ -223,7 +223,7 @@ pub fn write_metadata(
 /// Generate the extended contract project metadata
 fn extended_metadata(
     crate_metadata: &CrateMetadata,
-    final_contract_wasm: &Path,
+    final_contract_binary: &Path,
     build_info: BuildInfo,
 ) -> Result<ExtendedMetadataResult> {
     let contract_package = &crate_metadata.root_package;
@@ -245,10 +245,10 @@ fn extended_metadata(
     let source = {
         let lang = SourceLanguage::new(Language::Ink, ink_version.clone());
         let compiler = SourceCompiler::new(Compiler::RustC, rust_version);
-        let wasm = fs::read(final_contract_wasm)?;
-        let hash = code_hash(wasm.as_slice());
+        let contract_bytecode = fs::read(final_contract_binary)?;
+        let hash = code_hash(contract_bytecode.as_slice());
         Source::new(
-            Some(SourceWasm::new(wasm)),
+            Some(SourceContractBytecode::new(contract_bytecode)),
             hash.into(),
             lang,
             compiler,

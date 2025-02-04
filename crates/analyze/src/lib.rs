@@ -22,12 +22,12 @@ use anyhow::{
 };
 pub use contract_metadata::Language;
 
-/// Detects the programming language of a smart contract from its WebAssembly (Wasm)
+/// Detects the programming language of a smart contract from its PolkaVM
 /// binary code.
 ///
-/// This function accepts a Wasm code as input and employs a set of heuristics to identify
-/// the contract's source language. It currently supports detection for Ink!, Solidity,
-/// and AssemblyScript languages.
+/// This function accepts contract bytecode as input and employs a set of heuristics
+/// to identify the contract's source language. It currently supports detection of the
+/// ink! and Solidity languages.
 pub fn determine_language(_code: &[u8]) -> Result<Language> {
     /*
     // todo

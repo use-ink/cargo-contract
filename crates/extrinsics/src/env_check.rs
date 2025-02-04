@@ -175,6 +175,8 @@ pub fn compare_node_env_with_contract(
         node_registry,
         contract_metadata,
         verbosity,
+        // the `wasm` here is because `pallet-revive` still uses that name for their
+        // module
         vec!["pallet_revive", "wasm", "CodeInfo"],
         "owner",
     )?;
@@ -384,6 +386,7 @@ mod tests {
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     #[scale_info(replace_segment("env_check", "pallet_revive"))]
+    // the `wasm` here is because `pallet-revive` still uses that name for their module
     #[scale_info(replace_segment("tests", "wasm"))]
     #[scale_info(replace_segment("PalletRevive", "CodeInfo"))]
     pub struct PalletRevive {

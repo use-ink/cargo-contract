@@ -15,10 +15,10 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    ContractBinary,
     ContractMessageTranscoder,
     ContractMetadata,
     CrateMetadata,
-    PolkavmCode,
 };
 use anyhow::{
     Context,
@@ -40,8 +40,8 @@ pub struct ContractArtifacts {
     metadata_path: PathBuf,
     /// The deserialized contract metadata if the expected metadata file exists.
     metadata: Option<ContractMetadata>,
-    /// The Wasm code of the contract if available.
-    pub code: Option<PolkavmCode>,
+    /// The contract bytecode if available.
+    pub contract_bytecode: Option<ContractBinary>,
 }
 
 impl ContractArtifacts {
@@ -81,7 +81,7 @@ impl ContractArtifacts {
             match path.extension().and_then(|ext| ext.to_str()) {
                 Some("contract") | Some("json") => {
                     let metadata = ContractMetadata::load(path)?;
-                    let code = metadata.clone().source.wasm.map(|wasm| PolkavmCode(wasm.0));
+                    let code = metadata.clone().source.contract_bytecode.map(|bytecode| ContractBinary(bytecode.0));
                     (PathBuf::from(path), Some(metadata), code)
                 }
                 Some("polkavm") => {
@@ -89,7 +89,7 @@ impl ContractArtifacts {
                         .context("PolkaVM bundle file has unreadable name")?
                         .to_str()
                         .context("Error parsing filename string")?;
-                    let code = Some(PolkavmCode(std::fs::read(path)?));
+                    let code = Some(ContractBinary(std::fs::read(path)?));
                     let dir = path.parent().map_or_else(PathBuf::new, PathBuf::from);
                     let metadata_path = dir.join(format!("{file_name}.json"));
                     if !metadata_path.exists() {
@@ -118,7 +118,7 @@ impl ContractArtifacts {
             artifacts_path: path.into(),
             metadata_path,
             metadata,
-            code,
+            contract_bytecode: code,
         })
     }
 

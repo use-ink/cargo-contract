@@ -28,11 +28,11 @@
 //! let language = SourceLanguage::new(Language::Ink, Version::new(2, 1, 0));
 //! let compiler =
 //!     SourceCompiler::new(Compiler::RustC, Version::parse("1.46.0-nightly").unwrap());
-//! let wasm = SourceWasm::new(vec![0u8]);
+//! let contract_bytecode = SourceContractBytecode::new(vec![0u8]);
 //! // Optional information about how the contract was build
 //! let build_info: Map<String, Value> = Map::new();
 //! let source = Source::new(
-//!     Some(wasm),
+//!     Some(contract_bytecode),
 //!     CodeHash([0u8; 32]),
 //!     language,
 //!     compiler,
@@ -99,7 +99,7 @@ use url::Url;
 /// Smart contract metadata.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContractMetadata {
-    /// Information about the contract's Wasm code.
+    /// Information about the contract's binary.
     pub source: Source,
     /// Metadata about the contract.
     pub contract: Contract,
@@ -132,8 +132,8 @@ impl ContractMetadata {
         }
     }
 
-    pub fn remove_source_wasm_attribute(&mut self) {
-        self.source.wasm = None;
+    pub fn remove_source_contract_bytecode_attribute(&mut self) {
+        self.source.contract_bytecode = None;
     }
 
     /// Reads the file and tries to parse it as instance of `ContractMetadata`.
@@ -150,8 +150,8 @@ impl ContractMetadata {
         ))
     }
 
-    /// Checks whether the contract's ink! version is compatible with the cargo-contract
-    /// binary
+    /// Checks whether the contract's ink! version is compatible with the
+    /// `cargo-contract` binary.
     pub fn check_ink_compatibility(&self) -> Result<()> {
         if let Language::Ink = self.source.language.language {
             compatibility::check_contract_ink_compatibility(
@@ -163,7 +163,7 @@ impl ContractMetadata {
     }
 }
 
-/// Representation of the Wasm code hash.
+/// Representation of the contract code hash.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CodeHash(
     #[serde(
@@ -192,19 +192,19 @@ impl Display for CodeHash {
     }
 }
 
-/// Information about the contract's Wasm code.
+/// Information about the contract's bytecode (for PolkaVM).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
-    /// The hash of the contract's Wasm code.
+    /// The hash of the contract's bytecode.
     pub hash: CodeHash,
     /// The language used to write the contract.
     pub language: SourceLanguage,
     /// The compiler used to compile the contract.
     pub compiler: SourceCompiler,
-    /// The actual Wasm code of the contract, for optionally bundling the code
-    /// with the metadata.
+    /// The actual bytecode of the contract (compiled for PolkaVM).
+    /// Used to optionally bundle the code with the metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub wasm: Option<SourceWasm>,
+    pub contract_bytecode: Option<SourceContractBytecode>,
     /// Extra information about the environment in which the contract was built.
     ///
     /// Useful for producing deterministic builds.
@@ -215,7 +215,7 @@ pub struct Source {
 impl Source {
     /// Constructs a new InkProjectSource.
     pub fn new(
-        wasm: Option<SourceWasm>,
+        contract_bytecode: Option<SourceContractBytecode>,
         hash: CodeHash,
         language: SourceLanguage,
         compiler: SourceCompiler,
@@ -225,31 +225,31 @@ impl Source {
             hash,
             language,
             compiler,
-            wasm,
+            contract_bytecode,
             build_info,
         }
     }
 }
 
-/// The bytes of the compiled Wasm smart contract.
+/// The PolkaVM bytecode of the compiled smart contract.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct SourceWasm(
+pub struct SourceContractBytecode(
     #[serde(
         serialize_with = "byte_str::serialize_as_byte_str",
         deserialize_with = "byte_str::deserialize_from_byte_str"
     )]
-    /// The raw bytes of the Wasm code.
+    /// The raw bytes of the contract's bytecode.
     pub Vec<u8>,
 );
 
-impl SourceWasm {
-    /// Constructs a new `SourceWasm`.
-    pub fn new(wasm: Vec<u8>) -> Self {
-        SourceWasm(wasm)
+impl SourceContractBytecode {
+    /// Constructs a new `SourceContractBytecode`.
+    pub fn new(contract_bytecode: Vec<u8>) -> Self {
+        SourceContractBytecode(contract_bytecode)
     }
 }
 
-impl Display for SourceWasm {
+impl Display for SourceContractBytecode {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "0x").expect("failed writing to string");
         for byte in &self.0 {
@@ -716,7 +716,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let contract_bytecode = SourceContractBytecode::new(vec![0u8, 1u8, 2u8]);
         let build_info = json! {
             {
                 "example_compiler_version": 42,
@@ -729,7 +729,7 @@ mod tests {
         .clone();
 
         let source = Source::new(
-            Some(wasm),
+            Some(contract_bytecode),
             CodeHash([0u8; 32]),
             language,
             compiler,
@@ -785,7 +785,7 @@ mod tests {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
                     "compiler": "rustc 1.46.0-nightly",
-                    "wasm": "0x000102",
+                    "polkavm_bytecode": "0x000102",
                     "build_info": {
                         "example_compiler_version": 42,
                         "example_settings": [],
@@ -883,7 +883,7 @@ mod tests {
             Compiler::RustC,
             Version::parse("1.46.0-nightly").unwrap(),
         );
-        let wasm = SourceWasm::new(vec![0u8, 1u8, 2u8]);
+        let contract_bytecode = SourceContractBytecode::new(vec![0u8, 1u8, 2u8]);
         let build_info = json! {
             {
                 "example_compiler_version": 42,
@@ -896,7 +896,7 @@ mod tests {
         .clone();
 
         let source = Source::new(
-            Some(wasm),
+            Some(contract_bytecode),
             CodeHash([0u8; 32]),
             language,
             compiler,

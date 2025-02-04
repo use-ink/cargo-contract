@@ -35,10 +35,10 @@ use std::{
     path::PathBuf,
 };
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for
+/// Executes build of the smart contract which produces a PolkaVM binary that is ready for
 /// deploying.
 ///
-/// It does so by invoking `cargo build` and then post processing the final binary.
+/// It does so by invoking `cargo build` and then post-processing the final binary.
 #[derive(Debug, clap::Args)]
 #[clap(name = "build")]
 pub struct BuildCommand {
@@ -63,13 +63,14 @@ pub struct BuildCommand {
     lint: bool,
     /// Which build artifacts to generate.
     ///
-    /// - `all`: Generate the Wasm, the metadata and a bundled `<name>.contract` file.
+    /// - `all`: Generate the contract binary (`<name>.polkavm`), the metadata and a
+    ///   bundled `<name>.contract` file.
     ///
-    /// - `code-only`: Only the Wasm is created, generation of metadata and a bundled
-    ///   `<name>.contract` file is skipped.
+    /// - `code-only`: Only the contract binary (`<name>.polkavm`) is created, generation
+    ///   of metadata and a bundled `<name>.contract` file is skipped.
     ///
     /// - `check-only`: No artifacts produced: runs the `cargo check` command for the
-    ///   Wasm target, only checks for compilation errors.
+    ///   PolkaVM target, only checks for compilation errors.
     #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
@@ -78,6 +79,7 @@ pub struct BuildCommand {
     verbosity: VerbosityFlags,
     #[clap(flatten)]
     unstable_options: UnstableOptions,
+    /// todo update comment
     /// Do not remove symbols (Wasm name section) when optimizing.
     ///
     /// This is useful if one wants to analyze or debug the optimized binary.

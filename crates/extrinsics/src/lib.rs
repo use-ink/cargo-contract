@@ -57,8 +57,8 @@ use contract_build::{
 };
 pub use contract_info::{
     fetch_all_contracts,
+    fetch_contract_bytecode,
     fetch_contract_info,
-    fetch_wasm_code,
     resolve_h160,
     ContractInfo,
     TrieId,
@@ -129,11 +129,11 @@ pub use rpc::{
     RpcRequest,
 };
 
-/// The PolkaVM code of a contract.
+/// The bytecode of a contract (compiled for PolkaVM).
 #[derive(Debug, Clone)]
-pub struct PolkavmCode(Vec<u8>);
+pub struct ContractBinary(Vec<u8>);
 
-impl PolkavmCode {
+impl ContractBinary {
     /// The hash of the contract code: uniquely identifies the contract code on-chain.
     pub fn code_hash(&self) -> [u8; 32] {
         contract_build::code_hash(&self.0)

@@ -77,15 +77,15 @@ pub struct ContractResult<R, Balance> {
     /// The debug message is never generated during on-chain execution. It is reserved
     /// for RPC calls.
     pub debug_message: Vec<u8>,
-    /// The execution result of the wasm code.
+    /// The execution result of the code.
     pub result: R,
 }
 
-/// Result type of a `bare_call` call as well as `ContractsApi::call`.
+/// Result type of a `bare_call` call, as well as `ContractsApi::call`.
 pub type ContractExecResult<Balance> =
     ContractResult<Result<ExecReturnValue, DispatchError>, Balance>;
 
-/// Result type of a `bare_instantiate` call as well as `ContractsApi::instantiate`.
+/// Result type of a `bare_instantiate` call, as well as `ContractsApi::instantiate`.
 pub type ContractInstantiateResult<AccountId, Balance> =
     ContractResult<Result<InstantiateReturnValue<AccountId>, DispatchError>, Balance>;
 
@@ -144,12 +144,12 @@ pub struct CodeUploadReturnValue<Balance> {
     pub deposit: Balance,
 }
 
-/// Reference to an existing code hash or a new wasm module.
+/// Reference to an existing code hash or a new contract bytecode.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum Code<Hash> {
-    /// A wasm module as raw bytes.
+    /// Bytecode of a contract.
     Upload(Vec<u8>),
-    /// The code hash of an on-chain wasm blob.
+    /// The code hash of an on-chain contract bytecode.
     Existing(Hash),
 }
 

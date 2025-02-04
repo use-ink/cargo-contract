@@ -19,8 +19,8 @@ use super::{
     pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
+    ContractBinary,
     ErrorVariant,
-    PolkavmCode,
 };
 use crate::{
     check_env_types,
@@ -80,7 +80,7 @@ where
         let transcoder = artifacts.contract_transcoder()?;
 
         let artifacts_path = artifacts.artifact_path().to_path_buf();
-        let code = artifacts.code.ok_or_else(|| {
+        let code = artifacts.contract_bytecode.ok_or_else(|| {
             anyhow::anyhow!(
                 "Contract code not found from artifact file {}",
                 artifacts_path.display()
@@ -107,7 +107,7 @@ pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
     opts: ExtrinsicOpts<C, E, Signer>,
     rpc: LegacyRpcMethods<C>,
     client: OnlineClient<C>,
-    code: PolkavmCode,
+    code: ContractBinary,
     transcoder: ContractMessageTranscoder,
 }
 
@@ -174,7 +174,7 @@ where
     }
 
     /// Returns the code.
-    pub fn code(&self) -> &PolkavmCode {
+    pub fn code(&self) -> &ContractBinary {
         &self.code
     }
 

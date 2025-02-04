@@ -51,16 +51,17 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[clap(name = "verify")]
 pub struct VerifyCommand {
     /// Path to the `Cargo.toml` of the contract to verify.
+    /// If not supplied the contract in the current workspace will be used.
     #[clap(long, value_parser)]
     manifest_path: Option<PathBuf>,
-    /// The reference Wasm contract (`*.contract`) that the workspace will be checked
-    /// against.
+    /// The reference `.contract` file (`*.contract`) that the selected
+    /// contract will be checked against.
     #[clap(long)]
-    contract: Option<PathBuf>,
-    /// The reference Wasm contract binary (`*.wasm`) that the workspace will be checked
-    /// against.
+    contract_bundle: Option<PathBuf>,
+    /// The reference contract binary (`*.polkavm`) that the selected contract
+    /// will be checked against.
     #[clap(long, conflicts_with = "contract")]
-    wasm: Option<PathBuf>,
+    contract_binary: Option<PathBuf>,
     /// Denotes if output should be printed to stdout.
     #[clap(flatten)]
     verbosity: VerbosityFlags,
@@ -73,17 +74,19 @@ impl VerifyCommand {
     pub fn run(&self) -> Result<VerificationResult> {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let verbosity: Verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        if let Some(path) = &self.contract {
+        if let Some(path) = &self.contract_bundle {
             self.verify_contract(manifest_path, verbosity, path)
-        } else if let Some(path) = &self.wasm {
-            self.verify_wasm(manifest_path, verbosity, path)
+        } else if let Some(path) = &self.contract_binary {
+            self.verify_polkavm_bytecode(manifest_path, verbosity, path)
         } else {
-            anyhow::bail!("Either --wasm or --contract must be specified")
+            anyhow::bail!(
+                "Either --contract-binary or --contract-bundle must be specified"
+            )
         }
     }
 
-    /// Verify `.wasm` binary.
-    fn verify_wasm(
+    /// Verify `.polkavm` binary.
+    fn verify_polkavm_bytecode(
         &self,
         manifest_path: ManifestPath,
         verbosity: Verbosity,
@@ -109,20 +112,20 @@ impl VerifyCommand {
 
         // 4. Grab the code hash from the built contract and compare it with the reference
         //    one.
-        let built_wasm_path = if let Some(m) = build_result.dest_wasm {
+        let built_polkavm_path = if let Some(m) = build_result.dest_polkavm {
             m
         } else {
             // Since we're building the contract ourselves this should always be
             // populated, but we'll bail out here just in case.
-            anyhow::bail!("\nThe workspace contract does not contain a Wasm binary,\n\
+            anyhow::bail!("\nThe workspace contract does not contain a contract binary (`.polkavm`),\n\
                 therefore we are unable to verify the contract."
                 .to_string()
                 .bright_yellow())
         };
 
-        let target_buffer = std::fs::read(&built_wasm_path).context(format!(
+        let target_buffer = std::fs::read(&built_polkavm_path).context(format!(
             "Failed to read contract binary {}",
-            built_wasm_path.display()
+            built_polkavm_path.display()
         ))?;
 
         let output_code_hash = CodeHash(code_hash(&target_buffer));
@@ -132,7 +135,7 @@ impl VerifyCommand {
                 "\nFailed to verify the authenticity of the polkavm binary at {} against the workspace \n\
                 found at {}.\n Expected {}, found {}",
                 format!("`{}`", path.display()).bright_white(),
-                format!("`{}`", built_wasm_path.display()).bright_white(),
+                format!("`{}`", built_polkavm_path.display()).bright_white(),
                 format!("{}", reference_code_hash).bright_white(),
                 format!("{}", output_code_hash).bright_white())
             );
@@ -141,7 +144,7 @@ impl VerifyCommand {
         Ok(VerificationResult {
             is_verified: true,
             image: None,
-            contract: built_wasm_path.display().to_string(),
+            contract: built_polkavm_path.display().to_string(),
             reference_contract: path.display().to_string(),
             output_json: self.output_json,
             verbosity,
@@ -213,9 +216,6 @@ impl VerifyCommand {
             let expected_cargo_contract_version = build_info.cargo_contract_version;
             let cargo_contract_version = semver::Version::parse(VERSION)?;
 
-            // Note, assuming both versions of `cargo-contract` were installed with the
-            // same lockfile (e.g `--locked`) then the versions of `wasm-opt`
-            // should also match.
             let cargo_contract_matches =
                 cargo_contract_version == expected_cargo_contract_version;
             let mismatched_cargo_contract = format!(
@@ -252,22 +252,22 @@ impl VerifyCommand {
         //    the `source.hash` field in the metadata. This is because the `source.hash`
         //    field could have been manipulated; we want to be sure that _the code_ of
         //    both contracts is equal.
-        let reference_wasm_blob = decode_hex(
+        let reference_polkavm_blob = decode_hex(
             &metadata
                 .source
-                .wasm
-                .expect("no source.wasm field exists in metadata")
+                .contract_bytecode
+                .expect("no source.polkavm field exists in metadata")
                 .to_string(),
         )
-        .expect("decoding the source.wasm hex failed");
-        let reference_code_hash = CodeHash(code_hash(&reference_wasm_blob));
+        .expect("decoding the source.polkavm hex failed");
+        let reference_code_hash = CodeHash(code_hash(&reference_polkavm_blob));
         let built_contract_path = if let Some(m) = build_result.metadata_result {
             m
         } else {
             // Since we're building the contract ourselves this should always be
             // populated, but we'll bail out here just in case.
             anyhow::bail!(
-                "\nThe metadata for the workspace contract does not contain a Wasm binary,\n\
+                "\nThe metadata for the workspace contract does not contain a contract binary,\n\
                 therefore we are unable to verify the contract."
                 .to_string()
                 .bright_yellow()
@@ -314,7 +314,7 @@ impl VerifyCommand {
                 &metadata.source.hash
             );
             anyhow::bail!(format!(
-                "\nThe reference contract `{}` metadata is corrupt: the source.hash does not match the source.wasm hash.",
+                "\nThe reference contract `{}` metadata is corrupt: the `source.hash` does not match the `source.polkavm` hash.",
                 format!("{}", &path.display()).bright_white()
             )
             .bright_red());
@@ -348,7 +348,7 @@ impl VerificationResult {
     /// Display the result in a fancy format
     pub fn display(&self) -> String {
         format!(
-            "\n{} {} against reference contract {}",
+            "\n{} `{}` against reference contract `{}`",
             "Successfully verified contract".bright_green().bold(),
             format!("`{}`", &self.contract).bold(),
             format!("`{}`!", &self.reference_contract).bold()

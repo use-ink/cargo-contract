@@ -55,7 +55,7 @@ that the extrinsic needs to be executed on chain.
 
 ### `upload`
 
-Upload the Wasm code of the contract to the target chain. Invokes the [`upload_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L509)
+Upload the contract binary to the target chain. Invokes the [`upload_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L509)
 dispatchable.
 
 e.g. `cargo contract upload --suri //Alice`
@@ -103,7 +103,7 @@ cargo contract call \
 
 ### `remove`
 
-Remove the Wasm code of the contract to the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
+Remove the bytecode of the contract to the target chain. Invokes the [`remove_code`](https://github.com/paritytech/substrate/blob/master/frame/contracts/src/lib.rs#L581)
 dispatchable.
 
 e.g. `cargo contract remove --suri //Alice`
@@ -126,6 +126,6 @@ The above examples assume the working directory is the contract source code wher
 This is used to determine the location of the contract artifacts. Alternatively, there is an optional positional
 argument to each of the extrinsic commands which allows specifying the contract artifact file directly. E.g.
 
-- `cargo upload ../path/to/mycontract.wasm`
+- `cargo upload ../path/to/mycontract.polkavm`
 - `cargo instantiate ../path/to/mycontract.contract`
 - `cargo call ..path/to/mycontract.json`

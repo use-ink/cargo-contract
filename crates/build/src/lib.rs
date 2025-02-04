@@ -138,8 +138,8 @@ pub struct ExecuteArgs {
 /// Result of the build process.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct BuildResult {
-    /// Path to the resulting Wasm file.
-    pub dest_wasm: Option<PathBuf>,
+    /// Path to the resulting file with the bytecode.
+    pub dest_polkavm: Option<PathBuf>,
     /// Result of the metadata generation.
     pub metadata_result: Option<MetadataArtifacts>,
     /// Path to the directory where output files are written to.
@@ -186,9 +186,9 @@ impl BuildResult {
                 "{}{}Your contract's code is ready. You can find it here:\n{}",
                 opt_size_diff,
                 build_mode,
-                self.dest_wasm
+                self.dest_polkavm
                     .as_ref()
-                    .expect("wasm path must exist")
+                    .expect("polkavm path must exist")
                     .display()
                     .to_string()
                     .bold()
@@ -209,12 +209,12 @@ impl BuildResult {
             );
             out.push_str(&bundle);
         }
-        if let Some(dest_wasm) = self.dest_wasm.as_ref() {
-            let wasm = format!(
+        if let Some(dest_polkavm) = self.dest_polkavm.as_ref() {
+            let path = format!(
                 "  - {} (the contract's code)\n",
-                util::base_name(dest_wasm).bold()
+                util::base_name(dest_polkavm).bold()
             );
-            out.push_str(&wasm);
+            out.push_str(&path);
         }
         if let Some(metadata_result) = self.metadata_result.as_ref() {
             let metadata = format!(
@@ -237,13 +237,13 @@ impl BuildResult {
 ///
 /// Uses the unstable cargo feature [`build-std`](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std)
 /// to build the standard library with [`panic_immediate_abort`](https://github.com/johnthagen/min-sized-rust#remove-panic-string-formatting-with-panic_immediate_abort)
-/// which reduces the size of the Wasm binary by not including panic strings and
+/// which reduces the size of the contract binary by not including panic strings and
 /// formatting code.
 ///
 /// # `Cargo.toml` optimizations
 ///
 /// The original `Cargo.toml` will be amended to remove the `rlib` crate type in order to
-/// minimize the final Wasm binary size.
+/// minimize the final contract binary size.
 ///
 /// Preferred default `[profile.release]` settings will be added if they are missing,
 /// existing user-defined settings will be preserved.
@@ -665,10 +665,10 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> Result<()> {
     Ok(())
 }
 
-/// Executes build of the smart contract which produces a Wasm binary that is ready for
+/// Executes build of the smart contract which produces a PolkaVM binary that is ready for
 /// deploying.
 ///
-/// It does so by invoking `cargo build` and then post processing the final binary.
+/// It does so by invoking `cargo build` and then post-processing the final binary.
 pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let ExecuteArgs {
         manifest_path,
@@ -703,7 +703,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         fs::remove_file(crate_metadata.contract_bundle_path()).ok();
     };
 
-    let (opt_result, metadata_result, dest_wasm) = match build_artifact {
+    let (opt_result, metadata_result, dest_polkavm) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
             lint(*extra_lints, &crate_metadata, verbosity)?;
@@ -712,12 +712,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         BuildArtifacts::CodeOnly => {
             // when building only the code metadata will become stale
             clean_metadata();
-            let (opt_result, _, dest_wasm) = local_build(&crate_metadata, &args)?;
-            (opt_result, None, Some(dest_wasm))
+            let (opt_result, _, dest_polkavm) = local_build(&crate_metadata, &args)?;
+            (opt_result, None, Some(dest_polkavm))
         }
         BuildArtifacts::All => {
-            let (opt_result, build_info, dest_wasm) = local_build(&crate_metadata, &args)
-                .inspect_err(|_| {
+            let (opt_result, build_info, dest_polkavm) =
+                local_build(&crate_metadata, &args).inspect_err(|_| {
                     // build error -> bundle is stale
                     clean_metadata();
                 })?;
@@ -737,7 +737,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                 clean_metadata();
                 metadata::execute(
                     &crate_metadata,
-                    dest_wasm.as_path(),
+                    dest_polkavm.as_path(),
                     &metadata_result,
                     features,
                     *network,
@@ -746,12 +746,12 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     build_info,
                 )?;
             }
-            (opt_result, Some(metadata_result), Some(dest_wasm))
+            (opt_result, Some(metadata_result), Some(dest_polkavm))
         }
     };
 
     Ok(BuildResult {
-        dest_wasm,
+        dest_polkavm,
         metadata_result,
         target_directory: crate_metadata.target_directory,
         linker_size_result: opt_result,
@@ -839,12 +839,13 @@ fn local_build(
         post_fingerprint
     );
 
-    let dest_code_path = crate_metadata.dest_code.clone();
+    let dest_code_path = crate_metadata.dest_bytecode.clone();
 
-    if pre_fingerprint == Some(post_fingerprint) && crate_metadata.dest_code.exists() {
+    if pre_fingerprint == Some(post_fingerprint) && crate_metadata.dest_bytecode.exists()
+    {
         tracing::info!(
-            "No changes in the original wasm at {}, fingerprint {:?}. \
-                Skipping Wasm optimization and metadata generation.",
+            "No changes in the original PolkaVM bytecode at {}, fingerprint {:?}. \
+                Skipping metadata generation.",
             crate_metadata.original_code.display(),
             pre_fingerprint
         );
@@ -861,7 +862,7 @@ fn local_build(
     // remove build artifacts so we don't have anything stale lingering around
     fs::remove_file(
         crate_metadata
-            .dest_code
+            .dest_bytecode
             .with_extension(Target::dest_extension()),
     )
     .ok();
@@ -893,7 +894,7 @@ fn local_build(
             bail!("Failed to link polkavm program: {}{}", err, details)
         }
     };
-    fs::write(&crate_metadata.dest_code, linked)?;
+    fs::write(&crate_metadata.dest_bytecode, linked)?;
 
     let optimized_size = fs::metadata(&dest_code_path)?.len() as f64 / 1000.0;
 
@@ -905,7 +906,7 @@ fn local_build(
     Ok((
         Some(optimization_result),
         build_info,
-        crate_metadata.dest_code.clone(),
+        crate_metadata.dest_bytecode.clone(),
     ))
 }
 
@@ -1022,7 +1023,7 @@ mod unit_tests {
         // given
         // todo rename fields
         let raw_result = r#"{
-  "dest_wasm": "/path/to/contract.polkavm",
+  "dest_polkavm": "/path/to/contract.polkavm",
   "metadata_result": {
     "dest_metadata": "/path/to/contract.json",
     "dest_bundle": "/path/to/contract.contract"
@@ -1039,7 +1040,7 @@ mod unit_tests {
 }"#;
 
         let build_result = BuildResult {
-            dest_wasm: Some(PathBuf::from("/path/to/contract.polkavm")),
+            dest_polkavm: Some(PathBuf::from("/path/to/contract.polkavm")),
             metadata_result: Some(MetadataArtifacts {
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),

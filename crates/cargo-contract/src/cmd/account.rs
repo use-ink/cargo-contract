@@ -105,10 +105,10 @@ impl AccountCommand {
         //get_account_balance::<C, E>(account, rpc, client).await?;
 
         if self.output_json {
-            let wasm = serde_json::json!({
+            let output = serde_json::json!({
                 "account_id": format!("0x{}", hex::encode(account_id))
             });
-            println!("{}", serde_json::to_string_pretty(&wasm)?);
+            println!("{}", serde_json::to_string_pretty(&output)?);
         } else {
             println!("{}", account_id);
         }

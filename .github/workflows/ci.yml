@@ -145,7 +145,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.32
+        uses: taiki-e/install-action@v2.48.1
         with:
           tool: nextest
 
@@ -177,7 +177,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.32
+        uses: taiki-e/install-action@v2.48.1
         with:
           tool: nextest
 
@@ -204,7 +204,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
         partition: [1, 2]
     steps:
       - name: Checkout
@@ -214,7 +213,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.47.32
+        uses: taiki-e/install-action@v2.48.1
         with:
           tool: nextest
 
@@ -231,7 +230,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We want newer versions than 'latest' here to have current wasm-opt
         os: ["ubuntu-22.04", "macos-15", "windows-2022"]
     runs-on: ${{ matrix.os }}
     steps:

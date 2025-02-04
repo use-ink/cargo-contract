@@ -110,7 +110,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
 
     // we specified that debug symbols should be removed
     // original code should have some but the optimized version should have them removed
-    // assert!(!has_debug_symbols(res.dest_wasm.unwrap()));
+    // assert!(!has_debug_symbols(res.dest_polkavm.unwrap()));
 
     Ok(())
 }
@@ -146,7 +146,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
         !project_path(project_dir.join("target"))
             .join("ink/new_project.polkavm")
             .exists(),
-        "found wasm artifact in project directory!"
+        "found polkavm artifact in project directory!"
     );
     Ok(())
 }
@@ -257,7 +257,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
     let _res = super::execute(args).expect("build failed");
 
     // we specified that debug symbols should be kept
-    // assert!(has_debug_symbols(res.dest_wasm.unwrap()));
+    // assert!(has_debug_symbols(res.dest_polkavm.unwrap()));
 
     Ok(())
 }
@@ -276,7 +276,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
     let _res = super::execute(args).expect("build failed");
 
     // we specified that debug symbols should be kept
-    // assert!(has_debug_symbols(res.dest_wasm.unwrap()));
+    // assert!(has_debug_symbols(res.dest_polkavm.unwrap()));
 
     Ok(())
 }
@@ -351,9 +351,9 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
 
     // usually this file will be produced by a previous build step
-    let final_contract_wasm_path = &crate_metadata.dest_code;
-    fs::create_dir_all(final_contract_wasm_path.parent().unwrap()).unwrap();
-    fs::write(final_contract_wasm_path, "TEST FINAL WASM BLOB").unwrap();
+    let final_contract_bytecode_path = &crate_metadata.dest_bytecode;
+    fs::create_dir_all(final_contract_bytecode_path.parent().unwrap()).unwrap();
+    fs::write(final_contract_bytecode_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = ExecuteArgs {
         extra_lints: false,
@@ -380,7 +380,9 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let hash = source.get("hash").expect("source.hash not found");
     let language = source.get("language").expect("source.language not found");
     let compiler = source.get("compiler").expect("source.compiler not found");
-    let wasm = source.get("wasm").expect("source.wasm not found");
+    let polkavm_bytecode = source
+        .get("polkavm_bytecode")
+        .expect("source.polkavm not found");
 
     let contract = metadata_json.get("contract").expect("contract not found");
     let name = contract.get("name").expect("contract.name not found");
@@ -409,10 +411,10 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     let user = metadata_json.get("user").expect("user section not found");
 
-    // calculate wasm hash
-    let fs_wasm = fs::read(&crate_metadata.dest_code)?;
-    let expected_hash = crate::code_hash(&fs_wasm[..]);
-    let expected_wasm = build_byte_str(&fs_wasm);
+    // calculate bytecode hash
+    let fs_bytecode = fs::read(&crate_metadata.dest_bytecode)?;
+    let expected_hash = crate::code_hash(&fs_bytecode[..]);
+    let expected_polkavm_bytecode = build_byte_str(&fs_bytecode);
 
     let expected_language =
         SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
@@ -429,7 +431,10 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     );
 
     assert_eq!(build_byte_str(&expected_hash[..]), hash.as_str().unwrap());
-    assert_eq!(expected_wasm, wasm.as_str().unwrap());
+    assert_eq!(
+        expected_polkavm_bytecode,
+        polkavm_bytecode.as_str().unwrap()
+    );
     assert_eq!(expected_language, language.as_str().unwrap());
     assert_eq!(expected_compiler, compiler.as_str().unwrap());
     assert_eq!(
@@ -462,20 +467,21 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
 
     fn get_last_modified(res: &BuildResult) -> (SystemTime, SystemTime, SystemTime) {
         assert!(
-            res.dest_wasm.is_some(),
-            "dest_wasm should always be returned for a full build"
+            res.dest_polkavm.is_some(),
+            "dest_polkavm should always be returned for a full build"
         );
         assert!(
             res.metadata_result.is_some(),
             "metadata_result should always be returned for a full build"
         );
-        let dest_wasm_modified = file_last_modified(res.dest_wasm.as_ref().unwrap());
+        let dest_polkavm_modified =
+            file_last_modified(res.dest_polkavm.as_ref().unwrap());
         let metadata_result_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
         let contract_bundle_modified =
             file_last_modified(&res.metadata_result.as_ref().unwrap().dest_bundle);
         (
-            dest_wasm_modified,
+            dest_polkavm_modified,
             metadata_result_modified,
             contract_bundle_modified,
         )
@@ -513,11 +519,11 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     })
     .expect("build failed");
 
-    // CodeOnly should only generate Wasm code artifact
-    assert!(res1.dest_wasm.as_ref().unwrap().exists());
+    // CodeOnly should only generate the `.polkavm` artifact
+    assert!(res1.dest_polkavm.as_ref().unwrap().exists());
     assert!(res1.metadata_result.is_none());
 
-    let dest_wasm_modified_pre = file_last_modified(&res1.dest_wasm.unwrap());
+    let dest_polkavm_modified_pre = file_last_modified(&res1.dest_polkavm.unwrap());
 
     let res2 = super::execute(ExecuteArgs {
         manifest_path: manifest_path.clone(),
@@ -526,10 +532,11 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     })
     .expect("build failed");
 
-    let dest_wasm_modified_post = file_last_modified(res2.dest_wasm.as_ref().unwrap());
+    let dest_polkavm_modified_post =
+        file_last_modified(res2.dest_polkavm.as_ref().unwrap());
 
     // Code remains unchanged, but metadata artifacts are now generated
-    assert_eq!(dest_wasm_modified_pre, dest_wasm_modified_post);
+    assert_eq!(dest_polkavm_modified_pre, dest_polkavm_modified_post);
     assert!(
         res2.metadata_result
             .as_ref()
@@ -656,7 +663,7 @@ impl BuildTestContext {
         // previous run.
         self.remove_all_except_target_dir()?;
         copy_dir_all(&self.template_dir, &self.working_dir)?;
-        // remove the original wasm artifact to force it to be rebuilt
+        // remove the original polkavm artifact to force it to be rebuilt
         if crate_metadata.original_code.exists() {
             fs::remove_file(&crate_metadata.original_code)?;
         }

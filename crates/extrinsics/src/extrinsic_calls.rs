@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::PolkavmCode;
+use crate::ContractBinary;
 use subxt::{
     ext::scale_encode::EncodeAsType,
     utils::{
@@ -80,7 +80,7 @@ pub(crate) struct UploadCode<Balance> {
 }
 
 impl<Balance> UploadCode<Balance> {
-    pub fn new(code: PolkavmCode, storage_deposit_limit: Balance) -> Self {
+    pub fn new(code: ContractBinary, storage_deposit_limit: Balance) -> Self {
         Self {
             code: code.0,
             storage_deposit_limit,
