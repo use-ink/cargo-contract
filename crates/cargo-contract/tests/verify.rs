@@ -179,7 +179,7 @@ fn verify_equivalent_contracts() {
     // and
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract-bytecode")
+        .arg("--contract-binary")
         .arg("reference.polkavm")
         .arg("--output-json")
         .assert()
@@ -270,7 +270,7 @@ fn verify_different_contracts() {
     let output: &str = r#"Failed to verify the authenticity of the polkavm binary at `reference.polkavm`"#;
     cargo_contract(&project_dir)
         .arg("verify")
-        .arg("--contract-bytecode")
+        .arg("--contract-binary")
         .arg("reference.polkavm")
         .arg("--output-json")
         .assert()

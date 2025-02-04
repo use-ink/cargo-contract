@@ -785,7 +785,7 @@ mod tests {
                     "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "language": "ink! 2.1.0",
                     "compiler": "rustc 1.46.0-nightly",
-                    "polkavm_bytecode": "0x000102",
+                    "contract_bytecode": "0x000102",
                     "build_info": {
                         "example_compiler_version": 42,
                         "example_settings": [],
