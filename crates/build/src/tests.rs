@@ -380,9 +380,9 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let hash = source.get("hash").expect("source.hash not found");
     let language = source.get("language").expect("source.language not found");
     let compiler = source.get("compiler").expect("source.compiler not found");
-    let polkavm_bytecode = source
+    let contract_bytecode = source
         .get("contract_bytecode")
-        .expect("source.polkavm not found");
+        .expect("source.contract_bytecode not found");
 
     let contract = metadata_json.get("contract").expect("contract not found");
     let name = contract.get("name").expect("contract.name not found");
@@ -433,7 +433,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     assert_eq!(build_byte_str(&expected_hash[..]), hash.as_str().unwrap());
     assert_eq!(
         expected_polkavm_bytecode,
-        polkavm_bytecode.as_str().unwrap()
+        contract_bytecode.as_str().unwrap()
     );
     assert_eq!(expected_language, language.as_str().unwrap());
     assert_eq!(expected_compiler, compiler.as_str().unwrap());
