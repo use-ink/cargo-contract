@@ -381,7 +381,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     let language = source.get("language").expect("source.language not found");
     let compiler = source.get("compiler").expect("source.compiler not found");
     let polkavm_bytecode = source
-        .get("polkavm_bytecode")
+        .get("contract_bytecode")
         .expect("source.polkavm not found");
 
     let contract = metadata_json.get("contract").expect("contract not found");
