@@ -29,6 +29,7 @@ use anyhow::Result;
 use contract_metadata::*;
 use serde_json::{
     Map,
+    Number,
     Value,
 };
 use std::{
@@ -74,6 +75,7 @@ build_tests!(
     building_contract_with_build_rs_must_work,
     missing_linting_toolchain_installation_must_be_detected,
     generates_metadata,
+    generates_solidity_metadata,
     unchanged_contract_skips_optimization_and_metadata_steps,
     unchanged_contract_no_metadata_artifacts_generates_metadata
 );
@@ -449,6 +451,119 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     assert_eq!("http://homepage.com/", homepage.as_str().unwrap());
     assert_eq!("Apache-2.0", license.as_str().unwrap());
     assert_eq!(&expected_user_metadata, user.as_object().unwrap());
+
+    Ok(())
+}
+
+fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
+    // add optional metadata fields
+    let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
+    test_manifest.add_package_value("description", "contract description".into())?;
+    test_manifest
+        .add_package_value("documentation", "http://documentation.com".into())?;
+    test_manifest.add_package_value("repository", "http://repository.com".into())?;
+    test_manifest.add_package_value("homepage", "http://homepage.com".into())?;
+    test_manifest.add_package_value("license", "Apache-2.0".into())?;
+    test_manifest.write()?;
+
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+
+    // usually this file will be produced by a previous build step
+    let final_contract_binary_path = &crate_metadata.dest_binary;
+    fs::create_dir_all(final_contract_binary_path.parent().unwrap()).unwrap();
+    fs::write(final_contract_binary_path, "TEST FINAL BINARY").unwrap();
+
+    let mut args = ExecuteArgs {
+        extra_lints: false,
+        metadata_spec: crate::MetadataSpec::Solidity,
+        ..Default::default()
+    };
+    args.manifest_path = manifest_path.clone();
+
+    let build_result = crate::execute(args)?;
+    let metadata_result = build_result
+        .metadata_result
+        .expect("Metadata should be generated");
+
+    let dest_abi = metadata_result.dest_metadata;
+    assert_eq!(dest_abi.extension().unwrap(), "abi");
+    assert!(
+        dest_abi.exists(),
+        "Missing ABI file '{}'",
+        dest_abi.display()
+    );
+
+    let dest_bundle = metadata_result.dest_bundle;
+    assert_eq!(dest_bundle.extension().unwrap(), "json");
+    assert!(
+        dest_bundle.exists(),
+        "Missing metadata file '{}'",
+        dest_bundle.display()
+    );
+
+    let abi_json: Vec<Value> = serde_json::from_slice(&fs::read(&dest_abi)?)?;
+    let metadata_json: Map<String, Value> =
+        serde_json::from_slice(&fs::read(&dest_bundle)?)?;
+
+    let compiler = metadata_json.get("compiler").expect("compiler not found");
+    let compiler_version = compiler.get("version").expect("compiler.version not found");
+    let expected_rustc_version =
+        semver::Version::parse(&rustc_version::version()?.to_string())?;
+    let expected_compiler =
+        SourceCompiler::new(Compiler::RustC, expected_rustc_version).to_string();
+    assert_eq!(expected_compiler, compiler_version.as_str().unwrap());
+
+    let language = metadata_json.get("language").expect("language not found");
+    let expected_language =
+        SourceLanguage::new(Language::Ink, crate_metadata.ink_version).to_string();
+    assert_eq!(expected_language, language.as_str().unwrap());
+
+    let output = metadata_json.get("output").expect("output not found");
+    let abi = output.get("abi").expect("output.abi not found");
+    assert_eq!(abi, &Value::Array(abi_json));
+
+    let devdoc = output.get("devdoc").expect("output.devdoc not found");
+    let version = devdoc
+        .get("version")
+        .expect("output.devdoc.version not found");
+    assert_eq!(version, &Value::Number(Number::from_u128(1).unwrap()));
+    let kind = devdoc.get("kind").expect("output.devdoc.kind not found");
+    assert_eq!(kind, &Value::String("dev".to_string()));
+    let author = devdoc
+        .get("author")
+        .expect("output.devdoc.author not found")
+        .as_str()
+        .expect("output.devdoc.author is a string");
+    assert_eq!(crate_metadata.root_package.authors.join(", "), author);
+    let title = devdoc
+        .get("title")
+        .expect("output.devdoc.description not found");
+    assert_eq!("contract description", title.as_str().unwrap());
+
+    let userdoc = output.get("userdoc").expect("output.userdoc not found");
+    let version = userdoc
+        .get("version")
+        .expect("output.userdoc.version not found");
+    assert_eq!(version, &Value::Number(Number::from_u128(1).unwrap()));
+    let kind = userdoc.get("kind").expect("output.userdoc.kind not found");
+    assert_eq!(kind, &Value::String("user".to_string()));
+
+    let settings = metadata_json.get("settings").expect("settings not found");
+    assert_eq!(settings, &Value::Object(Map::new()));
+
+    let sources = metadata_json
+        .get("sources")
+        .expect("sources not found")
+        .as_object()
+        .expect("sources is an object");
+    for (src_path, contents) in sources {
+        assert!(src_path.ends_with("Cargo.toml") || src_path.ends_with("lib.rs"));
+        let license = contents.get("license").expect("sources.content not found");
+        assert_eq!(license, &Value::String("Apache-2.0".to_string()));
+    }
+
+    let version = metadata_json.get("version").expect("version not found");
+    assert_eq!(version, &Value::Number(Number::from_u128(1).unwrap()));
 
     Ok(())
 }
