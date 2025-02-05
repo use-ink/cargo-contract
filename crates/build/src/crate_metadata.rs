@@ -68,6 +68,7 @@ impl CrateMetadata {
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
+        eprintln!("----target dir {:?}", metadata.target_directory.as_path());
         let mut target_directory = metadata.target_directory.as_path().join("ink");
 
         // Normalize the final contract artifact name.

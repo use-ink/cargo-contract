@@ -49,7 +49,7 @@ fn encode_works() {
 
                 #[ink(message, selector = 0xBABABABA)]
                 pub fn inc(&mut self, by: i32) {
-                    self.value.saturating_add(by);
+                    let _ = self.value.saturating_add(by);
                 }
 
                 #[ink(message, selector = 0xCACACACA)]
@@ -74,10 +74,15 @@ fn encode_works() {
     let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
 
     let lib = project_dir.join("lib.rs");
+    tracing::debug!("Writing contract to {:?}", lib);
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
-    cargo_contract(&project_dir).arg("build").assert().success();
+    let assert = cargo_contract(&project_dir).arg("build").assert().success();
+    let output = assert.get_output();
+    let stdout = std::str::from_utf8(&output.stdout).unwrap();
+    let stderr = std::str::from_utf8(&output.stderr).unwrap();
+    eprintln!("stdout:\n{}\n\nstderr:\n{}\n\n", stdout, stderr);
 
     // when
     let output: &str = r#"Encoded data: BABABABA05000000"#;
