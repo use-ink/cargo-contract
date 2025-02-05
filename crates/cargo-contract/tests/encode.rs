@@ -30,13 +30,13 @@ fn encode_works() {
         #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
         #[ink::contract]
-        mod incrementer {
+        mod incrementer_encode {
             #[ink(storage)]
-            pub struct Incrementer {
+            pub struct IncrementerEncode {
                 value: i32,
             }
 
-            impl Incrementer {
+            impl IncrementerEncode {
                 #[ink(constructor)]
                 pub fn new(init_value: i32) -> Self {
                     Self { value: init_value }
@@ -67,11 +67,11 @@ fn encode_works() {
     // cargo contract new decode_test
     cargo_contract(tmp_dir.path())
         .arg("new")
-        .arg("incrementer")
+        .arg("incrementer_encode")
         .assert()
         .success();
 
-    let project_dir = tmp_dir.path().to_path_buf().join("incrementer");
+    let project_dir = tmp_dir.path().to_path_buf().join("incrementer_encode");
 
     let lib = project_dir.join("lib.rs");
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
