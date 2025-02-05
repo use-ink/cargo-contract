@@ -243,7 +243,7 @@ fn return_ty(
             (v.name == "Ok" && v.fields.len() == 1).then_some(&v.fields[0])
         });
         if let Some(field) = ok_field {
-            return resolve_ty(field.ty.id, registry, msg);
+            return resolve_ty(field.ty.id, registry, &format!("return type for {msg}"));
         }
     }
 
@@ -271,12 +271,19 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
         .unwrap_or_else(|| panic!("Failed to resolve type `#{}` in {}", id, msg));
     match &ty.type_def {
         TypeDef::Composite(_) => {
-            let path_segments = ty.path.segments.as_slice();
-            if path_segments == ["ink_primitives", "types", "AccountId"] {
-                Ok("address".to_string())
-            } else {
-                incompatible_ty!(msg, ty)
-            }
+            let path_segments: Vec<_> =
+                ty.path.segments.iter().map(String::as_str).collect();
+            let ty = match path_segments.as_slice() {
+                // TODO: (@davidsemakula) should `primitive_types::H160` be bytes20?
+                ["ink_primitives", "types", "AccountId"]
+                | ["primitive_types", "H160"] => "address",
+                ["ink_primitives", "types", "Hash"] | ["primitive_types", "H256"] => {
+                    "bytes32"
+                }
+                ["primitive_types", "U256"] => "uint256",
+                _ => incompatible_ty!(msg, ty),
+            };
+            Ok(ty.to_string())
         }
         TypeDef::Variant(type_def_variant) => {
             // Unit-only enums (i.e. enums that contain only unit variants) are
