@@ -143,7 +143,7 @@ struct ItemUserDoc {
 
 /// Generates a Solidity-compatible ABI for the ink! smart contract (if possible).
 ///
-/// Ref: <https://docs.soliditylang.org/en/latest/abi-spec.html#abi-json>
+/// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html>
 pub fn generate_natspec(
     ink_project: &InkProject,
     contract: Contract,
