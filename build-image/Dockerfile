@@ -3,7 +3,7 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 # The rust version to use
 ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=4.1.0
+ARG CARGO_CONTRACT_VERSION=6.0.0-alpha
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
 # Branch to use in git repository
@@ -20,14 +20,14 @@ ARG WGET_VERSION=1.21-1+deb11u1
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
 # The rust version used by linter
-ARG RUST_LINTER_VERSION=nightly-2024-09-05
+ARG RUST_LINTER_VERSION=nightly-2024-11-28
 
 # metadata
 LABEL ink.use.image.vendor="Use Ink" \
     ink.use.image.title="useink/contracts-verifiable" \
     ink.use.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
     rust nightly, clippy, rustfmt, miri, rust-src, rustc-dev, grcov, rust-covfix, \
-    llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink, solang" \
+    llvm-tools-preview, cargo-contract, xargo, binaryen, parallel, codecov, ink" \
     ink.use.image.documentation="https://github.com/use-ink/cargo-contract/blob/master/\
     build-image/README.md" \
     ink.use.version.rust=${RUST_VERSION} \
