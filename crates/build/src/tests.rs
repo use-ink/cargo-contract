@@ -549,7 +549,17 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     assert_eq!(kind, &Value::String("user".to_string()));
 
     let settings = metadata_json.get("settings").expect("settings not found");
-    assert_eq!(settings, &Value::Object(Map::new()));
+    let ink_build_info = settings.get("ink").expect("settings.ink not found");
+    let build_mode = ink_build_info
+        .get("build_mode")
+        .expect("settings.ink.build_mode not found");
+    assert_eq!(build_mode, &Value::String("Debug".to_string()));
+    ink_build_info
+        .get("cargo_contract_version")
+        .expect("settings.ink.cargo_contract_version not found");
+    ink_build_info
+        .get("rust_toolchain")
+        .expect("settings.ink.rust_toolchain not found");
 
     let sources = metadata_json
         .get("sources")
