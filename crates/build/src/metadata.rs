@@ -204,6 +204,7 @@ pub fn execute(
                     source,
                     contract,
                     crate_metadata,
+                    None,
                 )?;
 
                 write_solidity_metadata(

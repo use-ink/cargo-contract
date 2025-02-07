@@ -81,17 +81,17 @@ pub struct SolidityMetadataArtifacts {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SolidityContractMetadata {
     /// Details about the compiler.
-    compiler: Compiler,
+    pub compiler: Compiler,
     /// Source code language
-    language: String,
+    pub language: String,
     /// Generated information about the contract.
     pub output: Output,
     /// Compiler settings.
-    settings: Settings,
+    pub settings: Settings,
     /// Compilation source files/source units, keys are file paths.
-    sources: HashMap<String, SourceFile>,
+    pub sources: HashMap<String, SourceFile>,
     /// The version of the metadata format.
-    version: u8,
+    pub version: u8,
 }
 
 /// Details about the compiler.
@@ -123,33 +123,48 @@ pub struct Output {
 
 /// Compiler settings.
 ///
-/// **NOTE:** The Solidity contract metadata spec for this is very Solidity specific.
-/// We include ink!'s `source.build_info` instead and namespace it under an "ink" key.
-/// Ref: <https://use.ink/basics/metadata/#source>
+/// **NOTE:** The Solidity metadata spec for this is very Solidity specific.
+/// We include build info instead and namespace it under an "ink" key.
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct Settings {
+pub struct Settings {
+    /// Extra Information about the contract and build environment.
+    pub ink: InkSettings,
+}
+
+/// Extra Information about the contract and build environment.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InkSettings {
+    /// The hash of the contract's binary.
+    pub hash: CodeHash,
+    /// If the contract is meant to be verifiable,
+    /// then the Docker image is specified.
+    pub image: Option<String>,
     /// Extra information about the environment in which the contract was built.
     ///
     /// Useful for producing deterministic builds.
-    ink: Option<Map<String, Value>>,
+    ///
+    /// Equivalent to `source.build_info` in ink! metadata spec.
+    /// Ref: <https://use.ink/basics/metadata/#source>
+    pub build_info: Option<Map<String, Value>>,
 }
 
 /// Compilation source files/source units, keys are file paths.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct SourceFile {
+pub struct SourceFile {
     /// Contents of the source file.
-    content: String,
+    pub content: String,
     /// Hash of the source file.
     #[serde(rename = "keccak256")]
-    hash: CodeHash,
+    pub hash: CodeHash,
     /// SPDX license identifier.
     #[serde(skip_serializing_if = "Option::is_none")]
-    license: Option<String>,
+    pub license: Option<String>,
 }
 
 impl SourceFile {
     /// Creates a source file.
-    fn new(content: String, license: Option<String>) -> Self {
+    pub fn new(content: String, license: Option<String>) -> Self {
         let hash = code_hash(content.as_bytes());
         Self {
             hash: CodeHash::from(hash),
@@ -169,6 +184,7 @@ pub fn generate_metadata(
     source: Source,
     contract: Contract,
     crate_metadata: &CrateMetadata,
+    image: Option<String>,
 ) -> Result<SolidityContractMetadata> {
     let sources = source_files(crate_metadata)?;
     let (dev_doc, user_doc) = natspec::generate_natspec(ink_project, contract)?;
@@ -185,7 +201,11 @@ pub fn generate_metadata(
         },
         sources,
         settings: Settings {
-            ink: source.build_info,
+            ink: InkSettings {
+                hash: source.hash,
+                image,
+                build_info: source.build_info,
+            },
         },
         version: 1,
     };

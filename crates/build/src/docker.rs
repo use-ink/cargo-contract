@@ -258,25 +258,24 @@ async fn update_metadata(
     client: &Docker,
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
+        let build_image = find_local_image(client, build_image.to_string())
+            .await?
+            .context("Image summary does not exist")?;
+        // find alternative unique identifier of the image, otherwise grab the
+        // digest
+        let image_tag = match build_image
+            .repo_tags
+            .iter()
+            .find(|t| !t.ends_with("latest"))
+        {
+            Some(tag) => tag.to_owned(),
+            None => build_image.id.clone(),
+        };
+
         match metadata_artifacts {
             crate::MetadataArtifacts::Ink(ink_metadata_artifacts) => {
                 let mut metadata =
                     ContractMetadata::load(&ink_metadata_artifacts.dest_bundle)?;
-
-                let build_image = find_local_image(client, build_image.to_string())
-                    .await?
-                    .context("Image summary does not exist")?;
-                // find alternative unique identifier of the image, otherwise grab the
-                // digest
-                let image_tag = match build_image
-                    .repo_tags
-                    .iter()
-                    .find(|t| !t.ends_with("latest"))
-                {
-                    Some(tag) => tag.to_owned(),
-                    None => build_image.id.clone(),
-                };
-
                 metadata.image = Some(image_tag);
 
                 crate::metadata::write_metadata(
@@ -287,9 +286,10 @@ async fn update_metadata(
                 )?;
             }
             crate::MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
-                let metadata = crate::solidity_metadata::load_metadata(
+                let mut metadata = crate::solidity_metadata::load_metadata(
                     &solidity_metadata_artifacts.dest_metadata,
                 )?;
+                metadata.settings.ink.image = Some(image_tag);
                 crate::metadata::write_solidity_metadata(
                     solidity_metadata_artifacts,
                     metadata,
