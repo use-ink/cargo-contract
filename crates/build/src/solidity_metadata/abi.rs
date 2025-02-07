@@ -57,11 +57,26 @@ pub fn generate_abi(ink_project: &InkProject) -> Result<JsonAbi> {
     let registry = ink_project.registry();
     let spec = ink_project.spec();
 
-    // Solidity allows only one constructor, so we arbitrarily choose the first one.
-    // FIXME: (@davidsemakula) can we make constructor selection a bit more deterministic?
-    let ctor = spec.constructors().first().ok_or_else(|| {
-        anyhow::anyhow!("Expected at least one constructor for in contract metadata")
-    })?;
+    // Solidity allows only one constructor, we choose the first one (or fallback to the
+    // first one).
+    let ctors = spec.constructors();
+    let ctor = ctors
+        .iter()
+        .find_or_first(|ctor| *ctor.default())
+        .ok_or_else(|| {
+            anyhow::anyhow!("Expected at least one constructor in contract metadata")
+        })?;
+    if !ctor.default() && ctors.len() > 1 {
+        // Nudge the user to set a default constructor.
+        use colored::Colorize;
+        eprintln!(
+            "{} No default constructor set. \
+            \n    A default constructor is necessary to guarantee consistent Solidity compatible \
+            metadata output across different rustc and cargo-contract releases. \
+            \n    Learn more at https://use.ink/6.x/macros-attributes/default/",
+            "warning:".yellow().bold()
+        );
+    }
     let ctor_abi = constructor(ctor, registry)?;
 
     let fn_abis: BTreeMap<_, _> = spec
