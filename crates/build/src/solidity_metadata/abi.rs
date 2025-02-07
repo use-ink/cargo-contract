@@ -210,7 +210,6 @@ fn event(
         })
         .process_results(|mut iter| iter.join(","))?;
 
-    // TODO: (@davidsemakula) can we represent ink!'s custom signature topics?
     let abi_str = format!(
         "event {name}({params}){}",
         if event_spec.signature_topic().is_none() {
@@ -289,12 +288,12 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
             let path_segments: Vec<_> =
                 ty.path.segments.iter().map(String::as_str).collect();
             let ty = match path_segments.as_slice() {
-                // TODO: (@davidsemakula) should `primitive_types::H160` be bytes20?
+                // TODO: (@davidsemakula) add `Address` => `address` when an ink!
+                // primitive Address type is available.
+                ["primitive_types", "H160"] => "bytes20",
                 ["ink_primitives", "types", "AccountId"]
-                | ["primitive_types", "H160"] => "address",
-                ["ink_primitives", "types", "Hash"] | ["primitive_types", "H256"] => {
-                    "bytes32"
-                }
+                | ["ink_primitives", "types", "Hash"]
+                | ["primitive_types", "H256"] => "bytes32",
                 ["primitive_types", "U256"] => "uint256",
                 _ => incompatible_ty!(msg, ty),
             };
@@ -319,16 +318,16 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
                 incompatible_ty!(msg, ty)
             }
         }
-        // TODO: (@davidsemakula) should `Vec<u8>` be represented as `bytes[]`? (i.e.
-        // dynamic size arrays).
+        // TODO: (@davidsemakula) add `Vec<Byte>` => `bytes[]`? when an ink! primitive
+        // `Byte` type is available.
         // Ref: <https://docs.soliditylang.org/en/latest/types.html#bytes-and-string-as-arrays>
         TypeDef::Sequence(type_def_seq) => {
             let elem_ty_id = type_def_seq.type_param.id;
             let elem_ty = resolve_ty(elem_ty_id, registry, msg)?;
             Ok(format!("{elem_ty}[]"))
         }
-        // TODO: (@davidsemakula) should `[u8; N]` arrays where `1 <= N <= 32` be
-        // represented as `bytes<N>`? (i.e. fixed-sized arrays).
+        // TODO: (@davidsemakula) add `[u8; N]` => `bytes<N>` where `1 <= N <= 32` when an
+        // ink! primitive `Byte` type is available.
         // Ref: <https://docs.soliditylang.org/en/latest/types.html#fixed-size-byte-arrays>
         TypeDef::Array(type_def_array) => {
             let elem_ty_id = type_def_array.type_param.id;
