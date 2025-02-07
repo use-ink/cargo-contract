@@ -1075,7 +1075,7 @@ mod unit_tests {
         let raw_result = r#"{
   "dest_binary": "/path/to/contract.polkavm",
   "metadata_result": {
-    "ink": {
+    "Ink": {
       "dest_metadata": "/path/to/contract.json",
       "dest_bundle": "/path/to/contract.contract"
     },
