@@ -100,9 +100,9 @@ pub struct Compiler {
     /// Hash of the compiler binary which produced this output.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "keccak256")]
-    hash: Option<CodeHash>,
+    pub hash: Option<CodeHash>,
     /// Version of the compiler.
-    version: String,
+    pub version: String,
 }
 
 /// Generated information about the contract.
@@ -114,11 +114,11 @@ pub struct Output {
     /// NatSpec developer documentation of the contract.
     /// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html#developer-documentation>
     #[serde(rename = "devdoc")]
-    dev_doc: DevDoc,
+    pub dev_doc: DevDoc,
     /// NatSpec user documentation of the contract.
     /// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html#user-documentation>
     #[serde(rename = "userdoc")]
-    user_doc: UserDoc,
+    pub user_doc: UserDoc,
 }
 
 /// Compiler settings.

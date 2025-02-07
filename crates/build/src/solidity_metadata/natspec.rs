@@ -39,52 +39,52 @@ use super::abi;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DevDoc {
     /// The version of the NatSpec format.
-    version: u8,
+    pub version: u8,
     /// Kind of NatSpec documentation (i.e. "dev").
-    kind: NatSpecKind,
+    pub kind: NatSpecKind,
     /// Author of the contract.
     #[serde(skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
     /// Describes the contract/interface.
     #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
+    pub title: Option<String>,
     /// Extra details for developers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    details: Option<String>,
+    pub details: Option<String>,
     /// Storage developer documentation, keys are storage keys.
     #[serde(rename = "stateVariables")]
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    state_variables: HashMap<String, ItemDevDoc>,
+    pub state_variables: HashMap<String, ItemDevDoc>,
     /// Function developer documentation, keys are canonical function signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    methods: HashMap<String, ItemDevDoc>,
+    pub methods: HashMap<String, ItemDevDoc>,
     /// Events developer documentation, keys are canonical event signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    events: HashMap<String, ItemDevDoc>,
+    pub events: HashMap<String, ItemDevDoc>,
     /// Errors developer documentation, keys are canonical error signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    errors: HashMap<String, ItemDevDoc>,
+    pub errors: HashMap<String, ItemDevDoc>,
 }
 
 /// NatSpec user documentation of the contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserDoc {
     /// The version of the NatSpec format.
-    version: u8,
+    pub version: u8,
     /// Kind of NatSpec documentation (i.e. "user").
-    kind: NatSpecKind,
+    pub kind: NatSpecKind,
     /// Description for an end-user.
     #[serde(skip_serializing_if = "Option::is_none")]
-    notice: Option<String>,
+    pub notice: Option<String>,
     /// Function user documentation, keys are canonical function signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    methods: HashMap<String, ItemUserDoc>,
+    pub methods: HashMap<String, ItemUserDoc>,
     /// Events user documentation, keys are canonical event signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    events: HashMap<String, ItemUserDoc>,
+    pub events: HashMap<String, ItemUserDoc>,
     /// Errors user documentation, keys are canonical error signatures.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    errors: HashMap<String, ItemUserDoc>,
+    pub errors: HashMap<String, ItemUserDoc>,
 }
 
 /// Kind of NatSpec documentation (i.e. developer or user).
@@ -92,7 +92,7 @@ pub struct UserDoc {
 /// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-enum NatSpecKind {
+pub enum NatSpecKind {
     /// Developer-focused documentation.
     Dev,
     /// End-user-facing documentation.
@@ -101,16 +101,16 @@ enum NatSpecKind {
 
 /// NatSpec item description for a developer.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct ItemDevDoc {
+pub struct ItemDevDoc {
     /// Description for a developer.
     #[serde(skip_serializing_if = "Option::is_none")]
-    details: Option<String>,
+    pub details: Option<String>,
     /// Item parameter descriptions, keys are parameter names.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    params: HashMap<String, String>,
+    pub params: HashMap<String, String>,
     /// Item return type descriptions (if any).
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    returns: HashMap<String, String>,
+    pub returns: HashMap<String, String>,
 }
 
 impl ItemDevDoc {
@@ -135,10 +135,10 @@ impl ItemDevDoc {
 
 /// NatSpec item description for an end-user.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct ItemUserDoc {
+pub struct ItemUserDoc {
     /// Description for an end-user.
     #[serde(skip_serializing_if = "Option::is_none")]
-    notice: Option<String>,
+    pub notice: Option<String>,
 }
 
 /// Generates a Solidity-compatible ABI for the ink! smart contract (if possible).
