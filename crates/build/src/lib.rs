@@ -211,7 +211,7 @@ impl BuildResult {
                 util::base_name(&metadata_result.dest_bundle).bold(),
                 match metadata_result.spec {
                     MetadataSpec::Ink => "code + metadata",
-                    MetadataSpec::Solidity => "Solidity compatible contract metadata",
+                    MetadataSpec::Solidity => "Solidity compatible metadata",
                 }
             );
             out.push_str(&bundle);
