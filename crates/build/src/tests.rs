@@ -22,8 +22,11 @@ use crate::{
     BuildResult,
     CrateMetadata,
     ExecuteArgs,
+    InkMetadataArtifacts,
     ManifestPath,
+    MetadataArtifacts,
     OutputType,
+    SolidityMetadataArtifacts,
 };
 use anyhow::Result;
 use contract_metadata::*;
@@ -333,6 +336,24 @@ fn missing_cargo_dylint_installation_must_be_detected(
     Ok(())
 }
 
+fn ink_artifacts(artifact: &MetadataArtifacts) -> Option<&InkMetadataArtifacts> {
+    match artifact {
+        MetadataArtifacts::Ink(ink_metadata_artifacts) => Some(ink_metadata_artifacts),
+        MetadataArtifacts::Solidity(_) => None,
+    }
+}
+
+fn solidity_artifacts(
+    artifact: &MetadataArtifacts,
+) -> Option<&SolidityMetadataArtifacts> {
+    match artifact {
+        MetadataArtifacts::Ink(_) => None,
+        MetadataArtifacts::Solidity(solidiy_metadata_artifacts) => {
+            Some(solidiy_metadata_artifacts)
+        }
+    }
+}
+
 fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     // add optional metadata fields
     let mut test_manifest = TestContractManifest::new(manifest_path.clone())?;
@@ -364,13 +385,17 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     args.manifest_path = manifest_path.clone();
 
     let build_result = crate::execute(args)?;
-    let dest_bundle = build_result
-        .metadata_result
-        .expect("Metadata should be generated")
-        .dest_bundle;
+    let dest_bundle = &ink_artifacts(
+        build_result
+            .metadata_result
+            .as_ref()
+            .expect("Metadata should be generated"),
+    )
+    .expect("ink! Metadata should be generated")
+    .dest_bundle;
 
     let metadata_json: Map<String, Value> =
-        serde_json::from_slice(&fs::read(&dest_bundle)?)?;
+        serde_json::from_slice(&fs::read(dest_bundle)?)?;
 
     assert!(
         dest_bundle.exists(),
@@ -481,11 +506,15 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     args.manifest_path = manifest_path.clone();
 
     let build_result = crate::execute(args)?;
-    let metadata_result = build_result
-        .metadata_result
-        .expect("Metadata should be generated");
+    let metadata_result = solidity_artifacts(
+        build_result
+            .metadata_result
+            .as_ref()
+            .expect("Metadata should be generated"),
+    )
+    .expect("Solidity Metadata should be generated");
 
-    let dest_abi = metadata_result.dest_metadata;
+    let dest_abi = &metadata_result.dest_abi;
     assert_eq!(dest_abi.extension().unwrap(), "abi");
     assert!(
         dest_abi.exists(),
@@ -493,17 +522,17 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
         dest_abi.display()
     );
 
-    let dest_bundle = metadata_result.dest_bundle;
-    assert_eq!(dest_bundle.extension().unwrap(), "json");
+    let dest_metadata = &metadata_result.dest_metadata;
+    assert_eq!(dest_metadata.extension().unwrap(), "json");
     assert!(
-        dest_bundle.exists(),
+        dest_metadata.exists(),
         "Missing metadata file '{}'",
-        dest_bundle.display()
+        dest_metadata.display()
     );
 
-    let abi_json: Vec<Value> = serde_json::from_slice(&fs::read(&dest_abi)?)?;
+    let abi_json: Vec<Value> = serde_json::from_slice(&fs::read(dest_abi)?)?;
     let metadata_json: Map<String, Value> =
-        serde_json::from_slice(&fs::read(&dest_bundle)?)?;
+        serde_json::from_slice(&fs::read(dest_metadata)?)?;
 
     let compiler = metadata_json.get("compiler").expect("compiler not found");
     let compiler_version = compiler.get("version").expect("compiler.version not found");
@@ -599,10 +628,12 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
             "metadata_result should always be returned for a full build"
         );
         let dest_binary_modified = file_last_modified(res.dest_binary.as_ref().unwrap());
+        let metadata_artifacts =
+            ink_artifacts(res.metadata_result.as_ref().unwrap()).unwrap();
         let metadata_result_modified =
-            file_last_modified(&res.metadata_result.as_ref().unwrap().dest_metadata);
+            file_last_modified(&metadata_artifacts.dest_metadata);
         let contract_bundle_modified =
-            file_last_modified(&res.metadata_result.as_ref().unwrap().dest_bundle);
+            file_last_modified(&metadata_artifacts.dest_bundle);
         (
             dest_binary_modified,
             metadata_result_modified,
@@ -660,16 +691,14 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
 
     // Code remains unchanged, but metadata artifacts are now generated
     assert_eq!(dest_binary_modified_pre, dest_binary_modified_post);
+    let metadata_artifacts =
+        ink_artifacts(res2.metadata_result.as_ref().unwrap()).unwrap();
     assert!(
-        res2.metadata_result
-            .as_ref()
-            .unwrap()
-            .dest_metadata
-            .exists(),
+        metadata_artifacts.dest_metadata.exists(),
         "Metadata file should have been generated"
     );
     assert!(
-        res2.metadata_result.as_ref().unwrap().dest_bundle.exists(),
+        metadata_artifacts.dest_bundle.exists(),
         "Contract bundle should have been generated"
     );
 

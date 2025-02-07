@@ -66,6 +66,15 @@ pub use self::abi::{
     write_abi,
 };
 
+/// Artifacts resulting from Solidity compatible metadata generation.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SolidityMetadataArtifacts {
+    /// Path to the resulting ABI file.
+    pub dest_abi: PathBuf,
+    /// Path to the resulting metadata file.
+    pub dest_metadata: PathBuf,
+}
+
 /// Solidity compatible smart contract metadata.
 ///
 /// Ref: <https://docs.soliditylang.org/en/latest/metadata.html>

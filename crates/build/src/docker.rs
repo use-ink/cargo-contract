@@ -220,21 +220,33 @@ fn update_build_result(host_folder: &Path, build_result: &mut BuildResult) -> Re
     // TODO: Clippy currently throws a false-positive here. The manual allow can be
     // removed after https://github.com/rust-lang/rust-clippy/pull/13609 has been released.
     #[allow(clippy::manual_inspect)]
-    build_result.metadata_result.as_mut().map(|m| {
-        m.dest_bundle = host_folder.join(
-            m.dest_bundle
-                .as_path()
-                .strip_prefix(MOUNT_DIR)
-                .expect("cannot strip prefix"),
-        );
-        m.dest_metadata = host_folder.join(
-            m.dest_metadata
-                .as_path()
-                .strip_prefix(MOUNT_DIR)
-                .expect("cannot strip prefix"),
-        );
-        m
-    });
+    build_result
+        .metadata_result
+        .as_mut()
+        .map(|metadata_result| {
+            let to_host_path = |abs_path: &std::path::Path| {
+                host_folder.join(
+                    abs_path
+                        .strip_prefix(MOUNT_DIR)
+                        .expect("cannot strip prefix"),
+                )
+            };
+            match metadata_result {
+                crate::MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                    ink_metadata_artifacts.dest_metadata =
+                        to_host_path(&ink_metadata_artifacts.dest_metadata);
+                    ink_metadata_artifacts.dest_bundle =
+                        to_host_path(&ink_metadata_artifacts.dest_bundle);
+                }
+                crate::MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                    solidity_metadata_artifacts.dest_abi =
+                        to_host_path(&solidity_metadata_artifacts.dest_abi);
+                    solidity_metadata_artifacts.dest_metadata =
+                        to_host_path(&solidity_metadata_artifacts.dest_metadata);
+                }
+            }
+            metadata_result
+        });
     Ok(())
 }
 
@@ -246,10 +258,10 @@ async fn update_metadata(
     client: &Docker,
 ) -> Result<()> {
     if let Some(metadata_artifacts) = &build_result.metadata_result {
-        match metadata_artifacts.spec {
-            crate::MetadataSpec::Ink => {
+        match metadata_artifacts {
+            crate::MetadataArtifacts::Ink(ink_metadata_artifacts) => {
                 let mut metadata =
-                    ContractMetadata::load(&metadata_artifacts.dest_bundle)?;
+                    ContractMetadata::load(&ink_metadata_artifacts.dest_bundle)?;
 
                 let build_image = find_local_image(client, build_image.to_string())
                     .await?
@@ -268,18 +280,18 @@ async fn update_metadata(
                 metadata.image = Some(image_tag);
 
                 crate::metadata::write_metadata(
-                    metadata_artifacts,
+                    ink_metadata_artifacts,
                     metadata,
                     verbosity,
                     true,
                 )?;
             }
-            crate::MetadataSpec::Solidity => {
+            crate::MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
                 let metadata = crate::solidity_metadata::load_metadata(
-                    &metadata_artifacts.dest_bundle,
+                    &solidity_metadata_artifacts.dest_metadata,
                 )?;
                 crate::metadata::write_solidity_metadata(
-                    metadata_artifacts,
+                    solidity_metadata_artifacts,
                     metadata,
                     verbosity,
                     true,

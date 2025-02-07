@@ -20,6 +20,7 @@ use crate::{
     solidity_metadata::{
         self,
         SolidityContractMetadata,
+        SolidityMetadataArtifacts,
     },
     util,
     verbose_eprintln,
@@ -30,7 +31,6 @@ use crate::{
     BuildMode,
     Features,
     Lto,
-    MetadataSpec,
     Network,
     Profile,
     UnstableFlags,
@@ -63,9 +63,32 @@ use url::Url;
 
 /// Artifacts resulting from metadata generation.
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct MetadataArtifacts {
-    /// Specification used for metadata generation.
-    pub spec: MetadataSpec,
+pub enum MetadataArtifacts {
+    /// Artifacts resulting from ink! metadata generation.
+    Ink(InkMetadataArtifacts),
+    /// Artifacts resulting from Solidity compatible metadata generation.
+    Solidity(SolidityMetadataArtifacts),
+}
+
+impl MetadataArtifacts {
+    /// Returns true if all metadata files exist.
+    pub(crate) fn exists(&self) -> bool {
+        match self {
+            MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                ink_metadata_artifacts.dest_metadata.exists()
+                    && ink_metadata_artifacts.dest_bundle.exists()
+            }
+            MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                solidity_metadata_artifacts.dest_abi.exists()
+                    && solidity_metadata_artifacts.dest_metadata.exists()
+            }
+        }
+    }
+}
+
+/// Artifacts resulting from ink! metadata generation.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct InkMetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
     /// Path to the bundled file.
@@ -115,7 +138,6 @@ pub fn execute(
     verbosity: Verbosity,
     unstable_options: &UnstableFlags,
     build_info: BuildInfo,
-    metadata_spec: MetadataSpec,
 ) -> Result<()> {
     // build the extended contract project metadata
     let ExtendedMetadataResult {
@@ -164,24 +186,33 @@ pub fn execute(
         );
         let output = cmd.stdout_capture().run()?;
 
-        if metadata_spec == MetadataSpec::Solidity {
-            let ink_project: InkProject = serde_json::from_slice(&output.stdout)?;
-            let sol_abi = solidity_metadata::generate_abi(&ink_project)?;
-            let metadata = solidity_metadata::generate_metadata(
-                &ink_project,
-                sol_abi,
-                source,
-                contract,
-                crate_metadata,
-            )?;
+        match metadata_artifacts {
+            MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                let ink_meta: serde_json::Map<String, serde_json::Value> =
+                    serde_json::from_slice(&output.stdout)?;
+                let metadata =
+                    ContractMetadata::new(source, contract, None, user, ink_meta);
 
-            write_solidity_metadata(metadata_artifacts, metadata, &verbosity, false)?;
-        } else {
-            let ink_meta: serde_json::Map<String, serde_json::Value> =
-                serde_json::from_slice(&output.stdout)?;
-            let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
+                write_metadata(ink_metadata_artifacts, metadata, &verbosity, false)?;
+            }
+            MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                let ink_project: InkProject = serde_json::from_slice(&output.stdout)?;
+                let sol_abi = solidity_metadata::generate_abi(&ink_project)?;
+                let metadata = solidity_metadata::generate_metadata(
+                    &ink_project,
+                    sol_abi,
+                    source,
+                    contract,
+                    crate_metadata,
+                )?;
 
-            write_metadata(metadata_artifacts, metadata, &verbosity, false)?;
+                write_solidity_metadata(
+                    solidity_metadata_artifacts,
+                    metadata,
+                    &verbosity,
+                    false,
+                )?;
+            }
         }
 
         Ok(())
@@ -210,7 +241,7 @@ pub fn execute(
 }
 
 pub fn write_metadata(
-    metadata_artifacts: &MetadataArtifacts,
+    metadata_artifacts: &InkMetadataArtifacts,
     metadata: ContractMetadata,
     verbosity: &Verbosity,
     overwrite: bool,
@@ -245,7 +276,7 @@ pub fn write_metadata(
 
 /// Writes Solidity compatible ABI and metadata files.
 pub fn write_solidity_metadata(
-    metadata_artifacts: &MetadataArtifacts,
+    metadata_artifacts: &SolidityMetadataArtifacts,
     metadata: SolidityContractMetadata,
     verbosity: &Verbosity,
     overwrite: bool,
@@ -269,13 +300,10 @@ pub fn write_solidity_metadata(
     }
 
     // Writes Solidity ABI file.
-    let abi = &metadata.output.abi;
-    let abi_path = &metadata_artifacts.dest_metadata;
-    solidity_metadata::write_abi(abi, abi_path)?;
+    solidity_metadata::write_abi(&metadata.output.abi, &metadata_artifacts.dest_abi)?;
 
     // Writes Solidity Metadata file.
-    let bundle_path = &metadata_artifacts.dest_bundle;
-    solidity_metadata::write_metadata(&metadata, bundle_path)?;
+    solidity_metadata::write_metadata(&metadata, &metadata_artifacts.dest_metadata)?;
 
     Ok(())
 }
