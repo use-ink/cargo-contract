@@ -336,14 +336,14 @@ fn missing_cargo_dylint_installation_must_be_detected(
     Ok(())
 }
 
-fn ink_artifacts(artifact: &MetadataArtifacts) -> Option<&InkMetadataArtifacts> {
+fn ink_metadata_artifacts(artifact: &MetadataArtifacts) -> Option<&InkMetadataArtifacts> {
     match artifact {
         MetadataArtifacts::Ink(ink_metadata_artifacts) => Some(ink_metadata_artifacts),
         MetadataArtifacts::Solidity(_) => None,
     }
 }
 
-fn solidity_artifacts(
+fn solidity_metadata_artifacts(
     artifact: &MetadataArtifacts,
 ) -> Option<&SolidityMetadataArtifacts> {
     match artifact {
@@ -385,7 +385,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     args.manifest_path = manifest_path.clone();
 
     let build_result = crate::execute(args)?;
-    let dest_bundle = &ink_artifacts(
+    let dest_bundle = &ink_metadata_artifacts(
         build_result
             .metadata_result
             .as_ref()
@@ -506,7 +506,7 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     args.manifest_path = manifest_path.clone();
 
     let build_result = crate::execute(args)?;
-    let metadata_result = solidity_artifacts(
+    let metadata_result = solidity_metadata_artifacts(
         build_result
             .metadata_result
             .as_ref()
@@ -578,17 +578,25 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     assert_eq!(kind, &Value::String("user".to_string()));
 
     let settings = metadata_json.get("settings").expect("settings not found");
-    let ink_build_info = settings.get("ink").expect("settings.ink not found");
-    let build_mode = ink_build_info
+    let ink_settings = settings.get("ink").expect("settings.ink not found");
+    let build_info = ink_settings
+        .get("build_info")
+        .expect("settings.ink.build_info not found");
+    let build_mode = build_info
         .get("build_mode")
-        .expect("settings.ink.build_mode not found");
+        .expect("settings.ink.build_info.build_mode not found");
     assert_eq!(build_mode, &Value::String("Debug".to_string()));
-    ink_build_info
+    build_info
         .get("cargo_contract_version")
-        .expect("settings.ink.cargo_contract_version not found");
-    ink_build_info
-        .get("rust_toolchain")
-        .expect("settings.ink.rust_toolchain not found");
+        .expect("settings.ink.build_info.cargo_contract_version not found");
+
+    // calculate binary hash
+    let hash = ink_settings
+        .get("hash")
+        .expect("settings.ink.hash not found");
+    let fs_binary = fs::read(&crate_metadata.dest_binary)?;
+    let expected_hash = crate::code_hash(&fs_binary[..]);
+    assert_eq!(build_byte_str(&expected_hash[..]), hash.as_str().unwrap());
 
     let sources = metadata_json
         .get("sources")
@@ -629,7 +637,7 @@ fn unchanged_contract_skips_optimization_and_metadata_steps(
         );
         let dest_binary_modified = file_last_modified(res.dest_binary.as_ref().unwrap());
         let metadata_artifacts =
-            ink_artifacts(res.metadata_result.as_ref().unwrap()).unwrap();
+            ink_metadata_artifacts(res.metadata_result.as_ref().unwrap()).unwrap();
         let metadata_result_modified =
             file_last_modified(&metadata_artifacts.dest_metadata);
         let contract_bundle_modified =
@@ -692,7 +700,7 @@ fn unchanged_contract_no_metadata_artifacts_generates_metadata(
     // Code remains unchanged, but metadata artifacts are now generated
     assert_eq!(dest_binary_modified_pre, dest_binary_modified_post);
     let metadata_artifacts =
-        ink_artifacts(res2.metadata_result.as_ref().unwrap()).unwrap();
+        ink_metadata_artifacts(res2.metadata_result.as_ref().unwrap()).unwrap();
     assert!(
         metadata_artifacts.dest_metadata.exists(),
         "Metadata file should have been generated"

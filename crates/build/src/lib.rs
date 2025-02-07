@@ -1078,7 +1078,7 @@ mod unit_tests {
     "Ink": {
       "dest_metadata": "/path/to/contract.json",
       "dest_bundle": "/path/to/contract.contract"
-    },
+    }
   },
   "target_directory": "/path/to/target",
   "linker_size_result": {
