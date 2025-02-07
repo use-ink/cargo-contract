@@ -42,10 +42,12 @@ use contract_metadata::{
 };
 use ink_metadata::InkProject;
 use serde::{
-    de,
-    ser::SerializeMap,
     Deserialize,
     Serialize,
+};
+use serde_json::{
+    Map,
+    Value,
 };
 
 use self::natspec::{
@@ -76,13 +78,7 @@ pub struct SolidityContractMetadata {
     /// Generated information about the contract.
     pub output: Output,
     /// Compiler settings.
-    /// Required by the spec, but very Solidity/EVM specific.
-    // TODO: (@davidsemakula) include ink! compiler settings instead?
-    #[serde(
-        serialize_with = "serialize_to_empty_map",
-        deserialize_with = "deserialize_to_unit"
-    )]
-    settings: (),
+    settings: Settings,
     /// Compilation source files/source units, keys are file paths.
     sources: HashMap<String, SourceFile>,
     /// The version of the metadata format.
@@ -114,6 +110,19 @@ pub struct Output {
     /// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html#user-documentation>
     #[serde(rename = "userdoc")]
     user_doc: UserDoc,
+}
+
+/// Compiler settings.
+///
+/// **NOTE:** The Solidity contract metadata spec for this is very Solidity specific.
+/// We include ink!'s `source.build_info` instead and namespace it under an "ink" key.
+/// Ref: <https://use.ink/basics/metadata/#source>
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct Settings {
+    /// Extra information about the environment in which the contract was built.
+    ///
+    /// Useful for producing deterministic builds.
+    ink: Option<Map<String, Value>>,
 }
 
 /// Compilation source files/source units, keys are file paths.
@@ -166,7 +175,9 @@ pub fn generate_metadata(
             user_doc,
         },
         sources,
-        settings: (),
+        settings: Settings {
+            ink: source.build_info,
+        },
         version: 1,
     };
 
@@ -248,45 +259,4 @@ fn source_files(crate_metadata: &CrateMetadata) -> Result<HashMap<String, Source
     );
 
     Ok(source_files)
-}
-
-/// Serializes to an empty map (regardless of input).
-pub fn serialize_to_empty_map<S>(_: &(), serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    let map = serializer.serialize_map(Some(0))?;
-    map.end()
-}
-
-/// Deserializes to a unit (expects and empty map or null).
-pub fn deserialize_to_unit<'de, D>(deserializer: D) -> Result<(), D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    struct BinOpVisitor;
-
-    impl<'de> de::Visitor<'de> for BinOpVisitor {
-        type Value = ();
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            write!(formatter, "an empty map or null")
-        }
-
-        fn visit_map<A>(self, _map: A) -> Result<Self::Value, A::Error>
-        where
-            A: de::MapAccess<'de>,
-        {
-            Ok(())
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            Ok(())
-        }
-    }
-
-    deserializer.deserialize_str(BinOpVisitor)
 }
