@@ -179,8 +179,8 @@ pub fn generate_natspec(
         version: 1,
         kind: NatSpecKind::User,
         notice: contract.description,
-        // TODO: (@davidsemakula) should we reuse dev docs for methods, events and
-        // errors here?.
+        // NOTE: We assume ink!/Rust comments are developer docs, so we have no way of
+        // representing the equivalent of NatSpec user docs at the moment.
         methods: HashMap::new(),
         events: HashMap::new(),
         errors: HashMap::new(),
