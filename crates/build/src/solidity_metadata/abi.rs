@@ -288,13 +288,16 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
             let path_segments: Vec<_> =
                 ty.path.segments.iter().map(String::as_str).collect();
             let ty = match path_segments.as_slice() {
-                // TODO: (@davidsemakula) add `Address` => `address` when an ink!
-                // primitive Address type is available.
-                ["primitive_types", "H160"] => "bytes20",
                 ["ink_primitives", "types", "AccountId"]
                 | ["ink_primitives", "types", "Hash"]
                 | ["primitive_types", "H256"] => "bytes32",
+                ["ink_primitives", "types", "Address"] => "address",
+                ["primitive_types", "H160"] => "bytes20",
                 ["primitive_types", "U256"] => "uint256",
+                // NOTE: `bytes1` sequences and arrays are "normalized" to `bytes` or
+                // `bytes<N>` at wrapping `TypeDef::Sequence` or
+                // `TypeDef::Array` match arm (if appropriate).
+                ["ink_primitives", "types", "Byte"] => "bytes1",
                 _ => incompatible_ty!(msg, ty),
             };
             Ok(ty.to_string())
@@ -318,22 +321,30 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
                 incompatible_ty!(msg, ty)
             }
         }
-        // TODO: (@davidsemakula) add `Vec<Byte>` => `bytes[]`? when an ink! primitive
-        // `Byte` type is available.
-        // Ref: <https://docs.soliditylang.org/en/latest/types.html#bytes-and-string-as-arrays>
         TypeDef::Sequence(type_def_seq) => {
             let elem_ty_id = type_def_seq.type_param.id;
             let elem_ty = resolve_ty(elem_ty_id, registry, msg)?;
-            Ok(format!("{elem_ty}[]"))
+            let normalized_ty = if elem_ty == "bytes1" {
+                // Normalize `bytes1[]` to `bytes`.
+                // Ref: <https://docs.soliditylang.org/en/latest/types.html#bytes-and-string-as-arrays>
+                "bytes".to_string()
+            } else {
+                format!("{elem_ty}[]")
+            };
+            Ok(normalized_ty)
         }
-        // TODO: (@davidsemakula) add `[u8; N]` => `bytes<N>` where `1 <= N <= 32` when an
-        // ink! primitive `Byte` type is available.
-        // Ref: <https://docs.soliditylang.org/en/latest/types.html#fixed-size-byte-arrays>
         TypeDef::Array(type_def_array) => {
             let elem_ty_id = type_def_array.type_param.id;
             let elem_ty = resolve_ty(elem_ty_id, registry, msg)?;
             let len = type_def_array.len;
-            Ok(format!("{elem_ty}[{len}]"))
+            let normalized_ty = if elem_ty == "bytes1" && (1..=32).contains(&len) {
+                // Normalize `bytes1[N]` to `bytes<N>` for `1 <= N <= 32`.
+                // Ref: <https://docs.soliditylang.org/en/latest/types.html#fixed-size-byte-arrays>
+                format!("bytes{len}")
+            } else {
+                format!("{elem_ty}[{len}]")
+            };
+            Ok(normalized_ty)
         }
         TypeDef::Tuple(type_def_tuple) => {
             let tys = type_def_tuple
@@ -359,7 +370,7 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
 fn primitive_ty(ty_def: &TypeDefPrimitive, msg: &str) -> Result<&'static str> {
     let sol_ty = match ty_def {
         TypeDefPrimitive::Bool => "bool",
-        // TODO: (@davidsemakula) can we represent char as a bytes4 fixed-size
+        // TODO: (@davidsemakula) can we represent char as a `bytes4` fixed-size
         // array and interpret it in overlong encoding?
         // Ref: <https://en.wikipedia.org/wiki/UTF-8#overlong_encodings>
         TypeDefPrimitive::Char => {
