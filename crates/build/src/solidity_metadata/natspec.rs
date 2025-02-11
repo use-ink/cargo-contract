@@ -179,7 +179,7 @@ pub fn generate_natspec(
         version: 1,
         kind: NatSpecKind::User,
         notice: contract.description,
-        // NOTE: We assume ink!/Rust comments are developer docs, so we have no way of
+        // NOTE: We assume ink!/Rust doc comments are developer docs, so we have no way of
         // representing the equivalent of NatSpec user docs at the moment.
         methods: HashMap::new(),
         events: HashMap::new(),
@@ -201,6 +201,9 @@ fn message(
 
     // Generates the function's canonical signature.
     // NOTE: Bails if any parameter has a Solidity ABI incompatible type.
+    // NOTE: Rust doesn't currently support doc comments (i.e. rustdoc) for function
+    // parameters.
+    // Ref: <https://doc.rust-lang.org/reference/items/functions.html#attributes-on-function-parameters>
     let param_tys = msg
         .args()
         .iter()
@@ -217,7 +220,6 @@ fn message(
         .ok()?;
     let fn_sig = format!("{name}({param_tys})");
 
-    // FIXME: (@davidsemakula) Add parameter documentation.
     Some((fn_sig, ItemDevDoc::details(docs)))
 }
 

@@ -306,9 +306,8 @@ pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<Str
             // Unit-only enums (i.e. enums that contain only unit variants) are
             // represented as uint8.
             // Ref: <https://docs.soliditylang.org/en/latest/abi-spec.html#mapping-solidity-to-abi-types>
-            // TODO: (@davidsemakula) this actually checks if an enum is field-less. Is
-            // there any practical difference between field-less and unit-only enums in
-            // this context?
+            // NOTE: This actually checks if an enum is field-less, however, field-less
+            // and unit-only enums have an identical representation in ink! metadata.
             // Ref: <https://doc.rust-lang.org/reference/items/enumerations.html#r-items.enum.fieldless>
             // Ref: <https://doc.rust-lang.org/reference/items/enumerations.html#r-items.enum.unit-only>
             let contains_fields = type_def_variant
