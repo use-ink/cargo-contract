@@ -23,6 +23,7 @@ use contract_build::{
     Features,
     ImageVariant,
     ManifestPath,
+    MetadataSpec,
     Network,
     OutputType,
     UnstableFlags,
@@ -98,6 +99,9 @@ pub struct BuildCommand {
     /// Specify a custom image for the verifiable build
     #[clap(long, default_value = None)]
     image: Option<String>,
+    /// Which specification to use for contract metadata.
+    #[clap(long, default_value = "ink")]
+    metadata: MetadataSpec,
 }
 
 impl BuildCommand {
@@ -148,6 +152,7 @@ impl BuildCommand {
             output_type,
             skip_clippy_and_linting: self.skip_clippy_and_linting,
             image,
+            metadata_spec: self.metadata,
         };
         contract_build::execute(args)
     }
@@ -181,6 +186,7 @@ impl CheckCommand {
             output_type: OutputType::default(),
             skip_clippy_and_linting: false,
             image: ImageVariant::Default,
+            metadata_spec: Default::default(),
         };
 
         contract_build::execute(args)

@@ -17,6 +17,11 @@
 use crate::{
     code_hash,
     crate_metadata::CrateMetadata,
+    solidity_metadata::{
+        self,
+        SolidityContractMetadata,
+        SolidityMetadataArtifacts,
+    },
     util,
     verbose_eprintln,
     workspace::{
@@ -45,6 +50,7 @@ use contract_metadata::{
     SourceLanguage,
     User,
 };
+use ink_metadata::InkProject;
 use semver::Version;
 use std::{
     fs,
@@ -57,7 +63,32 @@ use url::Url;
 
 /// Artifacts resulting from metadata generation.
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct MetadataArtifacts {
+pub enum MetadataArtifacts {
+    /// Artifacts resulting from ink! metadata generation.
+    Ink(InkMetadataArtifacts),
+    /// Artifacts resulting from Solidity compatible metadata generation.
+    Solidity(SolidityMetadataArtifacts),
+}
+
+impl MetadataArtifacts {
+    /// Returns true if all metadata files exist.
+    pub(crate) fn exists(&self) -> bool {
+        match self {
+            MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                ink_metadata_artifacts.dest_metadata.exists()
+                    && ink_metadata_artifacts.dest_bundle.exists()
+            }
+            MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                solidity_metadata_artifacts.dest_abi.exists()
+                    && solidity_metadata_artifacts.dest_metadata.exists()
+            }
+        }
+    }
+}
+
+/// Artifacts resulting from ink! metadata generation.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct InkMetadataArtifacts {
     /// Path to the resulting metadata file.
     pub dest_metadata: PathBuf,
     /// Path to the bundled file.
@@ -155,11 +186,35 @@ pub fn execute(
         );
         let output = cmd.stdout_capture().run()?;
 
-        let ink_meta: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_slice(&output.stdout)?;
-        let metadata = ContractMetadata::new(source, contract, None, user, ink_meta);
+        match metadata_artifacts {
+            MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                let ink_meta: serde_json::Map<String, serde_json::Value> =
+                    serde_json::from_slice(&output.stdout)?;
+                let metadata =
+                    ContractMetadata::new(source, contract, None, user, ink_meta);
 
-        write_metadata(metadata_artifacts, metadata, &verbosity, false)?;
+                write_metadata(ink_metadata_artifacts, metadata, &verbosity, false)?;
+            }
+            MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                let ink_project: InkProject = serde_json::from_slice(&output.stdout)?;
+                let sol_abi = solidity_metadata::generate_abi(&ink_project)?;
+                let metadata = solidity_metadata::generate_metadata(
+                    &ink_project,
+                    sol_abi,
+                    source,
+                    contract,
+                    crate_metadata,
+                    None,
+                )?;
+
+                write_solidity_metadata(
+                    solidity_metadata_artifacts,
+                    metadata,
+                    &verbosity,
+                    false,
+                )?;
+            }
+        }
 
         Ok(())
     };
@@ -187,7 +242,7 @@ pub fn execute(
 }
 
 pub fn write_metadata(
-    metadata_artifacts: &MetadataArtifacts,
+    metadata_artifacts: &InkMetadataArtifacts,
     metadata: ContractMetadata,
     verbosity: &Verbosity,
     overwrite: bool,
@@ -216,6 +271,40 @@ pub fn write_metadata(
     }
     let contents = serde_json::to_string(&metadata)?;
     fs::write(&metadata_artifacts.dest_bundle, contents)?;
+
+    Ok(())
+}
+
+/// Writes Solidity compatible ABI and metadata files.
+pub fn write_solidity_metadata(
+    metadata_artifacts: &SolidityMetadataArtifacts,
+    metadata: SolidityContractMetadata,
+    verbosity: &Verbosity,
+    overwrite: bool,
+) -> Result<()> {
+    if overwrite {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Updating Solidity compatible metadata".bright_cyan().bold()
+        );
+    } else {
+        verbose_eprintln!(
+            verbosity,
+            " {} {}",
+            "[==]".bold(),
+            "Generating Solidity compatible metadata"
+                .bright_green()
+                .bold()
+        );
+    }
+
+    // Writes Solidity ABI file.
+    solidity_metadata::write_abi(&metadata.output.abi, &metadata_artifacts.dest_abi)?;
+
+    // Writes Solidity Metadata file.
+    solidity_metadata::write_metadata(&metadata, &metadata_artifacts.dest_metadata)?;
 
     Ok(())
 }

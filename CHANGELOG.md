@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 
 ### Added
+- Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
 
 ### Changed

@@ -28,6 +28,7 @@ mod crate_metadata;
 mod docker;
 pub mod metadata;
 mod new;
+mod solidity_metadata;
 #[cfg(test)]
 mod tests;
 pub mod util;
@@ -35,13 +36,14 @@ mod validate_bytecode;
 mod workspace;
 
 #[deprecated(since = "2.0.2", note = "Use MetadataArtifacts instead")]
-pub use self::metadata::MetadataArtifacts as MetadataResult;
+pub use self::metadata::InkMetadataArtifacts as MetadataResult;
 
 pub use self::{
     args::{
         BuildArtifacts,
         BuildMode,
         Features,
+        MetadataSpec,
         Network,
         OutputType,
         Target,
@@ -53,9 +55,11 @@ pub use self::{
     crate_metadata::CrateMetadata,
     metadata::{
         BuildInfo,
+        InkMetadataArtifacts,
         MetadataArtifacts,
     },
     new::new_contract_project,
+    solidity_metadata::SolidityMetadataArtifacts,
     util::DEFAULT_KEY_COL_WIDTH,
     workspace::{
         Lto,
@@ -133,6 +137,7 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub skip_clippy_and_linting: bool,
     pub image: ImageVariant,
+    pub metadata_spec: MetadataSpec,
 }
 
 /// Result of the build process.
@@ -203,10 +208,18 @@ impl BuildResult {
             self.target_directory.display().to_string().bold(),
         );
         if let Some(metadata_result) = self.metadata_result.as_ref() {
-            let bundle = format!(
-                "  - {} (code + metadata)\n",
-                util::base_name(&metadata_result.dest_bundle).bold()
-            );
+            let (dest, desc) = match metadata_result {
+                MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                    (&ink_metadata_artifacts.dest_bundle, "code + metadata")
+                }
+                MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                    (
+                        &solidity_metadata_artifacts.dest_metadata,
+                        "Solidity compatible metadata",
+                    )
+                }
+            };
+            let bundle = format!("  - {} ({})\n", util::base_name(dest).bold(), desc);
             out.push_str(&bundle);
         }
         if let Some(dest_binary) = self.dest_binary.as_ref() {
@@ -217,9 +230,21 @@ impl BuildResult {
             out.push_str(&path);
         }
         if let Some(metadata_result) = self.metadata_result.as_ref() {
+            let (dest, desc) = match metadata_result {
+                MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                    (&ink_metadata_artifacts.dest_metadata, "metadata")
+                }
+                MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
+                    (
+                        &solidity_metadata_artifacts.dest_abi,
+                        "Solidity compatible ABI",
+                    )
+                }
+            };
             let metadata = format!(
-                "  - {} (the contract's metadata)",
-                util::base_name(&metadata_result.dest_metadata).bold()
+                "  - {} (the contract's {})",
+                util::base_name(dest).bold(),
+                desc
             );
             out.push_str(&metadata);
         }
@@ -680,6 +705,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         extra_lints,
         output_type,
+        metadata_spec,
         ..
     } = &args;
 
@@ -701,6 +727,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let clean_metadata = || {
         fs::remove_file(crate_metadata.metadata_path()).ok();
         fs::remove_file(crate_metadata.contract_bundle_path()).ok();
+        fs::remove_file(solidity_metadata::abi_path(&crate_metadata)).ok();
+        fs::remove_file(solidity_metadata::metadata_path(&crate_metadata)).ok();
     };
 
     let (opt_result, metadata_result, dest_binary) = match build_artifact {
@@ -722,23 +750,46 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     clean_metadata();
                 })?;
 
-            let metadata_result = MetadataArtifacts {
-                dest_metadata: crate_metadata.metadata_path(),
-                dest_bundle: crate_metadata.contract_bundle_path(),
+            let metadata_artifacts = match metadata_spec {
+                MetadataSpec::Ink => {
+                    MetadataArtifacts::Ink(InkMetadataArtifacts {
+                        dest_metadata: crate_metadata.metadata_path(),
+                        dest_bundle: crate_metadata.contract_bundle_path(),
+                    })
+                }
+                MetadataSpec::Solidity => {
+                    MetadataArtifacts::Solidity(SolidityMetadataArtifacts {
+                        dest_abi: solidity_metadata::abi_path(&crate_metadata),
+                        dest_metadata: solidity_metadata::metadata_path(&crate_metadata),
+                    })
+                }
             };
 
-            // skip metadata generation if contract unchanged and all metadata artifacts
-            // exist.
+            // skip metadata generation if contract is unchanged, metadata spec is
+            // unchanged, and all metadata artifacts exist.
+            let pre_metadata_spec =
+                fs::read_to_string(&crate_metadata.metadata_spec_path);
+            let is_unchanged_metadata_spec =
+                pre_metadata_spec.ok() == Some(metadata_spec.to_string());
             if opt_result.is_some()
-                || !metadata_result.dest_metadata.exists()
-                || !metadata_result.dest_bundle.exists()
+                || !is_unchanged_metadata_spec
+                || !metadata_artifacts.exists()
             {
+                // Persists the current metadata spec used so we trigger regeneration
+                // when we switch
+                if !is_unchanged_metadata_spec {
+                    fs::write(
+                        &crate_metadata.metadata_spec_path,
+                        metadata_spec.to_string(),
+                    )?;
+                }
+
                 // if metadata build fails after a code build it might become stale
                 clean_metadata();
                 metadata::execute(
                     &crate_metadata,
                     dest_binary.as_path(),
-                    &metadata_result,
+                    &metadata_artifacts,
                     features,
                     *network,
                     *verbosity,
@@ -746,7 +797,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
                     build_info,
                 )?;
             }
-            (opt_result, Some(metadata_result), Some(dest_binary))
+            (opt_result, Some(metadata_artifacts), Some(dest_binary))
         }
     };
 
@@ -1024,8 +1075,10 @@ mod unit_tests {
         let raw_result = r#"{
   "dest_binary": "/path/to/contract.polkavm",
   "metadata_result": {
-    "dest_metadata": "/path/to/contract.json",
-    "dest_bundle": "/path/to/contract.contract"
+    "Ink": {
+      "dest_metadata": "/path/to/contract.json",
+      "dest_bundle": "/path/to/contract.contract"
+    }
   },
   "target_directory": "/path/to/target",
   "linker_size_result": {
@@ -1040,10 +1093,10 @@ mod unit_tests {
 
         let build_result = BuildResult {
             dest_binary: Some(PathBuf::from("/path/to/contract.polkavm")),
-            metadata_result: Some(MetadataArtifacts {
+            metadata_result: Some(MetadataArtifacts::Ink(InkMetadataArtifacts {
                 dest_metadata: PathBuf::from("/path/to/contract.json"),
                 dest_bundle: PathBuf::from("/path/to/contract.contract"),
-            }),
+            })),
             target_directory: PathBuf::from("/path/to/target"),
             linker_size_result: Some(LinkerSizeResult {
                 original_size: 64.0,

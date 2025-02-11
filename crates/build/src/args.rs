@@ -26,7 +26,7 @@ use std::{
     path::Path,
 };
 
-#[derive(Default, Clone, Debug, Args)]
+#[derive(Default, Clone, Copy, Debug, Args)]
 pub struct VerbosityFlags {
     /// No output printed to stdout
     #[clap(long)]
@@ -269,6 +269,39 @@ impl Features {
                 self.features.join(",")
             };
             args.push(features);
+        }
+    }
+}
+
+/// Specification to use for contract metadata.
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum MetadataSpec {
+    /// ink!
+    #[clap(name = "ink")]
+    #[serde(rename = "ink!")]
+    #[default]
+    Ink,
+    /// Solidity
+    #[clap(name = "solidity")]
+    Solidity,
+}
+
+impl fmt::Display for MetadataSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ink => write!(f, "ink"),
+            Self::Solidity => write!(f, "solidity"),
         }
     }
 }

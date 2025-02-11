@@ -30,6 +30,7 @@ use contract_build::{
     ExecuteArgs,
     ImageVariant,
     ManifestPath,
+    MetadataArtifacts,
     Verbosity,
     VerbosityFlags,
 };
@@ -261,7 +262,9 @@ impl VerifyCommand {
         )
         .expect("decoding the `source.polkavm` hex failed");
         let reference_code_hash = CodeHash(code_hash(&reference_polkavm_blob));
-        let built_contract_path = if let Some(m) = build_result.metadata_result {
+        let built_contract_path = if let Some(MetadataArtifacts::Ink(m)) =
+            build_result.metadata_result
+        {
             m
         } else {
             // Since we're building the contract ourselves this should always be
