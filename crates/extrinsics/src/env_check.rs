@@ -164,6 +164,7 @@ pub fn compare_node_env_with_contract(
         )
     }
 
+    // todo should be against pallet_revive::Currency config
     compare_if_possible(
         node_registry,
         contract_metadata,
