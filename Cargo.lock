@@ -5055,7 +5055,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "alloy-rlp",
  "derive_more 1.0.0",
@@ -5076,7 +5076,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "cfg-if",
 ]
@@ -5084,7 +5084,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5106,7 +5106,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5121,7 +5121,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "alloy-rlp",
  "blake2",
@@ -5154,7 +5154,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "blake2",
  "either",
@@ -5170,7 +5170,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5185,7 +5185,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
@@ -5201,7 +5201,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "cfg-if",
 ]
@@ -5209,7 +5209,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "alloy-rlp",
  "cfg-if",
@@ -5229,7 +5229,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5247,7 +5247,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=master#39157b3b63740d51f1337925d6f9cf6678a59ae3"
 dependencies = [
  "ink_metadata",
  "ink_prelude",

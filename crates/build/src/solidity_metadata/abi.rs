@@ -62,7 +62,7 @@ pub fn generate_abi(ink_project: &InkProject) -> Result<JsonAbi> {
     let ctors = spec.constructors();
     let ctor = ctors
         .iter()
-        .find_or_first(|ctor| *ctor.default())
+        .find_or_first(|ctor| ctor.default())
         .ok_or_else(|| {
             anyhow::anyhow!("Expected at least one constructor in contract metadata")
         })?;

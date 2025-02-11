@@ -290,6 +290,7 @@ async fn update_metadata(
                     &solidity_metadata_artifacts.dest_metadata,
                 )?;
                 metadata.settings.ink.image = Some(image_tag);
+
                 crate::metadata::write_solidity_metadata(
                     solidity_metadata_artifacts,
                     metadata,
