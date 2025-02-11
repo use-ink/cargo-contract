@@ -42,11 +42,11 @@ sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "7a7e01
 pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", rev = "7a7e016a1da297adc13f855979232e0059df258a"}
 pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", rev = "7a7e016a1da297adc13f855979232e0059df258a", default-features = false, features = ["unstable-hostfn", "scale"] }
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 assert_cmd = "2.0.16"
 regex = "1.11.1"
 predicates = "3.1.3"
