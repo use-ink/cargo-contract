@@ -40,10 +40,8 @@ jsonschema = "0.28"
 schemars = "0.8"
 comfy-table = "7.1.1"
 
-#ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
-#ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
-ink_metadata = { path = "/Users/michi/projects/ink/crates/metadata" }
-ink_env = { path = "/Users/michi/projects/ink/crates/env" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
