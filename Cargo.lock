@@ -112,6 +112,48 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "alloy-core"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "482f377cebceed4bb1fb5e7970f0805e2ab123d06701be9351b67ed6341e74aa"
+dependencies = [
+ "alloy-dyn-abi",
+ "alloy-json-abi",
+ "alloy-primitives 0.8.21",
+ "alloy-rlp",
+ "alloy-sol-types 0.8.21",
+]
+
+[[package]]
+name = "alloy-dyn-abi"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "555896f0b8578adb522b1453b6e6cc6704c3027bd0af20058befdde992cee8e9"
+dependencies = [
+ "alloy-json-abi",
+ "alloy-primitives 0.8.21",
+ "alloy-sol-type-parser",
+ "alloy-sol-types 0.8.21",
+ "const-hex",
+ "itoa",
+ "serde",
+ "serde_json",
+ "winnow",
+]
+
+[[package]]
+name = "alloy-json-abi"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4012581681b186ba0882007ed873987cc37f86b1b488fe6b91d5efd0b585dc41"
+dependencies = [
+ "alloy-primitives 0.8.21",
+ "alloy-sol-type-parser",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "alloy-primitives"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -128,6 +170,33 @@ dependencies = [
  "rand",
  "ruint",
  "serde",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "alloy-primitives"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "478bedf4d24e71ea48428d1bc278553bd7c6ae07c30ca063beb0b09fe58a9e74"
+dependencies = [
+ "alloy-rlp",
+ "bytes",
+ "cfg-if",
+ "const-hex",
+ "derive_more 1.0.0",
+ "foldhash",
+ "hashbrown 0.15.2",
+ "indexmap 2.7.1",
+ "itoa",
+ "k256",
+ "keccak-asm",
+ "paste",
+ "proptest",
+ "rand",
+ "ruint",
+ "rustc-hash 2.1.0",
+ "serde",
+ "sha3 0.10.8",
  "tiny-keccak",
 ]
 
@@ -166,8 +235,65 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.98",
- "syn-solidity",
+ "syn-solidity 0.4.2",
  "tiny-keccak",
+]
+
+[[package]]
+name = "alloy-sol-macro"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2708e27f58d747423ae21d31b7a6625159bd8d867470ddd0256f396a68efa11"
+dependencies = [
+ "alloy-sol-macro-expander",
+ "alloy-sol-macro-input",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "alloy-sol-macro-expander"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6b7984d7e085dec382d2c5ef022b533fcdb1fe6129200af30ebf5afddb6a361"
+dependencies = [
+ "alloy-sol-macro-input",
+ "const-hex",
+ "heck 0.5.0",
+ "indexmap 2.7.1",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+ "syn-solidity 0.8.21",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "alloy-sol-macro-input"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33d6a9fc4ed1a3c70bdb2357bec3924551c1a59f24e5a04a74472c755b37f87d"
+dependencies = [
+ "const-hex",
+ "dunce",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+ "syn-solidity 0.8.21",
+]
+
+[[package]]
+name = "alloy-sol-type-parser"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1b3e9a48a6dd7bb052a111c8d93b5afc7956ed5e2cb4177793dc63bb1d2a36"
+dependencies = [
+ "serde",
+ "winnow",
 ]
 
 [[package]]
@@ -176,8 +302,21 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98d7107bed88e8f09f0ddcc3335622d87bfb6821f3e0c7473329fb1cfad5e015"
 dependencies = [
- "alloy-primitives",
- "alloy-sol-macro",
+ "alloy-primitives 0.4.2",
+ "alloy-sol-macro 0.4.2",
+ "const-hex",
+ "serde",
+]
+
+[[package]]
+name = "alloy-sol-types"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6044800da35c38118fd4b98e18306bd3b91af5dedeb54c1b768cf1b4fb68f549"
+dependencies = [
+ "alloy-json-abi",
+ "alloy-primitives 0.8.21",
+ "alloy-sol-macro 0.8.21",
  "const-hex",
  "serde",
 ]
@@ -1089,7 +1228,17 @@ checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 [[package]]
 name = "binary-merkle-tree"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "hash-db",
+ "log",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "binary-merkle-tree"
+version = "13.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "hash-db",
  "log",
@@ -1756,6 +1905,9 @@ name = "bytes"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "camino"
@@ -1792,8 +1944,8 @@ dependencies = [
  "semver 1.0.25",
  "serde",
  "serde_json",
- "sp-core 28.0.0",
- "sp-weights 27.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "substrate-build-script-utils",
  "subxt",
  "tempfile",
@@ -2203,7 +2355,7 @@ dependencies = [
  "ink_metadata",
  "itertools 0.14.0",
  "pallet-revive 0.1.0",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "parity-scale-codec",
  "predicates",
  "regex",
@@ -2211,9 +2363,9 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
- "sp-weights 27.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "stdio-override",
  "subxt",
  "subxt-signer",
@@ -2261,7 +2413,7 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "sp-core 28.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "sp-keyring 31.0.0",
  "strsim",
  "thiserror 2.0.11",
@@ -2562,7 +2714,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-application-crypto 38.0.0",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-runtime 39.0.5",
 ]
 
@@ -2731,7 +2883,7 @@ dependencies = [
  "polkadot-core-primitives 15.0.0",
  "polkadot-primitives 15.0.0",
  "sp-api 34.0.0",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-runtime 39.0.5",
 ]
 
@@ -2803,7 +2955,7 @@ checksum = "33cffb8f010f39ac36b31d38994b8f9d9256d9b5e495d96b4ec59d3e30852d53"
 dependencies = [
  "cumulus-primitives-core",
  "sp-inherents 34.0.0",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
 ]
 
 [[package]]
@@ -3476,6 +3628,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethabi-decode"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52029c4087f9f01108f851d0d02df9c21feb5660a19713466724b7f95bd2d773"
+dependencies = [
+ "ethereum-types 0.15.1",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "ethbloom"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3767,10 +3929,10 @@ dependencies = [
 [[package]]
 name = "frame-benchmarking"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
- "frame-support 28.0.0",
- "frame-support-procedural 23.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "frame-system 28.0.0",
  "linregress",
  "log",
@@ -3778,13 +3940,13 @@ dependencies = [
  "paste",
  "scale-info",
  "serde",
- "sp-api 26.0.0",
- "sp-application-crypto 30.0.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "static_assertions",
 ]
 
@@ -3945,16 +4107,16 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "aquamarine",
  "array-bytes",
- "binary-merkle-tree 13.0.0",
+ "binary-merkle-tree 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "bitflags 1.3.2",
  "docify",
  "environmental",
  "frame-metadata 18.0.0",
- "frame-support-procedural 23.0.0",
+ "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "impl-trait-for-tuples",
  "k256",
  "log",
@@ -3965,22 +4127,65 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
- "sp-api 26.0.0",
- "sp-arithmetic 23.0.0",
- "sp-core 28.0.0",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-genesis-builder 0.8.0",
- "sp-inherents 26.0.0",
- "sp-io 30.0.0",
- "sp-metadata-ir 0.6.0",
- "sp-runtime 31.0.1",
- "sp-staking 26.0.0",
- "sp-state-machine 0.35.0",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-trie 29.0.0",
- "sp-weights 27.0.0",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "static_assertions",
+ "tt-call",
+]
+
+[[package]]
+name = "frame-support"
+version = "28.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "aquamarine",
+ "array-bytes",
+ "binary-merkle-tree 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "bitflags 1.3.2",
+ "docify",
+ "environmental",
+ "frame-metadata 18.0.0",
+ "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "impl-trait-for-tuples",
+ "k256",
+ "log",
+ "macro_magic",
+ "parity-scale-codec",
+ "paste",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "static_assertions",
  "tt-call",
 ]
@@ -4030,20 +4235,40 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "Inflector",
  "cfg-expr",
  "derive-syn-parse",
  "docify",
  "expander",
- "frame-support-procedural-tools 10.0.0",
+ "frame-support-procedural-tools 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "itertools 0.11.0",
  "macro_magic",
  "proc-macro-warning",
  "proc-macro2",
  "quote",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "frame-support-procedural"
+version = "23.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "Inflector",
+ "cfg-expr",
+ "derive-syn-parse",
+ "docify",
+ "expander",
+ "frame-support-procedural-tools 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "itertools 0.11.0",
+ "macro_magic",
+ "proc-macro-warning",
+ "proc-macro2",
+ "quote",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "syn 2.0.98",
 ]
 
@@ -4070,9 +4295,21 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
- "frame-support-procedural-tools-derive 11.0.0",
+ "frame-support-procedural-tools-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "frame-support-procedural-tools"
+version = "10.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "frame-support-procedural-tools-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
@@ -4095,7 +4332,17 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "frame-support-procedural-tools-derive"
+version = "11.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4116,20 +4363,20 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "cfg-if",
  "docify",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "log",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-version 29.0.0",
- "sp-weights 27.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -4473,6 +4720,7 @@ dependencies = [
  "allocator-api2",
  "equivalent",
  "foldhash",
+ "serde",
 ]
 
 [[package]]
@@ -4504,6 +4752,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hex-conservative"
@@ -4995,7 +5246,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "alloy-rlp",
  "derive_more 1.0.0",
@@ -5005,18 +5256,18 @@ dependencies = [
  "ink_prelude",
  "ink_primitives",
  "ink_storage",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "parity-scale-codec",
- "polkavm-derive 0.18.0",
+ "polkavm-derive 0.19.0",
  "scale-info",
- "sp-io 30.0.0",
- "staging-xcm 7.0.0",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
 ]
 
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "cfg-if",
 ]
@@ -5024,7 +5275,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5035,7 +5286,7 @@ dependencies = [
  "ink_primitives",
  "itertools 0.14.0",
  "parity-scale-codec",
- "polkavm-derive 0.18.0",
+ "polkavm-derive 0.19.0",
  "proc-macro2",
  "quote",
  "serde",
@@ -5046,12 +5297,12 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
  "ink_primitives",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "parity-scale-codec",
  "secp256k1 0.30.0",
  "sha2 0.10.8",
@@ -5061,7 +5312,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "alloy-rlp",
  "blake2",
@@ -5075,9 +5326,9 @@ dependencies = [
  "ink_primitives",
  "ink_storage_traits",
  "num-traits",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "parity-scale-codec",
- "polkavm-derive 0.18.0",
+ "polkavm-derive 0.19.0",
  "scale-decode",
  "scale-encode",
  "scale-info",
@@ -5085,16 +5336,16 @@ dependencies = [
  "secp256k1 0.30.0",
  "sha2 0.10.8",
  "sha3 0.10.8",
- "sp-io 30.0.0",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "staging-xcm 7.0.0",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "static_assertions",
 ]
 
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "blake2",
  "either",
@@ -5110,7 +5361,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5125,7 +5376,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
@@ -5141,7 +5392,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "cfg-if",
 ]
@@ -5149,14 +5400,14 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "alloy-rlp",
  "cfg-if",
  "derive_more 1.0.0",
  "ink_prelude",
  "num-traits",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "parity-scale-codec",
  "primitive-types 0.13.1",
  "scale-decode",
@@ -5169,7 +5420,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5179,7 +5430,7 @@ dependencies = [
  "ink_prelude",
  "ink_primitives",
  "ink_storage_traits",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -5187,7 +5438,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#bf546be877180ec7198a566baeee7844f7139fd0"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#20d6cc6b0fd531130cee607a4d84de55471d6a52"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -5470,6 +5721,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7cdd4f0dc5807b9a2b25dd48a3f58e862606fe7bd47f41ecde36e97422d7e90"
 dependencies = [
  "cpufeatures",
+]
+
+[[package]]
+name = "keccak-asm"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "505d1856a39b200489082f90d897c3f07c455563880bc5952e38eabf731c83b6"
+dependencies = [
+ "digest 0.10.7",
+ "sha3-asm",
 ]
 
 [[package]]
@@ -6091,19 +6352,19 @@ dependencies = [
 [[package]]
 name = "pallet-asset-conversion"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "frame-system 28.0.0",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0",
- "sp-arithmetic 23.0.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -6253,7 +6514,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-application-crypto 38.0.0",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-runtime 39.0.5",
 ]
 
@@ -6303,7 +6564,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-application-crypto 38.0.0",
- "sp-consensus-babe",
+ "sp-consensus-babe 0.40.0",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -7385,33 +7646,38 @@ dependencies = [
 [[package]]
 name = "pallet-revive"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
+ "alloy-core",
  "derive_more 0.99.19",
  "environmental",
+ "ethabi-decode 2.0.0",
  "ethereum-types 0.15.1",
  "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "frame-system 28.0.0",
  "hex",
  "impl-trait-for-tuples",
  "log",
  "pallet-revive-fixtures 0.1.0",
- "pallet-revive-proc-macro 0.1.0",
- "pallet-revive-uapi 0.1.0",
+ "pallet-revive-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "pallet-transaction-payment 28.0.0",
  "parity-scale-codec",
  "paste",
- "polkavm 0.18.0",
+ "polkavm 0.19.0",
  "rlp 0.6.1",
  "scale-info",
  "serde",
- "sp-api 26.0.0",
- "sp-arithmetic 23.0.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "staging-xcm 7.0.0",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-consensus-aura 0.32.0",
+ "sp-consensus-babe 0.32.0",
+ "sp-consensus-slots 0.32.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "staging-xcm-builder 7.0.0",
  "subxt-signer",
 ]
@@ -7450,12 +7716,12 @@ dependencies = [
 [[package]]
 name = "pallet-revive-fixtures"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "anyhow",
- "polkavm-linker 0.18.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
+ "polkavm-linker 0.19.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "toml 0.8.19",
 ]
 
@@ -7512,7 +7778,17 @@ dependencies = [
 [[package]]
 name = "pallet-revive-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "pallet-revive-proc-macro"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7533,13 +7809,24 @@ dependencies = [
 [[package]]
 name = "pallet-revive-uapi"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "bitflags 1.3.2",
- "pallet-revive-proc-macro 0.1.0",
+ "pallet-revive-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "paste",
+ "polkavm-derive 0.19.0",
+]
+
+[[package]]
+name = "pallet-revive-uapi"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "bitflags 1.3.2",
+ "pallet-revive-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "parity-scale-codec",
  "paste",
- "polkavm-derive 0.18.0",
+ "polkavm-derive 0.19.0",
  "scale-info",
 ]
 
@@ -7838,7 +8125,7 @@ dependencies = [
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
  "sp-storage 21.0.0",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
 ]
 
 [[package]]
@@ -7863,17 +8150,17 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "frame-system 28.0.0",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -8131,7 +8418,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives 16.0.0",
  "scale-info",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -8161,7 +8448,7 @@ dependencies = [
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-parachain-primitives 14.0.0",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -8399,12 +8686,12 @@ dependencies = [
 [[package]]
 name = "polkadot-core-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -8422,7 +8709,7 @@ dependencies = [
 [[package]]
 name = "polkadot-parachain-primitives"
 version = "6.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "bounded-collections",
  "derive_more 0.99.19",
@@ -8430,9 +8717,9 @@ dependencies = [
  "polkadot-core-primitives 7.0.0",
  "scale-info",
  "serde",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
- "sp-weights 27.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -8470,7 +8757,7 @@ dependencies = [
  "sp-application-crypto 38.0.0",
  "sp-arithmetic 26.0.0",
  "sp-authority-discovery",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.40.1",
  "sp-core 34.0.0",
  "sp-inherents 34.0.0",
  "sp-io 38.0.0",
@@ -8497,7 +8784,7 @@ dependencies = [
  "sp-application-crypto 38.0.0",
  "sp-arithmetic 26.0.0",
  "sp-authority-discovery",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.40.1",
  "sp-core 34.0.0",
  "sp-inherents 34.0.0",
  "sp-io 38.0.0",
@@ -8803,12 +9090,12 @@ dependencies = [
  "sp-arithmetic 26.0.0",
  "sp-authority-discovery",
  "sp-block-builder",
- "sp-consensus-aura",
- "sp-consensus-babe",
+ "sp-consensus-aura 0.40.0",
+ "sp-consensus-babe 0.40.0",
  "sp-consensus-beefy",
  "sp-consensus-grandpa",
  "sp-consensus-pow",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.40.1",
  "sp-core 34.0.0",
  "sp-core-hashing",
  "sp-crypto-ec-utils 0.14.0",
@@ -8833,7 +9120,7 @@ dependencies = [
  "sp-statement-store",
  "sp-std 14.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-storage 21.0.0",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
  "sp-tracing 17.0.1",
  "sp-transaction-pool",
  "sp-transaction-storage-proof",
@@ -8870,7 +9157,7 @@ dependencies = [
  "sp-api 34.0.0",
  "sp-arithmetic 26.0.0",
  "sp-block-builder",
- "sp-consensus-aura",
+ "sp-consensus-aura 0.40.0",
  "sp-consensus-grandpa",
  "sp-core 34.0.0",
  "sp-inherents 34.0.0",
@@ -8911,15 +9198,15 @@ dependencies = [
 
 [[package]]
 name = "polkavm"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd044ab1d3b11567ab6b98ca71259a992b4034220d5972988a0e96518e5d343d"
+checksum = "8379bb48ff026aa8ae0645ea45f27920bfd21c82b2e82ed914224bb233d59f83"
 dependencies = [
  "libc",
  "log",
- "polkavm-assembler 0.18.0",
- "polkavm-common 0.18.0",
- "polkavm-linux-raw 0.18.0",
+ "polkavm-assembler 0.19.0",
+ "polkavm-common 0.19.0",
+ "polkavm-linux-raw 0.19.0",
 ]
 
 [[package]]
@@ -8942,9 +9229,9 @@ dependencies = [
 
 [[package]]
 name = "polkavm-assembler"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaad38dc420bfed79e6f731471c973ce5ff5e47ab403e63cf40358fef8a6368f"
+checksum = "57513b596cf0bafb052dab48e9c168f473c35f7522e17f70cc9f96603012d9b7"
 dependencies = [
  "log",
 ]
@@ -8973,9 +9260,15 @@ name = "polkavm-common"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31ff33982a807d8567645d4784b9b5d7ab87bcb494f534a57cadd9012688e102"
+
+[[package]]
+name = "polkavm-common"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a972bd305ba8cbf0de79951d6d49d2abfad47c277596be5a2c6a0924a163abbd"
 dependencies = [
  "log",
- "polkavm-assembler 0.18.0",
+ "polkavm-assembler 0.19.0",
 ]
 
 [[package]]
@@ -9003,6 +9296,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2eb703f3b6404c13228402e98a5eae063fd16b8f58afe334073ec105ee4117e"
 dependencies = [
  "polkavm-derive-impl-macro 0.18.0",
+]
+
+[[package]]
+name = "polkavm-derive"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8d866972a7532d82d05c26b4516563660dd6676d7ab9e64e681d8ef0e29255c"
+dependencies = [
+ "polkavm-derive-impl-macro 0.19.0",
 ]
 
 [[package]]
@@ -9042,6 +9344,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkavm-derive-impl"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cffca9d51b21153395a192b65698457687bc51daa41026629895542ccaa65c2"
+dependencies = [
+ "polkavm-common 0.19.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "polkavm-derive-impl-macro"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9068,6 +9382,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c16669ddc7433e34c1007d31080b80901e3e8e523cb9d4b441c3910cf9294b"
 dependencies = [
  "polkavm-derive-impl 0.18.1",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "polkavm-derive-impl-macro"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc0dc0cf2e8f4d30874131eccfa36bdabd4a52cfb79c15f8630508abaf06a2a6"
+dependencies = [
+ "polkavm-derive-impl 0.19.0",
  "syn 2.0.98",
 ]
 
@@ -9118,6 +9442,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkavm-linker"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caec2308f1328b5a667da45322c04fad7ff97ad8b36817d18c7635ea4dd6c6f4"
+dependencies = [
+ "dirs",
+ "gimli 0.31.1",
+ "hashbrown 0.14.5",
+ "log",
+ "object 0.36.7",
+ "polkavm-common 0.19.0",
+ "regalloc2 0.9.3",
+ "rustc-demangle",
+]
+
+[[package]]
 name = "polkavm-linux-raw"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9131,9 +9471,9 @@ checksum = "26e45fa59c7e1bb12ef5289080601e9ec9b31435f6e32800a5c90c132453d126"
 
 [[package]]
 name = "polkavm-linux-raw"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23eff02c070c70f31878a3d915e88a914ecf3e153741e2fb572dde28cce20fde"
+checksum = "136ae072ab6fa38e584a06d12b1b216cff19f54d5cd202a8f8c5ec2e92e7e4bb"
 
 [[package]]
 name = "polling"
@@ -9421,6 +9761,7 @@ dependencies = [
  "libc",
  "rand_chacha",
  "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -10690,6 +11031,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha3-asm"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c28efc5e327c837aa837c59eae585fc250715ef939ac32881bcc11677cd02d46"
+dependencies = [
+ "cc",
+ "cfg-if",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10964,7 +11315,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6be61e4db95d1e253a1d5e722953b2d2f6605e5f9761f0a919e5d3fbdbff9da9"
 dependencies = [
- "ethabi-decode",
+ "ethabi-decode 1.0.0",
  "frame-support 38.2.0",
  "frame-system 38.0.0",
  "hex-literal",
@@ -10988,7 +11339,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc3d6d549c57df27cf89ec852f932fa4008eea877a6911a87e03e8002104eabd"
 dependencies = [
- "ethabi-decode",
+ "ethabi-decode 1.0.0",
  "ethbloom 0.13.0",
  "ethereum-types 0.14.1",
  "hex-literal",
@@ -11088,8 +11439,8 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2e6a9d00e60e3744e6b6f0c21fea6694b9c6401ac40e41340a96e561dcf1935"
 dependencies = [
- "alloy-primitives",
- "alloy-sol-types",
+ "alloy-primitives 0.4.2",
+ "alloy-sol-types 0.4.2",
  "frame-benchmarking 38.0.0",
  "frame-support 38.2.0",
  "frame-system 38.0.0",
@@ -11130,7 +11481,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7d49478041b6512c710d0d4655675d146fe00a8e0c1624e5d8a1d6c161d490f"
 dependencies = [
  "bridge-hub-common",
- "ethabi-decode",
+ "ethabi-decode 1.0.0",
  "frame-benchmarking 38.0.0",
  "frame-support 38.2.0",
  "frame-system 38.0.0",
@@ -11277,22 +11628,44 @@ dependencies = [
 [[package]]
 name = "sp-api"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "docify",
  "hash-db",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-api-proc-macro 15.0.0",
- "sp-core 28.0.0",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-metadata-ir 0.6.0",
- "sp-runtime 31.0.1",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-state-machine 0.35.0",
- "sp-trie 29.0.0",
- "sp-version 29.0.0",
+ "sp-api-proc-macro 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sp-api"
+version = "26.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "docify",
+ "hash-db",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api-proc-macro 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
 ]
 
@@ -11322,7 +11695,21 @@ dependencies = [
 [[package]]
 name = "sp-api-proc-macro"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "Inflector",
+ "blake2",
+ "expander",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "sp-api-proc-macro"
+version = "15.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "Inflector",
  "blake2",
@@ -11351,13 +11738,25 @@ dependencies = [
 [[package]]
 name = "sp-application-crypto"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-application-crypto"
+version = "30.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -11376,7 +11775,21 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "docify",
+ "integer-sqrt",
+ "num-traits",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "static_assertions",
+]
+
+[[package]]
+name = "sp-arithmetic"
+version = "23.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "docify",
  "integer-sqrt",
@@ -11447,6 +11860,22 @@ dependencies = [
 
 [[package]]
 name = "sp-consensus-aura"
+version = "0.32.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "async-trait",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-consensus-slots 0.32.0",
+ "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-timestamp 26.0.0",
+]
+
+[[package]]
+name = "sp-consensus-aura"
 version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a8faaa05bbcb9c41f0cc535c4c1315abf6df472b53eae018678d1b4d811ac47"
@@ -11456,10 +11885,28 @@ dependencies = [
  "scale-info",
  "sp-api 34.0.0",
  "sp-application-crypto 38.0.0",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.40.1",
  "sp-inherents 34.0.0",
  "sp-runtime 39.0.5",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
+]
+
+[[package]]
+name = "sp-consensus-babe"
+version = "0.32.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "async-trait",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-consensus-slots 0.32.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-timestamp 26.0.0",
 ]
 
 [[package]]
@@ -11474,11 +11921,11 @@ dependencies = [
  "serde",
  "sp-api 34.0.0",
  "sp-application-crypto 38.0.0",
- "sp-consensus-slots",
+ "sp-consensus-slots 0.40.1",
  "sp-core 34.0.0",
  "sp-inherents 34.0.0",
  "sp-runtime 39.0.5",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
 ]
 
 [[package]]
@@ -11535,6 +11982,17 @@ dependencies = [
 
 [[package]]
 name = "sp-consensus-slots"
+version = "0.32.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-timestamp 26.0.0",
+]
+
+[[package]]
+name = "sp-consensus-slots"
 version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbafb7ed44f51c22fa277fb39b33dc601fa426133a8e2b53f3f46b10f07fba43"
@@ -11542,13 +12000,13 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-timestamp",
+ "sp-timestamp 34.0.0",
 ]
 
 [[package]]
 name = "sp-core"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "array-bytes",
  "bandersnatch_vrfs",
@@ -11578,14 +12036,61 @@ dependencies = [
  "secp256k1 0.28.2",
  "secrecy 0.8.0",
  "serde",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "ss58-registry",
- "substrate-bip39 0.4.7",
+ "substrate-bip39 0.4.7 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+ "tracing",
+ "w3f-bls",
+ "zeroize",
+]
+
+[[package]]
+name = "sp-core"
+version = "28.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "array-bytes",
+ "bandersnatch_vrfs",
+ "bitflags 1.3.2",
+ "blake2",
+ "bounded-collections",
+ "bs58",
+ "dyn-clonable",
+ "ed25519-zebra",
+ "futures",
+ "hash-db",
+ "hash256-std-hasher",
+ "impl-serde 0.5.0",
+ "itertools 0.11.0",
+ "k256",
+ "libsecp256k1",
+ "log",
+ "merlin",
+ "parity-bip39",
+ "parity-scale-codec",
+ "parking_lot",
+ "paste",
+ "primitive-types 0.13.1",
+ "rand",
+ "scale-info",
+ "schnorrkel",
+ "secp256k1 0.28.2",
+ "secrecy 0.8.0",
+ "serde",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "ss58-registry",
+ "substrate-bip39 0.4.7 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
  "tracing",
  "w3f-bls",
@@ -11706,7 +12211,20 @@ dependencies = [
 [[package]]
 name = "sp-crypto-hashing"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "blake2b_simd",
+ "byteorder",
+ "digest 0.10.7",
+ "sha2 0.10.8",
+ "sha3 0.10.8",
+ "twox-hash",
+]
+
+[[package]]
+name = "sp-crypto-hashing"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -11730,10 +12248,20 @@ dependencies = [
 [[package]]
 name = "sp-crypto-hashing-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "quote",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "sp-crypto-hashing-proc-macro"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "quote",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "syn 2.0.98",
 ]
 
@@ -11751,7 +12279,17 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "sp-debug-derive"
+version = "14.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -11771,11 +12309,21 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "environmental",
  "parity-scale-codec",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-externalities"
+version = "0.25.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "environmental",
+ "parity-scale-codec",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -11802,13 +12350,25 @@ dependencies = [
 [[package]]
 name = "sp-genesis-builder"
 version = "0.8.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde_json",
- "sp-api 26.0.0",
- "sp-runtime 31.0.1",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-genesis-builder"
+version = "0.8.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde_json",
+ "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -11827,13 +12387,26 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "async-trait",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sp-inherents"
+version = "26.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "async-trait",
+ "impl-trait-for-tuples",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
 ]
 
@@ -11854,7 +12427,7 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "bytes",
  "docify",
@@ -11865,14 +12438,40 @@ dependencies = [
  "polkavm-derive 0.18.0",
  "rustversion",
  "secp256k1 0.28.2",
- "sp-core 28.0.0",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-keystore 0.34.0",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-state-machine 0.35.0",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-trie 29.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "tracing",
+ "tracing-core",
+]
+
+[[package]]
+name = "sp-io"
+version = "30.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "bytes",
+ "docify",
+ "ed25519-dalek",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec",
+ "polkavm-derive 0.18.0",
+ "rustversion",
+ "secp256k1 0.28.2",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "tracing",
  "tracing-core",
 ]
@@ -11907,10 +12506,10 @@ dependencies = [
 [[package]]
 name = "sp-keyring"
 version = "31.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "strum 0.26.3",
 ]
 
@@ -11928,12 +12527,23 @@ dependencies = [
 [[package]]
 name = "sp-keystore"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "parity-scale-codec",
  "parking_lot",
- "sp-core 28.0.0",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-keystore"
+version = "0.34.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "parity-scale-codec",
+ "parking_lot",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -11961,7 +12571,17 @@ dependencies = [
 [[package]]
 name = "sp-metadata-ir"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "frame-metadata 18.0.0",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "sp-metadata-ir"
+version = "0.6.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "frame-metadata 18.0.0",
  "parity-scale-codec",
@@ -12037,7 +12657,16 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "backtrace",
+ "regex",
+]
+
+[[package]]
+name = "sp-panic-handler"
+version = "13.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "backtrace",
  "regex",
@@ -12056,9 +12685,9 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "31.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
- "binary-merkle-tree 13.0.0",
+ "binary-merkle-tree 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "docify",
  "either",
  "hash256-std-hasher",
@@ -12071,13 +12700,42 @@ dependencies = [
  "scale-info",
  "serde",
  "simple-mermaid",
- "sp-application-crypto 30.0.0",
- "sp-arithmetic 23.0.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-trie 29.0.0",
- "sp-weights 27.0.0",
+ "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "tracing",
+ "tuplex",
+]
+
+[[package]]
+name = "sp-runtime"
+version = "31.0.1"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "binary-merkle-tree 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "docify",
+ "either",
+ "hash256-std-hasher",
+ "impl-trait-for-tuples",
+ "log",
+ "num-traits",
+ "parity-scale-codec",
+ "paste",
+ "rand",
+ "scale-info",
+ "serde",
+ "simple-mermaid",
+ "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "tracing",
  "tuplex",
 ]
@@ -12112,19 +12770,38 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "polkavm-derive 0.18.0",
  "primitive-types 0.13.1",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-runtime-interface-proc-macro 17.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime-interface-proc-macro 17.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "static_assertions",
+]
+
+[[package]]
+name = "sp-runtime-interface"
+version = "24.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "bytes",
+ "impl-trait-for-tuples",
+ "parity-scale-codec",
+ "polkavm-derive 0.18.0",
+ "primitive-types 0.13.1",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime-interface-proc-macro 17.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "static_assertions",
 ]
 
@@ -12170,7 +12847,20 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "Inflector",
+ "expander",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "sp-runtime-interface-proc-macro"
+version = "17.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "Inflector",
  "expander",
@@ -12225,14 +12915,27 @@ dependencies = [
 [[package]]
 name = "sp-staking"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-staking"
+version = "26.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "impl-trait-for-tuples",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -12266,7 +12969,7 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.35.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "hash-db",
  "log",
@@ -12274,10 +12977,30 @@ dependencies = [
  "parking_lot",
  "rand",
  "smallvec",
- "sp-core 28.0.0",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-panic-handler 13.0.0",
- "sp-trie 29.0.0",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+ "tracing",
+ "trie-db",
+]
+
+[[package]]
+name = "sp-state-machine"
+version = "0.35.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "hash-db",
+ "log",
+ "parity-scale-codec",
+ "parking_lot",
+ "rand",
+ "smallvec",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
  "tracing",
  "trie-db",
@@ -12338,7 +13061,12 @@ checksum = "12f8ee986414b0a9ad741776762f4083cd3a5128449b982a3919c4df36874834"
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+
+[[package]]
+name = "sp-std"
+version = "14.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 
 [[package]]
 name = "sp-std"
@@ -12348,13 +13076,25 @@ source = "git+https://github.com/paritytech/polkadot-sdk#8834a9bf7dcb1e5a7498b71
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
  "ref-cast",
  "serde",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-storage"
+version = "19.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "impl-serde 0.5.0",
+ "parity-scale-codec",
+ "ref-cast",
+ "serde",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -12384,6 +13124,18 @@ dependencies = [
 
 [[package]]
 name = "sp-timestamp"
+version = "26.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "async-trait",
+ "parity-scale-codec",
+ "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sp-timestamp"
 version = "34.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72a1cb4df653d62ccc0dbce1db45d1c9443ec60247ee9576962d24da4c9c6f07"
@@ -12398,7 +13150,18 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "parity-scale-codec",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "sp-tracing"
+version = "16.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -12457,7 +13220,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "ahash 0.8.11",
  "hash-db",
@@ -12468,8 +13231,30 @@ dependencies = [
  "rand",
  "scale-info",
  "schnellru",
- "sp-core 28.0.0",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+ "tracing",
+ "trie-db",
+ "trie-root",
+]
+
+[[package]]
+name = "sp-trie"
+version = "29.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "ahash 0.8.11",
+ "hash-db",
+ "memory-db",
+ "nohash-hasher",
+ "parity-scale-codec",
+ "parking_lot",
+ "rand",
+ "scale-info",
+ "schnellru",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
  "tracing",
  "trie-db",
@@ -12503,17 +13288,34 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
  "parity-wasm",
  "scale-info",
  "serde",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-runtime 31.0.1",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
- "sp-version-proc-macro 13.0.0",
+ "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-version-proc-macro 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sp-version"
+version = "29.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "impl-serde 0.5.0",
+ "parity-scale-codec",
+ "parity-wasm",
+ "scale-info",
+ "serde",
+ "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-version-proc-macro 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "thiserror 1.0.69",
 ]
 
@@ -12538,7 +13340,19 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "parity-scale-codec",
+ "proc-macro-warning",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "sp-version-proc-macro"
+version = "13.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-warning",
@@ -12562,7 +13376,18 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "anyhow",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "sp-wasm-interface"
+version = "20.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -12597,15 +13422,29 @@ dependencies = [
 [[package]]
 name = "sp-weights"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "bounded-collections",
  "parity-scale-codec",
  "scale-info",
  "serde",
  "smallvec",
- "sp-arithmetic 23.0.0",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067)",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "sp-weights"
+version = "27.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "bounded-collections",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "smallvec",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -12700,22 +13539,43 @@ dependencies = [
 [[package]]
 name = "staging-xcm"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
 dependencies = [
  "array-bytes",
  "bounded-collections",
- "derivative",
+ "derive-where",
  "environmental",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
  "hex-literal",
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-runtime 31.0.1",
- "sp-weights 27.0.0",
- "xcm-procedural 7.0.0",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+ "xcm-procedural 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a)",
+]
+
+[[package]]
+name = "staging-xcm"
+version = "7.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
+dependencies = [
+ "array-bytes",
+ "bounded-collections",
+ "derive-where",
+ "environmental",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "hex-literal",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "xcm-procedural 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
 ]
 
 [[package]]
@@ -12741,9 +13601,9 @@ dependencies = [
 [[package]]
 name = "staging-xcm-builder"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "frame-system 28.0.0",
  "impl-trait-for-tuples",
  "log",
@@ -12752,11 +13612,11 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives 6.0.0",
  "scale-info",
- "sp-arithmetic 23.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-weights 27.0.0",
- "staging-xcm 7.0.0",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "staging-xcm-executor 7.0.0",
 ]
 
@@ -12786,20 +13646,20 @@ dependencies = [
 [[package]]
 name = "staging-xcm-executor"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "environmental",
  "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
+ "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
- "sp-arithmetic 23.0.0",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-weights 27.0.0",
- "staging-xcm 7.0.0",
+ "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
+ "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601)",
  "tracing",
 ]
 
@@ -12901,7 +13761,19 @@ dependencies = [
 [[package]]
 name = "substrate-bip39"
 version = "0.4.7"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "hmac 0.12.1",
+ "pbkdf2",
+ "schnorrkel",
+ "sha2 0.10.8",
+ "zeroize",
+]
+
+[[package]]
+name = "substrate-bip39"
+version = "0.4.7"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "hmac 0.12.1",
  "pbkdf2",
@@ -12926,7 +13798,7 @@ dependencies = [
 [[package]]
 name = "substrate-build-script-utils"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 
 [[package]]
 name = "substrate-wasm-builder"
@@ -13152,6 +14024,18 @@ name = "syn-solidity"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86b837ef12ab88835251726eb12237655e61ec8dc8a280085d1961cdc3dfd047"
+dependencies = [
+ "paste",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "syn-solidity"
+version = "0.8.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c2de690018098e367beeb793991c7d4dc7270f42c9d2ac4ccc876c1368ca430"
 dependencies = [
  "paste",
  "proc-macro2",
@@ -14638,7 +15522,18 @@ dependencies = [
 [[package]]
 name = "xcm-procedural"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?rev=645878a27115db52e5d63115699b4bbb89034067#645878a27115db52e5d63115699b4bbb89034067"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=7a7e016a1da297adc13f855979232e0059df258a#7a7e016a1da297adc13f855979232e0059df258a"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "xcm-procedural"
+version = "7.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?rev=f340e07ffd7cff69e930d19563186ff7f0fed601#f340e07ffd7cff69e930d19563186ff7f0fed601"
 dependencies = [
  "Inflector",
  "proc-macro2",
