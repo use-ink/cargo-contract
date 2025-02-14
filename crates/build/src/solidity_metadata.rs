@@ -59,7 +59,7 @@ use crate::{
     CrateMetadata,
 };
 
-// Re-exports abi utilities.
+// Re-exports ABI utilities.
 pub use self::abi::{
     abi_path,
     generate_abi,

@@ -31,7 +31,10 @@ use alloy_json_abi::{
     Function,
     JsonAbi,
 };
-use anyhow::Result;
+use anyhow::{
+    Context,
+    Result,
+};
 use ink_metadata::{
     ConstructorSpec,
     EventSpec,
@@ -50,15 +53,15 @@ use scale_info::{
 
 use crate::CrateMetadata;
 
-/// Generates a Solidity-compatible ABI for the ink! smart contract (if possible).
+/// Generates a Solidity compatible ABI for the ink! smart contract (if possible).
 ///
 /// Ref: <https://docs.soliditylang.org/en/latest/abi-spec.html#abi-json>
 pub fn generate_abi(ink_project: &InkProject) -> Result<JsonAbi> {
     let registry = ink_project.registry();
     let spec = ink_project.spec();
 
-    // Solidity allows only one constructor, we choose the first one (or fallback to the
-    // first one).
+    // Solidity allows only one constructor, we choose the "default" one (or fallback to
+    // the first one).
     let ctors = spec.constructors();
     let ctor = ctors
         .iter()
@@ -239,10 +242,10 @@ fn param_decl(
     sol_ty.map(|ty| format!("{ty} {name}"))
 }
 
-// Returns the "user-defined" return type for an ink! message.
-//
-// **NOTE:** The return type for ink! messages is `Result<T, ink::LangError>`, however,
-// the ABI return type we're interested in is the "user-defined" `T` type.
+/// Returns the "user-defined" return type for an ink! message.
+///
+/// **NOTE:** The return type for ink! messages is `Result<T, ink::LangError>`, however,
+/// the ABI return type we're interested in is the "user-defined" `T` type.
 fn return_ty(
     ret_ty: &ReturnTypeSpec<PortableForm>,
     registry: &PortableRegistry,
@@ -282,7 +285,7 @@ macro_rules! incompatible_ty {
 pub fn resolve_ty(id: u32, registry: &PortableRegistry, msg: &str) -> Result<String> {
     let ty = registry
         .resolve(id)
-        .unwrap_or_else(|| panic!("Failed to resolve type `#{}` in {}", id, msg));
+        .context(format!("Failed to resolve type `#{id}` in {msg}"))?;
     match &ty.type_def {
         TypeDef::Composite(_) => {
             let path_segments: Vec<_> =
