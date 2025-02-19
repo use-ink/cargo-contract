@@ -5,10 +5,10 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false }
+ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11", default-features = false }
 
 [dev-dependencies]
-ink_e2e = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_e2e = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 
 [lib]
 path = "lib.rs"
