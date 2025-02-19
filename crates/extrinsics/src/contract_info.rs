@@ -152,12 +152,7 @@ where
         .at(best_block)
         .fetch(&contract_info_address)
         .await?
-        .ok_or_else(|| {
-            anyhow!(
-                "No contract information was found for contract {:?}",
-                contract
-            )
-        })?;
+        .ok_or_else(|| anyhow!("No contract was found for address {:?}", contract))?;
 
     let contract_info_raw = ContractInfoRaw::<C, E>::new(*contract, contract_info_value)?;
     let addr = contract_info_raw.get_addr();

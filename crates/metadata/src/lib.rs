@@ -438,6 +438,7 @@ impl SourceCompiler {
 pub enum Compiler {
     /// The rust compiler.
     RustC,
+    /// todo can be removed
     /// The solang compiler.
     Solang,
 }

@@ -164,6 +164,8 @@ pub fn compare_node_env_with_contract(
         )
     }
 
+    // todo should be compared against the `pallet_revive::Currency` config.
+    // the `pallet_balances` one is not necessarily used as the `pallet_revive::Currency`.
     compare_if_possible(
         node_registry,
         contract_metadata,
@@ -175,8 +177,8 @@ pub fn compare_node_env_with_contract(
         node_registry,
         contract_metadata,
         verbosity,
-        // the `wasm` here is because `pallet-revive` still uses that name for their
-        // module
+        // we use `wasm` here, as that is what `pallet-revive` still uses as a name for
+        // this module
         vec!["pallet_revive", "wasm", "CodeInfo"],
         "owner",
     )?;
@@ -184,9 +186,6 @@ pub fn compare_node_env_with_contract(
         node_registry,
         contract_metadata,
         verbosity,
-        //#[cfg(not(test))]
-        //vec!["sp_runtime", "generic", "header", "Header"],
-        //#[cfg(test)]
         vec!["sp_runtime", "generic", "header", "Header"],
         "parent_hash",
     )?;
@@ -194,9 +193,6 @@ pub fn compare_node_env_with_contract(
         node_registry,
         contract_metadata,
         verbosity,
-        //#[cfg(not(test))]
-        //vec!["sp_runtime", "generic", "header", "Header"],
-        //#[cfg(test)]
         vec!["sp_runtime", "generic", "header", "Header"],
         "number",
     )?;
