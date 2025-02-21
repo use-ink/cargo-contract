@@ -5172,7 +5172,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "alloy-rlp",
  "derive_more 1.0.0",
@@ -5193,7 +5193,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "cfg-if",
 ]
@@ -5201,7 +5201,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5223,7 +5223,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5238,7 +5238,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "alloy-rlp",
  "blake2",
@@ -5271,7 +5271,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "blake2",
  "either",
@@ -5287,7 +5287,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5302,7 +5302,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
@@ -5334,7 +5334,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "cfg-if",
 ]
@@ -5350,7 +5350,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "alloy-rlp",
  "cfg-if",
@@ -5390,7 +5390,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5408,7 +5408,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#839eb83526cbda7fb1582f685927032c6d6e5f49"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#6d5b909f98fee3417478fd2db34571111d4c5404"
 dependencies = [
  "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11)",
  "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11)",
