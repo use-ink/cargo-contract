@@ -351,6 +351,11 @@ where
         &self.client
     }
 
+    /// Returns the rpc.
+    pub fn rpc(&self) -> &LegacyRpcMethods<C> {
+        &self.rpc
+    }
+
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder

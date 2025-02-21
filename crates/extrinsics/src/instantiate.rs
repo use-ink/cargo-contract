@@ -15,10 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::{
-        CodeStored,
-        ContractInstantiated,
-    },
+    events::ContractInstantiated,
+    get_account_nonce,
     pallet_revive_primitives::{
         ContractInstantiateResult,
         StorageDeposit,
@@ -50,7 +48,10 @@ use scale::{
     Encode,
 };
 use sp_core::Bytes;
-use sp_runtime::traits::Zero;
+use sp_runtime::{
+    traits::Zero,
+    SaturatedConversion,
+};
 use sp_weights::Weight;
 use std::fmt::Display;
 use subxt::{
@@ -291,7 +292,7 @@ where
     /// Returns the decoded dry run result, or an error in case of failure.
     pub async fn decode_instantiate_dry_run(
         &self,
-        result: &ContractInstantiateResult<C::AccountId, E::Balance>,
+        result: &ContractInstantiateResult<E::Balance>,
     ) -> Result<InstantiateDryRunResult<E::Balance>, ErrorVariant> {
         tracing::debug!("instantiate data {:?}", self.args.data);
         match result.result {
@@ -305,7 +306,7 @@ where
                     .context(format!("Failed to decode return value {:?}", &ret_val))?;
                 let dry_run_result = InstantiateDryRunResult {
                     result: value,
-                    contract: ret_val.account_id.to_string(),
+                    contract: ret_val.account_id,
                     reverted: ret_val.result.did_revert(),
                     gas_consumed: result.gas_consumed,
                     gas_required: result.gas_required,
@@ -330,7 +331,7 @@ where
     /// Returns the dry run simulation result, or an error in case of failure.
     pub async fn instantiate_dry_run(
         &self,
-    ) -> Result<ContractInstantiateResult<C::AccountId, E::Balance>> {
+    ) -> Result<ContractInstantiateResult<E::Balance>> {
         let call_request = InstantiateRequest::<C, E> {
             origin: self.opts.signer().account_id(),
             value: self.args.value,
@@ -349,33 +350,46 @@ where
         gas_limit: Weight,
         storage_deposit_limit: E::Balance,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
+        let code_hash = None;
+        let deployer = H160::from_slice(&self.opts.signer().account_id().encode()[..20]);
+        let account_id = Signer::account_id(self.opts.signer());
+        let account_nonce =
+            get_account_nonce(&self.client, &self.rpc, &account_id).await?;
+
+        // copied from `pallet-revive`
+        let origin_is_caller = false;
+        let contract_address = if let Some(salt) = self.args.salt {
+            pallet_revive::create2(&deployer, &code[..], &self.args.data[..], &salt)
+        } else {
+            pallet_revive::create1(
+                &deployer,
+                // the Nonce from the origin has been incremented pre-dispatch, so we
+                // need to subtract 1 to get the nonce at the time of the call.
+                if origin_is_caller {
+                    account_nonce.saturating_sub(1u32.into()).saturated_into()
+                } else {
+                    account_nonce.saturated_into()
+                },
+            )
+        };
+
         let call = InstantiateWithCode::new(
             self.args.value,
             gas_limit,
             storage_deposit_limit,
             code,
             self.args.data.clone(),
-            None,
+            self.args.salt.map(Into::into).clone(),
         )
         .build();
 
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
-        // The CodeStored event is only raised if the contract has not already been
-        // uploaded.
-        let code_hash = events
-            .find_first::<CodeStored<E::Balance>>()?
-            .map(|code_stored| code_stored.code_hash);
-
-        let instantiated = events
-            .find_last::<ContractInstantiated<H160>>()?
-            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
-
         Ok(InstantiateExecResult {
             events,
             code_hash,
-            contract_address: instantiated.contract,
+            contract_address,
         })
     }
 
@@ -445,6 +459,7 @@ where
         }
 
         /*
+        // todo
         let (gas_limit, storage_deposit_limit) = match gas_limit {
             (Some(gas_limit), (Some(storage_deposit_limit)) => gas_limit,
             None => self.estimate_limits().await?,
@@ -584,8 +599,8 @@ pub struct InstantiateExecResult<C: Config> {
 pub struct InstantiateDryRunResult<Balance: Serialize> {
     /// The decoded result returned from the constructor
     pub result: Value,
-    /// contract address
-    pub contract: String,
+    /// Contract address
+    pub contract: H160,
     /// Was the operation reverted
     pub reverted: bool,
     pub gas_consumed: Weight,
