@@ -5,10 +5,10 @@ authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
 [dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false }
+ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11", default-features = false }
 
 [dev-dependencies]
-ink_e2e = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_e2e = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 
 [lib]
 path = "lib.rs"
@@ -20,3 +20,7 @@ std = [
 ]
 ink-as-dependency = []
 e2e-tests = []
+
+# hotfix for https://github.com/paritytech/polkadot-sdk/issues/7653
+[patch.'https://github.com/w3f/fflonk']
+fflonk = { git = "https://www.github.com/w3f/fflonk", rev = "be95d4c971b1d15b5badfc06ff13f5c07987d484" }
