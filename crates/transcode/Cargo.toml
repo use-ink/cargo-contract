@@ -42,8 +42,8 @@ regex = "1.11.1"
 [dev-dependencies]
 assert_matches = "1.5.0"
 ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "5f6c8e8fd20f19de0b592ef2413e934e97c9bc68", default-features = false }
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", rev = "5f6c8e8fd20f19de0b592ef2413e934e97c9bc68", default-features = false }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false }
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false }
 
 [features]
 # This `std` feature is required for testing using an inline contract's metadata, because `ink!` annotates the metadata
