@@ -48,8 +48,8 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.38.1", features = ["substrate-compat"] }
 hex = "0.4.3"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48"}
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48"}
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false}
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48" }
 
 [build-dependencies]
 anyhow = "1.0.95"
