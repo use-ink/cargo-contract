@@ -28,7 +28,6 @@ use crate::{
     url_to_string,
     ContractArtifacts,
 };
-use scale::Encode;
 use std::{
     marker::PhantomData,
     option::Option,
