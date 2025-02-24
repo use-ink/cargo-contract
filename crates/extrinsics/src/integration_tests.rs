@@ -1073,8 +1073,6 @@ async fn complex_types_for_contract_interaction() {
     //let value: ink::U256 = ink::U256::MAX;
     let value: ink::U256 = ink::U256::one();
 
-    eprintln!("addr {}", hex::encode(addr).as_str());
-
     let output = cargo_contract(project_path)
         .arg("instantiate")
         .args(["--constructor", "new"])
@@ -1117,8 +1115,6 @@ async fn complex_types_for_contract_interaction() {
         .success();
     let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
 
-    eprintln!("stdout {}", stdout);
-
     let re = Regex::new(r#"\s+Result\s+Ok\(\(([A-Za-z0-9,\s]+)\)\)"#)
         .expect("regex creation failed");
     let caps = re.captures(stdout).unwrap();
@@ -1155,7 +1151,6 @@ async fn complex_types_for_contract_interaction() {
     let ret_h256 = Decode::decode(&mut &decode_hex(ret_h256).unwrap()[..]).unwrap();
     assert_eq!(h256_hash, ret_h256, "returned H256 does not match!");
 
-    eprintln!("ret_u256 {:?}", ret_u256);
     assert_eq!(value.to_string(), ret_u256, "returned U256 does not match!");
 
     let assert = cargo_contract(project_path)
@@ -1167,12 +1162,10 @@ async fn complex_types_for_contract_interaction() {
         .success();
     let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
 
-    eprintln!("stdout {}", stdout);
     let re =
         Regex::new(r#"Result\s+Ok\(([A-Za-z0-9]+)\)"#).expect("regex creation failed");
     let caps = re.captures(stdout).unwrap();
     let _ret_account_id = caps.get(1).unwrap().as_str();
-    // eprintln!("ret_account_id {}", _ret_account_id);
 
     // todo use transcode
     //let account_id: AccountId32 = AccountId32::from([0x13; 32]);

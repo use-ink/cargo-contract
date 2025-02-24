@@ -301,7 +301,11 @@ where
     }
     let instantiate_result = instantiate_exec.instantiate_dry_run().await?;
     match instantiate_result.result {
-        Ok(_) => {
+        Ok(res) => {
+            if res.result.did_revert() {
+                return Err(anyhow!("Pre-submission dry-run failed because contract reverted:\n{:?}\n\nUse --skip-dry-run to skip this step.",
+                String::from_utf8(res.result.data).expect("unable to convert to utf8")));
+            }
             if !output_json {
                 print_gas_required_success(instantiate_result.gas_required);
             }
