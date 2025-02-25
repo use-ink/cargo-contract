@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::CodeStored,
     pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,

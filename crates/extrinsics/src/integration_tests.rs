@@ -660,7 +660,7 @@ async fn api_build_upload_remove() {
             .await
             .unwrap();
     let upload_result = upload.upload_code().await;
-    let upload_result = upload_result.unwrap_or_else(|err| {
+    let _upload_result = upload_result.unwrap_or_else(|err| {
         panic!("upload code failed with {:?}", err);
     });
     let code_hash_h256 = upload.code().code_hash(); // todo
@@ -887,7 +887,6 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
             .output()
             .expect("failed to execute process");
         let stderr = str::from_utf8(&output.stderr).unwrap();
-        let stdout = str::from_utf8(&output.stderr).unwrap();
         assert!(
             !output.status.success(),
             "upload code succeeded, but should have failed: {stderr}"

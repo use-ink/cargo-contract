@@ -102,33 +102,6 @@ where
     const EVENT: &'static str = "Instantiated";
 }
 
-/// An event triggered by either the `instantiate_with_code` or the `upload_code` call.
-#[derive(
-    Debug,
-    scale::Decode,
-    scale::Encode,
-    scale_decode::DecodeAsType,
-    scale_encode::EncodeAsType,
-)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored<Balance> {
-    /// Hash under which the contract code was stored.
-    pub code_hash: H256,
-    /// Deposit held for the storing contract code on-chain.
-    pub deposit_held: Balance,
-    /// Address of the uploader.
-    pub uploader: H160,
-}
-
-impl<Balance> StaticEvent for CodeStored<Balance>
-where
-    Balance: IntoVisitor,
-{
-    const PALLET: &'static str = "Revive";
-    const EVENT: &'static str = "CodeStored";
-}
-
 /// An event triggered by the `remove_code` call.
 #[derive(
     Debug,
