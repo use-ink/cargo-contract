@@ -34,7 +34,10 @@ use contract_build::{
     util::decode_hex,
 };
 use contract_transcode::AccountId32;
-use ink::H160;
+use ink::{
+    H160,
+    H256,
+};
 use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use regex::Regex;
@@ -205,6 +208,7 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -285,6 +289,7 @@ async fn build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -350,6 +355,7 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -489,6 +495,7 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -629,6 +636,7 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -655,12 +663,12 @@ async fn api_build_upload_remove() {
     let upload_result = upload_result.unwrap_or_else(|err| {
         panic!("upload code failed with {:?}", err);
     });
-    let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
+    let code_hash_h256 = upload.code().code_hash(); // todo
 
     // remove the contract
     let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
         RemoveCommandBuilder::new(opts.clone())
-            .code_hash(Some(code_hash_h256))
+            .code_hash(Some(H256::from_slice(&code_hash_h256)))
             .done()
             .await
             .unwrap();
@@ -746,6 +754,7 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -832,7 +841,6 @@ async fn build_upload_instantiate_storage() {
 #[tokio::test]
 async fn adhere_to_limits_during_build_upload_instantiate_call() {
     fn workflow(lib: &Path, project_path: &Path, salt: &str, arg: &str) {
-        tracing::debug!("Testing with {}", arg);
         let contract = r#"
         #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
@@ -844,12 +852,13 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
 			pub struct Flipper {
 				value: bool,
 				vec: ink::prelude::vec::Vec<u8>,
+				salt: u8,
 			}
 
 			impl Flipper {
 				#[ink(constructor)]
 				pub fn new(init_value: bool) -> Self {
-					Self { value: init_value, vec: Default::default() }
+					Self { value: init_value, vec: Default::default(), salt: SALT }
 				}
 
 				#[ink(message)]
@@ -866,6 +875,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
         cargo_contract(project_path)
             .arg("build")
             .arg("--skip-linting")
+            .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
             .assert()
             .success();
 
@@ -877,6 +887,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
             .output()
             .expect("failed to execute process");
         let stderr = str::from_utf8(&output.stderr).unwrap();
+        let stdout = str::from_utf8(&output.stderr).unwrap();
         assert!(
             !output.status.success(),
             "upload code succeeded, but should have failed: {stderr}"
@@ -1052,6 +1063,7 @@ async fn complex_types_for_contract_interaction() {
 
     cargo_contract(project_path)
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .arg("--verbose")
         .assert()
         .success()
