@@ -512,7 +512,7 @@ async fn api_build_upload_instantiate_call() {
     let signer = Keypair::from_uri(&uri).unwrap();
     let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
-        .storage_deposit_limit(Some(u128::MAX.into()))
+        .storage_deposit_limit(Some(u128::MAX))
         .done();
     let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
         UploadCommandBuilder::new(opts.clone())
@@ -654,7 +654,7 @@ async fn api_build_upload_remove() {
     let signer = Keypair::from_uri(&uri).unwrap();
     let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
-        .storage_deposit_limit(Some(u128::MAX.into()))
+        .storage_deposit_limit(Some(u128::MAX))
         .done();
     let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
         UploadCommandBuilder::new(opts.clone())
