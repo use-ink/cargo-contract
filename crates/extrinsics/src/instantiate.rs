@@ -15,7 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::ContractInstantiated,
+    fetch_contract_binary,
     get_account_nonce,
     pallet_revive_primitives::{
         ContractInstantiateResult,
@@ -350,28 +350,16 @@ where
         gas_limit: Weight,
         storage_deposit_limit: E::Balance,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
-        let code_hash = None;
-        let deployer = H160::from_slice(&self.opts.signer().account_id().encode()[..20]);
-        let account_id = Signer::account_id(self.opts.signer());
-        let account_nonce =
-            get_account_nonce(&self.client, &self.rpc, &account_id).await?;
-
-        // copied from `pallet-revive`
-        let origin_is_caller = false;
-        let contract_address = if let Some(salt) = self.args.salt {
-            pallet_revive::create2(&deployer, &code[..], &self.args.data[..], &salt)
-        } else {
-            pallet_revive::create1(
-                &deployer,
-                // the Nonce from the origin has been incremented pre-dispatch, so we
-                // need to subtract 1 to get the nonce at the time of the call.
-                if origin_is_caller {
-                    account_nonce.saturating_sub(1u32.into()).saturated_into()
-                } else {
-                    account_nonce.saturated_into()
-                },
-            )
-        };
+        let code_hash = None; // todo
+        let contract_address = contract_address(
+            &self.client,
+            &self.rpc,
+            self.opts.signer(),
+            &self.args.salt,
+            &code[..],
+            &self.args.data[..],
+        )
+        .await?;
 
         let call = InstantiateWithCode::new(
             self.args.value,
@@ -412,14 +400,20 @@ where
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
-        let instantiated = events
-            .find_first::<ContractInstantiated<H160>>()?
-            .ok_or_else(|| anyhow!("Failed to find Instantiated event"))?;
-
+        let code = fetch_contract_binary(&self.client, &self.rpc, &code_hash).await?;
+        let contract_address = contract_address(
+            &self.client,
+            &self.rpc,
+            self.opts.signer(),
+            &self.args.salt,
+            &code[..],
+            &self.args.data[..],
+        )
+        .await?;
         Ok(InstantiateExecResult {
             events,
             code_hash: None,
-            contract_address: instantiated.contract,
+            contract_address,
         })
     }
 
@@ -635,4 +629,36 @@ pub enum Code {
     Upload(Vec<u8>),
     /// The code hash of an on-chain contract binary blob.
     Existing(H256),
+}
+
+/// Derives a contract address.
+async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
+    client: &OnlineClient<C>,
+    rpc: &LegacyRpcMethods<C>,
+    signer: &Signer,
+    salt: &Option<[u8; 32]>,
+    code: &[u8],
+    data: &[u8],
+) -> Result<H160, subxt::Error> {
+    let account_id = Signer::account_id(signer);
+    let deployer = H160::from_slice(&account_id.encode()[..20]);
+    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+
+    // copied from `pallet-revive`
+    let origin_is_caller = false;
+    let addr = if let Some(salt) = salt {
+        pallet_revive::create2(&deployer, code, data, salt)
+    } else {
+        pallet_revive::create1(
+            &deployer,
+            // the Nonce from the origin has been incremented pre-dispatch, so we
+            // need to subtract 1 to get the nonce at the time of the call.
+            if origin_is_caller {
+                account_nonce.saturating_sub(1u32.into()).saturated_into()
+            } else {
+                account_nonce.saturated_into()
+            },
+        )
+    };
+    Ok(addr)
 }

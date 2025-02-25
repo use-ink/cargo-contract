@@ -309,10 +309,12 @@ async fn build_upload_remove() {
     let stdout = str::from_utf8(&output.stdout).unwrap();
 
     // find the code hash in the output
-    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
+    let regex = regex::Regex::new("(0x[0-9A-Fa-f]+)").unwrap();
     let caps = regex.captures(stdout).expect("Failed to find codehash");
     let code_hash = caps.get(1).unwrap().as_str();
-    assert_eq!(64, code_hash.len());
+    assert_eq!(66, code_hash.len());
+
+    eprintln!("code hash: {code_hash:?}");
 
     let output = cargo_contract(project_path.as_path())
         .arg("remove")
@@ -321,6 +323,9 @@ async fn build_upload_remove() {
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
+    let stdout = str::from_utf8(&output.stdout).unwrap();
+    eprintln!("stdout {stdout:?}");
+    eprintln!("stderr {stderr:?}");
     assert!(output.status.success(), "remove failed: {stderr}");
 
     // prevent the node_process from being dropped and killed

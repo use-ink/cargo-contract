@@ -34,6 +34,7 @@ use contract_extrinsics::{
     TrieId,
 };
 use ink_env::Environment;
+use primitive_types::H256;
 use serde::Serialize;
 use std::{
     fmt::{
@@ -145,16 +146,15 @@ impl InfoCommand {
             } else if self.output_json {
                 println!(
                     "{}",
-                    serde_json::to_string_pretty(&ExtendedContractInfo::<
-                        <C as Config>::Hash,
-                        C::Balance,
-                    >::new(
-                        info_to_json, &contract_binary
-                    ))?
+                    serde_json::to_string_pretty(
+                        &ExtendedContractInfo::<C::Balance>::new(
+                            info_to_json,
+                            &contract_binary
+                        )
+                    )?
                 )
             } else {
                 basic_display_format_extended_contract_info(&ExtendedContractInfo::<
-                    <C as Config>::Hash,
                     C::Balance,
                 >::new(
                     info_to_json,
@@ -167,21 +167,20 @@ impl InfoCommand {
 }
 
 #[derive(serde::Serialize)]
-pub struct ExtendedContractInfo<Hash, Balance> {
+pub struct ExtendedContractInfo<Balance> {
     pub trie_id: TrieId,
-    pub code_hash: Hash,
+    pub code_hash: H256,
     pub storage_items: u32,
     pub storage_items_deposit: Balance,
     pub storage_total_deposit: Balance,
     pub source_language: String,
 }
 
-impl<Hash, Balance> ExtendedContractInfo<Hash, Balance>
+impl<Balance> ExtendedContractInfo<Balance>
 where
-    Hash: serde::Serialize + Copy,
     Balance: serde::Serialize + Copy,
 {
-    pub fn new(contract_info: ContractInfo<Hash, Balance>, code: &[u8]) -> Self {
+    pub fn new(contract_info: ContractInfo<Balance>, code: &[u8]) -> Self {
         let language = match determine_language(code).ok() {
             Some(lang) => lang.to_string(),
             None => "Unknown".to_string(),

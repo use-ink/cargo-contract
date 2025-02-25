@@ -331,10 +331,9 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Hash, Balance>(
-    info: &ExtendedContractInfo<Hash, Balance>,
+pub fn basic_display_format_extended_contract_info<Balance>(
+    info: &ExtendedContractInfo<Balance>,
 ) where
-    Hash: Debug,
     Balance: Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);
