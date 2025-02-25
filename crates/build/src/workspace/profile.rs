@@ -35,7 +35,6 @@ impl Profile {
         Profile {
             opt_level: Some(OptLevel::Z),
             lto: Some(Lto::Fat),
-            //lto: Some(Lto::Off),
             codegen_units: Some(1),
             panic: Some(PanicStrategy::Abort),
         }
