@@ -36,11 +36,11 @@ subxt = "0.38.1"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false }
-pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48"}
-pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", rev = "b9b73eb2758edc8af140fea60fdc51f890eefc48", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70", default-features = false }
+pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70"}
+pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
