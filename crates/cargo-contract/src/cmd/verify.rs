@@ -224,7 +224,7 @@ impl VerifyCommand {
                 `{cargo_contract_version}`.\n\n\
                 However, the original contract was built using `cargo-contract` version \
                 `{expected_cargo_contract_version}`.\n\n\
-                Please install the matching version and re-run the `verify` command.\n\
+                Please install the matching version and re-run the `verify` command:\n\
                 cargo install --force --locked cargo-contract --version {expected_cargo_contract_version}",
             );
             anyhow::ensure!(
@@ -294,7 +294,7 @@ impl VerifyCommand {
         if reference_code_hash != target_code_hash {
             verbose_eprintln!(
                 verbosity,
-                "Expected code hash in reference contract ({}): {}\nGot Code Hash: {}\n",
+                "Expected code hash from reference contract ({}): {}\nGot Code Hash: {}\n",
                 &path.display(),
                 &reference_code_hash,
                 &target_code_hash
@@ -311,7 +311,7 @@ impl VerifyCommand {
         if reference_code_hash != metadata.source.hash {
             verbose_eprintln!(
                 verbosity,
-                "Expected code hash in reference metadata ({}): {}\nGot Code Hash: {}\n",
+                "Expected code hash from reference metadata ({}): {}\nGot Code Hash: {}\n",
                 &path.display(),
                 &reference_code_hash,
                 &metadata.source.hash

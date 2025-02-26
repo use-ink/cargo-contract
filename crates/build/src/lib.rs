@@ -826,7 +826,6 @@ fn local_build(
         build_mode,
         network,
         unstable_flags,
-        keep_debug_symbols,
         extra_lints,
         skip_clippy_and_linting,
         ..
@@ -922,7 +921,7 @@ fn local_build(
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
     let mut config = polkavm_linker::Config::default();
-    config.set_strip(!keep_debug_symbols);
+    config.set_strip(true);
     config.set_optimize(true);
     let orig = fs::read(&crate_metadata.original_code)?;
 

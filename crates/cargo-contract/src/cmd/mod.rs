@@ -276,7 +276,7 @@ fn prompt_confirm_mapping<F: FnOnce()>(show_details: F) -> Result<()> {
     match buf.trim().to_lowercase().as_str() {
         // default is 'y'
         "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Transaction not submitted")),
+        "n" => Err(anyhow!("Mapping not intended")),
         c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }
