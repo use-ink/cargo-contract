@@ -321,7 +321,6 @@ async fn build_upload_remove() {
         .output()
         .expect("failed to execute process");
     let stderr = str::from_utf8(&output.stderr).unwrap();
-    let stdout = str::from_utf8(&output.stdout).unwrap();
     assert!(output.status.success(), "remove failed: {stderr}");
 
     // prevent the node_process from being dropped and killed
@@ -666,12 +665,11 @@ async fn api_build_upload_remove() {
     let _upload_result = upload_result.unwrap_or_else(|err| {
         panic!("upload code failed with {:?}", err);
     });
-    let code_hash_h256 = upload.code().code_hash(); // todo
 
     // remove the contract
     let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
         RemoveCommandBuilder::new(opts.clone())
-            .code_hash(Some(H256::from_slice(&code_hash_h256)))
+            .code_hash(Some(H256::from_slice(&upload.code().code_hash())))
             .done()
             .await
             .unwrap();
