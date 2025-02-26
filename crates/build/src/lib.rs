@@ -918,15 +918,13 @@ fn local_build(
             .with_extension(Target::dest_extension()),
     )
     .ok();
-    eprintln!("----- {:?}", crate_metadata.original_code);
-    fs::copy(&crate_metadata.original_code, Path::new("/tmp/reproducer"));
 
     let original_size =
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
     let mut config = polkavm_linker::Config::default();
-    //config.set_strip(!keep_debug_symbols);
-    //config.set_optimize(true);
+    config.set_strip(!keep_debug_symbols);
+    config.set_optimize(true);
     let orig = fs::read(&crate_metadata.original_code)?;
 
     let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {
