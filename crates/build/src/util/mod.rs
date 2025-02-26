@@ -90,7 +90,6 @@ where
         tracing::debug!("Setting cargo working dir to '{}'", path.as_ref().display());
         cmd = cmd.dir(path.as_ref());
     }
-    eprintln!("----cmd {:?}", cmd);
 
     cmd
 }

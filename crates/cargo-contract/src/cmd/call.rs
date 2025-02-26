@@ -198,6 +198,7 @@ impl CallCommand {
                         let msg = String::from_utf8(data).unwrap();
                         panic!("Call did revert {:?}", msg);
                         /*
+                        // todo
                         ErrorVariant::
                         let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
                         if self.output_json() {
