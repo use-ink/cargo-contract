@@ -452,13 +452,6 @@ where
             use_storage_deposit_limit = storage_deposit_limit.unwrap();
         }
 
-        /*
-        // todo
-        let (gas_limit, storage_deposit_limit) = match gas_limit {
-            (Some(gas_limit), (Some(storage_deposit_limit)) => gas_limit,
-            None => self.estimate_limits().await?,
-        };
-        */
         match self.args.code.clone() {
             Code::Upload(code) => {
                 self.instantiate_with_code(code, use_gas_limit, use_storage_deposit_limit)

@@ -145,9 +145,6 @@ impl RemoveCommand {
                 &token_metadata,
             )?
         };
-        eprintln!("remove_result {:?}", remove_events);
-        //if let Some(code_removed) = remove_result.code_removed {
-        //let remove_result = code_removed.code_hash;
 
         if self.output_json() {
             // Create a JSON object with the events and the removed code hash.
@@ -162,15 +159,5 @@ impl RemoveCommand {
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
         Result::<(), ErrorVariant>::Ok(())
-        /*
-        } else {
-            let error_code_hash = hex::encode(remove_exec.final_code_hash());
-            Err(anyhow::anyhow!(
-                "Error removing the code for the supplied code hash: {}",
-                error_code_hash
-            )
-            .into())
-        }
-         */
     }
 }
