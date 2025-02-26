@@ -243,7 +243,6 @@ fn verify_different_contracts() {
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
     cargo_contract(&project_dir).arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert().success();
 
     // Compile reference contract and write contract bundle and contract binary in the
