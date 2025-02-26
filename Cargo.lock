@@ -1922,15 +1922,15 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.39"
+version = "0.4.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
+checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
  "num-traits",
  "serde",
- "windows-targets 0.52.6",
+ "windows-link",
 ]
 
 [[package]]
@@ -2207,7 +2207,7 @@ dependencies = [
  "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
  "itertools 0.13.0",
  "parity-scale-codec",
- "polkavm-linker 0.21.0 (git+https://github.com/paritytech/polkavm)",
+ "polkavm-linker 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -4992,7 +4992,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "alloy-rlp",
  "derive_more 1.0.0",
@@ -5004,7 +5004,7 @@ dependencies = [
  "ink_storage",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=4a400dc1866f11707331fb6408df1055d0f42a70)",
  "parity-scale-codec",
- "polkavm-derive 0.21.0",
+ "polkavm-derive 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "scale-info",
  "sp-io 30.0.0",
  "staging-xcm 7.0.1",
@@ -5013,7 +5013,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "cfg-if",
 ]
@@ -5021,7 +5021,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5032,7 +5032,7 @@ dependencies = [
  "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11)",
  "itertools 0.14.0",
  "parity-scale-codec",
- "polkavm-derive 0.21.0",
+ "polkavm-derive 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "proc-macro2",
  "quote",
  "serde",
@@ -5043,7 +5043,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5058,7 +5058,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "alloy-rlp",
  "blake2",
@@ -5074,7 +5074,7 @@ dependencies = [
  "num-traits",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=4a400dc1866f11707331fb6408df1055d0f42a70)",
  "parity-scale-codec",
- "polkavm-derive 0.21.0",
+ "polkavm-derive 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "scale-decode",
  "scale-encode",
  "scale-info",
@@ -5091,7 +5091,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "blake2",
  "either",
@@ -5107,7 +5107,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5122,7 +5122,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
@@ -5154,7 +5154,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "cfg-if",
 ]
@@ -5170,7 +5170,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "alloy-rlp",
  "cfg-if",
@@ -5210,7 +5210,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5228,7 +5228,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#41dfab6cd729158b2ba4bcab8130b3f4855de7f9"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11#ea82faa3ca6af928002787f04b47e971409ca2da"
 dependencies = [
  "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11)",
  "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=cmichi-upgrade-to-latest-polkadot-sdk-feb-11)",
@@ -7597,7 +7597,7 @@ dependencies = [
  "pallet-revive-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=4a400dc1866f11707331fb6408df1055d0f42a70)",
  "parity-scale-codec",
  "paste",
- "polkavm-derive 0.21.0",
+ "polkavm-derive 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "scale-info",
 ]
 
@@ -9059,7 +9059,7 @@ dependencies = [
 [[package]]
 name = "polkavm-common"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#3e0c2e6ff67b1876fe08dc0180b86dff3c3f6b2a"
+source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
 
 [[package]]
 name = "polkavm-derive"
@@ -9094,7 +9094,15 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47239245f87329541932c0d7fec750a66a75b13aa87dfe4fbfd637bab86ad387"
 dependencies = [
- "polkavm-derive-impl-macro 0.21.0",
+ "polkavm-derive-impl-macro 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "polkavm-derive"
+version = "0.21.0"
+source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
+dependencies = [
+ "polkavm-derive-impl-macro 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
 ]
 
 [[package]]
@@ -9146,6 +9154,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkavm-derive-impl"
+version = "0.21.0"
+source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
+dependencies = [
+ "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "polkavm-derive-impl-macro"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9181,7 +9200,16 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36837f6b7edfd6f4498f8d25d81da16cf03bd6992c3e56f3d477dfc90f4fefca"
 dependencies = [
- "polkavm-derive-impl 0.21.0",
+ "polkavm-derive-impl 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "polkavm-derive-impl-macro"
+version = "0.21.0"
+source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
+dependencies = [
+ "polkavm-derive-impl 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "syn 2.0.98",
 ]
 
@@ -9234,14 +9262,14 @@ dependencies = [
 [[package]]
 name = "polkavm-linker"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#3e0c2e6ff67b1876fe08dc0180b86dff3c3f6b2a"
+source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
 dependencies = [
  "dirs",
  "gimli 0.31.1",
  "hashbrown 0.14.5",
  "log",
  "object 0.36.7",
- "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm)",
+ "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
  "regalloc2 0.9.3",
  "rustc-demangle",
 ]
@@ -11825,7 +11853,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-377-ext",
@@ -11935,7 +11963,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -11955,7 +11983,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -12305,7 +12333,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -12357,7 +12385,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "Inflector",
  "expander",
@@ -12517,7 +12545,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?rev=4a400dc1866f1170733
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 
 [[package]]
 name = "sp-storage"
@@ -12534,7 +12562,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
@@ -12595,7 +12623,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -12759,7 +12787,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#3dc3a11cd68762c2e5feb0beba0b61f448c4fc92"
+source = "git+https://github.com/paritytech/polkadot-sdk#2b9f83b17cb7d78edb1bb46bd51acaf93e5b811c"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -14539,6 +14567,12 @@ checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
 dependencies = [
  "windows-targets 0.52.6",
 ]
+
+[[package]]
+name = "windows-link"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dccfd733ce2b1753b03b6d3c65edf020262ea35e20ccdf3e288043e6dd620e3"
 
 [[package]]
 name = "windows-registry"

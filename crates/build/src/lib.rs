@@ -303,10 +303,12 @@ fn exec_cargo_for_onchain_target(
         network.append_to_args(&mut args);
 
         let mut features = features.clone();
+        features.push("ink/ink-debug");
         if build_mode == &BuildMode::Debug {
-            features.push("ink/ink-debug");
+            //features.push("ink/ink-debug");
         } else {
-            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+            // todo
+            //args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
