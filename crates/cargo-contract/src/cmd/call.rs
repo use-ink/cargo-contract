@@ -193,6 +193,22 @@ impl CallCommand {
             let result = call_exec.call_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
+                    if ret_val.did_revert() {
+                        let data = ret_val.data[1..].to_vec();
+                        let msg = String::from_utf8(data).unwrap();
+                        panic!("Call did revert {:?}", msg);
+                        /*
+                        ErrorVariant::
+                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
+                        if self.output_json() {
+                            return Err(object)
+                        } else {
+                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
+                        }
+                        return
+                        */
+                    }
                     let value = call_exec
                         .transcoder()
                         .decode_message_return(
