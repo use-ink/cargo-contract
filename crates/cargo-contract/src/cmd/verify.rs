@@ -106,6 +106,7 @@ impl VerifyCommand {
             build_mode: BuildMode::Release,
             build_artifact: BuildArtifacts::CodeOnly,
             extra_lints: false,
+            skip_clippy_and_linting: true,
             ..Default::default()
         };
 
@@ -238,6 +239,7 @@ impl VerifyCommand {
             manifest_path: manifest_path.clone(),
             verbosity,
             build_mode,
+            skip_clippy_and_linting: true,
             build_artifact: BuildArtifacts::All,
             image: ImageVariant::from(metadata.image.clone()),
             extra_lints: false,
