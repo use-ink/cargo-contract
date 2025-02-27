@@ -45,7 +45,6 @@ use subxt::{
     ext::{
         scale_decode::{
             self,
-            ext::primitive_types::H256,
             IntoVisitor,
         },
         scale_encode,
@@ -75,82 +74,6 @@ where
 {
     const PALLET: &'static str = "Revive";
     const EVENT: &'static str = "ContractEmitted";
-}
-
-/// A contract was successfully instantiated.
-#[derive(
-    Debug,
-    scale::Decode,
-    scale::Encode,
-    scale_decode::DecodeAsType,
-    scale_encode::EncodeAsType,
-)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct ContractInstantiated<AccountId> {
-    /// Account id of the deployer.
-    pub deployer: AccountId,
-    /// Account id where the contract was instantiated to.
-    pub contract: AccountId,
-}
-
-impl<AccountId> StaticEvent for ContractInstantiated<AccountId>
-where
-    AccountId: IntoVisitor,
-{
-    const PALLET: &'static str = "Revive";
-    const EVENT: &'static str = "Instantiated";
-}
-
-/// An event triggered by either the `instantiate_with_code` or the `upload_code` call.
-#[derive(
-    Debug,
-    scale::Decode,
-    scale::Encode,
-    scale_decode::DecodeAsType,
-    scale_encode::EncodeAsType,
-)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeStored<Balance> {
-    /// Hash under which the contract code was stored.
-    pub code_hash: H256,
-    /// Deposit held for the storing contract code on-chain.
-    pub deposit_held: Balance,
-    /// Address of the uploader.
-    pub uploader: H160,
-}
-
-impl<Balance> StaticEvent for CodeStored<Balance>
-where
-    Balance: IntoVisitor,
-{
-    const PALLET: &'static str = "Revive";
-    const EVENT: &'static str = "CodeStored";
-}
-
-/// An event triggered by the `remove_code` call.
-#[derive(
-    Debug,
-    scale::Decode,
-    scale::Encode,
-    scale_decode::DecodeAsType,
-    scale_encode::EncodeAsType,
-)]
-#[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-#[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub struct CodeRemoved<Balance> {
-    pub code_hash: H256,
-    pub deposit_released: Balance,
-    pub remover: H160,
-}
-
-impl<Balance> StaticEvent for CodeRemoved<Balance>
-where
-    Balance: IntoVisitor,
-{
-    const PALLET: &'static str = "Revive";
-    const EVENT: &'static str = "CodeRemoved";
 }
 
 /// Field that represent data of an event from invoking a contract extrinsic.

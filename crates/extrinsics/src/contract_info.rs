@@ -26,6 +26,7 @@ use std::fmt::{
 };
 
 use ink_env::Environment;
+use pallet_revive::evm::H256;
 use scale::Decode;
 use std::option::Option;
 use subxt::{
@@ -134,10 +135,10 @@ pub async fn fetch_contract_info<C: Config, E: Environment>(
     contract: &H160,
     rpc: &LegacyRpcMethods<C>,
     client: &OnlineClient<C>,
-) -> Result<ContractInfo<C::Hash, E::Balance>>
+) -> Result<ContractInfo<E::Balance>>
 where
-    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
     C::Hash: IntoVisitor,
+    C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
     E::Balance: IntoVisitor,
 {
     let best_block = get_best_block(rpc).await?;
@@ -152,14 +153,9 @@ where
         .at(best_block)
         .fetch(&contract_info_address)
         .await?
-        .ok_or_else(|| {
-            anyhow!(
-                "No contract information was found for contract {:?}",
-                contract
-            )
-        })?;
+        .ok_or_else(|| anyhow!("No contract was found for address {:?}", contract))?;
 
-    let contract_info_raw = ContractInfoRaw::<C, E>::new(*contract, contract_info_value)?;
+    let contract_info_raw = ContractInfoRaw::<E>::new(*contract, contract_info_value)?;
     let addr = contract_info_raw.get_addr();
 
     let account = fetch_mapped_account::<C, E>(addr, rpc, client).await?;
@@ -169,39 +165,25 @@ where
 
 /// Struct representing contract info, supporting deposit on either the main or secondary
 /// account.
-struct ContractInfoRaw<C: Config, E: Environment> {
-    //account: C::AccountId,
+struct ContractInfoRaw<E: Environment> {
     addr: H160,
-    contract_info: ContractInfoOf<C::Hash, E::Balance>,
+    contract_info: ContractInfoOf<E::Balance>,
 }
 
-impl<C: Config, E: Environment> ContractInfoRaw<C, E>
+impl<E: Environment> ContractInfoRaw<E>
 where
-    C::AccountId: IntoVisitor,
-    C::Hash: IntoVisitor,
     E::Balance: IntoVisitor,
 {
     /// Create a new instance of `ContractInfoRaw` based on the provided contract and
     /// contract info value.
-    pub fn new(
-        contract_account: H160,
-        contract_info_value: DecodedValueThunk,
-    ) -> Result<Self> {
+    pub fn new(addr: H160, contract_info_value: DecodedValueThunk) -> Result<Self> {
         let contract_info =
-            contract_info_value.as_type::<ContractInfoOf<C::Hash, E::Balance>>()?;
+            contract_info_value.as_type::<ContractInfoOf<E::Balance>>()?;
         Ok(Self {
-            //account: contract_account,
-            addr: contract_account,
+            addr,
             contract_info,
         })
     }
-
-    /*
-    pub fn get_account(&self) -> &C::AccountId {
-        &self.account
-    }
-
-     */
 
     pub fn get_addr(&self) -> &H160 {
         &self.addr
@@ -211,7 +193,7 @@ where
     pub fn into_contract_info(
         self,
         deposit: AccountData<E::Balance>,
-    ) -> ContractInfo<C::Hash, E::Balance> {
+    ) -> ContractInfo<E::Balance> {
         ContractInfo {
             trie_id: self.contract_info.trie_id.0.into(),
             code_hash: self.contract_info.code_hash,
@@ -223,17 +205,16 @@ where
 }
 
 #[derive(Debug, PartialEq, serde::Serialize)]
-pub struct ContractInfo<Hash, Balance> {
+pub struct ContractInfo<Balance> {
     trie_id: TrieId,
-    code_hash: Hash,
+    code_hash: H256,
     storage_items: u32,
     storage_items_deposit: Balance,
     storage_total_deposit: Balance,
 }
 
-impl<Hash, Balance> ContractInfo<Hash, Balance>
+impl<Balance> ContractInfo<Balance>
 where
-    Hash: serde::Serialize,
     Balance: serde::Serialize + Copy,
 {
     /// Convert and return contract info in JSON format.
@@ -247,7 +228,7 @@ where
     }
 
     /// Return the code_hash of the contract.
-    pub fn code_hash(&self) -> &Hash {
+    pub fn code_hash(&self) -> &H256 {
         &self.code_hash
     }
 
@@ -300,11 +281,8 @@ impl Display for TrieId {
 pub async fn fetch_contract_binary<C: Config>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
-    hash: &C::Hash,
-) -> Result<Vec<u8>>
-where
-    C::Hash: AsRef<[u8]> + Display + IntoVisitor,
-{
+    hash: &H256,
+) -> Result<Vec<u8>> {
     let best_block = get_best_block(rpc).await?;
 
     let pristine_code_address =
@@ -322,7 +300,7 @@ where
 }
 
 /// Parse a contract account address from a storage key. Returns error if a key is
-/// malformated.
+/// malformed.
 fn parse_contract_address(
     storage_contract_account_key: &[u8],
     storage_contract_root_key_len: usize,
@@ -380,9 +358,9 @@ struct BoundedVec<T>(pub ::std::vec::Vec<T>);
 /// A struct used in the storage reads to access contract info.
 #[derive(Debug, DecodeAsType)]
 #[decode_as_type(crate_path = "subxt::ext::scale_decode")]
-struct ContractInfoOf<Hash, Balance> {
+struct ContractInfoOf<Balance> {
     trie_id: BoundedVec<u8>,
-    code_hash: Hash,
+    code_hash: H256,
     storage_items: u32,
     storage_item_deposit: Balance,
 }

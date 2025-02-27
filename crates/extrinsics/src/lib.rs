@@ -97,7 +97,6 @@ pub use map_account::{
 pub use remove::{
     RemoveCommandBuilder,
     RemoveExec,
-    RemoveResult,
 };
 use scale::{
     Decode,

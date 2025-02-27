@@ -40,20 +40,20 @@ jsonschema = "0.28"
 schemars = "0.8"
 comfy-table = "7.1.1"
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-upgrade-to-latest-polkadot-sdk-feb-11" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.38.1", features = ["substrate-compat"] }
 hex = "0.4.3"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067"}
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067"}
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70", default-features = false}
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70" }
 
 [build-dependencies]
 anyhow = "1.0.95"
-substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", rev = "645878a27115db52e5d63115699b4bbb89034067" }
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", rev = "4a400dc1866f11707331fb6408df1055d0f42a70" }
 current_platform = "0.2.0"
 which = "7.0.1"
 

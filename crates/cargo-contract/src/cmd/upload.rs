@@ -177,25 +177,17 @@ impl UploadCommand {
                     &token_metadata,
                 )?
             };
-            if let Some(code_stored) = upload_result.code_stored {
-                let code_hash = code_stored.code_hash;
-                if self.output_json() {
-                    // Create a JSON object with the events and the code hash.
-                    let json_object = serde_json::json!({
-                        "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
-                        "code_hash": code_hash,
-                    });
-                    println!("{}", serde_json::to_string_pretty(&json_object)?);
-                } else {
-                    println!("{}", output_events);
-                    name_value_println!("Code hash", format!("{:?}", code_hash));
-                }
+            let code_hash = hex::encode(code_hash);
+            if self.output_json() {
+                // Create a JSON object with the events and the code hash.
+                let json_object = serde_json::json!({
+                    "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
+                    "code_hash": code_hash,
+                });
+                println!("{}", serde_json::to_string_pretty(&json_object)?);
             } else {
-                let code_hash = hex::encode(code_hash);
-                return Err(anyhow::anyhow!(
-                    "This contract has already been uploaded with code hash: 0x{code_hash}"
-                )
-                .into())
+                println!("{}", output_events);
+                name_value_println!("Code hash", format!("0x{code_hash}"));
             }
         }
         Ok(())

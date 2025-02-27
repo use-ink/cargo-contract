@@ -130,9 +130,9 @@ impl RemoveCommand {
             .code_hash(code_hash)
             .done()
             .await?;
-        let remove_result = remove_exec.remove_code().await?;
+        let remove_events = remove_exec.remove_code().await?;
         let display_events = DisplayEvents::from_events::<C, C>(
-            &remove_result.events,
+            &remove_events,
             Some(remove_exec.transcoder()),
             &remove_exec.client().metadata(),
         )?;
@@ -145,29 +145,19 @@ impl RemoveCommand {
                 &token_metadata,
             )?
         };
-        if let Some(code_removed) = remove_result.code_removed {
-            let remove_result = code_removed.code_hash;
 
-            if self.output_json() {
-                // Create a JSON object with the events and the removed code hash.
-                let json_object = serde_json::json!({
-                    "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
-                    "code_hash": remove_result,
-                });
-                let json_object = serde_json::to_string_pretty(&json_object)?;
-                println!("{}", json_object);
-            } else {
-                println!("{}", output_events);
-                name_value_println!("Code hash", format!("{remove_result:?}"));
-            }
-            Result::<(), ErrorVariant>::Ok(())
+        if self.output_json() {
+            // Create a JSON object with the events and the removed code hash.
+            let json_object = serde_json::json!({
+                "events": serde_json::from_str::<serde_json::Value>(&output_events)?,
+                "code_hash": code_hash,
+            });
+            let json_object = serde_json::to_string_pretty(&json_object)?;
+            println!("{}", json_object);
         } else {
-            let error_code_hash = hex::encode(remove_exec.final_code_hash());
-            Err(anyhow::anyhow!(
-                "Error removing the code for the supplied code hash: {}",
-                error_code_hash
-            )
-            .into())
+            println!("{}", output_events);
+            name_value_println!("Code hash", format!("{code_hash:?}"));
         }
+        Result::<(), ErrorVariant>::Ok(())
     }
 }

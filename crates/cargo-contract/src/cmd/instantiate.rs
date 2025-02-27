@@ -17,7 +17,6 @@
 use super::{
     config::SignerConfig,
     display_contract_exec_result,
-    display_contract_exec_result_debug,
     display_dry_run_result_warning,
     offer_map_account_if_needed,
     parse_balance,
@@ -75,6 +74,7 @@ use subxt::{
         scale_encode::EncodeAsType,
         sp_runtime::traits::Zero,
     },
+    utils::H160,
     Config,
 };
 
@@ -193,9 +193,6 @@ impl InstantiateCommand {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         print_instantiate_dry_run_result(&dry_run_result);
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH, _>(
-                            &result,
-                        )?;
                         display_dry_run_result_warning("instantiate");
                     }
                     Ok(())
@@ -304,7 +301,11 @@ where
     }
     let instantiate_result = instantiate_exec.instantiate_dry_run().await?;
     match instantiate_result.result {
-        Ok(_) => {
+        Ok(res) => {
+            if res.result.did_revert() {
+                return Err(anyhow!("Pre-submission dry-run failed because contract reverted:\n{:?}\n\nUse --skip-dry-run to skip this step.",
+                String::from_utf8(res.result.data).expect("unable to convert to utf8")));
+            }
             if !output_json {
                 print_gas_required_success(instantiate_result.gas_required);
             }
@@ -371,7 +372,7 @@ where
         Some(instantiate_exec.transcoder()),
         &instantiate_exec.client().metadata(),
     )?;
-    let contract_address = instantiate_exec_result.contract_address.to_string();
+    let contract_address = instantiate_exec_result.contract_address;
     if output_json {
         let display_instantiate_result = InstantiateResult {
             code_hash: instantiate_exec_result
@@ -429,7 +430,7 @@ pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<
 pub struct InstantiateResult {
     /// Instantiated contract hash
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contract: Option<String>,
+    pub contract: Option<H160>,
     /// Instantiated code hash
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_hash: Option<String>,
@@ -456,7 +457,11 @@ pub fn print_instantiate_dry_run_result<Balance: Serialize>(
         format!("{:?}", result.reverted),
         DEFAULT_KEY_COL_WIDTH
     );
-    name_value_println!("Contract", result.contract, DEFAULT_KEY_COL_WIDTH);
+    name_value_println!(
+        "Contract",
+        format!("{:?}", result.contract),
+        DEFAULT_KEY_COL_WIDTH
+    );
     name_value_println!(
         "Gas consumed",
         result.gas_consumed.to_string(),

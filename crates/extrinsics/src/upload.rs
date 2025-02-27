@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::CodeStored,
     pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
@@ -142,7 +141,7 @@ where
     /// blockchain, utilizing the provided options.
     /// The function handles the necessary interactions with the blockchain's runtime
     /// API to ensure the successful upload of the code.
-    pub async fn upload_code(&self) -> Result<UploadResult<C, E>, ErrorVariant> {
+    pub async fn upload_code(&self) -> Result<UploadResult<C>, ErrorVariant> {
         let storage_deposit_limit = self.opts.storage_deposit_limit();
 
         let call = UploadCode::new(
@@ -155,12 +154,11 @@ where
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
         tracing::debug!("events: {:?}", events);
 
-        let code_stored = events.find_first::<CodeStored<E::Balance>>()?;
-        tracing::debug!("did we find `CodeStored`? {}", code_stored.is_some());
-        Ok(UploadResult {
-            code_stored,
-            events,
-        })
+        // The extrinsic will succeed for those two cases:
+        //   - the code was already uploaded before.
+        //   - the code was uploaded now.
+
+        Ok(UploadResult { events })
     }
 
     /// Returns the extrinsic options.
@@ -198,8 +196,7 @@ struct CodeUploadRequest<AccountId, Balance> {
 }
 
 /// A struct representing the result of an upload command execution.
-pub struct UploadResult<C: Config, E: Environment> {
-    pub code_stored: Option<CodeStored<E::Balance>>,
+pub struct UploadResult<C: Config> {
     pub events: ExtrinsicEvents<C>,
 }
 

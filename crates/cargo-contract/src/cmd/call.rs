@@ -33,7 +33,6 @@ use std::{
 use super::{
     config::SignerConfig,
     display_contract_exec_result,
-    display_contract_exec_result_debug,
     display_dry_run_result_warning,
     offer_map_account_if_needed,
     parse_account,
@@ -51,6 +50,7 @@ use anyhow::{
 };
 use contract_build::name_value_println;
 use contract_extrinsics::{
+    fetch_contract_info,
     pallet_revive_primitives::StorageDeposit,
     CallCommandBuilder,
     CallExec,
@@ -59,6 +59,7 @@ use contract_extrinsics::{
     TokenMetadata,
 };
 use contract_transcode::Value;
+use sp_core::Decode;
 use sp_weights::Weight;
 use subxt::{
     config::{
@@ -123,7 +124,8 @@ impl CallCommand {
         &self,
     ) -> Result<(), ErrorVariant>
     where
-        <C as Config>::AccountId: IntoVisitor + FromStr + EncodeAsType,
+        <C as Config>::AccountId:
+            IntoVisitor + FromStr + EncodeAsType + Decode + AsRef<[u8]> + Display,
         <<C as Config>::AccountId as FromStr>::Err: Display,
         C::Balance: From<u128>
             + Display
@@ -132,9 +134,11 @@ impl CallCommand {
             + Serialize
             + Debug
             + EncodeAsType
+            + IntoVisitor
             + Zero,
         <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
             From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
+        <C as Config>::Hash: IntoVisitor,
     {
         let contract = parse_account(&self.contract)
             .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;
@@ -177,12 +181,35 @@ impl CallCommand {
             .value(value)
             .done()
             .await?;
+
+        // assert that the contract even exists
+        let _ =
+            fetch_contract_info::<C, C>(&contract, call_exec.rpc(), call_exec.client())
+                .await?;
+
         let metadata = call_exec.client().metadata();
 
         if !self.extrinsic_cli_opts.execute {
             let result = call_exec.call_dry_run().await?;
             match result.result {
                 Ok(ref ret_val) => {
+                    if ret_val.did_revert() {
+                        let data = ret_val.data[1..].to_vec();
+                        let msg = String::from_utf8(data).unwrap();
+                        panic!("Call did revert {:?}", msg);
+                        /*
+                        // todo
+                        ErrorVariant::
+                        let object = ErrorVariant::from_dispatch_error(err, &metadata)?;
+                        if self.output_json() {
+                            return Err(object)
+                        } else {
+                            name_value_println!("Result", object, MAX_KEY_COL_WIDTH);
+                            display_contract_exec_result::<_, MAX_KEY_COL_WIDTH, _>(&result)?;
+                        }
+                        return
+                        */
+                    }
                     let value = call_exec
                         .transcoder()
                         .decode_message_return(
@@ -204,9 +231,6 @@ impl CallCommand {
                         println!("{}", dry_run_result.to_json()?);
                     } else {
                         dry_run_result.print();
-                        display_contract_exec_result_debug::<_, DEFAULT_KEY_COL_WIDTH, _>(
-                            &result,
-                        )?;
                         display_dry_run_result_warning("message");
                     };
                 }

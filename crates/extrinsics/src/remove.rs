@@ -15,7 +15,6 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    events::CodeRemoved,
     submit_extrinsic,
     ContractMessageTranscoder,
     ErrorVariant,
@@ -145,24 +144,17 @@ where
     /// execution. It interacts with the blockchain's runtime API to execute the
     /// removal operation and provides the resulting events from the removal.
     ///
-    /// Returns the `RemoveResult` containing the events generated from the contract
-    /// code removal, or an error in case of failure.
-    pub async fn remove_code(&self) -> Result<RemoveResult<C, E>, ErrorVariant>
+    /// Returns the events generated from the contract code removal, or an error
+    /// in case of failure.
+    pub async fn remove_code(&self) -> Result<ExtrinsicEvents<C>, ErrorVariant>
     where
         E::Balance: IntoVisitor + Into<u128>,
     {
         let code_hash = self.final_code_hash;
-
         let call = RemoveCode::new(code_hash).build();
-
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
-
-        let code_removed = events.find_first::<CodeRemoved<E::Balance>>()?;
-        Ok(RemoveResult {
-            code_removed,
-            events,
-        })
+        Ok(events)
     }
 
     /// Returns the final code hash.
@@ -184,10 +176,4 @@ where
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
     }
-}
-
-/// A struct representing the result of a remove command execution.
-pub struct RemoveResult<C: Config, E: Environment> {
-    pub code_removed: Option<CodeRemoved<E::Balance>>,
-    pub events: ExtrinsicEvents<C>,
 }

@@ -61,10 +61,7 @@ use crate::{
     PathBuf,
     Weight,
 };
-use anyhow::{
-    Context,
-    Result,
-};
+use anyhow::Result;
 use colored::Colorize;
 use contract_build::{
     name_value_println,
@@ -101,7 +98,6 @@ use subxt::{
     },
     utils::H160,
 };
-//use contract_transcode::env_types::H160;
 
 /// Arguments required for creating and sending an extrinsic to a Substrate node.
 #[derive(Clone, Debug, clap::Args)]
@@ -217,9 +213,6 @@ pub fn display_contract_exec_result<R, const WIDTH: usize, Balance>(
 where
     Balance: Debug,
 {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
     name_value_println!("Gas Consumed", format!("{:?}", result.gas_consumed), WIDTH);
     name_value_println!("Gas Required", format!("{:?}", result.gas_required), WIDTH);
     name_value_println!(
@@ -227,31 +220,6 @@ where
         format!("{:?}", result.storage_deposit),
         WIDTH
     );
-
-    // print debug messages aligned, only first line has key
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
-    Ok(())
-}
-
-pub fn display_contract_exec_result_debug<R, const WIDTH: usize, Balance>(
-    result: &ContractResult<R, Balance>,
-) -> Result<()> {
-    let mut debug_message_lines = std::str::from_utf8(&result.debug_message)
-        .context("Error decoding UTF8 debug message bytes")?
-        .lines();
-    if let Some(debug_message) = debug_message_lines.next() {
-        name_value_println!("Debug Message", format!("{debug_message}"), WIDTH);
-    }
-
-    for debug_message in debug_message_lines {
-        name_value_println!("", format!("{debug_message}"), WIDTH);
-    }
     Ok(())
 }
 
@@ -308,7 +276,7 @@ fn prompt_confirm_mapping<F: FnOnce()>(show_details: F) -> Result<()> {
     match buf.trim().to_lowercase().as_str() {
         // default is 'y'
         "y" | "" => Ok(()),
-        "n" => Err(anyhow!("Transaction not submitted")),
+        "n" => Err(anyhow!("Mapping not intended")),
         c => Err(anyhow!("Expected either 'y' or 'n', got '{}'", c)),
     }
 }
@@ -363,10 +331,9 @@ pub fn print_gas_required_success(gas: Weight) {
 }
 
 /// Display contract information in a formatted way
-pub fn basic_display_format_extended_contract_info<Hash, Balance>(
-    info: &ExtendedContractInfo<Hash, Balance>,
+pub fn basic_display_format_extended_contract_info<Balance>(
+    info: &ExtendedContractInfo<Balance>,
 ) where
-    Hash: Debug,
     Balance: Debug,
 {
     name_value_println!("TrieId", info.trie_id, MAX_KEY_COL_WIDTH);

@@ -640,7 +640,7 @@ where
     pub async fn fetch_contract_info<E: Environment>(
         &self,
         contract: &H160,
-    ) -> Result<ContractInfo<C::Hash, E::Balance>>
+    ) -> Result<ContractInfo<E::Balance>>
     where
         C::AccountId: Decode,
         E::Balance: IntoVisitor,

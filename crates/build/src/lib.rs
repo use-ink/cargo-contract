@@ -306,7 +306,8 @@ fn exec_cargo_for_onchain_target(
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug");
         } else {
-            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+            // todo
+            //args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -825,7 +826,6 @@ fn local_build(
         build_mode,
         network,
         unstable_flags,
-        keep_debug_symbols,
         extra_lints,
         skip_clippy_and_linting,
         ..
@@ -921,10 +921,8 @@ fn local_build(
         fs::metadata(&crate_metadata.original_code)?.len() as f64 / 1000.0;
 
     let mut config = polkavm_linker::Config::default();
-    config.set_strip(!keep_debug_symbols);
-    if *build_mode != BuildMode::Debug {
-        config.set_optimize(true);
-    }
+    config.set_strip(true);
+    config.set_optimize(true);
     let orig = fs::read(&crate_metadata.original_code)?;
 
     let linked = match polkavm_linker::program_from_elf(config, orig.as_ref()) {

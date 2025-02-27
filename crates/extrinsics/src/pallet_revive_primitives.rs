@@ -26,8 +26,12 @@ use sp_runtime::{
     RuntimeDebug,
 };
 use sp_weights::Weight;
-use subxt::utils::H256;
+use subxt::utils::{
+    H160,
+    H256,
+};
 
+// todo reference `pallet-revive::ContractResult` directly
 /// Copied from `pallet_revive`, required for RPC calls.
 ///
 /// Result type of a `bare_call` or `bare_instantiate` call as well as
@@ -62,21 +66,6 @@ pub struct ContractResult<R, Balance> {
     /// [`Self::result`] is `Err`. This is because on error all storage changes are
     /// rolled back including the payment of the deposit.
     pub storage_deposit: StorageDeposit<Balance>,
-    /// An optional debug message. This message is only filled when explicitly requested
-    /// by the code that calls into the contract. Otherwise it is empty.
-    ///
-    /// The contained bytes are valid UTF-8. This is not declared as `String` because
-    /// this type is not allowed within the runtime.
-    ///
-    /// Clients should not make any assumptions about the format of the buffer.
-    /// They should just display it as-is. It is **not** only a collection of log lines
-    /// provided by a contract but a formatted buffer with different sections.
-    ///
-    /// # Note
-    ///
-    /// The debug message is never generated during on-chain execution. It is reserved
-    /// for RPC calls.
-    pub debug_message: Vec<u8>,
     /// The execution result of the code.
     pub result: R,
 }
@@ -86,8 +75,8 @@ pub type ContractExecResult<Balance> =
     ContractResult<Result<ExecReturnValue, DispatchError>, Balance>;
 
 /// Result type of a `bare_instantiate` call, as well as `ContractsApi::instantiate`.
-pub type ContractInstantiateResult<AccountId, Balance> =
-    ContractResult<Result<InstantiateReturnValue<AccountId>, DispatchError>, Balance>;
+pub type ContractInstantiateResult<Balance> =
+    ContractResult<Result<InstantiateReturnValue, DispatchError>, Balance>;
 
 /// Result type of a `bare_code_upload` call.
 pub type CodeUploadResult<Balance> =
@@ -127,11 +116,11 @@ impl ExecReturnValue {
 
 /// The result of a successful contract instantiation.
 #[derive(Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct InstantiateReturnValue<AccountId> {
+pub struct InstantiateReturnValue {
     /// The output of the called constructor.
     pub result: ExecReturnValue,
     /// The account id of the new contract.
-    pub account_id: AccountId,
+    pub account_id: H160,
 }
 
 /// The result of successfully uploading a contract.

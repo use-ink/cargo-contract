@@ -34,7 +34,10 @@ use contract_build::{
     util::decode_hex,
 };
 use contract_transcode::AccountId32;
-use ink::H160;
+use ink::{
+    H160,
+    H256,
+};
 use ink_env::DefaultEnvironment;
 use predicates::prelude::*;
 use regex::Regex;
@@ -205,6 +208,7 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -285,6 +289,7 @@ async fn build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -304,10 +309,10 @@ async fn build_upload_remove() {
     let stdout = str::from_utf8(&output.stdout).unwrap();
 
     // find the code hash in the output
-    let regex = regex::Regex::new("0x([0-9A-Fa-f]+)").unwrap();
+    let regex = regex::Regex::new("(0x[0-9A-Fa-f]+)").unwrap();
     let caps = regex.captures(stdout).expect("Failed to find codehash");
     let code_hash = caps.get(1).unwrap().as_str();
-    assert_eq!(64, code_hash.len());
+    assert_eq!(66, code_hash.len());
 
     let output = cargo_contract(project_path.as_path())
         .arg("remove")
@@ -350,6 +355,7 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -489,6 +495,7 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -505,6 +512,7 @@ async fn api_build_upload_instantiate_call() {
     let signer = Keypair::from_uri(&uri).unwrap();
     let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
+        .storage_deposit_limit(Some(u128::MAX))
         .done();
     let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
         UploadCommandBuilder::new(opts.clone())
@@ -629,6 +637,7 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -645,6 +654,7 @@ async fn api_build_upload_remove() {
     let signer = Keypair::from_uri(&uri).unwrap();
     let opts = ExtrinsicOptsBuilder::new(signer)
         .file(Some(contract_file))
+        .storage_deposit_limit(Some(u128::MAX))
         .done();
     let upload: UploadExec<DefaultConfig, DefaultEnvironment, Keypair> =
         UploadCommandBuilder::new(opts.clone())
@@ -652,15 +662,14 @@ async fn api_build_upload_remove() {
             .await
             .unwrap();
     let upload_result = upload.upload_code().await;
-    let upload_result = upload_result.unwrap_or_else(|err| {
+    let _upload_result = upload_result.unwrap_or_else(|err| {
         panic!("upload code failed with {:?}", err);
     });
-    let code_hash_h256 = upload_result.code_stored.unwrap().code_hash;
 
     // remove the contract
     let remove: RemoveExec<DefaultConfig, DefaultEnvironment, Keypair> =
         RemoveCommandBuilder::new(opts.clone())
-            .code_hash(Some(code_hash_h256))
+            .code_hash(Some(H256::from_slice(&upload.code().code_hash())))
             .done()
             .await
             .unwrap();
@@ -746,6 +755,7 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -832,7 +842,6 @@ async fn build_upload_instantiate_storage() {
 #[tokio::test]
 async fn adhere_to_limits_during_build_upload_instantiate_call() {
     fn workflow(lib: &Path, project_path: &Path, salt: &str, arg: &str) {
-        tracing::debug!("Testing with {}", arg);
         let contract = r#"
         #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
@@ -844,12 +853,13 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
 			pub struct Flipper {
 				value: bool,
 				vec: ink::prelude::vec::Vec<u8>,
+				salt: u8,
 			}
 
 			impl Flipper {
 				#[ink(constructor)]
 				pub fn new(init_value: bool) -> Self {
-					Self { value: init_value, vec: Default::default() }
+					Self { value: init_value, vec: Default::default(), salt: SALT }
 				}
 
 				#[ink(message)]
@@ -866,6 +876,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
         cargo_contract(project_path)
             .arg("build")
             .arg("--skip-linting")
+            .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
             .assert()
             .success();
 
@@ -1052,6 +1063,7 @@ async fn complex_types_for_contract_interaction() {
 
     cargo_contract(project_path)
         .arg("build")
+        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .arg("--verbose")
         .assert()
         .success()
@@ -1072,8 +1084,6 @@ async fn complex_types_for_contract_interaction() {
     let h256_hash: ink::H256 = ink::H256::from([0x17; 32]);
     //let value: ink::U256 = ink::U256::MAX;
     let value: ink::U256 = ink::U256::one();
-
-    eprintln!("addr {}", hex::encode(addr).as_str());
 
     let output = cargo_contract(project_path)
         .arg("instantiate")
@@ -1117,8 +1127,6 @@ async fn complex_types_for_contract_interaction() {
         .success();
     let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
 
-    eprintln!("stdout {}", stdout);
-
     let re = Regex::new(r#"\s+Result\s+Ok\(\(([A-Za-z0-9,\s]+)\)\)"#)
         .expect("regex creation failed");
     let caps = re.captures(stdout).unwrap();
@@ -1155,7 +1163,6 @@ async fn complex_types_for_contract_interaction() {
     let ret_h256 = Decode::decode(&mut &decode_hex(ret_h256).unwrap()[..]).unwrap();
     assert_eq!(h256_hash, ret_h256, "returned H256 does not match!");
 
-    eprintln!("ret_u256 {:?}", ret_u256);
     assert_eq!(value.to_string(), ret_u256, "returned U256 does not match!");
 
     let assert = cargo_contract(project_path)
@@ -1167,12 +1174,10 @@ async fn complex_types_for_contract_interaction() {
         .success();
     let stdout = str::from_utf8(&assert.get_output().stdout).unwrap();
 
-    eprintln!("stdout {}", stdout);
     let re =
         Regex::new(r#"Result\s+Ok\(([A-Za-z0-9]+)\)"#).expect("regex creation failed");
     let caps = re.captures(stdout).unwrap();
     let _ret_account_id = caps.get(1).unwrap().as_str();
-    // eprintln!("ret_account_id {}", _ret_account_id);
 
     // todo use transcode
     //let account_id: AccountId32 = AccountId32::from([0x13; 32]);
