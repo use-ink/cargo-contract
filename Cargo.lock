@@ -2195,7 +2195,7 @@ dependencies = [
  "ink_metadata",
  "itertools 0.13.0",
  "parity-scale-codec",
- "polkavm-linker 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
+ "polkavm-linker 0.21.0 (git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug)",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -9009,7 +9009,7 @@ dependencies = [
 [[package]]
 name = "polkavm-common"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
+source = "git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug#c64d0224b4b4724f916dd57a7ea81b7448436c63"
 
 [[package]]
 name = "polkavm-derive"
@@ -9215,14 +9215,14 @@ dependencies = [
 [[package]]
 name = "polkavm-linker"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3#185b1e883d14f8044c5c4046ac5236a3a549d9b3"
+source = "git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug#c64d0224b4b4724f916dd57a7ea81b7448436c63"
 dependencies = [
  "dirs",
  "gimli 0.31.1",
  "hashbrown 0.14.5",
  "log",
  "object 0.36.7",
- "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm?rev=185b1e883d14f8044c5c4046ac5236a3a549d9b3)",
+ "polkavm-common 0.21.0 (git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug)",
  "regalloc2 0.9.3",
  "rustc-demangle",
 ]
