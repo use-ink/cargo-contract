@@ -102,6 +102,10 @@ use scale::{
     Decode,
     Encode,
 };
+use sp_core::{
+    keccak_256,
+    H160,
+};
 use subxt::{
     backend::legacy::{
         rpc_methods::DryRunResult,
@@ -322,6 +326,36 @@ pub fn url_to_string(url: &url::Url) -> String {
             .to_string()
         }
         _ => url.to_string(),
+    }
+}
+
+pub struct AccountIdMapper {}
+impl AccountIdMapper {
+    //pub fn to_address(account_id: &E::AccountId) -> H160 {
+    pub fn to_address(account_id: &[u8]) -> H160 {
+        let mut account_bytes: [u8; 32] = [0u8; 32];
+        account_bytes.copy_from_slice(&account_id[..32]);
+        if Self::is_eth_derived(account_id) {
+            // this was originally an eth address
+            // we just strip the 0xEE suffix to get the original address
+            H160::from_slice(&account_bytes[..20])
+        } else {
+            // this is an (ed|sr)25510 derived address
+            // avoid truncating the public key by hashing it first
+            let account_hash = keccak_256(account_bytes.as_ref());
+            H160::from_slice(&account_hash[12..])
+        }
+    }
+
+    /// Returns true if the passed account id is controlled by an Ethereum key.
+    ///
+    /// This is a stateless check that just compares the last 12 bytes. Please note that
+    /// it is theoretically possible to create an ed25519 keypair that passed this
+    /// filter. However, this can't be used for an attack. It also won't happen by
+    /// accident since everbody is using sr25519 where this is not a valid public key.
+    //fn is_eth_derived(account_id: &[u8]) -> bool {
+    fn is_eth_derived(account_bytes: &[u8]) -> bool {
+        account_bytes[20..] == [0xEE; 12]
     }
 }
 

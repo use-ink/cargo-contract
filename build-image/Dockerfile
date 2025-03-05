@@ -3,7 +3,7 @@ FROM docker.io/bitnami/minideb:bullseye-amd64 as slimmed-rust
 # The rust version to use
 ARG RUST_VERSION=stable
 # The cargo contract version to use
-ARG CARGO_CONTRACT_VERSION=4.1.0
+ARG CARGO_CONTRACT_VERSION=6.0.0-alpha
 # Url to the cargo-contract repository to install from
 ARG CARGO_CONTRACT_GIT
 # Branch to use in git repository
@@ -19,10 +19,11 @@ ARG WGET_VERSION=1.21-1+deb11u1
 # g++ package version
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
-# The rust version used by linter
-ARG RUST_LINTER_VERSION=nightly-2024-09-05
+# The Rust version used by `ink_linting`.
+# See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
+ARG RUST_LINTER_VERSION=nightly-2025-02-20
 
-# metadata
+# Metadata
 LABEL ink.use.image.vendor="Use Ink" \
     ink.use.image.title="useink/contracts-verifiable" \
     ink.use.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \
@@ -52,7 +53,7 @@ RUN set -eux \
     && url="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init" \
     && wget "$url" \
     && chmod +x rustup-init \
-    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src rustfmt clippy --default-toolchain $RUST_VERSION  \
+    && ./rustup-init -y --no-modify-path --profile minimal --component rust-src,rustfmt,clippy --default-toolchain $RUST_VERSION  \
     && rm rustup-init \
     # Install nightly toolchain required by `cargo contract build --verifiable --lint` command
     && rustup install ${RUST_LINTER_VERSION} --profile minimal \
@@ -105,7 +106,7 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && cargo install cargo-dylint dylint-link \
     # Check if build with linting works
     && cargo contract new test \
-    # Generate /usr/local/dylint_drivers/nightly-2024-09-05-x86_64-unknown-linux-gnu/dylint-driver bin
+    # Generate /usr/local/dylint_drivers/nightly-2024-02-20-x86_64-unknown-linux-gnu/dylint-driver bin
     && mkdir -p $DYLINT_DRIVER_PATH \
     && cd test && cargo contract build --lint --verbose --release && cd .. \
     && rm -rf test \
