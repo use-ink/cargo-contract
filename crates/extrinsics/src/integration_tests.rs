@@ -930,7 +930,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
         assert!(output.status.success(), "instantiate failed: {stderr}");
 
         let contract_account = extract_contract_address(stdout);
-        let output = cargo_contract(project_path)
+        cargo_contract(project_path)
             .arg("call")
             .args(["--message", "push"])
             .args(["--contract", contract_account])
