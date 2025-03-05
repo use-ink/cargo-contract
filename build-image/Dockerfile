@@ -19,10 +19,11 @@ ARG WGET_VERSION=1.21-1+deb11u1
 # g++ package version
 ARG G_VERSION=4:10.2.1-1
 ARG MUSL_V=1.2.2-1
-# The rust version used by `ink_linting`
+# The Rust version used by `ink_linting`.
+# See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
 ARG RUST_LINTER_VERSION=nightly-2025-02-20
 
-# metadata
+# Metadata
 LABEL ink.use.image.vendor="Use Ink" \
     ink.use.image.title="useink/contracts-verifiable" \
     ink.use.image.description="Inherits from docker.io/bitnami/minideb:bullseye. \

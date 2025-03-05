@@ -23,6 +23,7 @@ use super::{
     },
     state_call,
     submit_extrinsic,
+    AccountIdMapper,
     ContractMessageTranscoder,
     ErrorVariant,
 };
@@ -634,14 +635,14 @@ async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
     data: &[u8],
 ) -> Result<H160, subxt::Error> {
     let account_id = Signer::account_id(signer);
-    let deployer = H160::from_slice(&account_id.encode()[..20]);
-    let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
+    let deployer = AccountIdMapper::to_address(&account_id.encode()[..]);
 
     // copied from `pallet-revive`
     let origin_is_caller = false;
     let addr = if let Some(salt) = salt {
         pallet_revive::create2(&deployer, code, data, salt)
     } else {
+        let account_nonce = get_account_nonce(client, rpc, &account_id).await?;
         pallet_revive::create1(
             &deployer,
             // the Nonce from the origin has been incremented pre-dispatch, so we
