@@ -497,7 +497,8 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         // See https://github.com/use-ink/cargo-contract/pull/1190
         "-Dclippy::arithmetic_side_effects",
         // See https://github.com/use-ink/cargo-contract/pull/1895
-        "-Dclippy::cast_possible_truncation",
+        // todo remove once https://github.com/paritytech/parity-scale-codec/issues/713 is fixed.
+        // "-Dclippy::cast_possible_truncation",
         "-Dclippy::cast_possible_wrap",
         "-Dclippy::cast_sign_loss",
     ];
