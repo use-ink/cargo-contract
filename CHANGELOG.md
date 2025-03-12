@@ -6,13 +6,154 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
-### Added
-- Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
-- Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
+## [6.0.0-alpha]
+
+This is our first alpha release for `cargo-contract` v6. We release it together
+with ink! `v6.0.0-alpha`.
+
+The biggest change is that we are in the process of migrating from `pallet-contracts` +
+WebAssembly (executed in `wasmi`) to [`pallet-revive`](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame/revive) +
+RISC-V (executed in [PolkaVM](https://github.com/paritytech/polkavm/)).
+_This is a major breaking change, `cargo-contract` will only be compatible with ink! >= v6
+and chains that include `pallet-revive`._
+We did a detailed write-up of the background to this development and the reasoning
+[here](https://use.ink/6.x/current-state).
+
+Compatibility of this release:
+* [ink! `v6.0.0-alpha`](https://github.com/use-ink/ink/releases/tag/v6.0.0-alpha)
+* [`substrate-contracts-node/9c020a2`](https://github.com/use-ink/substrate-contracts-node/commit/9c020a23e39af48b3007bc865ced8503529c590c)
+* [`polkadot-sdk/9adb8d28ab1f6744f1fb26db41f42361ac1254a0`](https://github.com/paritytech/polkadot-sdk/commit/9adb8d28ab1f6744f1fb26db41f42361ac1254a0)
+
+In the following we'll describe some breaking changes on a high-level. The
+context to understand them is that the `pallet-revive` team has Ethereum/Solidity
+support as the number one priority. All their design decisions derive from that,
+they don't want to maintain code that is unnecessary for that objective.
+
+### Updated structs + function arguments
+
+We had to change a number of structs and function arguments. Some notable ones:
+
+```
+SourceWasm -> SourceContractBytecode
+dest_wasm -> dest_polkavm
+optimization_result -> linker_size_result
+```
+
+And [v5 `ExecuteArgs`](https://github.com/use-ink/cargo-contract/blob/v5.x.x/crates/build/src/lib.rs#L126) →
+[v6.0.0-alpha `ExecuteArgs`](https://github.com/use-ink/cargo-contract/blob/master/crates/build/src/lib.rs#L126).
+
+We won't describe the other ones here. The best course is to see if you encounter
+compilation errors upon upgrading to 6.0.0-alpha. If so, please check our Rust
+docs or the `cargo-contract` source code for how the new format looks and what
+the comments say.
+
+The commit that applied the majority of naming changes was
+[this one](https://github.com/use-ink/cargo-contract/commit/d13aafccc474a1a48c333e77da63e3127f3421a0).
+
+### Types
+
+#### Contract Balance: `U256`
+For the type of a contract's balance, `pallet-revive` uses depending on the context
+* either the configured `pallet_revive::Config::Currency` type (which corresponds
+  to the `ink::Environment::Balance` type.
+* or a hardcoded `U256` (which corresponds to what Ethereum uses).
+In this alpha release we just adhere to requiring the types that `pallet-revive` uses.
+In an upcoming beta release this could be simplified to reduce UX friction by just
+using one type everywhere and converting to the `pallet-revive` one.
+
+#### Contract Address: `H160`
+For a contract's account, `pallet-revive` is using either the configured `AccountId` type
+of the `polkadot-sdk` runtime, or `H160`.
+
+Finding the `H160` for an `AccountId` is done via an address derivation scheme derived in
+[#7662](https://github.com/paritytech/polkadot-sdk/pull/7662).
+After instantiating a contract, the address is no longer returned by `pallet-revive`.
+Instead one has to derive it from given parameters (see the linked PR). `cargo-contract`
+does that automatically.
+
+For contract instantiations and contract calls the pallet requires that a 1-to-1 mapping
+of an `AccountId` to a `H160` has been created. This can be done via the `map_account`/
+`unmap_account` API.
+The PR [#6096](https://github.com/paritytech/polkadot-sdk/pull/6096) contains more
+information.
+
+Besides the publicly exposed crate functions, we've introduced a new subcommand
+`cargo contract account` that allows resolving the `H160` contract address to the
+Substrate `AccountId` which it is mapped to.
+
+#### Contract Hash: `H256`
+For a contract's hash value, `pallet-revive` uses a fixed `H256`, Previously,
+the `ink::Environment::Hash` type referenced the hash type being used for the
+contract's hash. Now it's just a fixed `H160`.
+
+### Events
+In [#7164](https://github.com/paritytech/polkadot-sdk/pull/7164), Parity removed
+most smart-contract-specific events: `Called`, `ContractCodeUpdated, CodeStored`,
+`CodeRemoved`, `Terminated`, `Instantiated`, `DelegateCalled`,
+`StorageDepositTransferredAndHeld`, `StorageDepositTransferredAndReleased`.
+
+The `ContractEmitted` event (for events a contract emits) is still available.
+
+### Debugging
+Previously, `pallet-contracts` returned a `debug_message` field with contract
+instantiations and dry-runs.
+Whenever `ink::env::debug_println` was invoked in a contract, ink! wrote debugging
+info to this field. This functionality has been removed. Instead `pallet-revive` now
+supports other means of debugging.
+
+The most relevant for this release is the tracing API. There are a number of PRs
+that implemented it, so we won't link a specific one here. A good starting point
+to look deeper into it is the [`tracing.rs`](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/revive/src/tracing.rs).
+
+We have implemented barebones support for this tracing API in the 6.0.0-alpha
+versions of ink! + `cargo-contract`. But it's really barebones and should
+certainly be improved before a production release.
+
+### Detection of contract language disabled
+The heuristic detection of a contract's language in `cargo contract info`
+has been temporarily disabled; it's not yet implemented.
+
+### Contract sizes
+Contracts compiled with `v6.0.0-alpha` will have a large file size. This is due to a number
+of bugs in PolkaVM that prohibit us from using e.g. LTO. The contract sizes will eventually
+get much smaller again, once those bugs are fixed.
+
+### Linting
+Linting of a contract can be executed if set like this:
+
+```rust
+let args = ExecuteArgs {
+  skip_clippy_and_linting: true
+  ...
+};
+let res = contract_build::execute(args);
+```
+
+The linting can be quite slow, thus decreasing the feedback cycle if actively developing
+a contract. Right now it's still the default to lint when `cargo contract build` is
+invoked. We're actively thinking about not linting byt default, right now it's still
+on by default.
+
+### Ability to generate Solidity metadata for a contract
+ink! v6 will have the ability to speak Solidity, you'll be able to integrate
+with tools like Metamask and call ink! contracts from Solidity as if they were
+a pre-compile.
+
+We added a new subcommand for this:
+
+```bash
+cargo contract build ---metadata <ink|solidity>
+```
+
+Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more information.
 
 ### Changed
 - Target `pallet-revive` instead of `pallet-contracts` - [#1851](https://github.com/use-ink/cargo-contract/pull/1851)
 - Retrieve PolkaVM target spec from linker - [#1939](https://github.com/use-ink/cargo-contract/pull/1939)
+
+### Added
+- Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
+- Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
 
 ## [5.0.1]
 
