@@ -105,11 +105,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub(crate) mod linting {
     /// Toolchain used to build ink_linting:
     /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-11-28";
+    pub const TOOLCHAIN_VERSION: &str = "nightly-2024-02-20";
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "bf546be877180ec7198a566baeee7844f7139fd0";
+    pub const GIT_REV: &str = "4eb5cd3e331ed7871cf5c8f648f3191783f3b944";
 }
 
 /// Result of linking an ELF woth PolkaVM.
