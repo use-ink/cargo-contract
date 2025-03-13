@@ -22,7 +22,7 @@ We did a detailed write-up of the background to this development and the reasoni
 Compatibility of this release:
 * [ink! `v6.0.0-alpha`](https://github.com/use-ink/ink/releases/tag/v6.0.0-alpha)
 * [`substrate-contracts-node/9c020a2`](https://github.com/use-ink/substrate-contracts-node/commit/9c020a23e39af48b3007bc865ced8503529c590c)
-* [`polkadot-sdk/9adb8d28ab1f6744f1fb26db41f42361ac1254a0`](https://github.com/paritytech/polkadot-sdk/commit/9adb8d28ab1f6744f1fb26db41f42361ac1254a0)
+* [`polkadot-sdk/f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a`](https://github.com/paritytech/polkadot-sdk/commit/f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)
 
 In the following we'll describe some breaking changes on a high-level. The
 context to understand them is that the `pallet-revive` team has Ethereum/Solidity
