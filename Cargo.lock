@@ -113,27 +113,27 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "alloy-core"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ef3546f382c07c7c2e1d24844ed593e1c9b272236aedf635e4a295fb3fc9d0"
+checksum = "ca1380cc3c81b83d5234865779494970c83b5893b423c59cdd68c3cd1ed0b671"
 dependencies = [
  "alloy-dyn-abi",
  "alloy-json-abi",
- "alloy-primitives 0.8.22",
+ "alloy-primitives 0.8.23",
  "alloy-rlp",
- "alloy-sol-types 0.8.22",
+ "alloy-sol-types 0.8.23",
 ]
 
 [[package]]
 name = "alloy-dyn-abi"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00e08c581811006021970bf07f2ecf3213f6237c125f7fd99607004b23627b61"
+checksum = "7078bef2bc353c1d1a97b44981d0186198be320038fbfbb0b37d1dd822a555d3"
 dependencies = [
  "alloy-json-abi",
- "alloy-primitives 0.8.22",
+ "alloy-primitives 0.8.23",
  "alloy-sol-type-parser",
- "alloy-sol-types 0.8.22",
+ "alloy-sol-types 0.8.23",
  "const-hex",
  "itoa",
  "serde",
@@ -143,11 +143,11 @@ dependencies = [
 
 [[package]]
 name = "alloy-json-abi"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125601804507fef5ae7debcbf800906b12741f19800c1c05b953d0f1b990131a"
+checksum = "ec80745c33797e8baf547a8cfeb850e60d837fe9b9e67b3f579c1fcd26f527e9"
 dependencies = [
- "alloy-primitives 0.8.22",
+ "alloy-primitives 0.8.23",
  "alloy-sol-type-parser",
  "serde",
  "serde_json",
@@ -175,9 +175,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-primitives"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c66bb6715b7499ea755bde4c96223ae8eb74e05c014ab38b9db602879ffb825"
+checksum = "eacedba97e65cdc7ab592f2b22ef5d3ab8d60b2056bc3a6e6363577e8270ec6f"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -229,9 +229,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f9c3c7bc1f4e334e5c5fc59ec8dac894973a71b11da09065affc6094025049"
+checksum = "3637022e781bc73a9e300689cd91105a0e6be00391dd4e2110a71cc7e9f20a94"
 dependencies = [
  "alloy-sol-macro-expander",
  "alloy-sol-macro-input",
@@ -243,9 +243,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro-expander"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46ff7aa715eb2404cb87fa94390d2c5d5addd70d9617e20b2398ee6f48cb21f0"
+checksum = "3b9bd22d0bba90e40f40c625c33d39afb7d62b22192476a2ce1dcf8409dce880"
 dependencies = [
  "alloy-sol-macro-input",
  "const-hex",
@@ -255,30 +255,31 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
- "syn-solidity 0.8.22",
+ "syn-solidity 0.8.23",
  "tiny-keccak",
 ]
 
 [[package]]
 name = "alloy-sol-macro-input"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f105fa700140c0cc6e2c3377adef650c389ac57b8ead8318a2e6bd52f1ae841"
+checksum = "05ae4646e8123ec2fd10f9c22e361ffe4365c42811431829c2eabae528546bcc"
 dependencies = [
  "const-hex",
  "dunce",
  "heck 0.5.0",
+ "macro-string",
  "proc-macro2",
  "quote",
  "syn 2.0.100",
- "syn-solidity 0.8.22",
+ "syn-solidity 0.8.23",
 ]
 
 [[package]]
 name = "alloy-sol-type-parser"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c649acc6c9d3893e392c737faeadce30b4a1751eed148ae43bc2f27f29c4480c"
+checksum = "488a747fdcefeec5c1ed5aa9e08becd775106777fdeae2a35730729fc8a95910"
 dependencies = [
  "serde",
  "winnow",
@@ -298,13 +299,13 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-types"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f819635439ebb06aa13c96beac9b2e7360c259e90f5160a6848ae0d94d10452"
+checksum = "767957235807b021126dca1598ac3ef477007eace07961607dc5f490550909c7"
 dependencies = [
  "alloy-json-abi",
- "alloy-primitives 0.8.22",
- "alloy-sol-macro 0.8.22",
+ "alloy-primitives 0.8.23",
+ "alloy-sol-macro 0.8.23",
  "const-hex",
  "serde",
 ]
@@ -1537,7 +1538,7 @@ dependencies = [
  "sp-state-machine 0.43.0",
  "sp-std 14.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-trie 37.0.0",
- "trie-db",
+ "trie-db 0.29.1",
 ]
 
 [[package]]
@@ -2651,7 +2652,7 @@ dependencies = [
  "sp-version 37.0.0",
  "staging-xcm 14.2.0",
  "staging-xcm-builder 17.0.4",
- "trie-db",
+ "trie-db 0.29.1",
 ]
 
 [[package]]
@@ -5152,9 +5153,9 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
- "alloy-sol-types 0.8.22",
+ "alloy-sol-types 0.8.23",
  "const_format",
  "derive_more 1.0.0",
  "ink_env",
@@ -5175,7 +5176,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "cfg-if",
 ]
@@ -5183,7 +5184,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5205,7 +5206,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "blake2",
  "derive_more 1.0.0",
@@ -5222,9 +5223,9 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
- "alloy-sol-types 0.8.22",
+ "alloy-sol-types 0.8.23",
  "blake2",
  "cfg-if",
  "const_env",
@@ -5256,7 +5257,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "blake2",
  "either",
@@ -5272,7 +5273,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5287,7 +5288,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
@@ -5303,7 +5304,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "cfg-if",
 ]
@@ -5311,9 +5312,9 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
- "alloy-sol-types 0.8.22",
+ "alloy-sol-types 0.8.23",
  "cfg-if",
  "derive_more 1.0.0",
  "ink_prelude",
@@ -5334,7 +5335,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5352,7 +5353,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#4eb5cd3e331ed7871cf5c8f648f3191783f3b944"
+source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -5850,6 +5851,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "macro-string"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b27834086c65ec3f9387b096d66e99f221cf081c2b738042aa252bcd41204e3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -7658,6 +7670,7 @@ dependencies = [
  "paste",
  "polkavm 0.21.0",
  "polkavm-common 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand",
  "rlp 0.6.1",
  "scale-info",
  "serde",
@@ -12288,7 +12301,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-377-ext",
@@ -12431,7 +12444,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -12461,7 +12474,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -12940,7 +12953,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -13005,7 +13018,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "Inflector",
  "expander",
@@ -13115,7 +13128,7 @@ dependencies = [
  "sp-trie 29.0.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.29.1",
 ]
 
 [[package]]
@@ -13135,7 +13148,7 @@ dependencies = [
  "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.30.0",
 ]
 
 [[package]]
@@ -13156,7 +13169,7 @@ dependencies = [
  "sp-trie 37.0.0",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.29.1",
 ]
 
 [[package]]
@@ -13203,7 +13216,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bc
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 
 [[package]]
 name = "sp-storage"
@@ -13232,7 +13245,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
@@ -13316,7 +13329,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -13379,7 +13392,7 @@ dependencies = [
  "sp-externalities 0.25.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.29.1",
  "trie-root",
 ]
 
@@ -13401,7 +13414,7 @@ dependencies = [
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.30.0",
  "trie-root",
 ]
 
@@ -13425,7 +13438,7 @@ dependencies = [
  "sp-externalities 0.29.0",
  "thiserror 1.0.69",
  "tracing",
- "trie-db",
+ "trie-db 0.29.1",
  "trie-root",
 ]
 
@@ -13542,7 +13555,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"
+source = "git+https://github.com/paritytech/polkadot-sdk#64dc0effc3fe7565667c93d9a797bb31c5c6bfc9"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -14223,9 +14236,9 @@ dependencies = [
 
 [[package]]
 name = "syn-solidity"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac9f9798a84bca5cd4d1760db691075fda8f2c3a5d9647e8bfd29eb9b3fabb87"
+checksum = "d975606bae72d8aad5b07d9342465e123a2cccf53a5a735aedf81ca92a709ecb"
 dependencies = [
  "paste",
  "proc-macro2",
@@ -14449,9 +14462,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.44.0"
+version = "1.44.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9975ea0f48b5aa3972bf2d888c238182458437cc2a19374b81b25cdf1023fb3a"
+checksum = "f382da615b842244d4b8738c82ed1275e6c5dd90c459a30941cd07080b06c91a"
 dependencies = [
  "backtrace",
  "bytes",
@@ -14497,9 +14510,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.13"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7fcaa8d55a2bdd6b83ace262b016eca0d79ee02818c5c1bcdf0305114081078"
+checksum = "6b9590b93e6fcc1739458317cccd391ad3955e2bde8913edf6f95f9e65a8f034"
 dependencies = [
  "bytes",
  "futures-core",
@@ -14647,6 +14660,18 @@ name = "trie-db"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c992b4f40c234a074d48a757efeabb1a6be88af84c0c23f7ca158950cb0ae7f"
+dependencies = [
+ "hash-db",
+ "log",
+ "rustc-hex",
+ "smallvec",
+]
+
+[[package]]
+name = "trie-db"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c0670ab45a6b7002c7df369fee950a27cf29ae0474343fd3a15aa15f691e7a6"
 dependencies = [
  "hash-db",
  "log",
