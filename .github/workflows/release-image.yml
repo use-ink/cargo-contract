@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "master"
+      - "cmichi-bump-linter"
   release:
     types:
       - edited
