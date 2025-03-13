@@ -109,7 +109,7 @@ pub(crate) mod linting {
     /// Git repository with ink_linting libraries
     pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
     /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "4eb5cd3e331ed7871cf5c8f648f3191783f3b944";
+    pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
 }
 
 /// Result of linking an ELF woth PolkaVM.
