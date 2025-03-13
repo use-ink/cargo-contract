@@ -42,7 +42,7 @@ sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b
 pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a"}
 pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a", default-features = false, features = ["unstable-hostfn", "scale"] }
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
 ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
 
 [dev-dependencies]

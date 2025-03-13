@@ -1812,7 +1812,7 @@ dependencies = [
  "current_platform",
  "hex",
  "ink_env",
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
  "jsonschema",
  "predicates",
  "primitive-types 0.13.1",
@@ -2204,7 +2204,7 @@ dependencies = [
  "heck 0.5.0",
  "hex",
  "impl-serde 0.5.0",
- "ink_metadata 6.0.0-alpha",
+ "ink_metadata",
  "itertools 0.13.0",
  "parity-scale-codec",
  "polkavm-linker 0.21.0 (git+https://github.com/paritytech/polkavm)",
@@ -2245,7 +2245,7 @@ dependencies = [
  "hex",
  "ink",
  "ink_env",
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
  "itertools 0.14.0",
  "pallet-revive 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
@@ -2296,7 +2296,7 @@ dependencies = [
  "indexmap 2.8.0",
  "ink",
  "ink_env",
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
  "itertools 0.14.0",
  "nom",
  "nom-supreme",
@@ -5160,9 +5160,9 @@ dependencies = [
  "derive_more 1.0.0",
  "ink_env",
  "ink_macro",
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage",
  "keccak-const",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
@@ -5192,7 +5192,7 @@ dependencies = [
  "heck 0.5.0",
  "impl-serde 0.5.0",
  "ink_ir",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_primitives",
  "itertools 0.14.0",
  "parity-scale-codec",
  "polkavm-derive 0.21.0 (git+https://github.com/paritytech/polkavm)",
@@ -5211,7 +5211,7 @@ dependencies = [
  "blake2",
  "derive_more 1.0.0",
  "hex-literal 1.0.0",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_primitives",
  "pallet-revive 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "parity-scale-codec",
@@ -5234,8 +5234,8 @@ dependencies = [
  "ink_allocator",
  "ink_engine",
  "ink_macro",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage_traits",
  "num-traits",
  "pallet-revive 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
@@ -5262,7 +5262,7 @@ dependencies = [
  "blake2",
  "either",
  "impl-serde 0.5.0",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_prelude",
  "itertools 0.14.0",
  "proc-macro2",
  "quote",
@@ -5277,7 +5277,7 @@ source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9
 dependencies = [
  "ink_codegen",
  "ink_ir",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_primitives",
  "parity-scale-codec",
  "proc-macro2",
  "quote",
@@ -5288,39 +5288,17 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-dependencies = [
- "derive_more 1.0.0",
- "impl-serde 0.5.0",
- "ink_prelude 6.0.0-alpha",
- "ink_primitives 6.0.0-alpha",
- "linkme",
- "parity-scale-codec",
- "scale-info",
- "schemars",
- "serde",
-]
-
-[[package]]
-name = "ink_metadata"
-version = "6.0.0-alpha"
 source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "derive_more 1.0.0",
  "impl-serde 0.5.0",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_prelude",
+ "ink_primitives",
  "linkme",
  "parity-scale-codec",
  "scale-info",
  "schemars",
  "serde",
-]
-
-[[package]]
-name = "ink_prelude"
-version = "6.0.0-alpha"
-dependencies = [
- "cfg-if",
 ]
 
 [[package]]
@@ -5334,35 +5312,12 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-dependencies = [
- "alloy-sol-types 0.8.23",
- "cfg-if",
- "derive_more 1.0.0",
- "ink_prelude 6.0.0-alpha",
- "num-traits",
- "pallet-revive 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
- "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
- "parity-scale-codec",
- "primitive-types 0.13.1",
- "scale-decode",
- "scale-encode",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
- "xxhash-rust",
-]
-
-[[package]]
-name = "ink_primitives"
-version = "6.0.0-alpha"
 source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
  "alloy-sol-types 0.8.23",
  "cfg-if",
  "derive_more 1.0.0",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_prelude",
  "num-traits",
  "pallet-revive 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
@@ -5386,9 +5341,9 @@ dependencies = [
  "cfg-if",
  "derive_more 1.0.0",
  "ink_env",
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "ink_storage_traits",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
  "parity-scale-codec",
@@ -5400,9 +5355,9 @@ name = "ink_storage_traits"
 version = "6.0.0-alpha"
 source = "git+https://github.com/use-ink/ink?branch=master#87a97b244f7eb30fe04b9dba59294af9f91646d4"
 dependencies = [
- "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_prelude 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
- "ink_primitives 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=master)",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
  "parity-scale-codec",
  "scale-info",
  "sp-io 30.0.0 (git+https://github.com/use-ink/polkadot-sdk?branch=cmichi-disable-asserts)",
