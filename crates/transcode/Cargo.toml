@@ -25,7 +25,7 @@ escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.7.1"
 ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
 itertools = "0.14.0"
 tracing = "0.1.40"
 nom = "7.1.3"
