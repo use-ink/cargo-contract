@@ -18,6 +18,7 @@ use super::{
     dry_run_extrinsic,
     pallet_revive_primitives::StorageDeposit,
     submit_extrinsic,
+    AccountIdMapper,
     ContractMessageTranscoder,
     ErrorVariant,
 };
@@ -172,13 +173,10 @@ where
         let call = MapAccount::new().build();
         let events =
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
-
-        let addr = self.opts.signer().account_id();
-        let addr = &addr.encode()[..20];
-
+        let account_id = self.opts.signer().account_id();
         Ok(MapAccountExecResult {
             events,
-            address: H160::from_slice(addr),
+            address: AccountIdMapper::to_address(&account_id.encode()[..]),
         })
     }
 

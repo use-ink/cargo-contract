@@ -2207,7 +2207,7 @@ dependencies = [
  "ink_metadata",
  "itertools 0.13.0",
  "parity-scale-codec",
- "polkavm-linker 0.21.0 (git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug)",
+ "polkavm-linker 0.21.0 (git+https://github.com/paritytech/polkavm)",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -5584,9 +5584,9 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.28.3"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b8f66fe41fa46a5c83ed1c717b7e0b4635988f427083108c8cf0a882cc13441"
+checksum = "3c59cb1733c34377b6067a0419befd7f25073c5249ec3b0614a482bf499e1df5"
 dependencies = [
  "ahash 0.8.11",
  "base64 0.22.1",
@@ -9338,11 +9338,6 @@ dependencies = [
 [[package]]
 name = "polkavm-common"
 version = "0.21.0"
-source = "git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug#c64d0224b4b4724f916dd57a7ea81b7448436c63"
-
-[[package]]
-name = "polkavm-common"
-version = "0.21.0"
 source = "git+https://github.com/paritytech/polkavm#b0bdfe95692ad2472d297f2471e3d13a7d87550a"
 
 [[package]]
@@ -9546,14 +9541,14 @@ dependencies = [
 [[package]]
 name = "polkavm-linker"
 version = "0.21.0"
-source = "git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug#c64d0224b4b4724f916dd57a7ea81b7448436c63"
+source = "git+https://github.com/paritytech/polkavm#b0bdfe95692ad2472d297f2471e3d13a7d87550a"
 dependencies = [
  "dirs",
  "gimli 0.31.1",
  "hashbrown 0.14.5",
  "log",
  "object 0.36.7",
- "polkavm-common 0.21.0 (git+https://github.com/use-ink/polkavm?branch=cmichi-unsupported-instruction-compilation-bug)",
+ "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm)",
  "regalloc2 0.9.3",
  "rustc-demangle",
 ]
@@ -9961,13 +9956,14 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.28.3"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0dcb5ab28989ad7c91eb1b9531a37a1a137cc69a0499aee4117cae4a107c464"
+checksum = "6ce52678d53e5ee37e4af0a9036ca834d0cd34b33c82457c6b06a24f8d783344"
 dependencies = [
  "ahash 0.8.11",
  "fluent-uri",
  "once_cell",
+ "parking_lot",
  "percent-encoding",
  "serde_json",
 ]
