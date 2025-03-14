@@ -107,7 +107,7 @@ pub(crate) mod linting {
     /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
     pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
     /// Git repository with ink_linting libraries
-    pub const GIT_URL: &str = "https://github.com/use-ink/ink/";
+    pub const GIT_URL: &str = "https://github.com/use-ink/ink";
     /// Git revision number of the linting crate
     pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
 }
@@ -560,14 +560,13 @@ fn exec_cargo_dylint(
         // but still want the output to live at a fixed path. `cargo dylint` does
         // not accept this information on the command line.
         ("CARGO_TARGET_DIR", Some(target_dir.to_string())),
-        // There are generally problems with having a custom `rustc` wrapper, while
-        // executing `dylint` (which has a custom linker). Especially for `sccache`
-        // there is this bug: https://github.com/mozilla/sccache/issues/1000.
-        // Until we have a justification for leaving the wrapper we should unset it.
-        ("RUSTC_WRAPPER", None),
         // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
         // is being build for `std` or for a Wasm/RISC-V runtime.
-        ("RUSTFLAGS", Some("--cfg\x1fsubstrate_runtime".to_string())),
+        (
+            "DYLINT_RUSTFLAGS",
+            Some("--cfg=substrate_runtime".to_string()),
+        ),
+        ("RUSTFLAGS", Some("--cfg=substrate_runtime".to_string())),
     ];
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?

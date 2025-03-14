@@ -78,8 +78,7 @@ ARG CARGO_CONTRACT_GIT
 ARG RUST_LINTER_VERSION
 
 # This is important, see https://github.com/rust-lang/docker-rust/issues/85
-ENV RUSTFLAGS="-C target-feature=-crt-static" \
-    DYLINT_DRIVER_PATH=/usr/local/dylint_drivers
+ENV DYLINT_DRIVER_PATH=/usr/local/dylint_drivers
 
 # Install required packages for `cargo-contract`
 # libssl-dev and pkg-config is required by cargo-dylint
@@ -103,11 +102,10 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && eval "${COMMAND}" \
     # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
     && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
-    && cargo install cargo-dylint dylint-link \
     # Check if build with linting works
+    && mkdir -p $DYLINT_DRIVER_PATH \
     && cargo contract new test \
     # Generate /usr/local/dylint_drivers/nightly-2024-02-20-x86_64-unknown-linux-gnu/dylint-driver bin
-    && mkdir -p $DYLINT_DRIVER_PATH \
     && cd test && cargo contract build --lint --verbose --release && cd .. \
     && rm -rf test \
     # apt clean up
@@ -116,7 +114,7 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     # Cleanup cargo
-    && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git" /root/.cache/sccache
+    && rm -rf ${CARGO_HOME}/"registry" ${CARGO_HOME}/"git"
 
 FROM slimmed-rust as ink-dev
 
