@@ -59,7 +59,7 @@ pub struct BuildCommand {
     build_offline: bool,
     /// Performs extra linting checks for ink! specific issues during the build process.
     ///
-    /// Basic clippy lints are deemed important and run anyways.
+    /// Basic clippy lints are deemed important and run anyway.
     #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
