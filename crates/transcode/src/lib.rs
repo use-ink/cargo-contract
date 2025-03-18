@@ -20,8 +20,8 @@
 //! e.g. `"false" -> 0x00`
 //!
 //! And for displaying SCALE encoded data from events and RPC responses, it must be
-//! "transcoded" in the other direction from the SCALE encoded representation to a human
-//! readable string.
+//! "transcoded" in the other direction from the SCALE encoded representation to a
+//! human-readable string.
 //!
 //! e.g. `0x00 -> "false"`
 //!
