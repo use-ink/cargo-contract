@@ -21,15 +21,15 @@ mod contract_info;
 mod contract_storage;
 mod env_check;
 mod error;
-mod events;
-mod extrinsic_calls;
+pub mod events;
+pub mod extrinsic_calls;
 mod extrinsic_opts;
 mod instantiate;
 mod map_account;
 pub mod pallet_revive_primitives;
 mod remove;
 mod rpc;
-mod upload;
+pub mod upload;
 
 #[cfg(test)]
 mod contract_storage_tests;
