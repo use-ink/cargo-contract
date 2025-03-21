@@ -171,7 +171,7 @@ impl<Balance> Instantiate<Balance> {
 /// A raw call to `pallet-contracts`'s `call`.
 #[derive(EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Call<Balance> {
+pub struct Call<Balance> {
     dest: H160,
     #[codec(compact)]
     value: Balance,

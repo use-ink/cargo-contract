@@ -626,7 +626,7 @@ pub enum Code {
 }
 
 /// Derives a contract address.
-async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
+pub async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
     signer: &Signer,

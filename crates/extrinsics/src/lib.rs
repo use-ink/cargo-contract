@@ -76,12 +76,18 @@ pub use error::{
     GenericError,
 };
 pub use events::DisplayEvents;
-pub use extrinsic_calls::{Instantiate, InstantiateWithCode, UploadCode};
+pub use extrinsic_calls::{
+    Call,
+    Instantiate,
+    InstantiateWithCode,
+    UploadCode,
+};
 pub use extrinsic_opts::{
     ExtrinsicOpts,
     ExtrinsicOptsBuilder,
 };
 pub use instantiate::{
+    contract_address,
     Code,
     InstantiateArgs,
     InstantiateCommandBuilder,
@@ -123,7 +129,6 @@ use subxt::{
     OnlineClient,
 };
 pub use upload::{
-    Determinism,
     UploadCommandBuilder,
     UploadExec,
     UploadResult,
