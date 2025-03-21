@@ -74,7 +74,7 @@ impl<Hash> RemoveCode<Hash> {
 /// A raw call to `pallet-contracts`'s `upload_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct UploadCode<Balance> {
+pub struct UploadCode<Balance> {
     code: Vec<u8>,
     storage_deposit_limit: Balance,
 }
@@ -95,7 +95,7 @@ impl<Balance> UploadCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct InstantiateWithCode<Balance> {
+pub struct InstantiateWithCode<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,
@@ -133,7 +133,7 @@ impl<Balance> InstantiateWithCode<Balance> {
 /// A raw call to `pallet-contracts`'s `instantiate_with_code_hash`.
 #[derive(Debug, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) struct Instantiate<Balance> {
+pub struct Instantiate<Balance> {
     #[codec(compact)]
     value: Balance,
     gas_limit: Weight,

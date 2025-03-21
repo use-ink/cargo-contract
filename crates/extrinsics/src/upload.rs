@@ -204,7 +204,7 @@ pub struct UploadResult<C: Config> {
 #[allow(dead_code)]
 #[derive(Debug, Encode, EncodeAsType)]
 #[encode_as_type(crate_path = "subxt::ext::scale_encode")]
-pub(crate) enum Determinism {
+pub enum Determinism {
     /// The execution should be deterministic and hence no indeterministic instructions
     /// are allowed.
     ///
