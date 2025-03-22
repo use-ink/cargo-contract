@@ -569,6 +569,11 @@ where
         &self.client
     }
 
+     /// Returns the interface to call the legacy RPC methods.
+     pub fn rpc(&self) -> &LegacyRpcMethods<C> {
+        &self.rpc
+    }
+
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
