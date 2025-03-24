@@ -569,8 +569,8 @@ where
         &self.client
     }
 
-     /// Returns the interface to call the legacy RPC methods.
-     pub fn rpc(&self) -> &LegacyRpcMethods<C> {
+    /// Returns the interface to call the legacy RPC methods.
+    pub fn rpc(&self) -> &LegacyRpcMethods<C> {
         &self.rpc
     }
 
