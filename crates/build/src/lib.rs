@@ -22,8 +22,6 @@ use contract_metadata::{
     ContractMetadata,
 };
 use which as _;
-// todo pin until https://github.com/jhpratt/deranged/issues/18 is resolved
-use deranged as _;
 
 mod args;
 mod crate_metadata;

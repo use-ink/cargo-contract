@@ -52,9 +52,6 @@ contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
 ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
 sha3 = "0.10.8"
 
-# todo Pin until https://github.com/jhpratt/deranged/issues/18 is resolved
-deranged = { version = "=0.4.0", default-features = false }
-
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
 
