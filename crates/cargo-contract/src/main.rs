@@ -74,6 +74,8 @@ use tempfile as _;
 
 // Only used on windows.
 use which as _;
+// todo pin until https://github.com/jhpratt/deranged/issues/18 is resolved
+use deranged as _;
 
 #[derive(Debug, Parser)]
 #[clap(bin_name = "cargo")]

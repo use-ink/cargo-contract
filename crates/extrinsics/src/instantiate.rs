@@ -569,6 +569,11 @@ where
         &self.client
     }
 
+    /// Returns the interface to call the legacy RPC methods.
+    pub fn rpc(&self) -> &LegacyRpcMethods<C> {
+        &self.rpc
+    }
+
     /// Returns the contract message transcoder.
     pub fn transcoder(&self) -> &ContractMessageTranscoder {
         &self.transcoder
@@ -626,7 +631,7 @@ pub enum Code {
 }
 
 /// Derives a contract address.
-async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
+pub async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
     signer: &Signer,

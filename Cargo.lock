@@ -1804,6 +1804,7 @@ dependencies = [
  "contract-metadata",
  "contract-transcode",
  "current_platform",
+ "deranged",
  "hex",
  "ink_env",
  "ink_metadata",

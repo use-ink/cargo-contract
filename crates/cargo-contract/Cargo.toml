@@ -51,6 +51,9 @@ hex = "0.4.3"
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a", default-features = false}
 sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a" }
 
+# todo Pin until https://github.com/jhpratt/deranged/issues/18 is resolved
+deranged = { version = "=0.4.0", default-features = false }
+
 [build-dependencies]
 anyhow = "1.0.95"
 substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a" }
@@ -68,6 +71,7 @@ tempfile = "3.16.0"
 # generation code with `#[cfg(feature = "std")]`.
 default = ["std"]
 std = [
+    "deranged/std",
     #"sp-core/std",
     #"sp-weights/std"
 ]
