@@ -306,8 +306,7 @@ fn exec_cargo_for_onchain_target(
         if build_mode == &BuildMode::Debug {
             features.push("ink/ink-debug");
         } else {
-            // todo
-            //args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
+            args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
         features.append_to_args(&mut args);
         let mut env = Vec::new();
@@ -497,7 +496,8 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         // See https://github.com/use-ink/cargo-contract/pull/1190
         "-Dclippy::arithmetic_side_effects",
         // See https://github.com/use-ink/cargo-contract/pull/1895
-        // todo remove once https://github.com/paritytech/parity-scale-codec/issues/713 is fixed.
+        // todo remove once the fix for https://github.com/paritytech/parity-scale-codec/issues/713
+        // is released.
         // "-Dclippy::cast_possible_truncation",
         "-Dclippy::cast_possible_wrap",
         "-Dclippy::cast_sign_loss",
@@ -997,7 +997,7 @@ pub fn code_hash(code: &[u8]) -> [u8; 32] {
     h256_hash(code)
 }
 
-// todo
+/// Returns the H256 hash of the given `code` slice.
 fn h256_hash(code: &[u8]) -> [u8; 32] {
     use sha3::{
         Digest,
@@ -1005,7 +1005,7 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
     };
     let hash = Keccak256::digest(code);
     let sl = hash.as_slice();
-    assert!(sl.len() == 32, "todo");
+    assert!(sl.len() == 32, "expected length of 32");
     let mut arr = [0u8; 32];
     arr.copy_from_slice(sl);
     arr
@@ -1069,7 +1069,6 @@ mod unit_tests {
     #[test]
     fn build_result_seralization_sanity_check() {
         // given
-        // todo rename fields
         let raw_result = r#"{
   "dest_binary": "/path/to/contract.polkavm",
   "metadata_result": {

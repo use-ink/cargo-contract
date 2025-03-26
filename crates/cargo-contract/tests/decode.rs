@@ -73,9 +73,7 @@ fn decode_works() {
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
-    cargo_contract(&project_dir).arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
-        .assert().success();
+    cargo_contract(&project_dir).arg("build").assert().success();
 
     // when
     let msg_data: &str = "babebabe01";

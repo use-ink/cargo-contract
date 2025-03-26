@@ -167,7 +167,7 @@ dependencies = [
  "hex-literal 0.4.1",
  "itoa",
  "proptest",
- "rand",
+ "rand 0.8.5",
  "ruint",
  "serde",
  "tiny-keccak",
@@ -192,7 +192,7 @@ dependencies = [
  "keccak-asm",
  "paste",
  "proptest",
- "rand",
+ "rand 0.8.5",
  "ruint",
  "rustc-hash 2.1.1",
  "serde",
@@ -733,7 +733,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df2c09229cbc5a028b1d70e00fdb2acee28b1055dfb5ca73eea49c5a25c4e7c"
 dependencies = [
  "num-traits",
- "rand",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -743,7 +743,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
 dependencies = [
  "num-traits",
- "rand",
+ "rand 0.8.5",
  "rayon",
 ]
 
@@ -756,7 +756,7 @@ dependencies = [
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "digest 0.10.7",
- "rand_core",
+ "rand_core 0.6.4",
  "sha3",
 ]
 
@@ -769,7 +769,7 @@ dependencies = [
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "digest 0.10.7",
- "rand_core",
+ "rand_core 0.6.4",
  "sha3",
 ]
 
@@ -1069,8 +1069,8 @@ dependencies = [
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "dleq_vrf",
- "rand_chacha",
- "rand_core",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "ring 0.1.0",
  "sha2 0.10.8",
  "sp-ark-bls12-381",
@@ -1156,7 +1156,7 @@ dependencies = [
  "bs58",
  "hmac 0.12.1",
  "k256",
- "rand_core",
+ "rand_core 0.6.4",
  "ripemd",
  "secp256k1 0.27.0",
  "sha2 0.10.8",
@@ -1373,9 +1373,9 @@ checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
 
 [[package]]
 name = "borsh"
-version = "1.5.6"
+version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2b74d67a0fc0af8e9823b79fd1c43a0900e5a8f0e0f4cc9210796bf3a820126"
+checksum = "ad8646f98db542e39fc66e68a20b2144f6a732636df7c2354e74645faaa433ce"
 dependencies = [
  "borsh-derive",
  "cfg_aliases",
@@ -1383,9 +1383,9 @@ dependencies = [
 
 [[package]]
 name = "borsh-derive"
-version = "1.5.6"
+version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d37ed1b2c9b78421218a0b4f6d8349132d6ec2cfeba1cfb0118b0a8e268df9e"
+checksum = "fdd1d3c0c2f5833f22386f252fe8ed005c7f59fdcddeef025c01b4c3b9fd9ac3"
 dependencies = [
  "once_cell",
  "proc-macro-crate",
@@ -2528,7 +2528,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dc92fb57ca44df6db8059111ab3af99a63d5d0f8375d9972e319a379c6bab76"
 dependencies = [
  "generic-array",
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
  "zeroize",
 ]
@@ -2540,7 +2540,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
  "generic-array",
- "rand_core",
+ "rand_core 0.6.4",
  "typenum",
 ]
 
@@ -3349,7 +3349,7 @@ dependencies = [
  "ed25519",
  "hashbrown 0.14.5",
  "hex",
- "rand_core",
+ "rand_core 0.6.4",
  "sha2 0.10.8",
  "zeroize",
 ]
@@ -3373,7 +3373,7 @@ dependencies = [
  "generic-array",
  "group",
  "pkcs8",
- "rand_core",
+ "rand_core 0.6.4",
  "sec1",
  "serdect",
  "subtle",
@@ -3648,7 +3648,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0b50bfb653653f9ca9095b427bed08ab8d75a137839d9ad64eb11810d5b6393"
 dependencies = [
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
 ]
 
@@ -3726,7 +3726,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
 dependencies = [
  "byteorder",
- "rand",
+ "rand 0.8.5",
  "rustc-hex",
  "static_assertions",
 ]
@@ -4511,8 +4511,8 @@ version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea1015b5a70616b688dc230cfe50c8af89d972cb132d5a622814d29773b10b9"
 dependencies = [
- "rand",
- "rand_core",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -4563,7 +4563,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0f9ef7462f7c099f518d754361858f86d8a07af53ba9af0fe635bbccb151a63"
 dependencies = [
  "ff",
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
 ]
 
@@ -5150,7 +5150,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "alloy-sol-types 0.8.24",
  "const_format",
@@ -5175,7 +5175,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "cfg-if",
 ]
@@ -5183,7 +5183,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -5205,7 +5205,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -5222,7 +5222,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "alloy-sol-types 0.8.24",
  "blake2",
@@ -5257,7 +5257,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "blake2",
  "either",
@@ -5273,7 +5273,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5288,7 +5288,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde 0.5.0",
@@ -5304,7 +5304,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "cfg-if",
 ]
@@ -5312,7 +5312,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "alloy-sol-types 0.8.24",
  "cfg-if",
@@ -5336,7 +5336,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5354,7 +5354,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#624caa22170822a7ca629313fd6e1d1d38a6f68f"
+source = "git+https://github.com/use-ink/ink?branch=master#841b1c5cefb028fe6986aa4c76e372d37409183a"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -5720,7 +5720,7 @@ dependencies = [
  "libsecp256k1-core",
  "libsecp256k1-gen-ecmult",
  "libsecp256k1-gen-genmult",
- "rand",
+ "rand 0.8.5",
  "serde",
  "sha2 0.9.9",
  "typenum",
@@ -5979,7 +5979,7 @@ checksum = "58c38e2799fc0978b65dfff8023ec7843e2330bb462f19198840b34b6582397d"
 dependencies = [
  "byteorder",
  "keccak",
- "rand_core",
+ "rand_core 0.6.4",
  "zeroize",
 ]
 
@@ -6782,7 +6782,7 @@ dependencies = [
  "pallet-balances",
  "pallet-session",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "sp-runtime 39.0.5",
  "sp-staking 36.0.0",
@@ -6838,7 +6838,7 @@ dependencies = [
  "pallet-contracts-uapi",
  "parity-scale-codec",
  "paste",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "smallvec",
@@ -7011,7 +7011,7 @@ dependencies = [
  "log",
  "pallet-election-provider-support-benchmarking",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "sp-arithmetic 26.0.0",
  "sp-core 34.0.0",
@@ -7640,7 +7640,7 @@ dependencies = [
  "paste",
  "polkavm 0.21.0",
  "polkavm-common 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand",
+ "rand 0.8.5",
  "ripemd",
  "rlp 0.6.1",
  "scale-info",
@@ -7683,7 +7683,7 @@ dependencies = [
  "paste",
  "polkavm 0.21.0",
  "polkavm-common 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand",
+ "rand 0.8.5",
  "rlp 0.6.1",
  "scale-info",
  "serde",
@@ -8012,7 +8012,7 @@ dependencies = [
  "pallet-session",
  "pallet-staking",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "sp-runtime 39.0.5",
  "sp-session",
 ]
@@ -8041,7 +8041,7 @@ dependencies = [
  "frame-system 38.0.0",
  "log",
  "parity-scale-codec",
- "rand_chacha",
+ "rand_chacha 0.3.1",
  "scale-info",
  "sp-arithmetic 26.0.0",
  "sp-io 38.0.0",
@@ -8516,8 +8516,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes 0.13.0",
- "rand",
- "rand_core",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
  "serde",
  "unicode-normalization",
 ]
@@ -8628,7 +8628,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "346f04948ba92c43e8469c1ee6736c7563d71012b17d40745260fe106aac2166"
 dependencies = [
  "base64ct",
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
 ]
 
@@ -8657,9 +8657,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "pest"
-version = "2.7.15"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b7cafe60d6cf8e62e1b9b2ea516a089c008945bb5a275416789e7db0bc199dc"
+checksum = "198db74531d58c70a361c42201efde7e2591e976d518caf7662a47dc5720e7b6"
 dependencies = [
  "memchr",
  "thiserror 2.0.12",
@@ -8965,8 +8965,8 @@ dependencies = [
  "polkadot-parachain-primitives 14.0.0",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime-metrics",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "scale-info",
  "serde",
  "sp-api 34.0.0",
@@ -9354,7 +9354,7 @@ dependencies = [
 [[package]]
 name = "polkavm-common"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#be91bf2852f26f5b5e13042aa374c2a412840912"
+source = "git+https://github.com/paritytech/polkavm#d0a4f5d72cfc00fc4d847633e5d0f98cf31de7d4"
 
 [[package]]
 name = "polkavm-derive"
@@ -9395,7 +9395,7 @@ dependencies = [
 [[package]]
 name = "polkavm-derive"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#be91bf2852f26f5b5e13042aa374c2a412840912"
+source = "git+https://github.com/paritytech/polkavm#d0a4f5d72cfc00fc4d847633e5d0f98cf31de7d4"
 dependencies = [
  "polkavm-derive-impl-macro 0.21.0 (git+https://github.com/paritytech/polkavm)",
 ]
@@ -9451,7 +9451,7 @@ dependencies = [
 [[package]]
 name = "polkavm-derive-impl"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#be91bf2852f26f5b5e13042aa374c2a412840912"
+source = "git+https://github.com/paritytech/polkavm#d0a4f5d72cfc00fc4d847633e5d0f98cf31de7d4"
 dependencies = [
  "polkavm-common 0.21.0 (git+https://github.com/paritytech/polkavm)",
  "proc-macro2",
@@ -9502,7 +9502,7 @@ dependencies = [
 [[package]]
 name = "polkavm-derive-impl-macro"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#be91bf2852f26f5b5e13042aa374c2a412840912"
+source = "git+https://github.com/paritytech/polkavm#d0a4f5d72cfc00fc4d847633e5d0f98cf31de7d4"
 dependencies = [
  "polkavm-derive-impl 0.21.0 (git+https://github.com/paritytech/polkavm)",
  "syn 2.0.100",
@@ -9557,7 +9557,7 @@ dependencies = [
 [[package]]
 name = "polkavm-linker"
 version = "0.21.0"
-source = "git+https://github.com/paritytech/polkavm#be91bf2852f26f5b5e13042aa374c2a412840912"
+source = "git+https://github.com/paritytech/polkavm#d0a4f5d72cfc00fc4d847633e5d0f98cf31de7d4"
 dependencies = [
  "dirs",
  "gimli 0.31.1",
@@ -9805,8 +9805,8 @@ dependencies = [
  "bitflags 2.9.0",
  "lazy_static",
  "num-traits",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "rand_xorshift",
  "regex-syntax 0.8.5",
  "rusty-fork",
@@ -9877,9 +9877,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
- "rand_chacha",
- "rand_core",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "serde",
+]
+
+[[package]]
+name = "rand"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3779b94aeb87e8bd4e834cee3650289ee9e0d5677f976ecdb6d219e5f4f6cd94"
+dependencies = [
+ "rand_chacha 0.9.0",
+ "rand_core 0.9.3",
+ "zerocopy 0.8.24",
 ]
 
 [[package]]
@@ -9889,7 +9900,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand_chacha"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
+dependencies = [
+ "ppv-lite86",
+ "rand_core 0.9.3",
 ]
 
 [[package]]
@@ -9902,12 +9923,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_core"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
+dependencies = [
+ "getrandom 0.3.2",
+]
+
+[[package]]
 name = "rand_xorshift"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
- "rand_core",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -10223,9 +10253,9 @@ dependencies = [
 
 [[package]]
 name = "ruint"
-version = "1.13.1"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "825df406ec217a8116bd7b06897c6cc8f65ffefc15d030ae2c9540acc9ed50b6"
+checksum = "78a46eb779843b2c4f21fac5773e25d6d5b7c8f0922876c91541790d2ca27eef"
 dependencies = [
  "alloy-rlp",
  "ark-ff 0.3.0",
@@ -10239,7 +10269,8 @@ dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.2",
  "proptest",
- "rand",
+ "rand 0.8.5",
+ "rand 0.9.0",
  "rlp 0.5.2",
  "ruint-macro",
  "serde",
@@ -10263,7 +10294,7 @@ dependencies = [
  "borsh",
  "bytes",
  "num-traits",
- "rand",
+ "rand 0.8.5",
  "rkyv",
  "serde",
  "serde_json",
@@ -10422,9 +10453,9 @@ checksum = "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f"
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.0"
+version = "0.103.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa4eeac2588ffff23e9d7a7e9b3f971c5fb5b7ebc9452745e0c232c64f83b2f"
+checksum = "fef8b8769aaccf73098557a87cd1816b4f9c7c16811c9c77142aa695c16f2c03"
 dependencies = [
  "ring 0.17.14",
  "rustls-pki-types",
@@ -10775,7 +10806,7 @@ dependencies = [
  "curve25519-dalek",
  "getrandom_or_panic",
  "merlin",
- "rand_core",
+ "rand_core 0.6.4",
  "serde_bytes",
  "sha2 0.10.8",
  "subtle",
@@ -10852,7 +10883,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b50c5943d326858130af85e049f2661ba3c78b26589b8ab98e65e80ae44a1252"
 dependencies = [
  "bitcoin_hashes 0.14.0",
- "rand",
+ "rand 0.8.5",
  "secp256k1-sys 0.10.1",
 ]
 
@@ -11212,7 +11243,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest 0.10.7",
- "rand_core",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -11332,8 +11363,8 @@ dependencies = [
  "pbkdf2",
  "pin-project",
  "poly1305",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "ruzstd",
  "schnorrkel",
  "serde",
@@ -11375,8 +11406,8 @@ dependencies = [
  "lru 0.12.5",
  "parking_lot",
  "pin-project",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
  "serde_json",
  "siphasher",
@@ -11473,7 +11504,7 @@ dependencies = [
  "hex",
  "lazy_static",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "snowbridge-amcl",
  "zeroize",
@@ -11731,7 +11762,7 @@ dependencies = [
  "futures",
  "httparse",
  "log",
- "rand",
+ "rand 0.8.5",
  "sha1",
 ]
 
@@ -12185,7 +12216,7 @@ dependencies = [
  "parking_lot",
  "paste",
  "primitive-types 0.13.1",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnorrkel",
  "secp256k1 0.28.2",
@@ -12232,7 +12263,7 @@ dependencies = [
  "parking_lot",
  "paste",
  "primitive-types 0.13.1",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnorrkel",
  "secp256k1 0.28.2",
@@ -12279,7 +12310,7 @@ dependencies = [
  "parking_lot",
  "paste",
  "primitive-types 0.12.2",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnorrkel",
  "secp256k1 0.28.2",
@@ -12311,7 +12342,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-377-ext",
@@ -12454,7 +12485,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -12484,7 +12515,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -12851,7 +12882,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "paste",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "simple-mermaid",
@@ -12880,7 +12911,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "paste",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "simple-mermaid",
@@ -12909,7 +12940,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "paste",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "simple-mermaid",
@@ -12963,7 +12994,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -13028,7 +13059,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "Inflector",
  "expander",
@@ -13130,7 +13161,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=28a7ae71cc0eac747bf346804279217a68f700da)",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=28a7ae71cc0eac747bf346804279217a68f700da)",
@@ -13150,7 +13181,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
@@ -13171,7 +13202,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "sp-core 34.0.0",
  "sp-externalities 0.29.0",
@@ -13193,7 +13224,7 @@ dependencies = [
  "ed25519-dalek",
  "hkdf",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "sha2 0.10.8",
  "sp-api 34.0.0",
@@ -13226,7 +13257,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bc
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 
 [[package]]
 name = "sp-storage"
@@ -13255,7 +13286,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
@@ -13339,7 +13370,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -13395,7 +13426,7 @@ dependencies = [
  "nohash-hasher",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnellru",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=28a7ae71cc0eac747bf346804279217a68f700da)",
@@ -13417,7 +13448,7 @@ dependencies = [
  "nohash-hasher",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnellru",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?rev=f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a)",
@@ -13441,7 +13472,7 @@ dependencies = [
  "nohash-hasher",
  "parity-scale-codec",
  "parking_lot",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnellru",
  "sp-core 34.0.0",
@@ -13565,7 +13596,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#98c6ffcea6794d338514cf9bd84446d2f276cb63"
+source = "git+https://github.com/paritytech/polkadot-sdk#4d3354f2c63f0897a5f73b73c383dae4af73088c"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -14017,7 +14048,7 @@ dependencies = [
  "byteorder",
  "crunchy",
  "lazy_static",
- "rand",
+ "rand 0.8.5",
  "rustc-hex",
 ]
 
@@ -14736,7 +14767,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
@@ -14921,9 +14952,9 @@ dependencies = [
  "arrayref",
  "constcat",
  "digest 0.10.7",
- "rand",
- "rand_chacha",
- "rand_core",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
  "sha2 0.10.8",
  "sha3",
  "thiserror 1.0.69",
@@ -15327,7 +15358,7 @@ dependencies = [
  "memfd",
  "memoffset",
  "paste",
- "rand",
+ "rand 0.8.5",
  "rustix 0.36.17",
  "wasmtime-asm-macros",
  "wasmtime-environ",
@@ -15820,7 +15851,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7e468321c81fb07fa7f4c636c3972b9100f0346e5b6a9f2bd0603a52f7ed277"
 dependencies = [
  "curve25519-dalek",
- "rand_core",
+ "rand_core 0.6.4",
  "serde",
  "zeroize",
 ]

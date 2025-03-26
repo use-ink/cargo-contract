@@ -103,11 +103,6 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
     (bundle, blob)
 }
 
-// todo ignore until whe upgrade to a `polkavm` version > 0.19
-// After debugging this failing test for a while, I believe the
-// issue might be that `polkavm` has a bug of not being fully
-// deterministic.
-#[ignore]
 #[test]
 fn verify_equivalent_contracts() {
     // given
@@ -247,9 +242,7 @@ fn verify_different_contracts() {
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     tracing::debug!("Building contract in {}", project_dir.to_string_lossy());
-    cargo_contract(&project_dir).arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
-        .assert().success();
+    cargo_contract(&project_dir).arg("build").assert().success();
 
     // Compile reference contract and write contract bundle and contract binary in the
     // directory.

@@ -62,7 +62,7 @@ use subxt_signer::{
     SecretUri,
 };
 
-const CONTRACTS_NODE: &str = "substrate-contracts-node";
+const CONTRACTS_NODE: &str = "ink-node";
 
 /// Create a `cargo contract` command
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
@@ -208,7 +208,6 @@ async fn build_upload_instantiate_call() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -289,7 +288,6 @@ async fn build_upload_remove() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -355,7 +353,6 @@ async fn build_upload_instantiate_info() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -495,7 +492,6 @@ async fn api_build_upload_instantiate_call() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -637,7 +633,6 @@ async fn api_build_upload_remove() {
 
     cargo_contract(project_dir.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -755,7 +750,6 @@ async fn build_upload_instantiate_storage() {
 
     cargo_contract(project_path.as_path())
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .assert()
         .success();
 
@@ -876,7 +870,6 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
         cargo_contract(project_path)
             .arg("build")
             .arg("--skip-linting")
-            .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
             .assert()
             .success();
 
@@ -1063,7 +1056,6 @@ async fn complex_types_for_contract_interaction() {
 
     cargo_contract(project_path)
         .arg("build")
-        .arg("--release") // todo https://github.com/paritytech/polkavm/issues/277
         .arg("--verbose")
         .assert()
         .success()

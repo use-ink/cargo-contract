@@ -127,7 +127,7 @@ pub fn compare_node_env_with_contract(
                 verbosity,
                 "{} {}",
                 "Warning:".yellow().bold(),
-                // todo website
+                // todo check website link still works after website revamp
                 format!("The chain you are connecting to does not support validating that your environmental contract types are the same as the chain types.\n\
                  We cannot check if the types defined for your contract's `Environment` trait are the same as used on this chain.\
                  See https://use.ink/v6/faq#type-comparison for more info.\n\n\

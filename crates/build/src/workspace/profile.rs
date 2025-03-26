@@ -34,9 +34,7 @@ impl Profile {
     pub fn default_contract_release() -> Profile {
         Profile {
             opt_level: Some(OptLevel::Z),
-            // todo change back to `Lto::Fat` once bug in `polkavm` has been fixed.
-            // currently `Lto::Fat` results in the `contract-transfer` e2e tests to fail.
-            lto: Some(Lto::Off),
+            lto: Some(Lto::Fat),
             codegen_units: Some(1),
             panic: Some(PanicStrategy::Abort),
         }
@@ -158,7 +156,7 @@ mod tests {
         let manifest_toml = "";
         let mut expected = value::Table::new();
         expected.insert("opt-level".into(), value::Value::String("z".into()));
-        expected.insert("lto".into(), value::Value::String("off".into())); // todo revert
+        expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
         expected.insert("panic".into(), value::Value::String("abort".into()));
 
