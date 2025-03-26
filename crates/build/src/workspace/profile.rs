@@ -156,7 +156,7 @@ mod tests {
         let manifest_toml = "";
         let mut expected = value::Table::new();
         expected.insert("opt-level".into(), value::Value::String("z".into()));
-        expected.insert("lto".into(), value::Value::String("off".into())); // todo revert
+        expected.insert("lto".into(), value::Value::String("fat".into()));
         expected.insert("codegen-units".into(), value::Value::Integer(1));
         expected.insert("panic".into(), value::Value::String("abort".into()));
 
