@@ -103,11 +103,6 @@ fn compile_reference_contract() -> (Vec<u8>, Vec<u8>) {
     (bundle, blob)
 }
 
-// todo ignore until whe upgrade to a `polkavm` version > 0.19
-// After debugging this failing test for a while, I believe the
-// issue might be that `polkavm` has a bug of not being fully
-// deterministic.
-#[ignore]
 #[test]
 fn verify_equivalent_contracts() {
     // given
