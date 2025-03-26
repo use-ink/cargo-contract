@@ -308,7 +308,6 @@ impl CustomTypeEncoder for U256 {
                 })?
             }
             Value::UInt(uint128) => {
-                // todo
                 let u_128 = U128::from(*uint128);
                 primitive_types::U256::from(u_128)
             }
