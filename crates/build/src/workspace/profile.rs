@@ -34,9 +34,7 @@ impl Profile {
     pub fn default_contract_release() -> Profile {
         Profile {
             opt_level: Some(OptLevel::Z),
-            // todo change back to `Lto::Fat` once bug in `polkavm` has been fixed.
-            // currently `Lto::Fat` results in the `contract-transfer` e2e tests to fail.
-            lto: Some(Lto::Off),
+            lto: Some(Lto::Fat),
             codegen_units: Some(1),
             panic: Some(PanicStrategy::Abort),
         }
