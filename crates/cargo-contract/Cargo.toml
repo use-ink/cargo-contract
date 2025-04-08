@@ -40,23 +40,23 @@ jsonschema = "0.29"
 schemars = "0.8"
 comfy-table = "7.1.1"
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "alex/update-dependencies", default-features = false, features = ["std", "derive"] }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "alex/update-dependencies" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.38.1", features = ["substrate-compat"] }
 hex = "0.4.3"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a", default-features = false}
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a" }
+sp-core = { version = "36.1.0", default-features = false}
+sp-weights = "31.1.0"
 
 # todo Pin until https://github.com/jhpratt/deranged/issues/18 is resolved
 deranged = { version = "=0.4.0", default-features = false }
 
 [build-dependencies]
 anyhow = "1.0.95"
-substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", rev = "f8c90b2a01ec77579bccd21ae17bd6ff2eeffd6a" }
+substrate-build-script-utils = "11.0.0"
 current_platform = "0.2.0"
 which = "7.0.1"
 
