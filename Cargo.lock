@@ -2211,7 +2211,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2220,7 +2220,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3675,7 +3675,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5200,7 +5200,7 @@ checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 [[package]]
 name = "ink"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "const_format",
  "deranged",
@@ -5224,7 +5224,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "cfg-if",
 ]
@@ -5232,7 +5232,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -5254,7 +5254,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -5271,7 +5271,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -5305,7 +5305,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "blake2",
  "either",
@@ -5321,7 +5321,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -5336,7 +5336,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde 0.5.0",
@@ -5352,7 +5352,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "cfg-if",
 ]
@@ -5360,7 +5360,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "alloy-sol-types 1.0.0",
  "cfg-if",
@@ -5387,7 +5387,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -5405,7 +5405,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha"
-source = "git+https://github.com/use-ink/ink?branch=master#b7e4089869ae055ebd17958e56eefe679b52daea"
+source = "git+https://github.com/use-ink/ink?branch=master#a84db624fdd1fde338cf6bb6b505757274d399ec"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -5459,7 +5459,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.0",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10286,7 +10286,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10299,7 +10299,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.3",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10353,7 +10353,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -13487,7 +13487,7 @@ dependencies = [
  "getrandom 0.3.2",
  "once_cell",
  "rustix 1.0.3",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -14647,7 +14647,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
