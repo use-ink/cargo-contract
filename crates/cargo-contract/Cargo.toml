@@ -40,8 +40,8 @@ jsonschema = "0.29"
 schemars = "0.8"
 comfy-table = "7.1.1"
 
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "alex/update-dependencies", default-features = false, features = ["std", "derive"] }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "alex/update-dependencies" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "master" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
