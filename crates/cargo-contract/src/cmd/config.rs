@@ -23,6 +23,9 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
+    PolkadotConfig,
+    SubstrateConfig,
     config::{
         PolkadotExtrinsicParams,
         SubstrateExtrinsicParams,
@@ -35,9 +38,6 @@ use subxt::{
         PairSigner,
         Signer as SignerT,
     },
-    Config,
-    PolkadotConfig,
-    SubstrateConfig,
 };
 
 /// Configuration for signer

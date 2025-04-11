@@ -15,11 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    ContractBinary,
+    ErrorVariant,
     pallet_revive_primitives::CodeUploadResult,
     state_call,
     submit_extrinsic,
-    ContractBinary,
-    ErrorVariant,
 };
 use crate::{
     check_env_types,
@@ -31,6 +31,8 @@ use contract_transcode::ContractMessageTranscoder;
 use ink_env::Environment;
 use scale::Encode;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -45,8 +47,6 @@ use subxt::{
         scale_encode::EncodeAsType,
     },
     tx,
-    Config,
-    OnlineClient,
 };
 
 /// A builder for the upload command.

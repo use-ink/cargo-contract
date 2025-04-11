@@ -20,10 +20,6 @@ use anyhow::{
 };
 use colored::Colorize;
 use contract_build::{
-    code_hash,
-    execute,
-    util::decode_hex,
-    verbose_eprintln,
     BuildArtifacts,
     BuildInfo,
     BuildMode,
@@ -33,6 +29,10 @@ use contract_build::{
     MetadataArtifacts,
     Verbosity,
     VerbosityFlags,
+    code_hash,
+    execute,
+    util::decode_hex,
+    verbose_eprintln,
 };
 use contract_metadata::{
     CodeHash,
@@ -139,8 +139,8 @@ impl VerifyCommand {
                 format!("`{}`", path.display()).bright_white(),
                 format!("`{}`", built_polkavm_path.display()).bright_white(),
                 format!("{}", reference_code_hash).bright_white(),
-                format!("{}", output_code_hash).bright_white())
-            );
+                format!("{}", output_code_hash).bright_white()
+            ));
         }
 
         Ok(VerificationResult {
@@ -212,7 +212,8 @@ impl VerifyCommand {
                 However, the original contract was built using this one:\n\
                 {expected_rust_toolchain}\n\n\
                 Please install the correct toolchain and re-run the `verify` command:\n\
-                rustup install {expected_rust_toolchain}");
+                rustup install {expected_rust_toolchain}"
+            );
             anyhow::ensure!(rustc_matches, mismatched_rustc.bright_yellow());
 
             let expected_cargo_contract_version = build_info.cargo_contract_version;
@@ -412,9 +413,11 @@ mod tests {
     fn invalid_toolchain_names() {
         assert!(validate_toolchain_name("https://sh.rust-toolchain.rs").is_err());
         assert!(validate_toolchain_name("_ $").is_err());
-        assert!(validate_toolchain_name(
-            "nightly', please install https://sh.rust-toolchain.rs"
-        )
-        .is_err());
+        assert!(
+            validate_toolchain_name(
+                "nightly', please install https://sh.rust-toolchain.rs"
+            )
+            .is_err()
+        );
     }
 }

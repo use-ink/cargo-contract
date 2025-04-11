@@ -42,10 +42,10 @@ use ink_metadata::{
 };
 use itertools::Itertools;
 use scale_info::{
-    form::PortableForm,
     PortableRegistry,
     TypeDef,
     TypeDefPrimitive,
+    form::PortableForm,
 };
 
 use crate::CrateMetadata;

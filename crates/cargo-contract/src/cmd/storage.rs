@@ -36,16 +36,16 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
     },
-    Config,
 };
 
 use super::{
-    parse_account,
     CLIChainOpts,
+    parse_account,
 };
 
 #[derive(Debug, clap::Args)]

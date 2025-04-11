@@ -40,6 +40,7 @@ use std::{
 };
 use subxt::{
     self,
+    Config,
     blocks::ExtrinsicEvents,
     events::StaticEvent,
     ext::{
@@ -50,7 +51,6 @@ use subxt::{
         scale_encode,
     },
     utils::H160,
-    Config,
 };
 
 /// A custom event emitted by the contract.

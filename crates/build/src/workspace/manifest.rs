@@ -20,8 +20,8 @@ use anyhow::{
 };
 
 use super::{
-    metadata,
     Profile,
+    metadata,
 };
 use crate::CrateMetadata;
 
@@ -145,7 +145,9 @@ impl Manifest {
             .and_then(|val| val.as_bool())
             .unwrap_or(false)
         {
-            anyhow::bail!("Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used.")
+            anyhow::bail!(
+                "Overflow checks must be disabled. Cargo contract makes sure that no unchecked arithmetic is used."
+            )
         }
         Ok(manifest)
     }

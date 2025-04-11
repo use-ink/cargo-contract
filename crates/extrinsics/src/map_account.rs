@@ -15,12 +15,12 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    dry_run_extrinsic,
-    pallet_revive_primitives::StorageDeposit,
-    submit_extrinsic,
     AccountIdMapper,
     ContractMessageTranscoder,
     ErrorVariant,
+    dry_run_extrinsic,
+    pallet_revive_primitives::StorageDeposit,
+    submit_extrinsic,
 };
 use crate::{
     check_env_types,
@@ -36,10 +36,12 @@ use scale::Encode;
 use sp_weights::Weight;
 use std::marker::PhantomData;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::{
-            rpc_methods::DryRunResult,
             LegacyRpcMethods,
+            rpc_methods::DryRunResult,
         },
         rpc::RpcClient,
     },
@@ -50,8 +52,6 @@ use subxt::{
     },
     tx,
     utils::H160,
-    Config,
-    OnlineClient,
 };
 
 /// A builder for the instantiate command.

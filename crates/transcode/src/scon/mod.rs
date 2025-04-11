@@ -40,8 +40,8 @@ use std::{
 };
 
 use serde::{
-    ser::SerializeMap,
     Serialize,
+    ser::SerializeMap,
 };
 
 pub use self::parse::parse_value;

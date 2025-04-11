@@ -35,8 +35,8 @@
 use std::{
     cmp::Ordering,
     collections::{
-        hash_map::DefaultHasher,
         HashMap,
+        hash_map::DefaultHasher,
     },
     hash::{
         Hash,
@@ -55,6 +55,7 @@ use anyhow::{
     Result,
 };
 use bollard::{
+    Docker,
     container::{
         AttachContainerOptions,
         AttachContainerResults,
@@ -76,7 +77,6 @@ use bollard::{
         Mount,
         MountTypeEnum,
     },
-    Docker,
 };
 use contract_metadata::ContractMetadata;
 use tokio_stream::{
@@ -85,11 +85,11 @@ use tokio_stream::{
 };
 
 use crate::{
-    verbose_eprintln,
     BuildResult,
     CrateMetadata,
     ExecuteArgs,
     Verbosity,
+    verbose_eprintln,
 };
 
 use colored::Colorize;

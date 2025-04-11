@@ -24,19 +24,19 @@ use subxt::{
         RpcParams,
     },
     ext::scale_value::{
-        stringify::{
-            from_str_custom,
-            ParseError,
-        },
         Value,
+        stringify::{
+            ParseError,
+            from_str_custom,
+        },
     },
 };
 
 use crate::url_to_string;
 use anyhow::{
+    Result,
     anyhow,
     bail,
-    Result,
 };
 
 pub struct RawParams(Option<Box<RawValue>>);
