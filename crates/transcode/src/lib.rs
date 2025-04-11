@@ -624,7 +624,7 @@ mod tests {
     }
 
     fn generate_metadata() -> InkProject {
-        extern "Rust" {
+        unsafe extern "Rust" {
             fn __ink_generate_metadata() -> InkProject;
         }
 
