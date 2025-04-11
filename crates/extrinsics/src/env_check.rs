@@ -1,14 +1,14 @@
 use colored::Colorize;
 use contract_build::{
-    verbose_eprintln,
     Verbosity,
+    verbose_eprintln,
 };
 use ink_metadata::InkProject;
 use scale_info::{
-    form::PortableForm,
     Field,
     PortableRegistry,
     TypeDef,
+    form::PortableForm,
 };
 
 use anyhow::{
@@ -223,9 +223,12 @@ fn compare_type(
         node_type: &str,
     ) -> Result<()> {
         let field = format!("{}::{}", path_segments.join("::"), field_name);
-        anyhow::bail!("Failed to validate the field `{}`, which must correspond to the contract's `Environment::{}` type.\n\
+        anyhow::bail!(
+            "Failed to validate the field `{}`, which must correspond to the contract's `Environment::{}` type.\n\
         Field type in node metadata: {}.\n\
-        Field type in contract `Environment` trait: {}", field, corresponding_type(field_name)?,
+        Field type in contract `Environment` trait: {}",
+            field,
+            corresponding_type(field_name)?,
             node_type,
             contract_type,
         )
@@ -303,11 +306,6 @@ mod tests {
     };
     use contract_build::Verbosity;
     use ink_metadata::{
-        layout::{
-            Layout,
-            LayoutKey,
-            LeafLayout,
-        },
         ConstructorSpec,
         ContractSpec,
         EnvironmentSpec,
@@ -316,18 +314,23 @@ mod tests {
         MessageSpec,
         ReturnTypeSpec,
         TypeSpec,
+        layout::{
+            Layout,
+            LayoutKey,
+            LeafLayout,
+        },
     };
     use scale::{
         Decode,
         Encode,
     };
     use scale_info::{
-        form::PortableForm,
         MetaType,
         PortableRegistry,
         Registry,
         TypeDef,
         TypeInfo,
+        form::PortableForm,
     };
     use std::marker::PhantomData;
     use subxt::utils::AccountId32;
@@ -484,26 +487,32 @@ mod tests {
 
         // given
         let contract: ContractSpec = ContractSpec::new()
-            .constructors(vec![ConstructorSpec::from_label("new")
-                .selector([94u8, 189u8, 136u8, 214u8])
-                .payable(true)
-                .args(vec![MessageParamSpec::new("init_value")
-                    .of_type(TypeSpec::with_name_segs::<i32, _>(
+            .constructors(vec![
+                ConstructorSpec::from_label("new")
+                    .selector([94u8, 189u8, 136u8, 214u8])
+                    .payable(true)
+                    .args(vec![
+                        MessageParamSpec::new("init_value")
+                            .of_type(TypeSpec::with_name_segs::<i32, _>(
+                                vec!["i32"].into_iter().map(AsRef::as_ref),
+                            ))
+                            .done(),
+                    ])
+                    .returns(ReturnTypeSpec::new(TypeSpec::default()))
+                    .docs(Vec::new())
+                    .done(),
+            ])
+            .messages(vec![
+                MessageSpec::from_label("get")
+                    .selector([37u8, 68u8, 74u8, 254u8])
+                    .mutates(false)
+                    .payable(false)
+                    .args(Vec::new())
+                    .returns(ReturnTypeSpec::new(TypeSpec::with_name_segs::<i32, _>(
                         vec!["i32"].into_iter().map(AsRef::as_ref),
-                    ))
-                    .done()])
-                .returns(ReturnTypeSpec::new(TypeSpec::default()))
-                .docs(Vec::new())
-                .done()])
-            .messages(vec![MessageSpec::from_label("get")
-                .selector([37u8, 68u8, 74u8, 254u8])
-                .mutates(false)
-                .payable(false)
-                .args(Vec::new())
-                .returns(ReturnTypeSpec::new(TypeSpec::with_name_segs::<i32, _>(
-                    vec!["i32"].into_iter().map(AsRef::as_ref),
-                )))
-                .done()])
+                    )))
+                    .done(),
+            ])
             .events(Vec::new())
             .environment(
                 EnvironmentSpec::new()

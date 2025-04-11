@@ -19,8 +19,8 @@ use std::{
     ffi::OsStr,
     fs::File,
     io::{
-        prelude::*,
         Write,
+        prelude::*,
     },
     iter::Iterator,
     path::{
@@ -32,9 +32,9 @@ use std::{
 use anyhow::Result;
 use walkdir::WalkDir;
 use zip::{
-    write::FileOptions,
     CompressionMethod,
     ZipWriter,
+    write::FileOptions,
 };
 
 const DEFAULT_UNIX_PERMISSIONS: u32 = 0o755;

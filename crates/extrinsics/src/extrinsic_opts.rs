@@ -19,14 +19,14 @@ use contract_build::Verbosity;
 use derivative::Derivative;
 use ink_env::Environment;
 use subxt::{
-    tx,
     Config,
+    tx,
 };
 use url::Url;
 
 use crate::{
-    url_to_string,
     ContractArtifacts,
+    url_to_string,
 };
 use std::{
     marker::PhantomData,

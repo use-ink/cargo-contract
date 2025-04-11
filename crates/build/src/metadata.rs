@@ -15,6 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    BuildMode,
+    Features,
+    Lto,
+    Network,
+    Profile,
+    UnstableFlags,
+    Verbosity,
     code_hash,
     crate_metadata::CrateMetadata,
     solidity_metadata::{
@@ -28,13 +35,6 @@ use crate::{
         ManifestPath,
         Workspace,
     },
-    BuildMode,
-    Features,
-    Lto,
-    Network,
-    Profile,
-    UnstableFlags,
-    Verbosity,
 };
 
 use anyhow::Result;

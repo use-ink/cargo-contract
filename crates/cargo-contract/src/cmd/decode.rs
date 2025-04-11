@@ -25,8 +25,8 @@ use clap::{
 };
 use colored::Colorize as _;
 use contract_build::{
-    util,
     CrateMetadata,
+    util,
 };
 use contract_transcode::ContractMessageTranscoder;
 

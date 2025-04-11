@@ -21,22 +21,22 @@ use std::{
 };
 
 use rust_decimal::{
-    prelude::FromPrimitive,
     Decimal,
+    prelude::FromPrimitive,
 };
 use serde_json::json;
 use subxt::{
+    Config,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
     },
-    Config,
 };
 
 use anyhow::{
-    anyhow,
     Context,
     Result,
+    anyhow,
 };
 use url::Url;
 

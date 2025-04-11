@@ -15,9 +15,9 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    CompositeTypeFields,
     env_types::EnvTypesTranscoder,
     scon::Value,
-    CompositeTypeFields,
 };
 use anyhow::Result;
 use itertools::Itertools;
@@ -27,10 +27,6 @@ use scale::{
     Output,
 };
 use scale_info::{
-    form::{
-        Form,
-        PortableForm,
-    },
     Field,
     PortableRegistry,
     TypeDef,
@@ -38,6 +34,10 @@ use scale_info::{
     TypeDefPrimitive,
     TypeDefTuple,
     TypeDefVariant,
+    form::{
+        Form,
+        PortableForm,
+    },
 };
 use std::{
     convert::{
@@ -284,9 +284,11 @@ impl<'a> Encoder<'a> {
                     s.encode_to(output);
                     Ok(())
                 } else {
-                    Err(anyhow::anyhow!("Expected a String value\n\
+                    Err(anyhow::anyhow!(
+                        "Expected a String value\n\
                     On the command-line, String values need to be wrapped in escaped quotes: \
-                    \\\"…\\\"."))
+                    \\\"…\\\"."
+                    ))
                 }
             }
             TypeDefPrimitive::U8 => encode_uint::<u8, O>(value, "u8", output),
@@ -375,13 +377,15 @@ impl<'a> Encoder<'a> {
                             })?;
                         if let TypeDef::Primitive(primitive) = &field_ty.type_def {
                             let field_values: Vec<_> = match value {
-                            Value::Map(map) => Ok(map.values().collect()),
-                            Value::Tuple(tuple) => Ok(tuple.values().collect()),
-                            x => Err(anyhow::anyhow!(
-                                "Compact composite value must be a Map or a Tuple. Found {}",
-                                x
-                            )),
-                        }?;
+                                Value::Map(map) => Ok(map.values().collect()),
+                                Value::Tuple(tuple) => Ok(tuple.values().collect()),
+                                x => {
+                                    Err(anyhow::anyhow!(
+                                        "Compact composite value must be a Map or a Tuple. Found {}",
+                                        x
+                                    ))
+                                }
+                            }?;
                             if field_values.len() == 1 {
                                 let field_value = field_values[0];
                                 encode_compact_primitive(primitive, field_value)
