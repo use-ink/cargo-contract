@@ -59,7 +59,8 @@ pub struct BuildCommand {
     build_offline: bool,
     /// Performs extra linting checks for ink! specific issues during the build process.
     ///
-    /// Basic clippy lints are deemed important and run anyway.
+    /// Basic clippy lints are deemed important and run anyway. Used when
+    /// `--generate=check-only`.
     #[clap(long)]
     lint: bool,
     /// Which build artifacts to generate.
@@ -72,7 +73,12 @@ pub struct BuildCommand {
     ///
     /// - `check-only`: No artifacts produced: runs the `cargo check` command for the
     ///   PolkaVM target, only checks for compilation errors.
-    #[clap(long = "generate", value_enum, default_value = "all")]
+    #[clap(
+        long = "generate",
+        value_enum,
+        default_value = "all",
+        required_if_eq("lint", "true")
+    )]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
     features: Features,
@@ -89,9 +95,6 @@ pub struct BuildCommand {
     /// Export the build output in JSON format.
     #[clap(long, conflicts_with = "verbose")]
     output_json: bool,
-    /// Neither execute `clippy`, nor the ink! linter.
-    #[clap(long = "skip-linting")]
-    skip_clippy_and_linting: bool,
     /// Executes the build inside a docker container to produce a verifiable bundle.
     /// Requires docker daemon running.
     #[clap(long, default_value_t = false)]
@@ -150,7 +153,6 @@ impl BuildCommand {
             keep_debug_symbols: self.keep_debug_symbols,
             extra_lints: self.lint,
             output_type,
-            skip_clippy_and_linting: self.skip_clippy_and_linting,
             image,
             metadata_spec: self.metadata,
         };
@@ -184,7 +186,6 @@ impl CheckCommand {
             keep_debug_symbols: false,
             extra_lints: false,
             output_type: OutputType::default(),
-            skip_clippy_and_linting: false,
             image: ImageVariant::Default,
             metadata_spec: Default::default(),
         };
