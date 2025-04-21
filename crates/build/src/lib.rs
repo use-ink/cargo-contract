@@ -18,8 +18,8 @@
 #![deny(unused_crate_dependencies)]
 
 use contract_metadata::{
-    compatibility::check_contract_ink_compatibility,
     ContractMetadata,
+    compatibility::check_contract_ink_compatibility,
 };
 use which as _;
 
@@ -73,14 +73,14 @@ pub use self::{
 };
 
 pub use docker::{
-    docker_build,
     ImageVariant,
+    docker_build,
 };
 
 use anyhow::{
-    bail,
     Context,
     Result,
+    bail,
 };
 use colored::Colorize;
 use regex::Regex;
@@ -652,11 +652,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     let cargo = "cargo";
 
     if !execute_cmd(Command::new(cargo).arg("dylint").arg("--version")) {
-        anyhow::bail!("cargo-dylint was not found!\n\
+        anyhow::bail!(
+            "cargo-dylint was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install cargo-dylint`."
-            .to_string()
-            .bright_yellow());
+                .to_string()
+                .bright_yellow()
+        );
     }
 
     // On windows we cannot just run the linker with --version as there is no command
@@ -667,11 +669,13 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     #[cfg(not(windows))]
     let dylint_link_found = execute_cmd(Command::new("dylint-link").arg("--version"));
     if !dylint_link_found {
-        anyhow::bail!("dylint-link was not found!\n\
+        anyhow::bail!(
+            "dylint-link was not found!\n\
             Make sure it is installed and the binary is in your PATH environment.\n\n\
             You can install it by executing `cargo install dylint-link`."
-            .to_string()
-            .bright_yellow());
+                .to_string()
+                .bright_yellow()
+        );
     }
 
     Ok(())
@@ -1014,8 +1018,8 @@ fn h256_hash(code: &[u8]) -> [u8; 32] {
 /// Returns the blake2 hash of the given bytes.
 fn blake2_hash(code: &[u8]) -> [u8; 32] {
     use blake2::digest::{
-        consts::U32,
         Digest as _,
+        consts::U32,
     };
     let mut blake2 = blake2::Blake2b::<U32>::new();
     blake2.update(code);

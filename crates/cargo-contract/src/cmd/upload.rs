@@ -15,8 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    call_with_config,
     ErrorVariant,
+    call_with_config,
 };
 use std::{
     fmt::{
@@ -27,11 +27,11 @@ use std::{
 };
 
 use super::{
+    CLIExtrinsicOpts,
     config::SignerConfig,
     display_dry_run_result_warning,
     parse_balance,
     prompt_confirm_unverifiable_upload,
-    CLIExtrinsicOpts,
 };
 use anyhow::Result;
 use contract_build::name_value_println;
@@ -45,6 +45,7 @@ use contract_extrinsics::{
 use ink_env::Environment;
 use serde::Serialize;
 use subxt::{
+    Config,
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
@@ -53,7 +54,6 @@ use subxt::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
     },
-    Config,
 };
 
 #[derive(Debug, clap::Args)]

@@ -58,8 +58,8 @@ use subxt::{
     PolkadotConfig as DefaultConfig,
 };
 use subxt_signer::{
-    sr25519::Keypair,
     SecretUri,
+    sr25519::Keypair,
 };
 
 const CONTRACTS_NODE: &str = "ink-node";

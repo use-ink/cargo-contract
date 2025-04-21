@@ -25,8 +25,8 @@ use ink_metadata::{
 };
 use itertools::Itertools;
 use scale_info::{
-    form::PortableForm,
     PortableRegistry,
+    form::PortableForm,
 };
 use serde::{
     Deserialize,

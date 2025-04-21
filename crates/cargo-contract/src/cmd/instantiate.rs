@@ -15,6 +15,8 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    CLIExtrinsicOpts,
+    MAX_KEY_COL_WIDTH,
     config::SignerConfig,
     display_contract_exec_result,
     display_dry_run_result_warning,
@@ -23,28 +25,25 @@ use super::{
     print_dry_running_status,
     print_gas_required_success,
     prompt_confirm_tx,
-    CLIExtrinsicOpts,
-    MAX_KEY_COL_WIDTH,
 };
 use crate::{
-    anyhow,
-    call_with_config,
-    cmd::prompt_confirm_unverifiable_upload,
     ErrorVariant,
     InstantiateExec,
     Weight,
+    anyhow,
+    call_with_config,
+    cmd::prompt_confirm_unverifiable_upload,
 };
 use anyhow::Result;
 use contract_build::{
+    Verbosity,
     name_value_println,
     util::{
-        decode_hex,
         DEFAULT_KEY_COL_WIDTH,
+        decode_hex,
     },
-    Verbosity,
 };
 use contract_extrinsics::{
-    pallet_revive_primitives::StorageDeposit,
     Code,
     DisplayEvents,
     ExtrinsicOptsBuilder,
@@ -52,6 +51,7 @@ use contract_extrinsics::{
     InstantiateDryRunResult,
     InstantiateExecResult,
     TokenMetadata,
+    pallet_revive_primitives::StorageDeposit,
 };
 use ink_env::Environment;
 use serde::Serialize;
@@ -64,6 +64,7 @@ use std::{
     str::FromStr,
 };
 use subxt::{
+    Config,
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
@@ -75,7 +76,6 @@ use subxt::{
         sp_runtime::traits::Zero,
     },
     utils::H160,
-    Config,
 };
 
 #[derive(Debug, clap::Args)]
@@ -278,20 +278,26 @@ where
 {
     if skip_dry_run {
         // todo simplify this code
-        let weight = match (instantiate_exec.args().gas_limit(), instantiate_exec.args().proof_size()) {
-                (Some(ref_time), Some(proof_size)) => Ok(Weight::from_parts(ref_time, proof_size)),
-                _ => {
-                    Err(anyhow!(
-                        "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
-                    ))
-                }
-            }?;
-        let storage_deposit_limit = match instantiate_exec.args().storage_deposit_limit() {
+        let weight = match (
+            instantiate_exec.args().gas_limit(),
+            instantiate_exec.args().proof_size(),
+        ) {
+            (Some(ref_time), Some(proof_size)) => {
+                Ok(Weight::from_parts(ref_time, proof_size))
+            }
+            _ => {
+                Err(anyhow!(
+                    "Weight args `--gas` and `--proof-size` required if `--skip-dry-run` specified"
+                ))
+            }
+        }?;
+        let storage_deposit_limit = match instantiate_exec.args().storage_deposit_limit()
+        {
             Some(limit) => Ok(limit),
             _ => {
                 Err(anyhow!(
-                        "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
-                    ))
+                    "Storage deposit limit arg `--storage-deposit-limit` required if `--skip-dry-run` specified"
+                ))
             }
         }?;
         return Ok((weight, storage_deposit_limit));
@@ -303,8 +309,11 @@ where
     match instantiate_result.result {
         Ok(res) => {
             if res.result.did_revert() {
-                return Err(anyhow!("Pre-submission dry-run failed because contract reverted:\n{:?}\n\nUse --skip-dry-run to skip this step.",
-                String::from_utf8(res.result.data).expect("unable to convert to utf8")));
+                return Err(anyhow!(
+                    "Pre-submission dry-run failed because contract reverted:\n{:?}\n\nUse --skip-dry-run to skip this step.",
+                    String::from_utf8(res.result.data)
+                        .expect("unable to convert to utf8")
+                ));
             }
             if !output_json {
                 print_gas_required_success(instantiate_result.gas_required);
@@ -345,7 +354,9 @@ where
                     &instantiate_result,
                 )?;
 
-                Err(anyhow!("Pre-submission dry-run failed. Use --skip-dry-run to skip this step."))
+                Err(anyhow!(
+                    "Pre-submission dry-run failed. Use --skip-dry-run to skip this step."
+                ))
             }
         }
     }

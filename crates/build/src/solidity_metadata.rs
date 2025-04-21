@@ -55,8 +55,8 @@ use self::natspec::{
     UserDoc,
 };
 use crate::{
-    code_hash,
     CrateMetadata,
+    code_hash,
 };
 
 // Re-exports abi utilities.

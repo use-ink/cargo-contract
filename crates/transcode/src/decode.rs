@@ -15,13 +15,13 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    CompositeTypeFields,
     env_types::EnvTypesTranscoder,
     scon::{
         Map,
         Tuple,
         Value,
     },
-    CompositeTypeFields,
 };
 use anyhow::{
     Context,
@@ -33,10 +33,6 @@ use scale::{
     Input,
 };
 use scale_info::{
-    form::{
-        Form,
-        PortableForm,
-    },
     Field,
     PortableRegistry,
     Type,
@@ -44,6 +40,10 @@ use scale_info::{
     TypeDefCompact,
     TypeDefPrimitive,
     TypeDefVariant,
+    form::{
+        Form,
+        PortableForm,
+    },
 };
 
 pub struct Decoder<'a> {

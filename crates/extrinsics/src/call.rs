@@ -15,11 +15,11 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    ContractMessageTranscoder,
+    ErrorVariant,
     pallet_revive_primitives::ContractExecResult,
     state_call,
     submit_extrinsic,
-    ContractMessageTranscoder,
-    ErrorVariant,
 };
 use crate::{
     check_env_types,
@@ -28,8 +28,8 @@ use crate::{
 };
 
 use anyhow::{
-    anyhow,
     Result,
+    anyhow,
 };
 use ink_env::Environment;
 use scale::Encode;
@@ -38,6 +38,8 @@ use sp_weights::Weight;
 
 use crate::pallet_revive_primitives::StorageDeposit;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::{
         legacy::LegacyRpcMethods,
         rpc::RpcClient,
@@ -53,8 +55,6 @@ use subxt::{
     },
     tx,
     utils::H160,
-    Config,
-    OnlineClient,
 };
 
 /// A builder for the call command.

@@ -16,8 +16,8 @@
 
 use super::get_best_block;
 use anyhow::{
-    anyhow,
     Result,
+    anyhow,
 };
 use contract_metadata::byte_str::serialize_as_byte_str;
 use std::fmt::{
@@ -30,6 +30,8 @@ use pallet_revive::evm::H256;
 use scale::Decode;
 use std::option::Option;
 use subxt::{
+    Config,
+    OnlineClient,
     backend::legacy::LegacyRpcMethods,
     dynamic::DecodedValueThunk,
     ext::{
@@ -41,8 +43,6 @@ use subxt::{
     },
     storage::dynamic,
     utils::H160,
-    Config,
-    OnlineClient,
 };
 //use contract_transcode::env_types::AccountId;
 

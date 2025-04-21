@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+    AccountId32,
     decode::Decoder,
     encode::Encoder,
     env_types::{
@@ -26,7 +27,6 @@ use super::{
         TypesByPath,
     },
     scon::Value,
-    AccountId32,
 };
 
 use anyhow::Result;
@@ -241,9 +241,11 @@ mod tests {
         let transcoder = Transcoder::new(Default::default());
         let encoded = u32::from('c').encode();
 
-        assert!(transcoder
-            .encode(&registry, ty, &Value::Char('c'), &mut Vec::new())
-            .is_err());
+        assert!(
+            transcoder
+                .encode(&registry, ty, &Value::Char('c'), &mut Vec::new())
+                .is_err()
+        );
         assert!(transcoder.decode(&registry, ty, &mut &encoded[..]).is_err());
         Ok(())
     }

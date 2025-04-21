@@ -17,8 +17,8 @@
 #![deny(unused_crate_dependencies)]
 
 use anyhow::{
-    bail,
     Result,
+    bail,
 };
 pub use contract_metadata::Language;
 

@@ -21,7 +21,16 @@ use crate::contract_storage::{
 use contract_transcode::ContractMessageTranscoder;
 
 use ink::{
+    ConstructorResult,
+    MessageResult,
     metadata::{
+        ConstructorSpec,
+        ContractSpec,
+        InkProject,
+        LangError,
+        MessageSpec,
+        ReturnTypeSpec,
+        TypeSpec,
         layout::{
             Layout::{
                 self,
@@ -30,25 +39,16 @@ use ink::{
             LayoutKey,
             RootLayout,
         },
-        ConstructorSpec,
-        ContractSpec,
-        InkProject,
-        LangError,
-        MessageSpec,
-        ReturnTypeSpec,
-        TypeSpec,
     },
     storage::{
+        Lazy,
+        Mapping,
         traits::{
             ManualKey,
             Storable,
             StorageLayout,
         },
-        Lazy,
-        Mapping,
     },
-    ConstructorResult,
-    MessageResult,
 };
 
 use scale::Encode;
@@ -61,29 +61,33 @@ const LAZY_TYPE_ROOT_KEY: u32 = 1;
 
 fn contract_default_spec() -> ContractSpec {
     ContractSpec::new()
-        .constructors(vec![ConstructorSpec::from_label("new")
-            .selector([94u8, 189u8, 136u8, 214u8])
-            .payable(true)
-            .args(Vec::new())
-            .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
-                ConstructorResult<()>,
-            >(
-                "ink_primitives::ConstructorResult"
-            )))
-            .docs(Vec::new())
-            .done()])
-        .messages(vec![MessageSpec::from_label("inc")
-            .selector([231u8, 208u8, 89u8, 15u8])
-            .mutates(true)
-            .payable(true)
-            .args(Vec::new())
-            .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
-                MessageResult<()>,
-            >(
-                "ink_primitives::MessageResult"
-            )))
-            .default(true)
-            .done()])
+        .constructors(vec![
+            ConstructorSpec::from_label("new")
+                .selector([94u8, 189u8, 136u8, 214u8])
+                .payable(true)
+                .args(Vec::new())
+                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
+                    ConstructorResult<()>,
+                >(
+                    "ink_primitives::ConstructorResult"
+                )))
+                .docs(Vec::new())
+                .done(),
+        ])
+        .messages(vec![
+            MessageSpec::from_label("inc")
+                .selector([231u8, 208u8, 89u8, 15u8])
+                .mutates(true)
+                .payable(true)
+                .args(Vec::new())
+                .returns(ReturnTypeSpec::new(TypeSpec::with_name_str::<
+                    MessageResult<()>,
+                >(
+                    "ink_primitives::MessageResult"
+                )))
+                .default(true)
+                .done(),
+        ])
         .events(Vec::new())
         .lang_error(TypeSpec::with_name_segs::<LangError, _>(
             ::core::iter::Iterator::map(
