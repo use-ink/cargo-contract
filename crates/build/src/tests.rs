@@ -130,7 +130,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
 }
 
 fn lint_code_only(manifest_path: &ManifestPath) -> Result<()> {
-    let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
     for extra_lint in [true, false] {
         super::lint::lint(extra_lint, &crate_metadata, &crate::Verbosity::Default)
             .expect("lint failed");

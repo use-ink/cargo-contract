@@ -867,11 +867,7 @@ async fn adhere_to_limits_during_build_upload_instantiate_call() {
         std::fs::write(lib, contract.replace("%", salt))
             .expect("Failed to write contract lib.rs");
 
-        cargo_contract(project_path)
-            .arg("build")
-            .arg("--skip-linting")
-            .assert()
-            .success();
+        cargo_contract(project_path).arg("build").assert().success();
 
         let output = cargo_contract(project_path)
             .arg("upload")

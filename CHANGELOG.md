@@ -149,7 +149,7 @@ Options:
 Or can be executed programmatically:
 
 ```rust
-let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+let crate_metadata = CrateMetadata::collect(manifest_path)?;
 let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
 contract_build::lint(extra_lint, &crate_metadata, &verbosity);
@@ -177,7 +177,7 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
-- Remove linting by default when running `cargo contract build`, add a new command `lint` to only run lint - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
+- Remove linting by default and `--skip-linting` flag in `cargo contract build`, add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
 ## [5.0.1]
 
