@@ -150,7 +150,7 @@ Or can be executed programmatically:
 let crate_metadata = CrateMetadata::collect(manifest_path)?;
 let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-contract_build::lint(extra_lint, &crate_metadata, &verbosity);
+contract_build::lint(dylint, &crate_metadata, &verbosity);
 ```
 
 Please see [#2013](https://github.com/use-ink/cargo-contract/pull/2013) for more information.

@@ -31,7 +31,7 @@ let args = contract_build::ExecuteArgs {
     build_artifact: BuildArtifacts::All,
     unstable_flags: UnstableFlags::default(),
     keep_debug_symbols: false,
-    extra_lints: false,
+    dylint: false,
     output_type: OutputType::Json,
     image: ImageVariant::Default,
     metadata_spec: MetadataSpec::Ink,

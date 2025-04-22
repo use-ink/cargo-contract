@@ -105,7 +105,7 @@ impl VerifyCommand {
             verbosity,
             build_mode: BuildMode::Release,
             build_artifact: BuildArtifacts::CodeOnly,
-            extra_lints: false,
+            dylint: false,
             ..Default::default()
         };
 
@@ -240,7 +240,7 @@ impl VerifyCommand {
             build_mode,
             build_artifact: BuildArtifacts::All,
             image: ImageVariant::from(metadata.image.clone()),
-            extra_lints: false,
+            dylint: false,
             ..Default::default()
         };
 

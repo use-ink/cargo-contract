@@ -118,7 +118,7 @@ pub struct ExecuteArgs {
     pub build_artifact: BuildArtifacts,
     pub unstable_flags: UnstableFlags,
     pub keep_debug_symbols: bool,
-    pub extra_lints: bool,
+    pub dylint: bool,
     pub output_type: OutputType,
     pub image: ImageVariant,
     pub metadata_spec: MetadataSpec,
@@ -473,7 +473,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         network,
         build_artifact,
         unstable_flags,
-        extra_lints,
+        dylint,
         output_type,
         metadata_spec,
         ..
@@ -504,7 +504,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     let (opt_result, metadata_result, dest_binary) = match build_artifact {
         BuildArtifacts::CheckOnly => {
             // Check basically means only running our linter without building.
-            lint(*extra_lints, &crate_metadata, verbosity)?;
+            lint(*dylint, &crate_metadata, verbosity)?;
             (None, None, None)
         }
         BuildArtifacts::CodeOnly => {
