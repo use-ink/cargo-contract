@@ -352,10 +352,11 @@ where
         storage_deposit_limit: E::Balance,
     ) -> Result<InstantiateExecResult<C>, ErrorVariant> {
         let code_hash = None; // todo
+        let account_id = Signer::account_id(self.opts.signer());
         let contract_address = contract_address(
             &self.client,
             &self.rpc,
-            self.opts.signer(),
+            account_id,
             &self.args.salt,
             &code[..],
             &self.args.data[..],
@@ -402,10 +403,11 @@ where
             submit_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
 
         let code = fetch_contract_binary(&self.client, &self.rpc, &code_hash).await?;
+        let account_id = Signer::account_id(self.opts.signer());
         let contract_address = contract_address(
             &self.client,
             &self.rpc,
-            self.opts.signer(),
+            account_id,
             &self.args.salt,
             &code[..],
             &self.args.data[..],
@@ -631,15 +633,14 @@ pub enum Code {
 }
 
 /// Derives a contract address.
-pub async fn contract_address<C: Config, Signer: tx::Signer<C> + Clone>(
+pub async fn contract_address<C: Config>(
     client: &OnlineClient<C>,
     rpc: &LegacyRpcMethods<C>,
-    signer: &Signer,
+    account_id: C::AccountId,
     salt: &Option<[u8; 32]>,
     code: &[u8],
     data: &[u8],
 ) -> Result<H160, subxt::Error> {
-    let account_id = Signer::account_id(signer);
     let deployer = AccountIdMapper::to_address(&account_id.encode()[..]);
 
     // copied from `pallet-revive`
