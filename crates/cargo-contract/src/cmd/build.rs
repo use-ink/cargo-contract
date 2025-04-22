@@ -76,7 +76,7 @@ pub struct BuildCommand {
         long = "generate",
         value_enum,
         default_value = "all",
-        required_if_eq("lint", "true")
+        required_if_eq("dylint", "true")
     )]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
