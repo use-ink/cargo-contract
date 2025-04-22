@@ -137,10 +137,8 @@ Options:
       --verbose
           Use verbose output
 
-      --lint
-          Performs extra linting checks for ink! specific issues during the build process.
-
-          Basic clippy lints are deemed important and run anyway.
+      --dylint
+          Performs extra linting checks with dylint during the build process. Basic clippy lints are deemed important and run anyway.
 
   -h, --help
           Print help (see a summary with '-h')
@@ -177,7 +175,7 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
-- Remove linting by default and `--skip-linting` flag in `cargo contract build`, add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
+- Remove linting by default and `--skip-linting` flag in `cargo contract build`, rename `--lint` flag to `--dylint` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
 ## [5.0.1]
 

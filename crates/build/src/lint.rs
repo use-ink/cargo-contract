@@ -30,18 +30,13 @@ use std::{
     process::Command,
 };
 
-/// Configuration of the linting module.
-///
-/// Ensure it is kept up-to-date when updating `cargo-contract`.
-pub(crate) mod linting {
-    /// Toolchain used to build ink_linting:
-    /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-    pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
-    /// Git repository with ink_linting libraries
-    pub const GIT_URL: &str = "https://github.com/use-ink/ink";
-    /// Git revision number of the linting crate
-    pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
-}
+/// Toolchain used to build ink_linting:
+/// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
+pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
+/// Git repository with ink_linting libraries
+pub const GIT_URL: &str = "https://github.com/use-ink/ink";
+/// Git revision number of the linting crate
+pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
@@ -172,7 +167,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
     // Check if the required toolchain is present and is installed with `rustup`.
     if let Ok(output) = Command::new("rustup").arg("toolchain").arg("list").output() {
         anyhow::ensure!(
-            String::from_utf8_lossy(&output.stdout).contains(linting::TOOLCHAIN_VERSION),
+            String::from_utf8_lossy(&output.stdout).contains(TOOLCHAIN_VERSION),
             format!(
                 "Toolchain `{0}` was not found!\n\
                 This specific version is required to provide additional source code analysis.\n\n\
@@ -180,7 +175,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
                   rustup install {0}\n\
                   rustup component add rust-src --toolchain {0}\n\
                   rustup run {0} cargo install cargo-dylint dylint-link",
-                linting::TOOLCHAIN_VERSION,
+                TOOLCHAIN_VERSION,
             )
             .to_string()
             .bright_yellow());
@@ -192,7 +187,7 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
               rustup install {0}\n\
               rustup component add rust-src --toolchain {0}\n\
               rustup run {0} cargo install cargo-dylint dylint-link",
-            linting::TOOLCHAIN_VERSION,
+            TOOLCHAIN_VERSION,
         )
         .to_string()
         .bright_yellow());
