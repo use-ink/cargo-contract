@@ -57,11 +57,6 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs extra linting checks during the build process. Basic clippy
-    /// lints are deemed important and run anyway. This flag is only effective when using
-    /// with `--generate=check-only`.
-    #[clap(long)]
-    extra_lints: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the contract binary (`<name>.polkavm`), the metadata and a
@@ -72,12 +67,7 @@ pub struct BuildCommand {
     ///
     /// - `check-only`: No artifacts produced: runs the `cargo check` command for the
     ///   PolkaVM target, only checks for compilation errors.
-    #[clap(
-        long = "generate",
-        value_enum,
-        default_value = "all",
-        required_if_eq("extra_lints", "true")
-    )]
+    #[clap(long = "generate", value_enum, default_value = "all")]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
     features: Features,
@@ -150,7 +140,7 @@ impl BuildCommand {
             build_artifact: self.build_artifact,
             unstable_flags,
             keep_debug_symbols: self.keep_debug_symbols,
-            extra_lints: self.extra_lints,
+            extra_lints: false,
             output_type,
             image,
             metadata_spec: self.metadata,

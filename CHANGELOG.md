@@ -175,7 +175,7 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
-- Remove linting by default and `--skip-linting` flag in `cargo contract build`, rename `--lint` flag to `--extra-lints` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
+- Remove linting by default, `--skip-linting` and `--lint` flag in `cargo contract build` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
 ## [5.0.1]
 
