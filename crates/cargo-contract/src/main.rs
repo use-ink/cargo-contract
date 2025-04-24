@@ -28,6 +28,7 @@ use self::cmd::{
     GenerateSchemaCommand,
     InfoCommand,
     InstantiateCommand,
+    LintCommand,
     RemoveCommand,
     RpcCommand,
     StorageCommand,
@@ -164,6 +165,9 @@ enum Command {
     /// Make a raw RPC call.
     #[clap(name = "rpc")]
     Rpc(RpcCommand),
+    /// Lint a contract
+    #[clap(name = "lint")]
+    Lint(LintCommand),
 }
 
 fn main() {
@@ -276,6 +280,7 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Rpc(rpc) => {
             runtime.block_on(async { rpc.run().await.map_err(format_err) })
         }
+        Command::Lint(lint) => lint.run().map_err(format_err),
     }
 }
 

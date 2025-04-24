@@ -261,7 +261,7 @@ jobs:
           cargo run -- contract --version &&
           cargo run -- contract new --target-dir ${{ runner.temp }} foobar &&
           # Build with linting
-          cargo run -- contract build --lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
+          cargo run -- contract lint --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run -- contract check --manifest-path=${{ runner.temp }}/foobar/Cargo.toml &&
           cargo run -- contract build --manifest-path=${{ runner.temp }}/foobar/Cargo.toml --release &&
           # Run tests

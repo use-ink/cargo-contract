@@ -299,8 +299,8 @@ impl Manifest {
     pub fn with_dylint(&mut self) -> Result<&mut Self> {
         let ink_dylint = |lib_name: &str| {
             let mut map = value::Table::new();
-            map.insert("git".into(), crate::linting::GIT_URL.into());
-            map.insert("rev".into(), crate::linting::GIT_REV.into());
+            map.insert("git".into(), crate::lint::GIT_URL.into());
+            map.insert("rev".into(), crate::lint::GIT_REV.into());
             map.insert(
                 "pattern".into(),
                 value::Value::String(format!("linting/{}", lib_name)),

@@ -55,7 +55,7 @@ RUN set -eux \
     && chmod +x rustup-init \
     && ./rustup-init -y --no-modify-path --profile minimal --component rust-src,rustfmt,clippy --default-toolchain $RUST_VERSION  \
     && rm rustup-init \
-    # Install nightly toolchain required by `cargo contract build --verifiable --lint` command
+    # Install nightly toolchain required by `cargo contract lint --extra-lints` command
     && rustup install ${RUST_LINTER_VERSION} --profile minimal \
     && rustup component add rust-src --toolchain ${RUST_LINTER_VERSION} \
     && chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
@@ -100,13 +100,13 @@ RUN apt-get -y update && apt-get -y install gcc=${GCC_VERSION} g++=${G_VERSION} 
     fi \
     && echo "Executing ${COMMAND}" \
     && eval "${COMMAND}" \
-    # Install cargo-dylint, dylint-link required by `cargo contract build --verifiable --lint` command
+    # Install cargo-dylint, dylint-link required by `cargo contract lint --extra-lints` command
     && cargo +${RUST_LINTER_VERSION} install cargo-dylint dylint-link \
-    # Check if build with linting works
+    # Check if build and lint works
     && mkdir -p $DYLINT_DRIVER_PATH \
     && cargo contract new test \
     # Generate /usr/local/dylint_drivers/nightly-2024-02-20-x86_64-unknown-linux-gnu/dylint-driver bin
-    && cd test && cargo contract build --lint --verbose --release && cd .. \
+    && cd test && cargo contract build --verbose --release && cargo contract lint --extra-lints && cd .. \
     && rm -rf test \
     # apt clean up
     && apt-get remove -y gnupg libssl-dev pkg-config \

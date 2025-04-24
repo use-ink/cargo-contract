@@ -24,6 +24,7 @@ pub mod decode;
 pub mod encode;
 pub mod info;
 pub mod instantiate;
+pub mod lint;
 pub mod remove;
 pub mod rpc;
 pub mod schema;
@@ -44,6 +45,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    lint::LintCommand,
     prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,

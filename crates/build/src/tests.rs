@@ -71,6 +71,7 @@ macro_rules! build_tests {
 // dependencies to be build once across all tests.
 build_tests!(
     build_code_only,
+    lint_code_only,
     check_must_not_output_contract_artifacts_in_project_dir,
     building_template_in_debug_mode_must_work,
     building_template_in_release_mode_must_work,
@@ -92,7 +93,6 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
         extra_lints: false,
-        skip_clippy_and_linting: true,
         ..Default::default()
     };
 
@@ -126,6 +126,15 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     // todo
     // assert!(!has_debug_symbols(res.dest_binary.unwrap()));
 
+    Ok(())
+}
+
+fn lint_code_only(manifest_path: &ManifestPath) -> Result<()> {
+    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    for extra_lint in [true, false] {
+        super::lint::lint(extra_lint, &crate_metadata, &crate::Verbosity::Default)
+            .expect("lint failed");
+    }
     Ok(())
 }
 

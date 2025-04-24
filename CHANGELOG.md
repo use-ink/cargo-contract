@@ -119,20 +119,41 @@ of bugs in PolkaVM that prohibit us from using e.g. LTO. The contract sizes will
 get much smaller again, once those bugs are fixed.
 
 ### Linting
-Linting of a contract can be executed if set like this:
+Linting of a contract can be executed by running the `lint` command:
 
-```rust
-let args = ExecuteArgs {
-  skip_clippy_and_linting: true
-  ...
-};
-let res = contract_build::execute(args);
+```bash
+➜ cargo contract lint --help
+Lint a contract
+
+Usage: cargo contract lint [OPTIONS]
+
+Options:
+      --manifest-path <MANIFEST_PATH>
+          Path to the `Cargo.toml` of the contract to build
+
+      --quiet
+          No output printed to stdout
+
+      --verbose
+          Use verbose output
+
+      --extra-lints
+          Performs extra linting checks during the build process. Basic clippy lints are deemed important and run anyway.
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
-The linting can be quite slow, thus decreasing the feedback cycle if actively developing
-a contract. Right now it's still the default to lint when `cargo contract build` is
-invoked. We're actively thinking about not linting byt default, right now it's still
-on by default.
+Or can be executed programmatically:
+
+```rust
+let crate_metadata = CrateMetadata::collect(manifest_path)?;
+let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+
+contract_build::lint(extra_lint, &crate_metadata, &verbosity);
+```
+
+Please see [#2013](https://github.com/use-ink/cargo-contract/pull/2013) for more information.
 
 ### Ability to generate Solidity metadata for a contract
 ink! v6 will have the ability to speak Solidity, you'll be able to integrate
@@ -154,6 +175,7 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
+- Remove linting by default, `--skip-linting` and `--lint` flag in `cargo contract build` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
 ## [5.0.1]
 
