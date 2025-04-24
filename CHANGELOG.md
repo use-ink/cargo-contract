@@ -137,8 +137,8 @@ Options:
       --verbose
           Use verbose output
 
-      --dylint
-          Performs extra linting checks with dylint during the build process. Basic clippy lints are deemed important and run anyway.
+      --extra-lints
+          Performs extra linting checks during the build process. Basic clippy lints are deemed important and run anyway.
 
   -h, --help
           Print help (see a summary with '-h')
@@ -150,7 +150,7 @@ Or can be executed programmatically:
 let crate_metadata = CrateMetadata::collect(manifest_path)?;
 let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
 
-contract_build::lint(dylint, &crate_metadata, &verbosity);
+contract_build::lint(extra_lint, &crate_metadata, &verbosity);
 ```
 
 Please see [#2013](https://github.com/use-ink/cargo-contract/pull/2013) for more information.
@@ -175,7 +175,7 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
-- Remove linting by default and `--skip-linting` flag in `cargo contract build`, rename `--lint` flag to `--dylint` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
+- Remove linting by default and `--skip-linting` flag in `cargo contract build`, rename `--lint` flag to `--extra-lints` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
 ## [5.0.1]
 

@@ -57,11 +57,11 @@ pub struct BuildCommand {
     /// Build offline
     #[clap(long = "offline")]
     build_offline: bool,
-    /// Performs extra linting checks with dylint during the build process. Basic clippy
+    /// Performs extra linting checks during the build process. Basic clippy
     /// lints are deemed important and run anyway. This flag is only effective when using
     /// with `--generate=check-only`.
     #[clap(long)]
-    dylint: bool,
+    extra_lints: bool,
     /// Which build artifacts to generate.
     ///
     /// - `all`: Generate the contract binary (`<name>.polkavm`), the metadata and a
@@ -76,7 +76,7 @@ pub struct BuildCommand {
         long = "generate",
         value_enum,
         default_value = "all",
-        required_if_eq("dylint", "true")
+        required_if_eq("extra_lints", "true")
     )]
     build_artifact: BuildArtifacts,
     #[clap(flatten)]
@@ -150,7 +150,7 @@ impl BuildCommand {
             build_artifact: self.build_artifact,
             unstable_flags,
             keep_debug_symbols: self.keep_debug_symbols,
-            dylint: self.dylint,
+            extra_lints: self.extra_lints,
             output_type,
             image,
             metadata_spec: self.metadata,
@@ -183,7 +183,7 @@ impl CheckCommand {
             build_artifact: BuildArtifacts::CheckOnly,
             unstable_flags: Default::default(),
             keep_debug_symbols: false,
-            dylint: false,
+            extra_lints: false,
             output_type: OutputType::default(),
             image: ImageVariant::Default,
             metadata_spec: Default::default(),

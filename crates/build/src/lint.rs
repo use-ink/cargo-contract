@@ -41,7 +41,7 @@ pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
 pub fn lint(
-    dylint: bool,
+    extra_lints: bool,
     crate_metadata: &CrateMetadata,
     verbosity: &Verbosity,
 ) -> Result<()> {
@@ -57,14 +57,14 @@ pub fn lint(
     // it's required only for RiscV target. We're working on the toolchain integration
     // and will make this step mandatory for all targets in future releases.
     // TODO add flag skip linting
-    if dylint {
+    if extra_lints {
         verbose_eprintln!(
             verbosity,
             " {} {}",
             "[==]".bold(),
             "Checking ink! linting rules".bright_green().bold()
         );
-        exec_cargo_dylint(dylint, crate_metadata, *verbosity)?;
+        exec_cargo_dylint(extra_lints, crate_metadata, *verbosity)?;
     }
 
     Ok(())
@@ -75,7 +75,7 @@ pub fn lint(
 /// We create a temporary folder, extract the linting driver there and run
 /// `cargo dylint` with it.
 fn exec_cargo_dylint(
-    dylint: bool,
+    extra_lints: bool,
     crate_metadata: &CrateMetadata,
     verbosity: Verbosity,
 ) -> Result<()> {
@@ -87,7 +87,7 @@ fn exec_cargo_dylint(
         Verbosity::Default | Verbosity::Quiet => Verbosity::Quiet,
     };
 
-    let mut args = if dylint {
+    let mut args = if extra_lints {
         vec![
             "--lib=ink_linting_mandatory".to_owned(),
             "--lib=ink_linting".to_owned(),

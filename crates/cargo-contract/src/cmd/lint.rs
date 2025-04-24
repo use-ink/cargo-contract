@@ -32,10 +32,10 @@ pub struct LintCommand {
     manifest_path: Option<PathBuf>,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
-    /// Performs extra linting checks with dylint during the build process. Basic clippy
+    /// Performs extra linting checks during the build process. Basic clippy
     /// lints are deemed important and run anyway.
     #[clap(long)]
-    dylint: bool,
+    extra_lints: bool,
 }
 
 impl LintCommand {
@@ -43,6 +43,6 @@ impl LintCommand {
         let manifest_path = ManifestPath::try_from(self.manifest_path.as_ref())?;
         let crate_metadata = CrateMetadata::collect(&manifest_path)?;
         let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
-        lint(self.dylint, &crate_metadata, &verbosity)
+        lint(self.extra_lints, &crate_metadata, &verbosity)
     }
 }

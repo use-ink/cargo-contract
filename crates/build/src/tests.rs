@@ -92,7 +92,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -131,8 +131,8 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
 
 fn lint_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    for dylint in [true, false] {
-        super::lint::lint(dylint, &crate_metadata, &crate::Verbosity::Default)
+    for extra_lint in [true, false] {
+        super::lint::lint(extra_lint, &crate_metadata, &crate::Verbosity::Default)
             .expect("lint failed");
     }
     Ok(())
@@ -145,7 +145,7 @@ fn check_must_not_output_contract_artifacts_in_project_dir(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -179,7 +179,7 @@ fn building_template_in_debug_mode_must_work(manifest_path: &ManifestPath) -> Re
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Debug,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -198,7 +198,7 @@ fn building_template_in_release_mode_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_mode: BuildMode::Release,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -228,7 +228,7 @@ fn building_contract_with_source_file_in_subfolder_must_work(
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -254,7 +254,7 @@ fn building_contract_with_build_rs_must_work(manifest_path: &ManifestPath) -> Re
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         build_artifact: BuildArtifacts::CheckOnly,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -272,7 +272,7 @@ fn keep_debug_symbols_in_debug_mode(manifest_path: &ManifestPath) -> Result<()> 
         build_mode: BuildMode::Debug,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -291,7 +291,7 @@ fn keep_debug_symbols_in_release_mode(manifest_path: &ManifestPath) -> Result<()
         build_mode: BuildMode::Release,
         build_artifact: BuildArtifacts::CodeOnly,
         keep_debug_symbols: true,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -309,7 +309,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
         output_type: OutputType::Json,
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
 
@@ -336,7 +336,7 @@ fn missing_linting_toolchain_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
-        dylint: true,
+        extra_lints: true,
         ..Default::default()
     };
     let res = super::execute(args).map(|_| ()).unwrap_err();
@@ -397,7 +397,7 @@ fn generates_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::write(final_contract_binary_path, "TEST FINAL WASM BLOB").unwrap();
 
     let mut args = ExecuteArgs {
-        dylint: false,
+        extra_lints: false,
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();
@@ -517,7 +517,7 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     fs::write(final_contract_binary_path, "TEST FINAL BINARY").unwrap();
 
     let mut args = ExecuteArgs {
-        dylint: false,
+        extra_lints: false,
         metadata_spec: crate::MetadataSpec::Solidity,
         ..Default::default()
     };
