@@ -36,7 +36,7 @@ pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
 /// Git repository with ink_linting libraries
 pub const GIT_URL: &str = "https://github.com/use-ink/ink";
 /// Git revision number of the linting crate
-pub const GIT_REV: &str = "87a97b244f7eb30fe04b9dba59294af9f91646d4";
+pub const GIT_REV: &str = "5dc1624c3fa279cc57b4418b939cc089790f42f0";
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
