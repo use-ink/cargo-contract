@@ -177,6 +177,10 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
 - Remove linting by default, `--skip-linting` and `--lint` flag in `cargo contract build` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
 
+### Fixed
+
+- Resolved verifiable-build image failures within `release-verifiable-image` workflow - [#2018](https://github.com/use-ink/cargo-contract/pull/2018)
+
 ## [5.0.1]
 
 ### Changed
