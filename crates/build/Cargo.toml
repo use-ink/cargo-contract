@@ -49,7 +49,7 @@ alloy-json-abi = "0.8.20"
 polkavm-linker = "0.22.0"
 
 contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false, features = ["std", "derive"] }
+ink_metadata = { version = "6.0.0-alpha", default-features = false, features = ["std", "derive"] }
 sha3 = "0.10.8"
 
 [target.'cfg(unix)'.dependencies]
