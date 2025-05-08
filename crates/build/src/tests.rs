@@ -333,6 +333,7 @@ fn missing_linting_toolchain_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::CheckOnly,
         extra_lints: true,
         ..Default::default()
     };
