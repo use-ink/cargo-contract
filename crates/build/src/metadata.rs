@@ -177,7 +177,7 @@ pub fn execute(
         let mut abi_cfg = String::new();
         if let Some(abi) = crate_metadata.abi {
             abi_cfg.push('\x1f');
-            abi_cfg.push_str(&abi.cargo_encoded_rustc_flag());
+            abi_cfg.push_str(&abi.cargo_encoded_rustflag());
         }
 
         let cmd = util::cargo_cmd(
