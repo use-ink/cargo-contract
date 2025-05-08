@@ -104,7 +104,7 @@ fn exec_cargo_dylint(
     let mut rustflags = "--cfg=substrate_runtime".to_string();
     if let Some(abi) = crate_metadata.abi {
         rustflags.push(' ');
-        rustflags.push_str(&abi.rustc_flag());
+        rustflags.push_str(&abi.rustflag());
     }
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
@@ -250,7 +250,7 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         Some(abi) => {
             vec![(
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some(abi.cargo_encoded_rustc_flag()),
+                Some(abi.cargo_encoded_rustflag()),
             )]
         }
     };

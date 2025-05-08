@@ -288,14 +288,14 @@ impl fmt::Display for Abi {
 
 impl Abi {
     /// Returns the `rustc` `cfg` flag for the ABI.
-    fn rustc_flag(&self) -> String {
-        format!("--cfg ink_abi=\"{self}\"")
+    fn rustflag(&self) -> String {
+        format!("--cfg ink_abi=\"{self}\" --check-cfg cfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
     }
 
     /// Returns the "encoded" `rustc` `cfg` flag for the ABI
     /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
-    fn cargo_encoded_rustc_flag(&self) -> String {
-        format!("--cfg\x1fink_abi=\"{self}\"")
+    fn cargo_encoded_rustflag(&self) -> String {
+        format!("--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
     }
 }
 
@@ -374,7 +374,7 @@ fn exec_cargo_for_onchain_target(
         };
         if let Some(abi) = crate_metadata.abi {
             rustflags.push('\x1f');
-            rustflags.push_str(&abi.cargo_encoded_rustc_flag());
+            rustflags.push_str(&abi.cargo_encoded_rustflag());
         }
 
         fs::create_dir_all(&crate_metadata.target_directory)?;
