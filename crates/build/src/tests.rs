@@ -47,9 +47,6 @@ use std::{
 
 macro_rules! build_tests {
     ( $($fn:ident),* ) => {
-        // todo Enable tests after upgrade to `polkavm` > 0.19. I believe we are
-        // getting a way too high file size with 0.19.
-        #[ignore]
         #[test]
         fn build_tests() -> Result<()> {
             let tmp_dir = ::tempfile::Builder::new()
@@ -336,6 +333,7 @@ fn missing_linting_toolchain_installation_must_be_detected(
     // when
     let args = ExecuteArgs {
         manifest_path: manifest_path.clone(),
+        build_artifact: BuildArtifacts::CheckOnly,
         extra_lints: true,
         ..Default::default()
     };
