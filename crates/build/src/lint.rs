@@ -101,6 +101,11 @@ fn exec_cargo_dylint(
     args.extend(onchain_cargo_options(crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
+    let mut rustflags = "--cfg=substrate_runtime".to_string();
+    if let Some(abi) = crate_metadata.abi {
+        rustflags.push(' ');
+        rustflags.push_str(&abi.rustc_flag());
+    }
     let env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
@@ -111,11 +116,8 @@ fn exec_cargo_dylint(
         ("CARGO_TARGET_DIR", Some(target_dir.to_string())),
         // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
         // is being build for `std` or for a Wasm/RISC-V runtime.
-        (
-            "DYLINT_RUSTFLAGS",
-            Some("--cfg=substrate_runtime".to_string()),
-        ),
-        ("RUSTFLAGS", Some("--cfg=substrate_runtime".to_string())),
+        ("DYLINT_RUSTFLAGS", Some(rustflags.clone())),
+        ("RUSTFLAGS", Some(rustflags)),
     ];
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
@@ -243,12 +245,22 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
         "-Dclippy::cast_possible_wrap",
         "-Dclippy::cast_sign_loss",
     ];
+    let env = match crate_metadata.abi {
+        None => vec![],
+        Some(abi) => {
+            vec![(
+                "CARGO_ENCODED_RUSTFLAGS",
+                Some(abi.cargo_encoded_rustc_flag()),
+            )]
+        }
+    };
+
     // we execute clippy with the plain manifest no temp dir required
     execute_cargo(util::cargo_cmd(
         "clippy",
         args,
         crate_metadata.manifest_path.directory(),
         verbosity,
-        vec![],
+        env,
     ))
 }
