@@ -17,6 +17,7 @@
 use crate::{
     project_path,
     util::tests::TestContractManifest,
+    Abi,
     BuildArtifacts,
     BuildMode,
     BuildResult,
@@ -45,44 +46,57 @@ use std::{
     time::SystemTime,
 };
 
-macro_rules! build_tests {
-    ( $($fn:ident),* ) => {
-        #[test]
-        fn build_tests() -> Result<()> {
-            let tmp_dir = ::tempfile::Builder::new()
-                .prefix("cargo-contract-build.test.")
-                .tempdir()
-                .expect("temporary directory creation failed");
-
-            let ctx = crate::tests::BuildTestContext::new(tmp_dir.path(), "build_test")?;
-            $( ctx.run_test(stringify!($fn), $fn)?; )*
-            Ok(())
-        }
-    }
-}
-
 // All functions provided here are run sequentially as part of the same `#[test]`
 // sharing build artifacts (but nothing else) using the [`BuildTestContext`].
 //
 // The motivation for this is to considerably speed up these tests by only requiring
 // dependencies to be build once across all tests.
-build_tests!(
-    build_code_only,
-    lint_code_only,
-    check_must_not_output_contract_artifacts_in_project_dir,
-    building_template_in_debug_mode_must_work,
-    building_template_in_release_mode_must_work,
-    keep_debug_symbols_in_debug_mode,
-    keep_debug_symbols_in_release_mode,
-    build_with_json_output_works,
-    building_contract_with_source_file_in_subfolder_must_work,
-    building_contract_with_build_rs_must_work,
-    missing_linting_toolchain_installation_must_be_detected,
-    generates_metadata,
-    generates_solidity_metadata,
-    unchanged_contract_skips_optimization_and_metadata_steps,
-    unchanged_contract_no_metadata_artifacts_generates_metadata
-);
+macro_rules! build_tests {
+    ( $abi: expr => [ $($fn:ident),* $(,)* ] ) => {
+        let tmp_dir = ::tempfile::Builder::new()
+            .prefix("cargo-contract-build.test.")
+            .tempdir()
+            .expect("temporary directory creation failed");
+
+        let ctx = crate::tests::BuildTestContext::new(tmp_dir.path(), "build_test", $abi)?;
+        $( ctx.run_test(stringify!($fn), $fn)?; )*
+    }
+}
+
+#[test]
+fn build_tests() -> Result<()> {
+    build_tests!(
+        None => [
+            build_code_only,
+            lint_code_only,
+            check_must_not_output_contract_artifacts_in_project_dir,
+            building_template_in_debug_mode_must_work,
+            building_template_in_release_mode_must_work,
+            keep_debug_symbols_in_debug_mode,
+            keep_debug_symbols_in_release_mode,
+            build_with_json_output_works,
+            building_contract_with_source_file_in_subfolder_must_work,
+            building_contract_with_build_rs_must_work,
+            missing_linting_toolchain_installation_must_be_detected,
+            generates_metadata,
+            unchanged_contract_skips_optimization_and_metadata_steps,
+            unchanged_contract_no_metadata_artifacts_generates_metadata,
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn build_tests_sol() -> Result<()> {
+    build_tests!(
+        Some(Abi::Solidity) => [
+            build_code_only,
+            lint_code_only,
+            generates_solidity_metadata,
+        ]
+    );
+    Ok(())
+}
 
 fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     let args = ExecuteArgs {
@@ -796,8 +810,12 @@ pub struct BuildTestContext {
 impl BuildTestContext {
     /// Create a new `BuildTestContext`, running the `new` command to create a blank
     /// contract template project for testing the build process.
-    pub fn new(tmp_dir: &Path, working_project_name: &str) -> Result<Self> {
-        crate::new_contract_project(working_project_name, Some(tmp_dir))
+    pub fn new(
+        tmp_dir: &Path,
+        working_project_name: &str,
+        abi: Option<Abi>,
+    ) -> Result<Self> {
+        crate::new_contract_project(working_project_name, Some(tmp_dir), abi)
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(working_project_name);
 

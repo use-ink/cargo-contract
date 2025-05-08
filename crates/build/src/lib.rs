@@ -74,9 +74,12 @@ pub use self::{
     },
 };
 
-pub use docker::{
-    docker_build,
-    ImageVariant,
+use std::{
+    cmp::PartialEq,
+    fmt,
+    fs,
+    path::PathBuf,
+    str,
 };
 
 use anyhow::{
@@ -85,19 +88,17 @@ use anyhow::{
     Result,
 };
 use colored::Colorize;
+pub use docker::{
+    docker_build,
+    ImageVariant,
+};
 use regex::Regex;
 use semver::Version;
-use std::{
-    cmp::PartialEq,
-    fs,
-    path::PathBuf,
-    str,
-};
 
 /// Version of the currently executing `cargo-contract` binary.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Result of linking an ELF woth PolkaVM.
+/// Result of linking an ELF with PolkaVM.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LinkerSizeResult {
     /// The original ELF size.
@@ -241,6 +242,63 @@ impl BuildResult {
     }
 }
 
+/// ABI spec for the ink! project.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    clap::ValueEnum,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum Abi {
+    /// ink! ABI spec.
+    #[default]
+    #[clap(name = "ink")]
+    #[serde(rename = "ink")]
+    Ink,
+    /// Solidity ABI spec.
+    #[clap(name = "sol")]
+    #[serde(rename = "sol")]
+    Solidity,
+    /// Support both ink! and Solidity ABI specs.
+    #[clap(name = "all")]
+    All,
+}
+
+impl AsRef<str> for Abi {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Ink => "ink",
+            Self::Solidity => "sol",
+            Self::All => "all",
+        }
+    }
+}
+
+impl fmt::Display for Abi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
+
+impl Abi {
+    /// Returns the `rustc` `cfg` flag for the ABI.
+    fn rustc_flag(&self) -> String {
+        format!("--cfg ink_abi=\"{self}\"")
+    }
+
+    /// Returns the "encoded" `rustc` `cfg` flag for the ABI
+    /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
+    fn cargo_encoded_rustc_flag(&self) -> String {
+        format!("--cfg\x1fink_abi=\"{self}\"")
+    }
+}
+
 /// Executes the supplied cargo command on the project in the specified directory,
 /// defaults to the current directory.
 ///
@@ -306,7 +364,7 @@ fn exec_cargo_for_onchain_target(
         // depends on some warning to be enabled. Until we figure that out we need
         // to live with duplicated warnings. For the metadata build we can disable
         // warnings.
-        let rustflags = {
+        let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
                 format!("{}\x1f{}", common_flags, target_flags)
@@ -314,6 +372,10 @@ fn exec_cargo_for_onchain_target(
                 common_flags.to_string()
             }
         };
+        if let Some(abi) = crate_metadata.abi {
+            rustflags.push('\x1f');
+            rustflags.push_str(&abi.cargo_encoded_rustc_flag());
+        }
 
         fs::create_dir_all(&crate_metadata.target_directory)?;
         env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
