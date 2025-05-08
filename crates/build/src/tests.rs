@@ -47,9 +47,6 @@ use std::{
 
 macro_rules! build_tests {
     ( $($fn:ident),* ) => {
-        // todo Enable tests after upgrade to `polkavm` > 0.19. I believe we are
-        // getting a way too high file size with 0.19.
-        #[ignore]
         #[test]
         fn build_tests() -> Result<()> {
             let tmp_dir = ::tempfile::Builder::new()
