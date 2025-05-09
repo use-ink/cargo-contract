@@ -30,6 +30,7 @@ mod docker;
 mod lint;
 pub mod metadata;
 mod new;
+mod rustc_wrapper;
 mod solidity_metadata;
 #[cfg(test)]
 mod tests;
@@ -374,7 +375,19 @@ fn exec_cargo_for_onchain_target(
         };
         if let Some(abi) = crate_metadata.abi {
             rustflags.push('\x1f');
-            rustflags.push_str(&abi.cargo_encoded_rustflag());
+            let abi_cfg_flags = abi.cargo_encoded_rustflag();
+            rustflags.push_str(&abi_cfg_flags);
+
+            // Sets a custom `RUSTC_WRAPPER` which passes compiler flags to `rustc`,
+            // because `cargo` doesn't pass compiler flags to proc macros and build
+            // scripts when the `--target` flag is set.
+            // The extra flags to pass are specified via `RUSTC_WRAPPER_ENCODED_FLAGS`
+            // Ref: <https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags>
+            // Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
+            let rustc_wrapper =
+                rustc_wrapper::generate(&crate_metadata.target_directory)?;
+            env.push(("RUSTC_WRAPPER", Some(rustc_wrapper)));
+            env.push(("RUSTC_WRAPPER_ENCODED_FLAGS", Some(abi_cfg_flags)));
         }
 
         fs::create_dir_all(&crate_metadata.target_directory)?;
