@@ -1,0 +1,12 @@
+[package]
+name = "rustc_wrapper"
+version = "0.1.0"
+authors = ["David Semakula <hello@davidsemakula.com>", "Use Ink <ink@use.ink>"]
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "rustc_wrapper"
+path = "main.rs"
+
+[dependencies]

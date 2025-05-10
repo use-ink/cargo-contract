@@ -105,7 +105,7 @@ struct ExtendedMetadataResult {
 /// Information about the settings used to build a particular ink! contract.
 ///
 /// Note that this should be an optional part of the metadata since it may not necessarily
-/// translate to other languages (e.g ask!, Solidity).
+/// translate to other languages (e.g. ask!, Solidity).
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct BuildInfo {
     /// The Rust toolchain used to build the contract.
@@ -174,6 +174,12 @@ pub fn execute(
         #[cfg(not(windows))]
         let link_dead_code = "\x1f-Clink-dead-code";
 
+        let mut abi_cfg = String::new();
+        if let Some(abi) = crate_metadata.abi {
+            abi_cfg.push('\x1f');
+            abi_cfg.push_str(&abi.cargo_encoded_rustflag());
+        }
+
         let cmd = util::cargo_cmd(
             "run",
             args,
@@ -181,7 +187,7 @@ pub fn execute(
             verbosity,
             vec![(
                 "CARGO_ENCODED_RUSTFLAGS",
-                Some(format!("--cap-lints=allow{link_dead_code}")),
+                Some(format!("--cap-lints=allow{link_dead_code}{abi_cfg}")),
             )],
         );
         let output = cmd.stdout_capture().run()?;

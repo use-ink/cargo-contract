@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ManifestPath;
+use crate::{
+    Abi,
+    ManifestPath,
+};
 use anyhow::{
     Context,
     Result,
@@ -46,13 +49,13 @@ where
 
 /// Creates a new contract into a temporary directory. The contract's
 /// `ManifestPath` is passed into `f`.
-pub fn with_new_contract_project<F>(f: F)
+pub fn with_new_contract_project<F>(f: F, abi: Option<Abi>)
 where
     F: FnOnce(ManifestPath) -> Result<()>,
 {
     with_tmp_dir(|tmp_dir| {
         let project_name = "new_project";
-        crate::new_contract_project(project_name, Some(tmp_dir))
+        crate::new_contract_project(project_name, Some(tmp_dir), abi)
             .expect("new project creation failed");
         let working_dir = tmp_dir.join(project_name);
         let manifest_path = ManifestPath::new(working_dir.join("Cargo.toml"))?;

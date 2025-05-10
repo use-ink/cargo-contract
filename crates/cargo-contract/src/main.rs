@@ -32,6 +32,7 @@ use self::cmd::{
     RemoveCommand,
     RpcCommand,
     StorageCommand,
+    TestCommand,
     UploadCommand,
     VerifyCommand,
     VerifySchemaCommand,
@@ -50,6 +51,7 @@ use cmd::encode::EncodeCommand;
 use colored::Colorize;
 use contract_build::{
     util::DEFAULT_KEY_COL_WIDTH,
+    Abi,
     OutputType,
 };
 use contract_extrinsics::InstantiateExec;
@@ -116,6 +118,9 @@ enum Command {
         /// The optional target directory for the contract project
         #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
+        /// The ABI specification for the contract project
+        #[clap(long, default_value = "ink")]
+        abi: Option<Abi>,
     },
     /// Compiles the contract, generates metadata, bundles both together in a
     /// `<name>.contract` file
@@ -168,6 +173,9 @@ enum Command {
     /// Lint a contract
     #[clap(name = "lint")]
     Lint(LintCommand),
+    /// Execute all unit and integration tests and build examples.
+    #[clap(name = "test")]
+    Test(TestCommand),
 }
 
 fn main() {
@@ -187,8 +195,12 @@ fn main() {
 fn exec(cmd: Command) -> Result<()> {
     let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
-        Command::New { name, target_dir } => {
-            contract_build::new_contract_project(name, target_dir.as_ref())?;
+        Command::New {
+            name,
+            target_dir,
+            abi,
+        } => {
+            contract_build::new_contract_project(name, target_dir.as_ref(), *abi)?;
             println!("Created contract {name}");
             Ok(())
         }
@@ -281,6 +293,7 @@ fn exec(cmd: Command) -> Result<()> {
             runtime.block_on(async { rpc.run().await.map_err(format_err) })
         }
         Command::Lint(lint) => lint.run().map_err(format_err),
+        Command::Test(test) => test.run().map_err(format_err),
     }
 }
 
