@@ -289,13 +289,13 @@ impl fmt::Display for Abi {
 
 impl Abi {
     /// Returns the `rustc` `cfg` flag for the ABI.
-    fn rustflag(&self) -> String {
+    pub fn rustflag(&self) -> String {
         format!("--cfg ink_abi=\"{self}\" --check-cfg cfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
     }
 
     /// Returns the "encoded" `rustc` `cfg` flag for the ABI
     /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
-    fn cargo_encoded_rustflag(&self) -> String {
+    pub fn cargo_encoded_rustflag(&self) -> String {
         format!("--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
     }
 }
