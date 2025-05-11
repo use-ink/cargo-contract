@@ -270,3 +270,89 @@ fn get_package_abi(root_package: &Package) -> Option<Result<Abi>> {
 
     Some(Ok(abi))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{
+        get_cargo_metadata,
+        get_package_abi,
+    };
+    use crate::{
+        new_contract_project,
+        util::tests::with_tmp_dir,
+        Abi,
+        ManifestPath,
+    };
+
+    #[test]
+    fn valid_package_abi_works() {
+        fn test_project_with_abi(abi: Abi) {
+            with_tmp_dir(|path| {
+                let name = "project_with_valid_abi";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), Some(abi));
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+                let parsed_abi = get_package_abi(&root_package)
+                    .expect("Expected an ABI declaration")
+                    .expect("Expected a valid ABI");
+                assert_eq!(parsed_abi, abi);
+
+                Ok(())
+            });
+        }
+
+        test_project_with_abi(Abi::Ink);
+        test_project_with_abi(Abi::Solidity);
+        test_project_with_abi(Abi::All);
+    }
+
+    #[test]
+    fn missing_package_abi_works() {
+        with_tmp_dir(|path| {
+            let name = "project_with_no_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi = get_package_abi(&root_package);
+            assert!(parsed_abi.is_none(), "Should be None");
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn invalid_package_abi_fails() {
+        with_tmp_dir(|path| {
+            let name = "project_with_invalid_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let cargo_toml = dir.join("Cargo.toml");
+            let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
+            manifest_content.push_str("\n[package.metadata.ink-lang]\nabi=\"move\"\n");
+            let result = fs::write(&cargo_toml, manifest_content);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(cargo_toml).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi =
+                get_package_abi(&root_package).expect("Expected an ABI declaration");
+            assert!(parsed_abi.is_err(), "Should be Err");
+            assert!(parsed_abi.unwrap_err().to_string().contains("Unknown ABI"));
+
+            Ok(())
+        });
+    }
+}
