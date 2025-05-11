@@ -81,8 +81,8 @@ impl CrateMetadata {
             // Warn user if they still specify a lib name different from the
             // package name.
             // NOTE: If no lib name is specified, cargo "normalizes" the package name
-            // and auto inserts it as the lib name. So we need to normalize the package name
-            // before making the comparison.
+            // and auto inserts it as the lib name. So we need to normalize the package
+            // name before making the comparison.
             // Ref: <https://github.com/rust-lang/cargo/blob/3c5bb555caf3fad02927fcfd790ee525da17ce5a/src/cargo/util/toml/targets.rs#L177-L178>
             let expected_lib_name = root_package.name.replace("-", "_");
             if lib_name.name != expected_lib_name {
