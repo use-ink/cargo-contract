@@ -373,6 +373,7 @@ fn exec_cargo_for_onchain_target(
                 common_flags.to_string()
             }
         };
+        // Sets ABI `cfg` flags (if necessary).
         if let Some(abi) = crate_metadata.abi {
             rustflags.push('\x1f');
             let abi_cfg_flags = abi.cargo_encoded_rustflag();
@@ -381,18 +382,15 @@ fn exec_cargo_for_onchain_target(
             // Sets a custom `RUSTC_WRAPPER` which passes compiler flags to `rustc`,
             // because `cargo` doesn't pass compiler flags to proc macros and build
             // scripts when the `--target` flag is set.
-            // The extra flags to pass are specified via `RUSTC_WRAPPER_ENCODED_FLAGS`
-            // Ref: <https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags>
-            // Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
-            let rustc_wrapper =
-                rustc_wrapper::generate(&crate_metadata.target_directory)?;
-            env.push(("RUSTC_WRAPPER", Some(rustc_wrapper)));
-            env.push(("RUSTC_WRAPPER_ENCODED_FLAGS", Some(abi_cfg_flags)));
+            // See `rustc_wrapper::env_vars` docs for details.
+            if let Some(rustc_wrapper_envs) = rustc_wrapper::env_vars(crate_metadata)? {
+                env.extend(rustc_wrapper_envs);
+            }
         }
-
-        fs::create_dir_all(&crate_metadata.target_directory)?;
+        // Sets env var for passing `rustc` flags.
         env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
+        fs::create_dir_all(&crate_metadata.target_directory)?;
         execute_cargo(util::cargo_cmd(
             command,
             &args,

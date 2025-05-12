@@ -14,6 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Utilities for generating and setting a `rustc` wrapper executable for `cargo`
+//! commands.
+//!
+//! # Motivation
+//!
+//! The custom `rustc` wrapper passes extra compiler flags to `rustc`.
+//! This is useful in cases where `cargo` won't pass compiler flags to `rustc`
+//! for some compiler invocations
+//! (e.g. `cargo` doesn't pass `rustc` flags to proc macros and build scripts
+//! when the `--target` flag is set).
+//!
+//! Ref: <https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags>
+//!
+//! Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
+
 use std::{
     fs,
     path::Path,
@@ -26,22 +41,14 @@ use anyhow::{
 
 use crate::{
     util,
+    util::EnvVars,
+    CrateMetadata,
     Verbosity,
 };
 
 /// Generates a `rustc` wrapper executable and returns its path.
 ///
-/// # Motivation
-///
-/// The custom `rustc` wrapper passes extra compiler flags to `rustc`.
-/// This is useful in cases where `cargo` won't pass compiler flags to `rustc`
-/// for some compiler invocations
-/// (e.g. `cargo` doesn't pass `rustc` flags to proc macros and build scripts
-/// when the `--target` flag is set).
-///
-/// Ref: <https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags>
-///
-/// Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
+/// See [`crate::rustc_wrapper`] module docs for motivation.
 pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     let dir = target_dir.as_ref().join("rustc_wrapper");
     fs::create_dir_all(&dir)?;
@@ -91,4 +98,29 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
         exec.as_str().map(ToString::to_string)
     });
     exec_path_str.context("Failed to generate `rustc` wrapper")
+}
+
+/// Returns a list env vars required to set a custom `rustc` wrapper (if necessary).
+///
+/// # Note
+///
+/// See [`crate::rustc_wrapper`] module docs for motivation.
+///
+/// The `rustc` wrapper is set via cargo's `RUSTC_WRAPPER` env var.
+///
+/// The extra compiler flags to pass are specified via the `RUSTC_WRAPPER_ENCODED_FLAGS`
+/// env var.
+pub(crate) fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
+    if let Some(abi) = crate_metadata.abi {
+        let rustc_wrapper = generate(&crate_metadata.target_directory)?;
+        return Ok(Some(vec![
+            ("RUSTC_WRAPPER", Some(rustc_wrapper)),
+            (
+                "RUSTC_WRAPPER_ENCODED_FLAGS",
+                Some(abi.cargo_encoded_rustflag()),
+            ),
+        ]))
+    }
+
+    Ok(None)
 }

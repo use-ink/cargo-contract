@@ -17,6 +17,7 @@
 use crate::{
     execute_cargo,
     onchain_cargo_options,
+    rustc_wrapper,
     util,
     verbose_eprintln,
     CrateMetadata,
@@ -101,12 +102,7 @@ fn exec_cargo_dylint(
     args.extend(onchain_cargo_options(crate_metadata));
 
     let target_dir = &crate_metadata.target_directory.to_string_lossy();
-    let mut rustflags = "--cfg=substrate_runtime".to_string();
-    if let Some(abi) = crate_metadata.abi {
-        rustflags.push(' ');
-        rustflags.push_str(&abi.rustflag());
-    }
-    let env = vec![
+    let mut env = vec![
         // We need to set the `CARGO_TARGET_DIR` environment variable in
         // case `cargo dylint` is invoked.
         //
@@ -114,11 +110,28 @@ fn exec_cargo_dylint(
         // but still want the output to live at a fixed path. `cargo dylint` does
         // not accept this information on the command line.
         ("CARGO_TARGET_DIR", Some(target_dir.to_string())),
-        // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
-        // is being build for `std` or for a Wasm/RISC-V runtime.
+    ];
+    // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
+    // is being build for `std` or for a Wasm/RISC-V runtime.
+    let mut rustflags = "--cfg=substrate_runtime".to_string();
+    // Sets ABI `cfg` flags (if necessary).
+    if let Some(abi) = crate_metadata.abi {
+        rustflags.push(' ');
+        rustflags.push_str(&abi.rustflag());
+
+        // Sets a custom `RUSTC_WRAPPER` which passes compiler flags to `rustc`,
+        // because `cargo` doesn't pass compiler flags to proc macros and build
+        // scripts when the `--target` flag is set.
+        // See `rustc_wrapper::env_vars` docs for details.
+        if let Some(rustc_wrapper_envs) = rustc_wrapper::env_vars(crate_metadata)? {
+            env.extend(rustc_wrapper_envs);
+        }
+    }
+    // Sets env vars for passing `rustc` flags.
+    env.extend([
         ("DYLINT_RUSTFLAGS", Some(rustflags.clone())),
         ("RUSTFLAGS", Some(rustflags)),
-    ];
+    ]);
 
     Workspace::new(&crate_metadata.cargo_meta, &crate_metadata.root_package.id)?
         .with_root_package_manifest(|manifest| {

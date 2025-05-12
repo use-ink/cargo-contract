@@ -34,6 +34,9 @@ pub fn rust_toolchain() -> Result<String> {
     Ok(toolchain)
 }
 
+/// Convenience type alias for a list of env vars.
+pub(crate) type EnvVars<'env> = Vec<(&'env str, Option<String>)>;
+
 /// Builds an [`Expression`] for invoking `cargo`.
 ///
 /// In case `working_dir` is set, the command will be invoked with that folder
@@ -47,7 +50,7 @@ pub fn cargo_cmd<I, S, P>(
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
-    env: Vec<(&str, Option<String>)>,
+    env: EnvVars,
 ) -> Expression
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,
