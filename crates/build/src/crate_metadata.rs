@@ -15,6 +15,7 @@
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+    Abi,
     ManifestPath,
     Target,
 };
@@ -40,7 +41,7 @@ use std::{
 use toml::value;
 use url::Url;
 
-/// Relevant metadata obtained from Cargo.toml.
+/// Relevant metadata obtained from `Cargo.toml`.
 #[derive(Debug)]
 pub struct CrateMetadata {
     pub manifest_path: ManifestPath,
@@ -50,6 +51,7 @@ pub struct CrateMetadata {
     pub original_code: PathBuf,
     pub dest_binary: PathBuf,
     pub ink_version: Version,
+    pub abi: Option<Abi>,
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
@@ -72,6 +74,9 @@ impl CrateMetadata {
 
         // Normalize the final contract artifact name.
         let contract_artifact_name = root_package.name.replace('-', "_");
+
+        // Retrieves ABI from package metadata (if specified).
+        let abi = get_package_abi(&root_package).transpose()?;
 
         if let Some(lib_name) = &root_package
             .targets
@@ -146,6 +151,7 @@ impl CrateMetadata {
             original_code: original_code.into(),
             dest_binary: dest_code.into(),
             ink_version,
+            abi,
             documentation,
             homepage,
             user,
@@ -245,4 +251,108 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
         homepage,
         user,
     })
+}
+
+/// Returns ABI specified (if any) for the package (i.e. via
+/// `package.metadata.ink-lang.abi`).
+fn get_package_abi(root_package: &Package) -> Option<Result<Abi>> {
+    let abi_str = root_package
+        .metadata
+        .get("ink-lang")?
+        .get("abi")?
+        .as_str()?;
+    let abi = match abi_str {
+        "ink" => Abi::Ink,
+        "sol" => Abi::Solidity,
+        "all" => Abi::All,
+        _ => return Some(Err(anyhow::anyhow!("Unknown ABI: {abi_str}"))),
+    };
+
+    Some(Ok(abi))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{
+        get_cargo_metadata,
+        get_package_abi,
+    };
+    use crate::{
+        new_contract_project,
+        util::tests::with_tmp_dir,
+        Abi,
+        ManifestPath,
+    };
+
+    #[test]
+    fn valid_package_abi_works() {
+        fn test_project_with_abi(abi: Abi) {
+            with_tmp_dir(|path| {
+                let name = "project_with_valid_abi";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), Some(abi));
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+                let parsed_abi = get_package_abi(&root_package)
+                    .expect("Expected an ABI declaration")
+                    .expect("Expected a valid ABI");
+                assert_eq!(parsed_abi, abi);
+
+                Ok(())
+            });
+        }
+
+        test_project_with_abi(Abi::Ink);
+        test_project_with_abi(Abi::Solidity);
+        test_project_with_abi(Abi::All);
+    }
+
+    #[test]
+    fn missing_package_abi_works() {
+        with_tmp_dir(|path| {
+            let name = "project_with_no_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi = get_package_abi(&root_package);
+            assert!(parsed_abi.is_none(), "Should be None");
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn invalid_package_abi_fails() {
+        with_tmp_dir(|path| {
+            let name = "project_with_invalid_abi";
+            let dir = path.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            let result = new_contract_project(name, Some(path), None);
+            assert!(result.is_ok(), "Should succeed");
+
+            let cargo_toml = dir.join("Cargo.toml");
+            let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
+            manifest_content.push_str("\n[package.metadata.ink-lang]\nabi=\"move\"\n");
+            let result = fs::write(&cargo_toml, manifest_content);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(cargo_toml).unwrap();
+            let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
+            let parsed_abi =
+                get_package_abi(&root_package).expect("Expected an ABI declaration");
+            assert!(parsed_abi.is_err(), "Should be Err");
+            assert!(parsed_abi.unwrap_err().to_string().contains("Unknown ABI"));
+
+            Ok(())
+        });
+    }
 }
