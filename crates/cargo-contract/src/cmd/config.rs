@@ -274,7 +274,7 @@ mod tests {
         let suri = "//Alice";
         let pair = sp_core::sr25519::Pair::from_string(suri, None).unwrap();
         let signer = SignerSR25519::<SubstrateConfig>::from_str(suri).unwrap();
-        assert_eq!(signer.account_id, AccountId32(pair.public().0).into());
+        assert_eq!(signer.account_id, AccountId32(pair.public().0));
         assert_eq!(
             signer.account_id().to_string(),
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
@@ -290,7 +290,7 @@ mod tests {
         let signer = SignerEcdsa::<SubstrateConfig>::from_str(suri).unwrap();
         assert_eq!(
             signer.account_id,
-            AccountId32(sp_core::blake2_256(&pair.public().0)).into()
+            AccountId32(sp_core::blake2_256(&pair.public().0))
         );
         assert_eq!(
             signer.account_id().to_string(),
