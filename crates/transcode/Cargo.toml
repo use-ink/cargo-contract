@@ -24,8 +24,8 @@ contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.7.1"
-ink_env = { git = "https://github.com/use-ink/ink", branch = "frank/subxt", version = "6.0.0-alpha" }
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "frank/subxt", version = "6.0.0-alpha", default-features = false, features = ["std", "derive"] }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha" }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha", default-features = false, features = ["std", "derive"] }
 itertools = "0.14.0"
 tracing = "0.1.40"
 nom = "7.1.3"
@@ -41,7 +41,7 @@ regex = "1.11.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { git = "https://github.com/use-ink/ink", branch = "frank/subxt", version = "6.0.0-alpha", features = ["unstable-hostfn"] }
+ink = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha", features = ["unstable-hostfn"] }
 sp-core = { version = "36.1.0", default-features = false }
 sp-keyring = { version = "41.0.0", default-features = false }
 
