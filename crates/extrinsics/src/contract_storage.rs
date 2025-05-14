@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::{
+    fetch_contract_info,
+    url_to_string,
+    ContractInfo,
+    TrieId,
+};
 use anyhow::{
     anyhow,
     Result,
@@ -59,22 +65,16 @@ use subxt::{
             rpc_methods::Bytes,
             LegacyRpcMethods,
         },
-        rpc::{
-            rpc_params,
-            RpcClient,
-        },
+        rpc::RpcClient,
     },
-    ext::scale_decode::IntoVisitor,
+    config::HashFor,
+    ext::{
+        scale_decode::IntoVisitor,
+        subxt_rpcs::client::rpc_params,
+    },
     utils::H160,
     Config,
     OnlineClient,
-};
-
-use super::{
-    fetch_contract_info,
-    url_to_string,
-    ContractInfo,
-    TrieId,
 };
 
 pub struct ContractStorage<C: Config, E: Environment> {
@@ -85,7 +85,7 @@ pub struct ContractStorage<C: Config, E: Environment> {
 impl<C: Config, E: Environment> ContractStorage<C, E>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
     E::Balance: IntoVisitor + Serialize,
 {
     pub fn new(rpc: ContractStorageRpc<C>) -> Self {
@@ -621,7 +621,7 @@ pub struct ContractStorageRpc<C: Config> {
 impl<C: Config> ContractStorageRpc<C>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor,
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
 {
     /// Create a new instance of the ContractsRpc.
     pub async fn new(url: &url::Url) -> Result<Self> {
@@ -655,7 +655,7 @@ where
         &self,
         trie_id: &TrieId,
         key: &Bytes,
-        block_hash: Option<C::Hash>,
+        block_hash: Option<HashFor<C>>,
     ) -> Result<Option<Bytes>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
@@ -674,7 +674,7 @@ where
         prefix: Option<&[u8]>,
         count: u32,
         start_key: Option<&[u8]>,
-        block_hash: Option<C::Hash>,
+        block_hash: Option<HashFor<C>>,
     ) -> Result<Vec<Bytes>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();
@@ -699,7 +699,7 @@ where
         &self,
         trie_id: &TrieId,
         keys: &[Bytes],
-        block_hash: Option<C::Hash>,
+        block_hash: Option<HashFor<C>>,
     ) -> Result<Vec<Option<Bytes>>> {
         let child_storage_key =
             ChildInfo::new_default(trie_id.as_ref()).into_prefixed_storage_key();

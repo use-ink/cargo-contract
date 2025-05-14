@@ -35,6 +35,7 @@ use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         scale_decode::IntoVisitor,
@@ -76,7 +77,7 @@ where
 
 impl<C: Config, E: Environment, Signer> RemoveCommandBuilder<C, E, Signer>
 where
-    C::Hash: From<[u8; 32]>,
+    HashFor<C>: From<[u8; 32]>,
     Signer: tx::Signer<C> + Clone,
 {
     /// Preprocesses contract artifacts and options for subsequent removal of contract
@@ -131,7 +132,7 @@ pub struct RemoveExec<C: Config, E: Environment, Signer: Clone> {
 
 impl<C: Config, E: Environment, Signer> RemoveExec<C, E, Signer>
 where
-    C::Hash: IntoVisitor + EncodeAsType,
+    HashFor<C>: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,

@@ -48,6 +48,7 @@ use subxt::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
     },
+    ext::subxt_rpcs::methods::legacy::DryRunDecodeError,
     tx,
     utils::H160,
     Config,
@@ -144,17 +145,26 @@ where
     /// Returns the dry run simulation result, or an error in case of failure.
     pub async fn map_account_dry_run(&self) -> Result<()> {
         let call = MapAccount::new().build();
-        let res =
+        let bytes =
             dry_run_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
+        let res = bytes.into_dry_run_result();
         match res {
-            DryRunResult::Success => Ok(()),
-            DryRunResult::DispatchError(err) => {
+            Ok(DryRunResult::Success) => Ok(()),
+            Ok(DryRunResult::DispatchError(err)) => {
                 Err(anyhow::format_err!("dispatch error: {:?}", err))
             }
-            DryRunResult::TransactionValidityError => {
+            Ok(DryRunResult::TransactionValidityError) => {
                 // todo seems like an external bug: https://github.com/paritytech/polkadot-sdk/issues/7305
                 // Err(anyhow::format_err!("validity err"))
                 Ok(())
+            }
+            Err(err) => {
+                match err {
+                    DryRunDecodeError::WrongNumberOfBytes => {
+                        Err(anyhow::anyhow!("decode error: dry run result was less than 2 bytes, which is invalid"))
+                    }
+                    DryRunDecodeError::InvalidBytes => Err(anyhow::anyhow!("decode error: dry run bytes are not valid"))
+                }
             }
         }
     }

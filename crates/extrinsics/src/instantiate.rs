@@ -64,6 +64,7 @@ use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         scale_decode::IntoVisitor,
@@ -93,7 +94,7 @@ impl<C: Config, E: Environment, Signer> InstantiateCommandBuilder<C, E, Signer>
 where
     E::Balance: Default,
     Signer: tx::Signer<C> + Clone,
-    C::Hash: From<[u8; 32]>,
+    HashFor<C>: From<[u8; 32]>,
 {
     /// Returns a clean builder for [`InstantiateExec`].
     pub fn new(
@@ -278,7 +279,7 @@ where
     C::AccountId: Decode,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
-    C::Hash: IntoVisitor + EncodeAsType,
+    HashFor<C>: IntoVisitor + EncodeAsType,
     C::AccountId: IntoVisitor + Display,
     E::Balance: IntoVisitor + Serialize + EncodeAsType + Zero,
     Signer: tx::Signer<C> + Clone,
