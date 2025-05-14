@@ -39,13 +39,14 @@ semver = "1.0"
 jsonschema = "0.29"
 schemars = "0.8"
 comfy-table = "7.1.1"
+num-traits = "0.2.19"
 
-ink_metadata = {  version = "6.0.0-alpha", default-features = false, features = ["std", "derive"] }
-ink_env = "6.0.0-alpha"
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha", default-features = false, features = ["std", "derive"] }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha" }
 
 # dependencies for extrinsics (deploying and calling a contract)
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-subxt = { version = "0.38.1", features = ["substrate-compat"] }
+subxt = { version = "0.42.1" }
 hex = "0.4.3"
 
 sp-core = { version = "36.1.0", default-features = false }

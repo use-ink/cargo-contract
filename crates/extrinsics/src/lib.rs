@@ -114,16 +114,15 @@ use sp_core::{
     H160,
 };
 use subxt::{
-    backend::legacy::{
-        rpc_methods::DryRunResult,
-        LegacyRpcMethods,
-    },
+    backend::legacy::LegacyRpcMethods,
     blocks,
     config::{
         DefaultExtrinsicParams,
         DefaultExtrinsicParamsBuilder,
         ExtrinsicParams,
+        HashFor,
     },
+    ext::subxt_rpcs::methods::legacy::DryRunResultBytes,
     tx,
     Config,
     OnlineClient,
@@ -183,7 +182,8 @@ where
         .build();
     let mut tx = client
         .tx()
-        .create_signed_offline(call, signer, params.into())?
+        .create_partial_offline(call, params.into())?
+        .sign(signer)
         .submit_and_watch()
         .await?;
 
@@ -238,7 +238,7 @@ async fn dry_run_extrinsic<C, Call, Signer>(
     rpc: &LegacyRpcMethods<C>,
     call: &Call,
     signer: &Signer,
-) -> core::result::Result<DryRunResult, subxt::Error>
+) -> core::result::Result<DryRunResultBytes, subxt::Error>
 where
     C: Config,
     Call: tx::Payload,
@@ -254,9 +254,9 @@ where
         .build();
     let extrinsic = client
         .tx()
-        .create_signed_offline(call, signer, params.into())?;
-    let bytes = rpc.dry_run(extrinsic.encoded(), None).await?;
-    bytes.into_dry_run_result(&client.metadata())
+        .create_partial_offline(call, params.into())?
+        .sign(signer);
+    Ok(rpc.dry_run(extrinsic.encoded(), None).await?)
 }
 
 /// Return the account nonce at the *best* block for an account ID.
@@ -297,7 +297,7 @@ where
 /// Fetch the hash of the *best* block (included but not guaranteed to be finalized).
 async fn get_best_block<C>(
     rpc: &LegacyRpcMethods<C>,
-) -> core::result::Result<C::Hash, subxt::Error>
+) -> core::result::Result<HashFor<C>, subxt::Error>
 where
     C: Config,
 {

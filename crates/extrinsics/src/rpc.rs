@@ -21,14 +21,16 @@ use subxt::{
     backend::rpc::{
         RawValue,
         RpcClient,
-        RpcParams,
     },
-    ext::scale_value::{
-        stringify::{
-            from_str_custom,
-            ParseError,
+    ext::{
+        scale_value::{
+            stringify::{
+                from_str_custom,
+                ParseError,
+            },
+            Value,
         },
-        Value,
+        subxt_rpcs::client::RpcParams,
     },
 };
 

@@ -41,6 +41,7 @@ use std::{
 use subxt::{
     self,
     blocks::ExtrinsicEvents,
+    config::HashFor,
     events::StaticEvent,
     ext::{
         scale_decode::{
@@ -280,7 +281,7 @@ impl DisplayEvents {
 fn contract_event_data_field<C: Config>(
     transcoder: Option<&ContractMessageTranscoder>,
     field_metadata: &scale_info::Field<PortableForm>,
-    event_sig_topic: Option<&C::Hash>,
+    event_sig_topic: Option<&HashFor<C>>,
     event_data: &mut &[u8],
 ) -> Result<Field> {
     let event_value = if let Some(transcoder) = transcoder {
