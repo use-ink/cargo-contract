@@ -12,7 +12,7 @@ documentation = "https://docs.rs/contract-extrinsics"
 homepage = "https://www.substrate.io/"
 description = "Library defining extrinsics for smart contracts on polkadot-sdk"
 keywords = ["polkavm", "ink", "riscv", "blockchain", "edsl"]
-include = ["Cargo.toml", "*.rs", "LICENSE", ]
+include = ["Cargo.toml", "*.rs", "LICENSE"]
 
 [dependencies]
 contract-build = { version = "6.0.0-alpha.1", path = "../build" }
