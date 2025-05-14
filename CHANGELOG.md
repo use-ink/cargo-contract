@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed erroneous "[lib] name" warnings - [#2035](https://github.com/use-ink/cargo-contract/pull/2035)
 
+### Changed
+- Bump the version of `subxt` and `subxt-signer` - [#2036](https://github.com/use-ink/cargo-contract/pull/2036)
+
 ## [6.0.0-alpha]
 
 This is our first alpha release for `cargo-contract` v6. We release it together
