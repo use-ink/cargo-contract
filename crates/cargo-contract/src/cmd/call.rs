@@ -59,17 +59,18 @@ use contract_extrinsics::{
     TokenMetadata,
 };
 use contract_transcode::Value;
+use num_traits::Zero;
 use sp_core::Decode;
 use sp_weights::Weight;
 use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
-        sp_runtime::traits::Zero,
     },
     Config,
 };
@@ -77,7 +78,7 @@ use subxt::{
 #[derive(Debug, clap::Args)]
 #[clap(name = "call", about = "Call a contract")]
 pub struct CallCommand {
-    /// The address of the the contract to call.
+    /// The address of the contract to call.
     #[clap(name = "contract", long, env = "CONTRACT")]
     contract: String,
     /// The name of the contract message to call.
@@ -138,7 +139,7 @@ impl CallCommand {
             + Zero,
         <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
             From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
-        <C as Config>::Hash: IntoVisitor,
+        HashFor<C>: IntoVisitor,
     {
         let contract = parse_account(&self.contract)
             .map_err(|e| anyhow::anyhow!("Failed to parse contract option: {}", e))?;

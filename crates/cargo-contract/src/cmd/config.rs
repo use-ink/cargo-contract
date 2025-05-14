@@ -18,6 +18,7 @@ use ink_env::{
     DefaultEnvironment,
     Environment,
 };
+use sp_core::Pair;
 use std::{
     fmt::Debug,
     str::FromStr,
@@ -27,13 +28,10 @@ use subxt::{
         PolkadotExtrinsicParams,
         SubstrateExtrinsicParams,
     },
-    ext::{
-        sp_core,
-        sp_core::Pair,
-    },
-    tx::{
-        PairSigner,
-        Signer as SignerT,
+    tx::Signer as SignerT,
+    utils::{
+        AccountId32,
+        MultiSignature,
     },
     Config,
     PolkadotConfig,
@@ -51,7 +49,6 @@ pub trait SignerConfig<C: Config + Environment> {
 pub enum Ecdsachain {}
 
 impl Config for Ecdsachain {
-    type Hash = <SubstrateConfig as Config>::Hash;
     type AccountId = <SubstrateConfig as Config>::AccountId;
     type Address = <SubstrateConfig as Config>::Address;
     type Signature = <SubstrateConfig as Config>::Signature;
@@ -74,18 +71,17 @@ impl Environment for Ecdsachain {
 
 impl SignerConfig<Self> for Ecdsachain
 where
-    <Self as Config>::Signature: From<sp_core::ecdsa::Signature>,
+    <Self as Config>::Signature: From<MultiSignature>,
 {
     type Signer = SignerEcdsa<Self>;
 }
 
-/// A runtime configuration for the Substrate based chain.
+/// A runtime configuration for the Substrate-based chain.
 /// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Substrate {}
 
 impl Config for Substrate {
-    type Hash = <SubstrateConfig as Config>::Hash;
     type AccountId = <SubstrateConfig as Config>::AccountId;
     type Address = <SubstrateConfig as Config>::Address;
     type Signature = <SubstrateConfig as Config>::Signature;
@@ -110,13 +106,12 @@ impl SignerConfig<Self> for Substrate {
     type Signer = SignerSR25519<Self>;
 }
 
-/// A runtime configuration for the Polkadot based chain.
+/// A runtime configuration for the Polkadot-based chain.
 /// This thing is not meant to be instantiated; it is just a collection of types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Polkadot {}
 
 impl Config for Polkadot {
-    type Hash = <PolkadotConfig as Config>::Hash;
     type AccountId = <PolkadotConfig as Config>::AccountId;
     type Address = <PolkadotConfig as Config>::Address;
     type Signature = <PolkadotConfig as Config>::Signature;
@@ -143,73 +138,75 @@ impl SignerConfig<Self> for Polkadot {
 
 /// Struct representing the implementation of the sr25519 signer
 #[derive(Clone)]
-pub struct SignerSR25519<C: Config>(pub PairSigner<C, sp_core::sr25519::Pair>);
+pub struct SignerSR25519<C: Config> {
+    account_id: <C as Config>::AccountId,
+    signer: sp_core::sr25519::Pair,
+}
 
-impl<C: Config> FromStr for SignerSR25519<C>
-where
-    <C as Config>::AccountId: From<sp_core::crypto::AccountId32>,
-{
+impl<C: Config<AccountId: From<AccountId32>>> SignerSR25519<C> {
+    /// Creates a new [`SignerSR25519`] from a [`sp_core::sr25519::Pair`].
+    pub fn new(signer: sp_core::sr25519::Pair) -> Self {
+        Self {
+            account_id: AccountId32(signer.public().0).into(),
+            signer,
+        }
+    }
+}
+
+impl<C: Config<AccountId: From<AccountId32>>> FromStr for SignerSR25519<C> {
     type Err = anyhow::Error;
 
     /// Attempts to parse the Signer suri string
     fn from_str(input: &str) -> Result<SignerSR25519<C>, Self::Err> {
         let keypair = sp_core::sr25519::Pair::from_string(input, None)?;
-        let signer = PairSigner::<C, _>::new(keypair);
-        Ok(Self(signer))
+        Ok(Self::new(keypair))
     }
 }
 
-impl<C: Config> SignerT<C> for SignerSR25519<C>
-where
-    <C as Config>::Signature: From<sp_core::sr25519::Signature>,
-{
+impl<C: Config<Signature: From<MultiSignature>>> SignerT<C> for SignerSR25519<C> {
     fn account_id(&self) -> <C as Config>::AccountId {
-        self.0.account_id().clone()
-    }
-
-    fn address(&self) -> C::Address {
-        self.0.address()
+        self.account_id.clone()
     }
 
     fn sign(&self, signer_payload: &[u8]) -> C::Signature {
-        self.0.sign(signer_payload)
+        MultiSignature::Sr25519(self.signer.sign(signer_payload).0).into()
     }
 }
 
 /// Struct representing the implementation of the ecdsa signer
 #[derive(Clone)]
-pub struct SignerEcdsa<C: Config>(pub PairSigner<C, sp_core::ecdsa::Pair>);
+pub struct SignerEcdsa<C: Config> {
+    account_id: <C as Config>::AccountId,
+    signer: sp_core::ecdsa::Pair,
+}
 
-impl<C: Config> FromStr for SignerEcdsa<C>
-where
-    // Requirements of the `PairSigner where:
-    // T::AccountId: From<SpAccountId32>`
-    <C as Config>::AccountId: From<sp_core::crypto::AccountId32>,
-{
+impl<C: Config<AccountId: From<AccountId32>>> SignerEcdsa<C> {
+    /// Creates a new [`SignerEcdsa`] from a [`sp_core::ecdsa::Pair`].
+    pub fn new(signer: sp_core::ecdsa::Pair) -> Self {
+        Self {
+            account_id: AccountId32(sp_core::blake2_256(signer.public().as_ref())).into(),
+            signer,
+        }
+    }
+}
+
+impl<C: Config<AccountId: From<AccountId32>>> FromStr for SignerEcdsa<C> {
     type Err = anyhow::Error;
 
     /// Attempts to parse the Signer suri string
     fn from_str(input: &str) -> Result<SignerEcdsa<C>, Self::Err> {
         let keypair = sp_core::ecdsa::Pair::from_string(input, None)?;
-        let signer = PairSigner::<C, _>::new(keypair);
-        Ok(Self(signer))
+        Ok(Self::new(keypair))
     }
 }
 
-impl<C: Config> SignerT<C> for SignerEcdsa<C>
-where
-    <C as Config>::Signature: From<sp_core::ecdsa::Signature>,
-{
+impl<C: Config<Signature: From<MultiSignature>>> SignerT<C> for SignerEcdsa<C> {
     fn account_id(&self) -> <C as Config>::AccountId {
-        self.0.account_id().clone()
-    }
-
-    fn address(&self) -> C::Address {
-        self.0.address()
+        self.account_id.clone()
     }
 
     fn sign(&self, signer_payload: &[u8]) -> C::Signature {
-        self.0.sign(signer_payload)
+        MultiSignature::Ecdsa(self.signer.sign(signer_payload).0).into()
     }
 }
 
@@ -240,13 +237,13 @@ macro_rules! call_with_config_internal {
 ///
 /// In older Rust versions the macro `stringify!($crate::foo)` expanded to
 /// `"$crate::foo"`. This behavior changed with https://github.com/rust-lang/rust/pull/125174,
-/// `stringify!` expands to `"$crate :: foo"` now. In order to support both older and
-/// newer Rust versions our macro has to handle both cases, spaced and non-spaced.
+/// `stringify!` expands to `"$crate :: foo"` now. To support both older and
+/// newer Rust versions, our macro has to handle both cases, spaced and non-spaced.
 ///
 /// # Known Limitation
 ///
 ///  The `$config_name:expr` has to be in the `$crate::cmd::config` crate and cannot
-/// contain  another `::` sub-path.
+/// contain another `::` sub-path.
 #[macro_export]
 macro_rules! call_with_config {
     ($obj:tt, $function:ident, $config_name:expr) => {{

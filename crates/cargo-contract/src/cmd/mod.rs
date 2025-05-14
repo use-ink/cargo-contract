@@ -448,22 +448,21 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use subxt::{
-        Config,
+        config::HashFor,
         SubstrateConfig,
     };
-
-    use super::*;
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
             "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok());
         // without 0x prefix
-        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_ok())
@@ -472,7 +471,7 @@ mod tests {
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
         )
         .is_err())
@@ -481,7 +480,7 @@ mod tests {
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(parse_code_hash::<<SubstrateConfig as Config>::Hash>(
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
             "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
         .is_err())
