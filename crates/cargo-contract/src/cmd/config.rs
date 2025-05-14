@@ -264,3 +264,39 @@ macro_rules! call_with_config {
         )
     }};
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sr25519_signer_works() {
+        let suri = "//Alice";
+        let pair = sp_core::sr25519::Pair::from_string(suri, None).unwrap();
+        let signer = SignerSR25519::<SubstrateConfig>::from_str(suri).unwrap();
+        assert_eq!(signer.account_id, AccountId32(pair.public().0).into());
+        assert_eq!(
+            signer.account_id().to_string(),
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+        );
+        assert_eq!(signer.signer.public(), pair.public());
+        assert!(matches!(signer.sign(b"test"), MultiSignature::Sr25519(_)))
+    }
+
+    #[test]
+    fn ecdsa_signer_works() {
+        let suri = "//Alice";
+        let pair = sp_core::ecdsa::Pair::from_string(suri, None).unwrap();
+        let signer = SignerEcdsa::<SubstrateConfig>::from_str(suri).unwrap();
+        assert_eq!(
+            signer.account_id,
+            AccountId32(sp_core::blake2_256(&pair.public().0)).into()
+        );
+        assert_eq!(
+            signer.account_id().to_string(),
+            "5C7C2Z5sWbytvHpuLTvzKunnnRwQxft1jiqrLD5rhucQ5S9X"
+        );
+        assert_eq!(signer.signer.public(), pair.public());
+        assert!(matches!(signer.sign(b"test"), MultiSignature::Ecdsa(_)))
+    }
+}
