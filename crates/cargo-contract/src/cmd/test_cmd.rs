@@ -38,6 +38,9 @@ pub struct TestCommand {
     all_features: bool,
     #[clap(flatten)]
     verbosity: VerbosityFlags,
+    /// Disable capturing of test output (e.g. for debugging).
+    #[clap(long)]
+    nocapture: bool,
     /// Arguments to pass to `cargo test`.
     #[arg(last = true)]
     args: Vec<String>,
@@ -54,6 +57,13 @@ impl TestCommand {
         }
         if !self.args.is_empty() {
             args.extend(self.args.clone());
+        }
+        if self.nocapture {
+            // Adds escape arg (if necessary).
+            if !self.args.iter().any(|arg| arg == "--") {
+                args.push("--".to_string());
+            }
+            args.push("--nocapture".to_string());
         }
 
         // Composes ABI `cfg` flag.
