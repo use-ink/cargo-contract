@@ -29,6 +29,7 @@ pub mod remove;
 pub mod rpc;
 pub mod schema;
 pub mod storage;
+pub mod test_cmd;
 pub mod upload;
 pub mod verify;
 
@@ -54,6 +55,7 @@ pub(crate) use self::{
         VerifySchemaCommand,
     },
     storage::StorageCommand,
+    test_cmd::TestCommand,
     upload::UploadCommand,
     verify::VerifyCommand,
 };

@@ -71,14 +71,12 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     let cmd = util::cargo_cmd("build", args, Some(&dir), Verbosity::Quiet, Vec::new());
     let output = cmd.stdout_capture().stderr_capture().run()?;
     if !output.status.success() {
-        anyhow::bail!(
-            "Failed to generate `rustc` wrapper{}",
-            if output.stderr.is_empty() {
-                String::new()
-            } else {
-                format!(": {}", String::from_utf8_lossy(&output.stderr))
-            }
-        )
+        let error_msg = "Failed to generate `rustc` wrapper";
+        if output.stderr.is_empty() {
+            anyhow::bail!(error_msg)
+        } else {
+            anyhow::bail!("{}: {}", error_msg, String::from_utf8_lossy(&output.stderr))
+        }
     }
 
     // Parses JSON output for path to executable.

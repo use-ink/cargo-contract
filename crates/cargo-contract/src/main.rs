@@ -32,6 +32,7 @@ use self::cmd::{
     RemoveCommand,
     RpcCommand,
     StorageCommand,
+    TestCommand,
     UploadCommand,
     VerifyCommand,
     VerifySchemaCommand,
@@ -172,6 +173,9 @@ enum Command {
     /// Lint a contract
     #[clap(name = "lint")]
     Lint(LintCommand),
+    /// Execute all unit and integration tests and build examples.
+    #[clap(name = "test")]
+    Test(TestCommand),
 }
 
 fn main() {
@@ -289,6 +293,7 @@ fn exec(cmd: Command) -> Result<()> {
             runtime.block_on(async { rpc.run().await.map_err(format_err) })
         }
         Command::Lint(lint) => lint.run().map_err(format_err),
+        Command::Test(test) => test.run().map_err(format_err),
     }
 }
 
