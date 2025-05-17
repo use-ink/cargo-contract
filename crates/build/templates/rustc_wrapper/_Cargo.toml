@@ -10,3 +10,6 @@ name = "rustc_wrapper"
 path = "main.rs"
 
 [dependencies]
+
+[workspace]
+# Tells cargo that this crate is not part of the workspace.
