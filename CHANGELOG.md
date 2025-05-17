@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support setting ABI in `Cargo.toml` and propagate ABI into build environment via `cfg` flag - [#2033](https://github.com/use-ink/cargo-contract/pull/2033)
 - Add `cargo contract test` subcommand - [#2034](https://github.com/use-ink/cargo-contract/pull/2034)
 - Add `--nocapture` flag to `cargo contract test` subcommand - [#2037](https://github.com/use-ink/cargo-contract/pull/2037)
+- Mark `rustc` wrapper crate as a non-member of any workspace - [#2038](https://github.com/use-ink/cargo-contract/pull/2038)
 
 ### Fixed
 - Fixed erroneous "[lib] name" warnings - [#2035](https://github.com/use-ink/cargo-contract/pull/2035)
