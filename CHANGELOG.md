@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bump the version of `subxt` and `subxt-signer` - [#2036](https://github.com/use-ink/cargo-contract/pull/2036)
+- Reusable `rustc` wrapper - [#2039](https://github.com/use-ink/cargo-contract/pull/2039)
 
 ## [6.0.0-alpha]
 

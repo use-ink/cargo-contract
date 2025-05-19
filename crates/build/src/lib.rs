@@ -30,7 +30,6 @@ mod docker;
 mod lint;
 pub mod metadata;
 mod new;
-mod rustc_wrapper;
 mod solidity_metadata;
 #[cfg(test)]
 mod tests;
@@ -55,7 +54,10 @@ pub use self::{
         Verbosity,
         VerbosityFlags,
     },
-    crate_metadata::CrateMetadata,
+    crate_metadata::{
+        package_abi,
+        CrateMetadata,
+    },
     metadata::{
         BuildInfo,
         InkMetadataArtifacts,
@@ -379,11 +381,13 @@ fn exec_cargo_for_onchain_target(
             let abi_cfg_flags = abi.cargo_encoded_rustflag();
             rustflags.push_str(&abi_cfg_flags);
 
-            // Sets a custom `RUSTC_WRAPPER` which passes compiler flags to `rustc`,
+            // Sets a custom `rustc` wrapper which passes compiler flags to `rustc`,
             // because `cargo` doesn't pass compiler flags to proc macros and build
             // scripts when the `--target` flag is set.
-            // See `rustc_wrapper::env_vars` docs for details.
-            if let Some(rustc_wrapper_envs) = rustc_wrapper::env_vars(crate_metadata)? {
+            // See `util::rustc_wrapper::env_vars` docs for details.
+            if let Some(rustc_wrapper_envs) =
+                util::rustc_wrapper::env_vars(crate_metadata)?
+            {
                 env.extend(rustc_wrapper_envs);
             }
         }

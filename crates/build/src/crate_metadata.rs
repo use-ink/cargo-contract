@@ -76,7 +76,7 @@ impl CrateMetadata {
         let contract_artifact_name = root_package.name.replace('-', "_");
 
         // Retrieves ABI from package metadata (if specified).
-        let abi = get_package_abi(&root_package).transpose()?;
+        let abi = package_abi(&root_package).transpose()?;
 
         if let Some(lib_name) = &root_package
             .targets
@@ -255,12 +255,8 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
 
 /// Returns ABI specified (if any) for the package (i.e. via
 /// `package.metadata.ink-lang.abi`).
-fn get_package_abi(root_package: &Package) -> Option<Result<Abi>> {
-    let abi_str = root_package
-        .metadata
-        .get("ink-lang")?
-        .get("abi")?
-        .as_str()?;
+pub fn package_abi(package: &Package) -> Option<Result<Abi>> {
+    let abi_str = package.metadata.get("ink-lang")?.get("abi")?.as_str()?;
     let abi = match abi_str {
         "ink" => Abi::Ink,
         "sol" => Abi::Solidity,
@@ -277,7 +273,7 @@ mod tests {
 
     use super::{
         get_cargo_metadata,
-        get_package_abi,
+        package_abi,
     };
     use crate::{
         new_contract_project,
@@ -298,7 +294,7 @@ mod tests {
 
                 let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
                 let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
-                let parsed_abi = get_package_abi(&root_package)
+                let parsed_abi = package_abi(&root_package)
                     .expect("Expected an ABI declaration")
                     .expect("Expected a valid ABI");
                 assert_eq!(parsed_abi, abi);
@@ -323,7 +319,7 @@ mod tests {
 
             let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
             let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
-            let parsed_abi = get_package_abi(&root_package);
+            let parsed_abi = package_abi(&root_package);
             assert!(parsed_abi.is_none(), "Should be None");
 
             Ok(())
@@ -348,7 +344,7 @@ mod tests {
             let manifest_path = ManifestPath::new(cargo_toml).unwrap();
             let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
             let parsed_abi =
-                get_package_abi(&root_package).expect("Expected an ABI declaration");
+                package_abi(&root_package).expect("Expected an ABI declaration");
             assert!(parsed_abi.is_err(), "Should be Err");
             assert!(parsed_abi.unwrap_err().to_string().contains("Unknown ABI"));
 

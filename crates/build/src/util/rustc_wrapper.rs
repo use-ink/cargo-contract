@@ -30,6 +30,7 @@
 //! Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
 
 use std::{
+    env,
     fs,
     path::Path,
 };
@@ -49,14 +50,14 @@ use crate::{
 /// Generates a `rustc` wrapper executable and returns its path.
 ///
 /// See [`crate::rustc_wrapper`] module docs for motivation.
-pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
+pub fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     let dir = target_dir.as_ref().join("rustc_wrapper");
     fs::create_dir_all(&dir)?;
     tracing::debug!("Generating `rustc` wrapper executable in {}", dir.display());
 
     // Creates `rustc` wrapper project.
-    let cargo_toml = include_str!("../templates/rustc_wrapper/_Cargo.toml");
-    let main_rs = include_str!("../templates/rustc_wrapper/main.rs");
+    let cargo_toml = include_str!("../../templates/rustc_wrapper/_Cargo.toml");
+    let main_rs = include_str!("../../templates/rustc_wrapper/main.rs");
     let manifest_path = dir.join("Cargo.toml");
     fs::write(&manifest_path, cargo_toml)?;
     fs::write(dir.join("main.rs"), main_rs)?;
@@ -98,7 +99,8 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     exec_path_str.context("Failed to generate `rustc` wrapper")
 }
 
-/// Returns a list env vars required to set a custom `rustc` wrapper (if necessary).
+/// Returns a list env vars required to set a custom `rustc` wrapper and ABI `cfg` flags
+/// (if necessary).
 ///
 /// # Note
 ///
@@ -108,9 +110,15 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
 ///
 /// The extra compiler flags to pass are specified via the `RUSTC_WRAPPER_ENCODED_FLAGS`
 /// env var.
-pub(crate) fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
+pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
     if let Some(abi) = crate_metadata.abi {
-        let rustc_wrapper = generate(&crate_metadata.target_directory)?;
+        let rustc_wrapper = env::var("INK_RUSTC_WRAPPER")
+            .context("Failed to retrieve `rustc` wrapper from environment")
+            .or_else(|_| generate(&crate_metadata.target_directory))?;
+        if env::var("INK_RUSTC_WRAPPER").is_err() {
+            // SAFETY: The `rustc` wrapper is safe to reuse across all threads.
+            env::set_var("INK_RUSTC_WRAPPER", &rustc_wrapper);
+        }
         return Ok(Some(vec![
             ("RUSTC_WRAPPER", Some(rustc_wrapper)),
             (
