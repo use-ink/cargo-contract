@@ -50,7 +50,7 @@ use crate::{
 /// Generates a `rustc` wrapper executable and returns its path.
 ///
 /// See [`crate::rustc_wrapper`] module docs for motivation.
-pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
+pub fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     let dir = target_dir.as_ref().join("rustc_wrapper");
     fs::create_dir_all(&dir)?;
     tracing::debug!("Generating `rustc` wrapper executable in {}", dir.display());
@@ -110,7 +110,7 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
 ///
 /// The extra compiler flags to pass are specified via the `RUSTC_WRAPPER_ENCODED_FLAGS`
 /// env var.
-pub(crate) fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
+pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
     if let Some(abi) = crate_metadata.abi {
         let rustc_wrapper = env::var("INK_RUSTC_WRAPPER")
             .context("Failed to retrieve `rustc` wrapper from environment")

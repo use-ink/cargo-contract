@@ -54,7 +54,10 @@ pub use self::{
         Verbosity,
         VerbosityFlags,
     },
-    crate_metadata::CrateMetadata,
+    crate_metadata::{
+        package_abi,
+        CrateMetadata,
+    },
     metadata::{
         BuildInfo,
         InkMetadataArtifacts,
