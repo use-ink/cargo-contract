@@ -55,8 +55,8 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     tracing::debug!("Generating `rustc` wrapper executable in {}", dir.display());
 
     // Creates `rustc` wrapper project.
-    let cargo_toml = include_str!("../templates/rustc_wrapper/_Cargo.toml");
-    let main_rs = include_str!("../templates/rustc_wrapper/main.rs");
+    let cargo_toml = include_str!("../../templates/rustc_wrapper/_Cargo.toml");
+    let main_rs = include_str!("../../templates/rustc_wrapper/main.rs");
     let manifest_path = dir.join("Cargo.toml");
     fs::write(&manifest_path, cargo_toml)?;
     fs::write(dir.join("main.rs"), main_rs)?;
@@ -98,7 +98,8 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     exec_path_str.context("Failed to generate `rustc` wrapper")
 }
 
-/// Returns a list env vars required to set a custom `rustc` wrapper (if necessary).
+/// Returns a list env vars required to set a custom `rustc` wrapper and ABI `cfg` flags
+/// (if necessary).
 ///
 /// # Note
 ///

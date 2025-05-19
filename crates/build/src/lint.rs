@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    execute_cargo,
-    onchain_cargo_options,
-    rustc_wrapper,
-    util,
-    verbose_eprintln,
-    CrateMetadata,
-    Verbosity,
-    Workspace,
-};
 use anyhow::Result;
 use colored::Colorize;
 use std::{
     path::Path,
     process::Command,
+};
+
+use crate::{
+    execute_cargo,
+    onchain_cargo_options,
+    util,
+    verbose_eprintln,
+    CrateMetadata,
+    Verbosity,
+    Workspace,
 };
 
 /// Toolchain used to build ink_linting:
@@ -119,11 +119,11 @@ fn exec_cargo_dylint(
         rustflags.push(' ');
         rustflags.push_str(&abi.rustflag());
 
-        // Sets a custom `RUSTC_WRAPPER` which passes compiler flags to `rustc`,
+        // Sets a custom `rustc` wrapper which passes compiler flags to `rustc`,
         // because `cargo` doesn't pass compiler flags to proc macros and build
         // scripts when the `--target` flag is set.
-        // See `rustc_wrapper::env_vars` docs for details.
-        if let Some(rustc_wrapper_envs) = rustc_wrapper::env_vars(crate_metadata)? {
+        // See `util::rustc_wrapper::env_vars` docs for details.
+        if let Some(rustc_wrapper_envs) = util::rustc_wrapper::env_vars(crate_metadata)? {
             env.extend(rustc_wrapper_envs);
         }
     }

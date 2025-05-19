@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+pub mod rustc_wrapper;
 #[cfg(test)]
 pub mod tests;
 
