@@ -30,6 +30,7 @@
 //! Ref: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
 
 use std::{
+    env,
     fs,
     path::Path,
 };
@@ -111,7 +112,13 @@ pub(crate) fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
 /// env var.
 pub(crate) fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
     if let Some(abi) = crate_metadata.abi {
-        let rustc_wrapper = generate(&crate_metadata.target_directory)?;
+        let rustc_wrapper = env::var("INK_RUSTC_WRAPPER")
+            .context("Failed to retrieve `rustc` wrapper from environment")
+            .or_else(|_| generate(&crate_metadata.target_directory))?;
+        if env::var("INK_RUSTC_WRAPPER").is_err() {
+            // SAFETY: The `rustc` wrapper is safe to reuse across all threads.
+            env::set_var("INK_RUSTC_WRAPPER", &rustc_wrapper);
+        }
         return Ok(Some(vec![
             ("RUSTC_WRAPPER", Some(rustc_wrapper)),
             (
