@@ -537,6 +537,25 @@ pub fn assert_debug_mode_supported(ink_version: &Version) -> Result<()> {
     Ok(())
 }
 
+/// Checks whether the specified metadata spec is supported for the specified ABI (if any)
+/// in the contract's manifest.
+fn validate_metadata_spec_for_abi(
+    metadata_spec: &MetadataSpec,
+    abi: Option<&Abi>,
+) -> Result<()> {
+    match (abi, metadata_spec) {
+        (None | Some(Abi::Ink) | Some(Abi::All), MetadataSpec::Ink)
+        | (Some(Abi::Solidity) | Some(Abi::All), MetadataSpec::Solidity) => Ok(()),
+        _ => {
+            Err(anyhow::anyhow!(
+                "Unsupported metadata format `{}` for ABI `{}`",
+                metadata_spec,
+                abi.cloned().unwrap_or_default()
+            ))
+        }
+    }
+}
+
 /// Executes build of the smart contract which produces a PolkaVM binary that is ready for
 /// deploying.
 ///
@@ -591,6 +610,9 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
             (opt_result, None, Some(dest_binary))
         }
         BuildArtifacts::All => {
+            // Specified metadata spec must be supported for the specified contract ABI.
+            validate_metadata_spec_for_abi(metadata_spec, crate_metadata.abi.as_ref())?;
+
             let (opt_result, build_info, dest_binary) =
                 local_build(&crate_metadata, &args).inspect_err(|_| {
                     // build error -> bundle is stale
@@ -875,7 +897,10 @@ pub fn project_path(path: PathBuf) -> PathBuf {
 #[cfg(test)]
 mod unit_tests {
     use super::*;
-    use crate::Verbosity;
+    use crate::{
+        util::tests::with_tmp_dir,
+        Verbosity,
+    };
     use semver::Version;
 
     #[test]
@@ -950,5 +975,92 @@ mod unit_tests {
         // then
         assert!(serialized_result.is_ok());
         assert_eq!(serialized_result.unwrap(), raw_result);
+    }
+
+    #[test]
+    pub fn valid_metadata_spec_for_abi_works() {
+        fn test_project_with_config(metadata_spec: MetadataSpec, abi: Option<Abi>) {
+            with_tmp_dir(|path| {
+                let name = "project_with_valid_config";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), abi);
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let crate_metadata = CrateMetadata::collect(&manifest_path).unwrap();
+
+                let result = validate_metadata_spec_for_abi(
+                    &metadata_spec,
+                    crate_metadata.abi.as_ref(),
+                );
+                assert!(result.is_ok(), "Should validate");
+
+                Ok(())
+            });
+        }
+
+        // ink! metadata works with unspecified, "ink" and "all" ABI.
+        test_project_with_config(MetadataSpec::Ink, None);
+        test_project_with_config(MetadataSpec::Ink, Some(Abi::Ink));
+        test_project_with_config(MetadataSpec::Ink, Some(Abi::All));
+
+        // Solidity metadata works with "sol" and "all" ABI.
+        test_project_with_config(MetadataSpec::Solidity, Some(Abi::Solidity));
+        test_project_with_config(MetadataSpec::Solidity, Some(Abi::All));
+    }
+
+    #[test]
+    pub fn invalid_metadata_spec_for_abi_fails() {
+        fn test_project_with_config(
+            metadata_spec: MetadataSpec,
+            abi: Option<Abi>,
+            expected_error: String,
+        ) {
+            with_tmp_dir(|path| {
+                let name = "project_with_invalid_config";
+                let dir = path.join(name);
+                fs::create_dir_all(&dir).unwrap();
+                let result = new_contract_project(name, Some(path), abi);
+                assert!(result.is_ok(), "Should succeed");
+
+                let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+                let crate_metadata = CrateMetadata::collect(&manifest_path).unwrap();
+
+                let result = validate_metadata_spec_for_abi(
+                    &metadata_spec,
+                    crate_metadata.abi.as_ref(),
+                );
+                assert!(result.is_err(), "Should fail to validate");
+
+                let error = result.unwrap_err();
+                assert_eq!(error.to_string(), expected_error);
+
+                Ok(())
+            });
+        }
+
+        fn error_msg(metadata_spec: MetadataSpec, abi: Abi) -> String {
+            format!("Unsupported metadata format `{metadata_spec}` for ABI `{abi}`")
+        }
+
+        // ink! metadata does NOT work with "sol" ABI.
+        test_project_with_config(
+            MetadataSpec::Ink,
+            Some(Abi::Solidity),
+            error_msg(MetadataSpec::Ink, Abi::Solidity),
+        );
+
+        // Solidity metadata does NOT work with unspecified and "ink" ABI.
+        test_project_with_config(
+            MetadataSpec::Solidity,
+            None,
+            error_msg(MetadataSpec::Solidity, Abi::default()),
+        );
+        test_project_with_config(
+            MetadataSpec::Solidity,
+            Some(Abi::Ink),
+            error_msg(MetadataSpec::Solidity, Abi::Ink),
+        );
     }
 }
