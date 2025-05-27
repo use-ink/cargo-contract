@@ -530,7 +530,7 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
 
     let mut args = ExecuteArgs {
         extra_lints: false,
-        metadata_spec: crate::MetadataSpec::Solidity,
+        metadata_spec: Some(crate::MetadataSpec::Solidity),
         ..Default::default()
     };
     args.manifest_path = manifest_path.clone();

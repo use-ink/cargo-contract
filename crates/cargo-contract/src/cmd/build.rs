@@ -92,8 +92,8 @@ pub struct BuildCommand {
     #[clap(long, default_value = None)]
     image: Option<String>,
     /// Which specification to use for contract metadata.
-    #[clap(long, default_value = "ink")]
-    metadata: MetadataSpec,
+    #[clap(long)]
+    metadata: Option<MetadataSpec>,
 }
 
 impl BuildCommand {
