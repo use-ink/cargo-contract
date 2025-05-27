@@ -125,7 +125,7 @@ pub struct ExecuteArgs {
     pub extra_lints: bool,
     pub output_type: OutputType,
     pub image: ImageVariant,
-    pub metadata_spec: MetadataSpec,
+    pub metadata_spec: Option<MetadataSpec>,
 }
 
 /// Result of the build process.
@@ -299,6 +299,14 @@ impl Abi {
     /// (i.e. as expected by `CARGO_ENCODED_RUSTFLAGS`).
     pub fn cargo_encoded_rustflag(&self) -> String {
         format!("--cfg\x1fink_abi=\"{self}\"\x1f--check-cfg\x1fcfg(ink_abi,values(\"ink\",\"sol\",\"all\"))")
+    }
+
+    /// Returns the default metadata spec for the ABI.
+    fn metadata_spec(&self) -> MetadataSpec {
+        match self {
+            Abi::Ink | Abi::All => MetadataSpec::Ink,
+            Abi::Solidity => MetadataSpec::Solidity,
+        }
     }
 }
 
@@ -571,7 +579,6 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         extra_lints,
         output_type,
-        metadata_spec,
         ..
     } = &args;
 
@@ -611,7 +618,10 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         }
         BuildArtifacts::All => {
             // Specified metadata spec must be supported for the specified contract ABI.
-            validate_metadata_spec_for_abi(metadata_spec, crate_metadata.abi.as_ref())?;
+            let metadata_spec = args.metadata_spec.unwrap_or_else(|| {
+                crate_metadata.abi.unwrap_or_default().metadata_spec()
+            });
+            validate_metadata_spec_for_abi(&metadata_spec, crate_metadata.abi.as_ref())?;
 
             let (opt_result, build_info, dest_binary) =
                 local_build(&crate_metadata, &args).inspect_err(|_| {
