@@ -143,20 +143,20 @@ where
     /// instantiation on the blockchain.
     ///
     /// Returns the dry run simulation result, or an error in case of failure.
-    pub async fn map_account_dry_run(&self) -> Result<()> {
+    pub async fn map_account_dry_run(&self) -> Result<u128> {
         let call = MapAccount::new().build();
-        let bytes =
+        let (bytes, partial_fee_estimation) =
             dry_run_extrinsic(&self.client, &self.rpc, &call, self.opts.signer()).await?;
         let res = bytes.into_dry_run_result();
         match res {
-            Ok(DryRunResult::Success) => Ok(()),
+            Ok(DryRunResult::Success) => Ok(partial_fee_estimation),
             Ok(DryRunResult::DispatchError(err)) => {
                 Err(anyhow::format_err!("dispatch error: {:?}", err))
             }
             Ok(DryRunResult::TransactionValidityError) => {
                 // todo seems like an external bug: https://github.com/paritytech/polkadot-sdk/issues/7305
                 // Err(anyhow::format_err!("validity err"))
-                Ok(())
+                Ok(partial_fee_estimation)
             }
             Err(err) => {
                 match err {
