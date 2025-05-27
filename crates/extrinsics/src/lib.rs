@@ -221,7 +221,8 @@ where
     Err(RpcError::SubscriptionDropped.into())
 }
 
-/// Wait for the transaction to be included successfully into a block.
+/// Wait for the transaction to be included successfully into a block. Returns the
+/// estimated fee to execute the transaction.
 ///
 /// # Errors
 ///
