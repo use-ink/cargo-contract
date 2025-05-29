@@ -204,11 +204,11 @@ pub fn execute(
         );
         let output = cmd.stdout_capture().run()?;
         let codegen_meta: CodegenMetadata = serde_json::from_slice(&output.stdout)?;
-        let ink_project = codegen_meta
-            .ink
-            .ok_or_else(|| anyhow::anyhow!("Expected ink! metadata"))?;
         match metadata_artifacts {
             MetadataArtifacts::Ink(ink_metadata_artifacts) => {
+                let ink_project = codegen_meta
+                    .ink
+                    .ok_or_else(|| anyhow::anyhow!("Expected ink! metadata"))?;
                 let ink_meta = match serde_json::to_value(&ink_project)? {
                     serde_json::Value::Object(meta) => meta,
                     _ => anyhow::bail!("Expected ink! metadata object"),
@@ -219,9 +219,12 @@ pub fn execute(
                 write_metadata(ink_metadata_artifacts, metadata, &verbosity, false)?;
             }
             MetadataArtifacts::Solidity(solidity_metadata_artifacts) => {
-                let sol_abi = solidity_metadata::generate_abi(&ink_project)?;
+                let sol_meta = codegen_meta.solidity.ok_or_else(|| {
+                    anyhow::anyhow!("Expected Solidity compatibility metadata")
+                })?;
+                let sol_abi = solidity_metadata::generate_abi(&sol_meta)?;
                 let metadata = solidity_metadata::generate_metadata(
-                    &ink_project,
+                    &sol_meta,
                     sol_abi,
                     source,
                     contract,

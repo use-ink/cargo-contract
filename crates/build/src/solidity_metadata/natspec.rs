@@ -18,22 +18,11 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use contract_metadata::Contract;
-use ink_metadata::{
-    EventSpec,
-    InkProject,
-    MessageSpec,
-};
 use itertools::Itertools;
-use scale_info::{
-    form::PortableForm,
-    PortableRegistry,
-};
 use serde::{
     Deserialize,
     Serialize,
 };
-
-use super::abi;
 
 /// NatSpec developer documentation of the contract.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -145,29 +134,18 @@ pub struct ItemUserDoc {
 ///
 /// Ref: <https://docs.soliditylang.org/en/latest/natspec-format.html>
 pub fn generate_natspec(
-    ink_project: &InkProject,
+    meta: &ink_metadata::sol::ContractMetadata,
     contract: Contract,
 ) -> Result<(DevDoc, UserDoc)> {
-    let registry = ink_project.registry();
-    let spec = ink_project.spec();
-
-    let method_docs: HashMap<_, _> = spec
-        .messages()
-        .iter()
-        .filter_map(|msg| message(msg, registry))
-        .collect();
-    let event_docs: HashMap<_, _> = spec
-        .events()
-        .iter()
-        .filter_map(|event_spec| event(event_spec, registry))
-        .collect();
+    let method_docs: HashMap<_, _> = meta.functions.iter().filter_map(message).collect();
+    let event_docs: HashMap<_, _> = meta.events.iter().filter_map(event).collect();
 
     let dev_doc = DevDoc {
         version: 1,
         kind: NatSpecKind::Dev,
         author: concat_non_empty(&contract.authors, ", "),
         title: contract.description.clone(),
-        details: concat_non_empty(spec.docs(), "\n"),
+        details: (!meta.docs.is_empty()).then_some(meta.docs.to_string()),
         // FIXME: (@davidsemakula) add storage documentation.
         state_variables: HashMap::new(),
         methods: method_docs,
@@ -190,71 +168,37 @@ pub fn generate_natspec(
 }
 
 /// Returns the function signature and developer documentation (if any).
-fn message(
-    msg: &MessageSpec<PortableForm>,
-    registry: &PortableRegistry,
-) -> Option<(String, ItemDevDoc)> {
-    let name = msg.label();
-
-    // Bails if message has no docs.
-    let docs = concat_non_empty(msg.docs(), "\n")?;
+fn message(msg: &ink_metadata::sol::FunctionMetadata) -> Option<(String, ItemDevDoc)> {
+    let name = msg.name.as_ref();
+    let docs = msg.docs.to_string();
 
     // Generates the function's canonical signature.
-    // NOTE: Bails if any parameter has a Solidity ABI incompatible type.
     // NOTE: Rust doesn't currently support doc comments (i.e. rustdoc) for function
     // parameters.
     // Ref: <https://doc.rust-lang.org/reference/items/functions.html#attributes-on-function-parameters>
-    let param_tys = msg
-        .args()
-        .iter()
-        .map(|param| {
-            let param_name = param.label();
-            let ty_id = param.ty().ty().id;
-            abi::resolve_ty(
-                ty_id,
-                registry,
-                &format!("arg `{param_name}` for message `{}`", name),
-            )
-        })
-        .process_results(|mut iter| iter.join(","))
-        .ok()?;
+    let param_tys = msg.inputs.iter().map(|param| param.ty.as_ref()).join(",");
     let fn_sig = format!("{name}({param_tys})");
 
     Some((fn_sig, ItemDevDoc::details(docs)))
 }
 
 /// Returns the function signature and developer documentation (if any).
-fn event(
-    event_spec: &EventSpec<PortableForm>,
-    registry: &PortableRegistry,
-) -> Option<(String, ItemDevDoc)> {
-    let name = event_spec.label();
-
-    // Bails if event has no docs.
-    let docs = concat_non_empty(event_spec.docs(), "\n")?;
+fn event(evt: &ink_metadata::sol::EventMetadata) -> Option<(String, ItemDevDoc)> {
+    let name = evt.name.as_ref();
+    let docs = evt.docs.to_string();
 
     // Generates the event's canonical signature and param docs.
-    // NOTE: Bails if any parameter has a Solidity ABI incompatible type.
     let mut param_tys = Vec::new();
     let mut param_docs = HashMap::new();
-    for param in event_spec.args() {
-        let param_name = param.label();
-        let ty_id = param.ty().ty().id;
-
-        let ty = abi::resolve_ty(
-            ty_id,
-            registry,
-            &format!("arg `{param_name}` for event `{}`", name),
-        )
-        .ok()?;
-        param_tys.push(ty);
-        if let Some(docs) = concat_non_empty(param.docs(), "\n") {
-            param_docs.insert(param_name.to_string(), docs);
+    for param in &evt.params {
+        param_tys.push(param.ty.as_ref());
+        if !param.docs.is_empty() {
+            param_docs.insert(param.name.to_string(), param.docs.to_string());
         }
     }
-    let event_sig = format!("{name}({})", param_tys.join(","));
 
-    Some((event_sig, ItemDevDoc::details_and_params(docs, param_docs)))
+    let sig = format!("{name}({})", param_tys.join(","));
+    Some((sig, ItemDevDoc::details_and_params(docs, param_docs)))
 }
 
 /// Given a slice of strings, returns a non-empty doc string that's a concatenation of

@@ -40,7 +40,6 @@ use contract_metadata::{
     Contract,
     Source,
 };
-use ink_metadata::InkProject;
 use serde::{
     Deserialize,
     Serialize,
@@ -179,7 +178,7 @@ impl SourceFile {
 ///
 /// Ref: <https://docs.soliditylang.org/en/latest/metadata.html>
 pub fn generate_metadata(
-    ink_project: &InkProject,
+    ink_project: &ink_metadata::sol::ContractMetadata,
     abi: JsonAbi,
     source: Source,
     contract: Contract,
