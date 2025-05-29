@@ -221,7 +221,8 @@ where
     Err(RpcError::SubscriptionDropped.into())
 }
 
-/// Wait for the transaction to be included successfully into a block.
+/// Wait for the transaction to be included successfully into a block. Returns the
+/// estimated fee to execute the transaction.
 ///
 /// # Errors
 ///
@@ -238,7 +239,7 @@ async fn dry_run_extrinsic<C, Call, Signer>(
     rpc: &LegacyRpcMethods<C>,
     call: &Call,
     signer: &Signer,
-) -> core::result::Result<DryRunResultBytes, subxt::Error>
+) -> core::result::Result<(DryRunResultBytes, u128), subxt::Error>
 where
     C: Config,
     Call: tx::Payload,
@@ -256,7 +257,9 @@ where
         .tx()
         .create_partial_offline(call, params.into())?
         .sign(signer);
-    Ok(rpc.dry_run(extrinsic.encoded(), None).await?)
+    let result = rpc.dry_run(extrinsic.encoded(), None).await?;
+    let partial_fee_estimate = extrinsic.partial_fee_estimate().await?;
+    Ok((result, partial_fee_estimate))
 }
 
 /// Return the account nonce at the *best* block for an account ID.

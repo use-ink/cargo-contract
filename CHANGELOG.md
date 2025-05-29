@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support setting ABI in `Cargo.toml` and propagate ABI into build environment via `cfg` flag - [#2033](https://github.com/use-ink/cargo-contract/pull/2033)
 - Add `cargo contract test` subcommand - [#2034](https://github.com/use-ink/cargo-contract/pull/2034)
+- Show cost of mapping an address in `cargo-contract` prompt - [#1990](https://github.com/use-ink/cargo-contract/issues/1990)
 
 ### Fixed
 - Fixed erroneous "[lib] name" warnings - [#2035](https://github.com/use-ink/cargo-contract/pull/2035)
