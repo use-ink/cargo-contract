@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mark `rustc` wrapper crate as a non-member of any workspace - [#2038](https://github.com/use-ink/cargo-contract/pull/2038)
 - Reusable `rustc` wrapper - [#2039](https://github.com/use-ink/cargo-contract/pull/2039)
 - Validate metadata spec arg against specified ABI for contract build - [#2043](https://github.com/use-ink/cargo-contract/pull/2043)
+- Make metadata spec arg optional for contract build - [#2047](https://github.com/use-ink/cargo-contract/pull/2047)
 
 ## [6.0.0-alpha]
 
