@@ -20,3 +20,9 @@ std = [
 ]
 ink-as-dependency = []
 e2e-tests = []
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = [
+    'cfg(ink_abi, values("ink", "sol", "all"))'
+]
