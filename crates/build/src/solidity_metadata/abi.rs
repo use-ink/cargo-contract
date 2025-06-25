@@ -88,7 +88,7 @@ pub fn generate_abi(meta: &ink_metadata::sol::ContractMetadata) -> Result<JsonAb
 /// Get the path of the Solidity compatible contract ABI file.
 pub fn abi_path(crate_metadata: &CrateMetadata) -> PathBuf {
     let metadata_file = format!("{}.abi", crate_metadata.contract_artifact_name);
-    crate_metadata.target_directory.join(metadata_file)
+    crate_metadata.artifact_directory.join(metadata_file)
 }
 
 /// Writes a Solidity compatible ABI file.

@@ -126,6 +126,7 @@ pub struct ExecuteArgs {
     pub output_type: OutputType,
     pub image: ImageVariant,
     pub metadata_spec: Option<MetadataSpec>,
+    pub target_dir: Option<PathBuf>,
 }
 
 /// Result of the build process.
@@ -357,7 +358,7 @@ fn exec_cargo_for_onchain_target(
 
         let mut features = features.clone();
         if build_mode == &BuildMode::Debug {
-            features.push("ink/ink-debug");
+            features.push("ink/ink-debug".to_string());
         } else {
             args.push("-Zbuild-std-features=panic_immediate_abort".to_owned());
         }
@@ -402,7 +403,7 @@ fn exec_cargo_for_onchain_target(
         // Sets env var for passing `rustc` flags.
         env.push(("CARGO_ENCODED_RUSTFLAGS", Some(rustflags)));
 
-        fs::create_dir_all(&crate_metadata.target_directory)?;
+        fs::create_dir_all(&crate_metadata.artifact_directory)?;
         execute_cargo(util::cargo_cmd(
             command,
             &args,
@@ -579,6 +580,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         unstable_flags,
         extra_lints,
         output_type,
+        target_dir,
         ..
     } = &args;
 
@@ -587,7 +589,8 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         return docker_build(args)
     }
 
-    let crate_metadata = CrateMetadata::collect(manifest_path)?;
+    let crate_metadata =
+        CrateMetadata::collect_with_target_dir(manifest_path, target_dir.clone())?;
 
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;
@@ -683,7 +686,7 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
     Ok(BuildResult {
         dest_binary,
         metadata_result,
-        target_directory: crate_metadata.target_directory,
+        target_directory: crate_metadata.artifact_directory,
         linker_size_result: opt_result,
         build_mode: *build_mode,
         build_artifact: *build_artifact,

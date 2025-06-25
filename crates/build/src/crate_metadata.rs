@@ -55,7 +55,16 @@ pub struct CrateMetadata {
     pub documentation: Option<Url>,
     pub homepage: Option<Url>,
     pub user: Option<Map<String, Value>>,
+    /// Directory for intermediate build artifacts.
+    ///
+    /// Analog to `--target-dir` for cargo.
     pub target_directory: PathBuf,
+    /// Directory for final build artifacts.
+    ///
+    /// Analog to the unstable `--artifact-dir` for cargo.
+    ///
+    /// Ref: <https://doc.rust-lang.org/cargo/commands/cargo-build.html#output-options>
+    pub artifact_directory: PathBuf,
     pub target_file_path: PathBuf,
     pub metadata_spec_path: PathBuf,
 }
@@ -69,8 +78,19 @@ impl CrateMetadata {
 
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
+        Self::collect_with_target_dir(manifest_path, None)
+    }
+
+    /// Parses the contract manifest and returns relevant metadata.
+    pub fn collect_with_target_dir(
+        manifest_path: &ManifestPath,
+        target_dir: Option<PathBuf>,
+    ) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let mut target_directory = metadata.target_directory.as_path().join("ink");
+        let target_directory = target_dir
+            .as_deref()
+            .unwrap_or_else(|| metadata.target_directory.as_std_path())
+            .join("ink");
 
         // Normalize the final contract artifact name.
         let contract_artifact_name = root_package.name.replace('-', "_");
@@ -104,10 +124,11 @@ impl CrateMetadata {
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        let mut artifact_directory = target_directory.clone();
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
-            target_directory = target_directory.join(contract_artifact_name.clone());
+            artifact_directory = artifact_directory.join(contract_artifact_name.clone());
         }
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
@@ -118,7 +139,7 @@ impl CrateMetadata {
         original_code.set_extension(Target::source_extension());
 
         // {target_dir}/{contract_artifact_name}.code
-        let mut dest_code = target_directory.clone();
+        let mut dest_code = artifact_directory.clone();
         dest_code.push(contract_artifact_name.clone());
         dest_code.set_extension(Target::dest_extension());
 
@@ -148,16 +169,17 @@ impl CrateMetadata {
             cargo_meta: metadata,
             root_package,
             contract_artifact_name,
-            original_code: original_code.into(),
-            dest_binary: dest_code.into(),
+            original_code,
+            dest_binary: dest_code,
             ink_version,
             abi,
             documentation,
             homepage,
             user,
-            target_file_path: target_directory.join(".target").into(),
-            metadata_spec_path: target_directory.join(".metadata_spec").into(),
-            target_directory: target_directory.into(),
+            target_file_path: artifact_directory.join(".target"),
+            metadata_spec_path: artifact_directory.join(".metadata_spec"),
+            target_directory,
+            artifact_directory,
         };
         Ok(crate_metadata)
     }
@@ -165,14 +187,14 @@ impl CrateMetadata {
     /// Get the path of the contract metadata file
     pub fn metadata_path(&self) -> PathBuf {
         let metadata_file = format!("{}.json", self.contract_artifact_name);
-        self.target_directory.join(metadata_file)
+        self.artifact_directory.join(metadata_file)
     }
 
     /// Get the path of the contract bundle, containing metadata + code.
     pub fn contract_bundle_path(&self) -> PathBuf {
-        let target_directory = self.target_directory.clone();
+        let artifact_directory = self.artifact_directory.clone();
         let fname_bundle = format!("{}.contract", self.contract_artifact_name);
-        target_directory.join(fname_bundle)
+        artifact_directory.join(fname_bundle)
     }
 }
 

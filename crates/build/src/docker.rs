@@ -127,13 +127,15 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         verbosity,
         output_type,
         image,
+        target_dir,
         ..
     } = args;
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?
         .block_on(async {
-            let crate_metadata = CrateMetadata::collect(&manifest_path)?;
+            let crate_metadata =
+                CrateMetadata::collect_with_target_dir(&manifest_path, target_dir)?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 

@@ -215,7 +215,7 @@ pub fn generate_metadata(
 /// Get the path of the Solidity compatible contract metadata file.
 pub fn metadata_path(crate_metadata: &CrateMetadata) -> PathBuf {
     let metadata_file = format!("{}.json", crate_metadata.contract_artifact_name);
-    crate_metadata.target_directory.join(metadata_file)
+    crate_metadata.artifact_directory.join(metadata_file)
 }
 
 /// Writes a Solidity compatible metadata file.
