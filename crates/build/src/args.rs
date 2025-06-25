@@ -259,10 +259,16 @@ pub struct Features {
     features: Vec<String>,
 }
 
+impl From<Vec<String>> for Features {
+    fn from(features: Vec<String>) -> Self {
+        Self { features }
+    }
+}
+
 impl Features {
     /// Appends a feature.
-    pub fn push(&mut self, feature: &str) {
-        self.features.push(feature.to_owned())
+    pub fn push(&mut self, feature: String) {
+        self.features.push(feature)
     }
 
     /// Appends the raw features args to pass through to the `cargo` invocation.

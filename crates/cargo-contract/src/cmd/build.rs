@@ -144,6 +144,7 @@ impl BuildCommand {
             output_type,
             image,
             metadata_spec: self.metadata,
+            target_dir: None,
         };
         contract_build::execute(args)
     }
@@ -177,6 +178,7 @@ impl CheckCommand {
             output_type: OutputType::default(),
             image: ImageVariant::Default,
             metadata_spec: Default::default(),
+            target_dir: None,
         };
 
         contract_build::execute(args)
