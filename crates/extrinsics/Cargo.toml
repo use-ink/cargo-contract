@@ -36,17 +36,17 @@ subxt = "0.42.1"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { version = "36.1.0", default-features = false }
-sp-runtime = "41.1.0"
-sp-weights = { version = "31.1.0", default-features = false }
-pallet-revive = "0.5.0"
-pallet-revive-uapi = { version = "0.4.0", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = {  git = "https://github.com/paritytech/polkadot-sdk", rev = "a251f77", default-features = false }
+sp-runtime = {  git = "https://github.com/paritytech/polkadot-sdk", rev = "a251f77"}
+sp-weights = {  git = "https://github.com/paritytech/polkadot-sdk", rev = "a251f77", default-features = false }
+pallet-revive = {  git = "https://github.com/paritytech/polkadot-sdk", rev = "a251f77" }
+pallet-revive-uapi = {  git = "https://github.com/paritytech/polkadot-sdk", rev = "a251f77", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha" }
+ink = { git = "https://github.com/use-ink/ink", branch = "2506" }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
