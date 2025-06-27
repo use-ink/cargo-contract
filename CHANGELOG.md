@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Solidity metadata generation to support `SolEncode` and `SolDecode` implementing arbitrary types - [#2048](https://github.com/use-ink/cargo-contract/pull/2048)
 - Declare `ink_abi` as an expected `cfg` in new project `Cargo.toml` template - [#2058](https://github.com/use-ink/cargo-contract/pull/2058)
 - Allow setting target directory for contract builds - [#2063](https://github.com/use-ink/cargo-contract/pull/2063)
+- Include ABI declaration in new project template - [#2066](https://github.com/use-ink/cargo-contract/pull/2066)
 
 ## [6.0.0-alpha]
 

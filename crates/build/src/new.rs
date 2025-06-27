@@ -113,7 +113,7 @@ fn unzip(
 
             let is_manifest =
                 outpath.file_name().is_some_and(|name| name == "Cargo.toml");
-            if name.is_some() || (abi.is_some() && is_manifest) {
+            if name.is_some() || is_manifest {
                 let mut contents = String::new();
                 file.read_to_string(&mut contents)?;
 
@@ -123,11 +123,8 @@ fn unzip(
                         contents.replace("{{camel_name}}", &name.to_upper_camel_case());
                 }
 
-                if let Some(abi) = abi.filter(|_| is_manifest) {
-                    contents.push_str(&format!(
-                        "\n[package.metadata.ink-lang]\nabi=\"{abi}\"\n"
-                    ));
-                }
+                let resolve_abi = abi.unwrap_or_default();
+                contents = contents.replace("{{abi}}", resolve_abi.as_ref());
 
                 outfile.write_all(contents.as_bytes())?;
             } else {
@@ -244,7 +241,7 @@ mod tests {
             let manifest_content = fs::read_to_string(manifest_path).unwrap();
 
             assert!(
-                manifest_content.contains("[package.metadata.ink-lang]\nabi=\"sol\""),
+                manifest_content.contains("[package.metadata.ink-lang]\nabi = \"sol\""),
                 "manifest should contain ABI declaration"
             );
 

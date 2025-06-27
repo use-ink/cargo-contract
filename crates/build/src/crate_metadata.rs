@@ -339,7 +339,14 @@ mod tests {
             let result = new_contract_project(name, Some(path), None);
             assert!(result.is_ok(), "Should succeed");
 
-            let manifest_path = ManifestPath::new(dir.join("Cargo.toml")).unwrap();
+            let cargo_toml = dir.join("Cargo.toml");
+            let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
+            manifest_content = manifest_content
+                .replace("[package.metadata.ink-lang]\nabi = \"ink\"", "");
+            let result = fs::write(&cargo_toml, manifest_content);
+            assert!(result.is_ok(), "Should succeed");
+
+            let manifest_path = ManifestPath::new(cargo_toml).unwrap();
             let (_, root_package) = get_cargo_metadata(&manifest_path).unwrap();
             let parsed_abi = package_abi(&root_package);
             assert!(parsed_abi.is_none(), "Should be None");
@@ -359,7 +366,8 @@ mod tests {
 
             let cargo_toml = dir.join("Cargo.toml");
             let mut manifest_content = fs::read_to_string(&cargo_toml).unwrap();
-            manifest_content.push_str("\n[package.metadata.ink-lang]\nabi=\"move\"\n");
+            manifest_content =
+                manifest_content.replace("abi = \"ink\"", "abi = \"move\"");
             let result = fs::write(&cargo_toml, manifest_content);
             assert!(result.is_ok(), "Should succeed");
 
