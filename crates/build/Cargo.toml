@@ -43,7 +43,7 @@ tokio-stream = "0.1.17"
 bollard = "0.18.1"
 crossterm = "0.28.1"
 itertools = "0.13.0"
-alloy-json-abi = "0.8.20"
+alloy-json-abi = "1.1.0"
 
 polkavm-linker = "0.22.0"
 
