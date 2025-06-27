@@ -241,7 +241,7 @@ mod tests {
             let manifest_content = fs::read_to_string(manifest_path).unwrap();
 
             assert!(
-                manifest_content.contains("[package.metadata.ink-lang]\nabi=\"sol\""),
+                manifest_content.contains("[package.metadata.ink-lang]\nabi = \"sol\""),
                 "manifest should contain ABI declaration"
             );
 
