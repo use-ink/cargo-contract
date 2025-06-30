@@ -49,15 +49,15 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 subxt = { version = "0.42.1" }
 hex = "0.4.3"
 
-sp-core = { version = "36.1.0", default-features = false }
-sp-weights = "31.1.0"
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false }
 
 # todo Pin until https://github.com/jhpratt/deranged/issues/18 is resolved
 deranged = { version = "=0.4.0", default-features = false }
 
 [build-dependencies]
 anyhow = "1.0.95"
-substrate-build-script-utils = "11.0.0"
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false }
 current_platform = "0.2.0"
 which = "8.0.0"
 
@@ -73,8 +73,6 @@ tempfile = "3.20.0"
 default = ["std"]
 std = [
     "deranged/std",
-    #"sp-core/std",
-    #"sp-weights/std"
 ]
 
 # Enable this to execute long-running tests, which usually are only run on the CI server
