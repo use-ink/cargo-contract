@@ -300,9 +300,13 @@ where
     let map_exec: MapAccountExec<C, C, _> =
         MapAccountCommandBuilder::new(extrinsic_opts).done().await?;
     let result = map_exec.map_account_dry_run().await;
-    if result.is_ok() {
+    if let Ok(partial_fee_estimation) = result {
         let reply = prompt_confirm_mapping(|| {
-            // todo print additional information about the costs of mapping an account
+            name_value_println!(
+                "Estimated fee",
+                format!("{:?}", partial_fee_estimation),
+                DEFAULT_KEY_COL_WIDTH
+            );
         });
         if reply.is_ok() {
             let res = map_exec.map_account().await?;
