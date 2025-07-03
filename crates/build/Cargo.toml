@@ -20,7 +20,7 @@ blake2 = "0.10.6"
 cargo_metadata = "0.20.0"
 colored = "3.0.0"
 clap = { version = "4.5.28", features = ["derive", "env"] }
-duct = "0.13.7"
+duct = "1.0.0"
 heck = "0.5.0"
 hex = "0.4.3"
 impl-serde = "0.5.0"
