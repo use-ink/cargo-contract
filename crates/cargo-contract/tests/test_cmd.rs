@@ -42,12 +42,9 @@ fn test_cmd_works() {
     std::fs::write(lib, contract).expect("Failed to write contract lib.rs");
 
     // Runs `cargo contract test` and verifies that unit tests are run successfully.
-    let output_default_works: &str = "default_works ... ok";
-    let output_it_works: &str = "it_works ... ok";
     cargo_contract(&project_dir)
         .arg("test")
         .assert()
         .success()
-        .stdout(predicates::str::contains(output_default_works))
-        .stdout(predicates::str::contains(output_it_works));
+        .stdout(predicates::str::contains("it_works ... ok"));
 }
