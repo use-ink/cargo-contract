@@ -62,7 +62,7 @@ use subxt_signer::{
     SecretUri,
 };
 
-const CONTRACTS_NODE: &str = "ink-node";
+const CONTRACTS_NODE: &str = "ink-node-nightly";
 
 /// Create a `cargo contract` command
 fn cargo_contract(path: &Path) -> assert_cmd::Command {
