@@ -277,7 +277,7 @@ fn get_cargo_toml_metadata(manifest_path: &ManifestPath) -> Result<ExtraMetadata
 
 /// Returns ABI specified (if any) for the package (i.e. via
 /// `package.metadata.ink-lang.abi`).
-pub fn package_abi(package: &Package) -> Option<Result<Abi>> {
+fn package_abi(package: &Package) -> Option<Result<Abi>> {
     let abi_str = package.metadata.get("ink-lang")?.get("abi")?.as_str()?;
     let abi = match abi_str {
         "ink" => Abi::Ink,
