@@ -110,7 +110,7 @@ pub fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
 ///
 /// The extra compiler flags to pass are specified via the `RUSTC_WRAPPER_ENCODED_FLAGS`
 /// env var.
-pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars>> {
+pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars<'_>>> {
     if let Some(abi) = crate_metadata.abi {
         let rustc_wrapper = env::var("INK_RUSTC_WRAPPER")
             .context("Failed to retrieve `rustc` wrapper from environment")

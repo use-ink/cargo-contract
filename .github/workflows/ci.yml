@@ -145,7 +145,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.49.50
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
@@ -168,7 +168,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: [1, 2]
+        partition: [1, 2, 3, 4]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -177,7 +177,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.49.50
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
@@ -187,11 +187,11 @@ jobs:
           name: nextest-archive-${{ matrix.os }}
 
       - name: Run tests
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -E 'not (test(integration_tests) | package(contract-build))'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/4 -E 'not (test(integration_tests) | package(contract-build))'
 
       - name: Run contract build tests
         # The contract build tests cannot be run in parallel
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -j 1 -E 'package(contract-build)'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/4 -j 1 -E 'package(contract-build)'
 
   run-integration-test:
     needs: [ set-image, build-tests ]
@@ -204,7 +204,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: [1, 2]
+        partition: [1, 2, 3, 4]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -213,7 +213,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@v2.49.50
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
@@ -224,7 +224,7 @@ jobs:
 
       - name: Run integration tests
         # The integration tests cannot be run in parallel
-        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/2 -j 1 -E 'test(integration_tests)'
+        run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/4 -j 1 -E 'test(integration_tests)'
 
   template:
     strategy:

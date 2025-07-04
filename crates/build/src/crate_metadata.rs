@@ -135,7 +135,7 @@ impl CrateMetadata {
         let mut original_code = target_directory.clone();
         original_code.push(Target::llvm_target_alias());
         original_code.push("release");
-        original_code.push(root_package.name.clone());
+        original_code.push(root_package.name.as_str());
         original_code.set_extension(Target::source_extension());
 
         // {target_dir}/{contract_artifact_name}.code
@@ -147,7 +147,7 @@ impl CrateMetadata {
             .packages
             .iter()
             .find_map(|package| {
-                if package.name == "ink" || package.name == "ink_lang" {
+                if package.name.as_str() == "ink" || package.name.as_str() == "ink_lang" {
                     Some(
                         Version::parse(&package.version.to_string())
                             .expect("Invalid ink crate version string"),

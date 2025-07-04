@@ -19,17 +19,17 @@ contract-build = { version = "6.0.0-alpha.1", path = "../build" }
 contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
 contract-transcode = { version = "6.0.0-alpha", path = "../transcode" }
 
-anyhow = "1.0.95"
+anyhow = "1.0.98"
 blake2 = { version = "0.10.6", default-features = false }
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 itertools = { version = "0.14", default-features = false }
 tracing = "0.1.41"
 scale = { package = "parity-scale-codec", version = "3.6.12", features = ["derive"] }
 colored = "3.0.0"
-serde = { version = "1.0.217", default-features = false, features = ["derive"] }
-serde_json = "1.0.133"
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+serde_json = "1.0.140"
 url = { version = "2.5.4", features = ["serde"] }
-rust_decimal = "1.36"
+rust_decimal = "1.37.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 scale-info = "2.11.6"
 subxt = "0.42.1"
@@ -39,7 +39,7 @@ derivative = "2.2.0"
 sp-core = { version = "36.1.0", default-features = false }
 sp-runtime = "41.1.0"
 sp-weights = { version = "31.1.0", default-features = false }
-pallet-revive = "0.5.0"
+pallet-revive = "0.6.1"
 pallet-revive-uapi = { version = "0.4.0", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }

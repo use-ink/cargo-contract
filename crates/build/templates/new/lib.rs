@@ -19,14 +19,6 @@ mod {{name}} {
             Self { value: init_value }
         }
 
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        #[ink(constructor)]
-        pub fn default() -> Self {
-            Self::new(Default::default())
-        }
-
         /// A message that can be called on instantiated contracts.
         /// This one flips the value of the stored `bool` from `true`
         /// to `false` and vice versa.
@@ -49,13 +41,6 @@ mod {{name}} {
     mod tests {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
-
-        /// We test if the default constructor does its job.
-        #[ink::test]
-        fn default_works() {
-            let {{name}} = {{camel_name}}::default();
-            assert_eq!({{name}}.get(), false);
-        }
 
         /// We test a simple use case of our contract.
         #[ink::test]
@@ -83,28 +68,6 @@ mod {{name}} {
 
         /// The End-to-End test `Result` type.
         type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
-        /// We test that we can upload and instantiate the contract using its default constructor.
-        #[ink_e2e::test]
-        async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            // Given
-            let mut constructor = {{camel_name}}Ref::default();
-
-            // When
-            let contract = client
-                .instantiate("{{name}}", &ink_e2e::alice(), &mut constructor)
-                .submit()
-                .await
-                .expect("instantiate failed");
-            let call_builder = contract.call_builder::<{{camel_name}}>();
-
-            // Then
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::alice(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), false));
-
-            Ok(())
-        }
 
         /// We test that we can read and write a value from the on-chain contract.
         #[ink_e2e::test]

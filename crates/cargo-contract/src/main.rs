@@ -59,7 +59,6 @@ use sp_weights::Weight;
 use std::{
     fmt::Debug,
     path::PathBuf,
-    str::FromStr,
 };
 use tokio::runtime::Runtime;
 // These crates are only used when we run integration tests `--features
@@ -95,17 +94,6 @@ pub(crate) enum Opts {
 pub(crate) struct ContractArgs {
     #[clap(subcommand)]
     cmd: Command,
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub(crate) struct HexData(pub Vec<u8>);
-
-impl FromStr for HexData {
-    type Err = hex::FromHexError;
-
-    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
-        hex::decode(input).map(HexData)
-    }
 }
 
 #[derive(Debug, Subcommand)]
