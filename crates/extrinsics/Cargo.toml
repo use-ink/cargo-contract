@@ -36,17 +36,17 @@ subxt = "0.42.1"
 hex = "0.4.3"
 derivative = "2.2.0"
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false }
-pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk.git" }
-pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", default-features = false, features = ["unstable-hostfn", "scale"] }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
+pallet-revive = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4" }
+pallet-revive-uapi = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false, features = ["unstable-hostfn", "scale"] }
 
 ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 [dev-dependencies]
-ink = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha" }
+ink = { git = "https://github.com/use-ink/ink", branch = "nightly", version = "6.0.0-alpha" }
 assert_cmd = "2.0.17"
 regex = "1.11.1"
 predicates = "3.1.3"
