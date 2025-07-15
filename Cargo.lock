@@ -1381,15 +1381,15 @@ dependencies = [
 
 [[package]]
 name = "cargo-util-schemas"
-version = "0.2.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63d2780ac94487eb9f1fea7b0d56300abc9eb488800854ca217f102f5caccca"
+checksum = "7dc1a6f7b5651af85774ae5a34b4e8be397d9cf4bc063b7e6dbd99a841837830"
 dependencies = [
  "semver 1.0.26",
  "serde",
  "serde-untagged",
  "serde-value",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "toml",
  "unicode-xid",
  "url",
@@ -1411,9 +1411,9 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7835cfc6135093070e95eb2b53e5d9b5c403dc3a6be6040ee026270aa82502"
+checksum = "5cfca2aaa699835ba88faf58a06342a314a950d2b9686165e038286c30316868"
 dependencies = [
  "camino",
  "cargo-platform 0.2.0",
@@ -1694,7 +1694,7 @@ dependencies = [
  "anyhow",
  "blake2",
  "bollard",
- "cargo_metadata 0.20.0",
+ "cargo_metadata 0.21.0",
  "clap",
  "colored",
  "contract-metadata",
@@ -1706,7 +1706,7 @@ dependencies = [
  "ink_metadata 6.0.0-alpha (git+https://github.com/use-ink/ink?branch=nightly)",
  "itertools 0.14.0",
  "parity-scale-codec",
- "polkavm-linker",
+ "polkavm-linker 0.26.0 (git+https://github.com/paritytech/polkavm.git)",
  "pretty_assertions",
  "regex",
  "rustc_version 0.4.1",
@@ -5114,7 +5114,7 @@ dependencies = [
  "anyhow",
  "cargo_metadata 0.15.4",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk.git?rev=cb629d46ebf00aa65624013a61f9c69ebf02b0b4)",
- "polkavm-linker",
+ "polkavm-linker 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?rev=cb629d46ebf00aa65624013a61f9c69ebf02b0b4)",
  "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?rev=cb629d46ebf00aa65624013a61f9c69ebf02b0b4)",
  "toml",
@@ -5128,7 +5128,7 @@ dependencies = [
  "anyhow",
  "cargo_metadata 0.15.4",
  "pallet-revive-uapi 0.1.0 (git+https://github.com/paritytech/polkadot-sdk.git)",
- "polkavm-linker",
+ "polkavm-linker 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk.git)",
  "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk.git)",
  "toml",
@@ -5492,6 +5492,21 @@ dependencies = [
  "log",
  "object",
  "polkavm-common 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regalloc2",
+ "rustc-demangle",
+]
+
+[[package]]
+name = "polkavm-linker"
+version = "0.26.0"
+source = "git+https://github.com/paritytech/polkavm.git#da9a904909d7770477637783c70c30b3fc6df2ac"
+dependencies = [
+ "dirs",
+ "gimli",
+ "hashbrown 0.14.5",
+ "log",
+ "object",
+ "polkavm-common 0.26.0 (git+https://github.com/paritytech/polkavm.git)",
  "regalloc2",
  "rustc-demangle",
 ]
