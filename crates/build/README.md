@@ -34,7 +34,8 @@ let args = contract_build::ExecuteArgs {
     extra_lints: false,
     output_type: OutputType::Json,
     image: ImageVariant::Default,
-    metadata_spec: MetadataSpec::Ink,
+    metadata_spec: Some(MetadataSpec::Ink),
+    target_dir: None,
 };
 
 contract_build::execute(args);
