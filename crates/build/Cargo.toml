@@ -45,7 +45,7 @@ crossterm = "0.29.0"
 itertools = "0.14.0"
 alloy-json-abi = "1.2.1"
 
-polkavm-linker = { version = "0.26.0"}
+polkavm-linker = { git = "https://github.com/paritytech/polkavm.git" }
 
 contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
 ink_metadata = { workspace = true }
