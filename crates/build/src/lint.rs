@@ -14,13 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::Result;
-use colored::Colorize;
-use std::{
-    path::Path,
-    process::Command,
-};
-
 use crate::{
     execute_cargo,
     onchain_cargo_options,
@@ -30,14 +23,21 @@ use crate::{
     Verbosity,
     Workspace,
 };
+use anyhow::Result;
+use colored::Colorize;
+use std::{
+    path::Path,
+    process::Command,
+};
 
 /// Toolchain used to build ink_linting:
 /// https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml
-pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
+pub const TOOLCHAIN_VERSION: &str = "nightly-2025-05-14";
+//pub const TOOLCHAIN_VERSION: &str = "nightly-2025-07-16";
 /// Git repository with ink_linting libraries
 pub const GIT_URL: &str = "https://github.com/use-ink/ink";
-/// Git revision number of the linting crate
-pub const GIT_REV: &str = "5dc1624c3fa279cc57b4418b939cc089790f42f0";
+// /// Git revision number of the linting crate
+pub const GIT_REV: &str = "266ca2f163927fdc3d1f8d994847ea67e4733599";
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
@@ -57,10 +57,7 @@ pub fn lint(
     // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
     // it's required only for RiscV target. We're working on the toolchain integration
     // and will make this step mandatory for all targets in future releases.
-    // TODO add flag skip linting
-    // todo enable back
-    let enabled = false;
-    if extra_lints && enabled {
+    if extra_lints {
         verbose_eprintln!(
             verbosity,
             " {} {}",
@@ -115,7 +112,8 @@ fn exec_cargo_dylint(
     ];
     // Substrate has the `cfg` `substrate_runtime` to distinguish if e.g. `sp-io`
     // is being build for `std` or for a Wasm/RISC-V runtime.
-    let mut rustflags = "--cfg=substrate_runtime".to_string();
+    let mut rustflags = "".to_string();
+
     // Sets ABI `cfg` flags (if necessary).
     if let Some(abi) = crate_metadata.abi {
         rustflags.push(' ');
@@ -141,6 +139,42 @@ fn exec_cargo_dylint(
             Ok(())
         })?
         .using_temp(|manifest_path| {
+            env.extend([(
+                "PATH",
+                Some(
+                    format!(
+                        "{}:{}",
+                        manifest_path.directory().unwrap().to_string_lossy(),
+                        std::env::var("PATH").unwrap()
+                    )
+                    .to_string(),
+                ),
+            )]);
+
+            #[cfg(target_os = "windows")]
+            panic!("Unfortunately linting is not yet supported under Windows.");
+
+            let cargo_path = which::which("cargo").unwrap();
+            let script = r#"
+            #!/bin/bash
+            if [[ "$1" == "check" ]]; then
+                RUSTFLAGS="--cfg=substrate_runtime" cargo_path check "${@:2}"
+            else
+                cargo_path "$@"
+            fi"#;
+            let script = script
+                .to_string()
+                .replace("cargo_path", &cargo_path.to_string_lossy());
+
+            let cargo_wrapper = manifest_path.directory().unwrap().join("cargo");
+            std::fs::write(&cargo_wrapper, &script).expect("writing failed");
+            make_executable(cargo_wrapper.as_path()).unwrap();
+
+            if let Some(rustc_wrapper_envs) =
+                util::rustc_wrapper::env_vars(crate_metadata)?
+            {
+                env.extend(rustc_wrapper_envs);
+            }
             let cargo = util::cargo_cmd(
                 "dylint",
                 &args,
@@ -152,6 +186,18 @@ fn exec_cargo_dylint(
             Ok(())
         })?;
 
+    Ok(())
+}
+
+fn make_executable(path: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let metadata = std::fs::metadata(path)?;
+    let mut permissions = metadata.permissions();
+    let mode = permissions.mode();
+
+    // Set executable bit for owner, group, and others (0o111)
+    permissions.set_mode(mode | 0o111);
+    std::fs::set_permissions(path, permissions)?;
     Ok(())
 }
 
