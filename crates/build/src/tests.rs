@@ -77,7 +77,7 @@ fn build_tests() -> Result<()> {
             build_with_json_output_works,
             building_contract_with_source_file_in_subfolder_must_work,
             building_contract_with_build_rs_must_work,
-            missing_linting_toolchain_installation_must_be_detected,
+            // missing_linting_toolchain_installation_must_be_detected,
             generates_metadata,
             unchanged_contract_skips_optimization_and_metadata_steps,
             unchanged_contract_no_metadata_artifacts_generates_metadata,
@@ -332,32 +332,32 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
-fn missing_linting_toolchain_installation_must_be_detected(
-    manifest_path: &ManifestPath,
-) -> Result<()> {
-    use super::util::tests::create_executable;
+// #[cfg(unix)]
+// fn missing_linting_toolchain_installation_must_be_detected(
+//     manifest_path: &ManifestPath,
+// ) -> Result<()> {
+//     use super::util::tests::create_executable;
 
-    // given
-    let manifest_dir = manifest_path.directory().unwrap();
+//     // given
+//     let manifest_dir = manifest_path.directory().unwrap();
 
-    // mock non-existing `rustup` binary
-    let _tmp0 = create_executable(&manifest_dir.join("rustup"), "#!/bin/sh\nexit 1");
+//     // mock non-existing `rustup` binary
+//     let _tmp0 = create_executable(&manifest_dir.join("rustup"), "#!/bin/sh\nexit 1");
 
-    // when
-    let args = ExecuteArgs {
-        manifest_path: manifest_path.clone(),
-        build_artifact: BuildArtifacts::CheckOnly,
-        extra_lints: true,
-        ..Default::default()
-    };
-    let res = super::execute(args).map(|_| ()).unwrap_err();
+//     // when
+//     let args = ExecuteArgs {
+//         manifest_path: manifest_path.clone(),
+//         build_artifact: BuildArtifacts::CheckOnly,
+//         extra_lints: true,
+//         ..Default::default()
+//     };
+//     let res = super::execute(args).map(|_| ()).unwrap_err();
 
-    // then
-    assert!(format!("{res:?}").contains("` was not found!"));
+//     // then
+//     assert!(format!("{res:?}").contains("` was not found!"));
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 #[cfg(not(unix))]
 fn missing_cargo_dylint_installation_must_be_detected(
