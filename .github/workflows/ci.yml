@@ -31,7 +31,7 @@ jobs:
     steps:
       - id: set_image
         run: echo "IMAGE=${{ env.IMAGE }}" >> $GITHUB_OUTPUT
-      - id: set executable
+      - id: set_executable
         run: chmod +x /usr/local/cargo/bin/*
 
   fmt:
