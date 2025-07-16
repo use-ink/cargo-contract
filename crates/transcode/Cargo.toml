@@ -41,7 +41,7 @@ regex = "1.11.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { git = "https://github.com/use-ink/ink", branch = "nightly", features = ["unstable-hostfn"] }
+ink = { git = "https://github.com/use-ink/ink", branch = "master", features = ["unstable-hostfn"] }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
 
