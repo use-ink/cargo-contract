@@ -21,7 +21,7 @@ ARG G_VERSION=4:12.2.0-3
 ARG MUSL_V=1.2.3-1
 # The Rust version used by `ink_linting`.
 # See https://github.com/use-ink/ink/blob/master/linting/rust-toolchain.toml.
-ARG RUST_LINTER_VERSION=nightly-2025-02-20
+ARG RUST_LINTER_VERSION=nightly-2025-05-14
 ARG TARGETARCH
 
 # Metadata
