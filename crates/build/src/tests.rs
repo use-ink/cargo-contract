@@ -331,7 +331,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     assert!(res.serialize_json().is_ok());
     Ok(())
 }
-
+// todo enable back
 // #[cfg(unix)]
 // fn missing_linting_toolchain_installation_must_be_detected(
 //     manifest_path: &ManifestPath,
