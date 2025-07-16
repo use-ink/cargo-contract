@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
-## [6.0.0-alpha.2]
+## [6.0.0-alpha.1]
 
 ### Added
 - Support setting ABI in `Cargo.toml` and propagate ABI into build environment via `cfg` flag - [#2033](https://github.com/use-ink/cargo-contract/pull/2033)

@@ -47,7 +47,7 @@ alloy-json-abi = "1.2.1"
 
 polkavm-linker = { git = "https://github.com/paritytech/polkavm.git" }
 
-contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
+contract-metadata = { version = "6.0.0-alpha.1", path = "../metadata" }
 ink_metadata = { workspace = true }
 sha3 = "0.10.8"
 

@@ -20,9 +20,9 @@ include = [
 [dependencies]
 contract-build = { version = "6.0.0-alpha.1", path = "../build" }
 contract-extrinsics = { version = "6.0.0-alpha.1", path = "../extrinsics" }
-contract-transcode = { version = "6.0.0-alpha", path = "../transcode" }
-contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
-contract-analyze = { version = "6.0.0-alpha", path = "../analyze" }
+contract-transcode = { version = "6.0.0-alpha.1", path = "../transcode" }
+contract-metadata = { version = "6.0.0-alpha.1", path = "../metadata" }
+contract-analyze = { version = "6.0.0-alpha.1", path = "../analyze" }
 
 anyhow = "1.0.98"
 clap = { version = "4.5.40", features = ["derive", "env"] }
