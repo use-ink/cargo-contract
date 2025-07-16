@@ -186,6 +186,9 @@ jobs:
         with:
           name: nextest-archive-${{ matrix.os }}
 
+      - name: Set executable
+        run: chmod +x /usr/local/cargo/bin/*
+
       - name: Run tests
         run: cargo nextest run --archive-file nextest-archive-${{ matrix.os }}.tar.zst --partition count:${{ matrix.partition }}/4 -E 'not (test(integration_tests) | package(contract-build))'
 
@@ -221,6 +224,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nextest-archive-${{ matrix.os }}
+
+      - name: Set executable
+        run: chmod +x /usr/local/cargo/bin/*
 
       - name: Run integration tests
         # The integration tests cannot be run in parallel

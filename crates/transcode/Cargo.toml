@@ -1,6 +1,6 @@
 [package]
 name = "contract-transcode"
-version = "6.0.0-alpha"
+version = "6.0.0-alpha.1"
 authors = ["Use Ink <ink@use.ink>"]
 edition = "2021"
 
@@ -20,7 +20,7 @@ path = "src/lib.rs"
 anyhow = "1.0.95"
 base58 = { version = "0.2.0" }
 blake2 = { version = "0.10.6", default-features = false }
-contract-metadata = { version = "6.0.0-alpha", path = "../metadata" }
+contract-metadata = { version = "6.0.0-alpha.1", path = "../metadata" }
 escape8259 = "0.5.2"
 hex = "0.4.3"
 indexmap = "2.10.0"
@@ -41,7 +41,7 @@ regex = "1.11.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-ink = { git = "https://github.com/use-ink/ink", branch = "cmichi-implement-precompiles", features = ["unstable-hostfn"] }
+ink = { git = "https://github.com/use-ink/ink", branch = "master", features = ["unstable-hostfn"] }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
 

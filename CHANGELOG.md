@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## [6.0.0-alpha.1]
+
 ### Added
 - Support setting ABI in `Cargo.toml` and propagate ABI into build environment via `cfg` flag - [#2033](https://github.com/use-ink/cargo-contract/pull/2033)
 - Add `cargo contract test` subcommand - [#2034](https://github.com/use-ink/cargo-contract/pull/2034)
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Declare `ink_abi` as an expected `cfg` in new project `Cargo.toml` template - [#2058](https://github.com/use-ink/cargo-contract/pull/2058)
 - Allow setting target directory for contract builds - [#2063](https://github.com/use-ink/cargo-contract/pull/2063)
 - Include ABI declaration in new project template - [#2066](https://github.com/use-ink/cargo-contract/pull/2066)
+- Synchronized with `polkadot-sdk/cb629d46ebf00aa65624013a61f9c69ebf02b0b4` - [#2077](https://github.com/use-ink/cargo-contract/pull/2077)
 
 ## [6.0.0-alpha]
 

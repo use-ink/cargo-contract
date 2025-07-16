@@ -168,7 +168,7 @@ mod tests {
         assert!(res.is_ok());
 
         let ink_version =
-            Version::parse("6.0.0-alpha").expect("Parsing version must work");
+            Version::parse("6.0.0-alpha.1").expect("Parsing version must work");
         let res = check_contract_ink_compatibility(&ink_version, None);
         assert!(res.is_ok());
     }

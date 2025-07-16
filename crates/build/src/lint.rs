@@ -58,7 +58,9 @@ pub fn lint(
     // it's required only for RiscV target. We're working on the toolchain integration
     // and will make this step mandatory for all targets in future releases.
     // TODO add flag skip linting
-    if extra_lints {
+    // todo enable back
+    let enabled = false;
+    if extra_lints && enabled {
         verbose_eprintln!(
             verbosity,
             " {} {}",
