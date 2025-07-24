@@ -63,17 +63,21 @@ pub fn generate_abi(meta: &ink_metadata::sol::ContractMetadata) -> Result<JsonAb
     }
     let ctor_abi = constructor(ctor)?;
 
-    let fn_abis: BTreeMap<_, _> = meta
-        .functions
-        .iter()
-        .map(|msg| message(msg).map(|fn_abi| (msg.name.to_string(), vec![fn_abi])))
-        .process_results(|iter| iter.collect())?;
+    let mut fn_abis: BTreeMap<String, Vec<Function>> = BTreeMap::new();
+    for msg in &meta.functions {
+        fn_abis
+            .entry(msg.name.to_string())
+            .or_default()
+            .push(message(msg)?);
+    }
 
-    let event_abis: BTreeMap<_, _> = meta
-        .events
-        .iter()
-        .map(|evt| event(evt).map(|evt_abi| (evt.name.to_string(), vec![evt_abi])))
-        .process_results(|iter| iter.collect())?;
+    let mut event_abis: BTreeMap<String, Vec<Event>> = BTreeMap::new();
+    for evt in &meta.events {
+        event_abis
+            .entry(evt.name.to_string())
+            .or_default()
+            .push(event(evt)?);
+    }
 
     Ok(JsonAbi {
         constructor: Some(ctor_abi),
