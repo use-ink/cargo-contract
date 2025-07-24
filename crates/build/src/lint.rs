@@ -37,7 +37,7 @@ pub const TOOLCHAIN_VERSION: &str = "nightly-2025-02-20";
 /// Git repository with ink_linting libraries
 pub const GIT_URL: &str = "https://github.com/use-ink/ink";
 /// Git revision number of the linting crate
-pub const GIT_REV: &str = "5dc1624c3fa279cc57b4418b939cc089790f42f0";
+pub const GIT_REV: &str = "2288bfd0b65c52ab7069da3091073d77f601ace8";
 
 /// Run linting that involves two steps: `clippy` and `dylint`. Both are mandatory as
 /// they're part of the compilation process and implement security-critical features.
@@ -186,25 +186,23 @@ fn check_dylint_requirements(_working_dir: Option<&Path>) -> Result<()> {
         anyhow::ensure!(
             String::from_utf8_lossy(&output.stdout).contains(TOOLCHAIN_VERSION),
             format!(
-                "Toolchain `{0}` was not found!\n\
+                "Toolchain `{TOOLCHAIN_VERSION}` was not found!\n\
                 This specific version is required to provide additional source code analysis.\n\n\
                 You can install it by executing:\n\
-                  rustup install {0}\n\
-                  rustup component add rust-src --toolchain {0}\n\
-                  rustup run {0} cargo install cargo-dylint dylint-link",
-                TOOLCHAIN_VERSION,
+                  rustup install {TOOLCHAIN_VERSION}\n\
+                  rustup component add rust-src --toolchain {TOOLCHAIN_VERSION}\n\
+                  rustup run {TOOLCHAIN_VERSION} cargo install cargo-dylint dylint-link",
             )
             .to_string()
             .bright_yellow());
     } else {
         anyhow::bail!(format!(
-            "Toolchain `{0}` was not found!\n\
+            "Toolchain `{TOOLCHAIN_VERSION}` was not found!\n\
             This specific version is required to provide additional source code analysis.\n\n\
             Install `rustup` according to https://rustup.rs/ and then run:\
-              rustup install {0}\n\
-              rustup component add rust-src --toolchain {0}\n\
-              rustup run {0} cargo install cargo-dylint dylint-link",
-            TOOLCHAIN_VERSION,
+              rustup install {TOOLCHAIN_VERSION}\n\
+              rustup component add rust-src --toolchain {TOOLCHAIN_VERSION}\n\
+              rustup run {TOOLCHAIN_VERSION} cargo install cargo-dylint dylint-link",
         )
         .to_string()
         .bright_yellow());

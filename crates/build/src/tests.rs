@@ -77,7 +77,8 @@ fn build_tests() -> Result<()> {
             build_with_json_output_works,
             building_contract_with_source_file_in_subfolder_must_work,
             building_contract_with_build_rs_must_work,
-            missing_linting_toolchain_installation_must_be_detected,
+            // todo enable back once `cargo dylint` works again
+            // missing_linting_toolchain_installation_must_be_detected,
             generates_metadata,
             unchanged_contract_skips_optimization_and_metadata_steps,
             unchanged_contract_no_metadata_artifacts_generates_metadata,
@@ -91,8 +92,8 @@ fn build_tests_sol() -> Result<()> {
     build_tests!(
         Some(Abi::Solidity) => [
             build_code_only,
-            lint_code_only,
             generates_solidity_metadata,
+            lint_code_only,
         ]
     );
     Ok(())
@@ -128,8 +129,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     // our optimized contract template should always be below 3k.
     assert!(
         optimized_size < 3.0,
-        "optimized size is too large: {}",
-        optimized_size
+        "optimized size is too large: {optimized_size}"
     );
 
     // we specified that debug symbols should be removed
@@ -332,6 +332,7 @@ fn build_with_json_output_works(manifest_path: &ManifestPath) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 #[cfg(unix)]
 fn missing_linting_toolchain_installation_must_be_detected(
     manifest_path: &ManifestPath,

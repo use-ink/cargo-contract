@@ -401,8 +401,7 @@ fn create_and_compile_minimal_contract(
         project_path(project_dir.clone().join("target")).join("ink/minimal.contract");
     let bundle = std::fs::read(&bundle_path).unwrap_or_else(|err| {
         panic!(
-            "Failed to read the content of the contract bundle at {:?}: {:?}",
-            bundle_path, err
+            "Failed to read the content of the contract bundle at {bundle_path:?}: {err:?}"
         );
     });
     let metadata_json: Map<String, Value> = serde_json::from_slice(&bundle).unwrap();
