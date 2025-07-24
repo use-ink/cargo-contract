@@ -376,7 +376,7 @@ fn exec_cargo_for_onchain_target(
         let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
-                format!("{}\x1f{}", common_flags, target_flags)
+                format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
             }

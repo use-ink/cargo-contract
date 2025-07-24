@@ -112,7 +112,7 @@ impl AccountCommand {
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         } else {
-            println!("{}", account_id);
+            println!("{account_id}");
         }
         Ok(())
     }

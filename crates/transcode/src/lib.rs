@@ -229,7 +229,7 @@ impl ContractMessageTranscoder {
                 let possible_values: Vec<_> = constructors.chain(messages).collect();
                 let help_txt = did_you_mean(name, possible_values.clone())
                     .first()
-                    .map(|suggestion| format!("Did you mean '{}'?", suggestion))
+                    .map(|suggestion| format!("Did you mean '{suggestion}'?"))
                     .unwrap_or_else(|| {
                         format!("Should be one of: {}", possible_values.iter().join(", "))
                     });
@@ -440,9 +440,9 @@ impl ContractMessageTranscoder {
 fn assert_not_shortened_hex(arg: &str) {
     let re = Regex::new(r"^0x[a-fA-F0-9]+…[a-fA-F0-9]+$").unwrap();
     if re.is_match(arg) {
-        panic!("Error: You are attempting to transcode a shortened hex value: `{:?}`.\n\
+        panic!("Error: You are attempting to transcode a shortened hex value: `{arg:?}`.\n\
                 This would result in a different return value than the un-shortened hex value.\n\
-                You likely called `to_string()` on e.g. `H160` and got a shortened output.", arg);
+                You likely called `to_string()` on e.g. `H160` and got a shortened output.");
     }
 }
 

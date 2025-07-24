@@ -128,8 +128,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     // our optimized contract template should always be below 3k.
     assert!(
         optimized_size < 3.0,
-        "optimized size is too large: {}",
-        optimized_size
+        "optimized size is too large: {optimized_size}"
     );
 
     // we specified that debug symbols should be removed
