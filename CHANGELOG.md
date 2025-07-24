@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed erroneous "[lib] name" warnings - [#2035](https://github.com/use-ink/cargo-contract/pull/2035)
+- Fix Solidity metadata generation for overloaded functions and events - [#2082](https://github.com/use-ink/cargo-contract/pull/2082)
 
 ### Changed
 - Bump the version of `subxt` and `subxt-signer` - [#2036](https://github.com/use-ink/cargo-contract/pull/2036)
