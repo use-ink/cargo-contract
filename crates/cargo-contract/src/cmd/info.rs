@@ -95,7 +95,7 @@ impl InfoCommand {
         HashFor<C>: IntoVisitor + Display,
         <C as Environment>::Balance: Serialize + Debug + IntoVisitor,
         <<C as Config>::AccountId as FromStr>::Err:
-            Into<Box<(dyn std::error::Error)>> + Display,
+            Into<Box<dyn std::error::Error>> + Display,
     {
         let rpc_cli =
             RpcClient::from_url(url_to_string(&self.chain_cli_opts.chain().url()))

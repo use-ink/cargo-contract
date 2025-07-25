@@ -517,7 +517,7 @@ async fn api_build_upload_instantiate_call() {
             .unwrap();
     let upload_result = upload.upload_code().await;
     if let Err(e) = upload_result {
-        panic!("upload code failed with {:?}", e);
+        panic!("upload code failed with {e:?}");
     }
     upload_result.unwrap();
 
@@ -556,7 +556,7 @@ async fn api_build_upload_instantiate_call() {
         .decode_message_return(call.message(), &mut &ret_val.data[..])
         .unwrap()
         .to_string();
-    assert!(value.contains("true"), "{:#?}", value);
+    assert!(value.contains("true"), "{value:#?}");
 
     // call the contract on the immutable "get" message trying to execute
     // this should fail because "get" is immutable
@@ -587,7 +587,7 @@ async fn api_build_upload_instantiate_call() {
     .unwrap()
     .to_json()
     .unwrap();
-    assert!(output.contains("ExtrinsicSuccess"), "{:#?}", output);
+    assert!(output.contains("ExtrinsicSuccess"), "{output:#?}");
 
     // call the contract
     // make sure the value has been flipped
@@ -605,7 +605,7 @@ async fn api_build_upload_instantiate_call() {
         .decode_message_return(call.message(), &mut &ret_val.data[..])
         .unwrap()
         .to_string();
-    assert!(value.contains("false"), "{:#?}", value);
+    assert!(value.contains("false"), "{value:#?}");
 
     // prevent the node_process from being dropped and killed
     let _ = node_process;
@@ -658,7 +658,7 @@ async fn api_build_upload_remove() {
             .unwrap();
     let upload_result = upload.upload_code().await;
     let _upload_result = upload_result.unwrap_or_else(|err| {
-        panic!("upload code failed with {:?}", err);
+        panic!("upload code failed with {err:?}");
     });
 
     // remove the contract
@@ -670,7 +670,7 @@ async fn api_build_upload_remove() {
             .unwrap();
     let remove_result = remove.remove_code().await;
     remove_result.unwrap_or_else(|err| {
-        panic!("upload code failed with {:?}", err);
+        panic!("upload code failed with {err:?}");
     });
 
     // prevent the node_process from being dropped and killed

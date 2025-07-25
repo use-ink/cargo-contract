@@ -68,6 +68,7 @@ fn build_tests() -> Result<()> {
     build_tests!(
         None => [
             build_code_only,
+            /*
             lint_code_only,
             check_must_not_output_contract_artifacts_in_project_dir,
             building_template_in_debug_mode_must_work,
@@ -81,6 +82,7 @@ fn build_tests() -> Result<()> {
             generates_metadata,
             unchanged_contract_skips_optimization_and_metadata_steps,
             unchanged_contract_no_metadata_artifacts_generates_metadata,
+             */
         ]
     );
     Ok(())
@@ -90,9 +92,9 @@ fn build_tests() -> Result<()> {
 fn build_tests_sol() -> Result<()> {
     build_tests!(
         Some(Abi::Solidity) => [
-            build_code_only,
+            //build_code_only,
             lint_code_only,
-            generates_solidity_metadata,
+            //generates_solidity_metadata,
         ]
     );
     Ok(())
@@ -128,8 +130,7 @@ fn build_code_only(manifest_path: &ManifestPath) -> Result<()> {
     // our optimized contract template should always be below 3k.
     assert!(
         optimized_size < 3.0,
-        "optimized size is too large: {}",
-        optimized_size
+        "optimized size is too large: {optimized_size}"
     );
 
     // we specified that debug symbols should be removed

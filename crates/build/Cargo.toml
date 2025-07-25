@@ -38,7 +38,7 @@ term_size = "0.3.2"
 url = { version = "2.5.4", features = ["serde"] }
 which = "8.0.0"
 zip = { version = "4.2.0", default-features = false }
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "net"] }
 tokio-stream = "0.1.17"
 bollard = "0.18.1"
 crossterm = "0.29.0"
@@ -58,6 +58,10 @@ uzers = "0.12"
 anyhow = "1.0.95"
 walkdir = "2.5.0"
 zip = { version = "3.0.0", default-features = false }
+
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+tokio = { version = "1", features = ["net"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

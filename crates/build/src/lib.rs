@@ -376,7 +376,7 @@ fn exec_cargo_for_onchain_target(
         let mut rustflags = {
             let common_flags = "-Clinker-plugin-lto\x1f-Clink-arg=-zstack-size=4096";
             if let Some(target_flags) = Target::rustflags() {
-                format!("{}\x1f{}", common_flags, target_flags)
+                format!("{common_flags}\x1f{target_flags}")
             } else {
                 common_flags.to_string()
             }
@@ -513,6 +513,7 @@ fn check_buffer_size_invoke_cargo_clean(
 /// Executes the supplied cargo command, reading the output and scanning for known errors.
 /// Writes the captured stderr back to stderr and maintains the cargo tty progress bar.
 fn execute_cargo(cargo: duct::Expression) -> Result<()> {
+    eprintln!("cargo cmd: {:?}", cargo);
     match cargo.unchecked().run() {
         Ok(out) if out.status.success() => Ok(()),
         Ok(out) => anyhow::bail!(String::from_utf8_lossy(&out.stderr).to_string()),

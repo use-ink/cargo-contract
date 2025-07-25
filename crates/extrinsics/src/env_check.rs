@@ -264,8 +264,8 @@ fn compare_type(
                 bail_with_msg(
                     path_segments,
                     type_name,
-                    &format!("{:?}", contract_arr_type),
-                    &format!("{:?}", node_arr_type),
+                    &format!("{contract_arr_type:?}"),
+                    &format!("{node_arr_type:?}"),
                 )?;
             }
             return Ok(())
@@ -278,8 +278,8 @@ fn compare_type(
             bail_with_msg(
                 path_segments,
                 type_name,
-                &format!("{:?}", tt_def),
-                &format!("{:?}", node_compact_type),
+                &format!("{tt_def:?}"),
+                &format!("{node_compact_type:?}"),
             )?;
         }
         return Ok(())
@@ -288,8 +288,8 @@ fn compare_type(
         bail_with_msg(
             path_segments,
             type_name,
-            &format!("{:?}", tt_def),
-            &format!("{:?}", type_def),
+            &format!("{tt_def:?}"),
+            &format!("{type_def:?}"),
         )?;
     }
     Ok(())
@@ -587,8 +587,7 @@ mod tests {
         let contents = fs::read_to_string(&tmp_file).unwrap();
         assert!(
             !contents.contains("Warning"),
-            "still found warning: {}",
-            contents
+            "still found warning: {contents}"
         );
     }
 

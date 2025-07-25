@@ -45,7 +45,7 @@ ink_metadata = { workspace = true }
 ink_env = { workspace = true }
 
 # dependencies for extrinsics (deploying and calling a contract)
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 subxt = { version = "0.42.1" }
 hex = "0.4.3"
 
@@ -60,6 +60,10 @@ anyhow = "1.0.95"
 substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", rev = "cb629d46ebf00aa65624013a61f9c69ebf02b0b4", default-features = false }
 current_platform = "0.2.0"
 which = "8.0.0"
+
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+tokio = { version = "1", features = ["net"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.17"

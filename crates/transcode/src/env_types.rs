@@ -286,7 +286,7 @@ pub struct U256;
 impl CustomTypeDecoder for U256 {
     fn decode_value(&self, input: &mut &[u8]) -> Result<Value> {
         let u256 = primitive_types::U256::decode(input)?;
-        Ok(Value::Literal(format!("{}", u256)))
+        Ok(Value::Literal(format!("{u256}")))
     }
 }
 

@@ -264,7 +264,7 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::GenerateSchema(generate) => {
             let result = generate.run().map_err(format_err)?;
-            println!("{}", result);
+            println!("{result}");
             Ok(())
         }
         Command::VerifySchema(verify) => {

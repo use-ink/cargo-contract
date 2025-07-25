@@ -151,10 +151,10 @@ impl Target {
         // target configuration here. The path to the file is passed for the
         // `rustc --target` argument. We write this file to the `target/` folder.
         let target_dir = crate_metadata.target_directory.to_string_lossy();
-        let path = format!("{}/{POLKAVM_TARGET_NAME}.json", target_dir);
+        let path = format!("{target_dir}/{POLKAVM_TARGET_NAME}.json");
         if !Path::exists(Path::new(&path)) {
             fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(|e| {
-                panic!("unable to create target dir {:?}: {:?}", target_dir, e)
+                panic!("unable to create target dir {target_dir:?}: {e:?}")
             });
             let mut file = File::create(&path).unwrap();
             file.write_all(POLKAVM_TARGET_JSON_64_BIT.as_bytes())

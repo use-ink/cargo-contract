@@ -300,10 +300,11 @@ impl Manifest {
         let ink_dylint = |lib_name: &str| {
             let mut map = value::Table::new();
             map.insert("git".into(), crate::lint::GIT_URL.into());
-            map.insert("rev".into(), crate::lint::GIT_REV.into());
+            //map.insert("rev".into(), crate::lint::GIT_REV.into());
+            map.insert("branch".into(), "cmichi-fix-ci-2025-07-26".into());
             map.insert(
                 "pattern".into(),
-                value::Value::String(format!("linting/{}", lib_name)),
+                value::Value::String(format!("linting/{lib_name}")),
             );
             value::Value::Table(map)
         };

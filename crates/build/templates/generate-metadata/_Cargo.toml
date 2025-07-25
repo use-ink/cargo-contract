@@ -13,6 +13,12 @@ path = "main.rs"
 contract = { path = "../.." }
 serde = "1.0"
 serde_json = "1.0"
+tokio = { version = "1", features = ["net"] }
+
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+[build-dependencies]
+tokio = { version = "1", features = ["net"] }
 
 [features]
 default = ["std"]

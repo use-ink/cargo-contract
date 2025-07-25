@@ -197,7 +197,7 @@ impl CallCommand {
                     if ret_val.did_revert() {
                         let data = ret_val.data[1..].to_vec();
                         let msg = String::from_utf8(data).unwrap();
-                        panic!("Call did revert {:?}", msg);
+                        panic!("Call did revert {msg:?}");
                         /*
                         // todo
                         ErrorVariant::

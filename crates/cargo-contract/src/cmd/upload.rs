@@ -154,7 +154,7 @@ impl UploadCommand {
             if storage_deposit_limit.is_none() {
                 let limit = upload_exec.upload_code_rpc().await?
                     .unwrap_or_else(|err| {
-                        panic!("No storage limit was given on the cli. We tried to fetch one via dry-run, but this failed: {:?}", err);
+                        panic!("No storage limit was given on the cli. We tried to fetch one via dry-run, but this failed: {err:?}");
                     });
                 upload_exec.set_storage_deposit_limit(Some(limit.deposit));
             }
@@ -187,7 +187,7 @@ impl UploadCommand {
                 });
                 println!("{}", serde_json::to_string_pretty(&json_object)?);
             } else {
-                println!("{}", output_events);
+                println!("{output_events}");
                 name_value_println!("Code hash", format!("0x{code_hash}"));
             }
         }

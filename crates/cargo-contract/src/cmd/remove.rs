@@ -154,9 +154,9 @@ impl RemoveCommand {
                 "code_hash": code_hash,
             });
             let json_object = serde_json::to_string_pretty(&json_object)?;
-            println!("{}", json_object);
+            println!("{json_object}");
         } else {
-            println!("{}", output_events);
+            println!("{output_events}");
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
         Result::<(), ErrorVariant>::Ok(())

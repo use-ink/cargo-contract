@@ -44,8 +44,7 @@ impl From<subxt::Error> for ErrorVariant {
                     })
                     .unwrap_or_else(|err| {
                         ErrorVariant::Generic(GenericError::from_message(format!(
-                            "Error extracting subxt error details: {}",
-                            err
+                            "Error extracting subxt error details: {err}"
                         )))
                     })
             }
