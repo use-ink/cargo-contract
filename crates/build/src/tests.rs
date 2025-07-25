@@ -522,9 +522,7 @@ fn generates_solidity_metadata(manifest_path: &ManifestPath) -> Result<()> {
     test_manifest.add_package_value("license", "Apache-2.0".into())?;
     test_manifest.write()?;
 
-    eprintln!("-------1");
     let crate_metadata = CrateMetadata::collect(manifest_path)?;
-    eprintln!("-------2");
 
     // usually this file will be produced by a previous build step
     let final_contract_binary_path = &crate_metadata.dest_binary;

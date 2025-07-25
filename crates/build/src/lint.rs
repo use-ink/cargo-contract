@@ -51,9 +51,7 @@ pub fn lint(
         "[==]".bold(),
         "Checking clippy linting rules".bright_green().bold()
     );
-    eprintln!("-----1");
     exec_cargo_clippy(crate_metadata, *verbosity)?;
-    eprintln!("----0");
 
     // TODO (jubnzv): Dylint needs a custom toolchain installed by the user. Currently,
     // it's required only for RiscV target. We're working on the toolchain integration
@@ -155,7 +153,6 @@ fn exec_cargo_dylint(
             #[cfg(target_os = "windows")]
             panic!("Unfortunately linting is not yet supported under Windows.");
 
-            eprintln!("---1 before writing wrapper");
             let cargo_path = which::which("cargo").unwrap();
             let script = r#"
             #!/bin/bash
@@ -167,7 +164,6 @@ fn exec_cargo_dylint(
             let script = script
                 .to_string()
                 .replace("cargo_path", &cargo_path.to_string_lossy());
-            eprintln!("---1 script: {:?}", script);
 
             let cargo_wrapper = manifest_path.directory().unwrap().join("cargo");
             std::fs::write(&cargo_wrapper, &script).expect("writing failed");
@@ -185,10 +181,6 @@ fn exec_cargo_dylint(
                 verbosity,
                 env,
             );
-            eprintln!("---1 cargo: {:?}", cargo);
-            eprintln!("---1 manifest path: {:?}", manifest_path.directory());
-            eprintln!("---1 before sleep");
-            //std::thread::sleep(std::time::Duration::from_secs(60));
             cargo.run()?;
             Ok(())
         })?;
@@ -322,8 +314,6 @@ fn exec_cargo_clippy(crate_metadata: &CrateMetadata, verbosity: Verbosity) -> Re
     };
 
     // we execute clippy with the plain manifest no temp dir required
-    eprintln!("working dir: {:?}", crate_metadata.manifest_path.directory());
-    //std::thread::sleep(std::time::Duration::from_secs(60));
     execute_cargo(util::cargo_cmd(
         "clippy",
         args,
