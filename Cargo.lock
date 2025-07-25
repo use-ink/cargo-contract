@@ -3560,7 +3560,7 @@ dependencies = [
 [[package]]
 name = "ink"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "const_format",
  "deranged",
@@ -3586,7 +3586,7 @@ dependencies = [
 [[package]]
 name = "ink_allocator"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "cfg-if",
 ]
@@ -3594,7 +3594,7 @@ dependencies = [
 [[package]]
 name = "ink_codegen"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3616,7 +3616,7 @@ dependencies = [
 [[package]]
 name = "ink_engine"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "blake2",
  "derive_more 2.0.1",
@@ -3633,7 +3633,7 @@ dependencies = [
 [[package]]
 name = "ink_env"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "blake2",
  "cfg-if",
@@ -3666,7 +3666,7 @@ dependencies = [
 [[package]]
 name = "ink_ir"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "blake2",
  "either",
@@ -3682,7 +3682,7 @@ dependencies = [
 [[package]]
 name = "ink_macro"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "ink_codegen",
  "ink_ir",
@@ -3697,7 +3697,7 @@ dependencies = [
 [[package]]
 name = "ink_metadata"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "derive_more 2.0.1",
  "impl-serde",
@@ -3712,7 +3712,7 @@ dependencies = [
 [[package]]
 name = "ink_prelude"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "cfg-if",
 ]
@@ -3720,7 +3720,7 @@ dependencies = [
 [[package]]
 name = "ink_primitives"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "alloy-sol-types",
  "cfg-if",
@@ -3748,7 +3748,7 @@ dependencies = [
 [[package]]
 name = "ink_storage"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "array-init",
  "cfg-if",
@@ -3766,7 +3766,7 @@ dependencies = [
 [[package]]
 name = "ink_storage_traits"
 version = "6.0.0-alpha.1"
-source = "git+https://github.com/use-ink/ink?branch=master#81de7d2d6b92e61788b0e5a75397f0e591a19c55"
+source = "git+https://github.com/use-ink/ink?branch=cmichi-fix-ci-2025-07-26#cddcf1b8da0c552fc34b796d00e4dc6c589815d6"
 dependencies = [
  "ink_metadata",
  "ink_prelude",
@@ -4235,9 +4235,9 @@ checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
 name = "litrs"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+checksum = "f5e54036fe321fd421e10d732f155734c4e4afd610dd556d9a82833ab3ee0bed"
 
 [[package]]
 name = "lock_api"

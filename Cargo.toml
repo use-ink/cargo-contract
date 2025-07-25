@@ -3,5 +3,5 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.dependencies]
-ink_metadata = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha.1", default-features = false, features = ["std", "derive"] }
-ink_env = { git = "https://github.com/use-ink/ink", branch = "master", version = "6.0.0-alpha.1", features = ["unstable-hostfn"] }
+ink_metadata = { git = "https://github.com/use-ink/ink", branch = "cmichi-fix-ci-2025-07-26", version = "6.0.0-alpha.1", default-features = false, features = ["std", "derive"] }
+ink_env = { git = "https://github.com/use-ink/ink", branch = "cmichi-fix-ci-2025-07-26", version = "6.0.0-alpha.1", features = ["unstable-hostfn"] }

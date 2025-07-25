@@ -11,5 +11,10 @@ path = "main.rs"
 
 [dependencies]
 
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+[build-dependencies]
+tokio = { version = "1", features = ["net"] }
+
 [workspace]
 # Tells cargo that this crate is not part of the workspace.
