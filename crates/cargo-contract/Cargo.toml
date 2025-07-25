@@ -61,6 +61,10 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-s
 current_platform = "0.2.0"
 which = "8.0.0"
 
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+tokio = { version = "1", features = ["net"] }
+
 [dev-dependencies]
 assert_cmd = "2.0.17"
 regex = "1.11.1"

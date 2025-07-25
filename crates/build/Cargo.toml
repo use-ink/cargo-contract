@@ -59,5 +59,9 @@ anyhow = "1.0.95"
 walkdir = "2.5.0"
 zip = { version = "3.0.0", default-features = false }
 
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+tokio = { version = "1", features = ["net"] }
+
 [dev-dependencies]
 pretty_assertions = "1.4.1"

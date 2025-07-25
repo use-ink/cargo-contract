@@ -55,6 +55,11 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 subxt-signer = { version = "0.42.1", features = ["subxt", "sr25519"] }
 stdio-override = "0.2.0"
 
+# todo Remove once the `polkadot-sdk` compilation error
+# for `tokio` is fixed (https://github.com/use-ink/ink/pull/2557).
+[build-dependencies]
+tokio = { version = "1", features = ["net"] }
+
 [features]
 integration-tests = []
 test-ci-only = []
