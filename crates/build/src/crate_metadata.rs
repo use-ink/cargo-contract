@@ -14,11 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    Abi,
-    ManifestPath,
-    Target,
-};
 use anyhow::{
     Context,
     Result,
@@ -40,6 +35,13 @@ use std::{
 };
 use toml::value;
 use url::Url;
+
+use crate::{
+    Abi,
+    BuildMode,
+    ManifestPath,
+    Target,
+};
 
 /// Relevant metadata obtained from `Cargo.toml`.
 #[derive(Debug)]
@@ -78,13 +80,14 @@ impl CrateMetadata {
 
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect(manifest_path: &ManifestPath) -> Result<Self> {
-        Self::collect_with_target_dir(manifest_path, None)
+        Self::collect_with_target_dir(manifest_path, None, &BuildMode::Release)
     }
 
     /// Parses the contract manifest and returns relevant metadata.
     pub fn collect_with_target_dir(
         manifest_path: &ManifestPath,
         target_dir: Option<PathBuf>,
+        build_mode: &BuildMode,
     ) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
         let mut target_directory = target_dir
@@ -148,7 +151,11 @@ impl CrateMetadata {
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();
         original_code.push(Target::llvm_target_alias());
-        original_code.push("release");
+        if build_mode == &BuildMode::Debug {
+            original_code.push("debug");
+        } else {
+            original_code.push("release");
+        }
         original_code.push(root_package.name.as_str());
         original_code.set_extension(Target::source_extension());
 

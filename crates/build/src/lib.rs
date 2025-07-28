@@ -99,7 +99,7 @@ use semver::Version;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Result of linking an ELF with PolkaVM.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct LinkerSizeResult {
     /// The original ELF size.
     pub original_size: f64,
@@ -347,9 +347,11 @@ fn exec_cargo_for_onchain_target(
 
         let mut args = vec![
             format!("--target={}", Target::llvm_target(crate_metadata)),
-            "--release".to_owned(),
             target_dir,
         ];
+        if build_mode != &BuildMode::Debug {
+            args.push("--release".to_owned());
+        }
         args.extend(onchain_cargo_options(crate_metadata));
         network.append_to_args(&mut args);
 
@@ -584,8 +586,11 @@ pub fn execute(args: ExecuteArgs) -> Result<BuildResult> {
         return docker_build(args)
     }
 
-    let crate_metadata =
-        CrateMetadata::collect_with_target_dir(manifest_path, target_dir.clone())?;
+    let crate_metadata = CrateMetadata::collect_with_target_dir(
+        manifest_path,
+        target_dir.clone(),
+        build_mode,
+    )?;
 
     if build_mode == &BuildMode::Debug {
         assert_debug_mode_supported(&crate_metadata.ink_version)?;

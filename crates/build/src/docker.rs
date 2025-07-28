@@ -86,6 +86,7 @@ use tokio_stream::{
 
 use crate::{
     verbose_eprintln,
+    BuildMode,
     BuildResult,
     CrateMetadata,
     ExecuteArgs,
@@ -134,8 +135,11 @@ pub fn docker_build(args: ExecuteArgs) -> Result<BuildResult> {
         .enable_all()
         .build()?
         .block_on(async {
-            let crate_metadata =
-                CrateMetadata::collect_with_target_dir(&manifest_path, target_dir)?;
+            let crate_metadata = CrateMetadata::collect_with_target_dir(
+                &manifest_path,
+                target_dir,
+                &BuildMode::Release,
+            )?;
             let host_folder = std::env::current_dir()?;
             let args = compose_build_args()?;
 
