@@ -382,8 +382,7 @@ mod tests {
 
     #[derive(Encode, Decode, TypeInfo, serde::Serialize, serde::Deserialize)]
     #[scale_info(replace_segment("env_check", "pallet_revive"))]
-    // the `wasm` here is because `pallet-revive` still uses that name for their module
-    #[scale_info(replace_segment("tests", "wasm"))]
+    #[scale_info(replace_segment("tests", "vm"))]
     #[scale_info(replace_segment("PalletRevive", "CodeInfo"))]
     pub struct PalletRevive {
         owner: EnvironmentType<AccountId32>,
