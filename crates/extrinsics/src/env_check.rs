@@ -179,7 +179,7 @@ pub fn compare_node_env_with_contract(
         verbosity,
         // we use `wasm` here, as that is what `pallet-revive` still uses as a name for
         // this module
-        vec!["pallet_revive", "wasm", "CodeInfo"],
+        vec!["pallet_revive", "vm", "CodeInfo"],
         "owner",
     )?;
     compare_if_possible(
