@@ -90,7 +90,7 @@ impl StorageCommand {
     where
         <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr + Decode,
         <<C as Config>::AccountId as FromStr>::Err:
-            Into<Box<(dyn std::error::Error)>> + Display,
+            Into<Box<dyn std::error::Error>> + Display,
         C::Balance: Serialize + IntoVisitor,
         HashFor<C>: IntoVisitor,
     {
