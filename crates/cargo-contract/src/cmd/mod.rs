@@ -126,7 +126,7 @@ pub struct CLIExtrinsicOpts {
     #[clap(short('x'), long)]
     execute: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the
-    /// storage. consumed.
+    /// storage consumed.
     #[clap(long)]
     storage_deposit_limit: Option<String>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
