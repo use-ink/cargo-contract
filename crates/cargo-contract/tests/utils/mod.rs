@@ -16,6 +16,8 @@
 
 use std::path::Path;
 
+pub mod node_proc;
+
 /// Create a `cargo contract` command
 pub fn cargo_contract<P: AsRef<Path>>(path: P) -> assert_cmd::Command {
     let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
