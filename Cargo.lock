@@ -1338,6 +1338,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core",
+ "sp-keyring",
  "sp-weights",
  "substrate-build-script-utils",
  "subxt",

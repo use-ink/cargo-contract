@@ -72,6 +72,8 @@ use predicates as _;
 #[cfg(test)]
 use regex as _;
 #[cfg(test)]
+use sp_keyring as _;
+#[cfg(test)]
 use tempfile as _;
 
 // Only used on windows.

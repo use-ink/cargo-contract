@@ -45,7 +45,6 @@ use subxt::{
     Config,
     OnlineClient,
 };
-//use contract_transcode::env_types::AccountId;
 
 /// Return the account data for an account ID.
 async fn get_account_balance<C: Config, E: Environment>(
