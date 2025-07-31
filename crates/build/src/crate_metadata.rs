@@ -124,8 +124,8 @@ impl CrateMetadata {
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
-        // Allows only the final build artifacts (e.g. contract binary, metadata e.t.c) to
-        // be placed in a separate directory from the "target" directory used by
+        // Allows the final build artifacts (e.g. contract binary, metadata e.t.c) to
+        // be placed in a separate directory from the "target" directory used for
         // intermediate build artifacts. This is also similar to `cargo`'s
         // currently unstable `--artifact-dir`, but it's only used internally
         // (at the moment).
@@ -137,10 +137,11 @@ impl CrateMetadata {
             artifact_directory = artifact_directory.join(contract_artifact_name.clone());
         }
 
-        // Adds ABI to target directory for intermediate build artifacts.
-        // This is necessary because the ABI is passed a `cfg` flag,
-        // and this ensures that `cargo` will compile all packages (including proc macros)
-        // for current ABI (similar to how it handles target triples).
+        // Adds ABI sub-folders to target directory for intermediate build artifacts.
+        // This is necessary because the ABI is passed as a `cfg` flag,
+        // and this ensures that `cargo` will recompile all packages (including proc
+        // macros) for current ABI (similar to how it handles profiles and target
+        // triples).
         target_directory.push("abi");
         target_directory.push(abi.unwrap_or_default().as_ref());
 
