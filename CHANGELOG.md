@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow setting target directory for contract builds - [#2063](https://github.com/use-ink/cargo-contract/pull/2063)
 - Include ABI declaration in new project template - [#2066](https://github.com/use-ink/cargo-contract/pull/2066)
 - Synchronized with `polkadot-sdk/cb629d46ebf00aa65624013a61f9c69ebf02b0b4` - [#2077](https://github.com/use-ink/cargo-contract/pull/2077)
+- ABI specific target directories for intermediate build artifacts - [#2089](https://github.com/use-ink/cargo-contract/pull/2089)
 
 ## [6.0.0-alpha]
 
