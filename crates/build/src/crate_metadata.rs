@@ -87,7 +87,7 @@ impl CrateMetadata {
         target_dir: Option<PathBuf>,
     ) -> Result<Self> {
         let (metadata, root_package) = get_cargo_metadata(manifest_path)?;
-        let target_directory = target_dir
+        let mut target_directory = target_dir
             .as_deref()
             .unwrap_or_else(|| metadata.target_directory.as_std_path())
             .join("ink");
@@ -124,12 +124,26 @@ impl CrateMetadata {
 
         let absolute_manifest_path = manifest_path.absolute_directory()?;
         let absolute_workspace_root = metadata.workspace_root.canonicalize()?;
+        // Allows the final build artifacts (e.g. contract binary, metadata e.t.c) to
+        // be placed in a separate directory from the "target" directory used for
+        // intermediate build artifacts. This is also similar to `cargo`'s
+        // currently unstable `--artifact-dir`, but it's only used internally
+        // (at the moment).
+        // Ref: <https://doc.rust-lang.org/cargo/commands/cargo-build.html#output-options>
         let mut artifact_directory = target_directory.clone();
         if absolute_manifest_path != absolute_workspace_root {
             // If the contract is a package in a workspace, we use the package name
             // as the name of the sub-folder where we put the `.contract` bundle.
             artifact_directory = artifact_directory.join(contract_artifact_name.clone());
         }
+
+        // Adds ABI sub-folders to target directory for intermediate build artifacts.
+        // This is necessary because the ABI is passed as a `cfg` flag,
+        // and this ensures that `cargo` will recompile all packages (including proc
+        // macros) for current ABI (similar to how it handles profiles and target
+        // triples).
+        target_directory.push("abi");
+        target_directory.push(abi.unwrap_or_default().as_ref());
 
         // {target_dir}/{target}/release/{contract_artifact_name}.{extension}
         let mut original_code = target_directory.clone();

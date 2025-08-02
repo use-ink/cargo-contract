@@ -99,8 +99,8 @@ pub fn generate<P: AsRef<Path>>(target_dir: P) -> Result<String> {
     exec_path_str.context("Failed to generate `rustc` wrapper")
 }
 
-/// Returns a list env vars required to set a custom `rustc` wrapper and ABI `cfg` flags
-/// (if necessary).
+/// Returns a list of env vars required to set a custom `rustc` wrapper
+/// and ABI `cfg` flags (if necessary).
 ///
 /// # Note
 ///
@@ -114,7 +114,7 @@ pub fn env_vars(crate_metadata: &CrateMetadata) -> Result<Option<EnvVars<'_>>> {
     if let Some(abi) = crate_metadata.abi {
         let rustc_wrapper = env::var("INK_RUSTC_WRAPPER")
             .context("Failed to retrieve `rustc` wrapper from environment")
-            .or_else(|_| generate(&crate_metadata.target_directory))?;
+            .or_else(|_| generate(&crate_metadata.artifact_directory))?;
         if env::var("INK_RUSTC_WRAPPER").is_err() {
             // SAFETY: The `rustc` wrapper is safe to reuse across all threads.
             env::set_var("INK_RUSTC_WRAPPER", &rustc_wrapper);
