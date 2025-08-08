@@ -40,7 +40,6 @@ use contract_metadata::{
     Contract,
     Source,
 };
-use ink_metadata::InkProject;
 use serde::{
     Deserialize,
     Serialize,
@@ -59,7 +58,7 @@ use crate::{
     code_hash,
 };
 
-// Re-exports abi utilities.
+// Re-exports ABI utilities.
 pub use self::abi::{
     abi_path,
     generate_abi,
@@ -179,7 +178,7 @@ impl SourceFile {
 ///
 /// Ref: <https://docs.soliditylang.org/en/latest/metadata.html>
 pub fn generate_metadata(
-    ink_project: &InkProject,
+    ink_project: &ink_metadata::sol::ContractMetadata,
     abi: JsonAbi,
     source: Source,
     contract: Contract,
@@ -216,7 +215,7 @@ pub fn generate_metadata(
 /// Get the path of the Solidity compatible contract metadata file.
 pub fn metadata_path(crate_metadata: &CrateMetadata) -> PathBuf {
     let metadata_file = format!("{}.json", crate_metadata.contract_artifact_name);
-    crate_metadata.target_directory.join(metadata_file)
+    crate_metadata.artifact_directory.join(metadata_file)
 }
 
 /// Writes a Solidity compatible metadata file.

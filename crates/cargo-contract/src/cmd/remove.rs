@@ -48,6 +48,7 @@ use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         scale_decode::IntoVisitor,
@@ -98,7 +99,7 @@ impl RemoveCommand {
             + IntoVisitor,
         <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
             From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
-        <C as Config>::Hash: IntoVisitor + EncodeAsType + From<[u8; 32]>,
+        HashFor<C>: IntoVisitor + EncodeAsType + From<[u8; 32]>,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
@@ -153,9 +154,9 @@ impl RemoveCommand {
                 "code_hash": code_hash,
             });
             let json_object = serde_json::to_string_pretty(&json_object)?;
-            println!("{}", json_object);
+            println!("{json_object}");
         } else {
-            println!("{}", output_events);
+            println!("{output_events}");
             name_value_println!("Code hash", format!("{code_hash:?}"));
         }
         Result::<(), ErrorVariant>::Ok(())

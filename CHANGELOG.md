@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]
 
+## [6.0.0-alpha.1]
+
+### Added
+- Support setting ABI in `Cargo.toml` and propagate ABI into build environment via `cfg` flag - [#2033](https://github.com/use-ink/cargo-contract/pull/2033)
+- Add `cargo contract test` subcommand - [#2034](https://github.com/use-ink/cargo-contract/pull/2034)
+- Show cost of mapping an address in `cargo-contract` prompt - [#1990](https://github.com/use-ink/cargo-contract/issues/1990)
+
+### Fixed
+- Fixed erroneous "[lib] name" warnings - [#2035](https://github.com/use-ink/cargo-contract/pull/2035)
+- Fix Solidity metadata generation for overloaded functions and events - [#2082](https://github.com/use-ink/cargo-contract/pull/2082)
+
+### Changed
+- Bump the version of `subxt` and `subxt-signer` - [#2036](https://github.com/use-ink/cargo-contract/pull/2036)
+- Add `--nocapture` flag to `cargo contract test` subcommand - [#2037](https://github.com/use-ink/cargo-contract/pull/2037)
+- Mark `rustc` wrapper crate as a non-member of any workspace - [#2038](https://github.com/use-ink/cargo-contract/pull/2038)
+- Reusable `rustc` wrapper - [#2039](https://github.com/use-ink/cargo-contract/pull/2039)
+- Validate metadata spec arg against specified ABI for contract build - [#2043](https://github.com/use-ink/cargo-contract/pull/2043)
+- Make metadata spec arg optional for contract build - [#2047](https://github.com/use-ink/cargo-contract/pull/2047)
+- Update Solidity metadata generation to support `SolEncode` and `SolDecode` implementing arbitrary types - [#2048](https://github.com/use-ink/cargo-contract/pull/2048)
+- Declare `ink_abi` as an expected `cfg` in new project `Cargo.toml` template - [#2058](https://github.com/use-ink/cargo-contract/pull/2058)
+- Allow setting target directory for contract builds - [#2063](https://github.com/use-ink/cargo-contract/pull/2063)
+- Include ABI declaration in new project template - [#2066](https://github.com/use-ink/cargo-contract/pull/2066)
+- Synchronized with `polkadot-sdk/cb629d46ebf00aa65624013a61f9c69ebf02b0b4` - [#2077](https://github.com/use-ink/cargo-contract/pull/2077)
+- ABI specific target directories for intermediate build artifacts - [#2089](https://github.com/use-ink/cargo-contract/pull/2089)
+
 ## [6.0.0-alpha]
 
 This is our first alpha release for `cargo-contract` v6. We release it together
@@ -119,20 +144,41 @@ of bugs in PolkaVM that prohibit us from using e.g. LTO. The contract sizes will
 get much smaller again, once those bugs are fixed.
 
 ### Linting
-Linting of a contract can be executed if set like this:
+Linting of a contract can be executed by running the `lint` command:
 
-```rust
-let args = ExecuteArgs {
-  skip_clippy_and_linting: true
-  ...
-};
-let res = contract_build::execute(args);
+```bash
+➜ cargo contract lint --help
+Lint a contract
+
+Usage: cargo contract lint [OPTIONS]
+
+Options:
+      --manifest-path <MANIFEST_PATH>
+          Path to the `Cargo.toml` of the contract to build
+
+      --quiet
+          No output printed to stdout
+
+      --verbose
+          Use verbose output
+
+      --extra-lints
+          Performs extra linting checks during the build process. Basic clippy lints are deemed important and run anyway.
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
-The linting can be quite slow, thus decreasing the feedback cycle if actively developing
-a contract. Right now it's still the default to lint when `cargo contract build` is
-invoked. We're actively thinking about not linting byt default, right now it's still
-on by default.
+Or can be executed programmatically:
+
+```rust
+let crate_metadata = CrateMetadata::collect(manifest_path)?;
+let verbosity = TryFrom::<&VerbosityFlags>::try_from(&self.verbosity)?;
+
+contract_build::lint(extra_lint, &crate_metadata, &verbosity);
+```
+
+Please see [#2013](https://github.com/use-ink/cargo-contract/pull/2013) for more information.
 
 ### Ability to generate Solidity metadata for a contract
 ink! v6 will have the ability to speak Solidity, you'll be able to integrate
@@ -154,6 +200,11 @@ Please see [#1930](https://github.com/use-ink/cargo-contract/pull/1930) for more
 ### Added
 - Add option to generate Solidity compatible metadata (via `cargo contract build ---metadata <ink|solidity>`) - [#1930](https://github.com/use-ink/cargo-contract/pull/1930)
 - Deny overflowing (and lossy) integer type cast operations - [#1895](https://github.com/use-ink/cargo-contract/pull/1895)
+- Remove linting by default, `--skip-linting` and `--lint` flag in `cargo contract build` and add a new command `lint` - [#2013](https://github.com/use-ink/cargo-contract/pull/2013)
+
+### Fixed
+
+- Resolved verifiable-build image failures within `release-verifiable-image` workflow - [#2018](https://github.com/use-ink/cargo-contract/pull/2018)
 
 ## [5.0.1]
 

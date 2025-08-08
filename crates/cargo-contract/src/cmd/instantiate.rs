@@ -54,6 +54,7 @@ use contract_extrinsics::{
     pallet_revive_primitives::StorageDeposit,
 };
 use ink_env::Environment;
+use num_traits::Zero;
 use serde::Serialize;
 use sp_core::Bytes;
 use std::{
@@ -68,12 +69,12 @@ use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
         scale_encode::EncodeAsType,
-        sp_runtime::traits::Zero,
     },
     utils::H160,
 };
@@ -140,7 +141,7 @@ impl InstantiateCommand {
             From<u128> + Display + Default + FromStr + Serialize + Debug + EncodeAsType,
         <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
             From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
-        <C as Config>::Hash: From<[u8; 32]> + IntoVisitor + EncodeAsType,
+        HashFor<C>: From<[u8; 32]> + IntoVisitor + EncodeAsType,
     {
         let signer = C::Signer::from_str(&self.extrinsic_cli_opts.suri)
             .map_err(|_| anyhow::anyhow!("Failed to parse suri option"))?;
@@ -271,7 +272,7 @@ async fn pre_submit_dry_run_gas_estimate_instantiate<
 where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + Display + Decode,
-    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    HashFor<C>: IntoVisitor + EncodeAsType,
     C::Balance: Serialize + Debug + EncodeAsType + Zero,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
@@ -373,7 +374,7 @@ pub async fn display_result<C: Config + Environment + SignerConfig<C>>(
 ) -> Result<(), ErrorVariant>
 where
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
-    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    HashFor<C>: IntoVisitor + EncodeAsType,
     C::Balance: Serialize + From<u128> + Display + EncodeAsType,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,
@@ -413,7 +414,7 @@ pub fn print_default_instantiate_preview<C: Config + Environment + SignerConfig<
 ) where
     C::Signer: subxt::tx::Signer<C> + Clone,
     <C as Config>::AccountId: IntoVisitor + EncodeAsType + Display + Decode,
-    <C as Config>::Hash: IntoVisitor + EncodeAsType,
+    HashFor<C>: IntoVisitor + EncodeAsType,
     C::Balance: Serialize + EncodeAsType + Display,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
         From<<DefaultExtrinsicParams<C> as ExtrinsicParams<C>>::Params>,

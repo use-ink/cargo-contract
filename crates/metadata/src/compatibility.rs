@@ -76,13 +76,12 @@ pub fn check_contract_ink_compatibility(
         // Get required ink! versions
         let ink_required_versions = ink_req
             .iter()
-            .map(|req| format!("'{}'", req))
+            .map(|req| format!("'{req}'"))
             .collect::<Vec<_>>()
             .join(", ");
 
         let ink_update_message = format!(
-            "change the ink! version of your contract to {}",
-            ink_required_versions
+            "change the ink! version of your contract to {ink_required_versions}",
         );
         let contract_not_compatible_message = "This version of cargo-contract is not \
                                                     compatible with the contract's ink! version.";
@@ -168,7 +167,7 @@ mod tests {
         assert!(res.is_ok());
 
         let ink_version =
-            Version::parse("6.0.0-alpha").expect("Parsing version must work");
+            Version::parse("6.0.0-alpha.1").expect("Parsing version must work");
         let res = check_contract_ink_compatibility(&ink_version, None);
         assert!(res.is_ok());
     }

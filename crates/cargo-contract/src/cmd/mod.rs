@@ -24,10 +24,12 @@ pub mod decode;
 pub mod encode;
 pub mod info;
 pub mod instantiate;
+pub mod lint;
 pub mod remove;
 pub mod rpc;
 pub mod schema;
 pub mod storage;
+pub mod test_cmd;
 pub mod upload;
 pub mod verify;
 
@@ -44,6 +46,7 @@ pub(crate) use self::{
         InfoCommand,
     },
     instantiate::InstantiateCommand,
+    lint::LintCommand,
     prod_chains::ProductionChain,
     remove::RemoveCommand,
     rpc::RpcCommand,
@@ -52,6 +55,7 @@ pub(crate) use self::{
         VerifySchemaCommand,
     },
     storage::StorageCommand,
+    test_cmd::TestCommand,
     upload::UploadCommand,
     verify::VerifyCommand,
 };
@@ -122,7 +126,7 @@ pub struct CLIExtrinsicOpts {
     #[clap(short('x'), long)]
     execute: bool,
     /// The maximum amount of balance that can be charged from the caller to pay for the
-    /// storage. consumed.
+    /// storage consumed.
     #[clap(long)]
     storage_deposit_limit: Option<String>,
     /// Before submitting a transaction, do not dry-run it via RPC first.
@@ -296,9 +300,13 @@ where
     let map_exec: MapAccountExec<C, C, _> =
         MapAccountCommandBuilder::new(extrinsic_opts).done().await?;
     let result = map_exec.map_account_dry_run().await;
-    if result.is_ok() {
+    if let Ok(partial_fee_estimation) = result {
         let reply = prompt_confirm_mapping(|| {
-            // todo print additional information about the costs of mapping an account
+            name_value_println!(
+                "Estimated fee",
+                format!("{:?}", partial_fee_estimation),
+                DEFAULT_KEY_COL_WIDTH
+            );
         });
         if reply.is_ok() {
             let res = map_exec.map_account().await?;
@@ -366,7 +374,7 @@ pub fn basic_display_format_extended_contract_info<Balance>(
 
 /// Display all contracts addresses in a formatted way
 pub fn display_all_contracts(contracts: &[H160]) {
-    contracts.iter().for_each(|e: &H160| println!("{:?}", e))
+    contracts.iter().for_each(|e: &H160| println!("{e:?}"))
 }
 
 /// Parse a balance from string format
@@ -417,16 +425,15 @@ where
 pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
     println!("{}", "Confirm upload:".bright_white().bold());
     let warning = format!(
-        "Warning: You are about to upload unverifiable code to {} mainnet.\n\
+        "Warning: You are about to upload unverifiable code to {chain} mainnet.\n\
         A third party won't be able to confirm that your uploaded contract binary blob \
         matches a particular contract source code.\n\n\
         You can use `cargo contract build --verifiable` to make the contract verifiable.\n\
-        See https://use.ink/basics/contract-verification for more info.",
-        chain
+        See https://use.ink/basics/contract-verification for more info."
     )
     .bold()
     .yellow();
-    print!("{}", warning);
+    print!("{warning}");
     println!(
         "{} ({}): ",
         "\nContinue?".bright_white().bold(),
@@ -446,50 +453,38 @@ pub fn prompt_confirm_unverifiable_upload(chain: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use subxt::{
-        Config,
+        config::HashFor,
         SubstrateConfig,
     };
-
-    use super::*;
 
     #[test]
     fn parse_code_hash_works() {
         // with 0x prefix
-        assert!(
-            parse_code_hash::<<SubstrateConfig as Config>::Hash>(
-                "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-            )
-            .is_ok()
-        );
-        // without 0x prefix
-        assert!(
-            parse_code_hash::<<SubstrateConfig as Config>::Hash>(
-                "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-            )
-            .is_ok()
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
+            "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
         )
+        .is_ok());
+        // without 0x prefix
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        ).is_ok());
     }
 
     #[test]
     fn parse_incorrect_len_code_hash_fails() {
         // with len not equal to 32
-        assert!(
-            parse_code_hash::<<SubstrateConfig as Config>::Hash>(
-                "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
-            )
-            .is_err()
-        )
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
+            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2"
+        ).is_err());
     }
 
     #[test]
     fn parse_bad_format_code_hash_fails() {
         // with bad format
-        assert!(
-            parse_code_hash::<<SubstrateConfig as Config>::Hash>(
-                "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-            )
-            .is_err()
-        )
+        assert!(parse_code_hash::<HashFor<SubstrateConfig>>(
+            "x43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+        ).is_err());
     }
 }

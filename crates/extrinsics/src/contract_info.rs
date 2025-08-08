@@ -33,6 +33,7 @@ use subxt::{
     Config,
     OnlineClient,
     backend::legacy::LegacyRpcMethods,
+    config::HashFor,
     dynamic::DecodedValueThunk,
     ext::{
         scale_decode::{
@@ -44,7 +45,6 @@ use subxt::{
     storage::dynamic,
     utils::H160,
 };
-//use contract_transcode::env_types::AccountId;
 
 /// Return the account data for an account ID.
 async fn get_account_balance<C: Config, E: Environment>(
@@ -86,7 +86,7 @@ pub async fn fetch_mapped_account<C: Config, E: Environment>(
 ) -> Result<C::AccountId>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
     E::Balance: IntoVisitor,
 {
     let mut raw_account_id = [0xEE; 32];
@@ -103,7 +103,7 @@ pub async fn resolve_h160<C: Config, E: Environment>(
 ) -> Result<C::AccountId>
 where
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
     E::Balance: IntoVisitor,
 {
     let best_block = get_best_block(rpc).await?;
@@ -137,7 +137,7 @@ pub async fn fetch_contract_info<C: Config, E: Environment>(
     client: &OnlineClient<C>,
 ) -> Result<ContractInfo<E::Balance>>
 where
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
     C::AccountId: AsRef<[u8]> + Display + IntoVisitor + Decode,
     E::Balance: IntoVisitor,
 {

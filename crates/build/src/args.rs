@@ -150,11 +150,11 @@ impl Target {
         // Instead of a target literal we use a JSON file with a more complex
         // target configuration here. The path to the file is passed for the
         // `rustc --target` argument. We write this file to the `target/` folder.
-        let target_dir = crate_metadata.target_directory.to_string_lossy();
-        let path = format!("{}/{POLKAVM_TARGET_NAME}.json", target_dir);
+        let target_dir = crate_metadata.artifact_directory.to_string_lossy();
+        let path = format!("{target_dir}/{POLKAVM_TARGET_NAME}.json");
         if !Path::exists(Path::new(&path)) {
-            fs::create_dir_all(&crate_metadata.target_directory).unwrap_or_else(|e| {
-                panic!("unable to create target dir {:?}: {:?}", target_dir, e)
+            fs::create_dir_all(&crate_metadata.artifact_directory).unwrap_or_else(|e| {
+                panic!("unable to create target dir {target_dir:?}: {e:?}")
             });
             let mut file = File::create(&path).unwrap();
             file.write_all(POLKAVM_TARGET_JSON_64_BIT.as_bytes())
@@ -259,10 +259,16 @@ pub struct Features {
     features: Vec<String>,
 }
 
+impl From<Vec<String>> for Features {
+    fn from(features: Vec<String>) -> Self {
+        Self { features }
+    }
+}
+
 impl Features {
     /// Appends a feature.
-    pub fn push(&mut self, feature: &str) {
-        self.features.push(feature.to_owned())
+    pub fn push(&mut self, feature: String) {
+        self.features.push(feature)
     }
 
     /// Appends the raw features args to pass through to the `cargo` invocation.

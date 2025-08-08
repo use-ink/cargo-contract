@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+pub mod rustc_wrapper;
 #[cfg(test)]
 pub mod tests;
 
@@ -26,13 +27,16 @@ use std::{
 };
 use term_size as _;
 
-// Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
+/// Returns the current Rust toolchain formatted by `<channel>-<target-triple>`.
 pub fn rust_toolchain() -> Result<String> {
     let meta = rustc_version::version_meta()?;
     let toolchain = format!("{:?}-{}", meta.channel, meta.host,).to_lowercase();
 
     Ok(toolchain)
 }
+
+/// Convenience type alias for a list of env vars.
+pub(crate) type EnvVars<'env> = Vec<(&'env str, Option<String>)>;
 
 /// Builds an [`Expression`] for invoking `cargo`.
 ///
@@ -47,7 +51,7 @@ pub fn cargo_cmd<I, S, P>(
     args: I,
     working_dir: Option<P>,
     verbosity: Verbosity,
-    env: Vec<(&str, Option<String>)>,
+    env: EnvVars,
 ) -> Expression
 where
     I: IntoIterator<Item = S> + std::fmt::Debug,

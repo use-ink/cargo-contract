@@ -28,9 +28,11 @@ use self::cmd::{
     GenerateSchemaCommand,
     InfoCommand,
     InstantiateCommand,
+    LintCommand,
     RemoveCommand,
     RpcCommand,
     StorageCommand,
+    TestCommand,
     UploadCommand,
     VerifyCommand,
     VerifySchemaCommand,
@@ -48,15 +50,15 @@ use clap::{
 use cmd::encode::EncodeCommand;
 use colored::Colorize;
 use contract_build::{
-    OutputType,
     util::DEFAULT_KEY_COL_WIDTH,
+    Abi,
+    OutputType,
 };
 use contract_extrinsics::InstantiateExec;
 use sp_weights::Weight;
 use std::{
     fmt::Debug,
     path::PathBuf,
-    str::FromStr,
 };
 use tokio::runtime::Runtime;
 // These crates are only used when we run integration tests `--features
@@ -69,6 +71,8 @@ use assert_cmd as _;
 use predicates as _;
 #[cfg(test)]
 use regex as _;
+#[cfg(test)]
+use sp_keyring as _;
 #[cfg(test)]
 use tempfile as _;
 
@@ -94,17 +98,6 @@ pub(crate) struct ContractArgs {
     cmd: Command,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub(crate) struct HexData(pub Vec<u8>);
-
-impl FromStr for HexData {
-    type Err = hex::FromHexError;
-
-    fn from_str(input: &str) -> std::result::Result<Self, Self::Err> {
-        hex::decode(input).map(HexData)
-    }
-}
-
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Setup and create a new smart contract project
@@ -115,6 +108,9 @@ enum Command {
         /// The optional target directory for the contract project
         #[clap(short, long, value_parser)]
         target_dir: Option<PathBuf>,
+        /// The ABI specification for the contract project
+        #[clap(long, default_value = "ink")]
+        abi: Option<Abi>,
     },
     /// Compiles the contract, generates metadata, bundles both together in a
     /// `<name>.contract` file
@@ -164,6 +160,12 @@ enum Command {
     /// Make a raw RPC call.
     #[clap(name = "rpc")]
     Rpc(RpcCommand),
+    /// Lint a contract
+    #[clap(name = "lint")]
+    Lint(LintCommand),
+    /// Execute all unit and integration tests and build examples.
+    #[clap(name = "test")]
+    Test(TestCommand),
 }
 
 fn main() {
@@ -183,8 +185,12 @@ fn main() {
 fn exec(cmd: Command) -> Result<()> {
     let runtime = Runtime::new().expect("Failed to create Tokio runtime");
     match &cmd {
-        Command::New { name, target_dir } => {
-            contract_build::new_contract_project(name, target_dir.as_ref())?;
+        Command::New {
+            name,
+            target_dir,
+            abi,
+        } => {
+            contract_build::new_contract_project(name, target_dir.as_ref(), *abi)?;
             println!("Created contract {name}");
             Ok(())
         }
@@ -260,7 +266,7 @@ fn exec(cmd: Command) -> Result<()> {
         }
         Command::GenerateSchema(generate) => {
             let result = generate.run().map_err(format_err)?;
-            println!("{}", result);
+            println!("{result}");
             Ok(())
         }
         Command::VerifySchema(verify) => {
@@ -276,6 +282,8 @@ fn exec(cmd: Command) -> Result<()> {
         Command::Rpc(rpc) => {
             runtime.block_on(async { rpc.run().await.map_err(format_err) })
         }
+        Command::Lint(lint) => lint.run().map_err(format_err),
+        Command::Test(test) => test.run().map_err(format_err),
     }
 }
 

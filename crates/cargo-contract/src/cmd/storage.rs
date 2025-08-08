@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with cargo-contract.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::{
+    parse_account,
+    CLIChainOpts,
+};
 use crate::call_with_config;
 use anyhow::Result;
 use colored::Colorize;
@@ -36,16 +40,11 @@ use std::{
     str::FromStr,
 };
 use subxt::{
-    Config,
+    config::HashFor,
     ext::{
         codec::Decode,
         scale_decode::IntoVisitor,
     },
-};
-
-use super::{
-    CLIChainOpts,
-    parse_account,
 };
 
 #[derive(Debug, clap::Args)]
@@ -90,9 +89,9 @@ impl StorageCommand {
     where
         <C as Config>::AccountId: Display + IntoVisitor + AsRef<[u8]> + FromStr + Decode,
         <<C as Config>::AccountId as FromStr>::Err:
-            Into<Box<(dyn std::error::Error)>> + Display,
+            Into<Box<dyn std::error::Error>> + Display,
         C::Balance: Serialize + IntoVisitor,
-        <C as Config>::Hash: IntoVisitor,
+        HashFor<C>: IntoVisitor,
     {
         let rpc =
             ContractStorageRpc::<C>::new(&self.chain_cli_opts.chain().url()).await?;

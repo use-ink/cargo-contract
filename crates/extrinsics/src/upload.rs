@@ -41,6 +41,7 @@ use subxt::{
     config::{
         DefaultExtrinsicParams,
         ExtrinsicParams,
+        HashFor,
     },
     ext::{
         scale_decode::IntoVisitor,
@@ -112,7 +113,7 @@ pub struct UploadExec<C: Config, E: Environment, Signer: Clone> {
 
 impl<C: Config, E: Environment, Signer> UploadExec<C, E, Signer>
 where
-    C::Hash: IntoVisitor,
+    HashFor<C>: IntoVisitor,
     C::AccountId: IntoVisitor,
     E::Balance: IntoVisitor + EncodeAsType,
     <C::ExtrinsicParams as ExtrinsicParams<C>>::Params:
